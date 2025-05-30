@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "tradetaper",
+  "private_key_id": "0d6af85589fe5dc622e32c383b0755fabb557d14",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQDMF/uPn2KnM4T7\n02UFPzWjpe7Fxo/XqVOSmc0xu8ouH7+kvzaDO+NmQQHVEOnfBlcZ0N5paq5klQMJ\ngtQpxYqDhS4pkgvoeKhntgha8tOEdXW1sBSc1zNB+ilshHwtbgox1unxfSceCzBg\naI/OXwncpQGE6OInthjyy7GPQzd+mytQeGdQ7SD7cTswfVo67k49FfUQKPcfR6pF\n7xcxJii9PTGG8+ypctpCKtwcFohQrwS9OmHL6U2dI82s7s1t6U30S+OFkqayiRrd\nvwt3RgiTS6R98Gkn4t0A1InsdvEgMqw07pnZOghfdct+ndKF0xgqmOFPhzqAapTC\nnn15YtR7AgMBAAECggEAF1RwfajvCoThoTW3eQOSOpw3sKTzgWgKNRpesd4xDNe1\nPPxcm2DHrEMnFfeCfGuJnlpZajx3JelAuSAa55F8tW8OaVMYCGFugrh0uQzD8ALL\nS1MO8CTLZ7HUdWKpnTnUcYELKf8v7wfBZmvdcG49vtqf01UZsQdoT6zIJcO9vruC\nzpjHq7j73zOc6yulzjHtm6JoyfBNPJ8WHpcgdnf1FEJ3ChK7bxULwmPzgSldXQ3S\nta9mPfc0g2LAKs4tEoZ81+4JOIIdCR0sIka9rZ6aBygFaq7r3y7KJf7Eh7I1X8Gx\nIjwpHcaIDyOMOAUIUTFlTTsPMP8SxeLh6YCicds+RQKBgQDrcRf/w9tgosYc1Re9\nOZFoNYyF8HoML0JEo00eVvcJRAgW51tY5thiHwRnAElSMVKol50kMe1jLCIw8E6I\n6izy06Om1FvJVWFpc0AFXDg9hLkdG+F2okidpraawHNXe3C9EtwhsCyhGGzKb2Y8\n9T5IZ41ry3ncVDltNzOfY07+pQKBgQDd6ienE6r1ZGPU4J1MKNuZI+HJ33QrgiE4\n0AWZUi6XdhRFgg/jgcv5EhdXBCi0zRXNftEQpxug0IrYbvmzOaYQLIk85VC24N05\nQG9Fp0T1fWQEppzyjXCDFqFGEp22uabJxLiaGGwvbzwlwgfrdzOGHeVcH8Pn4y2X\nIyyKG9Q8nwKBgGrD+0URdO8KgVpby4sUivq9pb6rQT07RQrJHtSOTTIXdq+kNIlJ\nDYDZXe6zc4xhL4GiVzEtrt+VCOA2aPavcrie/oxNql3PaQAfsj18B0jmYedwWDqq\n9tD+47mjYeqe4I3s+oQQVvyqjdLy12L3N0owIzJpsBYY333GVZOGvjC9AoGAZXNr\n51T1fjQD88kwACZZplwiGBEg4dce6wMm3B4XEMU5pUE9lEu9fUOJCg3rsiRkCEsm\nts8+sTlFkIbDfu0m/xPtNbq8OK76U/ciJ5y9yOEnPX0SGU0SF8vbtNZD5cpf9rQJ\nlOD/bHwU6koXJs2a74BxX7lh7XwNVqAM96KbV48CgYByTs9u1PwiUcX7zepyyL7b\nShulp4DGL1QDQ5vyRY9H2L9beHFnWfNxDB1wpOZwfKlCGszg1SEAtjjZe+aYsB3v\n6+1MT2Kz9dAdKjffUPAQ5bTc9vOt8VfrXdXXhH1HUC6aGXQMvRrL+nBOCTWdL7cb\nXKKONKYvT5p26BTpl6CjQg==\n-----END PRIVATE KEY-----\n",
+  "client_email": "tradetaperimageuploader@tradetaper.iam.gserviceaccount.com",
+  "client_id": "102459760304364716399",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/tradetaperimageuploader%40tradetaper.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}
