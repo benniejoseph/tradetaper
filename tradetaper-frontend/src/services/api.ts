@@ -1,0 +1,46 @@
+// src/services/api.ts
+import axios from 'axios';
+import { AppDispatch, RootState } from '@/store/store'; // To get the token from Redux state
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3000/api/v1';
+
+// Default instance for public routes
+export const apiClient = axios.create({
+  baseURL: API_BASE_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+// Instance for authenticated routes
+export const authApiClient = axios.create({
+  baseURL: API_BASE_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+export function setupAuthInterceptors(getState: () => RootState, dispatch?: AppDispatch) { // dispatch is optional
+    authApiClient.interceptors.request.use(
+        (config) => {
+            const token = getState().auth.token;
+            if (token) {
+                config.headers.Authorization = `Bearer ${token}`;
+            }
+            return config;
+        },
+        (error) => Promise.reject(error)
+    );
+
+    authApiClient.interceptors.response.use(
+        (response) => response,
+        (error) => {
+            if (error.response && error.response.status === 401) {
+                console.log('Unauthorized from interceptor...');
+                // if (dispatch) dispatch(logoutAction()); // Example
+            }
+            return Promise.reject(error);
+        }
+    );
+    console.log('[API.TS] Auth interceptors configured.');
+}
