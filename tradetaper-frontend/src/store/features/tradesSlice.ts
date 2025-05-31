@@ -41,12 +41,20 @@ const initialState: TradesState = {
 };
 
 // Async Thunks for API calls
-export const fetchTrades = createAsyncThunk<Trade[], void, { rejectValue: string }>(
+export const fetchTrades = createAsyncThunk<
+  Trade[], 
+  string | undefined, // <-- Updated: accountId is optional string
+  { rejectValue: string }
+>(
   'trades/fetchTrades',
-  async (_, { rejectWithValue }) => {
+  async (accountId, { rejectWithValue }) => { // <-- Updated: accountId parameter
     try {
-      const response = await authApiClient.get<Trade[]>('/trades');
-      console.log('Raw fetchTrades from API:', response.data);
+      let url = '/trades';
+      if (accountId) {
+        url += `?accountId=${accountId}`; // Append accountId as query param if provided
+      }
+      const response = await authApiClient.get<Trade[]>(url);
+      console.log(`Raw fetchTrades from API (accountId: ${accountId || 'all'}):`, response.data);
       return response.data;
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || error.message || 'Failed to fetch trades');

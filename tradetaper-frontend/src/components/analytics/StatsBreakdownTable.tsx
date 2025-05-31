@@ -6,9 +6,10 @@ import { FaSort, FaSortUp, FaSortDown } from 'react-icons/fa'; // For sort icons
 
 // Helper for sort icons
 const SortIcon = ({ direction }: { direction: 'asc' | 'desc' | null }) => {
-  if (direction === 'asc') return <FaSortUp className="inline ml-1" />;
-  if (direction === 'desc') return <FaSortDown className="inline ml-1" />;
-  return <FaSort className="inline ml-1 text-gray-500" />; // Default sort icon
+  if (direction === 'asc') return <FaSortUp className="inline ml-1 text-accent-green" />;
+  if (direction === 'desc') return <FaSortDown className="inline ml-1 text-accent-green" />;
+  // Themed default sort icon
+  return <FaSort className="inline ml-1 text-[var(--color-text-dark-secondary)] dark:text-text-light-secondary opacity-70" />;
 };
 
 
@@ -69,7 +70,7 @@ const StatsBreakdownTable = ({ title, data, groupingKeyHeader = "Group" }: Stats
 
 
   if (!data || data.length === 0) {
-    return <p className="text-gray-400 text-center py-4">No data to display for {title.toLowerCase()}.</p>;
+    return <p className="text-center py-4 text-[var(--color-text-dark-secondary)] dark:text-text-light-secondary">No data to display for {title.toLowerCase()}.</p>;
   }
 
   // Define headers with their sort key
@@ -85,19 +86,29 @@ const StatsBreakdownTable = ({ title, data, groupingKeyHeader = "Group" }: Stats
     { key: 'maxDrawdown', label: 'Max Drawdown', isNumeric: true },
   ];
 
+  // Define themed classes
+  const tableContainerClasses = "overflow-x-auto rounded-lg shadow-lg dark:shadow-card-modern bg-[var(--color-light-primary)] dark:bg-dark-secondary border border-[var(--color-light-border)] dark:border-gray-700";
+  const tableClasses = "min-w-full divide-y divide-[var(--color-light-border)] dark:divide-gray-700";
+  const tableHeadClasses = "bg-[var(--color-light-secondary)] dark:bg-dark-primary";
+  const tableHeaderCellClasses = "px-4 py-3 text-xs font-medium text-[var(--color-text-dark-primary)] dark:text-text-light-primary uppercase tracking-wider cursor-pointer hover:bg-[var(--color-light-hover)] dark:hover:bg-gray-700 transition-colors";
+  const tableBodyClasses = "divide-y divide-[var(--color-light-border)] dark:divide-gray-700";
+  const tableRowEvenClasses = "bg-[var(--color-light-primary)] dark:bg-dark-secondary";
+  const tableRowOddClasses = "bg-[var(--color-light-secondary)] dark:bg-dark-primary"; // Slightly different for zebra
+  const tableRowHoverClasses = "hover:bg-[var(--color-light-hover)] dark:hover:bg-gray-700 transition-colors";
+  const tableCellDefaultText = "text-[var(--color-text-dark-primary)] dark:text-text-light-primary";
+  const tableCellSecondaryText = "text-[var(--color-text-dark-secondary)] dark:text-text-light-secondary";
 
   return (
-    <div className="bg-gray-800 p-4 md:p-6 rounded-lg shadow-xl mb-8">
-      <h2 className="text-xl font-semibold text-gray-200 mb-4">{title}</h2>
-      <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-700">
-          <thead className="bg-gray-750">
+    <div className="w-full">
+      <div className={tableContainerClasses}>
+        <table className={tableClasses}>
+          <thead className={tableHeadClasses}>
             <tr>
               {headers.map((header) => (
                 <th
                   key={header.key}
                   scope="col"
-                  className={`px-4 py-3 text-xs font-medium text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-700 ${header.isNumeric ? 'text-right' : 'text-left'}`}
+                  className={`${tableHeaderCellClasses} ${header.isNumeric ? 'text-right' : 'text-left'}`}
                   onClick={() => requestSort(header.key)}
                 >
                   {header.label}
@@ -106,22 +117,25 @@ const StatsBreakdownTable = ({ title, data, groupingKeyHeader = "Group" }: Stats
               ))}
             </tr>
           </thead>
-          <tbody className="bg-gray-800 divide-y divide-gray-700">
-            {sortedData.map((item) => (
-              <tr key={item.tag} className="hover:bg-gray-750 transition-colors">
-                <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-100">{item.tag}</td>
-                <td className={`px-4 py-3 whitespace-nowrap text-sm text-right ${item.totalNetPnl >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+          <tbody className={tableBodyClasses}>
+            {sortedData.map((item, index) => (
+              <tr 
+                key={item.tag} 
+                className={`${index % 2 === 0 ? tableRowEvenClasses : tableRowOddClasses} ${tableRowHoverClasses}`}
+              >
+                <td className={`px-4 py-3 whitespace-nowrap text-sm font-medium ${tableCellDefaultText}`}>{item.tag}</td>
+                <td className={`px-4 py-3 whitespace-nowrap text-sm text-right ${item.totalNetPnl >= 0 ? 'text-accent-green' : 'text-accent-red'}`}>
                   {item.totalNetPnl.toFixed(2)}
                 </td>
-                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-300 text-right">{item.closedTrades}</td>
-                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-300 text-right">{item.winRate.toFixed(2)}%</td>
-                <td className="px-4 py-3 whitespace-nowrap text-sm text-green-400 text-right">{item.averageWin.toFixed(2)}</td>
-                <td className="px-4 py-3 whitespace-nowrap text-sm text-red-400 text-right">{item.averageLoss.toFixed(2)}</td>
-                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-300 text-right">{item.profitFactor.toFixed(2)}</td>
-                <td className={`px-4 py-3 whitespace-nowrap text-sm text-right ${item.expectancy >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                <td className={`px-4 py-3 whitespace-nowrap text-sm text-right ${tableCellSecondaryText}`}>{item.closedTrades}</td>
+                <td className={`px-4 py-3 whitespace-nowrap text-sm text-right ${tableCellSecondaryText}`}>{item.winRate.toFixed(2)}%</td>
+                <td className="px-4 py-3 whitespace-nowrap text-sm text-accent-green text-right">{item.averageWin.toFixed(2)}</td>
+                <td className="px-4 py-3 whitespace-nowrap text-sm text-accent-red text-right">{item.averageLoss.toFixed(2)}</td>
+                <td className={`px-4 py-3 whitespace-nowrap text-sm text-right ${tableCellSecondaryText}`}>{item.profitFactor.toFixed(2)}</td>
+                <td className={`px-4 py-3 whitespace-nowrap text-sm text-right ${item.expectancy >= 0 ? 'text-accent-green' : 'text-accent-red'}`}>
                     {item.expectancy.toFixed(2)}
                 </td>
-                <td className="px-4 py-3 whitespace-nowrap text-sm text-red-400 text-right">{item.maxDrawdown.toFixed(2)}%</td>
+                <td className="px-4 py-3 whitespace-nowrap text-sm text-accent-red text-right">{item.maxDrawdown.toFixed(2)}%</td>
               </tr>
             ))}
           </tbody>
