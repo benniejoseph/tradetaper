@@ -18,9 +18,17 @@ interface BreakdownPieChartProps {
   valueFormatter?: (value: number) => string;
 }
 
-const COLORS = [
-    '#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8',
-    '#82ca9d', '#ffc658', '#FF5733', '#C70039', '#900C3F'
+const THEME_COLORS = [
+  'var(--color-accent-green)',        // Main accent
+  '#05AFF2',                          // Bright Blue
+  '#F2B705',                          // Yellow/Orange
+  '#F25C05',                          // Orange/Red
+  '#7005F2',                          // Purple
+  'var(--color-accent-green-darker)', // Darker Accent
+  '#038FC7',                          // Medium Blue (slightly darker than Bright Blue)
+  '#D9A404',                          // Darker Yellow (slightly darker than Yellow/Orange)
+  '#8C3F5B',                          // Muted Purple/Rose
+  '#4A9D8C',                          // Tealish Green
 ];
 
 // renderActiveShape now accepts valueFormatter as part of its props if we want to pass it explicitly
@@ -40,7 +48,7 @@ const renderActiveShape = (props: any, formatter: (value: number) => string) => 
 
     return (
         <g>
-        <text x={cx} y={cy} dy={8} textAnchor="middle" fill={fill} fontWeight="bold">
+        <text x={cx} y={cy} dy={8} textAnchor="middle" fill={'var(--color-text-light-primary)'} fontWeight="bold">
             {payload.name}
         </text>
         <Sector
@@ -50,7 +58,7 @@ const renderActiveShape = (props: any, formatter: (value: number) => string) => 
             outerRadius={outerRadius}
             startAngle={startAngle}
             endAngle={endAngle}
-            fill={fill}
+            fill={fill} // This 'fill' comes from the THEME_COLORS
         />
         <Sector
             cx={cx}
@@ -59,12 +67,12 @@ const renderActiveShape = (props: any, formatter: (value: number) => string) => 
             endAngle={endAngle}
             innerRadius={outerRadius + 6}
             outerRadius={outerRadius + 10}
-            fill={fill}
+            fill={fill} // This 'fill' comes from the THEME_COLORS
         />
         <path d={`M${sx},${sy}L${mx},${my}L${ex},${ey}`} stroke={fill} fill="none" />
         <circle cx={ex} cy={ey} r={2} fill={fill} stroke="none" />
-        <text x={ex + (cos >= 0 ? 1 : -1) * 12} y={ey} textAnchor={textAnchor} fill="#ccc">{`${formatter(value)}`}</text> {/* Use formatter here */}
-        <text x={ex + (cos >= 0 ? 1 : -1) * 12} y={ey} dy={18} textAnchor={textAnchor} fill="#999">
+        <text x={ex + (cos >= 0 ? 1 : -1) * 12} y={ey} textAnchor={textAnchor} fill="var(--color-text-light-secondary)">{`${formatter(value)}`}</text> {/* Use formatter here */}
+        <text x={ex + (cos >= 0 ? 1 : -1) * 12} y={ey} dy={18} textAnchor={textAnchor} fill="var(--color-text-light-secondary)" opacity={0.8}>
             {`(Rate: ${(percent * 100).toFixed(2)}%)`}
         </text>
         </g>
@@ -99,56 +107,56 @@ const BreakdownPieChart = ({
 
   if (!pieData || pieData.length === 0) {
     return (
-        <div className="bg-gray-800 p-4 md:p-6 rounded-lg shadow-xl mb-8">
-            <h2 className="text-xl font-semibold text-gray-200 mb-6 text-center">{title}</h2>
-            <p className="text-gray-400 text-center py-10">No positive data to display for {title.toLowerCase()} pie chart.</p>
+        <div className="w-full text-center py-10">
+             <p className="text-text-light-secondary">No positive data to display for {title ? title.toLowerCase() : 'this chart'}.</p>
         </div>
     );
   }
 
-  // Create a specific activeShape renderer that closes over valueFormatter from props
   const activeShapeRenderer = (props: any) => renderActiveShape(props, valueFormatter);
 
   return (
-    <div className="bg-gray-800 p-4 md:p-6 rounded-lg shadow-xl mb-8">
-      <h2 className="text-xl font-semibold text-gray-200 mb-6 text-center">{title}</h2>
+    <div className="w-full">
       <ResponsiveContainer width="100%" height={400}>
         <PieChart>
           <Pie
             activeIndex={activeIndex}
-            activeShape={activeShapeRenderer} // Use the new renderer
+            activeShape={activeShapeRenderer}
             data={pieData}
             cx="50%"
             cy="50%"
             labelLine={false}
             outerRadius={120}
             innerRadius={70}
-            fill="#8884d8"
+            fill="var(--color-accent-green)" // Default fill, overridden by Cells
             dataKey="value"
             onMouseEnter={onPieEnter}
             onMouseLeave={onPieLeave}
-            // valueFormatter prop removed from here
           >
             {pieData.map((entry, index) => (
-              <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+              <Cell key={`cell-${index}`} fill={THEME_COLORS[index % THEME_COLORS.length]} />
             ))}
           </Pie>
           <Tooltip
-            formatter={(value: number, name: string, props: any) => { // props type can be more specific if needed
-                const formattedValue = valueFormatter(value); // Use valueFormatter here
+            formatter={(value: number, name: string, props: any) => {
+                const formattedValue = valueFormatter(value);
                 const percentage = props.payload && typeof props.payload.percent === 'number'
                     ? `(${(props.payload.percent * 100).toFixed(1)}%)`
                     : '';
-                return [formattedValue, name, percentage];
+                // Ensure the name (label) also uses a themed color if not derived from payload directly
+                // The props.payload.name is usually what's displayed as the primary label in tooltip.
+                // The `name` argument to formatter is the dataKey for the value, not the label.
+                return [formattedValue, props.payload?.name || name, percentage];
             }}
-            contentStyle={{ backgroundColor: '#2D3748', border: 'none', borderRadius: '0.5rem' }}
-            labelStyle={{ color: '#E2E8F0' }}
+            contentStyle={{ backgroundColor: 'var(--color-dark-secondary)', border: '1px solid var(--color-gray-700)', borderRadius: '0.375rem' }}
+            labelStyle={{ color: 'var(--color-text-light-primary)', fontWeight: '600' }}
+            itemStyle={{ color: 'var(--color-text-light-secondary)' }} // For the value part of the tooltip line if not customized by formatter
           />
           <Legend
             layout="horizontal"
             verticalAlign="bottom"
             align="center"
-            wrapperStyle={{ color: '#A0AEC0', paddingTop: '20px' }}
+            wrapperStyle={{ color: 'var(--color-text-light-secondary)', paddingTop: '20px' }}
           />
         </PieChart>
       </ResponsiveContainer>

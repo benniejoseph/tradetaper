@@ -35,7 +35,10 @@ export interface DashboardStats {
   profitFactor: number;
   expectancy: number;
   maxDrawdown: number;
-  averageRMultiple?: number;
+  currentBalance: number;
+  averageRR: number;
+  largestWin: number;
+  largestLoss: number;
 }
 
 // This interface is generic for any breakdown where 'tag' is the grouping key
@@ -88,6 +91,10 @@ export function calculateDashboardStats(trades: Trade[]): DashboardStats {
   let sumOfWins = 0;
   let sumOfLosses = 0;
   const pnlSeriesForDrawdown: number[] = [];
+  let sumOfRMultiples = 0;
+  let countOfRMultiples = 0;
+  let largestWin = 0;
+  let largestLoss = 0;
 
   closedTrades.forEach(trade => {
     const pnl = trade.profitOrLoss!;
@@ -96,18 +103,36 @@ export function calculateDashboardStats(trades: Trade[]): DashboardStats {
     totalNetPnl += pnl;
     totalCommissions += trade.commission || 0;
 
-    if (pnl > 0) { winningTrades++; sumOfWins += pnl; }
-    else if (pnl < 0) { losingTrades++; sumOfLosses += pnl; }
-    else { breakevenTrades++; }
+    if (pnl > 0) { 
+      winningTrades++; 
+      sumOfWins += pnl;
+      if (pnl > largestWin) largestWin = pnl;
+    } else if (pnl < 0) { 
+      losingTrades++; 
+      sumOfLosses += pnl; 
+      if (pnl < largestLoss) largestLoss = pnl; // largestLoss will be negative
+    } else { 
+      breakevenTrades++; 
+    }
+
+    if (trade.rMultiple !== undefined && trade.rMultiple !== null) {
+      sumOfRMultiples += trade.rMultiple;
+      countOfRMultiples++;
+    }
   });
 
   const totalClosedTradesWithPnl = winningTrades + losingTrades + breakevenTrades;
   const winRateDecimal = totalClosedTradesWithPnl > 0 ? (winningTrades / totalClosedTradesWithPnl) : 0;
   const lossRateDecimal = totalClosedTradesWithPnl > 0 ? (losingTrades / totalClosedTradesWithPnl) : 0;
   const averageWin = winningTrades > 0 ? sumOfWins / winningTrades : 0;
-  const averageLoss = losingTrades > 0 ? sumOfLosses / losingTrades : 0;
+  const averageLoss = losingTrades > 0 ? sumOfLosses / losingTrades : 0; // This will be negative
   const expectancy = (winRateDecimal * averageWin) - (lossRateDecimal * Math.abs(averageLoss));
-  const maxDrawdown = calculateMaxDrawdownFromPnlSeries(pnlSeriesForDrawdown); // Calculate Max Drawdown
+  const maxDrawdown = calculateMaxDrawdownFromPnlSeries(pnlSeriesForDrawdown);
+  const averageRR = countOfRMultiples > 0 ? sumOfRMultiples / countOfRMultiples : 0;
+  
+  // Assuming currentBalance starts from 0 and is affected by P&L.
+  // If an initial account balance is tracked, it should be: initialBalance + totalNetPnl.
+  const currentBalance = totalNetPnl; 
 
   return {
     totalTrades: trades.length,
@@ -121,10 +146,14 @@ export function calculateDashboardStats(trades: Trade[]): DashboardStats {
     winRate: winRateDecimal * 100,
     lossRate: lossRateDecimal * 100,
     averageWin,
-    averageLoss,
+    averageLoss, // Remains negative or zero
     profitFactor: sumOfLosses !== 0 ? Math.abs(sumOfWins / sumOfLosses) : (sumOfWins > 0 ? Infinity : 0),
     expectancy,
     maxDrawdown,
+    currentBalance, // Added
+    averageRR,      // Added
+    largestWin,     // Added
+    largestLoss,    // Added
   };
 }
 

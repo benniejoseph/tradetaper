@@ -2,12 +2,14 @@
 import { configureStore } from '@reduxjs/toolkit';
 import authReducer from './features/authSlice';
 import tradesReducer from './features/tradesSlice';
+import accountReducer from './features/accountSlice';
 import { setupAuthInterceptors } from '@/services/api';
 
 export const store = configureStore({
   reducer: {
-    auth:authReducer,
+    auth: authReducer,
     trades: tradesReducer,
+    accounts: accountReducer,
   },
 });
 

@@ -1,10 +1,11 @@
 // src/app/layout.tsx
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+// import { Inter } from "next/font/google"; // Removed Inter
 import "./globals.css";
 import StoreProvider from "@/store/StoreProvider"; // Adjust path
+import { ThemeProvider } from "@/context/ThemeContext"; // Added ThemeProvider
 
-const inter = Inter({ subsets: ["latin"] });
+// const inter = Inter({ subsets: ["latin"] }); // Removed Inter
 
 export const metadata: Metadata = {
   title: "Trade Taper",
@@ -17,10 +18,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body className={`${inter.className} bg-gray-900`} data-new-gr-c-s-check-loaded="14.1235.0" data-gr-ext-installed="">
+    <html lang="en">{/* The 'dark' class will be applied here by ThemeProvider */}
+      {/* Removed inter.className and default bg from body, handled by globals.css and ThemeProvider */}
+      <body> 
         <StoreProvider>
-          {children}
+          <ThemeProvider>
+            {children}
+          </ThemeProvider>
         </StoreProvider>
       </body>
     </html>

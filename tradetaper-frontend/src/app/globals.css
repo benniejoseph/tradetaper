@@ -1,26 +1,146 @@
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@100;300;400;500;600;700&display=swap');
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+/* 
+  CSS Custom Properties (Variables) for the theme.
+  These can be used in tailwind.config.js for consistency or directly in CSS if needed.
+*/
 
-@media (prefers-color-scheme: dark) {
+@layer base {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --color-dark-primary: #0D0F10;
+    --color-dark-secondary: #1A1D1F;
+    --color-accent-green: #05F2AF;
+    --color-accent-green-rgb: 5, 242, 175; /* Added for react-select option focus */
+    --color-accent-green-darker: #04D99B;
+    --color-accent-red: #FF4D4D;
+    --color-text-light-primary: #E0E0E0;
+    --color-text-light-secondary: #A0A4A8;
+    --color-gray-700: #374151; /* approx from old theme, good for borders */
+    --color-gray-600: #4B5563; /* approx from old theme, good for hover borders */
+
+    /* Light Theme Colors */
+    --color-light-primary: #FFFFFF;
+    --color-light-secondary: #F0F2F5; /* Slightly off-white for secondary bg */
+    --color-text-dark-primary: #121212; /* Darker text for light mode */
+    --color-text-dark-secondary: #555555; /* Medium gray for secondary text */
+    --color-light-border: #D1D5DB; /* Light gray for borders in light mode */
+    --color-light-hover: #E5E7EB; /* Lighter gray for hover states in light mode */
   }
+
+  html {
+    /* Default to light mode variables */
+    background-color: var(--color-light-primary);
+    color: var(--color-text-dark-primary);
+    font-family: 'Poppins', sans-serif;
+    font-weight: 300; 
+  }
+
+  html.dark {
+    /* Dark mode overrides */
+    background-color: var(--color-dark-primary);
+    color: var(--color-text-light-primary);
+  }
+  
+  body {
+    @apply transition-colors duration-300 ease-in-out; /* Smooth theme transition */
+  }
+
+  /* Make thin text a bit more legible if needed, or specific elements can use heavier weights */
+  h1, h2, h3, h4, h5, h6 {
+    font-weight: 500; /* Medium for headings */
+  }
+
+  /* You can add more base styles here if needed */
+  /* For example, consistent link styling if not handled by components directly */
+  /* a {
+    @apply text-accent-green hover:text-accent-green-darker transition-colors;
+  } */
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* Example of a custom utility if needed, though not directly for theming here */
+/* @layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+} */
+
+/* Styles for react-calendar-heatmap */
+.react-calendar-heatmap text {
+  font-size: 0.6rem; /* Smaller font for month/day labels */
+  fill: var(--color-text-dark-secondary); /* Default text color for labels */
+}
+
+.react-calendar-heatmap .color-empty {
+  fill: var(--color-light-hover); /* Light mode empty cell */
+}
+
+html.dark .react-calendar-heatmap text {
+  fill: var(--color-text-light-secondary);
+}
+
+html.dark .react-calendar-heatmap .color-empty {
+  fill: var(--color-gray-700); /* Dark mode empty cell - a bit darker than secondary */
+}
+
+/* Green scale for positive P&L */
+.react-calendar-heatmap .color-scale-green-1 {
+  fill: #A6F7E2; /* Lighter green */
+}
+.react-calendar-heatmap .color-scale-green-2 {
+  fill: #6BF2CB;
+}
+.react-calendar-heatmap .color-scale-green-3 {
+  fill: #30EDA4;
+}
+.react-calendar-heatmap .color-scale-green-4 {
+  fill: var(--color-accent-green); /* Full accent green for highest intensity */
+}
+
+/* Red scale for negative P&L */
+.react-calendar-heatmap .color-scale-red-1 {
+  fill: #FFB8B8; /* Lighter red */
+}
+.react-calendar-heatmap .color-scale-red-2 {
+  fill: #FF8F8F;
+}
+.react-calendar-heatmap .color-scale-red-3 {
+  fill: #FF6666;
+}
+.react-calendar-heatmap .color-scale-red-4 {
+  fill: var(--color-accent-red); /* Full accent red for highest intensity */
+}
+
+/* Neutral scale for breakeven days with trades (optional, or use empty) */
+/* Using a light gray/blueish tint for neutral */
+.react-calendar-heatmap .color-scale-neutral-1 {
+  fill: #D1E8FF; /* Lighter neutral */
+}
+.react-calendar-heatmap .color-scale-neutral-2 {
+  fill: #A8D5FF;
+}
+.react-calendar-heatmap .color-scale-neutral-3 {
+  fill: #7FC1FF;
+}
+.react-calendar-heatmap .color-scale-neutral-4 {
+  fill: #56ADFF; /* Darker neutral */
+}
+
+/* Ensure tooltips have a higher z-index if needed, though react-tooltip usually handles this */
+.custom-tooltip-style {
+  z-index: 1000 !important; /* Ensure tooltip is on top */
+  /* Other custom styles are applied via Tailwind in the component */
+}
+
+/* Override default rect hover styles from react-calendar-heatmap if needed */
+.react-calendar-heatmap rect:hover {
+  stroke: var(--color-text-dark-primary);
+  stroke-width: 1px;
+}
+
+html.dark .react-calendar-heatmap rect:hover {
+  stroke: var(--color-text-light-primary);
 }
