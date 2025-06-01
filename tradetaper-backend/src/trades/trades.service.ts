@@ -101,7 +101,7 @@ export class TradesService {
     userContext: UserResponseDto,
   ): Promise<Trade> {
     this.logger.log(
-      `User ${userContext.id} creating trade for symbol ${createTradeDto.symbol}`,
+      `User ${userContext.id} creating trade for symbol ${createTradeDto.symbol}, account ${createTradeDto.accountId || 'default'}`,
     );
 
     const { tagNames, ...tradeDetails } = createTradeDto;
@@ -112,10 +112,10 @@ export class TradesService {
 
     const trade = this.tradesRepository.create({
       ...tradeDetails,
-      entryDate: new Date(createTradeDto.entryDate), // Ensure conversion
+      entryDate: new Date(createTradeDto.entryDate),
       exitDate: createTradeDto.exitDate
         ? new Date(createTradeDto.exitDate)
-        : undefined, // Ensure conversion
+        : undefined,
       userId: userContext.id,
       tags: resolvedTags,
     });
@@ -126,11 +126,20 @@ export class TradesService {
 
   async findAll(
     userContext: UserResponseDto,
+    accountId?: string,
     options?: FindManyOptions<Trade>,
   ): Promise<Trade[]> {
-    this.logger.log(`User ${userContext.id} fetching all their trades`);
+    this.logger.log(
+      `User ${userContext.id} fetching all their trades, account: ${accountId || 'all'}`,
+    );
+    const whereClause: FindManyOptions<Trade>['where'] = {
+      userId: userContext.id,
+    };
+    if (accountId) {
+      whereClause.accountId = accountId;
+    }
     return this.tradesRepository.find({
-      where: { userId: userContext.id },
+      where: whereClause,
       relations: ['tags'],
       order: { entryDate: 'DESC' },
       ...options,
@@ -139,16 +148,26 @@ export class TradesService {
 
   async findOne(id: string, userContext: UserResponseDto): Promise<Trade> {
     this.logger.log(`User ${userContext.id} fetching trade with ID ${id}`);
-    const trade = await this.tradesRepository.findOne({
-      where: { id, userId: userContext.id },
-      relations: ['tags'],
-    });
-    if (!trade) {
+    try {
+      const trade = await this.tradesRepository
+        .createQueryBuilder('trade')
+        .leftJoinAndSelect('trade.tags', 'tag')
+        .where('trade.id = :id', { id })
+        .andWhere('trade.userId = :userId', { userId: userContext.id })
+        .getOneOrFail();
+      return trade;
+    } catch (error: any) {
+      let errorMessage = 'Unknown error';
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+      this.logger.error(
+        `Error fetching trade with ID ${id} for user ${userContext.id}: ${errorMessage}`,
+      );
       throw new NotFoundException(
         `Trade with ID "${id}" not found or does not belong to user.`,
       );
     }
-    return trade;
   }
 
   async update(
@@ -170,31 +189,24 @@ export class TradesService {
     const { tagNames, entryDate, exitDate, ...otherDetailsToUpdate } =
       updateTradeDto;
 
-    // Construct partialUpdateData carefully, converting dates immediately
-    const partialUpdateData: Partial<Trade> = { ...otherDetailsToUpdate }; // Spread non-date, non-tag fields
+    const partialUpdateData: Partial<Trade> = { ...otherDetailsToUpdate };
 
     if (entryDate !== undefined) {
-      // Check if entryDate was actually provided in the DTO
       partialUpdateData.entryDate = new Date(entryDate);
     }
     if (exitDate !== undefined) {
-      // Check if exitDate was actually provided
       partialUpdateData.exitDate =
-        exitDate === null ? undefined : new Date(exitDate); // Handle explicit null to clear date
+        exitDate === null ? undefined : new Date(exitDate);
     } else if (
       Object.prototype.hasOwnProperty.call(updateTradeDto, 'exitDate') &&
       exitDate === null
     ) {
-      // This case is covered by the above, allowing exitDate to be cleared by sending null
       partialUpdateData.exitDate = undefined;
     }
 
-    // Merge simple properties
     this.tradesRepository.merge(trade, partialUpdateData);
 
-    // Handle tags
     if (tagNames !== undefined) {
-      // Only update tags if tagNames array is explicitly passed
       trade.tags = await this.findOrCreateTags(tagNames, userContext.id);
     }
 

@@ -24,4 +24,7 @@ build/
 .idea/
 .vscode/
 *.swp
-*.swo 
+*.swo
+
+# Google Cloud credentials
+tradetaper-*.json 

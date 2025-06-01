@@ -25,23 +25,28 @@ export class AuthService {
     return null;
   }
 
-  async login(user: User): Promise<{ accessToken: string; user: UserResponseDto }> {
+  async login(
+    user: User,
+  ): Promise<{ accessToken: string; user: UserResponseDto }> {
     // The 'user' object here comes from LocalStrategy.validate, which has already stripped the password.
     // However, for the JWT payload, we prefer to use the ID and email from the validated user.
     const validatedUser = await this.usersService.findOneByEmail(user.email); // Re-fetch to be sure
-    if (!validatedUser) throw new UnauthorizedException('Error during login process');
+    if (!validatedUser)
+      throw new UnauthorizedException('Error during login process');
 
-
-    const payload: JwtPayload = { email: validatedUser.email, sub: validatedUser.id };
+    const payload: JwtPayload = {
+      email: validatedUser.email,
+      sub: validatedUser.id,
+    };
     const accessToken = this.jwtService.sign(payload);
 
     const userResponse: UserResponseDto = {
-        id: validatedUser.id,
-        email: validatedUser.email,
-        firstName: validatedUser.firstName,
-        lastName: validatedUser.lastName,
-        createdAt: validatedUser.createdAt,
-        updatedAt: validatedUser.updatedAt,
+      id: validatedUser.id,
+      email: validatedUser.email,
+      firstName: validatedUser.firstName,
+      lastName: validatedUser.lastName,
+      createdAt: validatedUser.createdAt,
+      updatedAt: validatedUser.updatedAt,
     };
 
     return {
