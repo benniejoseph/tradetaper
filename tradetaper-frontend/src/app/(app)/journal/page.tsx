@@ -18,6 +18,8 @@ import { useRouter } from 'next/navigation'; // For navigation on edit
 import { parseISO, isAfter, isBefore, subMonths, subWeeks, subDays, endOfDay, isValid, format, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns'; // Added/Ensured date-fns imports, added isValid and format
 import DatePicker from "react-datepicker"; // Import DatePicker
 import "react-datepicker/dist/react-datepicker.css"; // Import CSS
+import { applyAllFilters } from '@/utils/tradeFilters'; // Import new filter utility
+import { useDebounce } from '@/hooks/useDebounce'; // Import debounce hook
 
 // Placeholder components - to be created
 // const TradePreviewDrawer = ({ trade, isOpen, onClose }) => null; 
@@ -43,101 +45,26 @@ export default function JournalPage() {
   const [pickerEndDate, setPickerEndDate] = useState<Date | null>(null);
   const [showOnlyStarred, setShowOnlyStarred] = useState(false); // New state for starred filter
 
+  // Debounced search query to reduce filtering frequency
+  const debouncedSearchQuery = useDebounce(searchQuery, 300); // 300ms delay
+
   useEffect(() => {
     if (isAuthenticated) {
       dispatch(fetchTrades(selectedAccountId || undefined)); 
     }
   }, [dispatch, isAuthenticated, selectedAccountId]);
 
+  // Optimized filtering using the utility function with debounced search
   const filteredTrades = useMemo(() => {
-    let tradesToFilter = allTrades;
-
-    // 1. Filter by selected account (already done if fetchTrades is account-specific, but good for client-side consistency)
-    if (selectedAccountId) {
-        tradesToFilter = tradesToFilter.filter(trade => trade.accountId === selectedAccountId);
-    }
-    
-    // 2. Apply position filter (Open/Closed/All)
-    if (activePositionFilter === 'open') {
-      tradesToFilter = tradesToFilter.filter(trade => trade.status === TradeStatus.OPEN);
-    } else if (activePositionFilter === 'closed') {
-      tradesToFilter = tradesToFilter.filter(trade => trade.status === TradeStatus.CLOSED);
-    }
-
-    // 3. Apply active time filter (1m, 7d, 1d, all)
-    const now = new Date();
-    let cutOffDate: Date | null = null;
-
-    switch (activeTimeFilter) {
-      case '1m':
-        cutOffDate = subMonths(now, 1);
-        break;
-      case '7d':
-        cutOffDate = subWeeks(now, 1);
-        break;
-      case '1d': // Trades within the last 24 hours
-        cutOffDate = subDays(now, 1);
-        break;
-      case 'all':
-      default:
-        cutOffDate = null; 
-        break;
-    }
-
-    if (cutOffDate) {
-      tradesToFilter = tradesToFilter.filter(trade => {
-        if (!trade.entryDate) return false;
-        try {
-          const entryD = parseISO(trade.entryDate);
-          return isValid(entryD) && isAfter(entryD, cutOffDate!);
-        } catch {
-          return false; 
-        }
-      });
-    }
-
-    // 4. Apply custom date range filter (from calendar picker - placeholder logic)
-    // This should ideally override or work with activeTimeFilter if a custom range is set.
-    // For now, let's assume if customDateRange.from is set, it takes precedence or is an AND condition.
-    if (customDateRange.from) {
-      tradesToFilter = tradesToFilter.filter(trade => {
-        if (!trade.entryDate) return false;
-        try {
-          const entryD = parseISO(trade.entryDate);
-          return isValid(entryD) && !isBefore(entryD, customDateRange.from!);
-        } catch { return false; }
-      });
-    }
-    if (customDateRange.to) {
-      tradesToFilter = tradesToFilter.filter(trade => {
-        if (!trade.entryDate) return false;
-        try {
-          const entryD = parseISO(trade.entryDate);
-          const toDateEndOfDay = endOfDay(customDateRange.to!); 
-          return isValid(entryD) && !isAfter(entryD, toDateEndOfDay);
-        } catch { return false; }
-      });
-    }
-    
-    // 5. Apply search query filter
-    if (searchQuery.trim() !== '') {
-      const lowerSearchQuery = searchQuery.toLowerCase();
-      tradesToFilter = tradesToFilter.filter(trade => 
-        trade.symbol.toLowerCase().includes(lowerSearchQuery) ||
-        (trade.notes && trade.notes.toLowerCase().includes(lowerSearchQuery)) ||
-        (trade.setupDetails && trade.setupDetails.toLowerCase().includes(lowerSearchQuery))
-        // Add other fields to search if needed (e.g., tags, account name after mapping)
-      );
-    }
-
-    // 6. Apply starred filter
-    if (showOnlyStarred) {
-      tradesToFilter = tradesToFilter.filter(trade => trade.isStarred === true);
-    }
-
-    return tradesToFilter.sort((a, b) => new Date(b.entryDate).getTime() - new Date(a.entryDate).getTime()); // Sort by newest first
-
-  }, [allTrades, selectedAccountId, activePositionFilter, activeTimeFilter, customDateRange, searchQuery, showOnlyStarred]); // Added showOnlyStarred to dependencies
+    return applyAllFilters(allTrades, {
+      accountId: selectedAccountId,
+      positionFilter: activePositionFilter,
+      timeFilter: activeTimeFilter,
+      customDateRange,
+      searchQuery: debouncedSearchQuery, // Use debounced search query
+      showOnlyStarred
+    });
+  }, [allTrades, selectedAccountId, activePositionFilter, activeTimeFilter, customDateRange, debouncedSearchQuery, showOnlyStarred]); // Updated dependency
 
   const headerStats = useMemo(() => {
     if (!filteredTrades || filteredTrades.length === 0) {

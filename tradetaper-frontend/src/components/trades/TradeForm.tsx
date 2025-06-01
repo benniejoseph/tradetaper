@@ -14,11 +14,12 @@ import { AppDispatch, RootState } from '@/store/store';
 import { createTrade, updateTrade } from '@/store/features/tradesSlice';
 import { selectSelectedAccountId, selectAvailableAccounts } from '@/store/features/accountSlice';
 import { authApiClient } from '@/services/api'; // To make direct API call for file upload
+import { useTheme } from '@/context/ThemeContext'; // Import useTheme
+import { validateTradeData, getFieldError, ValidationError } from '@/utils/tradeValidation'; // Import validation utilities
 
 import CreatableSelect from 'react-select/creatable';
 import { ActionMeta, MultiValue, OnChangeValue, StylesConfig } from 'react-select';
 import { FaUpload, FaTimesCircle, FaCalculator, FaSave, FaPaperPlane } from 'react-icons/fa'; // Added icons
-import { useTheme } from '@/context/ThemeContext'; // Import useTheme
 
 interface TagOption {
   readonly label: string;
@@ -61,6 +62,9 @@ export default function TradeForm({ initialData, isEditMode = false, onFormSubmi
   const selectedAccountIdFromStore = useSelector(selectSelectedAccountId);
   const availableAccounts = useSelector(selectAvailableAccounts);
   const { theme } = useTheme(); // Get current theme for dynamic styles
+
+  // Add validation state
+  const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
 
   // --- THEME HELPER CLASSES ---
   const labelClasses = "block text-sm font-medium text-[var(--color-text-dark-secondary)] dark:text-text-light-secondary mb-1";
@@ -237,6 +241,27 @@ export default function TradeForm({ initialData, isEditMode = false, onFormSubmi
     e.preventDefault();
     setFormError(null);
     setUploadError(null);
+    setValidationErrors([]); // Clear previous validation errors
+
+    // Client-side validation
+    const validationResult = validateTradeData({
+      ...formData,
+      assetType: formData.assetType as AssetType,
+      symbol: formData.symbol as string,
+      direction: formData.direction as TradeDirection,
+      entryDate: formData.entryDate as string,
+      entryPrice: formData.entryPrice as number,
+      quantity: formData.quantity as number,
+      tagNames: selectedTags.map(tagOption => tagOption.value),
+      isStarred: formData.isStarred,
+    });
+
+    if (!validationResult.isValid) {
+      setValidationErrors(validationResult.errors);
+      setFormError('Please fix the validation errors below.');
+      return;
+    }
+
     let finalImageUrl = (formData as UpdateTradePayload).imageUrl || '';
 
     if (selectedFile) {
@@ -397,6 +422,18 @@ export default function TradeForm({ initialData, isEditMode = false, onFormSubmi
     return 'text-accent-red';
   };
 
+  // Helper function to render field validation errors
+  const renderFieldError = (fieldName: string) => {
+    const error = getFieldError(validationErrors, fieldName);
+    if (!error) return null;
+    
+    return (
+      <p className="mt-1 text-sm text-accent-red">
+        {error}
+      </p>
+    );
+  };
+
   const buttonBaseClasses = "w-full sm:w-auto flex items-center justify-center space-x-2 px-6 py-3 font-semibold rounded-lg transition-all duration-150 ease-in-out shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-opacity-70";
   const primaryButtonClasses = `bg-accent-green hover:bg-accent-green-darker text-dark-primary focus:ring-accent-green focus:ring-offset-2 focus:ring-offset-[var(--color-light-secondary)] dark:focus:ring-offset-dark-primary`;
   const secondaryButtonClasses = 
@@ -451,6 +488,7 @@ export default function TradeForm({ initialData, isEditMode = false, onFormSubmi
             <div>
               <label htmlFor="symbol" className={labelClasses}>Symbol / Pair <span className="text-accent-red">*</span></label>
               <input type="text" id="symbol" name="symbol" value={formData.symbol} onChange={handleChange} required placeholder="e.g., AAPL, EURUSD, BTCUSDT" className={themedInputClasses} />
+              {renderFieldError('symbol')}
             </div>
             <div>
               <label htmlFor="direction" className={labelClasses}>Direction <span className="text-accent-red">*</span></label>
@@ -487,22 +525,27 @@ export default function TradeForm({ initialData, isEditMode = false, onFormSubmi
             <div>
               <label htmlFor="entryDate" className={labelClasses}>Entry Date & Time <span className="text-accent-red">*</span></label>
               <input type="datetime-local" id="entryDate" name="entryDate" value={formData.entryDate} onChange={handleChange} required className={themedInputClasses} />
+              {renderFieldError('entryDate')}
             </div>
             <div>
               <label htmlFor="entryPrice" className={labelClasses}>Entry Price <span className="text-accent-red">*</span></label>
               <input type="number" id="entryPrice" name="entryPrice" value={formData.entryPrice || ''} onChange={handleChange} required placeholder="0.00" step="any" className={themedInputClasses} />
+              {renderFieldError('entryPrice')}
             </div>
             <div>
               <label htmlFor="exitDate" className={labelClasses}>Exit Date & Time</label>
               <input type="datetime-local" id="exitDate" name="exitDate" value={formData.exitDate || ''} onChange={handleChange} className={themedInputClasses} />
+              {renderFieldError('exitDate')}
             </div>
             <div>
               <label htmlFor="exitPrice" className={labelClasses}>Exit Price</label>
               <input type="number" id="exitPrice" name="exitPrice" value={formData.exitPrice || ''} onChange={handleChange} placeholder="0.00" step="any" className={themedInputClasses} />
+              {renderFieldError('exitPrice')}
             </div>
             <div>
               <label htmlFor="quantity" className={labelClasses}>Quantity / Size <span className="text-accent-red">*</span></label>
               <input type="number" id="quantity" name="quantity" value={formData.quantity || ''} onChange={handleChange} required placeholder="e.g., 100, 0.01" step="any" className={themedInputClasses} />
+              {renderFieldError('quantity')}
             </div>
             <div>
               <label htmlFor="commission" className={labelClasses}>Commission</label>
@@ -518,10 +561,12 @@ export default function TradeForm({ initialData, isEditMode = false, onFormSubmi
                 <div>
                     <label htmlFor="stopLoss" className={labelClasses}>Stop Loss</label>
                     <input type="number" id="stopLoss" name="stopLoss" value={formData.stopLoss || ''} onChange={handleChange} placeholder="0.00" step="any" className={themedInputClasses} />
+                    {renderFieldError('stopLoss')}
                 </div>
                 <div>
                     <label htmlFor="takeProfit" className={labelClasses}>Take Profit</label>
                     <input type="number" id="takeProfit" name="takeProfit" value={formData.takeProfit || ''} onChange={handleChange} placeholder="0.00" step="any" className={themedInputClasses} />
+                    {renderFieldError('takeProfit')}
                 </div>
                 <div>
                     <label htmlFor="quantity" className={labelClasses}>Quantity / Size <span className="text-accent-red">*</span></label>
