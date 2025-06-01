@@ -33,6 +33,33 @@ export enum TradeStatus {
   OPEN = 'Open',
   CLOSED = 'Closed',
   PENDING = 'Pending', // For planned trades
+  CANCELLED = 'Cancelled', // ADDED from frontend type
+}
+
+// ADDED ICTConcept Enum
+export enum ICTConcept {
+  FVG = 'Fair Value Gap',
+  ORDER_BLOCK = 'Order Block',
+  BREAKER_BLOCK = 'Breaker Block',
+  MITIGATION_BLOCK = 'Mitigation Block',
+  LIQUIDITY_GRAB = 'Liquidity Grab (BSL/SSL)',
+  LIQUIDITY_VOID = 'Liquidity Void',
+  SILVER_BULLET = 'Silver Bullet',
+  JUDAS_SWING = 'Judas Swing',
+  SMT_DIVERGENCE = 'SMT Divergence',
+  POWER_OF_THREE = 'Power of Three (AMD)',
+  OPTIMAL_TRADE_ENTRY = 'Optimal Trade Entry (OTE)',
+  MARKET_STRUCTURE_SHIFT = 'Market Structure Shift (MSS)',
+  OTHER = 'Other',
+}
+
+// ADDED TradingSession Enum
+export enum TradingSession {
+  LONDON = 'London',
+  NEW_YORK = 'New York',
+  ASIA = 'Asia',
+  LONDON_NY_OVERLAP = 'London-NY Overlap',
+  OTHER = 'Other',
 }
 
 @Entity('trades')
@@ -50,6 +77,12 @@ export class Trade {
 
   @Column()
   userId: string; // Foreign key storage
+
+  @Column({ type: 'varchar', length: 255, nullable: true }) // Added accountId
+  accountId?: string;
+
+  @Column({ type: 'boolean', nullable: true, default: false }) // New field for starring trades
+  isStarred?: boolean;
 
   @Column({
     type: 'enum',
@@ -109,8 +142,8 @@ export class Trade {
   @Column('decimal', { precision: 10, scale: 4, nullable: true })
   rMultiple?: number; // Risk-Reward Multiple
 
-  @Type(() => Number)
   // Fields for planned Stop Loss / Take Profit
+  @Type(() => Number)
   @Column('decimal', { precision: 19, scale: 8, nullable: true })
   stopLoss?: number;
 
@@ -118,8 +151,26 @@ export class Trade {
   @Column('decimal', { precision: 19, scale: 8, nullable: true })
   takeProfit?: number;
 
-  @Column({ type: 'varchar', length: 255, nullable: true }) // Or 'text' if longer
-  strategyTag?: string; // For a single primary strategy or comma-separated simple tags
+  // strategiaTag was removed, this section is placeholder for its previous location.
+  // It was previously defined as:
+  // @Column({ type: 'varchar', length: 255, nullable: true })
+  // strategyTag?: string;
+
+  // ADDED ictConcept Column
+  @Column({
+    type: 'enum',
+    enum: ICTConcept,
+    nullable: true, // Make it optional
+  })
+  ictConcept?: ICTConcept;
+
+  // ADDED session Column
+  @Column({
+    type: 'enum',
+    enum: TradingSession,
+    nullable: true, // Make it optional
+  })
+  session?: TradingSession;
 
   @Column('text', { nullable: true })
   setupDetails?: string; // Notes about the trade setup/rationale
@@ -134,6 +185,7 @@ export class Trade {
   imageUrl?: string; // For an external image URL
 
   // NEW: Many-to-Many relationship with Tag
+  @Type(() => Tag)
   @ManyToMany(() => Tag, (tag) => tag.trades, { cascade: ['insert'] }) // Allow inserting new tags when creating/updating trade
   @JoinTable({
     // This will create the trade_tags_tag join table

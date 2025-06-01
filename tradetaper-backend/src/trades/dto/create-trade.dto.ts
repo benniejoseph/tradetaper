@@ -13,11 +13,14 @@ import {
   IsArray,
   ArrayNotEmpty,
   ArrayMinSize,
+  IsBoolean,
 } from 'class-validator';
 import {
   AssetType,
   TradeDirection,
   TradeStatus,
+  ICTConcept,
+  TradingSession,
 } from '../entities/trade.entity';
 
 export class CreateTradeDto {
@@ -81,9 +84,12 @@ export class CreateTradeDto {
   takeProfit?: number;
 
   @IsOptional()
-  @IsString()
-  @MaxLength(255)
-  strategyTag?: string;
+  @IsEnum(ICTConcept)
+  ictConcept?: ICTConcept;
+
+  @IsOptional()
+  @IsEnum(TradingSession)
+  session?: TradingSession;
 
   @IsOptional()
   @IsString()
@@ -107,6 +113,14 @@ export class CreateTradeDto {
   @IsString({ each: true }) // Each item in the array must be a string
   @ArrayMinSize(0) // Allow empty array, or 1 if at least one tag is required
   tagNames?: string[]; // Frontend will send an array of tag names
+
+  @IsOptional()
+  @IsString()
+  accountId?: string;
+
+  @IsOptional()
+  @IsBoolean() // Added for isStarred
+  isStarred?: boolean;
 
   // profitOrLoss and rMultiple will typically be calculated by the backend, not provided by client on create
 }

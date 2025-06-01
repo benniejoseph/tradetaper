@@ -7,27 +7,32 @@ import { NestExpressApplication } from '@nestjs/platform-express'; // Import thi
 import { join } from 'path'; // Import join from path
 
 async function bootstrap() {
-  const app = await NestFactory.create<NestExpressApplication>(AppModule); // Use NestExpressApplication
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
+    logger: ['log', 'error', 'warn', 'debug', 'verbose'],
+  });
   const configService = app.get(ConfigService);
   const port = configService.get<number>('PORT') || 3000;
 
   app.enableCors({
-    origin: ['http://localhost:3001'], // Your frontend URL
+    origin: 'http://localhost:3001', // Or your frontend URL
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: true,
   });
 
-  app.setGlobalPrefix('api/v1'); // Optional: set a global API prefix
+  app.setGlobalPrefix('api/v1');
 
   app.useGlobalPipes(
     new ValidationPipe({
-      whitelist: true, // Strips away properties not defined in DTOs
-      transform: true, // Automatically transforms payloads to DTO instances
-      forbidNonWhitelisted: true, // Throws an error if non-whitelisted properties are present
+      whitelist: true,
+      transform: true,
+      forbidNonWhitelisted: true,
+      transformOptions: {
+        enableImplicitConversion: true,
+      },
     }),
   );
 
-  app.useGlobalInterceptors(new ClassSerializerInterceptor(app.get(Reflector))); // Add this
+  app.useGlobalInterceptors(new ClassSerializerInterceptor(app.get(Reflector)));
 
   // --- ADD STATIC ASSETS SERVING ---
   // This makes files in the 'uploads' directory (at the project root)

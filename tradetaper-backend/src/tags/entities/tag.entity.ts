@@ -1,6 +1,7 @@
 // src/tags/entities/tag.entity.ts
 import { User } from '../../users/entities/user.entity';
 import { Trade } from '../../trades/entities/trade.entity';
+import { Type, Exclude } from 'class-transformer';
 import {
   Entity,
   PrimaryGeneratedColumn,
@@ -32,6 +33,8 @@ export class Tag {
   @Column({ length: 7, default: '#cccccc' }) // Default color, e.g., light gray
   color?: string; // Optional: users might assign colors to tags
 
+  @Type(() => Trade)
+  @Exclude({ toPlainOnly: true })
   @ManyToMany(() => Trade, (trade) => trade.tags)
   // JoinTable is usually defined on one side of M2M. We'll put it on Trade entity.
   trades: Trade[]; // Trades associated with this tag
