@@ -14,4 +14,12 @@ export class AppController {
   getTestMessage(): { message: string } {
     return this.appService.getTestMessage();
   }
+
+  @Get('health')
+  getHealth(): { status: string; timestamp: string } {
+    return {
+      status: 'ok',
+      timestamp: new Date().toISOString(),
+    };
+  }
 }
