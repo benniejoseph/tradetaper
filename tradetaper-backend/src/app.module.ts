@@ -35,9 +35,11 @@ import { SubscriptionsModule } from './subscriptions/subscriptions.module';
             type: 'postgres',
             url: databaseUrl,
             entities: [__dirname + '/**/*.entity{.ts,.js}'],
-            synchronize: configService.get<string>('NODE_ENV') !== 'production',
+            synchronize:
+              configService.get<string>('TYPEORM_SYNCHRONIZE') === 'true' ||
+              configService.get<string>('NODE_ENV') !== 'production',
             ssl: configService.get<string>('NODE_ENV') === 'production' ? {
-              rejectUnauthorized: false
+              rejectUnauthorized: false,
             } : false,
           };
         }
@@ -51,9 +53,11 @@ import { SubscriptionsModule } from './subscriptions/subscriptions.module';
           password: configService.get<string>('DB_PASSWORD', 'tradetaperpass'),
           database: configService.get<string>('DB_DATABASE', 'tradetaper_dev'),
           entities: [__dirname + '/**/*.entity{.ts,.js}'],
-          synchronize: configService.get<string>('NODE_ENV') !== 'production',
+          synchronize:
+            configService.get<string>('TYPEORM_SYNCHRONIZE') === 'true' ||
+            configService.get<string>('NODE_ENV') !== 'production',
           ssl: configService.get<string>('NODE_ENV') === 'production' ? {
-            rejectUnauthorized: false
+            rejectUnauthorized: false,
           } : false,
         };
       },
