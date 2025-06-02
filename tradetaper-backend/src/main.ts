@@ -11,16 +11,27 @@ async function bootstrap() {
     logger: ['log', 'error', 'warn', 'debug', 'verbose'],
   });
   const configService = app.get(ConfigService);
-  const port = configService.get<number>('PORT') || 3002;
+  const port = configService.get<number>('PORT') || process.env.PORT || 3000;
+
+  // Enhanced CORS for production
+  const allowedOrigins = [
+    'http://localhost:3000',
+    'http://localhost:3001',
+    'http://localhost:3002',
+    process.env.FRONTEND_URL,
+  ].filter((origin): origin is string => Boolean(origin));
+
+  // Add pattern matching for deployment platforms
+  const corsOrigin =
+    process.env.NODE_ENV === 'production'
+      ? [...allowedOrigins, /vercel\.app$/, /railway\.app$/, /onrender\.com$/]
+      : allowedOrigins;
 
   app.enableCors({
-    origin: [
-      'http://localhost:3000',
-      'http://localhost:3001',
-      'http://localhost:3002',
-    ], // Allow all relevant URLs
+    origin: corsOrigin,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: true,
+    allowedHeaders: ['Content-Type', 'Authorization', 'stripe-signature'],
   });
 
   app.setGlobalPrefix('api/v1');
@@ -51,8 +62,9 @@ async function bootstrap() {
   console.log(`Serving static assets from ${uploadsPath} at /uploads/`);
   // --- END STATIC ASSETS SERVING ---
 
-  await app.listen(port);
+  await app.listen(port, '0.0.0.0'); // Listen on all interfaces for deployment
   console.log(`Tradetaper Backend is running on: ${await app.getUrl()}`);
   console.log(`Current NODE_ENV: ${configService.get<string>('NODE_ENV')}`);
+  console.log(`Port: ${port}`);
 }
 void bootstrap();
