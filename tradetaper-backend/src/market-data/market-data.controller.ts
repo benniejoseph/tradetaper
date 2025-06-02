@@ -19,27 +19,39 @@ export class MarketDataController {
 
   constructor(private readonly marketDataService: MarketDataService) {}
 
-  @Get('historical/forex/:pair')
+  @Get('historical/forex/:baseCurrency/:quoteCurrency')
   async getForexHistoricalData(
-    @Param('pair') pair: string,
+    @Param('baseCurrency') baseCurrency: string,
+    @Param('quoteCurrency') quoteCurrency: string,
     @Query('startDate') startDate: string,
     @Query('endDate') endDate: string,
     @Query('interval') interval: string,
   ): Promise<PriceDataPoint[]> {
+    const pair = `${baseCurrency}/${quoteCurrency}`;
+    
     // ADD DETAILED LOGGING HERE
     this.logger.log(
-      `[MarketDataController] Received request for /historical/forex/${pair} with query:`,
+      `[MarketDataController] Received request for /historical/forex/${baseCurrency}/${quoteCurrency} with query:`,
       {
+        baseCurrency,
+        quoteCurrency,
+        pair,
         startDate,
         endDate,
         interval,
       },
     );
 
-    if (!pair || !startDate || !endDate || !interval) {
+    if (
+      !baseCurrency ||
+      !quoteCurrency ||
+      !startDate ||
+      !endDate ||
+      !interval
+    ) {
       this.logger.warn('[MarketDataController] Missing required parameters.');
       throw new HttpException(
-        'Missing required parameters: pair, startDate, endDate, interval',
+        'Missing required parameters: baseCurrency, quoteCurrency, startDate, endDate, interval',
         HttpStatus.BAD_REQUEST,
       );
     }
@@ -62,13 +74,16 @@ export class MarketDataController {
       );
     }
 
+    // Convert to the format expected by Tradermade API (NZDUSD instead of NZD/USD)
+    const tradermadePair = `${baseCurrency.toUpperCase()}${quoteCurrency.toUpperCase()}`;
+    
     // Log before calling the service
     this.logger.log(
-      `[MarketDataController] Calling MarketDataService.getTradermadeHistoricalData with: pair=${pair.toUpperCase()}, startDate=${startDate}, endDate=${endDate}, interval=${interval.toLowerCase()}`,
+      `[MarketDataController] Calling MarketDataService.getTradermadeHistoricalData with: pair=${tradermadePair}, startDate=${startDate}, endDate=${endDate}, interval=${interval.toLowerCase()}`,
     );
 
     return this.marketDataService.getTradermadeHistoricalData(
-      pair.toUpperCase(),
+      tradermadePair,
       startDate,
       endDate,
       interval.toLowerCase(),
