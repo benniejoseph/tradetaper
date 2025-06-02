@@ -8,6 +8,7 @@ import {
   HttpCode,
   HttpStatus,
   Get,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { LocalAuthGuard } from './guards/local-auth.guard'; // We'll create this
@@ -26,6 +27,18 @@ export class AuthController {
     @Body() registerUserDto: RegisterUserDto,
   ): Promise<UserResponseDto> {
     return this.authService.register(registerUserDto);
+  }
+
+  @Post('test-login')
+  @HttpCode(HttpStatus.OK)
+  async testLogin(
+    @Body() loginUserDto: LoginUserDto,
+  ): Promise<{ accessToken: string; user: UserResponseDto }> {
+    const user = await this.authService.validateUser(loginUserDto.email, loginUserDto.password);
+    if (!user) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
+    return this.authService.login(user);
   }
 
   @UseGuards(LocalAuthGuard) // This guard will use LocalStrategy
