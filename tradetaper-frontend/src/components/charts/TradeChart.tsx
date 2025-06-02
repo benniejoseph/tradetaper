@@ -46,9 +46,18 @@ const TradeChart = memo(({ trade, priceData = [] }: TradeChartProps) => {
 
     const chart = createChart(chartContainerRef.current, {
       width: chartContainerRef.current.clientWidth,
-      height: 400,
-      layout: { background: { color: '#1f2937' }, textColor: '#d1d5db' },
+      height: chartContainerRef.current.clientHeight,
+      layout: { background: { color: 'transparent' }, textColor: '#d1d5db' },
       grid: { vertLines: { color: '#374151' }, horzLines: { color: '#374151' } },
+      rightPriceScale: {
+        borderVisible: false,
+      },
+      timeScale: {
+        borderVisible: false,
+      },
+      crosshair: {
+        mode: 0,
+      },
     });
 
     chartApiRef.current = chart;
@@ -60,7 +69,7 @@ const TradeChart = memo(({ trade, priceData = [] }: TradeChartProps) => {
 
     if (!container || !chart) return;
 
-    chart.resize(container.clientWidth, 400);
+    chart.resize(container.clientWidth, container.clientHeight);
 
     if (candlestickSeriesApiRef.current) {
       try {
@@ -98,11 +107,11 @@ const TradeChart = memo(({ trade, priceData = [] }: TradeChartProps) => {
       newSeries.setData(priceData);
       candlestickSeriesApiRef.current = newSeries;
 
-      // Add price lines for entry and exit
+      // Add price lines for entry, stop loss, take profit, and exit
       if (trade.entryDate && trade.entryPrice) {
         newSeries.createPriceLine({
           price: trade.entryPrice,
-          color: '#22c55e',
+          color: '#3b82f6', // Blue for entry
           lineWidth: 2,
           lineStyle: 0,
           axisLabelVisible: true,
@@ -110,75 +119,44 @@ const TradeChart = memo(({ trade, priceData = [] }: TradeChartProps) => {
         });
       }
 
-      if (trade.exitDate && trade.exitPrice) {
-        newSeries.createPriceLine({
-          price: trade.exitPrice,
-          color: '#9ca3af',
-          lineWidth: 2,
-          lineStyle: 0,
-          axisLabelVisible: true,
-          title: `Exit @ ${trade.exitPrice.toFixed(2)}`,
-        });
-      }
-
       // Add stop loss line if exists
       if (trade.stopLoss) {
-        const stopLossLine = chart.addSeries({
-          type: 'Line',
-          isBuiltIn: true,
-          defaultOptions: {
-            color: '#ef4444',
-            lineWidth: 2,
-            lineStyle: 2,
-            lineType: 0,
-            lineVisible: true,
-            pointMarkersVisible: false,
-            crosshairMarkerVisible: true,
-            crosshairMarkerRadius: 4,
-            crosshairMarkerBorderColor: '#ef4444',
-            crosshairMarkerBackgroundColor: '#ef4444',
-            crosshairMarkerBorderWidth: 1,
-            lastPriceAnimation: 0,
-          } as LineStyleOptions,
-        }) as ISeriesApi<'Line'>;
-        
-        const stopLossData: LineData[] = priceData.map(candle => ({
-          time: candle.time,
-          value: trade.stopLoss!,
-        }));
-        
-        stopLossLine.setData(stopLossData);
-        stopLossLineRef.current = stopLossLine;
+        newSeries.createPriceLine({
+          price: trade.stopLoss,
+          color: '#ef4444', // Red for stop loss
+          lineWidth: 2,
+          lineStyle: 2, // Dashed line
+          axisLabelVisible: true,
+          title: `Stop Loss @ ${trade.stopLoss.toFixed(2)}`,
+        });
       }
 
       // Add take profit line if exists
       if (trade.takeProfit) {
-        const takeProfitLine = chart.addSeries({
-          type: 'Line',
-          isBuiltIn: true,
-          defaultOptions: {
-            color: '#22c55e',
+        newSeries.createPriceLine({
+          price: trade.takeProfit,
+          color: '#22c55e', // Green for take profit
+          lineWidth: 2,
+          lineStyle: 2, // Dashed line
+          axisLabelVisible: true,
+          title: `Take Profit @ ${trade.takeProfit.toFixed(2)}`,
+        });
+      }
+
+      // Add exit line if exists and different from take profit
+      if (trade.exitDate && trade.exitPrice) {
+        const isSameAsTakeProfit = trade.takeProfit && Math.abs(trade.exitPrice - trade.takeProfit) < 0.01;
+        
+        if (!isSameAsTakeProfit) {
+          newSeries.createPriceLine({
+            price: trade.exitPrice,
+            color: '#8b5cf6', // Purple for exit
             lineWidth: 2,
-            lineStyle: 2,
-            lineType: 0,
-            lineVisible: true,
-            pointMarkersVisible: false,
-            crosshairMarkerVisible: true,
-            crosshairMarkerRadius: 4,
-            crosshairMarkerBorderColor: '#22c55e',
-            crosshairMarkerBackgroundColor: '#22c55e',
-            crosshairMarkerBorderWidth: 1,
-            lastPriceAnimation: 0,
-          } as LineStyleOptions,
-        }) as ISeriesApi<'Line'>;
-        
-        const takeProfitData: LineData[] = priceData.map(candle => ({
-          time: candle.time,
-          value: trade.takeProfit!,
-        }));
-        
-        takeProfitLine.setData(takeProfitData);
-        takeProfitLineRef.current = takeProfitLine;
+            lineStyle: 0,
+            axisLabelVisible: true,
+            title: `Exit @ ${trade.exitPrice.toFixed(2)}`,
+          });
+        }
       }
 
       chart.timeScale().fitContent();
@@ -193,7 +171,7 @@ const TradeChart = memo(({ trade, priceData = [] }: TradeChartProps) => {
   useEffect(() => {
     const handleResize = () => {
       if (chartApiRef.current && chartContainerRef.current) {
-        chartApiRef.current.resize(chartContainerRef.current.clientWidth, 400);
+        chartApiRef.current.resize(chartContainerRef.current.clientWidth, chartContainerRef.current.clientHeight);
       }
     };
     window.addEventListener('resize', handleResize);
@@ -210,15 +188,12 @@ const TradeChart = memo(({ trade, priceData = [] }: TradeChartProps) => {
   }, []);
 
   return (
-    <div className="w-full">
-      <h3 className="text-lg font-semibold text-gray-100 mb-2">Chart: {trade.symbol}</h3>
-      <div ref={chartContainerRef} className="w-full h-[400px] bg-gray-700 rounded">
-        {(!priceData || priceData.length === 0) && (
-          <div className="h-full flex items-center justify-center text-gray-400">
-            Price data not available or loading...
-          </div>
-        )}
-      </div>
+    <div ref={chartContainerRef} className="w-full h-full bg-transparent rounded">
+      {(!priceData || priceData.length === 0) && (
+        <div className="h-full flex items-center justify-center text-gray-400">
+          Price data not available or loading...
+        </div>
+      )}
     </div>
   );
 });

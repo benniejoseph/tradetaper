@@ -14,7 +14,6 @@ import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
 import { firstValueFrom } from 'rxjs';
 import { CandlestickData, UTCTimestamp } from 'lightweight-charts';
-// import { format as formatDateFns } from 'date-fns'; // No longer needed here if dates are passed as strings
 
 export interface PriceDataPoint extends CandlestickData {
   time: UTCTimestamp;
@@ -58,11 +57,10 @@ export class MarketDataService implements OnModuleInit {
   }
 
   async getTradermadeHistoricalData(
-    // Renamed for clarity, handles interval
     currencyPair: string, // e.g., EURUSD
     startDate: string, // YYYY-MM-DD
     endDate: string, // YYYY-MM-DD
-    interval: string, // e.g., "daily", "hourly", "15minute", "minute" (VERIFY TRADERMADE VALUES)
+    interval: string, // e.g., "daily", "hourly", "15minute", "minute"
   ): Promise<PriceDataPoint[]> {
     if (!this.tradermadeApiKey) {
       throw new HttpException(
@@ -71,155 +69,301 @@ export class MarketDataService implements OnModuleInit {
       );
     }
 
+    // For minute intervals, we need to handle them differently
+    if (interval.includes('minute')) {
+      return this.getMinuteHistoricalData(currencyPair, startDate, endDate, interval);
+    } else if (interval === 'hourly') {
+      return this.getHourlyHistoricalData(currencyPair, startDate, endDate);
+    } else {
+      // Use timeseries for daily data
+      return this.getTimeseriesData(currencyPair, startDate, endDate, interval);
+    }
+  }
+
+  private async getMinuteHistoricalData(
+    currencyPair: string,
+    startDate: string,
+    endDate: string,
+    interval: string,
+  ): Promise<PriceDataPoint[]> {
+    // For minute data, we need to use timeseries endpoint with proper parameters
+    // Tradermade allows max 2 working days for 1m and 5m data
+    
+    // Calculate working days between start and end date
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const daysDiff = Math.ceil((end.getTime() - start.getTime()) / (1000 * 3600 * 24));
+    
+    // If requesting 1m or 5m data and the range is too large, limit it
+    if ((interval === '1minute' || interval === '5minute') && daysDiff > 2) {
+      this.logger.warn(
+        `Limiting date range for ${interval} data from ${daysDiff} days to 2 days due to Tradermade API limits`,
+      );
+      // Adjust end date to be max 2 days from start
+      const limitedEndDate = new Date(start);
+      limitedEndDate.setDate(start.getDate() + 2);
+      endDate = limitedEndDate.toISOString().split('T')[0];
+    }
+    
+    // If requesting 15m or 30m data and the range is too large, limit it to 5 working days
+    if ((interval === '15minute' || interval === '30minute') && daysDiff > 5) {
+      this.logger.warn(
+        `Limiting date range for ${interval} data from ${daysDiff} days to 5 days due to Tradermade API limits`,
+      );
+      // Adjust end date to be max 5 days from start
+      const limitedEndDate = new Date(start);
+      limitedEndDate.setDate(start.getDate() + 5);
+      endDate = limitedEndDate.toISOString().split('T')[0];
+    }
+
     const paramsObj: Record<string, string> = {
       currency: currencyPair,
       api_key: this.tradermadeApiKey,
-      start_date: startDate, // For daily, Tradermade uses YYYY-MM-DD
-      end_date: endDate, // For daily, Tradermade uses YYYY-MM-DD
+      start_date: `${startDate}-00:00`, // YYYY-MM-DD-HH:MM format for minute data
+      end_date: `${endDate}-23:59`, // YYYY-MM-DD-HH:MM format for minute data
+      interval: 'minute',
       format: 'records',
-      // interval: interval, // Default is daily for /timeseries
     };
 
-    // Tradermade uses different endpoints or parameters for intraday vs daily
-    // For /timeseries, 'interval' is usually for > daily. For intraday, often /minute_historical or similar.
-    // Let's assume /timeseries handles 'daily', 'hourly'. For finer granularities, you might need /minute_historical.
-    // This logic needs to be **EXACTLY** aligned with Tradermade's API for different intervals.
-
-    let endpointPath = '/timeseries'; // Default for daily, weekly, monthly, hourly
-    if (interval.includes('minute')) {
-      // e.g., "15minute", "1minute"
-      endpointPath = '/minute_historical'; // HYPOTHETICAL - CHECK TRADERMADE DOCS
-      // For /minute_historical, Tradermade might expect date_time for start/end
-      // And 'interval' parameter might be named differently or implied by endpoint.
-      // Example: date_time=YYYY-MM-DD-HH:MM, interval might not be needed if endpoint is specific
-      // paramsObj.date_time = startDate; // This would need startDate to be YYYY-MM-DD-HH:MM
-      // delete paramsObj.start_date;
-      // delete paramsObj.end_date;
-      // paramsObj.period = interval.replace('minute', ''); // e.g. "15" if interval is "15minute" - CHECK DOCS
-      this.logger.warn(
-        `Intraday interval ${interval} for Tradermade might require different endpoint/params. Current setup is a guess.`,
-      );
-      // For now, we'll stick to /timeseries and assume it can handle some intervals.
-      // If interval is not 'daily', add it.
-      if (interval !== 'daily') {
-        paramsObj.interval = interval; // E.g., "hourly", "4hourly" - CHECK VALID VALUES
-      }
-    } else if (interval !== 'daily') {
-      // For intervals like "hourly" handled by /timeseries
-      paramsObj.interval = interval;
+    // Add period parameter for minute intervals
+    if (interval === '1minute') {
+      paramsObj.period = '1';
+    } else if (interval === '5minute') {
+      paramsObj.period = '5';
+    } else if (interval === '15minute') {
+      paramsObj.period = '15';
+    } else if (interval === '30minute') {
+      paramsObj.period = '30';
+    } else {
+      // Default to 15 minutes if not specified
+      paramsObj.period = '15';
     }
-    // If interval is 'daily', we don't need to pass the interval param for /timeseries typically.
 
     const params = new URLSearchParams(paramsObj);
-    const url = `${this.tradermadeApiBaseUrl}${endpointPath}?${params.toString()}`;
+    const url = `${this.tradermadeApiBaseUrl}/timeseries?${params.toString()}`;
 
     this.logger.log(
-      `Fetching data for ${currencyPair} (Interval: ${interval}) from ${startDate} to ${endDate} from Tradermade. URL: ${url}`,
+      `Fetching minute data for ${currencyPair} (Interval: ${interval}) from ${startDate} to ${endDate} from Tradermade. URL: ${url}`,
     );
 
     try {
       const response = await firstValueFrom(this.httpService.get(url));
-      let quotes: any[] = [];
+      return this.processTimeseriesResponse(
+        response.data,
+        currencyPair,
+        interval,
+      );
+    } catch (error) {
+      return this.handleTradermadeError(error, currencyPair, interval);
+    }
+  }
 
-      // Tradermade often returns error messages directly in the JSON body with a 200 OK for some errors (like invalid key for minute data)
-      if (
-        response.data &&
-        (response.data.error ||
-          (typeof response.data.message === 'string' &&
-            response.data.message.toLowerCase().includes('invalid')))
-      ) {
-        const errorMessage =
-          response.data.message ||
-          response.data.error ||
-          'Unknown Tradermade API error';
-        this.logger.error(
-          `Tradermade API Error (possibly with 200 OK): ${errorMessage} for ${currencyPair}`,
-        );
-        throw new HttpException(
-          `Tradermade API Error: ${errorMessage}`,
-          HttpStatus.BAD_REQUEST,
-        ); // Use 400 for client-side error like invalid params
-      }
+  private async getHourlyHistoricalData(
+    currencyPair: string,
+    startDate: string,
+    endDate: string,
+  ): Promise<PriceDataPoint[]> {
+    const paramsObj: Record<string, string> = {
+      currency: currencyPair,
+      api_key: this.tradermadeApiKey,
+      start_date: `${startDate}-00:00`, // YYYY-MM-DD-HH:MM format for hourly data
+      end_date: `${endDate}-23:00`,     // YYYY-MM-DD-HH:MM format for hourly data
+      interval: 'hourly',
+      period: '1',
+      format: 'records',
+    };
 
-      if (response.data && Array.isArray(response.data)) {
-        quotes = response.data;
-      } else if (
-        response.data &&
-        response.data.quotes &&
-        Array.isArray(response.data.quotes)
-      ) {
-        quotes = response.data.quotes;
-      } else {
-        this.logger.warn(
-          `Unexpected response structure from Tradermade for ${currencyPair} (Interval: ${interval}):`,
-          response.data,
-        );
-        throw new HttpException(
-          `Invalid data received from Tradermade for ${currencyPair}`,
-          HttpStatus.BAD_GATEWAY,
-        );
-      }
+    const params = new URLSearchParams(paramsObj);
+    const url = `${this.tradermadeApiBaseUrl}/timeseries?${params.toString()}`;
 
-      if (quotes.length === 0) {
-        this.logger.warn(
-          `Tradermade returned no quotes for ${currencyPair} (Interval: ${interval}) between ${startDate}-${endDate}`,
-        );
-        return [];
-      }
+    this.logger.log(
+      `Fetching hourly data for ${currencyPair} from ${startDate} to ${endDate} from Tradermade. URL: ${url}`,
+    );
 
-      const priceData: PriceDataPoint[] = quotes
-        .map((q: any): PriceDataPoint | null => {
-          // The 'date' field from Tradermade might be YYYY-MM-DD for daily,
-          // or YYYY-MM-DD HH:MM:SS for intraday. new Date() handles both.
-          if (
-            !q.date ||
-            q.open == null ||
-            q.high == null ||
-            q.low == null ||
-            q.close == null
-          ) {
-            this.logger.warn('Skipping incomplete quote data point:', q);
+    try {
+      const response = await firstValueFrom(this.httpService.get(url));
+      return this.processTimeseriesResponse(
+        response.data,
+        currencyPair,
+        'hourly',
+      );
+    } catch (error) {
+      return this.handleTradermadeError(error, currencyPair, 'hourly');
+    }
+  }
+
+  private async getTimeseriesData(
+    currencyPair: string,
+    startDate: string,
+    endDate: string,
+    interval: string,
+  ): Promise<PriceDataPoint[]> {
+    const paramsObj: Record<string, string> = {
+      currency: currencyPair,
+      api_key: this.tradermadeApiKey,
+      start_date: startDate, // YYYY-MM-DD format for daily data
+      end_date: endDate,     // YYYY-MM-DD format for daily data
+      format: 'records',
+    };
+
+    // Only add interval if it's not daily (daily is default)
+    if (interval !== 'daily') {
+      paramsObj.interval = interval;
+    }
+
+    const params = new URLSearchParams(paramsObj);
+    const url = `${this.tradermadeApiBaseUrl}/timeseries?${params.toString()}`;
+
+    this.logger.log(
+      `Fetching timeseries data for ${currencyPair} (Interval: ${interval}) from ${startDate} to ${endDate} from Tradermade. URL: ${url}`,
+    );
+
+    try {
+      const response = await firstValueFrom(this.httpService.get(url));
+      return this.processTimeseriesResponse(
+        response.data,
+        currencyPair,
+        interval,
+      );
+    } catch (error) {
+      return this.handleTradermadeError(error, currencyPair, interval);
+    }
+  }
+
+  private processTimeseriesResponse(
+    data: any,
+    currencyPair: string,
+    interval: string,
+  ): PriceDataPoint[] {
+    // Check for API errors in response
+    if (
+      data &&
+      (data.error ||
+        data.errors ||
+        (data.message && data.message.toLowerCase().includes('invalid')))
+    ) {
+      const errorMessage =
+        data.message ||
+        data.error ||
+        JSON.stringify(data.errors) ||
+        'Unknown Tradermade API error';
+      this.logger.error(
+        `Tradermade API Error for ${currencyPair} (${interval}): ${errorMessage}`,
+      );
+      throw new HttpException(
+        `Tradermade API Error: ${errorMessage}`,
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    let quotes: any[] = [];
+
+    if (data && Array.isArray(data)) {
+      quotes = data;
+    } else if (data && data.quotes && Array.isArray(data.quotes)) {
+      quotes = data.quotes;
+    } else {
+      this.logger.warn(
+        `Unexpected response structure from Tradermade for ${currencyPair} (${interval}):`,
+        data,
+      );
+      return []; // Return empty array instead of throwing error
+    }
+
+    if (quotes.length === 0) {
+      this.logger.warn(
+        `Tradermade returned no quotes for ${currencyPair} (${interval})`,
+      );
+      return [];
+    }
+
+    const priceData: PriceDataPoint[] = quotes
+      .map((q: any): PriceDataPoint | null => {
+        // Handle both 'date' field (timeseries) and 'date_time' field (minute/hour historical)
+        const dateField = q.date || q.date_time;
+        if (
+          !dateField ||
+          q.open == null ||
+          q.high == null ||
+          q.low == null ||
+          q.close == null
+        ) {
+          this.logger.warn('Skipping incomplete quote data point:', q);
+          return null;
+        }
+
+        try {
+          const timestamp = new Date(dateField).getTime() / 1000;
+          if (isNaN(timestamp)) {
+            this.logger.warn('Invalid date in quote:', dateField);
             return null;
           }
+
           return {
-            time: (new Date(q.date).getTime() / 1000) as UTCTimestamp,
+            time: timestamp as UTCTimestamp,
             open: parseFloat(q.open),
             high: parseFloat(q.high),
             low: parseFloat(q.low),
             close: parseFloat(q.close),
           };
-        })
-        .filter(isPriceDataPoint)
-        .sort((a, b) => a.time - b.time);
+        } catch (error) {
+          this.logger.warn('Error processing quote date:', dateField, error);
+          return null;
+        }
+      })
+      .filter(isPriceDataPoint)
+      .sort((a, b) => a.time - b.time);
 
-      return priceData;
-    } catch (error) {
+    this.logger.log(
+      `Successfully processed ${priceData.length} data points for ${currencyPair} (${interval})`,
+    );
+    return priceData;
+  }
+
+  private handleTradermadeError(
+    error: any,
+    currencyPair: string,
+    interval: string,
+  ): never {
+    this.logger.error(
+      `Failed to fetch Tradermade data for ${currencyPair} (${interval}): ${error.message}`,
+      error.stack,
+    );
+
+    if (error instanceof HttpException) {
+      throw error;
+    }
+
+    if (error.response) {
       this.logger.error(
-        `Failed to fetch Tradermade data for ${currencyPair} (Interval: ${interval}): ${error.message}`,
-        error.stack,
+        `Tradermade API HTTP Error Status: ${error.response.status}`,
       );
-      if (error instanceof HttpException) throw error;
+      this.logger.error(
+        `Tradermade API HTTP Error Data: ${JSON.stringify(error.response.data)}`,
+      );
 
-      if (error.response) {
-        this.logger.error(
-          `Tradermade API HTTP Error Status: ${error.response.status}`,
-        );
-        this.logger.error(
-          `Tradermade API HTTP Error Data: ${JSON.stringify(error.response.data)}`,
-        );
-        const apiErrorMessage =
-          error.response.data?.message ||
-          error.response.data?.error ||
-          error.response.statusText;
+      const apiErrorMessage =
+        error.response.data?.message ||
+        error.response.data?.error ||
+        error.response.statusText;
+      
+      // Provide helpful error messages for common API limitations
+      if (error.response.status === 403 && apiErrorMessage?.includes('working days')) {
         throw new HttpException(
-          `Tradermade API HTTP error: ${apiErrorMessage}`,
-          error.response.status,
+          `Tradermade API limit: ${apiErrorMessage}. Try selecting a shorter date range or higher timeframe.`,
+          HttpStatus.BAD_REQUEST,
         );
       }
+      
       throw new HttpException(
-        `Failed to fetch market data for ${currencyPair}`,
-        HttpStatus.SERVICE_UNAVAILABLE,
+        `Tradermade API HTTP error: ${apiErrorMessage}`,
+        error.response.status,
       );
     }
+
+    throw new HttpException(
+      `Failed to fetch market data for ${currencyPair}`,
+      HttpStatus.SERVICE_UNAVAILABLE,
+    );
   }
 }

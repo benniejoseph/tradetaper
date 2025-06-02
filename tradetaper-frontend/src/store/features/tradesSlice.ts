@@ -136,6 +136,35 @@ const tradesSlice = createSlice({
     },
     resetAnalyticsDateFilters(state) {
         state.analyticsFilters = initialState.analyticsFilters;
+    },
+    // WebSocket real-time actions
+    addTrade(state, action: PayloadAction<Trade>) {
+      // Add new trade to the beginning of the list if it doesn't exist
+      const existingIndex = state.trades.findIndex(trade => trade.id === action.payload.id);
+      if (existingIndex === -1) {
+        state.trades.unshift(action.payload);
+      }
+    },
+    updateTradeRealtime(state, action: PayloadAction<Trade>) {
+      // Update existing trade
+      const index = state.trades.findIndex(trade => trade.id === action.payload.id);
+      if (index !== -1) {
+        state.trades[index] = action.payload;
+      }
+      if (state.currentTrade?.id === action.payload.id) {
+        state.currentTrade = action.payload;
+      }
+    },
+    removeTrade(state, action: PayloadAction<string>) {
+      // Remove trade by ID
+      state.trades = state.trades.filter(trade => trade.id !== action.payload);
+      if (state.currentTrade?.id === action.payload) {
+        state.currentTrade = null;
+      }
+    },
+    setTrades(state, action: PayloadAction<Trade[]>) {
+      // Replace all trades (useful for initial load or refresh)
+      state.trades = action.payload;
     }
     // You can add more specific reducers if needed
   },
@@ -218,5 +247,5 @@ const tradesSlice = createSlice({
   },
 });
 
-export const { clearTradesError, setCurrentTrade, setTradeFilters, resetTradeFilters, setAnalyticsDateFilters, resetAnalyticsDateFilters } = tradesSlice.actions;
+export const { clearTradesError, setCurrentTrade, setTradeFilters, resetTradeFilters, setAnalyticsDateFilters, resetAnalyticsDateFilters, addTrade, updateTradeRealtime, removeTrade, setTrades } = tradesSlice.actions;
 export default tradesSlice.reducer;

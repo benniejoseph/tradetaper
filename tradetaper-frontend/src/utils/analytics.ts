@@ -208,24 +208,12 @@ export function calculateStatsByStrategyTag(trades: Trade[]): StatsByTag[] {
 
   trades.forEach(trade => {
     if (trade.tags && trade.tags.length > 0) {
-      trade.tags.forEach(tagObject => {
-        const tagName = tagObject.name.trim(); // Use the name from the Tag object
-        if (tagName !== '') {
-          if (!tradesByIndividualTag[tagName]) {
-            tradesByIndividualTag[tagName] = [];
-          }
-          tradesByIndividualTag[tagName].push(trade);
+      trade.tags.forEach(tag => {
+        const tagName = tag.name || 'Unnamed Tag';
+        if (!tradesByIndividualTag[tagName]) {
+          tradesByIndividualTag[tagName] = [];
         }
-      });
-    } else if (trade.strategyTag && trade.strategyTag.trim() !== '') {
-      // Fallback to old strategyTag field if new tags array is empty but old field has data
-      // This helps with existing data. New trades should use the tags array.
-      const individualTags = trade.strategyTag.split(',').map(t => t.trim()).filter(t => t !== '');
-      individualTags.forEach(individualTag => {
-        if (!tradesByIndividualTag[individualTag]) {
-          tradesByIndividualTag[individualTag] = [];
-        }
-        tradesByIndividualTag[individualTag].push(trade);
+        tradesByIndividualTag[tagName].push(trade);
       });
     } else {
       const uncategorized = 'Uncategorized';

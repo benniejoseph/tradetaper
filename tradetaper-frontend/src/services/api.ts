@@ -1,6 +1,6 @@
 // src/services/api.ts
 import axios from 'axios';
-import { AppDispatch, RootState } from '@/store/store'; // To get the token from Redux state
+import { RootState } from '@/store/store'; // Removed unused AppDispatch import
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3000/api/v1';
 
@@ -20,7 +20,7 @@ export const authApiClient = axios.create({
   },
 });
 
-export function setupAuthInterceptors(getState: () => RootState, dispatch?: AppDispatch) { // dispatch is optional
+export function setupAuthInterceptors(getState: () => RootState) { // removed unused dispatch parameter
     authApiClient.interceptors.request.use(
         (config) => {
             const token = getState().auth.token;
@@ -37,7 +37,7 @@ export function setupAuthInterceptors(getState: () => RootState, dispatch?: AppD
         (error) => {
             if (error.response && error.response.status === 401) {
                 console.log('Unauthorized from interceptor...');
-                // if (dispatch) dispatch(logoutAction()); // Example
+                // Handle token refresh failure (e.g., redirect to login)
             }
             return Promise.reject(error);
         }

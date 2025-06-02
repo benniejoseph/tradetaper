@@ -1,10 +1,12 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 // src/components/layout/Sidebar.tsx
 "use client";
+
+import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { mainNavItems, userNavItems, settingsNavItems, NavItem } from '@/config/navigation'; // Adjust path
-import { FaSignOutAlt, FaUserCircle, FaTimes } from 'react-icons/fa';
+import { mainNavItems, userNavItems, settingsNavItems } from '@/config/navigation';
+import { FaSignOutAlt, FaUserCircle, FaTimes, FaChartLine } from 'react-icons/fa';
 import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '@/store/store';
 import { logout } from '@/store/features/authSlice';
@@ -31,144 +33,207 @@ export default function Sidebar({ isOpen, toggleSidebar }: SidebarProps) {
 
   const handleLinkClick = () => {
     if (isOpen) {
-      toggleSidebar(); // Close sidebar on link click on mobile
+      toggleSidebar();
     }
   };
 
-  const itemBaseClasses = "flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-150 ease-in-out focus:outline-none focus:ring-2 focus:ring-accent-green focus:ring-opacity-60";
-  // Active items are the same for both themes as they use accent color
-  const activeItemClasses = "bg-accent-green text-dark-primary font-semibold shadow-glow-green-sm";
-  
-  // Inactive items need light and dark versions
-  const inactiveItemClasses = `text-[var(--color-text-dark-secondary)] hover:text-[var(--color-text-dark-primary)] hover:bg-[var(--color-light-hover)] 
-                             dark:text-text-light-secondary dark:hover:text-text-light-primary dark:hover:bg-dark-primary`;
-
   return (
     <>
-      {/* Overlay for mobile when sidebar is open */}
+      {/* Mobile Overlay */}
       {isOpen && (
         <div 
-          className="fixed inset-0 bg-black bg-opacity-75 z-40 md:hidden"
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 md:hidden transition-opacity duration-300"
           onClick={toggleSidebar}
           aria-hidden="true"
-        ></div>
+        />
       )}
 
-      <aside 
-        className={`w-64 flex flex-col min-h-screen shadow-lg dark:shadow-2xl 
-                  bg-[var(--color-light-primary)] text-[var(--color-text-dark-primary)] 
-                  dark:bg-dark-secondary dark:text-text-light-primary 
-                  fixed md:sticky top-0 left-0 z-50 h-screen transition-transform duration-300 ease-in-out md:translate-x-0
-                  ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}
-      >
-        {/* Logo/Header */}
-        <div className="p-6 border-b border-[var(--color-light-border)] dark:border-dark-primary flex items-center justify-between">
-          <Link href="/dashboard" className="flex items-center space-x-3 group focus:outline-none">
-            <div className="w-10 h-10 bg-accent-green rounded-full flex items-center justify-center text-dark-primary font-bold text-xl group-hover:shadow-glow-green-sm transition-shadow duration-150">
-              T
-            </div>
-            <h1 className="text-2xl font-semibold text-[var(--color-text-dark-primary)] group-hover:text-accent-green dark:text-text-light-primary dark:group-hover:text-accent-green transition-colors duration-150">
-              Tradetaper
-            </h1>
-          </Link>
-          {/* Close button for mobile */}
-          <button 
-            onClick={toggleSidebar} 
-            className="md:hidden text-[var(--color-text-dark-secondary)] hover:text-accent-green dark:text-text-light-secondary dark:hover:text-accent-green p-1 rounded-md focus:outline-none focus:ring-2 focus:ring-accent-green"
-            aria-label="Close sidebar"
-          >
-            <FaTimes className="h-5 w-5" />
-          </button>
+      {/* Sidebar */}
+      <aside className={`w-72 flex flex-col min-h-screen 
+                        bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl
+                        border-r border-gray-200/50 dark:border-gray-700/50
+                        fixed top-0 left-0 z-50 h-screen 
+                        transition-all duration-300 ease-out md:translate-x-0
+                        shadow-2xl dark:shadow-2xl
+                        ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+        
+        {/* Header with Logo */}
+        <div className="p-6 border-b border-gray-200/50 dark:border-gray-700/50">
+          <div className="flex items-center justify-between">
+            <Link href="/dashboard" 
+                  className="flex items-center space-x-3 group focus:outline-none"
+                  onClick={handleLinkClick}>
+              <div className="relative">
+                <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-green-500 rounded-xl flex items-center justify-center text-white font-bold text-xl shadow-lg group-hover:shadow-xl group-hover:scale-105 transition-all duration-300">
+                  <FaChartLine className="w-6 h-6" />
+                </div>
+                <div className="absolute -inset-1 bg-gradient-to-r from-blue-500 to-green-500 rounded-xl opacity-20 group-hover:opacity-40 transition-opacity duration-300 -z-10"></div>
+              </div>
+              <div>
+                <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-green-600 bg-clip-text text-transparent">
+                  TradeTaper
+                </h1>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Trading Journal</p>
+              </div>
+            </Link>
+            
+            <button 
+              onClick={toggleSidebar} 
+              className="md:hidden p-2 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 transition-colors duration-200"
+              aria-label="Close sidebar">
+              <FaTimes className="h-4 w-4" />
+            </button>
+          </div>
         </div>
 
         {/* Main Navigation */}
         <nav className="flex-grow p-4 space-y-2 overflow-y-auto">
-          {mainNavItems.map((item) => {
-            const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href));
-            const iconClasses = isActive 
-              ? 'text-dark-primary' 
-              : 'text-[var(--color-text-dark-secondary)] group-hover:text-[var(--color-text-dark-primary)] dark:text-text-light-secondary dark:group-hover:text-text-light-primary';
-            return (
-              <Link
-                key={item.label}
-                href={item.href}
-                onClick={handleLinkClick}
-                className={`${itemBaseClasses} ${isActive ? activeItemClasses : inactiveItemClasses} group`}
-              >
-                {item.icon && <item.icon className={`h-5 w-5 ${iconClasses} transition-colors duration-150`} />}
-                <span>{item.label}</span>
-              </Link>
-            );
-          })}
-        </nav>
-
-        {/* User Info, Theme Toggle, Settings & Logout */}
-        <div className="p-4 border-t border-[var(--color-light-border)] dark:border-dark-primary mt-auto">
-          <div className="mb-4 flex justify-center">
-            <ThemeToggleButton />
+          <div className="mb-6">
+            <h2 className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-3 px-3">
+              Main Menu
+            </h2>
+            <div className="space-y-1">
+              {mainNavItems.map((item) => {
+                const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href));
+                return (
+                  <Link
+                    key={item.label}
+                    href={item.href}
+                    onClick={handleLinkClick}
+                    className={`group flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 relative overflow-hidden
+                      ${isActive 
+                        ? 'bg-gradient-to-r from-blue-500 to-green-500 text-white shadow-lg shadow-blue-500/25' 
+                        : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100/80 dark:hover:bg-gray-800/80'
+                      }`}>
+                    
+                    {/* Background gradient for active state */}
+                    {isActive && (
+                      <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-green-500 opacity-100"></div>
+                    )}
+                    
+                    {/* Hover background */}
+                    {!isActive && (
+                      <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-green-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-200"></div>
+                    )}
+                    
+                    <div className="relative z-10 flex items-center space-x-3">
+                      {item.icon && (
+                        <item.icon className={`h-5 w-5 transition-transform duration-200 group-hover:scale-110
+                          ${isActive ? 'text-white' : 'text-gray-500 dark:text-gray-400 group-hover:text-blue-500'}`} />
+                      )}
+                      <span className="relative">{item.label}</span>
+                    </div>
+                    
+                    {/* Active indicator */}
+                    {isActive && (
+                      <div className="absolute right-2 w-2 h-2 bg-white rounded-full shadow-lg"></div>
+                    )}
+                  </Link>
+                );
+              })}
+            </div>
           </div>
 
-          {/* User Nav Items (e.g., Settings) */}
-          <nav className="space-y-1 mb-3">
-            {userNavItems.map((item) => {
-              const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
-              const iconClasses = isActive 
-                ? 'text-dark-primary' 
-                : 'text-[var(--color-text-dark-secondary)] group-hover:text-[var(--color-text-dark-primary)] dark:text-text-light-secondary dark:group-hover:text-text-light-primary';
-              return (
-                <div key={item.label}>
-                  <Link
-                    href={item.href}
-                    onClick={handleLinkClick} // Keep existing behavior for mobile
-                    className={`${itemBaseClasses} ${isActive ? activeItemClasses : inactiveItemClasses} group w-full`}
-                  >
-                    {item.icon && <item.icon className={`h-5 w-5 ${iconClasses} transition-colors duration-150`} />}
-                    <span>{item.label}</span>
-                  </Link>
-                  {/* Render settingsNavItems if Settings is active and it's the /settings path */}
-                  {item.href === '/settings' && pathname.startsWith('/settings') && (
-                    <div className="pt-1 pb-0 pl-4 mt-1 border-l-2 border-gray-200 dark:border-gray-700 ml-2">
-                      {settingsNavItems.map(subItem => {
-                        const isSubActive = pathname === subItem.href || pathname.startsWith(subItem.href + '/');
-                        const subIconClasses = isSubActive
-                          ? 'text-dark-primary' 
-                          : 'text-[var(--color-text-dark-secondary)] group-hover:text-[var(--color-text-dark-primary)] dark:text-text-light-secondary dark:group-hover:text-text-light-primary';
-                        return (
-                          <Link
-                            key={subItem.label}
-                            href={subItem.href}
-                            onClick={handleLinkClick}
-                            className={`${itemBaseClasses} ${isSubActive ? activeItemClasses : inactiveItemClasses} group w-full text-sm py-2.5 pl-3 pr-2`}
-                          >
-                            {subItem.icon && <subItem.icon className={`h-4 w-4 ${subIconClasses} transition-colors duration-150`} />}
-                            <span>{subItem.label}</span>
-                          </Link>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </nav>
+          {/* User Navigation */}
+          <div className="mb-6">
+            <h2 className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-3 px-3">
+              Account
+            </h2>
+            <div className="space-y-1">
+              {userNavItems.map((item) => {
+                const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
+                return (
+                  <div key={item.label}>
+                    <Link
+                      href={item.href}
+                      onClick={handleLinkClick}
+                      className={`group flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 relative overflow-hidden
+                        ${isActive 
+                          ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg shadow-purple-500/25' 
+                          : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100/80 dark:hover:bg-gray-800/80'
+                        }`}>
+                      
+                      {!isActive && (
+                        <div className="absolute inset-0 bg-gradient-to-r from-purple-500/10 to-pink-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-200"></div>
+                      )}
+                      
+                      <div className="relative z-10 flex items-center space-x-3">
+                        {item.icon && (
+                          <item.icon className={`h-5 w-5 transition-transform duration-200 group-hover:scale-110
+                            ${isActive ? 'text-white' : 'text-gray-500 dark:text-gray-400 group-hover:text-purple-500'}`} />
+                        )}
+                        <span>{item.label}</span>
+                      </div>
+                    </Link>
+                    
+                    {/* Settings Subnav */}
+                    {item.href === '/settings' && pathname.startsWith('/settings') && (
+                      <div className="mt-2 ml-4 space-y-1 border-l-2 border-gradient-to-b from-purple-500 to-pink-500 pl-4">
+                        {settingsNavItems.map(subItem => {
+                          const isSubActive = pathname === subItem.href || pathname.startsWith(subItem.href + '/');
+                          return (
+                            <Link
+                              key={subItem.label}
+                              href={subItem.href}
+                              onClick={handleLinkClick}
+                              className={`group flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200
+                                ${isSubActive 
+                                  ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300' 
+                                  : 'text-gray-500 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 hover:bg-gray-50 dark:hover:bg-gray-800/50'
+                                }`}>
+                              {subItem.icon && (
+                                <subItem.icon className="h-4 w-4" />
+                              )}
+                              <span>{subItem.label}</span>
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </nav>
 
+        {/* Footer Section */}
+        <div className="p-4 border-t border-gray-200/50 dark:border-gray-700/50 mt-auto space-y-4">
+          {/* Theme Toggle */}
+          <div className="flex justify-center">
+            <div className="p-2 bg-gray-100/80 dark:bg-gray-800/80 rounded-xl backdrop-blur-sm">
+              <ThemeToggleButton />
+            </div>
+          </div>
+
+          {/* User Info */}
           {user && (
-            <div className="flex items-center space-x-3 mb-4">
-              <FaUserCircle className="h-8 w-8 text-[var(--color-text-dark-secondary)] dark:text-text-light-secondary" />
-              <div>
-                <p className="text-sm font-medium text-[var(--color-text-dark-primary)] dark:text-text-light-primary truncate">
-                  {user.firstName || user.email?.split('@')[0]}
-                </p>
-                <p className="text-xs text-[var(--color-text-dark-secondary)] dark:text-text-light-secondary truncate">{user.email}</p>
+            <div className="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800/50 dark:to-gray-900/50 rounded-xl p-4 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/50">
+              <div className="flex items-center space-x-3">
+                <div className="relative">
+                  <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-green-500 rounded-full flex items-center justify-center text-white font-semibold text-sm shadow-lg">
+                    {(user.firstName?.[0] || user.email?.[0] || 'U').toUpperCase()}
+                  </div>
+                  <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-400 border-2 border-white rounded-full"></div>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">
+                    {user.firstName || user.email?.split('@')[0]}
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                    {user.email}
+                  </p>
+                </div>
               </div>
             </div>
           )}
+
+          {/* Logout Button */}
           <button
             onClick={handleLogout}
-            className={`${itemBaseClasses} w-full text-[var(--color-text-dark-secondary)] hover:text-white hover:bg-accent-red dark:text-text-light-secondary dark:hover:text-white dark:hover:bg-accent-red group`}
-          >
-            <FaSignOutAlt className={`h-5 w-5 text-[var(--color-text-dark-secondary)] group-hover:text-white dark:text-text-light-secondary dark:group-hover:text-white transition-colors duration-150`} />
-            <span>Logout</span>
+            className="group w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-medium text-red-600 dark:text-red-400 hover:text-white hover:bg-gradient-to-r hover:from-red-500 hover:to-red-600 transition-all duration-200 border border-red-200 dark:border-red-800 hover:border-transparent shadow-sm hover:shadow-lg">
+            <FaSignOutAlt className="h-4 w-4 transition-transform duration-200 group-hover:scale-110" />
+            <span>Sign Out</span>
           </button>
         </div>
       </aside>

@@ -2,17 +2,14 @@
 
 import React, { useMemo } from 'react';
 import CalendarHeatmap, { ReactCalendarHeatmapValue } from 'react-calendar-heatmap';
-import { Tooltip as ReactTooltip } from 'react-tooltip'; // react-tooltip v5+ exports Tooltip directly
 import { Trade, TradeStatus } from '@/types/trade';
 import {
-  format as formatDateFns,
   parseISO,
   startOfDay,
   subYears,
   formatISO
 } from 'date-fns';
 import 'react-calendar-heatmap/dist/styles.css';
-import 'react-tooltip/dist/react-tooltip.css'; // Import react-tooltip CSS if not already global
 
 // This interface now matches what we put into `values` for CalendarHeatmap
 interface CustomHeatmapValue {
@@ -60,18 +57,6 @@ export default function TradesCalendarHeatmap({ trades }: TradesCalendarHeatmapP
   // and we add totalPnl. So we cast it to our richer type after checking.
   type HeatmapCallbackArg = ReactCalendarHeatmapValue<string> | undefined;
 
-  // Let TypeScript infer the return type here, as it needs to be compatible with HTML data attributes
-  const getTooltipDataAttrs = (valueArg: HeatmapCallbackArg) => {
-    const value = valueArg as (CustomHeatmapValue & ReactCalendarHeatmapValue<string>) | undefined;
-    if (!value || !value.date || value.totalPnl === undefined || value.count === 0) {
-        return undefined; // Return undefined if no tooltip needed
-    }
-    return {
-      'data-tooltip-id': 'heatmap-tooltip',
-      'data-tooltip-content': `${formatDateFns(parseISO(value.date), 'MMM d, yyyy')}: ${value.count} trade(s), P&L: $${value.totalPnl.toFixed(2)}`
-    };
-  };
-
   const classForValue = (valueArg: HeatmapCallbackArg) => {
     const value = valueArg as (CustomHeatmapValue & ReactCalendarHeatmapValue<string>) | undefined;
     if (!value || !value.date || value.count === 0 || value.totalPnl === undefined) {
@@ -93,9 +78,7 @@ export default function TradesCalendarHeatmap({ trades }: TradesCalendarHeatmapP
         endDate={today}
         values={heatmapValues}
         classForValue={classForValue}
-        tooltipDataAttrs={getTooltipDataAttrs}
         showWeekdayLabels={true}
-        // weekdayLabels={['S', 'M', 'T', 'W', 'T', 'F', 'S']}
         monthLabels={['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']}
         onClick={(valueArg) => {
           const value = valueArg as (CustomHeatmapValue & ReactCalendarHeatmapValue<string>) | undefined;
@@ -104,12 +87,6 @@ export default function TradesCalendarHeatmap({ trades }: TradesCalendarHeatmapP
           }
         }}
         gutterSize={2}
-      />
-      <ReactTooltip 
-        id="heatmap-tooltip" 
-        place="top"
-        className="!bg-dark-secondary !dark:!bg-light-secondary !text-text-light-primary !dark:!text-text-dark-primary !text-xs !px-2 !py-1 !rounded-md !opacity-90 custom-tooltip-style shadow-lg"
-        style={{ border: '1px solid var(--color-light-border)'}}
       />
     </div>
   );

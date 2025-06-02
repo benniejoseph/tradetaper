@@ -7,12 +7,12 @@ import {
   startOfWeek, endOfWeek, parseISO, formatISO, isSameMonth, 
   startOfDay, getISOWeek
 } from 'date-fns';
-import { FaChevronLeft, FaChevronRight, FaCheckCircle, FaTimesCircle, FaListAlt } from 'react-icons/fa'; // Icons for summary
+import { FaChevronLeft, FaChevronRight, FaCheckCircle, FaTimesCircle, FaListAlt, FaCalendarAlt, FaDownload } from 'react-icons/fa';
 
 import { AppDispatch, RootState } from '@/store/store';
 import { fetchTrades } from '@/store/features/tradesSlice';
 import { Trade, TradeStatus } from '@/types/trade';
-import { selectSelectedAccountId, selectSelectedAccount } from '@/store/features/accountSlice'; // Import selectSelectedAccount
+import { selectSelectedAccountId, selectSelectedAccount } from '@/store/features/accountSlice';
 
 // Types for aggregated data
 interface DailyAggregatedData {
@@ -48,7 +48,7 @@ export default function CalendarPage() {
   const dispatch = useDispatch<AppDispatch>();
   const { trades, isLoading: tradesLoading } = useSelector((state: RootState) => state.trades);
   const selectedAccountId = useSelector(selectSelectedAccountId);
-  const selectedAccount = useSelector(selectSelectedAccount); // Get the full selected account object
+  const selectedAccount = useSelector(selectSelectedAccount);
 
   const [currentMonth, setCurrentMonth] = useState(startOfMonth(new Date()));
   const [selectedPeriod, setSelectedPeriod] = useState<'Monthly' | 'Quarterly' | 'Yearly'>('Monthly');
@@ -105,11 +105,11 @@ export default function CalendarPage() {
       if (dayData.tradeCount > 0 && accountBalanceForCalc > 0) {
         dayData.pnlPercentage = (dayData.pnl / accountBalanceForCalc) * 100;
       } else if (dayData.tradeCount > 0 && dayData.pnl !== 0) {
-        dayData.pnlPercentage = dayData.pnl > 0 ? Infinity : -Infinity; // P&L with zero/invalid balance
+        dayData.pnlPercentage = dayData.pnl > 0 ? Infinity : -Infinity;
       }
     });
     return data;
-  }, [trades, currentMonth, accountBalanceForCalc]); // Added accountBalanceForCalc dependency
+  }, [trades, currentMonth, accountBalanceForCalc]);
 
   const monthlySummaryStats: MonthlySummaryStats = useMemo(() => {
     const stats: MonthlySummaryStats = { totalWins: 0, totalWinPnl: 0, totalLosses: 0, totalLossPnl: 0, totalTrades: 0 };
@@ -162,104 +162,159 @@ export default function CalendarPage() {
         pnlPercentage: pnlPercentage
       };
     }).sort((a, b) => a.weekNumber - b.weekNumber);
-  }, [monthlyTrades, accountBalanceForCalc]); // Added accountBalanceForCalc dependency
+  }, [monthlyTrades, accountBalanceForCalc]);
   
   if (tradesLoading && trades.length === 0) {
-    return <div className="p-8 text-center">Loading calendar data...</div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <p className="text-gray-600 dark:text-gray-300 text-lg">Loading calendar data...</p>
+        </div>
+      </div>
+    );
   }
 
   const weekDayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
   const gridDays = Object.values(dailyDataForGrid);
 
-  // Placeholder for the rest of the UI
   return (
-    <div className="p-4 md:p-6 space-y-6 bg-gray-100 dark:bg-dark-primary min-h-screen">
-      {/* Month Navigation & Summary */}
-      <div className="flex flex-col sm:flex-row justify-between items-center gap-4 p-4 bg-white dark:bg-dark-secondary rounded-lg shadow">
-        <div className="flex items-center gap-2">
-          <button 
-            onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}
-            className="p-2 rounded-md hover:bg-gray-200 dark:hover:bg-dark-hover focus:outline-none focus:ring-2 focus:ring-accent-green"
-            aria-label="Previous month"
-          >
-            <FaChevronLeft className="h-5 w-5 text-gray-600 dark:text-text-light-secondary" />
-          </button>
-          <h2 className="text-xl md:text-2xl font-semibold text-gray-800 dark:text-text-light-primary">
-            {format(currentMonth, 'MMMM yyyy')}
-          </h2>
-          <button 
-            onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}
-            className="p-2 rounded-md hover:bg-gray-200 dark:hover:bg-dark-hover focus:outline-none focus:ring-2 focus:ring-accent-green"
-            aria-label="Next month"
-          >
-            <FaChevronRight className="h-5 w-5 text-gray-600 dark:text-text-light-secondary" />
-          </button>
+    <div className="space-y-8">
+      {/* Header Section */}
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
+        <div className="space-y-2">
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-green-600 bg-clip-text text-transparent">
+            Trading Calendar
+          </h1>
+          <p className="text-gray-600 dark:text-gray-300">
+            Monthly view of your trading activity and performance
+          </p>
         </div>
-        <div className="flex flex-wrap justify-center sm:justify-end gap-x-4 gap-y-2 text-sm">
-          <div className="flex items-center gap-1.5 text-green-600 dark:text-green-400">
-            <FaCheckCircle />
-            <span>Win: {monthlySummaryStats.totalWins} (${monthlySummaryStats.totalWinPnl.toFixed(2)})</span>
-          </div>
-          <div className="flex items-center gap-1.5 text-red-600 dark:text-red-400">
-            <FaTimesCircle />
-            <span>Loss: {monthlySummaryStats.totalLosses} (${Math.abs(monthlySummaryStats.totalLossPnl).toFixed(2)})</span>
-          </div>
-          <div className="flex items-center gap-1.5 text-gray-700 dark:text-text-light-secondary">
-            <FaListAlt />
-            <span>Trades: {monthlySummaryStats.totalTrades}</span>
-          </div>
+        
+        <div className="flex items-center space-x-3">
+          <button className="p-3 rounded-xl bg-gray-100/80 dark:bg-gray-800/80 hover:bg-green-500 dark:hover:bg-green-500 text-gray-600 dark:text-gray-400 hover:text-white transition-all duration-200 hover:scale-105">
+            <FaDownload className="w-4 h-4" />
+          </button>
+          
+          <button className="p-3 rounded-xl bg-gray-100/80 dark:bg-gray-800/80 hover:bg-blue-500 dark:hover:bg-blue-500 text-gray-600 dark:text-gray-400 hover:text-white transition-all duration-200 hover:scale-105">
+            <FaCalendarAlt className="w-4 h-4" />
+          </button>
         </div>
       </div>
 
-      {/* Period Toggle Placeholder */}
-      <div className="flex justify-end">
-        <div className="inline-flex rounded-md shadow-sm bg-white dark:bg-dark-secondary" role="group">
-          {['Monthly', 'Quarterly', 'Yearly'].map(period => (
-            <button
-              key={period}
-              type="button"
-              onClick={() => setSelectedPeriod(period as 'Monthly' | 'Quarterly' | 'Yearly')}
-              className={`px-4 py-2 text-sm font-medium border border-gray-200 dark:border-dark-border 
-                          ${selectedPeriod === period 
-                            ? 'bg-accent-green text-white ring-1 ring-accent-green z-10'
-                            : 'bg-white hover:bg-gray-50 text-gray-700 dark:bg-dark-secondary dark:hover:bg-dark-hover dark:text-text-light-secondary'}
-                          first:rounded-l-md last:rounded-r-md focus:z-10 focus:ring-1 focus:ring-accent-green`}
+      {/* Month Navigation & Summary */}
+      <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 p-6 shadow-lg">
+        <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-6">
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}
+              className="p-2.5 rounded-xl bg-gray-100/80 dark:bg-gray-800/80 hover:bg-blue-500 dark:hover:bg-blue-500 text-gray-600 dark:text-gray-400 hover:text-white transition-all duration-200 hover:scale-105"
+              aria-label="Previous month"
             >
-              {period}
+              <FaChevronLeft className="h-4 w-4" />
             </button>
-          ))}
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+              {format(currentMonth, 'MMMM yyyy')}
+            </h2>
+            <button 
+              onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}
+              className="p-2.5 rounded-xl bg-gray-100/80 dark:bg-gray-800/80 hover:bg-blue-500 dark:hover:bg-blue-500 text-gray-600 dark:text-gray-400 hover:text-white transition-all duration-200 hover:scale-105"
+              aria-label="Next month"
+            >
+              <FaChevronRight className="h-4 w-4" />
+            </button>
+          </div>
+          
+          {/* Period Toggle */}
+          <div className="flex bg-gray-100/80 dark:bg-gray-800/80 p-1 rounded-xl">
+            {['Monthly', 'Quarterly', 'Yearly'].map(period => (
+              <button
+                key={period}
+                type="button"
+                onClick={() => setSelectedPeriod(period as 'Monthly' | 'Quarterly' | 'Yearly')}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                  selectedPeriod === period 
+                    ? 'bg-gradient-to-r from-blue-500 to-green-500 text-white shadow-md' 
+                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-200/50 dark:hover:bg-gray-700/50'
+                }`}
+              >
+                {period}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Monthly Summary Stats */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+          <div className="flex items-center gap-3 p-4 bg-green-50/80 dark:bg-green-900/20 backdrop-blur-sm rounded-xl border border-green-200/50 dark:border-green-800/50">
+            <div className="p-2 bg-green-100/80 dark:bg-green-900/30 rounded-xl">
+              <FaCheckCircle className="h-5 w-5 text-green-600 dark:text-green-400" />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-green-700 dark:text-green-300">Wins</p>
+              <p className="text-lg font-bold text-green-600 dark:text-green-400">
+                {monthlySummaryStats.totalWins} (+${monthlySummaryStats.totalWinPnl.toFixed(2)})
+              </p>
+            </div>
+          </div>
+          
+          <div className="flex items-center gap-3 p-4 bg-red-50/80 dark:bg-red-900/20 backdrop-blur-sm rounded-xl border border-red-200/50 dark:border-red-800/50">
+            <div className="p-2 bg-red-100/80 dark:bg-red-900/30 rounded-xl">
+              <FaTimesCircle className="h-5 w-5 text-red-600 dark:text-red-400" />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-red-700 dark:text-red-300">Losses</p>
+              <p className="text-lg font-bold text-red-600 dark:text-red-400">
+                {monthlySummaryStats.totalLosses} (-${Math.abs(monthlySummaryStats.totalLossPnl).toFixed(2)})
+              </p>
+            </div>
+          </div>
+          
+          <div className="flex items-center gap-3 p-4 bg-blue-50/80 dark:bg-blue-900/20 backdrop-blur-sm rounded-xl border border-blue-200/50 dark:border-blue-800/50">
+            <div className="p-2 bg-blue-100/80 dark:bg-blue-900/30 rounded-xl">
+              <FaListAlt className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-blue-700 dark:text-blue-300">Total Trades</p>
+              <p className="text-lg font-bold text-blue-600 dark:text-blue-400">
+                {monthlySummaryStats.totalTrades}
+              </p>
+            </div>
+          </div>
         </div>
       </div>
 
       {/* Weekly Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-        {weeklySummaryStats.map((week, index) => (
-          <div key={week.weekNumber} className="p-3.5 bg-white dark:bg-dark-secondary rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200">
-            <div className="flex justify-between items-baseline mb-1">
-              <h4 className="text-sm font-semibold text-gray-700 dark:text-text-light-primary">Week {index + 1}</h4>
-              <span className="text-xs text-gray-500 dark:text-text-light-secondary">{week.tradeCount} trades</span>
-            </div>
-            <div className="flex items-baseline space-x-2">
-                <p className={`text-lg font-bold ${week.pnl >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                {week.pnl >= 0 ? '+' : ''}${Math.abs(week.pnl).toFixed(2)}
+      {weeklySummaryStats.length > 0 && (
+        <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 p-6 shadow-lg">
+          <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-6">Weekly Performance</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+            {weeklySummaryStats.map((week, index) => (
+              <div key={week.weekNumber} className="group p-4 bg-gray-50/80 dark:bg-gray-800/50 backdrop-blur-sm rounded-xl border border-gray-200/50 dark:border-gray-700/50 hover:bg-white/90 dark:hover:bg-gray-800/80 transition-all duration-200 hover:shadow-md hover:-translate-y-1">
+                <div className="flex justify-between items-baseline mb-2">
+                  <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Week {index + 1}</h4>
+                  <span className="text-xs text-gray-500 dark:text-gray-400">{week.tradeCount} trades</span>
+                </div>
+                <div className="flex items-baseline space-x-2">
+                  <p className={`text-lg font-bold ${week.pnl >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                    {week.pnl >= 0 ? '+' : ''}${Math.abs(week.pnl).toFixed(2)}
+                  </p>
+                  {week.pnlPercentage !== undefined && (
+                    <span className={`text-xs font-medium ${week.pnl >= 0 ? 'text-green-500 dark:text-green-400' : 'text-red-500 dark:text-red-400'}`}>
+                      {week.pnlPercentage === Infinity ? '(+∞%)' : 
+                       week.pnlPercentage === -Infinity ? '(-∞%)' : 
+                       week.pnlPercentage !== undefined ? `(${week.pnlPercentage >= 0 ? '+' : ''}${week.pnlPercentage.toFixed(2)}%)` : ''}
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  {week.activeDays} active day{week.activeDays !== 1 ? 's' : ''}
                 </p>
-                {week.pnlPercentage !== undefined && (
-                <span className={`text-xs font-medium ${week.pnl >= 0 ? 'text-green-500 dark:text-green-400' : 'text-red-500 dark:text-red-400'}`}>
-                    {week.pnlPercentage === Infinity ? '(+∞%)' : 
-                     week.pnlPercentage === -Infinity ? '(-∞%)' : 
-                     week.pnlPercentage !== undefined ? `(${week.pnlPercentage >= 0 ? '+' : ''}${week.pnlPercentage.toFixed(2)}%)` : ''}
-                </span>
-                )}
-            </div>
-            <p className="text-xs text-gray-500 dark:text-text-light-secondary mt-1">{week.activeDays} day{week.activeDays === 1 ? '' : 's'}</p>
+              </div>
+            ))}
           </div>
-        ))}
-        {weeklySummaryStats.length === 0 && !tradesLoading && (
-           <div className="col-span-full text-center py-4 text-gray-500 dark:text-text-light-secondary">
-             No trades in this month to summarize by week.
-           </div>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Main Calendar Grid Implementation */}
       <div className="bg-white dark:bg-dark-secondary shadow-lg rounded-lg overflow-hidden">
@@ -335,7 +390,6 @@ export default function CalendarPage() {
           })}
         </div>
       </div>
-
     </div>
   );
 } 

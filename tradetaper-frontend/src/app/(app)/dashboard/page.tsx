@@ -7,16 +7,17 @@ import { AppDispatch, RootState } from '@/store/store';
 import { fetchTrades } from '@/store/features/tradesSlice';
 import { selectSelectedAccountId } from '@/store/features/accountSlice';
 import Link from 'next/link';
-import { calculateDashboardStats, DashboardStats, calculateEquityCurveData } from '@/utils/analytics';
+import { calculateDashboardStats, calculateEquityCurveData } from '@/utils/analytics';
 import { useTheme } from '@/context/ThemeContext';
 import DashboardCard from '@/components/dashboard/DashboardCard';
-import { Trade, TradeStatus } from '@/types/trade';
+import { TradeStatus } from '@/types/trade';
 import { format as formatDateFns, subDays, isAfter, parseISO } from 'date-fns';
 import { 
     FaDollarSign, FaChartLine as FaReturnIcon, FaPercentage, 
     FaCrosshairs, FaBullseye, FaFileInvoiceDollar, FaTasks, FaInfoCircle, 
     FaDotCircle, FaChartLine, FaPlus, FaBookOpen, FaCalendarAlt, FaListOl,
-    FaChartPie, FaExchangeAlt, FaSync, FaCog, FaShareAlt, FaBell, FaCalendarDay
+    FaChartPie, FaExchangeAlt, FaSync, FaCog, FaShareAlt, FaBell, FaCalendarDay,
+    FaRocket, FaArrowUp, FaWallet, FaEye
 } from 'react-icons/fa'; 
 import { 
     ResponsiveContainer, LineChart, Line, XAxis, YAxis, 
@@ -127,7 +128,7 @@ export default function DashboardPage() {
   const averageRRDisplay = dashboardStats?.averageRR?.toFixed(2) || '0.00';
 
   const winrateChartData = useMemo(() => [
-    { name: 'Winrate', value: parseFloat((dashboardStats?.winRate || 0).toFixed(1)), fill: 'var(--color-accent-green)' }
+    { name: 'Winrate', value: parseFloat((dashboardStats?.winRate || 0).toFixed(1)), fill: '#3B82F6' }
   ], [dashboardStats?.winRate]);
 
   const numberOfTradingDays = useMemo(() => {
@@ -143,8 +144,8 @@ export default function DashboardPage() {
   const avgFeesPerDay = (dashboardStats?.totalCommissions && numberOfTradingDays) ? (dashboardStats.totalCommissions / numberOfTradingDays) : 0;
   const avgTradesPerDay = (dashboardStats?.closedTrades && numberOfTradingDays) ? (dashboardStats.closedTrades / numberOfTradingDays) : 0;
   
-  const rechartsTextFill = theme === 'dark' ? 'var(--color-text-light-secondary)' : 'var(--color-text-dark-secondary)';
-  const rechartsGridStroke = theme === 'dark' ? 'var(--color-gray-700)' : 'var(--color-light-border)';
+  const rechartsTextFill = theme === 'dark' ? '#9CA3AF' : '#6B7280';
+  const rechartsGridStroke = theme === 'dark' ? '#374151' : '#E5E7EB';
   
   const handleOpenSetTargetModal = () => setIsSetTargetModalOpen(true);
   const handleCloseSetTargetModal = () => setIsSetTargetModalOpen(false);
@@ -162,392 +163,490 @@ export default function DashboardPage() {
 
   if (tradesLoading && trades.length === 0 && !dashboardStats) {
     return (
-        <div className="min-h-screen flex items-center justify-center text-center p-4 
-                        text-[var(--color-text-dark-primary)] dark:text-text-light-primary 
-                        bg-[var(--color-light-secondary)] dark:bg-dark-primary">
-            Loading dashboard data...
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <p className="text-gray-600 dark:text-gray-300 text-lg">Loading your trading dashboard...</p>
         </div>
+      </div>
     );
   }
 
-  const quickActionBaseClasses = "w-full sm:w-auto flex-grow sm:flex-none px-6 py-3 font-semibold rounded-lg focus:outline-none transition-all duration-150 ease-in-out text-center shadow-md hover:shadow-lg flex items-center justify-center space-x-2";
-  const quickActionPrimaryClasses = `bg-accent-green hover:bg-accent-green-darker text-dark-primary 
-                                   focus:ring-2 focus:ring-offset-2 
-                                   focus:ring-offset-[var(--color-light-primary)] dark:focus:ring-offset-dark-secondary 
-                                   focus:ring-accent-green`;
-  const quickActionSecondaryClasses = `border hover:text-accent-green 
-                                     bg-[var(--color-light-secondary)] hover:bg-[var(--color-light-hover)] text-[var(--color-text-dark-primary)] border-[var(--color-light-border)] hover:border-accent-green focus:ring-offset-[var(--color-light-primary)] 
-                                     dark:bg-dark-secondary dark:hover:bg-dark-primary dark:text-text-light-primary dark:border-text-light-secondary dark:hover:border-accent-green dark:focus:ring-offset-dark-secondary 
-                                     focus:ring-2 focus:ring-accent-green`;
-
   return (
-      <div className="min-h-screen p-4 md:p-8">
-        <div className="container mx-auto space-y-10">
-          <div className="flex flex-col md:flex-row justify-between items-center">
-            <h1 className="text-3xl font-bold mb-4 md:mb-0 text-[var(--color-text-dark-primary)] dark:text-text-light-primary">
-              Welcome, {user?.firstName || user?.email || 'Trader'}!
+    <div className="space-y-8">
+      {/* Welcome Header */}
+      <div className="text-center space-y-4">
+        <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-blue-600 to-green-600 bg-clip-text text-transparent">
+          Welcome back, {user?.firstName || user?.email?.split('@')[0] || 'Trader'}!
             </h1>
-          </div>
-          <div className="p-4 bg-[var(--color-light-primary)] dark:bg-dark-secondary rounded-xl shadow-lg dark:shadow-card-modern">
-            <div className="flex flex-col sm:flex-row justify-around items-center gap-3">
-              <Link href="/trades/new" className={`${quickActionBaseClasses} ${quickActionPrimaryClasses}`}> <FaPlus /> <span>Log New Trade</span> </Link>
-              <Link href="/trades" className={`${quickActionBaseClasses} ${quickActionSecondaryClasses}`}> <FaBookOpen /> <span>View Full Journal</span> </Link>
-              <Link href="/analytics" className={`${quickActionBaseClasses} ${quickActionSecondaryClasses}`}> <FaChartLine /> <span>Performance Analytics</span> </Link>
-            </div>
-          </div>
+        <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
+          Here&apos;s your trading performance overview. Track your progress and optimize your strategy.
+        </p>
+      </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-6">
-
-            <DashboardCard 
-              title="Balance" 
-              icon={FaDollarSign}
-              showMenuIcon 
-              showTimeRangeSelector 
-              selectedTimeRange={timeRange} 
-              onTimeRangeChange={setTimeRange} 
-              gridSpan="sm:col-span-1 lg:col-span-2"
-            >
-              <div className="space-y-2 h-full flex flex-col justify-between">
-                <div>
-                  <p className="text-3xl font-bold text-[var(--color-text-dark-primary)] dark:text-text-light-primary">
-                    ${dashboardStats?.currentBalance?.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) || '0.00'} 
-                    <span className={`text-sm font-medium ml-2 ${periodMetrics.balancePercentageChange >= 0 ? 'text-accent-green' : 'text-accent-red'}`}>
-                      {periodMetrics.balancePercentageChange === Infinity ? '∞' : periodMetrics.balancePercentageChange.toFixed(2)}%
-                    </span> 
-                  </p>
-                  <p className="text-sm text-[var(--color-text-dark-secondary)] dark:text-text-light-secondary">
-                    Initial: ${periodMetrics.initialBalanceForPeriod?.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) || '0.00'} / Net P&L: ${dashboardStats?.totalNetPnl?.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) || '0.00'}
-                  </p>
+      {/* Quick Action Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <Link href="/journal/new" 
+              className="group relative bg-gradient-to-br from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white p-6 rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 overflow-hidden">
+          <div className="relative z-10">
+            <div className="flex items-center justify-between mb-4">
+              <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
+                <FaPlus className="w-6 h-6" />
               </div>
-                <div className="h-24 md:h-32">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={equityCurve} margin={{ top: 5, right: 0, left: 0, bottom: 5 }}>
-                      <defs>
-                        <linearGradient id="balanceGradient" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="var(--color-accent-green)" stopOpacity={0.3}/>
-                          <stop offset="95%" stopColor="var(--color-accent-green)" stopOpacity={0}/>
-                        </linearGradient>
-                      </defs>
+              <div className="text-right">
+                <div className="text-sm opacity-80">Quick Action</div>
+                <div className="text-lg font-semibold">Log Trade</div>
+              </div>
+            </div>
+            <p className="text-blue-100">Record a new trade with all the details</p>
+          </div>
+          <div className="absolute -top-4 -right-4 w-24 h-24 bg-white/10 rounded-full blur-xl"></div>
+                </Link>
+
+        <Link href="/trades" 
+              className="group relative bg-gradient-to-br from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white p-6 rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 overflow-hidden">
+          <div className="relative z-10">
+            <div className="flex items-center justify-between mb-4">
+              <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
+                <FaBookOpen className="w-6 h-6" />
+              </div>
+              <div className="text-right">
+                <div className="text-sm opacity-80">View All</div>
+                <div className="text-lg font-semibold">Journal</div>
+              </div>
+            </div>
+            <p className="text-green-100">Review your complete trading journal</p>
+          </div>
+          <div className="absolute -top-4 -right-4 w-24 h-24 bg-white/10 rounded-full blur-xl"></div>
+                </Link>
+
+        <Link href="/analytics" 
+              className="group relative bg-gradient-to-br from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white p-6 rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 overflow-hidden">
+          <div className="relative z-10">
+            <div className="flex items-center justify-between mb-4">
+              <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
+                <FaChartLine className="w-6 h-6" />
+              </div>
+              <div className="text-right">
+                <div className="text-sm opacity-80">Deep Dive</div>
+                <div className="text-lg font-semibold">Analytics</div>
+              </div>
+            </div>
+            <p className="text-purple-100">Advanced performance insights</p>
+          </div>
+          <div className="absolute -top-4 -right-4 w-24 h-24 bg-white/10 rounded-full blur-xl"></div>
+        </Link>
+      </div>
+
+      {/* Main Dashboard Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-6">
+        
+        {/* Balance Card */}
+        <DashboardCard 
+          title="Portfolio Balance" 
+          icon={FaWallet}
+          showTimeRangeSelector 
+          selectedTimeRange={timeRange} 
+          onTimeRangeChange={setTimeRange} 
+          gridSpan="sm:col-span-1 lg:col-span-2"
+        >
+          <div className="space-y-4">
+            <div>
+              <div className="flex items-baseline space-x-3">
+                <p className="text-3xl font-bold text-gray-900 dark:text-white">
+                  ${dashboardStats?.currentBalance?.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) || '0.00'}
+                </p>
+                <span className={`px-2 py-1 rounded-lg text-sm font-medium ${
+                  periodMetrics.balancePercentageChange >= 0 
+                    ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' 
+                    : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                }`}>
+                  {periodMetrics.balancePercentageChange === Infinity ? '∞' : periodMetrics.balancePercentageChange.toFixed(2)}%
+                </span>
+              </div>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                Initial: ${periodMetrics.initialBalanceForPeriod?.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) || '0.00'} • 
+                Net P&L: ${dashboardStats?.totalNetPnl?.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) || '0.00'}
+              </p>
+              </div>
+
+            <div className="h-24">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={equityCurve} margin={{ top: 5, right: 0, left: 0, bottom: 5 }}>
+                  <defs>
+                    <linearGradient id="balanceGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.3}/>
+                      <stop offset="95%" stopColor="#3B82F6" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
                         <Tooltip
-                        contentStyle={{ backgroundColor: theme === 'dark' ? 'var(--color-dark-primary)' : 'var(--color-light-primary)' , border: '1px solid var(--color-light-border)', borderRadius: '0.375rem'}} 
-                        labelStyle={{color: rechartsTextFill, fontWeight: 'bold'}}
-                        itemStyle={{color: 'var(--color-accent-green)'}}
-                        wrapperClassName="!shadow-lg !rounded-md"
-                        labelFormatter={(label: string) => label} 
-                        formatter={(value: number) => [`$${value.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}`, "Balance"]}
-                      />
-                      <Line type="monotone" dataKey="value" stroke="var(--color-accent-green)" strokeWidth={2} dot={false} />
-                      <Area type="monotone" dataKey="value" stroke={false} fillOpacity={1} fill="url(#balanceGradient)" />
+                    contentStyle={{ 
+                      backgroundColor: theme === 'dark' ? 'rgba(17, 24, 39, 0.9)' : 'rgba(255, 255, 255, 0.9)', 
+                      border: '1px solid #E5E7EB', 
+                      borderRadius: '12px',
+                      backdropFilter: 'blur(12px)'
+                    }} 
+                    labelStyle={{color: rechartsTextFill, fontWeight: 'bold'}}
+                    itemStyle={{color: '#3B82F6'}}
+                    formatter={(value: number) => [`$${value.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}`, "Balance"]}
+                  />
+                  <Line type="monotone" dataKey="value" stroke="#3B82F6" strokeWidth={3} dot={false} />
+                  <Area type="monotone" dataKey="value" stroke="none" fillOpacity={1} fill="url(#balanceGradient)" />
                     </LineChart>
                     </ResponsiveContainer>
-                </div>
-              </div>
-            </DashboardCard>
-
-            <DashboardCard 
-              title="Personal target" 
-              icon={FaBullseye}
-              showInfoIcon={true} 
-              showMenuIcon={true} 
-              gridSpan="sm:col-span-1 lg:col-span-2"
-            >
-              <div className="space-y-3 h-full flex flex-col justify-between">
-                <p className="text-3xl font-bold">
-                  ${personalTargetCurrent.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
-                  <span className="text-sm font-normal text-[var(--color-text-dark-secondary)] dark:text-text-light-secondary"> / ${personalTargetGoal.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
-                </p>
-                <div className="w-full bg-[var(--color-light-border)] dark:bg-dark-primary rounded-full h-2.5">
-                  <div 
-                    className="bg-accent-green h-2.5 rounded-full transition-all duration-500 ease-out"
-                    style={{ width: `${Math.min(personalTargetProgress, 100)}%` }}
-                  ></div>
-                </div>
-                <div className="flex justify-between text-xs text-[var(--color-text-dark-secondary)] dark:text-text-light-secondary">
-                  <span>-$1,000.00</span> { /* Placeholder scales */}
-                  <span>$0.00</span>
-                  <span>+$1,000.00</span>
-                </div>
-                 <button 
-                  onClick={handleOpenSetTargetModal}
-                  className="w-full text-sm py-2 px-4 rounded-lg bg-accent-green text-dark-primary hover:bg-accent-green-darker transition-colors font-semibold">
-                  Set Target
-                </button>
-              </div>
-            </DashboardCard>
-            
-            <DashboardCard 
-              title="Return" 
-              icon={FaReturnIcon}
-              showInfoIcon 
-              showMenuIcon 
-              showTimeRangeSelector 
-              selectedTimeRange={timeRange} 
-              onTimeRangeChange={setTimeRange}
-              gridSpan="sm:col-span-1 lg:col-span-2" 
-            >
-              <div className="space-y-1">
-                <p className={`text-3xl font-bold ${ (dashboardStats?.totalNetPnl || 0) >= 0 ? 'text-accent-green' : 'text-accent-red'}`}>
-                  {(dashboardStats?.totalNetPnl || 0) >= 0 ? '+' : ''}${dashboardStats?.totalNetPnl?.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) || '$0.00'}
-                  <span className={`text-xs font-medium bg-opacity-20 px-1.5 py-0.5 rounded-full ml-2 align-middle ${(periodMetrics.roiPercentage >= 0 ? 'bg-accent-green text-accent-green' : 'bg-accent-red text-accent-red')}`}>
-                     {periodMetrics.roiPercentage === Infinity ? '∞' : periodMetrics.roiPercentage.toFixed(2)}%
-                  </span>
-                </p>
-                {[ 
-                  { label: 'Avg Win', value: dashboardStats?.averageWin, isPositive: true },
-                  { label: 'Avg Loss', value: dashboardStats?.averageLoss, isPositive: false },
-                  { label: 'Largest Win', value: dashboardStats?.largestWin, isPositive: true },
-                  { label: 'Largest Loss', value: dashboardStats?.largestLoss, isPositive: false },
-                ].map(item => (
-                  <div key={item.label} className="flex justify-between items-center text-sm py-1 border-b border-[var(--color-light-border)] dark:border-dark-primary last:border-b-0">
-                    <span className="text-[var(--color-text-dark-secondary)] dark:text-text-light-secondary">{item.label}</span>
-                    <span className={`${item.isPositive ? 'text-accent-green' : 'text-accent-red'} font-medium`}>
-                      {item.value !== undefined && item.value !== null ? 
-                        `${item.isPositive && item.value > 0 ? '+' : ''}$${Math.abs(item.value).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}` : 'N/A'}
-                    </span>
-                  </div>
-                ))}
-                <div className="mt-3 p-3 bg-accent-green bg-opacity-10 rounded-md">
-                  <p className="text-xs text-accent-green">
-                    <FaInfoCircle className="inline mr-1 mb-0.5"/> 
-                    Profit factor is {dashboardStats?.profitFactor?.toFixed(2) || 'N/A'}. 
-                    {(dashboardStats?.profitFactor && dashboardStats?.profitFactor >=1) ? `You earn $${dashboardStats?.profitFactor.toFixed(2)} for every $1 lost.` : (dashboardStats?.profitFactor ? `You lose $${(1/dashboardStats.profitFactor).toFixed(2)} for every $1 earned.` : 'Not enough data.')}
-                  </p>
-                </div>
-              </div>
-            </DashboardCard>
-
-            <DashboardCard 
-              title="Account Balance" 
-              icon={FaChartLine}
-              showInfoIcon 
-              showMenuIcon 
-              showTimeRangeSelector
-              selectedTimeRange={timeRange}
-              onTimeRangeChange={setTimeRange}
-              gridSpan="sm:col-span-2 lg:col-span-3"
-            >
-              <div className="h-72 md:h-80">
-                <ResponsiveContainer width="100%" height="100%">
-                  <ComposedChart data={equityCurve} margin={{ top: 5, right: 5, left: -25, bottom: 5 }}>
-                      <defs>
-                        <linearGradient id="accountBalanceFillChart" x1="0" y1="0" x2="0" y2="1"> 
-                          <stop offset="5%" stopColor="var(--color-accent-green)" stopOpacity={0.3}/> 
-                          <stop offset="95%" stopColor="var(--color-accent-green)" stopOpacity={0.05}/>
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid stroke={rechartsGridStroke} strokeDasharray="3 3" vertical={false}/>
-                      <XAxis dataKey="date" stroke={rechartsTextFill} tick={{fontSize: 12}} axisLine={false} tickLine={false} />
-                      <YAxis stroke={rechartsTextFill} tickFormatter={(value) => `$${value/1000}k`} tick={{fontSize: 12}} axisLine={false} tickLine={false} />
-                      <Tooltip 
-                          contentStyle={{ backgroundColor: theme === 'dark' ? 'var(--color-dark-primary)' : 'var(--color-light-primary)', border: '1px solid var(--color-light-border)', borderRadius: '0.375rem'}} 
-                          labelStyle={{color: rechartsTextFill, fontWeight: 'bold'}}
-                          itemStyle={{color: 'var(--color-accent-green)'}}
-                          labelFormatter={(label: string) => label} 
-                          formatter={(value: number) => [`$${value.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}`, "Balance"]} 
-                          wrapperClassName="!shadow-lg !rounded-md"
-                      />
-                      <Area type="monotone" dataKey="value" stroke="var(--color-accent-green)" fill="url(#accountBalanceFillChart)" strokeWidth={2.5} activeDot={{ r: 6, strokeWidth: 2, stroke: 'var(--color-accent-green)' }} />
-                  </ComposedChart>
-                </ResponsiveContainer>
-              </div>
-            </DashboardCard>
-          
-            <DashboardCard 
-              title="Winrate" 
-              icon={FaPercentage}
-              showInfoIcon 
-              showMenuIcon 
-              showTimeRangeSelector
-              selectedTimeRange={timeRange}
-              onTimeRangeChange={setTimeRange}
-              gridSpan="sm:col-span-2 lg:col-span-3"
-            >
-              <div className="flex flex-col items-center justify-around h-full space-y-2">
-                <div style={{ width: '100%', height: 180 }}>
-                  <ResponsiveContainer width="100%" height="100%">
-                      <RadialBarChart 
-                          cx="50%" 
-                          cy="50%" 
-                          innerRadius="65%"
-                          outerRadius="90%"
-                          barSize={16}
-                          data={winrateChartData} 
-                          startAngle={90}
-                          endAngle={-270}
-                      >
-                          <PolarAngleAxis type="number" domain={[0, 100]} angleAxisId={0} tick={false} />
-                          <RadialBar 
-                              dataKey='value' 
-                              cornerRadius={8}
-                              angleAxisId={0}
-                          />
-                          <text x="50%" y="50%" textAnchor="middle" dominantBaseline="middle" className="text-4xl font-bold fill-[var(--color-text-dark-primary)] dark:fill-text-light-primary">
-                              {(dashboardStats?.winRate || 0).toFixed(1)}%
-                          </text>
-                          <text x="50%" y="62%" textAnchor="middle" dominantBaseline="middle" className="text-sm fill-[var(--color-text-dark-secondary)] dark:fill-text-light-secondary">
-                              Winrate
-                          </text>
-                      </RadialBarChart>
-                  </ResponsiveContainer>
-                </div>
-                <div className="w-full px-4">
-                  <label htmlFor="avgRR" className="text-sm text-center text-[var(--color-text-dark-secondary)] dark:text-text-light-secondary mb-1 block">Average R:R</label>
-                  <div className="relative h-2.5 bg-[var(--color-light-border)] dark:bg-dark-primary rounded-full">
-                    <div 
-                      className="absolute top-0 left-0 h-2.5 bg-accent-green rounded-full"
-                      style={{ width: `${Math.min(( (dashboardStats?.averageRR || 0) / 5) * 100, 100)}%`}}
-                    ></div>
-                    <div 
-                      className="absolute top-1/2 h-5 w-5 bg-accent-green border-2 border-[var(--color-light-primary)] dark:border-dark-secondary rounded-full -translate-y-1/2 -translate-x-1/2 shadow-md flex items-center justify-center text-xs font-semibold text-dark-primary"
-                      style={{ left: `${Math.min(( (dashboardStats?.averageRR || 0) / 5) * 100, 100)}%`}}
-                    >
-                      {averageRRDisplay} 
-                    </div>
-                  </div>
-                  <div className="flex justify-between text-xs text-[var(--color-text-dark-secondary)] dark:text-text-light-secondary mt-1.5">
-                    <span>0</span>
-                    <span className="font-semibold text-accent-green">{averageRRDisplay}</span>
-                    <span>5</span>
-                  </div>
-                </div>
-              </div>
-            </DashboardCard>
-
-            <DashboardCard 
-              title="Commissions and Fees" 
-              icon={FaFileInvoiceDollar}
-              gridSpan="sm:col-span-1 lg:col-span-3" 
-              showMenuIcon 
-              showTimeRangeSelector 
-              selectedTimeRange={timeRange} 
-              onTimeRangeChange={setTimeRange} 
-              showInfoIcon
-            >
-              <div className="space-y-2.5 text-sm py-2">
-                <div className="flex justify-between items-center px-2 py-1.5 rounded-md hover:bg-[var(--color-light-hover)] dark:hover:bg-dark-primary">
-                  <span className="text-[var(--color-text-dark-secondary)] dark:text-text-light-secondary">Total Commissions:</span>
-                  <span className="font-semibold text-[var(--color-text-dark-primary)] dark:text-text-light-primary">
-                    ${dashboardStats?.totalCommissions?.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) || '0.00'}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center px-2 py-1.5 rounded-md hover:bg-[var(--color-light-hover)] dark:hover:bg-dark-primary">
-                  <span className="text-[var(--color-text-dark-secondary)] dark:text-text-light-secondary">AVG Fees per Trade:</span>
-                  <span className="font-semibold text-[var(--color-text-dark-primary)] dark:text-text-light-primary">
-                    ${(dashboardStats?.totalCommissions && dashboardStats?.closedTrades ? dashboardStats.totalCommissions / dashboardStats.closedTrades : 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center px-2 py-1.5 rounded-md hover:bg-[var(--color-light-hover)] dark:hover:bg-dark-primary">
-                  <span className="text-[var(--color-text-dark-secondary)] dark:text-text-light-secondary">PNL / Fees Ratio:</span>
-                  <span className={`font-semibold ${(dashboardStats?.totalNetPnl && dashboardStats?.totalCommissions && (dashboardStats.totalNetPnl / dashboardStats.totalCommissions) < 1 && dashboardStats.totalCommissions !==0) ? 'text-accent-red' : 'text-accent-green'}`}>
-                    {(dashboardStats?.totalNetPnl && dashboardStats?.totalCommissions && dashboardStats.totalCommissions !== 0 ? (dashboardStats.totalNetPnl / dashboardStats.totalCommissions) : 0).toFixed(2)}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center px-2 py-1.5 rounded-md hover:bg-[var(--color-light-hover)] dark:hover:bg-dark-primary">
-                  <span className="text-[var(--color-text-dark-secondary)] dark:text-text-light-secondary">AVG Fees per Day:</span>
-                  <span className="font-semibold text-[var(--color-text-dark-primary)] dark:text-text-light-primary">
-                    ${avgFeesPerDay.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center px-2 py-1.5 rounded-md hover:bg-[var(--color-light-hover)] dark:hover:bg-dark-primary">
-                  <span className="text-[var(--color-text-dark-secondary)] dark:text-text-light-secondary">Funding (Placeholder):</span>
-                  <span className="font-semibold text-[var(--color-text-dark-primary)] dark:text-text-light-primary">$0.00</span>
-                </div>
-              </div>
-            </DashboardCard>
-
-            <DashboardCard 
-              title="Trades Performance" 
-              icon={FaTasks}
-              gridSpan="sm:col-span-1 lg:col-span-3" 
-              showMenuIcon 
-              showTimeRangeSelector 
-              selectedTimeRange={timeRange} 
-              onTimeRangeChange={setTimeRange} 
-              showInfoIcon
-            >
-              <div className="space-y-2.5 text-sm py-2">
-                <div className="flex justify-between items-center px-2 py-1.5 rounded-md hover:bg-[var(--color-light-hover)] dark:hover:bg-dark-primary">
-                  <span className="text-[var(--color-text-dark-secondary)] dark:text-text-light-secondary">Total Trades:</span>
-                  <span className="font-semibold text-[var(--color-text-dark-primary)] dark:text-text-light-primary">
-                    {dashboardStats?.closedTrades || 0} 
-                  </span>
-                </div>
-                <div className="flex justify-between items-center px-2 py-1.5 rounded-md hover:bg-[var(--color-light-hover)] dark:hover:bg-dark-primary">
-                  <span className="text-[var(--color-text-dark-secondary)] dark:text-text-light-secondary">Winning Trades:</span>
-                  <span className="font-semibold text-accent-green">
-                    {dashboardStats?.winningTrades || 0}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center px-2 py-1.5 rounded-md hover:bg-[var(--color-light-hover)] dark:hover:bg-dark-primary">
-                  <span className="text-[var(--color-text-dark-secondary)] dark:text-text-light-secondary">Losing Trades:</span>
-                  <span className="font-semibold text-accent-red">
-                    {dashboardStats?.losingTrades || 0}
-                  </span>
-                </div>
-                 <div className="flex justify-between items-center px-2 py-1.5 rounded-md hover:bg-[var(--color-light-hover)] dark:hover:bg-dark-primary">
-                  <span className="text-[var(--color-text-dark-secondary)] dark:text-text-light-secondary">Breakeven Trades:</span>
-                  <span className="font-semibold text-[var(--color-text-dark-primary)] dark:text-text-light-primary">
-                    {dashboardStats?.breakevenTrades || 0}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center px-2 py-1.5 rounded-md hover:bg-[var(--color-light-hover)] dark:hover:bg-dark-primary">
-                  <span className="text-[var(--color-text-dark-secondary)] dark:text-text-light-secondary">AVG Trades per Day:</span>
-                  <span className="font-semibold text-[var(--color-text-dark-primary)] dark:text-text-light-primary">
-                    {avgTradesPerDay.toFixed(2)}
-                  </span>
-                </div>
-              </div>
-            </DashboardCard>
-
-            <DashboardCard
-              title="Top-5 Trades on Return"
-              icon={FaListOl}
-              gridSpan="lg:col-span-3"
-              showTimeRangeSelector={true}
-              selectedTimeRange={timeRange}
-              onTimeRangeChange={setTimeRange}
-              showInfoIcon={true}
-              showMenuIcon={true}
-            >
-              <TopTradesByReturn trades={filteredTrades} topN={5} />
-            </DashboardCard>
-
-            <DashboardCard
-              title="Calendar"
-              gridSpan="lg:col-span-3"
-              showTimeRangeSelector={false}
-              showInfoIcon={true}
-              showMenuIcon={true}
-            >
-              <DashboardPnlCalendar trades={filteredTrades} />
-            </DashboardCard>
-            
-            <DashboardCard
-              title="Trading Activity Calendar"
-              icon={FaCalendarAlt}
-              gridSpan="lg:col-span-6"
-              showTimeRangeSelector={true}
-              selectedTimeRange={timeRange}
-              onTimeRangeChange={setTimeRange}
-            >
-              <TradesCalendarHeatmap trades={filteredTrades} />
-            </DashboardCard>
+            </div>
           </div>
+        </DashboardCard>
 
-          {(!filteredTrades || filteredTrades.length === 0) && !tradesLoading && (
-              <div className="text-center py-10 bg-[var(--color-light-primary)] dark:bg-dark-secondary rounded-xl shadow-lg dark:shadow-card-modern p-6">
-                  <p className="text-xl text-[var(--color-text-dark-secondary)] dark:text-text-light-secondary">
-                      No trades recorded for the selected period. Add some trades or adjust the time range!
-                  </p>
+        {/* Personal Target Card */}
+        <DashboardCard 
+          title="Personal Target" 
+          icon={FaBullseye}
+          showInfoIcon={true} 
+          gridSpan="sm:col-span-1 lg:col-span-2"
+        >
+          <div className="space-y-4">
+            <div className="flex items-baseline space-x-2">
+              <p className="text-3xl font-bold text-gray-900 dark:text-white">
+                ${personalTargetCurrent.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+              </p>
+              <span className="text-sm text-gray-500 dark:text-gray-400">
+                / ${personalTargetGoal.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+              </span>
+            </div>
+            
+            <div className="space-y-2">
+              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 overflow-hidden">
+                <div 
+                  className="bg-gradient-to-r from-blue-500 to-green-500 h-3 rounded-full transition-all duration-500 ease-out"
+                  style={{ width: `${Math.min(personalTargetProgress, 100)}%` }}
+                ></div>
               </div>
-          )}
+              <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400">
+                <span>-$1,000</span>
+                <span className="font-medium text-gray-700 dark:text-gray-300">
+                  {personalTargetProgress.toFixed(1)}%
+                </span>
+                <span>+$1,000</span>
+              </div>
+            </div>
+            
+            <button 
+              onClick={handleOpenSetTargetModal}
+              className="w-full bg-gradient-to-r from-blue-500 to-green-500 hover:from-blue-600 hover:to-green-600 text-white py-2.5 px-4 rounded-xl font-semibold transition-all duration-200 shadow-lg hover:shadow-xl">
+              Update Target
+            </button>
+          </div>
+        </DashboardCard>
+        
+        {/* Return Card */}
+        <DashboardCard 
+          title="Total Return" 
+          icon={FaArrowUp}
+          showInfoIcon 
+          showTimeRangeSelector 
+          selectedTimeRange={timeRange} 
+          onTimeRangeChange={setTimeRange}
+          gridSpan="sm:col-span-1 lg:col-span-2" 
+        >
+          <div className="space-y-4">
+            <div className="flex items-baseline space-x-3">
+              <p className={`text-3xl font-bold ${
+                (dashboardStats?.totalNetPnl || 0) >= 0 
+                  ? 'text-green-600 dark:text-green-400' 
+                  : 'text-red-600 dark:text-red-400'
+              }`}>
+                {(dashboardStats?.totalNetPnl || 0) >= 0 ? '+' : ''}${dashboardStats?.totalNetPnl?.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) || '0.00'}
+              </p>
+              <span className={`px-2 py-1 rounded-lg text-sm font-medium ${
+                periodMetrics.roiPercentage >= 0 
+                  ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' 
+                  : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+              }`}>
+                {periodMetrics.roiPercentage === Infinity ? '∞' : periodMetrics.roiPercentage.toFixed(2)}%
+              </span>
+            </div>
+            
+            <div className="space-y-3">
+              {[ 
+                { label: 'Average Win', value: dashboardStats?.averageWin, isPositive: true },
+                { label: 'Average Loss', value: dashboardStats?.averageLoss, isPositive: false },
+                { label: 'Largest Win', value: dashboardStats?.largestWin, isPositive: true },
+                { label: 'Largest Loss', value: dashboardStats?.largestLoss, isPositive: false },
+              ].map(item => (
+                <div key={item.label} className="flex justify-between items-center py-2 border-b border-gray-100 dark:border-gray-700 last:border-b-0">
+                  <span className="text-sm text-gray-600 dark:text-gray-400">{item.label}</span>
+                  <span className={`text-sm font-semibold ${
+                    item.isPositive 
+                      ? 'text-green-600 dark:text-green-400' 
+                      : 'text-red-600 dark:text-red-400'
+                  }`}>
+                    {item.value !== undefined && item.value !== null ? 
+                      `${item.isPositive && item.value > 0 ? '+' : ''}$${Math.abs(item.value).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}` : 'N/A'}
+                  </span>
+                </div>
+              ))}
+            </div>
+            
+            <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-3">
+              <p className="text-sm text-blue-700 dark:text-blue-300 flex items-center">
+                <FaInfoCircle className="mr-2 flex-shrink-0" />
+                Profit factor: {dashboardStats?.profitFactor?.toFixed(2) || 'N/A'}
+                {dashboardStats?.profitFactor && (
+                  <span className="ml-1">
+                    {dashboardStats.profitFactor >= 1 
+                      ? ` • You earn $${dashboardStats.profitFactor.toFixed(2)} per $1 lost` 
+                      : ` • You lose $${(1/dashboardStats.profitFactor).toFixed(2)} per $1 earned`}
+                  </span>
+                )}
+              </p>
+            </div>
+          </div>
+        </DashboardCard>
+
+        {/* Account Balance Chart */}
+        <DashboardCard 
+          title="Equity Curve" 
+          icon={FaChartLine}
+          showInfoIcon  
+          showTimeRangeSelector
+          selectedTimeRange={timeRange}
+          onTimeRangeChange={setTimeRange}
+          gridSpan="sm:col-span-2 lg:col-span-3"
+        >
+          <div className="h-80">
+            <ResponsiveContainer width="100%" height="100%">
+              <ComposedChart data={equityCurve} margin={{ top: 20, right: 20, left: 0, bottom: 20 }}>
+                <defs>
+                  <linearGradient id="accountBalanceFillChart" x1="0" y1="0" x2="0" y2="1"> 
+                    <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.3}/> 
+                    <stop offset="95%" stopColor="#3B82F6" stopOpacity={0.05}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid stroke={rechartsGridStroke} strokeDasharray="3 3" vertical={false}/>
+                <XAxis 
+                  dataKey="date" 
+                  stroke={rechartsTextFill} 
+                  tick={{fontSize: 12}} 
+                  axisLine={false} 
+                  tickLine={false} 
+                />
+                <YAxis 
+                  stroke={rechartsTextFill} 
+                  tickFormatter={(value) => `$${(value/1000).toFixed(0)}k`} 
+                  tick={{fontSize: 12}} 
+                  axisLine={false} 
+                  tickLine={false} 
+                />
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: theme === 'dark' ? 'rgba(17, 24, 39, 0.9)' : 'rgba(255, 255, 255, 0.9)', 
+                    border: '1px solid #E5E7EB', 
+                    borderRadius: '12px',
+                    backdropFilter: 'blur(12px)'
+                  }} 
+                  labelStyle={{color: rechartsTextFill, fontWeight: 'bold'}}
+                  itemStyle={{color: '#3B82F6'}}
+                  formatter={(value: number) => [`$${value.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}`, "Balance"]} 
+                />
+                <Area 
+                  type="monotone" 
+                  dataKey="value" 
+                  stroke="#3B82F6" 
+                  fill="url(#accountBalanceFillChart)" 
+                  strokeWidth={3} 
+                  activeDot={{ r: 6, strokeWidth: 2, stroke: '#3B82F6', fill: '#3B82F6' }} 
+                />
+              </ComposedChart>
+            </ResponsiveContainer>
+          </div>
+        </DashboardCard>
+      
+        {/* Winrate Card */}
+        <DashboardCard 
+          title="Win Rate Analysis" 
+          icon={FaPercentage}
+          showInfoIcon  
+          showTimeRangeSelector
+          selectedTimeRange={timeRange}
+          onTimeRangeChange={setTimeRange}
+          gridSpan="sm:col-span-2 lg:col-span-3"
+        >
+          <div className="flex flex-col items-center justify-center space-y-6 h-full">
+            <div className="relative w-48 h-48">
+              <ResponsiveContainer width="100%" height="100%">
+                <RadialBarChart 
+                  cx="50%" 
+                  cy="50%" 
+                  innerRadius="95%"
+                  outerRadius="130%"
+                  barSize={16}
+                  data={winrateChartData} 
+                  startAngle={90}
+                  endAngle={-270}
+                >
+                  <PolarAngleAxis type="number" domain={[0, 100]} angleAxisId={0} tick={false} />
+                  <RadialBar 
+                    dataKey='value' 
+                    cornerRadius={8}
+                    angleAxisId={0}
+                    fill="url(#winrateGradient)"
+                  />
+                  <defs>
+                    <linearGradient id="winrateGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                      <stop offset="0%" stopColor="#3B82F6" />
+                      <stop offset="100%" stopColor="#10B981" />
+                    </linearGradient>
+                  </defs>
+                </RadialBarChart>
+              </ResponsiveContainer>
+              <div className="absolute inset-0 flex flex-col items-center justify-center">
+                <div className="text-4xl font-bold text-gray-900 dark:text-white">
+                  {(dashboardStats?.winRate || 0).toFixed(1)}%
+                </div>
+                <div className="text-sm text-gray-500 dark:text-gray-400">
+                  Win Rate
+                </div>
+              </div>
+              </div>
+
+            <div className="w-full max-w-xs">
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Risk-Reward Ratio</span>
+                <span className="text-sm font-bold text-gray-900 dark:text-white">{averageRRDisplay}</span>
+              </div>
+              <div className="relative h-3 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                <div 
+                  className="absolute top-0 left-0 h-3 bg-gradient-to-r from-blue-500 to-green-500 rounded-full transition-all duration-500"
+                  style={{ width: `${Math.min(( (dashboardStats?.averageRR || 0) / 5) * 100, 100)}%`}}
+                ></div>
+              </div>
+              <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mt-1">
+                <span>0</span>
+                <span>2.5</span>
+                <span>5</span>
+              </div>
+            </div>
+          </div>
+        </DashboardCard>
+
+        {/* Commission and Fees */}
+        <DashboardCard 
+          title="Trading Costs" 
+          icon={FaFileInvoiceDollar}
+          gridSpan="sm:col-span-1 lg:col-span-3" 
+          showTimeRangeSelector 
+          selectedTimeRange={timeRange} 
+          onTimeRangeChange={setTimeRange} 
+          showInfoIcon
+        >
+          <div className="space-y-4">
+            {[
+              { label: 'Total Commissions', value: `$${dashboardStats?.totalCommissions?.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) || '0.00'}`, color: 'text-gray-900 dark:text-white' },
+              { label: 'Avg Fees per Trade', value: `$${(dashboardStats?.totalCommissions && dashboardStats?.closedTrades ? dashboardStats.totalCommissions / dashboardStats.closedTrades : 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`, color: 'text-gray-900 dark:text-white' },
+              { label: 'P&L to Fees Ratio', value: (dashboardStats?.totalNetPnl && dashboardStats?.totalCommissions && dashboardStats.totalCommissions !== 0 ? (dashboardStats.totalNetPnl / dashboardStats.totalCommissions).toFixed(2) : '0.00'), color: (dashboardStats?.totalNetPnl && dashboardStats?.totalCommissions && (dashboardStats.totalNetPnl / dashboardStats.totalCommissions) < 1 && dashboardStats.totalCommissions !==0) ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400' },
+              { label: 'Avg Fees per Day', value: `$${avgFeesPerDay.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`, color: 'text-gray-900 dark:text-white' },
+            ].map((item, index) => (
+              <div key={index} className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-800/50 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                <span className="text-sm font-medium text-gray-600 dark:text-gray-400">{item.label}</span>
+                <span className={`text-sm font-bold ${item.color}`}>{item.value}</span>
+              </div>
+            ))}
+          </div>
+        </DashboardCard>
+
+        {/* Trade Performance */}
+        <DashboardCard 
+          title="Trade Statistics" 
+          icon={FaTasks}
+          gridSpan="sm:col-span-1 lg:col-span-3" 
+          showTimeRangeSelector 
+          selectedTimeRange={timeRange} 
+          onTimeRangeChange={setTimeRange} 
+          showInfoIcon
+        >
+          <div className="space-y-4">
+            {[
+              { label: 'Total Trades', value: dashboardStats?.closedTrades || 0, color: 'text-gray-900 dark:text-white' },
+              { label: 'Winning Trades', value: dashboardStats?.winningTrades || 0, color: 'text-green-600 dark:text-green-400' },
+              { label: 'Losing Trades', value: dashboardStats?.losingTrades || 0, color: 'text-red-600 dark:text-red-400' },
+              { label: 'Breakeven Trades', value: dashboardStats?.breakevenTrades || 0, color: 'text-gray-900 dark:text-white' },
+              { label: 'Avg Trades per Day', value: avgTradesPerDay.toFixed(2), color: 'text-gray-900 dark:text-white' },
+            ].map((item, index) => (
+              <div key={index} className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-800/50 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                <span className="text-sm font-medium text-gray-600 dark:text-gray-400">{item.label}</span>
+                <span className={`text-sm font-bold ${item.color}`}>{item.value}</span>
+              </div>
+            ))}
+          </div>
+        </DashboardCard>
+
+        {/* Top Trades */}
+        <DashboardCard
+          title="Top Performing Trades"
+          icon={FaListOl}
+          gridSpan="lg:col-span-3"
+          showTimeRangeSelector={true}
+          selectedTimeRange={timeRange}
+          onTimeRangeChange={setTimeRange}
+          showInfoIcon={true}
+        >
+          <TopTradesByReturn trades={filteredTrades} topN={5} />
+        </DashboardCard>
+
+        {/* Calendar */}
+        <DashboardCard
+          title="P&L Calendar"
+          icon={FaCalendarDay}
+          gridSpan="lg:col-span-3"
+          showTimeRangeSelector={false}
+          showInfoIcon={true}
+        >
+          <DashboardPnlCalendar trades={filteredTrades} />
+        </DashboardCard>
+        
+        {/* Trading Activity Heatmap */}
+        <DashboardCard
+          title="Trading Activity Heatmap"
+          icon={FaCalendarAlt}
+          gridSpan="lg:col-span-6"
+          showTimeRangeSelector={true}
+          selectedTimeRange={timeRange}
+          onTimeRangeChange={setTimeRange}
+        >
+          <TradesCalendarHeatmap trades={filteredTrades} />
+        </DashboardCard>
+      </div>
+
+      {/* No Trades Message */}
+      {(!filteredTrades || filteredTrades.length === 0) && !tradesLoading && (
+        <div className="text-center py-16 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 shadow-lg">
+          <div className="max-w-md mx-auto space-y-4">
+            <div className="w-20 h-20 bg-gradient-to-r from-blue-500 to-green-500 rounded-full flex items-center justify-center mx-auto">
+              <FaChartLine className="w-10 h-10 text-white" />
+            </div>
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white">
+              No trades recorded yet
+            </h3>
+            <p className="text-gray-600 dark:text-gray-400">
+              Start your trading journey by logging your first trade or adjust the time range to view historical data.
+            </p>
+            <Link href="/journal/new" 
+                  className="inline-flex items-center space-x-2 bg-gradient-to-r from-blue-500 to-green-500 hover:from-blue-600 hover:to-green-600 text-white px-6 py-3 rounded-xl font-semibold transition-all duration-200 shadow-lg hover:shadow-xl">
+              <FaPlus className="w-4 h-4" />
+              <span>Log Your First Trade</span>
+            </Link>
+          </div>
         </div>
-        <SetTargetModal 
-          isOpen={isSetTargetModalOpen}
-          onClose={handleCloseSetTargetModal}
-          currentGoal={personalTargetGoal}
-          onSave={handleSaveTarget}
-        />
+      )}
+
+      {/* Set Target Modal */}
+      <SetTargetModal 
+        isOpen={isSetTargetModalOpen}
+        onClose={handleCloseSetTargetModal}
+        currentGoal={personalTargetGoal}
+        onSave={handleSaveTarget}
+      />
       </div>
   );
 }
