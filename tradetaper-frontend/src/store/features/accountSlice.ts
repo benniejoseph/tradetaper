@@ -28,7 +28,7 @@ const initialState: AccountState = {
     { id: 'acc_kucoin_spot', name: 'KuCoin Spot', balance: 12345.67 },
     { id: 'acc_bybit_futures', name: 'Bybit Futures', balance: 888.88 },
   ],
-  selectedAccountId: 'acc_binance_main', // Default to the first account
+  selectedAccountId: null, // Default to show all trades from all accounts
   isLoading: false,
   error: null,
 };
@@ -39,13 +39,16 @@ const accountSlice = createSlice({
   reducers: {
     setAccounts: (state, action: PayloadAction<Account[]>) => {
       state.accounts = action.payload;
-      // Optionally, set a default selected account if none is selected or current one is invalid
-      if (!state.selectedAccountId || !state.accounts.find(acc => acc.id === state.selectedAccountId)) {
-        state.selectedAccountId = state.accounts.length > 0 ? state.accounts[0].id : null;
+      // Only set a default selected account if the current one is invalid, but don't auto-select if null
+      if (state.selectedAccountId && !state.accounts.find(acc => acc.id === state.selectedAccountId)) {
+        state.selectedAccountId = null; // Reset to null if current selection is invalid
       }
     },
-    setSelectedAccount: (state, action: PayloadAction<string>) => {
-      if (state.accounts.find(acc => acc.id === action.payload)) {
+    setSelectedAccount: (state, action: PayloadAction<string | null>) => {
+      if (action.payload === null) {
+        // Allow setting to null for "All Accounts"
+        state.selectedAccountId = null;
+      } else if (state.accounts.find(acc => acc.id === action.payload)) {
         state.selectedAccountId = action.payload;
       } else {
         console.warn(`Attempted to select non-existent account ID: ${action.payload}`);
@@ -74,9 +77,9 @@ const accountSlice = createSlice({
     deleteAccount: (state, action: PayloadAction<string>) => { // Payload is accountId to delete
       const accountIdToDelete = action.payload;
       state.accounts = state.accounts.filter(acc => acc.id !== accountIdToDelete);
-      // If the deleted account was the selected one, select another or null
+      // If the deleted account was the selected one, set to null (All Accounts)
       if (state.selectedAccountId === accountIdToDelete) {
-        state.selectedAccountId = state.accounts.length > 0 ? state.accounts[0].id : null;
+        state.selectedAccountId = null;
       }
     },
     // Placeholder for future async fetching

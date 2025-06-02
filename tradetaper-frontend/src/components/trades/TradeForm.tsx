@@ -67,27 +67,25 @@ export default function TradeForm({ initialData, isEditMode = false, onFormSubmi
   const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
 
   // --- THEME HELPER CLASSES ---
-  const labelClasses = "block text-sm font-medium text-[var(--color-text-dark-secondary)] dark:text-text-light-secondary mb-1";
+  const labelClasses = "block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2";
   
-  const formElementBaseStructuralClasses = "block w-full rounded-lg shadow-sm p-2.5 transition-colors duration-150 ease-in-out border"; // Added explicit border
+  const formElementBaseStructuralClasses = "block w-full rounded-xl shadow-sm p-3 transition-all duration-200 border backdrop-blur-sm";
   const formElementThemeClasses = 
-    `bg-[var(--color-light-secondary)] border-[var(--color-light-border)] text-[var(--color-text-dark-primary)] 
-     dark:bg-dark-primary dark:border-gray-700 dark:text-text-light-primary`;
-  // For react-select, we need to be more specific with border color, as it has its own defaults
-  const formElementBorderColor = theme === 'dark' ? '#4B5563' : 'var(--color-light-border)'; // gray-700 for dark, var for light
-  const formElementBgColor = theme === 'dark' ? 'var(--color-dark-primary)' : 'var(--color-light-secondary)';
-  const formElementTextColor = theme === 'dark' ? 'var(--text-text-light-primary)' : 'var(--color-text-dark-primary)';
-  const formElementPlaceholderColor = theme === 'dark' ? 'rgba(209, 213, 219, 0.6)' : 'rgba(107, 114, 128, 0.7)'; // approx. dark:opacity-60, light:opacity-70
+    `bg-white/60 dark:bg-gray-800/40 border-gray-200/50 dark:border-gray-700/50 text-gray-900 dark:text-white`;
+  const formElementBorderColor = theme === 'dark' ? '#374151' : '#e5e7eb';
+  const formElementBgColor = theme === 'dark' ? 'rgba(31, 41, 55, 0.4)' : 'rgba(255, 255, 255, 0.6)';
+  const formElementTextColor = theme === 'dark' ? '#ffffff' : '#111827';
+  const formElementPlaceholderColor = theme === 'dark' ? 'rgba(209, 213, 219, 0.6)' : 'rgba(107, 114, 128, 0.7)';
 
-  const inputFocusClasses = "focus:ring-2 focus:ring-accent-green focus:border-accent-green focus:outline-none";
-  const placeholderClasses = "placeholder:text-[var(--color-text-dark-secondary)] placeholder:opacity-70 dark:placeholder:text-text-light-secondary dark:placeholder:opacity-60";
+  const inputFocusClasses = "focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none hover:bg-white/80 dark:hover:bg-gray-800/60";
+  const placeholderClasses = "placeholder:text-gray-500 dark:placeholder:text-gray-400";
   
   const themedInputClasses = `${formElementBaseStructuralClasses} ${formElementThemeClasses} ${inputFocusClasses} ${placeholderClasses}`;
   const themedSelectClasses = `${formElementBaseStructuralClasses} ${formElementThemeClasses} ${inputFocusClasses} appearance-none`;
-  const themedTextareaClasses = `${formElementBaseStructuralClasses} ${formElementThemeClasses} ${inputFocusClasses} ${placeholderClasses} min-h-[100px]`;
+  const themedTextareaClasses = `${formElementBaseStructuralClasses} ${formElementThemeClasses} ${inputFocusClasses} ${placeholderClasses} min-h-[120px] resize-y`;
 
-  const sectionContainerClasses = "bg-[var(--color-light-primary)] dark:bg-dark-secondary p-6 rounded-xl shadow-lg dark:shadow-card-modern";
-  const sectionTitleClasses = "text-xl font-semibold text-[var(--color-text-dark-primary)] dark:text-text-light-primary mb-6 border-b border-[var(--color-light-border)] dark:border-dark-primary pb-3";
+  const sectionContainerClasses = "bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl p-8 rounded-2xl border border-gray-200/50 dark:border-gray-700/50 shadow-lg hover:shadow-xl transition-all duration-200";
+  const sectionTitleClasses = "text-2xl font-bold text-gray-900 dark:text-white mb-6 pb-3 border-b border-gray-200/30 dark:border-gray-700/30 flex items-center space-x-3";
   // --- END THEME HELPER CLASSES ---
 
   const [selectedTags, setSelectedTags] = useState<MultiValue<TagOption>>([]);
@@ -297,6 +295,9 @@ export default function TradeForm({ initialData, isEditMode = false, onFormSubmi
         isStarred: formData.isStarred,
     };
 
+    // Remove rMultiple from payload as it should be calculated on backend
+    delete (payload as any).rMultiple;
+
     try {
       let resultAction;
       if (isEditMode && initialData?.id) {
@@ -414,12 +415,11 @@ export default function TradeForm({ initialData, isEditMode = false, onFormSubmi
   // --- END CUSTOM STYLES FOR REACT-SELECT ---
 
   const calculatedRRColor = () => {
-    if (formData.rMultiple === undefined || formData.rMultiple === null) return 'text-[var(--color-text-dark-secondary)] dark:text-text-light-secondary';
-    // These specific colors for R:R bands are likely fine as they convey meaning
-    if (formData.rMultiple >= 2) return 'text-accent-green'; 
-    if (formData.rMultiple >= 1) return 'text-yellow-400'; 
-    if (formData.rMultiple > 0) return 'text-orange-400';
-    return 'text-accent-red';
+    if (formData.rMultiple === undefined || formData.rMultiple === null) return 'text-gray-600 dark:text-gray-400';
+    if (formData.rMultiple >= 2) return 'text-green-600 dark:text-green-400'; 
+    if (formData.rMultiple >= 1) return 'text-yellow-600 dark:text-yellow-400'; 
+    if (formData.rMultiple > 0) return 'text-orange-600 dark:text-orange-400';
+    return 'text-red-600 dark:text-red-400';
   };
 
   // Helper function to render field validation errors
@@ -428,36 +428,48 @@ export default function TradeForm({ initialData, isEditMode = false, onFormSubmi
     if (!error) return null;
     
     return (
-      <p className="mt-1 text-sm text-accent-red">
+      <p className="mt-1 text-sm text-red-600 dark:text-red-400">
         {error}
       </p>
     );
   };
 
-  const buttonBaseClasses = "w-full sm:w-auto flex items-center justify-center space-x-2 px-6 py-3 font-semibold rounded-lg transition-all duration-150 ease-in-out shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-opacity-70";
-  const primaryButtonClasses = `bg-accent-green hover:bg-accent-green-darker text-dark-primary focus:ring-accent-green focus:ring-offset-2 focus:ring-offset-[var(--color-light-secondary)] dark:focus:ring-offset-dark-primary`;
+  const buttonBaseClasses = "flex items-center justify-center space-x-2 px-6 py-3 font-semibold rounded-xl transition-all duration-200 shadow-lg focus:outline-none focus:ring-2 focus:ring-opacity-70";
+  const primaryButtonClasses = `bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white focus:ring-blue-500 hover:scale-105 hover:shadow-xl`;
   const secondaryButtonClasses = 
-    `text-[var(--color-text-dark-secondary)] bg-[var(--color-light-hover)] hover:bg-gray-300 dark:text-text-light-secondary dark:bg-dark-secondary dark:hover:bg-gray-700 
-     focus:ring-gray-500 focus:ring-offset-2 focus:ring-offset-[var(--color-light-secondary)] dark:focus:ring-offset-dark-primary`;
+    `bg-gray-100/80 dark:bg-gray-800/80 hover:bg-gray-500 dark:hover:bg-gray-500 text-gray-600 dark:text-gray-400 hover:text-white focus:ring-gray-500 hover:scale-105 backdrop-blur-sm`;
   
   // Option theme classes for standard select
-  const optionThemeClass = "bg-[var(--color-light-secondary)] text-[var(--color-text-dark-primary)] dark:bg-dark-primary dark:text-text-light-primary";
+  const optionThemeClass = "bg-white/90 dark:bg-gray-800/90 text-gray-900 dark:text-white";
 
   return (
-    <div className="w-full">
-      <h1 className="text-3xl font-bold text-[var(--color-text-dark-primary)] dark:text-text-light-primary mb-8 text-center">
-        {isEditMode ? 'Edit Trade Details' : 'Log New Trade'}
-      </h1>
-
+    <div className="w-full space-y-8">
       {/* Global Form Error Messages */}
-      {formError && <div className="mb-4 p-3 bg-accent-red bg-opacity-15 text-accent-red rounded-lg text-sm">{formError}</div>}
-      {tradeSubmitError && <div className="mb-4 p-3 bg-accent-red bg-opacity-15 text-accent-red rounded-lg text-sm">Submission Error: {tradeSubmitError}</div>}
-      {uploadError && <div className="mb-4 p-3 bg-accent-red bg-opacity-15 text-accent-red rounded-lg text-sm">Upload Error: {uploadError}</div>}
+      {formError && (
+        <div className="p-4 bg-red-50/90 dark:bg-red-900/20 border border-red-200/50 dark:border-red-800/50 text-red-700 dark:text-red-400 rounded-xl text-sm backdrop-blur-sm">
+          {formError}
+        </div>
+      )}
+      {tradeSubmitError && (
+        <div className="p-4 bg-red-50/90 dark:bg-red-900/20 border border-red-200/50 dark:border-red-800/50 text-red-700 dark:text-red-400 rounded-xl text-sm backdrop-blur-sm">
+          Submission Error: {tradeSubmitError}
+        </div>
+      )}
+      {uploadError && (
+        <div className="p-4 bg-red-50/90 dark:bg-red-900/20 border border-red-200/50 dark:border-red-800/50 text-red-700 dark:text-red-400 rounded-xl text-sm backdrop-blur-sm">
+          Upload Error: {uploadError}
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} className="space-y-8">
         {/* Section 1: Core Details */}
         <div className={sectionContainerClasses}>
-          <h2 className={sectionTitleClasses}>Core Trade Information</h2>
+          <h2 className={sectionTitleClasses}>
+            <div className="p-2 bg-gradient-to-r from-blue-500/20 to-green-500/20 rounded-xl">
+              <FaCalculator className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+            </div>
+            <span>Core Trade Information</span>
+          </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
             {isEditMode && availableAccounts.length > 0 && (
               <div className="md:col-span-2">
@@ -520,7 +532,12 @@ export default function TradeForm({ initialData, isEditMode = false, onFormSubmi
 
         {/* Section 2: Entry & Exit */}
         <div className={sectionContainerClasses}>
-          <h2 className={sectionTitleClasses}>Entry & Exit Details</h2>
+          <h2 className={sectionTitleClasses}>
+            <div className="p-2 bg-gradient-to-r from-green-500/20 to-blue-500/20 rounded-xl">
+              <FaPaperPlane className="w-5 h-5 text-green-600 dark:text-green-400" />
+            </div>
+            <span>Entry & Exit Details</span>
+          </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
             <div>
               <label htmlFor="entryDate" className={labelClasses}>Entry Date & Time <span className="text-accent-red">*</span></label>
@@ -556,7 +573,12 @@ export default function TradeForm({ initialData, isEditMode = false, onFormSubmi
         
         {/* Section 3: Risk & Quantity */}
         <div className={sectionContainerClasses}>
-            <h2 className={sectionTitleClasses}>Risk, Reward & Quantity</h2>
+            <h2 className={sectionTitleClasses}>
+              <div className="p-2 bg-gradient-to-r from-red-500/20 to-orange-500/20 rounded-xl">
+                <FaCalculator className="w-5 h-5 text-red-600 dark:text-red-400" />
+              </div>
+              <span>Risk, Reward & Quantity</span>
+            </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
                 <div>
                     <label htmlFor="stopLoss" className={labelClasses}>Stop Loss</label>
@@ -588,7 +610,12 @@ export default function TradeForm({ initialData, isEditMode = false, onFormSubmi
         
         {/* Section 4: ICT Concepts & Tags */}
         <div className={sectionContainerClasses}>
-            <h2 className={sectionTitleClasses}>Strategy & Analysis</h2>
+            <h2 className={sectionTitleClasses}>
+              <div className="p-2 bg-gradient-to-r from-purple-500/20 to-indigo-500/20 rounded-xl">
+                <FaCalculator className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+              </div>
+              <span>Strategy & Analysis</span>
+            </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
                 <div>
                     <label htmlFor="ictConcept" className={labelClasses}>ICT Concept</label>
@@ -645,7 +672,12 @@ export default function TradeForm({ initialData, isEditMode = false, onFormSubmi
 
         {/* Section 5: Reflection & Notes */}
         <div className={sectionContainerClasses}>
-            <h2 className={sectionTitleClasses}>Reflection & Journaling</h2>
+            <h2 className={sectionTitleClasses}>
+              <div className="p-2 bg-gradient-to-r from-yellow-500/20 to-amber-500/20 rounded-xl">
+                <FaSave className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
+              </div>
+              <span>Reflection & Journaling</span>
+            </h2>
             <div className="space-y-5">
                 <div>
                     <label htmlFor="setupDetails" className={labelClasses}>Setup Details</label>
@@ -668,26 +700,31 @@ export default function TradeForm({ initialData, isEditMode = false, onFormSubmi
 
         {/* Section 6: Chart Upload */}
         <div className={sectionContainerClasses}>
-            <h2 className={sectionTitleClasses}>Chart Snapshot</h2>
-            <div className="flex flex-col items-center space-y-4">
+            <h2 className={sectionTitleClasses}>
+              <div className="p-2 bg-gradient-to-r from-indigo-500/20 to-cyan-500/20 rounded-xl">
+                <FaUpload className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+              </div>
+              <span>Chart Snapshot</span>
+            </h2>
+            <div className="flex flex-col items-center space-y-6">
                 <label htmlFor="file-upload" 
-                    className={`w-full max-w-md flex flex-col items-center px-4 py-6 rounded-lg shadow-md tracking-wide uppercase border border-dashed cursor-pointer 
-                                ${selectedFile || imagePreviewUrl ? 'border-accent-green' : 'border-[var(--color-light-border)] dark:border-gray-600'} 
-                                text-[var(--color-text-dark-secondary)] dark:text-text-light-secondary 
-                                bg-[var(--color-light-secondary)] hover:bg-[var(--color-light-hover)] 
-                                dark:bg-dark-primary dark:hover:bg-dark-secondary 
-                                transition-colors duration-150`}>
-                    <FaUpload className={`text-3xl ${selectedFile || imagePreviewUrl ? 'text-accent-green' : 'text-[var(--color-text-dark-secondary)] dark:text-text-light-secondary'} mb-2`} />
-                    <span className="text-sm leading-normal">{selectedFile ? selectedFile.name : (imagePreviewUrl ? "Change Chart" : "Upload Chart")}</span>
+                    className={`w-full max-w-md flex flex-col items-center px-6 py-8 rounded-xl shadow-lg tracking-wide uppercase border-2 border-dashed cursor-pointer transition-all duration-200 backdrop-blur-sm
+                                ${selectedFile || imagePreviewUrl ? 'border-blue-500 bg-blue-50/80 dark:bg-blue-900/20' : 'border-gray-300 dark:border-gray-600 bg-gray-50/80 dark:bg-gray-800/40'} 
+                                text-gray-700 dark:text-gray-300 
+                                hover:bg-gray-100/80 dark:hover:bg-gray-700/40 
+                                hover:border-blue-400 dark:hover:border-blue-500`}>
+                    <FaUpload className={`text-4xl mb-3 ${selectedFile || imagePreviewUrl ? 'text-blue-600 dark:text-blue-400' : 'text-gray-500 dark:text-gray-400'}`} />
+                    <span className="text-sm font-medium leading-normal">{selectedFile ? selectedFile.name : (imagePreviewUrl ? "Change Chart" : "Upload Chart")}</span>
+                    <span className="text-xs text-gray-500 dark:text-gray-400 mt-1">PNG, JPG, GIF up to 10MB</span>
                     <input id="file-upload" name="imageUrl" type="file" className="hidden" onChange={handleFileChange} accept="image/png, image/jpeg, image/jpg, image/gif, image/webp"/>
                 </label>
                 {imagePreviewUrl && (
                     <div className="relative group max-w-md w-full">
-                        <img src={imagePreviewUrl} alt="Selected chart preview" className="w-full h-auto rounded-lg shadow-md object-contain max-h-96" />
+                        <img src={imagePreviewUrl} alt="Selected chart preview" className="w-full h-auto rounded-2xl shadow-lg object-contain max-h-96 border border-gray-200/50 dark:border-gray-700/50" />
                         <button 
                             type="button" 
                             onClick={() => { setSelectedFile(null); setImagePreviewUrl(initialData?.imageUrl || null); setFormData(prev => ({...prev, imageUrl: initialData?.imageUrl || ''}))}}
-                            className="absolute top-2 right-2 p-1.5 bg-black bg-opacity-50 rounded-full text-white hover:bg-opacity-75 hover:text-accent-red transition-all duration-150 opacity-0 group-hover:opacity-100"
+                            className="absolute top-3 right-3 p-2 bg-black/50 backdrop-blur-sm rounded-full text-white hover:bg-red-500 hover:bg-opacity-90 transition-all duration-200 opacity-0 group-hover:opacity-100 shadow-lg"
                             aria-label="Remove image">
                             <FaTimesCircle className="h-5 w-5" />
                         </button>
@@ -698,24 +735,12 @@ export default function TradeForm({ initialData, isEditMode = false, onFormSubmi
 
         {/* Submission and Error Handling Section */}
         <div className={sectionContainerClasses}>
-          {tradeSubmitError && (
-              <div className="my-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-md text-sm">
-                  <p><strong>Error:</strong> {tradeSubmitError}</p>
-              </div>
-          )}
-          {formError && (
-               <div className="my-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-md text-sm">
-                  <p><strong>Error:</strong> {formError}</p>
-              </div>
-          )}
-          <div className="flex flex-col sm:flex-row justify-end items-center gap-4 pt-6 border-t border-[var(--color-light-border)] dark:border-dark-primary">
+          <div className="flex flex-col sm:flex-row justify-end items-center gap-4 pt-6 border-t border-gray-200/30 dark:border-gray-700/30">
               {onCancel && (
                   <button 
                       type="button"
                       onClick={onCancel}
-                      className={`py-2.5 px-6 rounded-lg font-semibold transition-colors text-sm shadow-sm
-                                  bg-[var(--color-light-hover)] hover:bg-gray-300 text-[var(--color-text-dark-primary)] border border-[var(--color-light-border)]
-                                  dark:bg-dark-tertiary dark:hover:bg-gray-700 dark:text-text-light-secondary dark:border-gray-700`}
+                      className={`${buttonBaseClasses} ${secondaryButtonClasses}`}
                   >
                       Cancel
                   </button>
@@ -723,9 +748,7 @@ export default function TradeForm({ initialData, isEditMode = false, onFormSubmi
               <button 
                   type="submit" 
                   disabled={tradeSubmitLoading || isUploading}
-                  className={`py-2.5 px-6 rounded-lg font-semibold transition-colors text-sm shadow-md hover:shadow-lg flex items-center justify-center space-x-2
-                              bg-accent-green hover:bg-accent-green-darker text-dark-primary 
-                              disabled:opacity-60 disabled:cursor-not-allowed`}
+                  className={`${buttonBaseClasses} ${primaryButtonClasses} disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100`}
               >
                   {tradeSubmitLoading || isUploading ? 'Saving...' : (isEditMode ? <><FaSave className="mr-2" /> Update Trade</> : <><FaPaperPlane className="mr-2" /> Log Trade</>)}
               </button>

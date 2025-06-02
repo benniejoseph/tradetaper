@@ -17,8 +17,11 @@ export default function ProfileTestPage() {
                 const response = await authApiClient.get<UserResponseDto>('/auth/profile');
                 setProfile(response.data);
                 setError(null);
-            } catch (err: any) {
-                setError(err.response?.data?.message || err.message || "Failed to fetch profile");
+            } catch (err: unknown) {
+                const errorMessage = err instanceof Error 
+                    ? err.message 
+                    : (err as { response?: { data?: { message?: string } } })?.response?.data?.message || "Failed to fetch profile";
+                setError(errorMessage);
                 setProfile(null);
             } finally {
                 setLoading(false);

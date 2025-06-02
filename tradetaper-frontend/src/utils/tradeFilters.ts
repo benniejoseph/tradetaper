@@ -98,5 +98,5 @@ export const applyAllFilters = (
   result = filterByStarred(result, filters.showOnlyStarred);
   
   // Sort by newest first
-  return result.sort((a, b) => new Date(b.entryDate).getTime() - new Date(a.entryDate).getTime());
+  return [...result].sort((a, b) => new Date(b.entryDate).getTime() - new Date(a.entryDate).getTime());
 }; 

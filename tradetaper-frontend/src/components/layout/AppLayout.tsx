@@ -5,6 +5,8 @@ import Sidebar from './Sidebar';
 // import Header from './Header'; // This is the existing mobile-only header, currently commented out
 import ContentHeader from './ContentHeader'; // Import the new ContentHeader
 import ProtectedRoute from '../auth/ProtectedRoute';
+import { useWebSocket } from '@/hooks/useWebSocket';
+import { Toaster } from 'react-hot-toast';
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -13,29 +15,63 @@ interface AppLayoutProps {
 export default function AppLayout({ children }: AppLayoutProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
+  // Initialize WebSocket connection for the entire app
+  useWebSocket({
+    enabled: true,
+    onConnect: () => console.log('WebSocket connected'),
+    onDisconnect: () => console.log('WebSocket disconnected'),
+    onError: (error) => console.error('WebSocket error:', error),
+  });
+
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
   };
 
   return (
     <ProtectedRoute>
-      <div className="flex min-h-screen bg-[var(--color-light-secondary)] text-[var(--color-text-dark-primary)] dark:bg-dark-primary dark:text-text-light-primary">
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-green-50 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800">
+        {/* Sidebar */}
         <Sidebar isOpen={isSidebarOpen} toggleSidebar={toggleSidebar} />
         
-        <div className="flex flex-col flex-1">
-          {/* New ContentHeader - will contain logo, account, global actions, and mobile nav toggle */}
-          <ContentHeader isSidebarOpen={isSidebarOpen} toggleSidebar={toggleSidebar} />
+        {/* Main Content Area */}
+        <div className="md:ml-64">
+          {/* Content Header */}
+          <ContentHeader toggleSidebar={toggleSidebar} />
           
-          {/* Existing mobile-only Header - for now, kept for ThemeToggleButton, might be merged/removed later */}
-          {/* We need to ensure it doesn't clash or become redundant with ContentHeader on mobile */}
-          {/* For now, let's hide it completely and integrate its necessary parts (like theme toggle) elsewhere if ContentHeader takes over fully */}
-          {/* <Header isSidebarOpen={isSidebarOpen} toggleSidebar={toggleSidebar} /> */}
-          
-          <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto">
-            {/* This is where the page content will go */}
-            {children}
+          {/* Page Content */}
+          <main className="p-4 md:p-6 lg:p-8 max-w-full">
+            <div className="max-w-7xl mx-auto">
+              {children}
+            </div>
           </main>
         </div>
+
+        {/* Global Toast Notifications */}
+        <Toaster
+          position="top-right"
+          toastOptions={{
+            duration: 4000,
+            style: {
+              background: 'rgba(255, 255, 255, 0.9)',
+              backdropFilter: 'blur(12px)',
+              border: '1px solid rgba(229, 231, 235, 0.5)',
+              borderRadius: '12px',
+              boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+            },
+            success: {
+              iconTheme: {
+                primary: '#10b981',
+                secondary: '#ffffff',
+              },
+            },
+            error: {
+              iconTheme: {
+                primary: '#ef4444',
+                secondary: '#ffffff',
+              },
+            },
+          }}
+        />
       </div>
     </ProtectedRoute>
   );

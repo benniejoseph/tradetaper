@@ -1,52 +1,52 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-// src/app/trades/page.tsx
+// src/app/journal/page.tsx
 "use client";
 import { useEffect, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '@/store/store';
-import { fetchTrades, deleteTrade, setCurrentTrade, /*fetchTradeById*/ } from '@/store/features/tradesSlice'; // fetchTradeById might not be needed here directly
-import { selectSelectedAccountId, selectAvailableAccounts, selectSelectedAccount } from '@/store/features/accountSlice'; // Changed selectAccounts to selectAvailableAccounts
+import { fetchTrades, deleteTrade, setCurrentTrade } from '@/store/features/tradesSlice';
+import { selectSelectedAccountId, selectAvailableAccounts, selectSelectedAccount } from '@/store/features/accountSlice';
 import Link from 'next/link';
-// import TradeFiltersComponent from '@/components/trades/TradeFiltersComponent'; // Will be replaced
-import { calculateDashboardStats, DashboardStats } from '@/utils/analytics'; // Import calculateDashboardStats and its return type
-import { Trade, TradeStatus } from '@/types/trade'; // TradeStatus needed for filtering
-// import StatCard from '@/components/analytics/StatCard'; 
-import { FaPlus, FaCalendarAlt, FaSearch, FaDownload, FaThList, FaThLarge, FaStar as FaStarSolid, FaRegStar as FaStarOutline } from 'react-icons/fa'; // Added new icons
-import TradesTable from '@/components/journal/TradesTable'; // Import TradesTable
-import TradePreviewDrawer from '@/components/journal/TradePreviewDrawer'; // Import TradePreviewDrawer
-import { useRouter } from 'next/navigation'; // For navigation on edit
-import { parseISO, isAfter, isBefore, subMonths, subWeeks, subDays, endOfDay, isValid, format, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns'; // Added/Ensured date-fns imports, added isValid and format
-import DatePicker from "react-datepicker"; // Import DatePicker
-import "react-datepicker/dist/react-datepicker.css"; // Import CSS
-import { applyAllFilters } from '@/utils/tradeFilters'; // Import new filter utility
-import { useDebounce } from '@/hooks/useDebounce'; // Import debounce hook
-
-// Placeholder components - to be created
-// const TradePreviewDrawer = ({ trade, isOpen, onClose }) => null; 
+import { calculateDashboardStats, DashboardStats } from '@/utils/analytics';
+import { Trade, TradeStatus } from '@/types/trade';
+import { 
+  FaPlus, FaCalendarAlt, FaSearch, FaDownload, FaThList, FaThLarge, 
+  FaStar as FaStarSolid, FaRegStar as FaStarOutline, FaFilter,
+  FaCog, FaShareAlt, FaBell, FaSync, FaArrowUp, FaArrowDown,
+  FaChartLine, FaBookOpen, FaEye, FaEdit, FaTrash
+} from 'react-icons/fa';
+import TradesTable from '@/components/journal/TradesTable';
+import TradePreviewDrawer from '@/components/journal/TradePreviewDrawer';
+import { useRouter } from 'next/navigation';
+import { parseISO, isAfter, isBefore, subMonths, subWeeks, subDays, endOfDay, isValid, format, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
+import { applyAllFilters } from '@/utils/tradeFilters';
+import { useDebounce } from '@/hooks/useDebounce';
 
 export default function JournalPage() {
   const dispatch = useDispatch<AppDispatch>();
-  const router = useRouter(); // Initialize router
-  const { trades: allTrades, isLoading, error /*, filters: currentTradeFilters*/ } = useSelector((state: RootState) => state.trades);
+  const router = useRouter();
+  const { trades: allTrades, isLoading, error } = useSelector((state: RootState) => state.trades);
   const { isAuthenticated } = useSelector((state: RootState) => state.auth);
   const selectedAccountId = useSelector(selectSelectedAccountId);
-  const selectedAccount = useSelector(selectSelectedAccount); // For balance
-  const accounts = useSelector(selectAvailableAccounts); // Changed selectAccounts to selectAvailableAccounts
+  const selectedAccount = useSelector(selectSelectedAccount);
+  const accounts = useSelector(selectAvailableAccounts);
 
-  // State for new filters as per design
+  // State for filters and UI
   const [activePositionFilter, setActivePositionFilter] = useState<'all' | 'open' | 'closed'>('all');
   const [activeTimeFilter, setActiveTimeFilter] = useState<'all' | '1m' | '7d' | '1d'>('all');
   const [selectedTradeForPreview, setSelectedTradeForPreview] = useState<Trade | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [customDateRange, setCustomDateRange] = useState<{ from?: Date; to?: Date }>({});
   const [searchQuery, setSearchQuery] = useState('');
-  const [isDatePickerOpen, setIsDatePickerOpen] = useState(false); // State for date picker modal
+  const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
   const [pickerStartDate, setPickerStartDate] = useState<Date | null>(null);
   const [pickerEndDate, setPickerEndDate] = useState<Date | null>(null);
-  const [showOnlyStarred, setShowOnlyStarred] = useState(false); // New state for starred filter
+  const [showOnlyStarred, setShowOnlyStarred] = useState(false);
+  const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
 
-  // Debounced search query to reduce filtering frequency
-  const debouncedSearchQuery = useDebounce(searchQuery, 300); // 300ms delay
+  const debouncedSearchQuery = useDebounce(searchQuery, 300);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -54,37 +54,35 @@ export default function JournalPage() {
     }
   }, [dispatch, isAuthenticated, selectedAccountId]);
 
-  // Optimized filtering using the utility function with debounced search
   const filteredTrades = useMemo(() => {
     return applyAllFilters(allTrades, {
       accountId: selectedAccountId,
       positionFilter: activePositionFilter,
       timeFilter: activeTimeFilter,
       customDateRange,
-      searchQuery: debouncedSearchQuery, // Use debounced search query
+      searchQuery: debouncedSearchQuery,
       showOnlyStarred
     });
-  }, [allTrades, selectedAccountId, activePositionFilter, activeTimeFilter, customDateRange, debouncedSearchQuery, showOnlyStarred]); // Updated dependency
+  }, [allTrades, selectedAccountId, activePositionFilter, activeTimeFilter, customDateRange, debouncedSearchQuery, showOnlyStarred]);
 
   const headerStats = useMemo(() => {
     if (!filteredTrades || filteredTrades.length === 0) {
-      return { winRate: 0, longTrades: 0, shortTrades: 0, totalPnl: 0, monthlyPnl: 0, winningTradesCount: 0, losingTradesCount: 0 }; // Added counts
+      return { winRate: 0, longTrades: 0, shortTrades: 0, totalPnl: 0, monthlyPnl: 0, winningTradesCount: 0, losingTradesCount: 0 };
     }
     const closedTrades = filteredTrades.filter(t => t.status === TradeStatus.CLOSED && typeof t.profitOrLoss === 'number');
     const winningTrades = closedTrades.filter(t => t.profitOrLoss! > 0);
-    const losingTrades = closedTrades.filter(t => t.profitOrLoss! < 0); // Calculate losing trades
+    const losingTrades = closedTrades.filter(t => t.profitOrLoss! < 0);
     const winRate = closedTrades.length > 0 ? (winningTrades.length / closedTrades.length) * 100 : 0;
     const longTrades = filteredTrades.filter(t => t.direction === 'Long').length;
     const shortTrades = filteredTrades.filter(t => t.direction === 'Short').length;
     const totalPnl = closedTrades.reduce((sum, t) => sum + (t.profitOrLoss || 0), 0);
 
-    // Calculate Monthly P&L
     const now = new Date();
     const startOfMonthDate = startOfMonth(now);
-    const endOfMonthDate = endOfMonth(now); // Or use now for progress up to today
+    const endOfMonthDate = endOfMonth(now);
 
     const monthlyClosedTrades = closedTrades.filter(trade => {
-        if (!trade.exitDate) return false; // only closed trades with an exit date
+        if (!trade.exitDate) return false;
         try {
             const exitD = parseISO(trade.exitDate);
             return isValid(exitD) && isWithinInterval(exitD, { start: startOfMonthDate, end: endOfMonthDate });
@@ -94,7 +92,7 @@ export default function JournalPage() {
     });
     const monthlyPnl = monthlyClosedTrades.reduce((sum, t) => sum + (t.profitOrLoss || 0), 0);
 
-    return { winRate, longTrades, shortTrades, totalPnl, monthlyPnl, winningTradesCount: winningTrades.length, losingTradesCount: losingTrades.length }; // Added counts
+    return { winRate, longTrades, shortTrades, totalPnl, monthlyPnl, winningTradesCount: winningTrades.length, losingTradesCount: losingTrades.length };
   }, [filteredTrades]);
 
   const footerStats = useMemo(() => {
@@ -120,22 +118,16 @@ export default function JournalPage() {
 
     return {
       totalNetPnl: dashboardCalculatedStats.totalNetPnl,
-      totalTrades: dashboardCalculatedStats.totalTrades, // This is the count of filteredTrades
+      totalTrades: dashboardCalculatedStats.totalTrades,
       totalCommissions: dashboardCalculatedStats.totalCommissions,
       averageWin: dashboardCalculatedStats.averageWin,
-      averageLoss: dashboardCalculatedStats.averageLoss, // Will be negative
+      averageLoss: dashboardCalculatedStats.averageLoss,
       averageRR: dashboardCalculatedStats.averageRR,
       totalTradedValue,
     };
   }, [filteredTrades]);
 
-  const addNewTradeButtonClasses = `flex items-center space-x-2 bg-accent-green hover:bg-accent-green-darker text-dark-primary \
-                                font-semibold py-2.5 px-5 rounded-lg transition-all duration-150 ease-in-out \
-                                shadow-md hover:shadow-glow-green-sm focus:outline-none focus:ring-2 \
-                                focus:ring-offset-2 focus:ring-offset-[var(--color-light-secondary)] dark:focus:ring-offset-dark-primary \
-                                focus:ring-accent-green`;
-
-  const handleRowClick = (trade: Trade) => { // Uncommented and implemented
+  const handleRowClick = (trade: Trade) => {
     setSelectedTradeForPreview(trade);
     setIsPreviewOpen(true);
   };
@@ -147,20 +139,18 @@ export default function JournalPage() {
 
   const handleEditTrade = (tradeId: string) => {
     router.push(`/journal/edit/${tradeId}`);
-    setIsPreviewOpen(false); // Close drawer after initiating edit
+    setIsPreviewOpen(false);
   };
 
   const handleDeleteTrade = (tradeId: string) => {
     if (window.confirm('Are you sure you want to delete this trade?')) {
       dispatch(deleteTrade(tradeId));
-      setIsPreviewOpen(false); // Close drawer after initiating delete
+      setIsPreviewOpen(false);
     }
   };
 
   const handleApplyDateRange = () => {
     setCustomDateRange({ from: pickerStartDate || undefined, to: pickerEndDate || undefined });
-    // Optionally, set activeTimeFilter to 'all' or a 'custom' state if using custom range
-    // setActiveTimeFilter('all'); // Or some other indicator that custom range is active
     setIsDatePickerOpen(false);
   };
 
@@ -168,298 +158,373 @@ export default function JournalPage() {
     setPickerStartDate(null);
     setPickerEndDate(null);
     setCustomDateRange({});
-    // setIsDatePickerOpen(false); // Optionally close, or let user close manually
   };
 
-  return (
-      <div className="min-h-screen w-full p-4 md:p-8 text-[var(--color-text-dark-primary)] dark:text-text-light-primary">
-        <div className="w-full space-y-6">
-          {/* Header Section */}
-          <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
-            <h1 className="text-3xl font-bold text-[var(--color-text-dark-primary)] dark:text-text-light-primary">Journal</h1>
-            <div className="flex items-center space-x-4">
-              {/* Placeholder for "Last updated" - assuming this comes from somewhere or is static */}
-              <span className="text-sm text-gray-500 dark:text-gray-400">Last updated: {format(new Date(), 'MMM dd, hh:mm a')}</span>
-              <div className="flex items-center space-x-2">
-                <button className="p-2 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700"><FaCalendarAlt /></button>
-                <button className="p-2 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700" onClick={() => setShowOnlyStarred(!showOnlyStarred)}>
-                  {showOnlyStarred ? <FaStarSolid className="text-yellow-400" /> : <FaStarOutline />}
-                </button>
-                {/* Placeholder for other icons from design */}
-                <button className="p-2 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700"> {/* View icon */}
-                  <FaThList /> 
-                </button>
-                <button className="p-2 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700"> {/* Settings/Cog icon */}
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M10.343 3.94c.09-.542.56-.94 1.11-.94h1.093c.55 0 1.02.398 1.11.94l.149.894c.07.424.384.764.78.93.398.164.855.142 1.205-.108l.737-.527a1.125 1.125 0 011.45.12l.773.774a1.125 1.125 0 01.12 1.45l-.527.737c-.25.35-.272.806-.108 1.204.165.397.505.71.93.78l.893.15c.543.09.94.56.94 1.11v1.093c0 .55-.397 1.02-.94 1.11l-.893.149c-.425.07-.765.383-.93.78-.165.398-.143.854.107 1.204l.527.738c.326.457.233 1.07-.12 1.45l-.773.773a1.125 1.125 0 01-1.45.12l-.737-.527c-.35-.25-.806-.272-1.203-.107-.398.165-.71.505-.78.93l-.15.893c-.09.543-.56.94-1.11.94h-1.094c-.55 0-1.019-.397-1.11-.94l-.148-.894c-.071-.424-.384-.764-.781-.93-.398-.164-.854-.142-1.204.108l-.738.527c-.457.326-1.07.233-1.45-.12l-.773-.774a1.125 1.125 0 01-.12-1.45l.527-.737c.25-.35.273-.806.108-1.204-.165-.397-.506-.71-.93-.78l-.894-.15c-.542-.09-.94-.56-.94-1.11v-1.094c0-.55.398-1.02.94-1.11l.894-.149c.424-.07.765-.383.93-.78.165-.398.143-.854-.108-1.204l-.526-.738a1.125 1.125 0 01.12-1.45l.773-.773a1.125 1.125 0 011.45-.12l.737.527c.35.25.807.272 1.204.107.397-.165.71-.505.78-.93l.149-.893z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                  </svg>
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Stats Cards Section */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            {/* Progress Monthly Card - Updated with Sparkline Placeholder */}
-            <div className="bg-[var(--color-light-secondary)] dark:bg-dark-secondary p-4 rounded-lg shadow flex flex-col">
-              <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Progress monthly</h3>
-              <p className="text-2xl font-semibold mt-1 text-[var(--color-text-dark-primary)] dark:text-text-light-primary">${headerStats.monthlyPnl.toFixed(2)}</p>
-              <div className="mt-2 h-16 flex items-center justify-center text-xs text-gray-400 dark:text-gray-500">
-                {/* SVG Sparkline Placeholder - Upward trend */}
-                <svg viewBox="0 0 100 30" className="w-full h-full" preserveAspectRatio="none">
-                  <path d="M 0 25 Q 15 20, 25 15 T 50 10 T 75 8 T 100 5" stroke="#3b82f6" fill="none" strokeWidth="2"/>
-                </svg>
-              </div>
-              {/* Optional: Footer for comparison can be added here based on design */}
-            </div>
-
-            {/* Balance Card - Updated */}
-            <div className="bg-[var(--color-light-secondary)] dark:bg-dark-secondary p-4 rounded-lg shadow flex flex-col">
-              <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Balance</h3>
-              <p className="text-2xl font-semibold mt-1 text-[var(--color-text-dark-primary)] dark:text-text-light-primary">
-                ${selectedAccount?.balance !== undefined ? selectedAccount.balance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : 'N/A'}
-              </p>
-              <div className="mt-2 h-16 bg-gray-100 dark:bg-gray-700/50 rounded flex items-center justify-center text-xs text-gray-400 dark:text-gray-500">
-                {/* Placeholder for sparkline or trend icon */}
-                <span>Account: {selectedAccount?.name || 'All'}</span>
-              </div>
-              <div className="flex justify-between text-xs mt-1 text-gray-400 dark:text-gray-500">
-                {/* <span>vs last period</span> <span>+Y%</span> */}
-              </div>
-            </div>
-
-            {/* Win Rate Card - Updated with separate W/L bars */}
-            <div className="bg-[var(--color-light-secondary)] dark:bg-dark-secondary p-4 rounded-lg shadow flex flex-col">
-              <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Win Rate</h3>
-              <p className="text-2xl font-semibold mt-1 text-[var(--color-text-dark-primary)] dark:text-text-light-primary">{headerStats.winRate.toFixed(1)}%</p>
-              <div className="mt-2 h-16 flex flex-col justify-around text-xs px-2">
-                {/* Wins Bar */}
-                <div className="flex items-center">
-                  <span className="text-green-500 w-8">W {headerStats.winningTradesCount}</span>
-                  <div className="flex-1 h-2 bg-gray-200 dark:bg-gray-700 rounded overflow-hidden ml-2">
-                    <div className="bg-green-500 h-full" style={{ width: `${headerStats.winningTradesCount + headerStats.losingTradesCount > 0 ? (headerStats.winningTradesCount / (headerStats.winningTradesCount + headerStats.losingTradesCount)) * 100 : 0}%` }}></div>
-                  </div>
-                </div>
-                {/* Losses Bar */}
-                <div className="flex items-center">
-                  <span className="text-red-500 w-8">L {headerStats.losingTradesCount}</span>
-                  <div className="flex-1 h-2 bg-gray-200 dark:bg-gray-700 rounded overflow-hidden ml-2">
-                    <div className="bg-red-500 h-full" style={{ width: `${headerStats.winningTradesCount + headerStats.losingTradesCount > 0 ? (headerStats.losingTradesCount / (headerStats.winningTradesCount + headerStats.losingTradesCount)) * 100 : 0}%` }}></div>
-                  </div>
-                </div>
-              </div>
-              {/* Optional: Footer for total closed trades */}
-            </div>
-
-            {/* Long/Short Ratio Card - Updated */}
-            <div className="bg-[var(--color-light-secondary)] dark:bg-dark-secondary p-4 rounded-lg shadow flex flex-col">
-              <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Long / Short Trades</h3>
-              <p className="text-2xl font-semibold mt-1 text-[var(--color-text-dark-primary)] dark:text-text-light-primary">
-                {headerStats.longTrades} L / {headerStats.shortTrades} S
-              </p>
-              <div className="mt-2 h-16 bg-gray-100 dark:bg-gray-700/50 rounded flex items-center justify-center text-xs text-gray-400 dark:text-gray-500 px-2">
-                {headerStats.longTrades + headerStats.shortTrades > 0 ? (
-                  <div className="w-full h-3 flex rounded overflow-hidden">
-                    <div 
-                      className="bg-blue-500 h-full" 
-                      style={{ width: `${(headerStats.longTrades / (headerStats.longTrades + headerStats.shortTrades)) * 100}%` }}
-                      title={`Long: ${headerStats.longTrades}`}
-                    ></div>
-                    <div 
-                      className="bg-purple-500 h-full"
-                      style={{ width: `${(headerStats.shortTrades / (headerStats.longTrades + headerStats.shortTrades)) * 100}%` }}
-                      title={`Short: ${headerStats.shortTrades}`}
-                    ></div>
-                  </div>
-                ) : (
-                  <span className="text-center">No trades</span>
-                )}
-              </div>
-               <div className="flex justify-between text-xs mt-1 text-gray-400 dark:text-gray-500">
-                <span>Total Trades: {headerStats.longTrades + headerStats.shortTrades}</span>
-              </div>
-            </div>
-          </div>
-          
-          {/* Filters and Controls Section */}
-          <div className="flex flex-col md:flex-row justify-between items-center p-4 bg-[var(--color-light-primary)] dark:bg-dark-secondary rounded-lg shadow mb-6 gap-4">
-            <div className="flex items-center gap-2 overflow-x-auto flex-wrap">
-                {(['all', 'open', 'closed'] as const).map(pos => (
-                    <button key={pos} onClick={() => setActivePositionFilter(pos)} className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${activePositionFilter === pos ? 'bg-accent-blue text-white' : 'bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500'}`}>
-                        {pos.charAt(0).toUpperCase() + pos.slice(1)} Positions
-                    </button>
-                ))}
-                <div className="h-6 border-l border-[var(--color-light-border)] dark:border-dark-border mx-2 self-center"></div>
-                {(['all', '1m', '7d', '1d'] as const).map(time => (
-                     <button key={time} onClick={() => setActiveTimeFilter(time)} className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${activeTimeFilter === time ? 'bg-accent-blue text-white' : 'bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500'}`}>
-                        {time === 'all' ? 'All time' : time === '1m' ? '1 month' : time}
-                    </button>
-                ))}
-                <button onClick={() => setIsDatePickerOpen(true)} className="p-2 rounded-md hover:bg-gray-300 dark:hover:bg-gray-700">
-                    <FaCalendarAlt className="h-5 w-5" />
-                </button>
-            </div>
-            <div className="flex items-center gap-2 flex-wrap">
-                <button className="p-2 rounded-md hover:bg-gray-300 dark:hover:bg-gray-700"><FaThList className="h-5 w-5" /></button>
-                <button className="p-2 rounded-md hover:bg-gray-300 dark:hover:bg-gray-700"><FaDownload className="h-5 w-5" /></button>
-                <div className="relative">
-                    <input 
-                        type="text" 
-                        placeholder="Search symbol, notes..." 
-                        className="pl-8 pr-2 py-1.5 text-sm rounded-md border border-[var(--color-light-border)] dark:border-dark-border bg-transparent focus:ring-accent-blue focus:border-accent-blue" 
-                        value={searchQuery} 
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                    />
-                    <FaSearch className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--color-text-dark-secondary)] dark:text-text-light-secondary" />
-                </div>
-                <Link href="/journal/new" className={addNewTradeButtonClasses}>
-                    <FaPlus />
-                    <span>Log Trade</span>
-                </Link>
-            </div>
-          </div>
-          
-          {/* 
-            The old Filtered Performance Snapshot section has been commented out.
-            It can be removed completely or its elements can be integrated elsewhere if needed.
-          */}
-
-          {isLoading && <p className="text-center py-10">Loading trades...</p>}
-          {error && <p className="text-center text-accent-red py-10">Error fetching trades: {error}</p>}
-
-          {!isLoading && !error && filteredTrades.length === 0 && (
-            <div className="text-center py-10 bg-[var(--color-light-primary)] dark:bg-dark-secondary rounded-xl shadow-lg dark:shadow-card-modern">
-                <p className="text-xl">
-                    {/* Check if any trades exist at all for the user vs. no trades for selected account after filtering */}
-                    {allTrades.length > 0 ? "No trades match the current filters for this account." : "No trades recorded yet for this account."}
-                </p>
-                {/* Show log first trade button if NO trades for this account, even if other accounts have trades */}
-                {filteredTrades.length === 0 && allTrades.filter(t => t.accountId === selectedAccountId).length === 0 && (
-                    <Link href="/journal/new" className={`mt-6 inline-flex ${addNewTradeButtonClasses}`}>
-                        <FaPlus />
-                        <span>Log Your First Trade</span>
-                    </Link>
-                )}
-            </div>
-          )}
-
-          {!isLoading && filteredTrades.length > 0 && (
-            <div className="space-y-5">
-              <TradesTable 
-                trades={filteredTrades} 
-                accounts={accounts} 
-                onRowClick={handleRowClick} 
-                isLoading={isLoading} 
-              />
-            </div>
-          )}
-
-           <TradePreviewDrawer 
-            trade={selectedTradeForPreview} 
-            isOpen={isPreviewOpen} 
-            onClose={handleClosePreview} 
-            onEdit={handleEditTrade} 
-            onDelete={handleDeleteTrade} 
-          />
-
-           <div className="mt-8 p-4 bg-[var(--color-light-primary)] dark:bg-dark-secondary rounded-lg shadow-md">
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-x-4 gap-y-3 text-sm">
-                    <div className="text-center">
-                        <p className="text-[var(--color-text-dark-secondary)] dark:text-text-light-secondary">Total P&L:</p>
-                        <p className={`font-semibold ${footerStats.totalNetPnl > 0 ? 'text-accent-green' : footerStats.totalNetPnl < 0 ? 'text-accent-red' : ''}`}>
-                            {footerStats.totalNetPnl.toLocaleString(undefined, {style: 'currency', currency: 'USD', signDisplay: 'always'})}
-                        </p>
-                    </div>
-                    <div className="text-center">
-                        <p className="text-[var(--color-text-dark-secondary)] dark:text-text-light-secondary">Total Trades:</p>
-                        <p className="font-semibold">{footerStats.totalTrades}</p>
-                    </div>
-                    <div className="text-center">
-                        <p className="text-[var(--color-text-dark-secondary)] dark:text-text-light-secondary">Commissions:</p>
-                        <p className="font-semibold">{footerStats.totalCommissions.toLocaleString(undefined, {style: 'currency', currency: 'USD'})}</p>
-                    </div>
-                    <div className="text-center">
-                        <p className="text-[var(--color-text-dark-secondary)] dark:text-text-light-secondary">Total Value:</p>
-                        <p className="font-semibold">{footerStats.totalTradedValue.toLocaleString(undefined, {style: 'currency', currency: 'USD'})}</p>
-                    </div>
-                    <div className="text-center">
-                        <p className="text-[var(--color-text-dark-secondary)] dark:text-text-light-secondary">Avg Win:</p>
-                        <p className={`font-semibold ${footerStats.averageWin > 0 ? 'text-accent-green' : ''}`}>
-                            {footerStats.averageWin.toLocaleString(undefined, {style: 'currency', currency: 'USD', signDisplay: 'always'})}
-                        </p>
-                    </div>
-                     <div className="text-center">
-                        <p className="text-[var(--color-text-dark-secondary)] dark:text-text-light-secondary">Avg Loss:</p>
-                        <p className={`font-semibold ${footerStats.averageLoss < 0 ? 'text-accent-red' : ''}`}>
-                            {/* Avg Loss is negative, toLocaleString currency handles sign or use Math.abs if only magnitude needed */}
-                            {footerStats.averageLoss.toLocaleString(undefined, {style: 'currency', currency: 'USD', signDisplay: 'always'})}
-                        </p>
-                    </div>
-                    <div className="text-center">
-                        <p className="text-[var(--color-text-dark-secondary)] dark:text-text-light-secondary">Avg R:R:</p>
-                        <p className="font-semibold">{footerStats.averageRR.toFixed(2)}R</p>
-                    </div>
-                </div>
-           </div>
-
-          {/* Date Picker Modal */}
-          {isDatePickerOpen && (
-            <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-              <div className="bg-[var(--color-light-primary)] dark:bg-dark-secondary p-6 rounded-lg shadow-xl space-y-4 max-w-sm w-full">
-                <h3 className="text-lg font-semibold text-center mb-4">Select Date Range</h3>
-                <div className="grid grid-cols-1 gap-4">
-                    <div>
-                        <label className="block text-sm font-medium mb-1">From:</label>
-                        <DatePicker
-                            selected={pickerStartDate || undefined}
-                            onChange={(date) => setPickerStartDate(date)}
-                            selectsStart
-                            startDate={pickerStartDate || undefined}
-                            endDate={pickerEndDate || undefined}
-                            isClearable
-                            placeholderText="Start date"
-                            className="w-full p-2 border border-[var(--color-light-border)] dark:border-dark-border rounded-md bg-[var(--color-light-secondary)] dark:bg-dark-tertiary"
-                            dateFormat="yyyy-MM-dd"
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium mb-1">To:</label>
-                        <DatePicker
-                            selected={pickerEndDate || undefined}
-                            onChange={(date) => setPickerEndDate(date)}
-                            selectsEnd
-                            startDate={pickerStartDate || undefined}
-                            endDate={pickerEndDate || undefined}
-                            minDate={pickerStartDate || undefined}
-                            isClearable
-                            placeholderText="End date"
-                            className="w-full p-2 border border-[var(--color-light-border)] dark:border-dark-border rounded-md bg-[var(--color-light-secondary)] dark:bg-dark-tertiary"
-                            dateFormat="yyyy-MM-dd"
-                        />
-                    </div>
-                </div>
-                <div className="flex justify-end gap-3 pt-4">
-                  <button 
-                    onClick={handleClearDateRange}
-                    className="px-4 py-2 text-sm rounded-md bg-gray-200 hover:bg-gray-300 dark:bg-gray-600 dark:hover:bg-gray-500 transition-colors">
-                    Clear
-                  </button>
-                  <button 
-                    onClick={() => setIsDatePickerOpen(false)} 
-                    className="px-4 py-2 text-sm rounded-md bg-gray-500 hover:bg-gray-600 text-white transition-colors">
-                    Cancel
-                  </button>
-                  <button 
-                    onClick={handleApplyDateRange} 
-                    className="px-4 py-2 text-sm rounded-md bg-accent-blue hover:bg-accent-blue-darker text-white transition-colors">
-                    Apply
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
+  if (isLoading && allTrades.length === 0) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <p className="text-gray-600 dark:text-gray-300 text-lg">Loading your trading journal...</p>
         </div>
       </div>
+    );
+  }
+
+  return (
+    <div className="space-y-8">
+      {/* Header Section */}
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
+        <div className="space-y-2">
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-green-600 bg-clip-text text-transparent">
+            Trading Journal
+          </h1>
+          <p className="text-gray-600 dark:text-gray-300">
+            Track and analyze your trading performance • Last updated: {format(new Date(), 'MMM dd, hh:mm a')}
+          </p>
+        </div>
+        
+        <div className="flex items-center space-x-3">
+          <button 
+            onClick={() => setShowOnlyStarred(!showOnlyStarred)}
+            className={`p-3 rounded-xl transition-all duration-200 hover:scale-105 ${
+              showOnlyStarred 
+                ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400' 
+                : 'bg-gray-100/80 dark:bg-gray-800/80 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
+            }`}>
+            {showOnlyStarred ? <FaStarSolid /> : <FaStarOutline />}
+          </button>
+          
+          <button className="p-3 rounded-xl bg-gray-100/80 dark:bg-gray-800/80 hover:bg-green-500 dark:hover:bg-green-500 text-gray-600 dark:text-gray-400 hover:text-white transition-all duration-200 hover:scale-105">
+            <FaDownload className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {/* Monthly Progress Card */}
+        <div className="group relative bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 p-6 shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
+          <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-green-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl"></div>
+          <div className="relative z-10">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Monthly Progress</h3>
+              <div className="p-2 bg-gradient-to-r from-blue-500/20 to-green-500/20 rounded-xl">
+                <FaChartLine className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+              </div>
+            </div>
+            <p className={`text-3xl font-bold mb-4 ${
+              headerStats.monthlyPnl >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
+            }`}>
+              {headerStats.monthlyPnl >= 0 ? '+' : ''}${headerStats.monthlyPnl.toFixed(2)}
+            </p>
+            <div className="h-8 flex items-center">
+              <svg viewBox="0 0 100 30" className="w-full h-full" preserveAspectRatio="none">
+                <defs>
+                  <linearGradient id="sparklineGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stopColor="#3B82F6" />
+                    <stop offset="100%" stopColor="#10B981" />
+                  </linearGradient>
+                </defs>
+                <path d="M 0 25 Q 15 20, 25 15 T 50 10 T 75 8 T 100 5" stroke="url(#sparklineGradient)" fill="none" strokeWidth="2"/>
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        {/* Balance Card */}
+        <div className="group relative bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 p-6 shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
+          <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-pink-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl"></div>
+          <div className="relative z-10">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Account Balance</h3>
+              <div className="p-2 bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-xl">
+                <FaBookOpen className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+              </div>
+            </div>
+            <p className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+              ${selectedAccount?.balance !== undefined ? selectedAccount.balance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : 'N/A'}
+            </p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              {selectedAccount?.name || 'All Accounts'}
+            </p>
+          </div>
+        </div>
+
+        {/* Win Rate Card */}
+        <div className="group relative bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 p-6 shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
+          <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 to-blue-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl"></div>
+          <div className="relative z-10">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Win Rate</h3>
+              <div className="p-2 bg-gradient-to-r from-green-500/20 to-blue-500/20 rounded-xl">
+                <FaArrowUp className="w-4 h-4 text-green-600 dark:text-green-400" />
+              </div>
+            </div>
+            <p className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
+              {headerStats.winRate.toFixed(1)}%
+            </p>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-green-600 dark:text-green-400">Wins: {headerStats.winningTradesCount}</span>
+                <span className="text-red-600 dark:text-red-400">Losses: {headerStats.losingTradesCount}</span>
+              </div>
+              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden">
+                <div 
+                  className="bg-gradient-to-r from-green-500 to-blue-500 h-2 rounded-full transition-all duration-500"
+                  style={{ width: `${headerStats.winRate}%` }}
+                ></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Long/Short Ratio Card */}
+        <div className="group relative bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 p-6 shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
+          <div className="absolute inset-0 bg-gradient-to-br from-orange-500/5 to-red-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl"></div>
+          <div className="relative z-10">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Direction Split</h3>
+              <div className="p-2 bg-gradient-to-r from-orange-500/20 to-red-500/20 rounded-xl">
+                <FaArrowDown className="w-4 h-4 text-orange-600 dark:text-orange-400" />
+              </div>
+            </div>
+            <p className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
+              {headerStats.longTrades}L / {headerStats.shortTrades}S
+            </p>
+            {headerStats.longTrades + headerStats.shortTrades > 0 && (
+              <div className="w-full h-3 flex rounded-xl overflow-hidden">
+                <div 
+                  className="bg-gradient-to-r from-blue-500 to-blue-600 h-full transition-all duration-500" 
+                  style={{ width: `${(headerStats.longTrades / (headerStats.longTrades + headerStats.shortTrades)) * 100}%` }}
+                ></div>
+                <div 
+                  className="bg-gradient-to-r from-purple-500 to-purple-600 h-full transition-all duration-500"
+                  style={{ width: `${(headerStats.shortTrades / (headerStats.longTrades + headerStats.shortTrades)) * 100}%` }}
+                ></div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Filters and Controls */}
+      <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 p-6 shadow-lg">
+        <div className="flex flex-col lg:flex-row gap-6">
+          {/* Position Filters */}
+          <div className="flex items-center space-x-2">
+            <span className="text-sm font-medium text-gray-700 dark:text-gray-300 mr-2">Status:</span>
+            <div className="flex bg-gray-100/80 dark:bg-gray-800/80 p-1 rounded-xl">
+              {(['all', 'open', 'closed'] as const).map(pos => (
+                <button 
+                  key={pos}
+                  onClick={() => setActivePositionFilter(pos)}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                    activePositionFilter === pos 
+                      ? 'bg-gradient-to-r from-blue-500 to-green-500 text-white shadow-md' 
+                      : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-200/50 dark:hover:bg-gray-700/50'
+                  }`}>
+                  {pos.charAt(0).toUpperCase() + pos.slice(1)}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Time Filters */}
+          <div className="flex items-center space-x-2">
+            <span className="text-sm font-medium text-gray-700 dark:text-gray-300 mr-2">Period:</span>
+            <div className="flex bg-gray-100/80 dark:bg-gray-800/80 p-1 rounded-xl">
+              {(['all', '1d', '7d', '1m'] as const).map(time => (
+                <button 
+                  key={time}
+                  onClick={() => setActiveTimeFilter(time)}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                    activeTimeFilter === time 
+                      ? 'bg-gradient-to-r from-blue-500 to-green-500 text-white shadow-md' 
+                      : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-200/50 dark:hover:bg-gray-700/50'
+                  }`}>
+                  {time === 'all' ? 'All time' : time === '1m' ? '1 month' : time}
+                </button>
+              ))}
+              <button 
+                onClick={() => setIsDatePickerOpen(true)}
+                className="p-2 rounded-lg text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-200/50 dark:hover:bg-gray-700/50 transition-all duration-200">
+                <FaCalendarAlt className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+
+          {/* Search and Actions */}
+          <div className="flex items-center space-x-3 ml-auto">
+            <div className="relative">
+              <input 
+                type="text" 
+                placeholder="Search trades..." 
+                className="pl-10 pr-4 py-2.5 text-sm rounded-xl border border-gray-200/50 dark:border-gray-700/50 bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200" 
+                value={searchQuery} 
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+              <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            </div>
+            
+            <Link 
+              href="/journal/new" 
+              className="flex items-center space-x-2 bg-gradient-to-r from-blue-500 to-green-500 hover:from-blue-600 hover:to-green-600 text-white font-semibold py-2.5 px-6 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105">
+              <FaPlus className="w-4 h-4" />
+              <span>Log Trade</span>
+            </Link>
+          </div>
+        </div>
+      </div>
+
+      {/* Loading State */}
+      {isLoading && (
+        <div className="text-center py-16">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <p className="text-gray-600 dark:text-gray-300">Loading trades...</p>
+        </div>
+      )}
+
+      {/* Error State */}
+      {error && (
+        <div className="text-center py-16 bg-red-50 dark:bg-red-900/20 rounded-2xl border border-red-200 dark:border-red-800">
+          <p className="text-red-600 dark:text-red-400">Error fetching trades: {error}</p>
+        </div>
+      )}
+
+      {/* No Trades State */}
+      {!isLoading && !error && filteredTrades.length === 0 && (
+        <div className="text-center py-16 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 shadow-lg">
+          <div className="max-w-md mx-auto space-y-6">
+            <div className="w-20 h-20 bg-gradient-to-r from-blue-500 to-green-500 rounded-full flex items-center justify-center mx-auto">
+              <FaBookOpen className="w-10 h-10 text-white" />
+            </div>
+            <div>
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+                {allTrades.length > 0 ? "No trades match your filters" : "No trades recorded yet"}
+              </h3>
+              <p className="text-gray-600 dark:text-gray-400">
+                {allTrades.length > 0 
+                  ? "Try adjusting your filters to see more trades."
+                  : "Start building your trading journal by logging your first trade."
+                }
+              </p>
+            </div>
+            {filteredTrades.length === 0 && allTrades.filter(t => t.accountId === selectedAccountId).length === 0 && (
+              <Link 
+                href="/journal/new" 
+                className="inline-flex items-center space-x-2 bg-gradient-to-r from-blue-500 to-green-500 hover:from-blue-600 hover:to-green-600 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl">
+                <FaPlus className="w-4 h-4" />
+                <span>Log Your First Trade</span>
+              </Link>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Trades Table */}
+      {!isLoading && filteredTrades.length > 0 && (
+        <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 shadow-lg overflow-hidden">
+          <TradesTable 
+            trades={filteredTrades} 
+            accounts={accounts} 
+            onRowClick={handleRowClick} 
+            isLoading={isLoading} 
+          />
+        </div>
+      )}
+
+      {/* Footer Stats */}
+      {!isLoading && filteredTrades.length > 0 && (
+        <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 p-6 shadow-lg">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-4">
+            {[
+              { label: 'Total P&L', value: footerStats.totalNetPnl.toLocaleString(undefined, {style: 'currency', currency: 'USD', signDisplay: 'always'}), color: footerStats.totalNetPnl >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400' },
+              { label: 'Total Trades', value: footerStats.totalTrades.toString(), color: 'text-gray-900 dark:text-white' },
+              { label: 'Commissions', value: footerStats.totalCommissions.toLocaleString(undefined, {style: 'currency', currency: 'USD'}), color: 'text-gray-900 dark:text-white' },
+              { label: 'Total Value', value: footerStats.totalTradedValue.toLocaleString(undefined, {style: 'currency', currency: 'USD'}), color: 'text-gray-900 dark:text-white' },
+              { label: 'Avg Win', value: footerStats.averageWin.toLocaleString(undefined, {style: 'currency', currency: 'USD', signDisplay: 'always'}), color: 'text-green-600 dark:text-green-400' },
+              { label: 'Avg Loss', value: footerStats.averageLoss.toLocaleString(undefined, {style: 'currency', currency: 'USD', signDisplay: 'always'}), color: 'text-red-600 dark:text-red-400' },
+              { label: 'Avg R:R', value: `${footerStats.averageRR.toFixed(2)}R`, color: 'text-gray-900 dark:text-white' },
+            ].map((stat, index) => (
+              <div key={index} className="text-center p-4 bg-gray-50/80 dark:bg-gray-800/50 rounded-xl hover:bg-gray-100/80 dark:hover:bg-gray-800/80 transition-colors duration-200 min-w-0">
+                <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2 truncate">{stat.label}</p>
+                <p className={`text-base lg:text-lg font-bold ${stat.color} truncate`} title={stat.value}>
+                  {stat.value}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Trade Preview Drawer */}
+      <TradePreviewDrawer 
+        trade={selectedTradeForPreview} 
+        isOpen={isPreviewOpen} 
+        onClose={handleClosePreview} 
+        onEdit={handleEditTrade} 
+        onDelete={handleDeleteTrade} 
+      />
+
+      {/* Date Picker Modal */}
+      {isDatePickerOpen && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl p-6 rounded-2xl shadow-2xl border border-gray-200/50 dark:border-gray-700/50 space-y-6 max-w-sm w-full">
+            <h3 className="text-xl font-bold text-center bg-gradient-to-r from-blue-600 to-green-600 bg-clip-text text-transparent">
+              Select Date Range
+            </h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">From:</label>
+                <DatePicker
+                  selected={pickerStartDate || undefined}
+                  onChange={(date) => setPickerStartDate(date)}
+                  selectsStart
+                  startDate={pickerStartDate || undefined}
+                  endDate={pickerEndDate || undefined}
+                  isClearable
+                  placeholderText="Start date"
+                  className="w-full p-3 border border-gray-200/50 dark:border-gray-700/50 rounded-xl bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  dateFormat="yyyy-MM-dd"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">To:</label>
+                <DatePicker
+                  selected={pickerEndDate || undefined}
+                  onChange={(date) => setPickerEndDate(date)}
+                  selectsEnd
+                  startDate={pickerStartDate || undefined}
+                  endDate={pickerEndDate || undefined}
+                  minDate={pickerStartDate || undefined}
+                  isClearable
+                  placeholderText="End date"
+                  className="w-full p-3 border border-gray-200/50 dark:border-gray-700/50 rounded-xl bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  dateFormat="yyyy-MM-dd"
+                />
+              </div>
+            </div>
+            <div className="flex justify-end gap-3 pt-4">
+              <button 
+                onClick={handleClearDateRange}
+                className="px-6 py-2.5 text-sm font-medium rounded-xl bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 transition-colors duration-200">
+                Clear
+              </button>
+              <button 
+                onClick={() => setIsDatePickerOpen(false)} 
+                className="px-6 py-2.5 text-sm font-medium rounded-xl bg-gray-500 hover:bg-gray-600 text-white transition-colors duration-200">
+                Cancel
+              </button>
+              <button 
+                onClick={handleApplyDateRange} 
+                className="px-6 py-2.5 text-sm font-medium rounded-xl bg-gradient-to-r from-blue-500 to-green-500 hover:from-blue-600 hover:to-green-600 text-white transition-all duration-200 shadow-lg hover:shadow-xl">
+                Apply
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }

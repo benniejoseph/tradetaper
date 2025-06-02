@@ -1,240 +1,572 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-/* eslint-disable @next/next/no-img-element */
-// src/app/trades/view/[id]/page.tsx
 "use client";
-import React, { useEffect, useState, useCallback } from 'react'; // Added useCallback
-import { useParams, useRouter } from 'next/navigation';
+import React, { useEffect, useState, useMemo } from 'react';
+import { useParams } from 'next/navigation';
 import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '@/store/store';
 import { fetchTradeById } from '@/store/features/tradesSlice';
 import Link from 'next/link';
 import TradeChart from '@/components/charts/TradeChart';
 import { fetchRealPriceData } from '@/services/priceDataService';
-import { CandlestickData, LineData } from 'lightweight-charts';
-import { format as formatDateFns } from 'date-fns';
-import { TradeDirection, TradeStatus, Tag as TradeTagType } from '@/types/trade';
-import { addDays, subDays, differenceInDays } from 'date-fns';
+import { CandlestickData } from 'lightweight-charts';
+import { format as formatDateFns, differenceInMinutes, differenceInHours, differenceInDays } from 'date-fns';
+import { TradeDirection, TradeStatus } from '@/types/trade';
+import { addDays, subDays } from 'date-fns';
+import { 
+  FaArrowLeft, 
+  FaEdit, 
+  FaCopy,
+  FaDownload,
+  FaArrowUp,
+  FaArrowDown,
+  FaCalculator,
+  FaPercentage,
+  FaExchangeAlt,
+  FaChartLine
+} from 'react-icons/fa';
 
-const SUPPORTED_INTERVALS = [
-    { value: 'daily', label: 'Daily' },
-    { value: 'hourly', label: 'Hourly' },
-    { value: '15minute', label: '15 Minute' },
-    { value: '5minute', label: '5 Minute' },
-    { value: '1minute', label: '1 Minute' },
+const TIME_INTERVALS = [
+  { value: '1minute', label: '1m' },
+  { value: '5minute', label: '5m' },
+  { value: '15minute', label: '15m' },
+  { value: 'hourly', label: '1h' },
+  { value: 'daily', label: '1D' },
 ];
-
-const DetailItem = ({ label, value, children }: { label: string; value?: string | number | null, children?: React.ReactNode }) => {
-    if (value === undefined && !children) return null;
-    if (value === null && !children) return null;
-    if (value === '' && !children) return null;
-
-    let displayValue = value;
-    if (typeof value === 'number') {
-        const lowerLabel = label.toLowerCase();
-        if (lowerLabel.includes('price') || lowerLabel.includes('p&l') || lowerLabel.includes('stop') || lowerLabel.includes('take')) {
-            displayValue = value.toFixed(4); // Typically 4 decimal places for prices
-        } else if (lowerLabel.includes('commission')) {
-            displayValue = value.toFixed(2);
-        } else if (lowerLabel.includes('quantity') || lowerLabel.includes('r-multiple')) {
-             // Default to 2, or be more specific if needed
-            displayValue = Number.isInteger(value) ? value.toString() : value.toFixed(2);
-        }
-    }
-
-    return (
-        <div>
-            <p className="text-sm font-medium text-gray-400">{label}</p>
-            {children ? <div className="mt-1 text-md text-gray-100">{children}</div>
-                      : <p className="mt-1 text-md text-gray-100 whitespace-pre-wrap">{displayValue}</p>
-            }
-        </div>
-    );
-};
 
 export default function ViewTradePage() {
   const dispatch = useDispatch<AppDispatch>();
-  const router = useRouter();
   const params = useParams();
-  const tradeId = params.id as string;
+  const tradeId = params.tradeId as string;
 
   const { currentTrade, isLoading: tradeIsLoading, error: tradeError } = useSelector((state: RootState) => state.trades);
-  const [priceData, setPriceData] = useState<(CandlestickData | LineData)[]>([]);
+  const [priceData, setPriceData] = useState<CandlestickData[]>([]);
   const [priceDataLoading, setPriceDataLoading] = useState(false);
-  const [selectedInterval, setSelectedInterval] = useState<string>(() => {
-    return SUPPORTED_INTERVALS.length > 0 ? SUPPORTED_INTERVALS[0].value : 'daily';
-  });
+  const [selectedInterval, setSelectedInterval] = useState('15minute');
 
   useEffect(() => {
     if (tradeId) {
-      if (!currentTrade || currentTrade.id !== tradeId) {
-        console.log(`[ViewTradePage] Dispatching fetchTradeById for ID: ${tradeId}`);
         dispatch(fetchTradeById(tradeId));
-      }
     }
-  }, [dispatch, tradeId, currentTrade]);
+  }, [dispatch, tradeId]);
 
   useEffect(() => {
-    console.log(`[ViewTradePage - PriceDataEffect] Running. currentTrade ID: ${currentTrade?.id}, tradeId: ${tradeId}, selectedInterval: ${selectedInterval}`);
-
-    if (currentTrade && currentTrade.id === tradeId && selectedInterval && selectedInterval.trim() !== '') {
+    if (currentTrade && currentTrade.id === tradeId && selectedInterval) {
       setPriceDataLoading(true);
-      console.log(`[ViewTradePage - PriceDataEffect] Conditions met. Fetching for ${currentTrade.symbol}, interval: ${selectedInterval}`);
 
-      const entryDateObj = new Date(currentTrade.entryDate);
-      let fromDateForApi = subDays(entryDateObj, 60);
-      let conceptualEndDateForChart = entryDateObj;
-      if (currentTrade.exitDate) {
-        conceptualEndDateForChart = new Date(currentTrade.exitDate);
+      const entryDate = new Date(currentTrade.entryDate);
+      let fromDate: Date;
+      let toDate: Date;
+      
+      // Adjust date range based on interval and Tradermade API limits
+      if (selectedInterval === '1minute' || selectedInterval === '5minute') {
+        // Tradermade allows max 2 working days for 1m and 5m data
+        fromDate = subDays(entryDate, 2);
+        toDate = addDays(currentTrade.exitDate ? new Date(currentTrade.exitDate) : entryDate, 1);
+      } else if (selectedInterval === '15minute' || selectedInterval === '30minute') {
+        // Tradermade allows max 5 working days for 15m and 30m data
+        fromDate = subDays(entryDate, 5);
+        toDate = addDays(currentTrade.exitDate ? new Date(currentTrade.exitDate) : entryDate, 1);
+      } else if (selectedInterval === 'hourly') {
+        // For hourly data, use moderate range
+        fromDate = subDays(entryDate, 14);
+        toDate = addDays(currentTrade.exitDate ? new Date(currentTrade.exitDate) : entryDate, 3);
+      } else {
+        // For daily data, use longer range
+        fromDate = subDays(entryDate, 30);
+        toDate = addDays(currentTrade.exitDate ? new Date(currentTrade.exitDate) : entryDate, 7);
       }
-      conceptualEndDateForChart = addDays(conceptualEndDateForChart, 15);
 
       const today = new Date();
-      let toDateForApi = conceptualEndDateForChart > today ? today : conceptualEndDateForChart;
+      if (toDate > today) toDate = today;
 
-      if (selectedInterval.includes('minute')) {
-        fromDateForApi = subDays(entryDateObj, Math.min(7, Math.max(1, differenceInDays(toDateForApi, entryDateObj) + 2)));
-        toDateForApi = addDays(currentTrade.exitDate ? new Date(currentTrade.exitDate) : entryDateObj, 2);
-        if (toDateForApi > today) toDateForApi = today;
-      } else if (selectedInterval === 'hourly') {
-        fromDateForApi = subDays(entryDateObj, Math.min(30, Math.max(1, differenceInDays(toDateForApi, entryDateObj) + 7)));
-        toDateForApi = addDays(currentTrade.exitDate ? new Date(currentTrade.exitDate) : entryDateObj, 7);
-        if (toDateForApi > today) toDateForApi = today;
-      }
-
-      if (fromDateForApi >= toDateForApi) {
-          fromDateForApi = subDays(toDateForApi, 1);
-          if(fromDateForApi >= toDateForApi) fromDateForApi = new Date(toDateForApi.getTime() - 86400000);
-      }
-
-      fetchRealPriceData(currentTrade.symbol, fromDateForApi, toDateForApi, selectedInterval)
+      fetchRealPriceData(currentTrade.symbol, fromDate, toDate, selectedInterval)
         .then(data => {
-          console.log(`[ViewTradePage - PriceDataEffect] Price data received for ${selectedInterval}:`, data.length);
           setPriceData(data);
         })
         .catch(err => {
-          console.error(`[ViewTradePage - PriceDataEffect] Failed to fetch price data for ${currentTrade.symbol}, interval ${selectedInterval}:`, err);
+          console.error('Failed to fetch price data:', err);
           setPriceData([]);
         })
         .finally(() => {
             setPriceDataLoading(false);
-            console.log(`[ViewTradePage - PriceDataEffect] Price data loading finished for ${selectedInterval}.`);
         });
-    } else if (!currentTrade && tradeId) {
-        console.log("[ViewTradePage - PriceDataEffect] No currentTrade but tradeId exists, clearing price data.");
-        setPriceData([]);
-        setPriceDataLoading(false);
-    } else if (currentTrade && currentTrade.id === tradeId && (!selectedInterval || selectedInterval.trim() === '')) {
-        console.warn("[ViewTradePage - PriceDataEffect] selectedInterval is invalid. Skipping price data fetch.");
-        setPriceData([]);
-        setPriceDataLoading(false);
     }
-  }, [currentTrade, tradeId, selectedInterval, dispatch]);
+  }, [currentTrade, tradeId, selectedInterval]);
 
-  const isLoadingPage = tradeIsLoading || (priceDataLoading && !priceData.length && currentTrade);
+  // Calculate additional metrics
+  const tradeDuration = useMemo(() => {
+    if (!currentTrade?.entryDate) return null;
+    const entry = new Date(currentTrade.entryDate);
+    const exit = currentTrade.exitDate ? new Date(currentTrade.exitDate) : new Date();
+    
+    const minutes = differenceInMinutes(exit, entry);
+    const hours = differenceInHours(exit, entry);
+    const days = differenceInDays(exit, entry);
+    
+    if (days > 0) return `${days}d ${hours % 24}h`;
+    if (hours > 0) return `${hours}h ${minutes % 60}m`;
+    return `${minutes}m`;
+  }, [currentTrade]);
 
-  if (isLoadingPage && !currentTrade && !tradeError) {
-    return <div className="min-h-screen flex items-center justify-center bg-gray-900 text-white">Loading trade details...</div>;
+  const mfeMae = useMemo(() => {
+    // Mock calculation - in real app, this would be calculated from price data
+    if (!currentTrade?.entryPrice) return { mfe: 0, mae: 0 };
+    
+    // Mock values based on current P&L - replace with actual calculation
+    const pnl = currentTrade.profitOrLoss || 0;
+    const mfe = Math.abs(pnl) * 1.2; // Mock favorable excursion
+    const mae = Math.abs(pnl) * 0.3; // Mock adverse excursion
+    
+    return { mfe, mae };
+  }, [currentTrade]);
+
+  const riskRewardRatio = useMemo(() => {
+    if (!currentTrade?.entryPrice || !currentTrade?.stopLoss || !currentTrade?.takeProfit) return null;
+    
+    const risk = Math.abs(currentTrade.entryPrice - currentTrade.stopLoss);
+    const reward = Math.abs(currentTrade.takeProfit - currentTrade.entryPrice);
+    
+    return reward / risk;
+  }, [currentTrade]);
+
+  if (tradeIsLoading && !currentTrade) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <div className="text-xl font-semibold text-gray-900 dark:text-white">Loading trade details...</div>
+        </div>
+      </div>
+    );
   }
+
   if (tradeError && !currentTrade) {
-    return (<div className="min-h-screen bg-gray-900 text-white p-8 text-center"><p className="text-red-500">Error: {tradeError}</p><Link href="/trades" className="text-blue-400 hover:underline mt-4 block">Back to Trades</Link></div>);
+    return (
+      <div className="space-y-8">
+        <div className="text-center py-16">
+          <div className="w-20 h-20 bg-gradient-to-r from-red-500 to-red-600 rounded-full flex items-center justify-center mx-auto mb-6">
+            <FaArrowLeft className="w-10 h-10 text-white" />
+          </div>
+          <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Error Loading Trade</h3>
+          <p className="text-red-600 dark:text-red-400 mb-4">{tradeError}</p>
+          <Link href="/journal" className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-semibold rounded-xl transition-all duration-200 hover:scale-105 shadow-lg">
+            <FaArrowLeft className="mr-2" />
+            Back to Journal
+          </Link>
+        </div>
+      </div>
+    );
   }
-  if (!currentTrade && !tradeIsLoading) {
-    return (<div className="min-h-screen bg-gray-900 text-white p-8 text-center"><p className="text-yellow-400">Trade not found.</p><Link href="/trades" className="text-blue-400 hover:underline mt-4 block">Back to Trades</Link></div>);
-  }
-  if (!currentTrade) return null;
 
-  const pnlColor = (currentTrade.profitOrLoss ?? 0) >= 0 ? 'text-green-400' : 'text-red-400';
-  const directionColor = currentTrade.direction === TradeDirection.LONG ? 'text-green-500' : 'text-red-500';
+  if (!currentTrade) {
+    return (
+      <div className="space-y-8">
+        <div className="text-center py-16">
+          <div className="w-20 h-20 bg-gradient-to-r from-gray-500 to-gray-600 rounded-full flex items-center justify-center mx-auto mb-6">
+            <FaArrowLeft className="w-10 h-10 text-white" />
+          </div>
+          <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Trade Not Found</h3>
+          <p className="text-gray-600 dark:text-gray-400 mb-4">The trade you&apos;re looking for doesn&apos;t exist.</p>
+          <Link href="/journal" className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-semibold rounded-xl transition-all duration-200 hover:scale-105 shadow-lg">
+            <FaArrowLeft className="mr-2" />
+            Back to Journal
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  const profitOrLoss = currentTrade.profitOrLoss || 0;
+  const pnlColor = profitOrLoss >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400';
+  const directionIcon = currentTrade.direction === TradeDirection.LONG ? FaArrowUp : FaArrowDown;
+
+  const pnlPercentage = currentTrade.entryPrice && currentTrade.quantity 
+    ? (profitOrLoss / (currentTrade.entryPrice * currentTrade.quantity)) * 100 
+    : 0;
 
   return (
-      <div className="min-h-screen bg-gray-900 text-white p-4 md:p-8">
-        <div className="container mx-auto">
-          <div className="mb-6 flex justify-between items-center">
-            <Link href="/trades" className="text-blue-400 hover:underline">← Back to Trades List</Link>
-            <button
-                onClick={() => router.push(`/trades/edit/${tradeId}`)}
-                className="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-4 rounded"
-            >
-                Edit Trade
-            </button>
+    <div className="space-y-8">
+      {/* Header Section */}
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
+        <div className="flex items-center space-x-6">
+          <Link
+            href="/journal"
+            className="flex items-center space-x-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors p-2 rounded-xl hover:bg-gray-100/80 dark:hover:bg-gray-800/80"
+          >
+            <FaArrowLeft className="h-4 w-4" />
+            <span>Back to Journal</span>
+          </Link>
+          
+          <div className="flex items-center space-x-4">
+            <div className={`p-3 rounded-xl shadow-lg ${currentTrade.direction === TradeDirection.LONG ? 'bg-gradient-to-r from-green-500 to-green-600' : 'bg-gradient-to-r from-red-500 to-red-600'}`}>
+              {React.createElement(directionIcon, { className: `h-6 w-6 text-white` })}
+            </div>
+            <div>
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-green-600 bg-clip-text text-transparent">
+                {currentTrade.symbol}
+              </h1>
+              <p className="text-gray-600 dark:text-gray-300">
+                {currentTrade.direction} • {currentTrade.assetType}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center space-x-6">
+          {/* P&L Display */}
+          <div className="text-right">
+            <div className={`text-3xl font-bold ${pnlColor}`}>
+              {profitOrLoss >= 0 ? '+' : ''}${Math.abs(profitOrLoss).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </div>
+            <div className={`text-sm font-medium ${pnlColor}`}>
+              {pnlPercentage >= 0 ? '+' : ''}{pnlPercentage.toFixed(2)}%
+            </div>
           </div>
 
-          <div className="bg-gray-800 shadow-xl rounded-lg p-6 md:p-8 space-y-8">
-            <div className="border-b border-gray-700 pb-6">
-                <h1 className="text-3xl md:text-4xl font-bold text-white mb-1">
-                    {currentTrade.symbol}
-                    <span className={`text-xl md:text-2xl ml-3 ${directionColor}`}>({currentTrade.direction})</span>
-                </h1>
-                <p className={`text-xl md:text-2xl font-semibold ${pnlColor}`}>
-                    P&L: {(typeof currentTrade.profitOrLoss === 'number') ? currentTrade.profitOrLoss.toFixed(2) : 'N/A'}
-                    <span className="text-sm text-gray-400 ml-2">({currentTrade.status})</span>
-                </p>
-                <p className="text-sm text-gray-500 mt-1">Asset Type: {currentTrade.assetType}</p>
-            </div>
+          <div className="flex items-center space-x-3">
+            <button
+              onClick={() => navigator.clipboard.writeText(window.location.href)}
+              className="p-3 rounded-xl bg-gray-100/80 dark:bg-gray-800/80 hover:bg-blue-500 dark:hover:bg-blue-500 text-gray-600 dark:text-gray-400 hover:text-white transition-all duration-200 hover:scale-105"
+              title="Copy link"
+            >
+              <FaCopy className="h-4 w-4" />
+            </button>
+            
+            <button
+              onClick={() => window.print()}
+              className="p-3 rounded-xl bg-gray-100/80 dark:bg-gray-800/80 hover:bg-green-500 dark:hover:bg-green-500 text-gray-600 dark:text-gray-400 hover:text-white transition-all duration-200 hover:scale-105"
+              title="Export"
+            >
+              <FaDownload className="h-4 w-4" />
+            </button>
+            
+            <Link
+              href={`/journal/edit/${tradeId}`}
+              className="flex items-center space-x-2 px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-semibold rounded-xl transition-all duration-200 hover:scale-105 shadow-lg hover:shadow-xl"
+            >
+              <FaEdit className="h-4 w-4" />
+              <span>Edit Trade</span>
+            </Link>
+          </div>
+        </div>
+      </div>
 
-            <div>
-              <div className="mb-4 flex items-center space-x-3">
-                <label htmlFor="intervalSelect" className="text-sm font-medium text-gray-300">Interval:</label>
-                <select
-                  id="intervalSelect"
-                  value={selectedInterval}
-                  onChange={(e) => setSelectedInterval(e.target.value)}
-                  className="bg-gray-700 border-gray-600 text-white text-sm rounded-md p-2 focus:ring-blue-500 focus:border-blue-500"
-                >
-                  {SUPPORTED_INTERVALS.map(opt => (
-                    <option key={opt.value} value={opt.value}>{opt.label}</option>
-                  ))}
-                </select>
+      {/* Status Badge */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-4">
+          <div className={`px-4 py-2 rounded-xl text-sm font-semibold shadow-lg ${
+            currentTrade.status === TradeStatus.CLOSED 
+              ? 'bg-gradient-to-r from-green-500 to-green-600 text-white'
+              : currentTrade.status === TradeStatus.OPEN
+              ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white'
+              : 'bg-gradient-to-r from-gray-500 to-gray-600 text-white'
+          }`}>
+            {currentTrade.status}
+          </div>
+          
+          <div className="text-sm text-gray-600 dark:text-gray-400">
+            <span>Opened: {formatDateFns(new Date(currentTrade.entryDate), 'MMM dd, yyyy HH:mm')}</span>
+            {currentTrade.exitDate && (
+              <span className="ml-4">Closed: {formatDateFns(new Date(currentTrade.exitDate), 'MMM dd, yyyy HH:mm')}</span>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Main Chart Section */}
+      <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 shadow-lg">
+        {/* Chart Header */}
+        <div className="p-6 border-b border-gray-200/30 dark:border-gray-700/30">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <div className="p-2 bg-gradient-to-r from-blue-500/20 to-green-500/20 rounded-xl">
+                <FaChartLine className="w-6 h-6 text-blue-600 dark:text-blue-400" />
               </div>
-              <TradeChart trade={currentTrade} priceData={priceData} />
-              {priceDataLoading && <p className="text-center text-gray-400 mt-2">Loading chart data ({selectedInterval})...</p>}
-               {!priceDataLoading && priceData.length === 0 && currentTrade && <p className="text-center text-gray-400 mt-2">No chart data available for {selectedInterval}.</p>}
+              <div>
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+                  Price Chart - {currentTrade.symbol}
+                </h2>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  Interactive price analysis for trade execution
+                </p>
+              </div>
             </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 border-b border-gray-700 pb-6">
-                <DetailItem label="Entry Date" value={currentTrade.entryDate ? formatDateFns(new Date(currentTrade.entryDate), 'MMM dd, yyyy HH:mm') : 'N/A'} />
-                <DetailItem label="Entry Price" value={currentTrade.entryPrice} />
-                <DetailItem label="Quantity" value={currentTrade.quantity} />
-                <DetailItem label="Exit Date" value={currentTrade.exitDate ? formatDateFns(new Date(currentTrade.exitDate), 'MMM dd, yyyy HH:mm') : undefined} />
-                <DetailItem label="Exit Price" value={currentTrade.exitPrice} />
-                <DetailItem label="Commission" value={currentTrade.commission} />
-                <DetailItem label="Stop Loss" value={currentTrade.stopLoss} />
-                <DetailItem label="Take Profit" value={currentTrade.takeProfit} />
+            
+            <div className="flex items-center space-x-2">
+              {TIME_INTERVALS.map((interval) => (
+                <button
+                  key={interval.value}
+                  onClick={() => setSelectedInterval(interval.value)}
+                  className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${
+                    selectedInterval === interval.value
+                      ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg'
+                      : 'bg-gray-100/80 dark:bg-gray-800/80 text-gray-600 dark:text-gray-400 hover:bg-gray-200/80 dark:hover:bg-gray-700/80 hover:text-gray-900 dark:hover:text-white'
+                  }`}
+                >
+                  {interval.label}
+                </button>
+              ))}
             </div>
+          </div>
+        </div>
 
-            <div className="space-y-6">
-              <DetailItem label="Strategy Quick Entry" value={currentTrade.strategyTag} />
-              {currentTrade.tags && currentTrade.tags.length > 0 && (
-                <DetailItem label="Tags">
-                    <div className="flex flex-wrap gap-2 mt-1">
-                        {currentTrade.tags.map((tag: TradeTagType) => (
-                            <span key={tag.id} className="text-sm bg-sky-700 text-sky-100 px-3 py-1 rounded-full">
-                                {tag.name}
-                            </span>
-                        ))}
-                    </div>
-                </DetailItem>
-              )}
-              <DetailItem label="Setup / Rationale" value={currentTrade.setupDetails} />
-              <DetailItem label="Mistakes Made" value={currentTrade.mistakesMade} />
-              <DetailItem label="Lessons Learned" value={currentTrade.lessonsLearned} />
-            </div>
-
-            {currentTrade.imageUrl && (
-              <div className="border-t border-gray-700 pt-6">
-                <h2 className="text-xl font-semibold text-gray-200 mb-3">Attached Image</h2>
-                <a href={currentTrade.imageUrl} target="_blank" rel="noopener noreferrer">
-                  <img
-                    src={currentTrade.imageUrl}
-                    alt={`Trade snapshot for ${currentTrade.symbol}`}
-                    className="max-w-full md:max-w-lg lg:max-w-xl h-auto rounded-md border border-gray-600 object-contain"
-                    onError={(e) => { e.currentTarget.style.display = 'none'; }}
-                  />
-                </a>
+        {/* Chart */}
+        <div className="p-6">
+          <div className="h-[600px] w-full rounded-xl overflow-hidden bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm">
+            {priceDataLoading ? (
+              <div className="flex items-center justify-center h-full w-full">
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-500 mx-auto mb-4"></div>
+                  <div className="text-gray-600 dark:text-gray-400">Loading chart data...</div>
+                </div>
+              </div>
+            ) : (
+              <div className="w-full h-full">
+                <TradeChart trade={currentTrade} priceData={priceData} />
               </div>
             )}
           </div>
         </div>
       </div>
+
+      {/* Trade Details Grid */}
+      <div className="grid grid-cols-1 xl:grid-cols-6 lg:grid-cols-4 gap-6">
+        {/* Trade Execution Details */}
+        <div className="xl:col-span-2 lg:col-span-2">
+          <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 shadow-lg p-6">
+            <div className="flex items-center space-x-3 mb-6">
+              <div className="p-3 bg-gradient-to-r from-blue-500/20 to-green-500/20 rounded-xl">
+                <FaExchangeAlt className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white">
+                  Trade Execution
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  Entry and exit details
+                </p>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="bg-white/60 dark:bg-gray-800/40 backdrop-blur-sm rounded-xl p-4 border border-gray-200/30 dark:border-gray-700/30 hover:bg-white/80 dark:hover:bg-gray-800/60 transition-all duration-200">
+                <div className="text-xs font-semibold text-green-600 dark:text-green-400 mb-1">ENTRY PRICE</div>
+                <div className="text-xl font-bold text-gray-900 dark:text-white">
+                  ${currentTrade.entryPrice?.toLocaleString() || 'N/A'}
+                </div>
+                <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                  {formatDateFns(new Date(currentTrade.entryDate), 'MMM dd, yyyy HH:mm')}
+                </div>
+              </div>
+              
+              {currentTrade.exitPrice && (
+                <div className="bg-white/60 dark:bg-gray-800/40 backdrop-blur-sm rounded-xl p-4 border border-gray-200/30 dark:border-gray-700/30 hover:bg-white/80 dark:hover:bg-gray-800/60 transition-all duration-200">
+                  <div className="text-xs font-semibold text-purple-600 dark:text-purple-400 mb-1">EXIT PRICE</div>
+                  <div className="text-xl font-bold text-gray-900 dark:text-white">
+                    ${currentTrade.exitPrice.toLocaleString()}
+                  </div>
+                  <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                    {currentTrade.exitDate ? formatDateFns(new Date(currentTrade.exitDate), 'MMM dd, yyyy HH:mm') : 'N/A'}
+                  </div>
+                </div>
+              )}
+              
+              <div className="bg-white/60 dark:bg-gray-800/40 backdrop-blur-sm rounded-xl p-4 border border-gray-200/30 dark:border-gray-700/30 hover:bg-white/80 dark:hover:bg-gray-800/60 transition-all duration-200">
+                <div className="text-xs font-semibold text-blue-600 dark:text-blue-400 mb-1">QUANTITY</div>
+                <div className="text-xl font-bold text-gray-900 dark:text-white">
+                  {currentTrade.quantity?.toLocaleString() || 'N/A'}
+                </div>
+                <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                  {currentTrade.assetType || 'Units'}
+                </div>
+              </div>
+              
+              <div className="bg-white/60 dark:bg-gray-800/40 backdrop-blur-sm rounded-xl p-4 border border-gray-200/30 dark:border-gray-700/30 hover:bg-white/80 dark:hover:bg-gray-800/60 transition-all duration-200">
+                <div className="text-xs font-semibold text-orange-600 dark:text-orange-400 mb-1">DURATION</div>
+                <div className="text-xl font-bold text-gray-900 dark:text-white">
+                  {tradeDuration || 'N/A'}
+                </div>
+                <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                  {currentTrade.status}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Risk Management */}
+        <div className="xl:col-span-2 lg:col-span-2">
+          <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 shadow-lg p-6">
+            <div className="flex items-center space-x-3 mb-6">
+              <div className="p-3 bg-gradient-to-r from-red-500/20 to-orange-500/20 rounded-xl">
+                <FaCalculator className="h-6 w-6 text-red-600 dark:text-red-400" />
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white">
+                  Risk Management
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  Stop loss and take profit analysis
+                </p>
+              </div>
+            </div>
+            
+            <div className="space-y-4">
+              {currentTrade.stopLoss && (
+                <div className="bg-white/60 dark:bg-gray-800/40 backdrop-blur-sm rounded-xl p-4 border border-gray-200/30 dark:border-gray-700/30 hover:bg-white/80 dark:hover:bg-gray-800/60 transition-all duration-200">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <div className="text-xs font-semibold text-red-600 dark:text-red-400 mb-1">STOP LOSS</div>
+                      <div className="text-lg font-bold text-gray-900 dark:text-white">
+                        ${currentTrade.stopLoss.toLocaleString()}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-xs text-gray-600 dark:text-gray-400">Risk Amount</div>
+                      <div className="text-sm font-semibold text-red-600 dark:text-red-400">
+                        ${currentTrade.entryPrice && currentTrade.quantity 
+                          ? (Math.abs(currentTrade.entryPrice - currentTrade.stopLoss) * currentTrade.quantity).toLocaleString(undefined, { maximumFractionDigits: 2 })
+                          : 'N/A'}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              {currentTrade.takeProfit && (
+                <div className="bg-white/60 dark:bg-gray-800/40 backdrop-blur-sm rounded-xl p-4 border border-gray-200/30 dark:border-gray-700/30 hover:bg-white/80 dark:hover:bg-gray-800/60 transition-all duration-200">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <div className="text-xs font-semibold text-green-600 dark:text-green-400 mb-1">TAKE PROFIT</div>
+                      <div className="text-lg font-bold text-gray-900 dark:text-white">
+                        ${currentTrade.takeProfit.toLocaleString()}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-xs text-gray-600 dark:text-gray-400">Reward Amount</div>
+                      <div className="text-sm font-semibold text-green-600 dark:text-green-400">
+                        ${currentTrade.entryPrice && currentTrade.quantity 
+                          ? (Math.abs(currentTrade.takeProfit - currentTrade.entryPrice) * currentTrade.quantity).toLocaleString(undefined, { maximumFractionDigits: 2 })
+                          : 'N/A'}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              {riskRewardRatio && (
+                <div className="bg-white/60 dark:bg-gray-800/40 backdrop-blur-sm rounded-xl p-4 border border-gray-200/30 dark:border-gray-700/30 hover:bg-white/80 dark:hover:bg-gray-800/60 transition-all duration-200">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <div className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 mb-1">RISK:REWARD</div>
+                      <div className="text-lg font-bold text-gray-900 dark:text-white">
+                        1:{riskRewardRatio.toFixed(2)}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className={`px-3 py-1.5 rounded-xl text-xs font-semibold ${
+                        riskRewardRatio >= 2 
+                          ? 'bg-green-100/80 text-green-700 dark:bg-green-900/30 dark:text-green-300'
+                          : riskRewardRatio >= 1
+                          ? 'bg-yellow-100/80 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300'
+                          : 'bg-red-100/80 text-red-700 dark:bg-red-900/30 dark:text-red-300'
+                      }`}>
+                        {riskRewardRatio >= 2 ? 'Excellent' : riskRewardRatio >= 1 ? 'Good' : 'Poor'}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Performance Metrics */}
+        <div className="xl:col-span-2">
+          <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 shadow-lg p-6">
+            <div className="flex items-center space-x-3 mb-6">
+              <div className="p-3 bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-xl">
+                <FaPercentage className="h-6 w-6 text-purple-600 dark:text-purple-400" />
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white">
+                  Performance
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  MFE, MAE, and R-Multiple analysis
+                </p>
+              </div>
+            </div>
+            
+            <div className="space-y-4">
+              <div className="bg-white/60 dark:bg-gray-800/40 backdrop-blur-sm rounded-xl p-4 border border-gray-200/30 dark:border-gray-700/30 hover:bg-white/80 dark:hover:bg-gray-800/60 transition-all duration-200">
+                <div className="text-xs font-semibold text-green-600 dark:text-green-400 mb-1">MFE (MAX FAVORABLE)</div>
+                <div className="text-xl font-bold text-green-600 dark:text-green-400">
+                  +${mfeMae.mfe.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </div>
+                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mt-2">
+                  <div 
+                    className="bg-green-500 h-2 rounded-full transition-all duration-500"
+                    style={{ width: `${Math.min((mfeMae.mfe / Math.abs(profitOrLoss || 1)) * 50, 100)}%` }}
+                  ></div>
+                </div>
+              </div>
+              
+              <div className="bg-white/60 dark:bg-gray-800/40 backdrop-blur-sm rounded-xl p-4 border border-gray-200/30 dark:border-gray-700/30 hover:bg-white/80 dark:hover:bg-gray-800/60 transition-all duration-200">
+                <div className="text-xs font-semibold text-red-600 dark:text-red-400 mb-1">MAE (MAX ADVERSE)</div>
+                <div className="text-xl font-bold text-red-600 dark:text-red-400">
+                  -${mfeMae.mae.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </div>
+                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mt-2">
+                  <div 
+                    className="bg-red-500 h-2 rounded-full transition-all duration-500"
+                    style={{ width: `${Math.min((mfeMae.mae / Math.abs(profitOrLoss || 1)) * 50, 100)}%` }}
+                  ></div>
+                </div>
+              </div>
+              
+              {currentTrade.rMultiple && (
+                <div className="bg-white/60 dark:bg-gray-800/40 backdrop-blur-sm rounded-xl p-4 border border-gray-200/30 dark:border-gray-700/30 hover:bg-white/80 dark:hover:bg-gray-800/60 transition-all duration-200">
+                  <div className="text-xs font-semibold text-purple-600 dark:text-purple-400 mb-1">R-MULTIPLE</div>
+                  <div className={`text-xl font-bold ${currentTrade.rMultiple >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                    {currentTrade.rMultiple.toFixed(2)}R
+                  </div>
+                  <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                    {currentTrade.rMultiple >= 1 ? 'Profitable' : 'Loss'}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Additional sections can be added here following the same pattern */}
+      
+      {/* Trading Notes */}
+      {currentTrade.notes && (
+        <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 shadow-lg p-6">
+          <div className="flex items-center space-x-3 mb-6">
+            <div className="p-3 bg-gradient-to-r from-slate-500/20 to-gray-500/20 rounded-xl">
+              <FaEdit className="h-6 w-6 text-slate-600 dark:text-slate-400" />
+            </div>
+            <div>
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white">
+                Trade Notes
+              </h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                Personal observations and analysis
+              </p>
+            </div>
+          </div>
+          <div className="bg-white/60 dark:bg-gray-800/40 backdrop-blur-sm rounded-xl p-6 border border-gray-200/30 dark:border-gray-700/30">
+            <div className="prose prose-sm dark:prose-invert max-w-none">
+              <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">
+                {currentTrade.notes}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }

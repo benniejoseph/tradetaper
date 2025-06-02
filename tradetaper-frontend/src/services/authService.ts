@@ -35,8 +35,10 @@ export const registerUser = (payload: RegisterPayload) => async (dispatch: AppDi
     console.log('Registration successful, please login:', response.data);
     // You might want a specific success action for registration that doesn't set isAuthenticated.
     return response.data; // Or handle navigation
-  } catch (error: any) {
-    const errorMessage = error.response?.data?.message || error.message || 'Registration failed';
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error 
+      ? error.message 
+      : (error as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Registration failed';
     dispatch(authFailure(errorMessage));
     throw new Error(errorMessage);
   }
@@ -48,8 +50,10 @@ export const loginUser = (payload: LoginPayload) => async (dispatch: AppDispatch
     const response = await apiClient.post<AuthResponse>('/auth/login', payload);
     dispatch(authSuccess({ token: response.data.accessToken, user: response.data.user }));
     return response.data;
-  } catch (error: any) {
-    const errorMessage = error.response?.data?.message || error.message || 'Login failed';
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error 
+      ? error.message 
+      : (error as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Login failed';
     dispatch(authFailure(errorMessage));
     throw new Error(errorMessage);
   }

@@ -13,7 +13,7 @@ export const store = configureStore({
   },
 });
 
-setupAuthInterceptors(store.getState, store.dispatch);
+setupAuthInterceptors(store.getState);
 
 export type RootState = ReturnType<typeof store.getState>;
 export type AppDispatch = typeof store.dispatch;
