@@ -2,7 +2,7 @@
 import axios from 'axios';
 import { RootState } from '@/store/store'; // Removed unused AppDispatch import
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3000/api/v1';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api/v1';
 
 // Default instance for public routes
 export const apiClient = axios.create({

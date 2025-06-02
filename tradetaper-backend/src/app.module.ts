@@ -2,7 +2,7 @@
 import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
@@ -12,6 +12,7 @@ import { SeedModule } from './seed/seed.module';
 import { FilesModule } from './files/files.module';
 import { TagsModule } from './tags/tags.module';
 import { WebSocketGatewayModule } from './websocket/websocket.module';
+import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 // import { ServeStaticModule } from '@nestjs/serve-static';
 // import { join } from 'path';
 
@@ -21,15 +22,41 @@ import { WebSocketGatewayModule } from './websocket/websocket.module';
       isGlobal: true,
       envFilePath: '.env',
     }),
-    TypeOrmModule.forRoot({
-      type: 'postgres',
-      host: process.env.DB_HOST || 'localhost',
-      port: parseInt(process.env.DB_PORT || '5435'),
-      username: process.env.DB_USERNAME || 'bennie',
-      password: process.env.DB_PASSWORD || 'tradetaperpass',
-      database: process.env.DB_DATABASE || 'tradetaper_dev',
-      entities: [__dirname + '/**/*.entity{.ts,.js}'],
-      synchronize: true,
+    TypeOrmModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => {
+        // Check if DATABASE_URL is provided (common in deployment platforms)
+        const databaseUrl = configService.get<string>('DATABASE_URL');
+        
+        if (databaseUrl) {
+          // Parse DATABASE_URL for platforms like Railway, Render, Heroku
+          return {
+            type: 'postgres',
+            url: databaseUrl,
+            entities: [__dirname + '/**/*.entity{.ts,.js}'],
+            synchronize: configService.get<string>('NODE_ENV') !== 'production',
+            ssl: configService.get<string>('NODE_ENV') === 'production' ? {
+              rejectUnauthorized: false
+            } : false,
+          };
+        }
+        
+        // Fallback to individual database variables
+        return {
+          type: 'postgres',
+          host: configService.get<string>('DB_HOST', 'localhost'),
+          port: configService.get<number>('DB_PORT', 5435),
+          username: configService.get<string>('DB_USERNAME', 'bennie'),
+          password: configService.get<string>('DB_PASSWORD', 'tradetaperpass'),
+          database: configService.get<string>('DB_DATABASE', 'tradetaper_dev'),
+          entities: [__dirname + '/**/*.entity{.ts,.js}'],
+          synchronize: configService.get<string>('NODE_ENV') !== 'production',
+          ssl: configService.get<string>('NODE_ENV') === 'production' ? {
+            rejectUnauthorized: false
+          } : false,
+        };
+      },
     }),
     // ServeStaticModule.forRoot({
     //   rootPath: join(__dirname, '..', 'public'),
@@ -43,6 +70,7 @@ import { WebSocketGatewayModule } from './websocket/websocket.module';
     SeedModule,
     FilesModule,
     WebSocketGatewayModule,
+    SubscriptionsModule,
     // ... other modules will go here
   ],
   controllers: [AppController],
