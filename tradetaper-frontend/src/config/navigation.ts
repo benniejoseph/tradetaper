@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 // src/config/navigation.ts
 import { IconType } from 'react-icons';
-import { FaTachometerAlt, FaListAlt, FaChartBar, FaPenSquare, FaCog, FaBook, FaCalendarAlt, FaChartPie, FaBalanceScale, FaInfoCircle, FaUsers } from 'react-icons/fa'; // Added FaUsers
+import { FaTachometerAlt, FaListAlt, FaChartBar, FaPenSquare, FaCog, FaBook, FaCalendarAlt, FaChartPie, FaBalanceScale, FaInfoCircle, FaUsers, FaCreditCard, FaDollarSign } from 'react-icons/fa'; // Added FaUsers
 
 export interface NavItem {
   label: string;
@@ -25,9 +25,15 @@ export const mainNavItems: NavItem[] = [
 export const userNavItems: NavItem[] = [
     // { label: 'Profile', href: '/profile', icon: FaUserCircle }, // Placeholder
     { label: 'Settings', href: '/settings', icon: FaCog }, // Uncommented and href updated
+    { label: 'Billing', href: '/billing', icon: FaCreditCard },
 ];
 
 export const settingsNavItems: NavItem[] = [
   { label: 'Manage Accounts', href: '/settings/accounts', icon: FaUsers },
   // Add other settings links here in the future
+];
+
+// Add billing and pricing to footer navigation
+export const footerNavItems: NavItem[] = [
+  { label: 'Pricing', href: '/pricing', icon: FaDollarSign },
 ];
