@@ -23,7 +23,7 @@ export async function fetchRealPriceData(
     const endDateStr = formatDateFns(toDateObj, 'yyyy-MM-dd');
 
     // ADD DETAILED LOGGING HERE
-   console.log('%c[FRONTE<ctrl61>ND - fetchRealPriceData] Sending request to backend with:', 'color: blue; font-weight: bold;', {
+   console.log('%c[FRONTEND - fetchRealPriceData] Sending request to backend with:', 'color: blue; font-weight: bold;', {
         rawSymbol: symbol,
         rawFromDateObj: fromDateObj,
         rawToDateObj: toDateObj,
@@ -40,7 +40,15 @@ export async function fetchRealPriceData(
             endDate: endDateStr,
             interval: interval,
         });
-        const apiUrl = `/market-data/historical/forex/${symbol.toUpperCase()}?${params.toString()}`; // Ensure uppercase for consistency
+        
+        // Split forex symbol (e.g., NZD/USD) into base and quote currencies
+        const symbolParts = symbol.toUpperCase().split('/');
+        if (symbolParts.length !== 2) {
+            throw new Error(`Invalid forex symbol format: ${symbol}. Expected format: BASE/QUOTE (e.g., NZD/USD)`);
+        }
+        
+        const [baseCurrency, quoteCurrency] = symbolParts;
+        const apiUrl = `/market-data/historical/forex/${baseCurrency}/${quoteCurrency}?${params.toString()}`;
         console.log('%c[FRONTEND - fetchRealPriceData] Request URL to backend:', 'color: blue;', apiUrl);
 
         const response = await authApiClient.get<ApiPriceDataPoint[]>(apiUrl);
@@ -71,5 +79,4 @@ export async function fetchRealPriceData(
         }
         throw error;
     }
-
 }

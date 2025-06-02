@@ -24,8 +24,10 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
     }
 
     const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3000';
+    // Convert HTTPS to WSS for WebSocket connections
+    const websocketUrl = backendUrl.replace(/^http/, 'ws');
     
-    socketRef.current = io(`${backendUrl}/trades`, {
+    socketRef.current = io(`${websocketUrl}/trades`, {
       withCredentials: true,
       transports: ['websocket', 'polling'],
       timeout: 20000,
