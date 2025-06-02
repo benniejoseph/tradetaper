@@ -11,6 +11,7 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { Request } from 'express';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { SubscriptionService, BillingInfo, SubscriptionUsage } from './services/subscription.service';
 import { CreateCheckoutSessionDto } from './dto/create-checkout-session.dto';
 import { CreatePortalSessionDto } from './dto/create-portal-session.dto';
@@ -24,6 +25,7 @@ interface AuthenticatedRequest extends Request {
 }
 
 @Controller('subscriptions')
+@UseGuards(JwtAuthGuard)
 export class SubscriptionsController {
   constructor(private readonly subscriptionService: SubscriptionService) {}
 
