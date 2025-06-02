@@ -11,8 +11,8 @@ import {
 import { User } from '../../users/entities/user.entity';
 
 @Entity('usage_tracking')
-@Index(['userId', 'period'], { unique: true })
-export class UsageTracking {
+@Index(['userId', 'periodStart'], { unique: true })
+export class Usage {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
@@ -23,23 +23,17 @@ export class UsageTracking {
   @JoinColumn({ name: 'userId' })
   user: User;
 
-  @Column()
-  period: string; // Format: YYYY-MM for monthly tracking
+  @Column({ type: 'int', default: 0 })
+  trades: number;
 
   @Column({ type: 'int', default: 0 })
-  tradesCount: number;
+  accounts: number;
 
-  @Column({ type: 'int', default: 0 })
-  accountsCount: number;
+  @Column({ type: 'timestamp' })
+  periodStart: Date;
 
-  @Column({ type: 'int', default: 0 })
-  apiCalls: number;
-
-  @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
-  lastTradeAt: Date;
-
-  @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
-  lastResetAt: Date;
+  @Column({ type: 'timestamp' })
+  periodEnd: Date;
 
   @CreateDateColumn()
   createdAt: Date;
