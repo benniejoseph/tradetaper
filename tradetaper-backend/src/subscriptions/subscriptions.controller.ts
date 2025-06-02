@@ -23,7 +23,7 @@ interface AuthenticatedRequest extends Request {
   };
 }
 
-@Controller('api/subscriptions')
+@Controller('subscriptions')
 export class SubscriptionsController {
   constructor(private readonly subscriptionService: SubscriptionService) {}
 
