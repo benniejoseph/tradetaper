@@ -13,7 +13,7 @@ import { Request } from 'express';
 import { StripeService } from './services/stripe.service';
 import { SubscriptionService } from './services/subscription.service';
 
-@Controller('api/webhooks')
+@Controller('webhooks')
 export class WebhooksController {
   private readonly logger = new Logger(WebhooksController.name);
 
