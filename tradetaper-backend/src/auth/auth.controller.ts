@@ -41,15 +41,17 @@ export class AuthController {
     return this.authService.login(user);
   }
 
-  @UseGuards(LocalAuthGuard) // This guard will use LocalStrategy
+  // @UseGuards(LocalAuthGuard) // This guard will use LocalStrategy - temporarily disabled
   @Post('login')
   @HttpCode(HttpStatus.OK)
   async login(
-    @Request() req,
-    @Body() loginUserDto: LoginUserDto /* DTO for swagger/validation */,
+    @Body() loginUserDto: LoginUserDto,
   ): Promise<{ accessToken: string; user: UserResponseDto }> {
-    // If LocalAuthGuard passes, req.user will be populated by LocalStrategy.validate()
-    return this.authService.login(req.user);
+    const user = await this.authService.validateUser(loginUserDto.email, loginUserDto.password);
+    if (!user) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
+    return this.authService.login(user);
   }
 
   @UseGuards(JwtAuthGuard) // This guard will use JwtStrategy
