@@ -10,6 +10,8 @@
   },
   "dependencies": {
     "@reduxjs/toolkit": "^2.8.2",
+    "@stripe/react-stripe-js": "^3.7.0",
+    "@stripe/stripe-js": "^7.3.1",
     "@tailwindcss/forms": "^0.5.10",
     "@types/react-calendar-heatmap": "^1.9.0",
     "@types/react-datepicker": "^7.0.0",
