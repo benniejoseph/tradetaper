@@ -4,8 +4,8 @@
 echo "🚀 Setting up TradeTaper Backend with Stripe Integration..."
 
 # Set environment variables
-export STRIPE_SECRET_KEY=sk_test_51HCsYUKCBJK5GhoVRw2fa2u59R2biPCde1MCP2IU8MSz92deeKHrD0FKAReXFeOpqWiN387NoeauU3pFCy3k18sS000AokIvgM
-export STRIPE_PUBLISHABLE_KEY=pk_test_51HCsYUKCBJK5GhoVW20cTDcwCJvPbGMSSU57Oo0Dfr1tVVmhXMmPJlqiFFaXW5qHjaXc7QcuIIlWzyqk8aHssZxh002dpfXexM
+export STRIPE_SECRET_KEY="sk_test_your_stripe_secret_key_here"
+export STRIPE_PUBLISHABLE_KEY="pk_test_your_stripe_publishable_key_here"
 export STRIPE_WEBHOOK_SECRET=whsec_test_secret
 export DB_HOST=localhost
 export DB_PORT=5435
