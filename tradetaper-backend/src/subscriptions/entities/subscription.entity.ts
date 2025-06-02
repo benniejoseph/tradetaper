@@ -61,6 +61,9 @@ export class Subscription {
   })
   tier: SubscriptionTier;
 
+  @Column({ default: 'free' })
+  plan: string;
+
   @Column({ type: 'decimal', precision: 10, scale: 2, default: 0 })
   price: number;
 
