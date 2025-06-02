@@ -11,7 +11,7 @@ async function testStripeIntegration() {
   try {
     // Initialize Stripe with test key (replace with your actual key)
     const stripe = new Stripe('sk_test_your_stripe_secret_key_here', {
-      apiVersion: '2024-06-20',
+      apiVersion: '2025-05-28.basil',
     });
 
     // Test 1: List payment methods (should return empty array for new account)
