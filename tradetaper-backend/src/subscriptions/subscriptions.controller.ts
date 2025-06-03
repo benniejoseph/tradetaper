@@ -2,22 +2,31 @@ import {
   Controller,
   Post,
   Get,
-  Put,
-  Delete,
   Body,
   Req,
   UseGuards,
   HttpCode,
   HttpStatus,
+  Param,
 } from '@nestjs/common';
 import { Request } from 'express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { SubscriptionService, BillingInfo, SubscriptionUsage } from './services/subscription.service';
-import { CreateCheckoutSessionDto } from './dto/create-checkout-session.dto';
-import { CreatePortalSessionDto } from './dto/create-portal-session.dto';
-import { UpdateSubscriptionDto } from './dto/update-subscription.dto';
+import {
+  SubscriptionService,
+  BillingInfo,
+  SubscriptionUsage,
+} from './services/subscription.service';
 
-// Assuming you have an auth guard - replace with your actual auth implementation
+export class CreateCheckoutSessionDto {
+  priceId: string;
+  successUrl: string;
+  cancelUrl: string;
+}
+
+export class CreatePortalSessionDto {
+  returnUrl: string;
+}
+
 interface AuthenticatedRequest extends Request {
   user: {
     id: string;
@@ -25,11 +34,16 @@ interface AuthenticatedRequest extends Request {
 }
 
 @Controller('subscriptions')
-@UseGuards(JwtAuthGuard)
 export class SubscriptionsController {
   constructor(private readonly subscriptionService: SubscriptionService) {}
 
+  @Get('pricing-plans')
+  getPricingPlans() {
+    return this.subscriptionService.getPricingPlans();
+  }
+
   @Post('create-checkout-session')
+  @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
   async createCheckoutSession(
     @Body() createCheckoutSessionDto: CreateCheckoutSessionDto,
@@ -37,11 +51,14 @@ export class SubscriptionsController {
   ) {
     return this.subscriptionService.createCheckoutSession(
       req.user.id,
-      createCheckoutSessionDto,
+      createCheckoutSessionDto.priceId,
+      createCheckoutSessionDto.successUrl,
+      createCheckoutSessionDto.cancelUrl,
     );
   }
 
   @Post('create-portal-session')
+  @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
   async createPortalSession(
     @Body() createPortalSessionDto: CreatePortalSessionDto,
@@ -49,45 +66,35 @@ export class SubscriptionsController {
   ) {
     return this.subscriptionService.createPortalSession(
       req.user.id,
-      createPortalSessionDto,
+      createPortalSessionDto.returnUrl,
     );
   }
 
   @Get('current')
-  async getCurrentSubscription(@Req() req: AuthenticatedRequest) {
+  @UseGuards(JwtAuthGuard)
+  async getCurrentSubscription(
+    @Req() req: AuthenticatedRequest,
+  ): Promise<BillingInfo> {
     return this.subscriptionService.getCurrentSubscription(req.user.id);
   }
 
-  @Get('billing-info')
-  async getBillingInfo(@Req() req: AuthenticatedRequest): Promise<BillingInfo> {
-    return this.subscriptionService.getBillingInfo(req.user.id);
-  }
-
   @Get('usage')
+  @UseGuards(JwtAuthGuard)
   async getUsage(@Req() req: AuthenticatedRequest): Promise<SubscriptionUsage> {
-    return this.subscriptionService.getUsage(req.user.id);
+    return this.subscriptionService.getCurrentUsage(req.user.id);
   }
 
-  @Post('cancel')
-  @HttpCode(HttpStatus.OK)
-  async cancelSubscription(@Req() req: AuthenticatedRequest) {
-    return this.subscriptionService.cancelSubscription(req.user.id);
-  }
-
-  @Post('reactivate')
-  @HttpCode(HttpStatus.OK)
-  async reactivateSubscription(@Req() req: AuthenticatedRequest) {
-    return this.subscriptionService.reactivateSubscription(req.user.id);
-  }
-
-  @Put('update')
-  async updateSubscription(
-    @Body() updateSubscriptionDto: UpdateSubscriptionDto,
+  @Get('feature-access/:feature')
+  @UseGuards(JwtAuthGuard)
+  async checkFeatureAccess(
     @Req() req: AuthenticatedRequest,
+    @Param('feature') feature: string,
   ) {
-    return this.subscriptionService.updateSubscription(
-      req.user.id,
-      updateSubscriptionDto,
-    );
+    return {
+      hasAccess: await this.subscriptionService.hasFeatureAccess(
+        req.user.id,
+        feature,
+      ),
+    };
   }
 } 
