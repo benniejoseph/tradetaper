@@ -10,17 +10,28 @@ import {
   Req,
 } from '@nestjs/common';
 import { Request } from 'express';
-import { StripeService } from './services/stripe.service';
+import { ConfigService } from '@nestjs/config';
+import Stripe from 'stripe';
 import { SubscriptionService } from './services/subscription.service';
 
 @Controller('webhooks')
 export class WebhooksController {
   private readonly logger = new Logger(WebhooksController.name);
+  private readonly stripe: Stripe;
 
   constructor(
-    private readonly stripeService: StripeService,
     private readonly subscriptionService: SubscriptionService,
-  ) {}
+    private readonly configService: ConfigService,
+  ) {
+    const stripeSecretKey = this.configService.get<string>('STRIPE_SECRET_KEY');
+    if (!stripeSecretKey) {
+      throw new Error('STRIPE_SECRET_KEY is required');
+    }
+    
+    this.stripe = new Stripe(stripeSecretKey, {
+      apiVersion: '2025-05-28.basil',
+    });
+  }
 
   @Post('stripe')
   @HttpCode(HttpStatus.OK)
@@ -34,7 +45,17 @@ export class WebhooksController {
       if (!request.rawBody) {
         throw new Error('No raw body found in request');
       }
-      event = this.stripeService.constructEvent(request.rawBody, signature);
+      
+      const webhookSecret = this.configService.get<string>('STRIPE_WEBHOOK_SECRET');
+      if (!webhookSecret) {
+        throw new Error('STRIPE_WEBHOOK_SECRET is required');
+      }
+      
+      event = this.stripe.webhooks.constructEvent(
+        request.rawBody,
+        signature,
+        webhookSecret,
+      );
     } catch (error) {
       this.logger.error(`Webhook signature verification failed: ${error.message}`);
       throw error;
@@ -43,58 +64,12 @@ export class WebhooksController {
     this.logger.log(`Processing Stripe event: ${event.type}`);
 
     try {
-      switch (event.type) {
-        case 'checkout.session.completed':
-          await this.handleCheckoutSessionCompleted(event.data.object);
-          break;
-
-        case 'customer.subscription.created':
-          await this.subscriptionService.handleSubscriptionCreated(event.data.object);
-          break;
-
-        case 'customer.subscription.updated':
-          await this.subscriptionService.handleSubscriptionUpdated(event.data.object);
-          break;
-
-        case 'customer.subscription.deleted':
-          await this.subscriptionService.handleSubscriptionDeleted(event.data.object);
-          break;
-
-        case 'invoice.payment_succeeded':
-          await this.handleInvoicePaymentSucceeded(event.data.object);
-          break;
-
-        case 'invoice.payment_failed':
-          await this.handleInvoicePaymentFailed(event.data.object);
-          break;
-
-        default:
-          this.logger.log(`Unhandled event type: ${event.type}`);
-      }
-
+      // Use the single webhook handler method
+      await this.subscriptionService.handleWebhookEvent(event);
       return { received: true };
     } catch (error) {
       this.logger.error(`Error processing webhook: ${error.message}`);
       throw error;
     }
-  }
-
-  private async handleCheckoutSessionCompleted(session: any): Promise<void> {
-    this.logger.log(`Checkout session completed: ${session.id}`);
-    
-    if (session.mode === 'subscription' && session.subscription) {
-      // Subscription will be handled by subscription.created webhook
-      this.logger.log(`Subscription created from checkout: ${session.subscription}`);
-    }
-  }
-
-  private async handleInvoicePaymentSucceeded(invoice: any): Promise<void> {
-    this.logger.log(`Invoice payment succeeded: ${invoice.id}`);
-    // Add any additional logic for successful payments
-  }
-
-  private async handleInvoicePaymentFailed(invoice: any): Promise<void> {
-    this.logger.log(`Invoice payment failed: ${invoice.id}`);
-    // Add logic for handling failed payments (notifications, etc.)
   }
 } 

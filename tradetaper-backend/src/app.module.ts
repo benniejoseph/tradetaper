@@ -13,6 +13,8 @@ import { FilesModule } from './files/files.module';
 import { TagsModule } from './tags/tags.module';
 import { WebSocketGatewayModule } from './websocket/websocket.module';
 import { SubscriptionsModule } from './subscriptions/subscriptions.module';
+import { ContentModule } from './content/content.module';
+import { Subscription } from './subscriptions/entities/subscription.entity';
 // import { ServeStaticModule } from '@nestjs/serve-static';
 // import { join } from 'path';
 
@@ -75,6 +77,8 @@ import { SubscriptionsModule } from './subscriptions/subscriptions.module';
     FilesModule,
     WebSocketGatewayModule,
     SubscriptionsModule,
+    ContentModule,
+    TypeOrmModule.forFeature([Subscription]),
     // ... other modules will go here
   ],
   controllers: [AppController],
