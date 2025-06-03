@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import MarkdownContent from '@/components/common/MarkdownContent';
-import { FaChartLine, FaMoneyBillWave, FaArrowLeft, FaCalendarAlt, FaCreditCard, FaUndo, FaHeadset } from 'react-icons/fa';
+import { FaChartLine, FaMoneyBillWave, FaArrowLeft, FaCalendarAlt, FaCreditCard, FaUndo, FaHeadset, FaPercentage, FaPhoneAlt } from 'react-icons/fa';
 
 export const metadata = {
   title: 'Cancellation & Refund Policy | TradeTaper',
@@ -9,190 +9,256 @@ export const metadata = {
 
 export default function CancellationRefundPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
-      {/* Header Section */}
-      <div className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-r from-purple-600/10 via-blue-600/10 to-green-600/10 backdrop-blur-3xl"></div>
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-16">
-          <div className="max-w-4xl mx-auto">
-            {/* Breadcrumb */}
-            <div className="flex items-center space-x-2 text-sm text-gray-500 dark:text-gray-400 mb-8">
-              <Link href="/" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
-                <FaChartLine className="inline-block mr-1" />
-                TradeTaper
-              </Link>
-              <span>/</span>
-              <Link href="/legal" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
-                Legal
-              </Link>
-              <span>/</span>
-              <span className="text-gray-900 dark:text-white">Cancellation & Refund Policy</span>
-            </div>
-
-            {/* Back Link */}
-            <Link 
-              href="/legal" 
-              className="inline-flex items-center text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 transition-colors mb-6 group"
-            >
-              <FaArrowLeft className="mr-2 group-hover:-translate-x-1 transition-transform" />
-              Back to Legal Documents
-            </Link>
-
-            <div className="text-center mb-8">
-              <div className="inline-flex items-center space-x-2 bg-purple-100/80 dark:bg-purple-900/30 backdrop-blur-sm px-4 py-2 rounded-full text-purple-700 dark:text-purple-300 text-sm font-medium mb-6">
-                <FaMoneyBillWave className="w-4 h-4" />
-                <span>Billing & Refunds</span>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50/30 to-violet-50/50 dark:from-gray-900 dark:via-slate-900 dark:to-gray-900">
+      {/* Professional Header with Navigation */}
+      <div className="relative">
+        <div className="absolute inset-0 bg-gradient-to-r from-purple-600/8 via-violet-600/8 to-indigo-600/8"></div>
+        <div className="relative border-b border-gray-200/60 dark:border-gray-700/60 backdrop-blur-sm bg-white/40 dark:bg-gray-900/40">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div className="flex items-center justify-between">
+              {/* Logo and Breadcrumb */}
+              <div className="flex items-center space-x-4">
+                <Link href="/" className="flex items-center space-x-2 text-gray-900 dark:text-white hover:text-purple-600 dark:hover:text-purple-400 transition-colors">
+                  <FaChartLine className="w-6 h-6 text-purple-600" />
+                  <span className="text-xl font-bold">TradeTaper</span>
+                </Link>
+                <div className="flex items-center space-x-2 text-sm text-gray-500 dark:text-gray-400">
+                  <span>/</span>
+                  <Link href="/legal" className="hover:text-purple-600 dark:hover:text-purple-400 transition-colors">Legal</Link>
+                  <span>/</span>
+                  <span className="text-gray-900 dark:text-white font-medium">Cancellation & Refund Policy</span>
+                </div>
               </div>
               
-              <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
-                Cancellation & Refund Policy
-              </h1>
-              
-              <div className="flex items-center justify-center space-x-2 text-gray-600 dark:text-gray-400">
-                <FaCalendarAlt className="w-4 h-4" />
-                <span>Effective Date: December 1, 2024</span>
-              </div>
+              {/* Back Navigation */}
+              <Link 
+                href="/legal" 
+                className="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm border border-gray-200/60 dark:border-gray-600/60 rounded-lg hover:bg-white/80 dark:hover:bg-gray-700/80 transition-all duration-200 group"
+              >
+                <FaArrowLeft className="mr-2 group-hover:-translate-x-0.5 transition-transform" />
+                Back to Legal
+              </Link>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Content Section */}
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pb-24">
-        <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 shadow-lg overflow-hidden">
+      {/* Hero Section */}
+      <div className="relative py-16">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          {/* Status Badge */}
+          <div className="inline-flex items-center space-x-2 bg-gradient-to-r from-purple-500/10 to-violet-500/10 backdrop-blur-sm px-6 py-3 rounded-full text-purple-700 dark:text-purple-300 text-sm font-medium mb-8 border border-purple-200/30 dark:border-purple-800/30">
+            <FaMoneyBillWave className="w-4 h-4" />
+            <span>Billing & Refunds</span>
+            <div className="w-2 h-2 bg-purple-500 rounded-full animate-pulse"></div>
+            <span className="text-purple-700 dark:text-purple-400">Fair Policy</span>
+          </div>
+          
+          <h1 className="text-5xl md:text-6xl font-bold bg-gradient-to-r from-gray-900 via-purple-800 to-violet-900 dark:from-white dark:via-purple-200 dark:to-violet-200 bg-clip-text text-transparent mb-6">
+            Cancellation & Refund Policy
+          </h1>
+          
+          <div className="flex items-center justify-center space-x-3 text-gray-600 dark:text-gray-400 mb-8">
+            <FaCalendarAlt className="w-4 h-4" />
+            <span className="font-medium">Effective Date: December 1, 2024</span>
+            <span>•</span>
+            <span>Version 2.0</span>
+          </div>
+
+          <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto leading-relaxed">
+            We believe in fair and transparent billing practices. Learn about our 30-day money-back guarantee 
+            and straightforward cancellation process designed with your needs in mind.
+          </p>
+        </div>
+      </div>
+
+      {/* Key Policy Highlights */}
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 mb-16">
+        <div className="grid gap-6 md:grid-cols-3">
+          <div className="bg-white/60 dark:bg-gray-900/60 backdrop-blur-xl rounded-2xl p-6 border border-gray-200/50 dark:border-gray-700/50 shadow-lg text-center hover:shadow-xl transition-all duration-300">
+            <div className="bg-gradient-to-r from-green-500 to-emerald-600 rounded-xl w-14 h-14 flex items-center justify-center mx-auto mb-4">
+              <FaPercentage className="text-white text-xl" />
+            </div>
+            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">30-Day Money Back</h3>
+            <p className="text-gray-600 dark:text-gray-400 text-sm">Full refund within 30 days, no questions asked</p>
+          </div>
+
+          <div className="bg-white/60 dark:bg-gray-900/60 backdrop-blur-xl rounded-2xl p-6 border border-gray-200/50 dark:border-gray-700/50 shadow-lg text-center hover:shadow-xl transition-all duration-300">
+            <div className="bg-gradient-to-r from-blue-500 to-cyan-600 rounded-xl w-14 h-14 flex items-center justify-center mx-auto mb-4">
+              <FaUndo className="text-white text-xl" />
+            </div>
+            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Easy Cancellation</h3>
+            <p className="text-gray-600 dark:text-gray-400 text-sm">Cancel anytime from your account settings</p>
+          </div>
+
+          <div className="bg-white/60 dark:bg-gray-900/60 backdrop-blur-xl rounded-2xl p-6 border border-gray-200/50 dark:border-gray-700/50 shadow-lg text-center hover:shadow-xl transition-all duration-300">
+            <div className="bg-gradient-to-r from-purple-500 to-violet-600 rounded-xl w-14 h-14 flex items-center justify-center mx-auto mb-4">
+              <FaHeadset className="text-white text-xl" />
+            </div>
+            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">24/7 Support</h3>
+            <p className="text-gray-600 dark:text-gray-400 text-sm">Dedicated billing support team available</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pb-24">
+        {/* Document Container */}
+        <div className="bg-white/70 dark:bg-gray-900/70 backdrop-blur-xl rounded-3xl border border-gray-200/50 dark:border-gray-700/50 shadow-2xl overflow-hidden">
+          {/* Document Header */}
+          <div className="bg-gradient-to-r from-purple-50/80 to-violet-50/80 dark:from-purple-900/20 dark:to-violet-900/20 px-8 py-6 border-b border-gray-200/50 dark:border-gray-700/50">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <div className="p-3 bg-gradient-to-r from-purple-500 to-violet-600 rounded-xl">
+                  <FaMoneyBillWave className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Billing & Refund Policy</h2>
+                  <p className="text-gray-600 dark:text-gray-400">Fair cancellation and refund terms</p>
+                </div>
+              </div>
+              <div className="text-right text-sm text-gray-500 dark:text-gray-400">
+                <div>30-Day Guarantee</div>
+                <div className="font-semibold text-green-600 dark:text-green-400">✓ Active</div>
+              </div>
+            </div>
+          </div>
+          
+          {/* Document Content */}
           <div className="px-8 py-12">
             <MarkdownContent 
               contentType="cancellation-refund"
-              className="prose prose-lg prose-purple dark:prose-invert max-w-none
+              className="prose prose-xl prose-gray dark:prose-invert max-w-none
                 prose-headings:text-gray-900 dark:prose-headings:text-white
                 prose-headings:font-bold prose-headings:tracking-tight
-                prose-h1:text-3xl prose-h1:mb-8
-                prose-h2:text-2xl prose-h2:mt-12 prose-h2:mb-6 
-                prose-h3:text-xl prose-h3:mt-8 prose-h3:mb-4
-                prose-p:text-gray-700 dark:prose-p:text-gray-300 prose-p:leading-relaxed prose-p:mb-6
-                prose-a:text-purple-600 dark:prose-a:text-purple-400 prose-a:no-underline hover:prose-a:underline
+                prose-h1:text-4xl prose-h1:mb-8 prose-h1:pb-4 prose-h1:border-b prose-h1:border-gray-200 dark:prose-h1:border-gray-700
+                prose-h2:text-3xl prose-h2:mt-16 prose-h2:mb-8 prose-h2:text-purple-900 dark:prose-h2:text-purple-100
+                prose-h3:text-2xl prose-h3:mt-12 prose-h3:mb-6 prose-h3:text-violet-800 dark:prose-h3:text-violet-200
+                prose-p:text-gray-700 dark:prose-p:text-gray-300 prose-p:leading-relaxed prose-p:mb-8 prose-p:text-lg
+                prose-a:text-purple-600 dark:prose-a:text-purple-400 prose-a:no-underline hover:prose-a:underline prose-a:font-medium
                 prose-strong:text-gray-900 dark:prose-strong:text-white prose-strong:font-semibold
-                prose-ul:my-6 prose-li:my-2 prose-li:text-gray-700 dark:prose-li:text-gray-300
-                prose-blockquote:border-l-4 prose-blockquote:border-purple-500 prose-blockquote:bg-purple-50/50 dark:prose-blockquote:bg-purple-900/20 prose-blockquote:pl-6 prose-blockquote:py-2 prose-blockquote:my-6"
+                prose-ul:my-8 prose-li:my-3 prose-li:text-gray-700 dark:prose-li:text-gray-300 prose-li:text-lg
+                prose-ol:my-8 prose-ol:text-lg
+                prose-blockquote:border-l-4 prose-blockquote:border-purple-500 prose-blockquote:bg-purple-50/50 dark:prose-blockquote:bg-purple-900/20 prose-blockquote:pl-8 prose-blockquote:py-6 prose-blockquote:my-8 prose-blockquote:rounded-r-lg
+                prose-code:text-purple-600 dark:prose-code:text-purple-400 prose-code:bg-purple-50 dark:prose-code:bg-purple-900/20 prose-code:px-2 prose-code:py-1 prose-code:rounded prose-code:font-medium"
             />
           </div>
         </div>
 
-        {/* Quick Actions */}
-        <div className="mt-12 grid gap-6 md:grid-cols-3 mb-12">
-          <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-xl p-6 border border-gray-200/50 dark:border-gray-700/50 shadow-lg text-center">
-            <div className="bg-gradient-to-r from-red-500 to-red-600 rounded-full w-12 h-12 flex items-center justify-center mx-auto mb-4">
-              <FaUndo className="text-white text-lg" />
-            </div>
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-              Cancel Subscription
-            </h3>
-            <p className="text-gray-600 dark:text-gray-400 text-sm mb-4">
-              Cancel your subscription anytime from your account settings.
-            </p>
-            <Link 
-              href="/billing" 
-              className="text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 transition-colors font-medium text-sm"
-            >
-              Manage Subscription →
-            </Link>
-          </div>
-
-          <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-xl p-6 border border-gray-200/50 dark:border-gray-700/50 shadow-lg text-center">
-            <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-full w-12 h-12 flex items-center justify-center mx-auto mb-4">
-              <FaCreditCard className="text-white text-lg" />
-            </div>
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-              Request Refund
-            </h3>
-            <p className="text-gray-600 dark:text-gray-400 text-sm mb-4">
-              Contact support to request a refund within our policy guidelines.
-            </p>
-            <a 
-              href="mailto:billing@tradetaper.com" 
-              className="text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 transition-colors font-medium text-sm"
-            >
-              Contact Billing →
-            </a>
-          </div>
-
-          <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-xl p-6 border border-gray-200/50 dark:border-gray-700/50 shadow-lg text-center">
-            <div className="bg-gradient-to-r from-green-500 to-green-600 rounded-full w-12 h-12 flex items-center justify-center mx-auto mb-4">
-              <FaHeadset className="text-white text-lg" />
-            </div>
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-              Need Help?
-            </h3>
-            <p className="text-gray-600 dark:text-gray-400 text-sm mb-4">
-              Our support team is here to help with any billing questions.
-            </p>
-            <Link 
-              href="/support" 
-              className="text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 transition-colors font-medium text-sm"
-            >
-              Get Support →
-            </Link>
-          </div>
-        </div>
-
-        {/* Action Section */}
-        <div className="grid gap-6 md:grid-cols-2">
-          {/* Billing Support */}
-          <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-xl p-6 border border-gray-200/50 dark:border-gray-700/50 shadow-lg">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-              Billing Support
-            </h3>
-            <p className="text-gray-600 dark:text-gray-400 mb-4">
-              Have questions about your billing, refunds, or subscription? We&apos;re here to help.
-            </p>
-            <div className="space-y-2 text-sm">
-              <p className="text-gray-700 dark:text-gray-300">
-                <strong>Billing Email:</strong> billing@tradetaper.com
-              </p>
-              <p className="text-gray-700 dark:text-gray-300">
-                <strong>Support Email:</strong> support@tradetaper.com
-              </p>
-              <p className="text-gray-700 dark:text-gray-300">
-                <strong>Response Time:</strong> Within 24 hours
-              </p>
+        {/* Quick Actions & Support Cards */}
+        <div className="mt-16 grid gap-8 md:grid-cols-2">
+          {/* Quick Actions Card */}
+          <div className="bg-white/70 dark:bg-gray-900/70 backdrop-blur-xl rounded-2xl p-8 border border-gray-200/50 dark:border-gray-700/50 shadow-xl hover:shadow-2xl transition-all duration-300">
+            <div className="flex items-start space-x-4">
+              <div className="p-4 bg-gradient-to-r from-blue-500 to-cyan-600 rounded-xl shrink-0">
+                <FaCreditCard className="w-6 h-6 text-white" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3">
+                  Quick Billing Actions
+                </h3>
+                <p className="text-gray-600 dark:text-gray-400 mb-6 leading-relaxed">
+                  Manage your subscription, request refunds, or get billing support with just a few clicks.
+                </p>
+                <div className="space-y-4">
+                  <Link 
+                    href="/billing" 
+                    className="flex items-center justify-between p-4 bg-blue-50/80 dark:bg-blue-900/20 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors group"
+                  >
+                    <div className="flex items-center space-x-3">
+                      <FaUndo className="text-blue-600 dark:text-blue-400 text-sm" />
+                      <span className="text-gray-900 dark:text-white font-medium">Cancel Subscription</span>
+                    </div>
+                    <span className="text-blue-600 dark:text-blue-400 group-hover:translate-x-1 transition-transform">→</span>
+                  </Link>
+                  <a 
+                    href="mailto:billing@tradetaper.com"
+                    className="flex items-center justify-between p-4 bg-green-50/80 dark:bg-green-900/20 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors group"
+                  >
+                    <div className="flex items-center space-x-3">
+                      <FaPercentage className="text-green-600 dark:text-green-400 text-sm" />
+                      <span className="text-gray-900 dark:text-white font-medium">Request Refund</span>
+                    </div>
+                    <span className="text-green-600 dark:text-green-400 group-hover:translate-x-1 transition-transform">→</span>
+                  </a>
+                  <Link 
+                    href="/pricing"
+                    className="flex items-center justify-between p-4 bg-purple-50/80 dark:bg-purple-900/20 rounded-lg hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-colors group"
+                  >
+                    <div className="flex items-center space-x-3">
+                      <FaMoneyBillWave className="text-purple-600 dark:text-purple-400 text-sm" />
+                      <span className="text-gray-900 dark:text-white font-medium">View Pricing Plans</span>
+                    </div>
+                    <span className="text-purple-600 dark:text-purple-400 group-hover:translate-x-1 transition-transform">→</span>
+                  </Link>
+                </div>
+              </div>
             </div>
           </div>
 
-          {/* Related Documents */}
-          <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-xl p-6 border border-gray-200/50 dark:border-gray-700/50 shadow-lg">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-              Related Documents
-            </h3>
-            <div className="space-y-3">
-              <Link 
-                href="/legal/terms" 
-                className="block text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 transition-colors"
-              >
-                Terms of Service →
-              </Link>
-              <Link 
-                href="/legal/privacy" 
-                className="block text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 transition-colors"
-              >
-                Privacy Policy →
-              </Link>
-              <Link 
-                href="/pricing" 
-                className="block text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 transition-colors"
-              >
-                View Pricing Plans →
-              </Link>
+          {/* Support & Contact Card */}
+          <div className="bg-white/70 dark:bg-gray-900/70 backdrop-blur-xl rounded-2xl p-8 border border-gray-200/50 dark:border-gray-700/50 shadow-xl hover:shadow-2xl transition-all duration-300">
+            <div className="flex items-start space-x-4">
+              <div className="p-4 bg-gradient-to-r from-purple-500 to-violet-600 rounded-xl shrink-0">
+                <FaHeadset className="w-6 h-6 text-white" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3">
+                  Billing Support Team
+                </h3>
+                <p className="text-gray-600 dark:text-gray-400 mb-6 leading-relaxed">
+                  Our dedicated billing team is here to help with any questions about subscriptions, 
+                  refunds, or payment issues.
+                </p>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between p-3 bg-gray-50/80 dark:bg-gray-800/80 rounded-lg">
+                    <span className="text-gray-700 dark:text-gray-300 font-medium">Email Response</span>
+                    <span className="text-purple-600 dark:text-purple-400 font-semibold">&lt; 4 hours</span>
+                  </div>
+                  <div className="flex items-center justify-between p-3 bg-gray-50/80 dark:bg-gray-800/80 rounded-lg">
+                    <span className="text-gray-700 dark:text-gray-300 font-medium">Phone Support</span>
+                    <span className="text-green-600 dark:text-green-400 font-semibold">Available</span>
+                  </div>
+                  <div className="flex items-center justify-between p-3 bg-gray-50/80 dark:bg-gray-800/80 rounded-lg">
+                    <span className="text-gray-700 dark:text-gray-300 font-medium">Live Chat</span>
+                    <span className="text-blue-600 dark:text-blue-400 font-semibold">9 AM - 6 PM EST</span>
+                  </div>
+                </div>
+                <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700 space-y-2">
+                  <a 
+                    href="mailto:billing@tradetaper.com"
+                    className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-purple-500 to-violet-600 text-white rounded-lg hover:from-purple-600 hover:to-violet-700 transition-all duration-200 font-medium text-sm mr-3"
+                  >
+                    Email Billing
+                  </a>
+                  <a 
+                    href="tel:+1-555-TRADETAPER"
+                    className="inline-flex items-center px-4 py-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-200 font-medium text-sm"
+                  >
+                    <FaPhoneAlt className="mr-2 text-xs" />
+                    Call Support
+                  </a>
+                </div>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Refund Notice */}
-        <div className="mt-8 text-center">
-          <div className="inline-block bg-purple-50/80 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg px-6 py-4">
-            <p className="text-sm text-purple-800 dark:text-purple-200">
-              <strong>Fair Refund Policy:</strong> We offer a 30-day money-back guarantee for all new subscriptions. 
-              No questions asked if you&apos;re not satisfied with TradeTaper.
+        {/* Money-Back Guarantee */}
+        <div className="mt-16 text-center">
+          <div className="inline-block bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border border-green-200/60 dark:border-green-800/60 rounded-2xl px-8 py-6 max-w-4xl">
+            <div className="flex items-center justify-center space-x-3 mb-4">
+              <FaPercentage className="w-5 h-5 text-green-600 dark:text-green-400" />
+              <span className="text-lg font-bold text-green-900 dark:text-green-100">30-Day Money-Back Guarantee</span>
+            </div>
+            <p className="text-green-800 dark:text-green-200 leading-relaxed">
+              We&apos;re confident you&apos;ll love TradeTaper. If you&apos;re not completely satisfied within the first 30 days, 
+              we&apos;ll refund your subscription in full—no questions asked. Your satisfaction is our priority, and we stand behind 
+              our commitment to providing exceptional trading journal software.
             </p>
+            <div className="mt-4 text-sm text-green-700 dark:text-green-300">
+              Questions about our refund policy? Contact our billing team at billing@tradetaper.com or call us directly.
+            </div>
           </div>
         </div>
       </div>
