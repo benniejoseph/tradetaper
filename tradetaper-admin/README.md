@@ -4,40 +4,50 @@ A comprehensive, modern admin dashboard for the TradeTaper trading platform. Bui
 
 ## ✨ Features
 
-### 📊 Analytics & Insights
-- **Real-time metrics** with live updates every 30 seconds
-- **Interactive charts** using Recharts for revenue, user activity, and trading data
-- **System health monitoring** with uptime, performance, and API metrics
-- **Geographic analytics** with world map visualization
-- **Top trading pairs** analysis and volume tracking
+### 🏠 **Main Dashboard**
+- **Real-time Analytics**: Live data from TradeTaper backend API hosted on Railway
+- **Key Metrics**: Total users, active users, trades, revenue with growth indicators
+- **Interactive Charts**: Revenue trends, user activity, trade volume using Recharts
+- **System Health**: Uptime monitoring, response times, CPU/memory usage
+- **Top Trading Pairs**: Most popular currency pairs with trade counts and volumes
+- **Recent Activity Feed**: Live user activities with auto-refresh every 5 seconds
 
-### 🌍 Geographic Intelligence
-- **World map** showing global user distribution
-- **Country-wise breakdown** of users, trades, and revenue
-- **Regional performance** analysis with detailed tables
-- **IP-based location tracking** for user activities
+### 👥 **User Management**
+- **User Overview**: Total users, active users, new signups, churn analytics
+- **User Search & Filtering**: Real-time search by name, email with pagination
+- **User Profiles**: Detailed user information with join dates and status
+- **User Status Tracking**: New users, active users, churned users identification
+- **Export Functionality**: Download user data for external analysis
 
-### ⚡ Real-time Features
-- **Live activity feed** with user actions and system events
-- **Real-time notifications** for critical alerts
-- **Auto-refreshing data** with configurable intervals
-- **Live user tracking** with location and activity status
+### 💹 **Trade Management**
+- **Trade Analytics**: Total trades, volume, P&L, win rate statistics
+- **Live Trade Monitoring**: Real-time trade table with status tracking
+- **Trade Filtering**: Filter by status (open/closed), search by pair or trader
+- **Trading Pairs Analysis**: Top performing currency pairs with volume metrics
+- **P&L Tracking**: Profit/loss calculations with color-coded indicators
+- **Trade Details**: Entry/exit prices, amounts, timestamps, trader information
 
-### 🎨 Modern UI/UX
-- **Dark theme** optimized for admin work
-- **Responsive design** for all devices
-- **Beautiful animations** with Framer Motion
-- **Glassmorphism effects** and modern styling
-- **Collapsible sidebar** with tooltips
-- **Loading states** and skeleton screens
+### 💰 **Subscription Analytics**
+- **Revenue Metrics**: Total revenue, ARPU, churn rate, growth trends
+- **Plan Distribution**: Visual breakdown of Free, Pro, Premium subscribers
+- **Revenue Trends**: Monthly revenue charts with subscriber growth
+- **Plan Comparison**: Detailed analysis of each subscription tier
+- **Churn Analysis**: User retention and churn rate monitoring
+- **Revenue Forecasting**: Growth projections and trend analysis
 
-### 🔧 Technical Features
-- **TypeScript** for type safety
-- **React Query** for efficient data fetching
-- **Tailwind CSS** for responsive styling
-- **ESLint** and **Prettier** for code quality
-- **Next.js 15** with App Router
-- **Vercel deployment** ready
+### 🌍 **Geographic Analytics**
+- **Global User Distribution**: Interactive world map with user locations
+- **Country Breakdown**: Users, trades, revenue by country
+- **Regional Performance**: Top performing markets and regions
+- **Geographic Insights**: Market penetration analysis by location
+- **Export Geographic Data**: Download country-wise performance reports
+
+### 📊 **Live Activity Monitor**
+- **Real-time Activity Feed**: Live user actions and system events
+- **Activity Analytics**: Event types breakdown with statistics
+- **Geographic Activity**: Real-time activity by location
+- **Event Filtering**: Filter by activity type, user, time range
+- **Performance Metrics**: Response times and system health indicators
 
 ## 🛠️ Tech Stack
 
@@ -77,7 +87,7 @@ A comprehensive, modern admin dashboard for the TradeTaper trading platform. Bui
    
    Configure the following variables:
    ```env
-   NEXT_PUBLIC_API_URL=https://your-backend-api.com/api/v1
+   NEXT_PUBLIC_API_URL=https://tradetaper-backend-production.up.railway.app/api/v1
    NEXT_PUBLIC_APP_NAME=TradeTaper Admin Dashboard
    NEXT_PUBLIC_APP_VERSION=1.0.0
    ```
