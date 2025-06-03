@@ -7,7 +7,7 @@ import {
   Subscription,
   SubscriptionStatus,
 } from '../entities/subscription.entity';
-import { Usage } from '../entities/usage.entity';
+// import { Usage } from '../entities/usage.entity';
 
 export interface PricingPlan {
   id: string;
@@ -52,17 +52,15 @@ export class SubscriptionService {
   constructor(
     @InjectRepository(Subscription)
     private subscriptionRepository: Repository<Subscription>,
-    @InjectRepository(Usage)
-    private usageRepository: Repository<Usage>,
     private configService: ConfigService,
   ) {
     const stripeSecretKey = this.configService.get<string>('STRIPE_SECRET_KEY');
     if (!stripeSecretKey) {
       throw new Error('STRIPE_SECRET_KEY is required');
     }
-    
+
     this.stripe = new Stripe(stripeSecretKey, {
-      apiVersion: '2024-12-18.acacia',
+      apiVersion: '2025-05-28.basil',
     });
 
     // Initialize pricing plans with environment variables
@@ -77,19 +75,22 @@ export class SubscriptionService {
           '3 trading accounts',
           'Basic analytics',
           'Trade performance tracking',
-          'Email support'
+          'Email support',
         ],
         priceMonthly: 999, // $9.99
         priceYearly: 9999, // $99.99
-        stripePriceMonthlyId: this.configService.get<string>('STRIPE_PRICE_STARTER_MONTHLY') || '',
-        stripePriceYearlyId: this.configService.get<string>('STRIPE_PRICE_STARTER_YEARLY') || '',
-        stripeProductId: this.configService.get<string>('STRIPE_PRODUCT_STARTER') || '',
+        stripePriceMonthlyId:
+          this.configService.get<string>('STRIPE_PRICE_STARTER_MONTHLY') || '',
+        stripePriceYearlyId:
+          this.configService.get<string>('STRIPE_PRICE_STARTER_YEARLY') || '',
+        stripeProductId:
+          this.configService.get<string>('STRIPE_PRODUCT_STARTER') || '',
         limits: {
           trades: 100,
           accounts: 3,
           marketData: false,
-          analytics: 'basic'
-        }
+          analytics: 'basic',
+        },
       },
       {
         id: 'professional',
@@ -103,25 +104,31 @@ export class SubscriptionService {
           'Real-time market data',
           'ICT concepts tracking',
           'Export capabilities',
-          'Priority support'
+          'Priority support',
         ],
         priceMonthly: 2999, // $29.99
         priceYearly: 29999, // $299.99
-        stripePriceMonthlyId: this.configService.get<string>('STRIPE_PRICE_PROFESSIONAL_MONTHLY') || '',
-        stripePriceYearlyId: this.configService.get<string>('STRIPE_PRICE_PROFESSIONAL_YEARLY') || '',
-        stripeProductId: this.configService.get<string>('STRIPE_PRODUCT_PROFESSIONAL') || '',
+        stripePriceMonthlyId:
+          this.configService.get<string>('STRIPE_PRICE_PROFESSIONAL_MONTHLY') ||
+          '',
+        stripePriceYearlyId:
+          this.configService.get<string>('STRIPE_PRICE_PROFESSIONAL_YEARLY') ||
+          '',
+        stripeProductId:
+          this.configService.get<string>('STRIPE_PRODUCT_PROFESSIONAL') || '',
         limits: {
           trades: 'unlimited',
           accounts: 'unlimited' as any,
           marketData: true,
-          analytics: 'advanced'
-        }
+          analytics: 'advanced',
+        },
       },
       {
         id: 'enterprise',
         name: 'enterprise',
         displayName: 'TradeTaper Enterprise',
-        description: 'Premium solution for professional traders and institutions',
+        description:
+          'Premium solution for professional traders and institutions',
         features: [
           'Everything in Professional',
           'White-label options',
@@ -129,20 +136,25 @@ export class SubscriptionService {
           'Custom integrations',
           'Dedicated account manager',
           'SLA guarantees',
-          '24/7 priority support'
+          '24/7 priority support',
         ],
         priceMonthly: 9999, // $99.99
         priceYearly: 99999, // $999.99
-        stripePriceMonthlyId: this.configService.get<string>('STRIPE_PRICE_ENTERPRISE_MONTHLY') || '',
-        stripePriceYearlyId: this.configService.get<string>('STRIPE_PRICE_ENTERPRISE_YEARLY') || '',
-        stripeProductId: this.configService.get<string>('STRIPE_PRODUCT_ENTERPRISE') || '',
+        stripePriceMonthlyId:
+          this.configService.get<string>('STRIPE_PRICE_ENTERPRISE_MONTHLY') ||
+          '',
+        stripePriceYearlyId:
+          this.configService.get<string>('STRIPE_PRICE_ENTERPRISE_YEARLY') ||
+          '',
+        stripeProductId:
+          this.configService.get<string>('STRIPE_PRODUCT_ENTERPRISE') || '',
         limits: {
           trades: 'unlimited',
           accounts: 'unlimited' as any,
           marketData: true,
-          analytics: 'premium'
-        }
-      }
+          analytics: 'premium',
+        },
+      },
     ];
   }
 
@@ -153,7 +165,11 @@ export class SubscriptionService {
 
   // Get a specific pricing plan by ID
   getPricingPlan(planId: string): PricingPlan | null {
-    return this.pricingPlans.find(plan => plan.id === planId || plan.name === planId) || null;
+    return (
+      this.pricingPlans.find(
+        (plan) => plan.id === planId || plan.name === planId,
+      ) || null
+    );
   }
 
   // Get or create subscription for user
@@ -198,37 +214,12 @@ export class SubscriptionService {
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
 
-    const usage = await this.usageRepository.findOne({
-      where: {
-        userId,
-        periodStart: startOfMonth,
-      },
-    });
-
-    if (!usage) {
-      // Create usage record for current month
-      const newUsage = this.usageRepository.create({
-        userId,
-        trades: 0,
-        accounts: 0,
-        periodStart: startOfMonth,
-        periodEnd: endOfMonth,
-      });
-      await this.usageRepository.save(newUsage);
-      
-      return {
-        trades: 0,
-        accounts: 0,
-        periodStart: startOfMonth,
-        periodEnd: endOfMonth,
-      };
-    }
-
+    // Return default usage during migration
     return {
-      trades: usage.trades,
-      accounts: usage.accounts,
-      periodStart: usage.periodStart,
-      periodEnd: usage.periodEnd,
+      trades: 0,
+      accounts: 0,
+      periodStart: startOfMonth,
+      periodEnd: endOfMonth,
     };
   }
 
@@ -240,24 +231,45 @@ export class SubscriptionService {
     cancelUrl: string,
   ): Promise<{ sessionId: string; url: string }> {
     try {
+      this.logger.log(
+        `🔍 Creating checkout session for user ${userId}, price: ${priceId}`,
+      );
+
       // Get user subscription to get customer ID or create new customer
       const subscription = await this.getOrCreateSubscription(userId);
-      
+      this.logger.log(`✅ Retrieved subscription for user ${userId}`);
+
       let customerId = subscription.stripeCustomerId;
-      
+
       if (!customerId) {
-        // Create Stripe customer
-        const customer = await this.stripe.customers.create({
-          metadata: { userId },
-        });
-        customerId = customer.id;
-        
-        // Update subscription with customer ID
-        subscription.stripeCustomerId = customerId;
-        await this.subscriptionRepository.save(subscription);
+        this.logger.log(`🆕 Creating new Stripe customer for user ${userId}`);
+        try {
+          // Create Stripe customer
+          const customer = await this.stripe.customers.create({
+            metadata: { userId },
+          });
+          customerId = customer.id;
+          this.logger.log(`✅ Created Stripe customer: ${customerId}`);
+
+          // Update subscription with customer ID
+          subscription.stripeCustomerId = customerId;
+          await this.subscriptionRepository.save(subscription);
+          this.logger.log(`✅ Updated subscription with customer ID`);
+        } catch (customerError) {
+          this.logger.error(`❌ Failed to create Stripe customer:`, {
+            error: customerError.message,
+            code: customerError.code,
+            type: customerError.type,
+            userId,
+          });
+          throw customerError;
+        }
+      } else {
+        this.logger.log(`✅ Using existing Stripe customer: ${customerId}`);
       }
 
-      const session = await this.stripe.checkout.sessions.create({
+      this.logger.log(`🛒 Creating Stripe checkout session...`);
+      const sessionParams: Stripe.Checkout.SessionCreateParams = {
         customer: customerId,
         payment_method_types: ['card'],
         line_items: [
@@ -273,16 +285,35 @@ export class SubscriptionService {
         metadata: {
           userId,
         },
-      });
+      };
+
+      this.logger.log(
+        `📋 Session params:`,
+        JSON.stringify(sessionParams, null, 2),
+      );
+
+      const session = await this.stripe.checkout.sessions.create(sessionParams);
+
+      this.logger.log(`✅ Checkout session created: ${session.id}`);
 
       return {
         sessionId: session.id,
         url: session.url || '',
       };
     } catch (error) {
-      this.logger.error('Failed to create checkout session:', error);
+      this.logger.error(`❌ Stripe checkout session creation failed:`, {
+        error: error.message,
+        code: error.code,
+        type: error.type,
+        requestId: error.requestId,
+        statusCode: error.statusCode,
+        userId,
+        priceId,
+        stack: error.stack,
+      });
+
       throw new HttpException(
-        'Failed to create checkout session',
+        `Failed to create checkout session: ${error.message}`,
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -295,7 +326,7 @@ export class SubscriptionService {
   ): Promise<{ url: string }> {
     try {
       const subscription = await this.getOrCreateSubscription(userId);
-      
+
       if (!subscription.stripeCustomerId) {
         throw new HttpException(
           'No active subscription found',
@@ -326,16 +357,16 @@ export class SubscriptionService {
       switch (event.type) {
         case 'customer.subscription.created':
         case 'customer.subscription.updated':
-          await this.handleSubscriptionUpdate(event.data.object as Stripe.Subscription);
+          await this.handleSubscriptionUpdate(event.data.object);
           break;
         case 'customer.subscription.deleted':
-          await this.handleSubscriptionCancellation(event.data.object as Stripe.Subscription);
+          await this.handleSubscriptionCancellation(event.data.object);
           break;
         case 'invoice.payment_succeeded':
-          await this.handlePaymentSucceeded(event.data.object as Stripe.Invoice);
+          await this.handlePaymentSucceeded(event.data.object);
           break;
         case 'invoice.payment_failed':
-          await this.handlePaymentFailed(event.data.object as Stripe.Invoice);
+          await this.handlePaymentFailed(event.data.object);
           break;
         default:
           this.logger.log(`Unhandled webhook event type: ${event.type}`);
@@ -346,16 +377,18 @@ export class SubscriptionService {
     }
   }
 
-  private async handleSubscriptionUpdate(stripeSubscription: Stripe.Subscription): Promise<void> {
+  private async handleSubscriptionUpdate(
+    stripeSubscription: Stripe.Subscription,
+  ): Promise<void> {
     const userId = stripeSubscription.metadata?.userId;
-    
+
     if (!userId) {
       this.logger.warn('No userId found in subscription metadata');
       return;
     }
 
     const subscription = await this.getOrCreateSubscription(userId);
-    
+
     // Determine plan from price ID
     const priceId = stripeSubscription.items.data[0]?.price?.id;
     const plan = this.getPlanFromPriceId(priceId);
@@ -364,17 +397,25 @@ export class SubscriptionService {
     subscription.stripeCustomerId = stripeSubscription.customer as string;
     subscription.plan = plan;
     subscription.status = stripeSubscription.status as SubscriptionStatus;
-    subscription.currentPeriodStart = new Date(stripeSubscription.current_period_start * 1000);
-    subscription.currentPeriodEnd = new Date(stripeSubscription.current_period_end * 1000);
-    subscription.cancelAtPeriodEnd = stripeSubscription.cancel_at_period_end;
+    subscription.currentPeriodStart = new Date(
+      (stripeSubscription as any).current_period_start * 1000,
+    );
+    subscription.currentPeriodEnd = new Date(
+      (stripeSubscription as any).current_period_end * 1000,
+    );
+    subscription.cancelAtPeriodEnd = (
+      stripeSubscription as any
+    ).cancel_at_period_end;
 
     await this.subscriptionRepository.save(subscription);
     this.logger.log(`Updated subscription for user ${userId}: ${plan}`);
   }
 
-  private async handleSubscriptionCancellation(stripeSubscription: Stripe.Subscription): Promise<void> {
+  private async handleSubscriptionCancellation(
+    stripeSubscription: Stripe.Subscription,
+  ): Promise<void> {
     const userId = stripeSubscription.metadata?.userId;
-    
+
     if (!userId) {
       this.logger.warn('No userId found in subscription metadata');
       return;
@@ -401,7 +442,10 @@ export class SubscriptionService {
 
   private getPlanFromPriceId(priceId: string): string {
     for (const plan of this.pricingPlans) {
-      if (plan.stripePriceMonthlyId === priceId || plan.stripePriceYearlyId === priceId) {
+      if (
+        plan.stripePriceMonthlyId === priceId ||
+        plan.stripePriceYearlyId === priceId
+      ) {
         return plan.name;
       }
     }
@@ -412,7 +456,7 @@ export class SubscriptionService {
   async hasFeatureAccess(userId: string, feature: string): Promise<boolean> {
     const subscription = await this.getOrCreateSubscription(userId);
     const plan = this.getPricingPlan(subscription.plan);
-    
+
     if (!plan) return false;
 
     switch (feature) {
@@ -421,7 +465,10 @@ export class SubscriptionService {
       case 'unlimited_trades':
         return plan.limits.trades === 'unlimited';
       case 'advanced_analytics':
-        return plan.limits.analytics === 'advanced' || plan.limits.analytics === 'premium';
+        return (
+          plan.limits.analytics === 'advanced' ||
+          plan.limits.analytics === 'premium'
+        );
       case 'premium_analytics':
         return plan.limits.analytics === 'premium';
       default:
@@ -429,35 +476,73 @@ export class SubscriptionService {
     }
   }
 
-  // Increment usage counter
-  async incrementUsage(userId: string, type: 'trades' | 'accounts'): Promise<void> {
-    const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-
-    let usage = await this.usageRepository.findOne({
-      where: {
-        userId,
-        periodStart: startOfMonth,
-      },
-    });
-
-    if (!usage) {
-      const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-      usage = this.usageRepository.create({
-        userId,
-        trades: 0,
-        accounts: 0,
-        periodStart: startOfMonth,
-        periodEnd: endOfMonth,
-      });
-    }
-
-    if (type === 'trades') {
-      usage.trades++;
-    } else if (type === 'accounts') {
-      usage.accounts++;
-    }
-
-    await this.usageRepository.save(usage);
+  // Increment usage counter (simplified for now)
+  async incrementUsage(
+    userId: string,
+    type: 'trades' | 'accounts',
+  ): Promise<void> {
+    // TODO: Implement usage tracking after usage_tracking table is stable
+    this.logger.log(`Usage increment for user ${userId}, type: ${type}`);
   }
-} 
+
+  // Create Stripe payment link (alternative to checkout sessions)
+  async createPaymentLink(
+    userId: string,
+    priceId: string,
+  ): Promise<{ paymentLinkId: string; url: string }> {
+    try {
+      this.logger.log(`🔗 Creating payment link for user ${userId}, price: ${priceId}`);
+      
+      // Get or create subscription to ensure customer exists
+      const subscription = await this.getOrCreateSubscription(userId);
+      
+      let customerId = subscription.stripeCustomerId;
+      
+      if (!customerId) {
+        this.logger.log(`🆕 Creating new Stripe customer for payment link`);
+        const customer = await this.stripe.customers.create({
+          metadata: { userId },
+        });
+        customerId = customer.id;
+        
+        subscription.stripeCustomerId = customerId;
+        await this.subscriptionRepository.save(subscription);
+        this.logger.log(`✅ Created customer for payment link: ${customerId}`);
+      }
+
+      // Create payment link
+      const paymentLink = await this.stripe.paymentLinks.create({
+        line_items: [
+          {
+            price: priceId,
+            quantity: 1,
+          },
+        ],
+        metadata: {
+          userId,
+          customerId,
+        },
+      });
+
+      this.logger.log(`✅ Payment link created: ${paymentLink.id}`);
+
+      return {
+        paymentLinkId: paymentLink.id,
+        url: paymentLink.url,
+      };
+    } catch (error) {
+      this.logger.error(`❌ Payment link creation failed:`, {
+        error: error.message,
+        code: error.code,
+        type: error.type,
+        userId,
+        priceId,
+      });
+      
+      throw new HttpException(
+        `Failed to create payment link: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+}
