@@ -1,12 +1,12 @@
 #!/bin/bash
 
-# TradeTaper Backend - Stripe Setup Script
-echo "🚀 Setting up TradeTaper Backend with Stripe Integration..."
+# Setup script for Stripe integration in TradeTaper backend
+echo "🔧 Setting up Stripe integration..."
 
-# Set environment variables
-export STRIPE_SECRET_KEY="sk_test_your_stripe_secret_key_here"
+# Export test environment variables (replace with your actual keys)
+export STRIPE_SECRET_KEY="sk_test_REPLACE_WITH_YOUR_ACTUAL_STRIPE_TEST_KEY"
 export STRIPE_PUBLISHABLE_KEY="pk_test_your_stripe_publishable_key_here"
-export STRIPE_WEBHOOK_SECRET=whsec_test_secret
+export STRIPE_WEBHOOK_SECRET="whsec_REPLACE_WITH_YOUR_WEBHOOK_SECRET"
 export DB_HOST=localhost
 export DB_PORT=5435
 export DB_USERNAME=bennie
@@ -16,11 +16,14 @@ export JWT_SECRET=your-jwt-secret-here
 export NODE_ENV=development
 export PORT=3000
 
-echo "✅ Environment variables set"
+echo "✅ Stripe environment variables set"
+echo "📋 Testing Stripe connection..."
 
-# Test Stripe integration
-echo "🧪 Testing Stripe integration..."
+# Run the Stripe integration test
 npx ts-node src/subscriptions/test-stripe-integration.ts
+
+echo "🎉 Stripe setup complete!"
+echo "💡 Remember to update your .env file with actual Stripe keys"
 
 echo ""
 echo "📋 Next Steps:"

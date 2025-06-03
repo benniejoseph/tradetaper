@@ -1,15 +1,14 @@
-# Stripe Setup Guide
+# Stripe Setup Guide for TradeTaper Backend
 
-## Current Issue: Indian Account Restrictions
+## Environment Variables
 
-The current Stripe account is restricted due to Indian regulations requiring business registration for international payments.
-
-## Environment Variables Required
+Add these to your `.env` file:
 
 ```bash
 # Stripe Configuration
-STRIPE_SECRET_KEY=sk_test_your_stripe_secret_key
-STRIPE_WEBHOOK_SECRET=whsec_your_webhook_secret
+STRIPE_SECRET_KEY=sk_test_REPLACE_WITH_YOUR_ACTUAL_STRIPE_TEST_KEY
+STRIPE_PUBLISHABLE_KEY=pk_test_REPLACE_WITH_YOUR_PUBLISHABLE_KEY
+STRIPE_WEBHOOK_SECRET=whsec_REPLACE_WITH_YOUR_WEBHOOK_SECRET
 
 # Stripe Product IDs (create these in your Stripe dashboard)
 STRIPE_PRODUCT_STARTER=prod_starter_product_id
@@ -24,6 +23,37 @@ STRIPE_PRICE_PROFESSIONAL_YEARLY=price_professional_yearly_id
 STRIPE_PRICE_ENTERPRISE_MONTHLY=price_enterprise_monthly_id
 STRIPE_PRICE_ENTERPRISE_YEARLY=price_enterprise_yearly_id
 ```
+
+## Get Your Stripe Keys
+
+1. Go to [Stripe Dashboard](https://dashboard.stripe.com)
+2. Navigate to **Developers > API keys**
+3. Copy your **Publishable key** and **Secret key**
+4. For webhooks, go to **Developers > Webhooks**
+
+## Test Integration
+
+Run the test script:
+
+```bash
+npm run test:stripe
+```
+
+Or manually:
+
+```bash
+npx ts-node src/subscriptions/test-stripe-integration.ts
+```
+
+## Important Notes
+
+- Always use test keys in development
+- Never commit real keys to version control
+- Use environment variables for all sensitive data
+
+## Current Issue: Indian Account Restrictions
+
+The current Stripe account is restricted due to Indian regulations requiring business registration for international payments.
 
 ## New Account Setup Steps
 
