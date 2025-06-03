@@ -82,7 +82,6 @@ async function debugGCPProduction() {
     try {
       await file.save(testContent, {
         metadata: { contentType: 'text/plain' },
-        predefinedAcl: 'publicRead',
       });
       
       console.log(`✅ Test file uploaded successfully: gs://${bucketName}/test/${testFileName}`);

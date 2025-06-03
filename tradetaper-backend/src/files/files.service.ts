@@ -111,8 +111,6 @@ export class FilesService implements OnModuleInit {
     try {
       await gcsFile.save(fileBuffer, {
         metadata: { contentType: mimetype },
-        // Make files publicly readable
-        predefinedAcl: 'publicRead',
       });
 
       this.logger.log(
@@ -123,39 +121,9 @@ export class FilesService implements OnModuleInit {
 
       return { url: publicUrl, gcsPath: gcsFilePath };
     } catch (error) {
-      this.logger.error(
-        `Failed to upload file to GCS for user ${userId} at ${gcsFilePath}: ${error.message}`,
-        error.stack,
-      );
+      this.logger.error('Error uploading file to GCS:', error.message);
       throw new HttpException(
         'Failed to upload file to GCS.',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
-  }
-
-  // Optional: Method to delete files
-  async deleteFileFromGCS(gcsPath: string): Promise<void> {
-    if (!this.bucket) {
-      throw new HttpException(
-        'File service is not configured properly.',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
-
-    try {
-      const file = this.bucket.file(gcsPath);
-      await file.delete();
-      this.logger.log(
-        `File deleted successfully from GCS: gs://${this.bucketName}/${gcsPath}`,
-      );
-    } catch (error) {
-      this.logger.error(
-        `Failed to delete file from GCS: ${gcsPath}`,
-        error.message,
-      );
-      throw new HttpException(
-        'Failed to delete file from GCS.',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
