@@ -1,4 +1,99 @@
-# Stripe Integration Guide
+# Stripe Integration for TradeTaper Frontend
+
+## Environment Variables Setup
+
+Create a `.env.local` file in the frontend directory with:
+
+```bash
+# Stripe Configuration
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_REPLACE_WITH_YOUR_PUBLISHABLE_KEY
+STRIPE_SECRET_KEY=sk_test_REPLACE_WITH_YOUR_ACTUAL_STRIPE_TEST_KEY
+
+# API Configuration  
+NEXT_PUBLIC_API_URL=https://your-backend-url.railway.app/api/v1
+```
+
+## Frontend Components
+
+### 1. Pricing Page Integration
+
+The pricing components automatically handle Stripe checkout:
+
+```tsx
+import { PricingCard } from '@/components/pricing/PricingCard';
+
+// Pricing cards will automatically redirect to Stripe checkout
+<PricingCard 
+  plan="pro"
+  onSubscribe={handleStripeCheckout} // This triggers Stripe checkout
+/>
+```
+
+### 2. Subscription Management
+
+```tsx
+import { useSubscription } from '@/hooks/useSubscription';
+
+function SubscriptionPage() {
+  const { subscription, loading, error } = useSubscription();
+  
+  return (
+    <div>
+      {subscription ? (
+        <SubscriptionDetails subscription={subscription} />
+      ) : (
+        <UpgradePrompt />
+      )}
+    </div>
+  );
+}
+```
+
+## Backend Integration Points
+
+### 1. Checkout Session Creation
+
+```typescript
+// Frontend calls this endpoint to create checkout session
+POST /api/v1/subscriptions/create-checkout-session
+{
+  "priceId": "price_xxxxx",
+  "userId": "user_xxxxx"
+}
+```
+
+### 2. Webhook Handling
+
+The backend handles these Stripe events:
+- `checkout.session.completed` - Creates subscription
+- `customer.subscription.updated` - Updates subscription status
+- `customer.subscription.deleted` - Handles cancellations
+
+### 3. Subscription Status Check
+
+```typescript
+// Check current subscription status
+GET /api/v1/subscriptions/status
+Authorization: Bearer {token}
+```
+
+## Testing
+
+1. Use Stripe test cards:
+   - Success: `4242424242424242`
+   - Declined: `4000000000000002`
+
+2. Test webhooks locally with Stripe CLI:
+```bash
+stripe listen --forward-to localhost:3000/api/v1/webhooks/stripe
+```
+
+## Important Notes
+
+- All test keys should start with `sk_test_` or `pk_test_`
+- Never commit real API keys to version control
+- Use environment variables for all sensitive configuration
+- Test thoroughly with Stripe test data before going live
 
 ## Overview
 This document outlines the complete Stripe integration for TradeTaper's subscription system.

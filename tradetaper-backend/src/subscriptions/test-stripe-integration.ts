@@ -5,58 +5,65 @@
 
 import Stripe from 'stripe';
 
+// Initialize Stripe with your test secret key
+// Make sure to set your actual test key in environment variables
+const stripe = new Stripe('sk_test_REPLACE_WITH_YOUR_ACTUAL_STRIPE_TEST_KEY', {
+  apiVersion: '2025-05-28.basil',
+});
+
 async function testStripeIntegration() {
-  console.log('🔧 Testing Stripe Integration...');
-  
   try {
-    // Initialize Stripe with test key (replace with your actual key)
-    const stripe = new Stripe('sk_test_your_stripe_secret_key_here', {
-      apiVersion: '2025-05-28.basil',
+    console.log('🧪 Testing Stripe Integration...');
+
+    // Test 1: Create a customer
+    console.log('\n1. Creating test customer...');
+    const customer = await stripe.customers.create({
+      email: 'test@tradetaper.com',
+      name: 'Test User',
     });
+    console.log('✅ Customer created:', customer.id);
 
-    // Test 1: List payment methods (should return empty array for new account)
-    console.log('📋 Testing payment methods...');
-    const paymentMethods = await stripe.paymentMethods.list({ limit: 1 });
-    console.log('✅ Payment methods API working:', paymentMethods.data.length, 'methods found');
+    // Test 2: Create a price
+    console.log('\n2. Creating test price...');
+    const price = await stripe.prices.create({
+      currency: 'usd',
+      unit_amount: 997, // $9.97
+      recurring: {
+        interval: 'month',
+      },
+      product_data: {
+        name: 'TradeTaper Pro Monthly',
+      },
+    });
+    console.log('✅ Price created:', price.id);
 
-    // Test 2: List products
-    console.log('📦 Testing products...');
-    const products = await stripe.products.list({ limit: 5 });
-    console.log('✅ Products API working:', products.data.length, 'products found');
-    
-    if (products.data.length > 0) {
-      console.log('📦 Available products:');
-      products.data.forEach(product => {
-        console.log(`  - ${product.name} (${product.id})`);
-      });
-    }
+    // Test 3: Create a test subscription (payment method required for real subscription)
+    console.log('\n3. Testing checkout session...');
+    const session = await stripe.checkout.sessions.create({
+      customer: customer.id,
+      payment_method_types: ['card'],
+      line_items: [
+        {
+          price: price.id,
+          quantity: 1,
+        },
+      ],
+      mode: 'subscription',
+      success_url: 'https://yourdomain.com/success',
+      cancel_url: 'https://yourdomain.com/cancel',
+    });
+    console.log('✅ Checkout session created:', session.id);
 
-    // Test 3: List prices
-    console.log('💰 Testing prices...');
-    const prices = await stripe.prices.list({ limit: 10 });
-    console.log('✅ Prices API working:', prices.data.length, 'prices found');
-    
-    if (prices.data.length > 0) {
-      console.log('💰 Available prices:');
-      prices.data.forEach(price => {
-        const amount = price.unit_amount ? `$${price.unit_amount / 100}` : 'Free';
-        const interval = price.recurring ? `/${price.recurring.interval}` : '';
-        console.log(`  - ${amount}${interval} (${price.id})`);
-      });
-    }
+    // Cleanup
+    console.log('\n4. Cleaning up test data...');
+    await stripe.customers.del(customer.id);
+    console.log('✅ Test customer deleted');
 
-    console.log('\n🎉 Stripe integration test completed successfully!');
-    console.log('🔗 Stripe Dashboard: https://dashboard.stripe.com/test/dashboard');
-    
+    console.log(
+      '\n🎉 All tests passed! Stripe integration is working correctly.',
+    );
   } catch (error) {
-    console.error('❌ Stripe integration test failed:', error.message);
-    
-    if (error.message.includes('Invalid API Key')) {
-      console.log('\n💡 Tips:');
-      console.log('1. Make sure you\'re using a valid Stripe test key');
-      console.log('2. Get your keys from: https://dashboard.stripe.com/test/apikeys');
-      console.log('3. Update the key in your .env file or this test file');
-    }
+    console.error('❌ Error testing Stripe integration:', error);
   }
 }
 
