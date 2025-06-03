@@ -22,7 +22,7 @@ export interface PricingPlan {
   stripeProductId: string;
   limits: {
     trades: number | 'unlimited';
-    accounts: number;
+    accounts: number | 'unlimited';
     marketData: boolean;
     analytics: 'basic' | 'advanced' | 'premium';
   };
@@ -118,7 +118,7 @@ export class SubscriptionService {
           this.configService.get<string>('STRIPE_PRODUCT_PROFESSIONAL') || '',
         limits: {
           trades: 'unlimited',
-          accounts: 'unlimited' as any,
+          accounts: 'unlimited',
           marketData: true,
           analytics: 'advanced',
         },
@@ -150,7 +150,7 @@ export class SubscriptionService {
           this.configService.get<string>('STRIPE_PRODUCT_ENTERPRISE') || '',
         limits: {
           trades: 'unlimited',
-          accounts: 'unlimited' as any,
+          accounts: 'unlimited',
           marketData: true,
           analytics: 'premium',
         },
@@ -474,6 +474,39 @@ export class SubscriptionService {
       default:
         return false;
     }
+  }
+
+  // Check if user can perform an action based on usage limits
+  async checkUsageLimit(userId: string, feature: 'trades' | 'accounts'): Promise<boolean> {
+    const subscription = await this.getOrCreateSubscription(userId);
+    const plan = this.getPricingPlan(subscription.plan);
+
+    if (!plan) return false;
+
+    // Check if the plan has unlimited access for this feature
+    if (feature === 'trades' && plan.limits.trades === 'unlimited') {
+      return true;
+    }
+    
+    if (feature === 'accounts' && plan.limits.accounts === 'unlimited') {
+      return true;
+    }
+
+    // For now, return true during development/migration phase
+    // TODO: Implement proper usage tracking once usage_tracking table is stable
+    const usage = await this.getCurrentUsage(userId);
+    
+    if (feature === 'trades') {
+      const limit = typeof plan.limits.trades === 'number' ? plan.limits.trades : Infinity;
+      return usage.trades < limit;
+    }
+    
+    if (feature === 'accounts') {
+      const limit = typeof plan.limits.accounts === 'number' ? plan.limits.accounts : Infinity;
+      return usage.accounts < limit;
+    }
+
+    return true;
   }
 
   // Increment usage counter (simplified for now)

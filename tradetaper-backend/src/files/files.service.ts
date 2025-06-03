@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 // src/files/files.service.ts
 import {
   Injectable,
@@ -21,20 +22,45 @@ export class FilesService implements OnModuleInit {
   private gcsPublicUrlPrefix: string; // Will be initialized in onModuleInit
 
   constructor(private readonly configService: ConfigService) {
-    // Initialize storage client here, keyFile path is read from config
-    // If keyFilePath is undefined, Storage client attempts to use Application Default Credentials
+    // Initialize storage client with support for both development and production configurations
     const keyFilePath = this.configService.get<string>(
       'GOOGLE_APPLICATION_CREDENTIALS',
     );
-    if (!keyFilePath && !process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+    const credentialsJson = this.configService.get<string>(
+      'GOOGLE_APPLICATION_CREDENTIALS_JSON',
+    );
+
+    let storageConfig: any = {};
+
+    if (credentialsJson) {
+      // Production: Use JSON string from environment variable
+      try {
+        const credentials = JSON.parse(credentialsJson);
+        storageConfig = { credentials };
+        this.logger.log(
+          'Using GCP credentials from GOOGLE_APPLICATION_CREDENTIALS_JSON (production mode)',
+        );
+      } catch (error) {
+        this.logger.error(
+          'Failed to parse GOOGLE_APPLICATION_CREDENTIALS_JSON:',
+          error.message,
+        );
+        throw new Error('Invalid GOOGLE_APPLICATION_CREDENTIALS_JSON format');
+      }
+    } else if (keyFilePath) {
+      // Development: Use file path
+      storageConfig = { keyFilename: keyFilePath };
+      this.logger.log(
+        `Using GCP credentials from file: ${keyFilePath} (development mode)`,
+      );
+    } else {
+      // Fallback to Application Default Credentials
       this.logger.warn(
-        'GOOGLE_APPLICATION_CREDENTIALS path not found in .env. ' +
-          'GCS client will attempt to use Application Default Credentials if available in the environment.',
+        'No GCP credentials configured. Attempting to use Application Default Credentials.',
       );
     }
-    this.storage = new Storage({
-      keyFilename: keyFilePath,
-    });
+
+    this.storage = new Storage(storageConfig);
   }
 
   onModuleInit() {
@@ -59,6 +85,7 @@ export class FilesService implements OnModuleInit {
     this.logger.log(
       `FilesService initialized. Target GCS Bucket: ${this.bucketName}`,
     );
+    this.logger.log(`Public URL prefix: ${this.gcsPublicUrlPrefix}`);
   }
 
   async uploadFileToGCS(
@@ -68,7 +95,6 @@ export class FilesService implements OnModuleInit {
     userId: string,
   ): Promise<{ url: string; gcsPath: string }> {
     if (!this.bucket) {
-      // Check if bucket was successfully initialized
       this.logger.error('GCS bucket is not initialized. Cannot upload file.');
       throw new HttpException(
         'File upload service is not configured properly (bucket missing).',
@@ -85,29 +111,15 @@ export class FilesService implements OnModuleInit {
     try {
       await gcsFile.save(fileBuffer, {
         metadata: { contentType: mimetype },
-        // To make objects public on upload (alternative to bucket IAM policy):
-        // predefinedAcl: 'publicRead', // For GCS
-        // Or, after saving, call: await gcsFile.makePublic();
+        // Make files publicly readable
+        predefinedAcl: 'publicRead',
       });
 
       this.logger.log(
         `File uploaded successfully to GCS: gs://${this.bucketName}/${gcsFilePath}`,
       );
 
-      // Construct public URL (ensure object is public or use signed URLs)
-      // const publicUrl = gcsFile.publicUrl(); // This requires the object to be public
-      // Using the constructed prefix for potentially more control or if bucket isn't globally public but objects are
       const publicUrl = `${this.gcsPublicUrlPrefix}/${gcsFilePath}`;
-
-      // If you chose to make files public explicitly after upload:
-      // try {
-      //   await gcsFile.makePublic();
-      //   this.logger.log(`Made file public: ${gcsFile.name}`);
-      // } catch (publicError) {
-      //   this.logger.error(`Could not make file public gs://${this.bucketName}/${gcsFilePath}: ${publicError.message}`);
-      //   // Decide if this is a fatal error for the upload. For now, we'll assume the URL might still work
-      //   // if bucket has general public read access for the path.
-      // }
 
       return { url: publicUrl, gcsPath: gcsFilePath };
     } catch (error) {
@@ -117,6 +129,33 @@ export class FilesService implements OnModuleInit {
       );
       throw new HttpException(
         'Failed to upload file to GCS.',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  // Optional: Method to delete files
+  async deleteFileFromGCS(gcsPath: string): Promise<void> {
+    if (!this.bucket) {
+      throw new HttpException(
+        'File service is not configured properly.',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+
+    try {
+      const file = this.bucket.file(gcsPath);
+      await file.delete();
+      this.logger.log(
+        `File deleted successfully from GCS: gs://${this.bucketName}/${gcsPath}`,
+      );
+    } catch (error) {
+      this.logger.error(
+        `Failed to delete file from GCS: ${gcsPath}`,
+        error.message,
+      );
+      throw new HttpException(
+        'Failed to delete file from GCS.',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
