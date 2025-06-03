@@ -14,6 +14,7 @@ import { TagsModule } from './tags/tags.module';
 import { WebSocketGatewayModule } from './websocket/websocket.module';
 import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 import { ContentModule } from './content/content.module';
+import { AdminModule } from './admin/admin.module';
 import { Subscription } from './subscriptions/entities/subscription.entity';
 // import { ServeStaticModule } from '@nestjs/serve-static';
 // import { join } from 'path';
@@ -78,6 +79,7 @@ import { Subscription } from './subscriptions/entities/subscription.entity';
     WebSocketGatewayModule,
     SubscriptionsModule,
     ContentModule,
+    AdminModule,
     TypeOrmModule.forFeature([Subscription]),
     // ... other modules will go here
   ],

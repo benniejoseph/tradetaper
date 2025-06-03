@@ -26,104 +26,46 @@ import {
   XCircle
 } from 'lucide-react';
 import { formatNumber, timeAgo } from '@/lib/utils';
-
-// Mock data for demo purposes
-const mockAnalytics = {
-  totalUsers: 15234,
-  activeUsers: 8765,
-  totalTrades: 45678,
-  totalRevenue: 234567.89,
-  revenueGrowth: 12.5,
-  userGrowth: 8.3,
-  tradeGrowth: 15.7,
-  activeGrowth: 6.2,
-  averageTradesPerUser: 3.2,
-  topTradingPairs: [
-    { pair: 'EUR/USD', count: 12456, volume: 45678900 },
-    { pair: 'GBP/USD', count: 9876, volume: 34567800 },
-    { pair: 'USD/JPY', count: 8765, volume: 28456700 },
-    { pair: 'AUD/USD', count: 6543, volume: 19876500 },
-  ],
-  subscriptionDistribution: [
-    { plan: 'Free', count: 8500, revenue: 0 },
-    { plan: 'Pro', count: 4500, revenue: 135000 },
-    { plan: 'Premium', count: 2234, revenue: 99567 },
-  ],
-  dailyStats: Array.from({ length: 30 }, (_, i) => ({
-    date: new Date(Date.now() - (29 - i) * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-    users: Math.floor(Math.random() * 500) + 200,
-    trades: Math.floor(Math.random() * 1000) + 500,
-    revenue: Math.floor(Math.random() * 5000) + 2000,
-    signups: Math.floor(Math.random() * 50) + 10,
-  })),
-  geographicData: [
-    { country: 'United States', users: 5432, trades: 12456, revenue: 78900, coordinates: [-95.7129, 37.0902] },
-    { country: 'United Kingdom', users: 3456, trades: 8765, revenue: 56700, coordinates: [-3.4360, 55.3781] },
-    { country: 'Germany', users: 2345, trades: 6789, revenue: 45600, coordinates: [10.4515, 51.1657] },
-    { country: 'Canada', users: 1876, trades: 4567, revenue: 34500, coordinates: [-106.3468, 56.1304] },
-    { country: 'Australia', users: 1543, trades: 3456, revenue: 23400, coordinates: [133.7751, -25.2744] },
-  ],
-};
-
-const mockSystemHealth = {
-  status: 'healthy' as const,
-  uptime: 99.99,
-  responseTime: 145,
-  memoryUsage: 68,
-  cpuUsage: 23,
-  diskUsage: 45,
-  databaseConnections: 12,
-  errors24h: 3,
-  apiCalls24h: 45678,
-  cacheHitRate: 94.5,
-};
-
-const mockActivityFeed = [
-  {
-    id: '1',
-    userId: 'user-1',
-    userName: 'John Doe',
-    type: 'trade_created' as const,
-    description: 'Created a new EUR/USD trade',
-    timestamp: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
-    metadata: { pair: 'EUR/USD', amount: 1000 },
-    ipAddress: '192.168.1.1',
-    location: 'New York, US',
-  },
-  {
-    id: '2',
-    userId: 'user-2',
-    userName: 'Jane Smith',
-    type: 'subscription_changed' as const,
-    description: 'Upgraded to Premium plan',
-    timestamp: new Date(Date.now() - 15 * 60 * 1000).toISOString(),
-    metadata: { from: 'Pro', to: 'Premium' },
-    ipAddress: '10.0.0.1',
-    location: 'London, UK',
-  },
-  // Add more mock activities...
-];
+import { adminApi } from '@/lib/api';
 
 export default function Dashboard() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [timeRange, setTimeRange] = useState<'7d' | '30d' | '90d' | '1y'>('30d');
 
-  // In a real app, these would fetch from the API
+  // Fetch real data from API
   const { data: analytics, isLoading: analyticsLoading } = useQuery({
-    queryKey: ['analytics', timeRange],
-    queryFn: () => Promise.resolve(mockAnalytics),
+    queryKey: ['dashboard-stats'],
+    queryFn: adminApi.getDashboardStats,
     refetchInterval: 30000, // Refetch every 30 seconds
+  });
+
+  const { data: userAnalytics } = useQuery({
+    queryKey: ['user-analytics', timeRange],
+    queryFn: () => adminApi.getUserAnalytics(timeRange),
+    refetchInterval: 30000,
+  });
+
+  const { data: revenueAnalytics } = useQuery({
+    queryKey: ['revenue-analytics', timeRange],
+    queryFn: () => adminApi.getRevenueAnalytics(timeRange),
+    refetchInterval: 30000,
+  });
+
+  const { data: tradeAnalytics } = useQuery({
+    queryKey: ['trade-analytics', timeRange],
+    queryFn: () => adminApi.getTradeAnalytics(timeRange),
+    refetchInterval: 30000,
   });
 
   const { data: systemHealth } = useQuery({
     queryKey: ['system-health'],
-    queryFn: () => Promise.resolve(mockSystemHealth),
+    queryFn: adminApi.getSystemHealth,
     refetchInterval: 10000, // Refetch every 10 seconds
   });
 
   const { data: activityFeed } = useQuery({
     queryKey: ['activity-feed'],
-    queryFn: () => Promise.resolve(mockActivityFeed),
+    queryFn: () => adminApi.getActivityFeed(5), // Get 5 recent activities
     refetchInterval: 5000, // Refetch every 5 seconds
   });
 
@@ -208,12 +150,12 @@ export default function Dashboard() {
                 <h3 className="text-lg font-semibold text-white">Revenue Trend</h3>
                 <div className="flex items-center space-x-2 text-green-400">
                   <TrendingUp className="w-4 h-4" />
-                  <span className="text-sm">+12.5%</span>
+                  <span className="text-sm">+{analytics?.revenueGrowth || 0}%</span>
                 </div>
               </div>
               
               <ResponsiveContainer width="100%" height={300}>
-                <AreaChart data={analytics?.dailyStats || []}>
+                <AreaChart data={revenueAnalytics?.dailyStats || []}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                   <XAxis dataKey="date" stroke="#9CA3AF" fontSize={12} />
                   <YAxis stroke="#9CA3AF" fontSize={12} />
@@ -258,7 +200,7 @@ export default function Dashboard() {
               </div>
               
               <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={analytics?.dailyStats || []}>
+                <LineChart data={userAnalytics?.dailyStats || []}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                   <XAxis dataKey="date" stroke="#9CA3AF" fontSize={12} />
                   <YAxis stroke="#9CA3AF" fontSize={12} />
@@ -347,7 +289,7 @@ export default function Dashboard() {
               <h3 className="text-lg font-semibold text-white mb-6">Top Trading Pairs</h3>
               
               <div className="space-y-4">
-                {analytics?.topTradingPairs.slice(0, 4).map((pair) => (
+                {tradeAnalytics?.topTradingPairs?.slice(0, 4).map((pair) => (
                   <div key={pair.pair} className="flex items-center justify-between">
                     <div className="flex items-center space-x-3">
                       <div className="w-2 h-2 rounded-full bg-blue-500"></div>
@@ -358,7 +300,11 @@ export default function Dashboard() {
                       <div className="text-xs text-gray-400">${formatNumber(pair.volume / 1000000)}M</div>
                     </div>
                   </div>
-                ))}
+                )) || (
+                  <div className="text-center py-4 text-gray-400">
+                    No trading data available
+                  </div>
+                )}
               </div>
             </motion.div>
 
@@ -385,7 +331,11 @@ export default function Dashboard() {
                       </p>
                     </div>
                   </div>
-                ))}
+                )) || (
+                  <div className="text-center py-4 text-gray-400">
+                    No recent activity
+                  </div>
+                )}
               </div>
             </motion.div>
           </div>
