@@ -1,0 +1,222 @@
+import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository, Between } from 'typeorm';
+import { User } from '../users/entities/user.entity';
+import { Trade } from '../trades/entities/trade.entity';
+
+interface DailyStatItem {
+  date: string;
+  users: number;
+  signups: number;
+}
+
+interface RevenueStatItem {
+  date: string;
+  revenue: number;
+}
+
+@Injectable()
+export class AdminService {
+  constructor(
+    @InjectRepository(User)
+    private usersRepository: Repository<User>,
+    @InjectRepository(Trade)
+    private tradesRepository: Repository<Trade>,
+  ) {}
+
+  async getDashboardStats() {
+    const [totalUsers, totalTrades] = await Promise.all([
+      this.usersRepository.count(),
+      this.tradesRepository.count(),
+    ]);
+
+    // Get active users (created within last 30 days as proxy for active)
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const activeUsers = await this.usersRepository.count({
+      where: {
+        createdAt: Between(thirtyDaysAgo, new Date()),
+      },
+    });
+
+    // Calculate growth metrics (mock for now - would need historical data)
+    const userGrowth = 8.3;
+    const tradeGrowth = 15.7;
+    const activeGrowth = 6.2;
+    const revenueGrowth = 12.5;
+
+    // Mock revenue calculation (would integrate with subscription service)
+    const totalRevenue = totalUsers * 29.99; // Average subscription price
+
+    return {
+      totalUsers,
+      activeUsers,
+      totalTrades,
+      totalRevenue,
+      userGrowth,
+      tradeGrowth,
+      activeGrowth,
+      revenueGrowth,
+    };
+  }
+
+  async getUserAnalytics(timeRange: string) {
+    const days = this.parseTimeRange(timeRange);
+
+    // Get daily user signups
+    const dailyStats: DailyStatItem[] = [];
+    for (let i = days - 1; i >= 0; i--) {
+      const date = new Date(Date.now() - i * 24 * 60 * 60 * 1000);
+      const nextDate = new Date(date.getTime() + 24 * 60 * 60 * 1000);
+      
+      const users = await this.usersRepository.count({
+        where: {
+          createdAt: Between(date, nextDate),
+        },
+      });
+
+      dailyStats.push({
+        date: date.toISOString().split('T')[0],
+        users,
+        signups: users, // Same as users for new signups
+      });
+    }
+
+    return { dailyStats };
+  }
+
+  async getTradeAnalytics(timeRange: string) {
+    // Get top trading pairs
+    const topTradingPairs = await this.tradesRepository
+      .createQueryBuilder('trade')
+      .select('trade.pair, COUNT(*) as count')
+      .groupBy('trade.pair')
+      .orderBy('count', 'DESC')
+      .limit(10)
+      .getRawMany();
+
+    // Calculate volumes (mock calculation)
+    const topTradingPairsWithVolume = topTradingPairs.map(pair => ({
+      pair: pair.pair,
+      count: parseInt(pair.count),
+      volume: parseInt(pair.count) * 50000, // Mock volume calculation
+    }));
+
+    return { topTradingPairs: topTradingPairsWithVolume };
+  }
+
+  async getRevenueAnalytics(timeRange: string) {
+    const days = this.parseTimeRange(timeRange);
+    
+    // Mock revenue data (would integrate with subscription service)
+    const dailyStats: RevenueStatItem[] = [];
+    for (let i = days - 1; i >= 0; i--) {
+      const date = new Date(Date.now() - i * 24 * 60 * 60 * 1000);
+      
+      dailyStats.push({
+        date: date.toISOString().split('T')[0],
+        revenue: Math.floor(Math.random() * 5000) + 2000,
+      });
+    }
+
+    return { dailyStats };
+  }
+
+  async getGeographicData() {
+    // Mock geographic data (would integrate with IP geolocation)
+    return [
+      { country: 'United States', users: 5432, trades: 12456, revenue: 78900, coordinates: [-95.7129, 37.0902] },
+      { country: 'United Kingdom', users: 3456, trades: 8765, revenue: 56700, coordinates: [-3.4360, 55.3781] },
+      { country: 'Germany', users: 2345, trades: 6789, revenue: 45600, coordinates: [10.4515, 51.1657] },
+      { country: 'Canada', users: 1876, trades: 4567, revenue: 34500, coordinates: [-106.3468, 56.1304] },
+      { country: 'Australia', users: 1543, trades: 3456, revenue: 23400, coordinates: [133.7751, -25.2744] },
+    ];
+  }
+
+  async getActivityFeed(limit: number, type?: string) {
+    // Get recent users as activity (would implement proper activity logging)
+    const recentUsers = await this.usersRepository.find({
+      order: { createdAt: 'DESC' },
+      take: limit,
+    });
+
+    const activities = recentUsers.map((user, index) => ({
+      id: user.id,
+      userId: user.id,
+      userName: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email,
+      type: 'login' as const,
+      description: 'User registered on the platform',
+      timestamp: user.createdAt.toISOString(),
+      metadata: {},
+      ipAddress: '192.168.1.1',
+      location: 'Unknown',
+    }));
+
+    return activities;
+  }
+
+  async getSystemHealth() {
+    // Mock system health (would integrate with monitoring service)
+    return {
+      status: 'healthy',
+      uptime: 99.99,
+      responseTime: 145,
+      memoryUsage: 68,
+      cpuUsage: 23,
+      diskUsage: 45,
+      databaseConnections: 12,
+      errors24h: 3,
+      apiCalls24h: 45678,
+      cacheHitRate: 94.5,
+    };
+  }
+
+  async getUsers(page: number, limit: number, search?: string) {
+    const query = this.usersRepository.createQueryBuilder('user');
+    
+    if (search) {
+      query.where(
+        'user.firstName ILIKE :search OR user.lastName ILIKE :search OR user.email ILIKE :search',
+        { search: `%${search}%` }
+      );
+    }
+
+    const [users, total] = await query
+      .orderBy('user.createdAt', 'DESC')
+      .skip((page - 1) * limit)
+      .take(limit)
+      .getManyAndCount();
+
+    return {
+      data: users,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
+  }
+
+  async getTopTradingPairs(timeRange: string) {
+    return this.getTradeAnalytics(timeRange);
+  }
+
+  async getSubscriptionAnalytics(timeRange: string) {
+    // Mock subscription analytics (would integrate with subscription service)
+    return {
+      subscriptionDistribution: [
+        { plan: 'Free', count: 8500, revenue: 0 },
+        { plan: 'Pro', count: 4500, revenue: 135000 },
+        { plan: 'Premium', count: 2234, revenue: 99567 },
+      ],
+    };
+  }
+
+  private parseTimeRange(timeRange: string): number {
+    switch (timeRange) {
+      case '7d': return 7;
+      case '30d': return 30;
+      case '90d': return 90;
+      case '1y': return 365;
+      default: return 30;
+    }
+  }
+} 

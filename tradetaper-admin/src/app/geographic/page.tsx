@@ -14,18 +14,7 @@ import {
   Download
 } from 'lucide-react';
 import { formatNumber, formatCurrency, formatPercentage } from '@/lib/utils';
-
-// Mock geographic data
-const mockGeographicData = [
-  { country: 'United States', users: 5432, trades: 12456, revenue: 78900, coordinates: [-95.7129, 37.0902] as [number, number] },
-  { country: 'United Kingdom', users: 3456, trades: 8765, revenue: 56700, coordinates: [-3.4360, 55.3781] as [number, number] },
-  { country: 'Germany', users: 2345, trades: 6789, revenue: 45600, coordinates: [10.4515, 51.1657] as [number, number] },
-  { country: 'Canada', users: 1876, trades: 4567, revenue: 34500, coordinates: [-106.3468, 56.1304] as [number, number] },
-  { country: 'Australia', users: 1543, trades: 3456, revenue: 23400, coordinates: [133.7751, -25.2744] as [number, number] },
-  { country: 'Japan', users: 1234, trades: 2987, revenue: 19800, coordinates: [138.2529, 36.2048] as [number, number] },
-  { country: 'France', users: 987, trades: 2345, revenue: 15600, coordinates: [2.2137, 46.2276] as [number, number] },
-  { country: 'Netherlands', users: 756, trades: 1876, revenue: 12300, coordinates: [5.2913, 52.1326] as [number, number] },
-];
+import { adminApi } from '@/lib/api';
 
 export default function GeographicPage() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -33,7 +22,7 @@ export default function GeographicPage() {
 
   const { data: geographicData, isLoading } = useQuery({
     queryKey: ['geographic-data'],
-    queryFn: () => Promise.resolve(mockGeographicData),
+    queryFn: adminApi.getGeographicData,
     refetchInterval: 30000,
   });
 
@@ -173,7 +162,7 @@ export default function GeographicPage() {
                   const value = country[selectedMetric];
                   const total = selectedMetric === 'users' ? totalUsers : 
                                selectedMetric === 'trades' ? totalTrades : totalRevenue;
-                  const percentage = (value / total) * 100;
+                  const percentage = total > 0 ? (value / total) * 100 : 0;
 
                   return (
                     <motion.div
@@ -204,6 +193,12 @@ export default function GeographicPage() {
                     </motion.div>
                   );
                 })}
+                
+                {sortedData.length === 0 && !isLoading && (
+                  <div className="text-center py-8 text-gray-400">
+                    No geographic data available
+                  </div>
+                )}
               </div>
             </motion.div>
           </div>
@@ -247,10 +242,18 @@ export default function GeographicPage() {
                       <td className="text-right py-3 px-4 text-white">{formatNumber(country.trades)}</td>
                       <td className="text-right py-3 px-4 text-white">{formatCurrency(country.revenue)}</td>
                       <td className="text-right py-3 px-4 text-white">
-                        {formatCurrency(country.revenue / country.users)}
+                        {country.users > 0 ? formatCurrency(country.revenue / country.users) : '$0'}
                       </td>
                     </motion.tr>
                   ))}
+                  
+                  {sortedData.length === 0 && !isLoading && (
+                    <tr>
+                      <td colSpan={5} className="text-center py-8 text-gray-400">
+                        No data available
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>

@@ -1,77 +1,80 @@
 import axios from 'axios';
 
+// API Base URL - update this to your actual backend URL
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://tradetaper-backend-production.up.railway.app/api/v1';
 
-export const api = axios.create({
+// Create axios instance
+const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
-// Types for API responses
+// Add request interceptor to include auth token
+api.interceptors.request.use((config) => {
+  // TODO: Get token from localStorage or cookies
+  // const token = localStorage.getItem('token');
+  // if (token) {
+  //   config.headers.Authorization = `Bearer ${token}`;
+  // }
+  return config;
+});
+
+// Types
 export interface User {
   id: string;
   email: string;
-  firstName: string;
-  lastName: string;
-  country?: string;
-  timezone?: string;
+  firstName?: string;
+  lastName?: string;
   createdAt: string;
-  lastLoginAt?: string;
-  subscriptionStatus: string;
-  planType: string;
-  isActive: boolean;
-  totalTrades: number;
-  lastIpAddress?: string;
-  location?: {
-    country: string;
-    city: string;
-    lat: number;
-    lng: number;
-  };
+  updatedAt: string;
 }
 
 export interface Trade {
   id: string;
-  userId: string;
   pair: string;
-  type: 'BUY' | 'SELL';
-  entryPrice: number;
-  exitPrice?: number;
-  quantity: number;
-  pnl?: number;
-  status: 'OPEN' | 'CLOSED';
+  type: 'buy' | 'sell';
+  amount: number;
+  price: number;
+  status: 'open' | 'closed';
   createdAt: string;
-  closedAt?: string;
-  imageUrl?: string;
+  updatedAt: string;
 }
 
-export interface Analytics {
+export interface ActivityEvent {
+  id: string;
+  userId: string;
+  userName: string;
+  type: 'login' | 'trade_created' | 'trade_closed' | 'subscription_changed' | 'image_uploaded';
+  description: string;
+  timestamp: string;
+  metadata?: Record<string, unknown>;
+  ipAddress?: string;
+  location?: string;
+}
+
+export interface AnalyticsData {
   totalUsers: number;
   activeUsers: number;
   totalTrades: number;
   totalRevenue: number;
-  revenueGrowth: number;
   userGrowth: number;
   tradeGrowth: number;
-  averageTradesPerUser: number;
-  topTradingPairs: Array<{ pair: string; count: number; volume: number }>;
-  subscriptionDistribution: Array<{ plan: string; count: number; revenue: number }>;
-  dailyStats: Array<{
+  activeGrowth: number;
+  revenueGrowth: number;
+  dailyStats?: {
     date: string;
     users: number;
     trades: number;
     revenue: number;
     signups: number;
-  }>;
-  geographicData: Array<{
-    country: string;
-    users: number;
-    trades: number;
-    revenue: number;
-    coordinates: [number, number];
-  }>;
+  }[];
+  topTradingPairs?: {
+    pair: string;
+    count: number;
+    volume: number;
+  }[];
 }
 
 export interface SystemHealth {
@@ -87,124 +90,106 @@ export interface SystemHealth {
   cacheHitRate: number;
 }
 
-export interface ActivityEvent {
-  id: string;
-  userId: string;
-  userName: string;
-  type: 'login' | 'trade_created' | 'trade_closed' | 'subscription_changed' | 'image_uploaded';
-  description: string;
-  timestamp: string;
-  metadata?: Record<string, unknown>;
-  ipAddress?: string;
-  location?: string;
+export interface GeographicData {
+  country: string;
+  users: number;
+  trades: number;
+  revenue: number;
+  coordinates: [number, number];
 }
 
-// API functions
+export interface UsersResponse {
+  data: User[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+export interface DailyStats {
+  date: string;
+  users: number;
+  trades: number;
+  revenue: number;
+  signups: number;
+}
+
+export interface TradingPair {
+  pair: string;
+  count: number;
+  volume: number;
+}
+
+export interface SubscriptionData {
+  plan: string;
+  count: number;
+  revenue: number;
+}
+
+// API Functions
 export const adminApi = {
-  // Analytics
-  getAnalytics: async (timeRange: '7d' | '30d' | '90d' | '1y' = '30d'): Promise<Analytics> => {
-    const response = await api.get(`/admin/analytics?timeRange=${timeRange}`);
+  // Dashboard Analytics
+  getDashboardStats: async (): Promise<AnalyticsData> => {
+    const response = await api.get('/admin/dashboard-stats');
     return response.data;
   },
 
-  // Users
-  getUsers: async (page: number = 1, limit: number = 50, search?: string): Promise<{
-    users: User[];
-    total: number;
-    page: number;
-    limit: number;
-  }> => {
-    const response = await api.get(`/admin/users?page=${page}&limit=${limit}&search=${search || ''}`);
+  getUserAnalytics: async (timeRange: string = '30d'): Promise<{ dailyStats: DailyStats[] }> => {
+    const response = await api.get(`/admin/user-analytics?timeRange=${timeRange}`);
     return response.data;
   },
 
-  getUserById: async (userId: string): Promise<User> => {
-    const response = await api.get(`/admin/users/${userId}`);
+  getRevenueAnalytics: async (timeRange: string = '30d'): Promise<{ dailyStats: DailyStats[] }> => {
+    const response = await api.get(`/admin/revenue-analytics?timeRange=${timeRange}`);
     return response.data;
   },
 
-  updateUserStatus: async (userId: string, isActive: boolean): Promise<void> => {
-    await api.patch(`/admin/users/${userId}/status`, { isActive });
+  getTradeAnalytics: async (timeRange: string = '30d'): Promise<{ topTradingPairs: TradingPair[] }> => {
+    const response = await api.get(`/admin/trade-analytics?timeRange=${timeRange}`);
+    return response.data;
   },
 
-  // Trades
-  getTrades: async (page: number = 1, limit: number = 50, filters?: {
-    userId?: string;
-    pair?: string;
-    status?: string;
-    dateFrom?: string;
-    dateTo?: string;
-  }): Promise<{
-    trades: Trade[];
-    total: number;
-    page: number;
-    limit: number;
-  }> => {
-    const params = new URLSearchParams({
-      page: page.toString(),
-      limit: limit.toString(),
-      ...filters,
-    });
-    const response = await api.get(`/admin/trades?${params}`);
+  // Geographic Data
+  getGeographicData: async (): Promise<GeographicData[]> => {
+    const response = await api.get('/admin/geographic-data');
+    return response.data;
+  },
+
+  // Activity Feed
+  getActivityFeed: async (limit: number = 50, type?: string): Promise<ActivityEvent[]> => {
+    const params = new URLSearchParams({ limit: limit.toString() });
+    if (type) params.append('type', type);
+    
+    const response = await api.get(`/admin/activity-feed?${params.toString()}`);
     return response.data;
   },
 
   // System Health
   getSystemHealth: async (): Promise<SystemHealth> => {
-    const response = await api.get('/admin/system/health');
+    const response = await api.get('/admin/system-health');
     return response.data;
   },
 
-  // Activity Feed
-  getActivityFeed: async (limit: number = 100): Promise<ActivityEvent[]> => {
-    const response = await api.get(`/admin/activity?limit=${limit}`);
+  // User Management
+  getUsers: async (page: number = 1, limit: number = 20, search?: string): Promise<UsersResponse> => {
+    const params = new URLSearchParams({ page: page.toString(), limit: limit.toString() });
+    if (search) params.append('search', search);
+    
+    const response = await api.get(`/admin/users?${params.toString()}`);
     return response.data;
   },
 
-  // Live Users (WebSocket endpoint)
-  getLiveUsers: async (): Promise<Array<{
-    userId: string;
-    userName: string;
-    location: { country: string; city: string; lat: number; lng: number };
-    connectedAt: string;
-    currentPage: string;
-  }>> => {
-    const response = await api.get('/admin/live-users');
+  // Top Trading Pairs
+  getTopTradingPairs: async (timeRange: string = '30d'): Promise<{ topTradingPairs: TradingPair[] }> => {
+    const response = await api.get(`/admin/top-trading-pairs?timeRange=${timeRange}`);
     return response.data;
   },
 
-  // Revenue analytics
-  getRevenueAnalytics: async (timeRange: '7d' | '30d' | '90d' | '1y' = '30d'): Promise<{
-    totalRevenue: number;
-    recurringRevenue: number;
-    oneTimePayments: number;
-    churnRate: number;
-    averageRevenuePerUser: number;
-    revenueByPlan: Array<{ plan: string; amount: number; growth: number }>;
-    monthlyRecurring: Array<{ month: string; amount: number }>;
-  }> => {
-    const response = await api.get(`/admin/revenue?timeRange=${timeRange}`);
+  // Subscription Analytics
+  getSubscriptionAnalytics: async (timeRange: string = '30d'): Promise<{ subscriptionDistribution: SubscriptionData[] }> => {
+    const response = await api.get(`/admin/subscription-analytics?timeRange=${timeRange}`);
     return response.data;
   },
-
-  // Performance metrics
-  getPerformanceMetrics: async (): Promise<{
-    averageResponseTime: number;
-    errorRate: number;
-    throughput: number;
-    peakResponseTime: number;
-    slowestEndpoints: Array<{ endpoint: string; avgTime: number; calls: number }>;
-    errorsByType: Array<{ type: string; count: number; percentage: number }>;
-    hourlyMetrics: Array<{ hour: string; responseTime: number; errors: number; requests: number }>;
-  }> => {
-    const response = await api.get('/admin/performance');
-    return response.data;
-  },
-};
-
-// Set auth token for admin requests
-export const setAuthToken = (token: string) => {
-  api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
 };
 
 export default api; 
