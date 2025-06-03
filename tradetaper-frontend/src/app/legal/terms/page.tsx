@@ -1,0 +1,24 @@
+import MarkdownContent from '@/components/common/MarkdownContent';
+
+export const metadata = {
+  title: 'Terms of Service | TradeTaper',
+  description: 'Terms of Service for TradeTaper trading journal platform'
+};
+
+export default function TermsOfServicePage() {
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-4xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
+        <div className="bg-white shadow rounded-lg">
+          <div className="px-8 py-12">
+            <MarkdownContent 
+              contentType="terms"
+              title="Terms of Service"
+              className="text-gray-800"
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+} 
