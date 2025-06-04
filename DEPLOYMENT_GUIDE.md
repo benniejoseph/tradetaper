@@ -78,12 +78,23 @@ After deployment, copy your Railway backend URL (e.g., `https://your-backend.rai
    - **Output Directory**: `.next`
 
 ### 2.2 Configure Environment Variables
-In Vercel dashboard → Settings → Environment Variables:
+**IMPORTANT**: Set these in Vercel dashboard → Settings → Environment Variables (NOT in vercel.json):
 
 ```bash
 NEXT_PUBLIC_API_URL=https://your-backend.railway.app
 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_live_your_live_stripe_publishable_key
 ```
+
+**Steps to add environment variables:**
+1. After deploying, go to your project in Vercel dashboard
+2. Click "Settings" tab
+3. Click "Environment Variables" in the sidebar
+4. Add each variable:
+   - **Name**: `NEXT_PUBLIC_API_URL`
+   - **Value**: Your Railway backend URL (e.g., `https://tradetaper-backend-production.up.railway.app`)
+   - **Environment**: Production, Preview, Development (select all)
+5. Click "Save"
+6. Repeat for `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`
 
 ### 2.3 Deploy
 Click "Deploy" and wait for the build to complete.
@@ -100,11 +111,21 @@ Click "Deploy" and wait for the build to complete.
    - **Output Directory**: `.next`
 
 ### 3.2 Configure Environment Variables
-In Vercel dashboard → Settings → Environment Variables:
+**IMPORTANT**: Set these in Vercel dashboard → Settings → Environment Variables:
 
 ```bash
 NEXT_PUBLIC_API_URL=https://your-backend.railway.app
 ```
+
+**Steps to add environment variables:**
+1. After deploying, go to your project in Vercel dashboard
+2. Click "Settings" tab
+3. Click "Environment Variables" in the sidebar
+4. Add the variable:
+   - **Name**: `NEXT_PUBLIC_API_URL`
+   - **Value**: Your Railway backend URL (e.g., `https://tradetaper-backend-production.up.railway.app`)
+   - **Environment**: Production, Preview, Development (select all)
+5. Click "Save"
 
 ### 3.3 Deploy
 Click "Deploy" and wait for the build to complete.
@@ -183,15 +204,24 @@ curl https://your-backend.railway.app/api/v1/health
    - Verify all dependencies are installed
    - Check environment variables
 
-2. **CORS Errors**
+2. **Vercel Environment Variable Errors**
+   ```
+   Environment Variable "NEXT_PUBLIC_API_URL" references Secret "api_url", which does not exist.
+   ```
+   **Solution**: 
+   - Don't set environment variables in `vercel.json`
+   - Set them directly in Vercel dashboard → Settings → Environment Variables
+   - Use the exact variable names: `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`
+
+3. **CORS Errors**
    - Verify CORS_ORIGINS includes your frontend URLs
    - Check FRONTEND_URL and ADMIN_URL variables
 
-3. **Database Connection Issues**
+4. **Database Connection Issues**
    - Verify DATABASE_URL is set by Railway
    - Check database service is running
 
-4. **Stripe Webhook Issues**
+5. **Stripe Webhook Issues**
    - Verify webhook endpoint URL
    - Check webhook secret matches
    - Ensure selected events are correct
