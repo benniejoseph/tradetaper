@@ -18,9 +18,10 @@ import { ThemeToggleButton } from '@/components/common/ThemeToggleButton';
 interface SidebarProps {
   isOpen: boolean;
   toggleSidebar: () => void;
+  isMobile: boolean;
 }
 
-export default function Sidebar({ isOpen, toggleSidebar }: SidebarProps) {
+export default function Sidebar({ isOpen, toggleSidebar, isMobile }: SidebarProps) {
   const pathname = usePathname();
   const dispatch = useDispatch<AppDispatch>();
   const router = useRouter();
@@ -40,7 +41,7 @@ export default function Sidebar({ isOpen, toggleSidebar }: SidebarProps) {
   return (
     <>
       {/* Mobile Overlay */}
-      {isOpen && (
+      {isOpen && isMobile && (
         <div 
           className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 md:hidden transition-opacity duration-300"
           onClick={toggleSidebar}
@@ -58,36 +59,38 @@ export default function Sidebar({ isOpen, toggleSidebar }: SidebarProps) {
                         ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         
         {/* Header with Logo */}
-        <div className="p-6 border-b border-gray-200/50 dark:border-gray-700/50">
+        <div className="p-4 sm:p-6 border-b border-gray-200/50 dark:border-gray-700/50">
           <div className="flex items-center justify-between">
             <Link href="/dashboard" 
                   className="flex items-center space-x-3 group focus:outline-none"
                   onClick={handleLinkClick}>
               <div className="relative">
-                <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-green-500 rounded-xl flex items-center justify-center text-white font-bold text-xl shadow-lg group-hover:shadow-xl group-hover:scale-105 transition-all duration-300">
-                  <FaChartLine className="w-6 h-6" />
+                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-r from-blue-500 to-green-500 rounded-xl flex items-center justify-center text-white font-bold text-xl shadow-lg group-hover:shadow-xl group-hover:scale-105 transition-all duration-300">
+                  <FaChartLine className="w-5 h-5 sm:w-6 sm:h-6" />
                 </div>
                 <div className="absolute -inset-1 bg-gradient-to-r from-blue-500 to-green-500 rounded-xl opacity-20 group-hover:opacity-40 transition-opacity duration-300 -z-10"></div>
               </div>
               <div>
-                <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-green-600 bg-clip-text text-transparent">
+                <h1 className="text-lg sm:text-xl font-bold bg-gradient-to-r from-blue-600 to-green-600 bg-clip-text text-transparent">
                   TradeTaper
                 </h1>
                 <p className="text-xs text-gray-500 dark:text-gray-400">Trading Journal</p>
               </div>
             </Link>
             
-            <button 
-              onClick={toggleSidebar} 
-              className="md:hidden p-2 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 transition-colors duration-200"
-              aria-label="Close sidebar">
-              <FaTimes className="h-4 w-4" />
-            </button>
+            {isMobile && (
+              <button 
+                onClick={toggleSidebar} 
+                className="p-2 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 transition-colors duration-200"
+                aria-label="Close sidebar">
+                <FaTimes className="h-4 w-4" />
+              </button>
+            )}
           </div>
         </div>
 
         {/* Main Navigation */}
-        <nav className="flex-grow p-4 space-y-2 overflow-y-auto">
+        <nav className="flex-grow p-3 sm:p-4 space-y-2 overflow-y-auto">
           <div className="mb-6">
             <h2 className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-3 px-3">
               Main Menu
@@ -198,43 +201,28 @@ export default function Sidebar({ isOpen, toggleSidebar }: SidebarProps) {
         </nav>
 
         {/* Footer Section */}
-        <div className="p-4 border-t border-gray-200/50 dark:border-gray-700/50 mt-auto space-y-4">
-          {/* Theme Toggle */}
-          <div className="flex justify-center">
-            <div className="p-2 bg-gray-100/80 dark:bg-gray-800/80 rounded-xl backdrop-blur-sm">
-              <ThemeToggleButton />
-            </div>
-          </div>
-
-          {/* User Info */}
-          {user && (
-            <div className="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800/50 dark:to-gray-900/50 rounded-xl p-4 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/50">
-              <div className="flex items-center space-x-3">
-                <div className="relative">
-                  <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-green-500 rounded-full flex items-center justify-center text-white font-semibold text-sm shadow-lg">
-                    {(user.firstName?.[0] || user.email?.[0] || 'U').toUpperCase()}
-                  </div>
-                  <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-400 border-2 border-white rounded-full"></div>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">
-                    {user.firstName || user.email?.split('@')[0]}
-                  </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                    {user.email}
-                  </p>
-                </div>
+        <div className="p-4 border-t border-gray-200/50 dark:border-gray-700/50">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-green-500 flex items-center justify-center text-white">
+                <FaUserCircle className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-900 dark:text-white">
+                  {user?.firstName || user?.email?.split('@')[0] || 'User'}
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  {user?.email || 'user@example.com'}
+                </p>
               </div>
             </div>
-          )}
-
-          {/* Logout Button */}
-          <button
-            onClick={handleLogout}
-            className="group w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-medium text-red-600 dark:text-red-400 hover:text-white hover:bg-gradient-to-r hover:from-red-500 hover:to-red-600 transition-all duration-200 border border-red-200 dark:border-red-800 hover:border-transparent shadow-sm hover:shadow-lg">
-            <FaSignOutAlt className="h-4 w-4 transition-transform duration-200 group-hover:scale-110" />
-            <span>Sign Out</span>
-          </button>
+            <button
+              onClick={handleLogout}
+              className="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:text-red-500 dark:hover:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-200"
+              aria-label="Logout">
+              <FaSignOutAlt className="w-5 h-5" />
+            </button>
+          </div>
         </div>
       </aside>
     </>

@@ -2,7 +2,6 @@
 import {
   Injectable,
   ConflictException,
-  NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -85,5 +84,11 @@ export class UsersService {
       updatedAt: user.updatedAt,
     };
     return response;
+  }
+
+  async updateLastLogin(userId: string): Promise<void> {
+    await this.usersRepository.update(userId, {
+      lastLoginAt: new Date(),
+    });
   }
 }

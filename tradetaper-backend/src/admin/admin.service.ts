@@ -4,13 +4,13 @@ import { Repository, Between } from 'typeorm';
 import { User } from '../users/entities/user.entity';
 import { Trade } from '../trades/entities/trade.entity';
 
-interface DailyStatItem {
+export interface DailyStatItem {
   date: string;
   users: number;
   signups: number;
 }
 
-interface RevenueStatItem {
+export interface RevenueStatItem {
   date: string;
   revenue: number;
 }
@@ -30,32 +30,68 @@ export class AdminService {
       this.tradesRepository.count(),
     ]);
 
-    // Get active users (created within last 30 days as proxy for active)
+    // Get active users (logged in within last 30 days)
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-    const activeUsers = await this.usersRepository.count({
+    const activeUsers = await this.usersRepository
+      .createQueryBuilder('user')
+      .where('user.lastLoginAt > :date', { date: thirtyDaysAgo })
+      .getCount();
+
+    // Calculate growth metrics by comparing with previous period
+    const sixtyDaysAgo = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000);
+    
+    const [previousUsers, previousTrades] = await Promise.all([
+      this.usersRepository.count({
+        where: {
+          createdAt: Between(sixtyDaysAgo, thirtyDaysAgo),
+        },
+      }),
+      this.tradesRepository.count({
+        where: {
+          createdAt: Between(sixtyDaysAgo, thirtyDaysAgo),
+        },
+      }),
+    ]);
+
+    const currentMonthUsers = await this.usersRepository.count({
       where: {
         createdAt: Between(thirtyDaysAgo, new Date()),
       },
     });
 
-    // Calculate growth metrics (mock for now - would need historical data)
-    const userGrowth = 8.3;
-    const tradeGrowth = 15.7;
-    const activeGrowth = 6.2;
-    const revenueGrowth = 12.5;
+    const currentMonthTrades = await this.tradesRepository.count({
+      where: {
+        createdAt: Between(thirtyDaysAgo, new Date()),
+      },
+    });
 
-    // Mock revenue calculation (would integrate with subscription service)
-    const totalRevenue = totalUsers * 29.99; // Average subscription price
+    // Calculate growth percentages
+    const userGrowth = previousUsers > 0 
+      ? ((currentMonthUsers - previousUsers) / previousUsers) * 100 
+      : 0;
+    
+    const tradeGrowth = previousTrades > 0 
+      ? ((currentMonthTrades - previousTrades) / previousTrades) * 100 
+      : 0;
+
+    // Get revenue data (simplified - would need subscription service integration)
+    const avgSubscriptionPrice = 19.99; // Average of all plan prices
+    const paidUsers = Math.floor(totalUsers * 0.15); // Assume 15% conversion rate
+    const totalRevenue = paidUsers * avgSubscriptionPrice;
+    
+    // Calculate revenue growth (mock for now)
+    const revenueGrowth = 12.5;
+    const activeGrowth = userGrowth * 0.8; // Active users grow slightly slower than total
 
     return {
       totalUsers,
       activeUsers,
       totalTrades,
       totalRevenue,
-      userGrowth,
-      tradeGrowth,
-      activeGrowth,
-      revenueGrowth,
+      userGrowth: Math.round(userGrowth * 10) / 10,
+      tradeGrowth: Math.round(tradeGrowth * 10) / 10,
+      activeGrowth: Math.round(activeGrowth * 10) / 10,
+      revenueGrowth: Math.round(revenueGrowth * 10) / 10,
     };
   }
 

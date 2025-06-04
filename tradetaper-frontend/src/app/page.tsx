@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useSelector } from 'react-redux';
 import { RootState } from '@/store/store';
 import { useRouter } from 'next/navigation';
+import { PRICING_TIERS } from '@/config/pricing';
 import { 
   FaChartLine, 
   FaFileExport, 
@@ -180,24 +181,24 @@ export default function LandingPage() {
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
               <div className="flex-shrink-0 flex items-center">
-                <FaChartLine className="h-8 w-8 text-blue-500 mr-2" />
-                <span className="text-2xl font-bold bg-gradient-to-r from-blue-500 to-green-500 bg-clip-text text-transparent">
+                <FaChartLine className="h-6 w-6 sm:h-8 sm:w-8 text-blue-500 mr-2" />
+                <span className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-blue-500 to-green-500 bg-clip-text text-transparent">
                   TradeTaper
                 </span>
               </div>
             </div>
             <div className="hidden md:block">
-              <div className="ml-10 flex items-baseline space-x-8">
+              <div className="ml-10 flex items-baseline space-x-4 lg:space-x-8">
                 <a href="#features" className="text-gray-600 dark:text-gray-300 hover:text-blue-500 transition-colors">Features</a>
                 <a href="#testimonials" className="text-gray-600 dark:text-gray-300 hover:text-blue-500 transition-colors">Testimonials</a>
                 <a href="#pricing" className="text-gray-600 dark:text-gray-300 hover:text-blue-500 transition-colors">Pricing</a>
               </div>
             </div>
-            <div className="flex items-center space-x-4">
-              <Link href="/login" className="text-gray-600 dark:text-gray-300 hover:text-blue-500 transition-colors">
+            <div className="flex items-center space-x-2 sm:space-x-4">
+              <Link href="/login" className="text-sm sm:text-base text-gray-600 dark:text-gray-300 hover:text-blue-500 transition-colors">
                 Sign In
               </Link>
-              <Link href="/register" className="bg-gradient-to-r from-blue-500 to-green-500 text-white px-6 py-2 rounded-lg hover:from-blue-600 hover:to-green-600 transition-all duration-300 transform hover:scale-105 shadow-lg">
+              <Link href="/register" className="text-sm sm:text-base bg-gradient-to-r from-blue-500 to-green-500 text-white px-3 sm:px-6 py-1.5 sm:py-2 rounded-lg hover:from-blue-600 hover:to-green-600 transition-all duration-300 transform hover:scale-105 shadow-lg">
                 Get Started
               </Link>
             </div>
@@ -290,101 +291,56 @@ export default function LandingPage() {
             <p className="text-xl text-gray-600 dark:text-gray-300">Start for free, scale as you grow</p>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-            {/* Free Plan */}
-            <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-lg border border-gray-200 dark:border-gray-700">
-              <div className="text-center">
-                <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Starter</h3>
-                <div className="text-4xl font-bold text-gray-900 dark:text-white mb-6">
-                  Free
+          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-8 max-w-6xl mx-auto">
+            {PRICING_TIERS.map((tier) => (
+              <div 
+                key={tier.id}
+                className={`bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-lg border ${
+                  tier.recommended 
+                    ? 'border-blue-500 dark:border-blue-400 transform scale-105 relative' 
+                    : 'border-gray-200 dark:border-gray-700'
+                }`}
+              >
+                {tier.recommended && (
+                  <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
+                    <span className="bg-yellow-400 text-gray-900 px-4 py-1 rounded-full text-sm font-semibold flex items-center">
+                      <FaCrown className="mr-1" />
+                      Most Popular
+                    </span>
+                  </div>
+                )}
+                <div className="text-center">
+                  <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">{tier.name}</h3>
+                  <div className="text-4xl font-bold text-gray-900 dark:text-white mb-6">
+                    {tier.price === 0 ? (
+                      'Free'
+                    ) : (
+                      <>
+                        ${tier.price}<span className="text-lg">/{tier.interval}</span>
+                      </>
+                    )}
+                  </div>
+                  <ul className="space-y-4 mb-8 text-left">
+                    {tier.features.slice(0, 5).map((feature, index) => (
+                      <li key={index} className="flex items-start text-gray-600 dark:text-gray-300">
+                        <FaCheck className="text-green-500 mr-3 mt-1 flex-shrink-0" />
+                        <span>{feature}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <Link 
+                    href="/register" 
+                    className={`w-full py-3 rounded-lg font-semibold transition-colors block text-center ${
+                      tier.recommended 
+                        ? 'bg-gradient-to-r from-blue-500 to-green-500 text-white hover:from-blue-600 hover:to-green-600' 
+                        : 'bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600'
+                    }`}
+                  >
+                    {tier.price === 0 ? 'Get Started' : 'Start Free Trial'}
+                  </Link>
                 </div>
-                <ul className="space-y-4 mb-8">
-                  <li className="flex items-center text-gray-600 dark:text-gray-300">
-                    <FaCheck className="text-green-500 mr-3" />
-                    Up to 100 trades/month
-                  </li>
-                  <li className="flex items-center text-gray-600 dark:text-gray-300">
-                    <FaCheck className="text-green-500 mr-3" />
-                    Basic analytics
-                  </li>
-                  <li className="flex items-center text-gray-600 dark:text-gray-300">
-                    <FaCheck className="text-green-500 mr-3" />
-                    Mobile app access
-                  </li>
-                </ul>
-                <Link href="/register" className="w-full bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 py-3 rounded-lg font-semibold hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors block text-center">
-                  Get Started
-                </Link>
               </div>
-            </div>
-
-            {/* Pro Plan */}
-            <div className="bg-gradient-to-b from-blue-500 to-green-500 rounded-2xl p-8 shadow-2xl transform scale-105 relative">
-              <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                <span className="bg-yellow-400 text-gray-900 px-4 py-1 rounded-full text-sm font-semibold flex items-center">
-                  <FaCrown className="mr-1" />
-                  Most Popular
-                </span>
-              </div>
-              <div className="text-center text-white">
-                <h3 className="text-2xl font-bold mb-4">Professional</h3>
-                <div className="text-4xl font-bold mb-6">
-                  $29<span className="text-lg">/month</span>
-                </div>
-                <ul className="space-y-4 mb-8">
-                  <li className="flex items-center">
-                    <FaCheck className="text-white mr-3" />
-                    Unlimited trades
-                  </li>
-                  <li className="flex items-center">
-                    <FaCheck className="text-white mr-3" />
-                    Advanced analytics
-                  </li>
-                  <li className="flex items-center">
-                    <FaCheck className="text-white mr-3" />
-                    Custom reports
-                  </li>
-                  <li className="flex items-center">
-                    <FaCheck className="text-white mr-3" />
-                    Priority support
-                  </li>
-                </ul>
-                <Link href="/register" className="w-full bg-white text-blue-600 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors block text-center">
-                  Start Free Trial
-                </Link>
-              </div>
-            </div>
-
-            {/* Enterprise Plan */}
-            <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-lg border border-gray-200 dark:border-gray-700">
-              <div className="text-center">
-                <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Enterprise</h3>
-                <div className="text-4xl font-bold text-gray-900 dark:text-white mb-6">
-                  Custom
-                </div>
-                <ul className="space-y-4 mb-8">
-                  <li className="flex items-center text-gray-600 dark:text-gray-300">
-                    <FaCheck className="text-green-500 mr-3" />
-                    Everything in Pro
-                  </li>
-                  <li className="flex items-center text-gray-600 dark:text-gray-300">
-                    <FaCheck className="text-green-500 mr-3" />
-                    White-label solution
-                  </li>
-                  <li className="flex items-center text-gray-600 dark:text-gray-300">
-                    <FaCheck className="text-green-500 mr-3" />
-                    API access
-                  </li>
-                  <li className="flex items-center text-gray-600 dark:text-gray-300">
-                    <FaCheck className="text-green-500 mr-3" />
-                    Dedicated support
-                  </li>
-                </ul>
-                <button className="w-full bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 py-3 rounded-lg font-semibold hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors">
-                  Contact Sales
-                </button>
-              </div>
-            </div>
+            ))}
           </div>
         </div>
       </section>
