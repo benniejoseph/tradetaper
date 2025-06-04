@@ -55,26 +55,23 @@ export interface ActivityEvent {
 }
 
 export interface AnalyticsData {
-  totalUsers: number;
-  activeUsers: number;
-  totalTrades: number;
-  totalRevenue: number;
-  userGrowth: number;
-  tradeGrowth: number;
-  activeGrowth: number;
-  revenueGrowth: number;
-  dailyStats?: {
+  labels: string[];
+  values: number[];
+  data: Array<{
     date: string;
-    users: number;
-    trades: number;
-    revenue: number;
-    signups: number;
-  }[];
-  topTradingPairs?: {
-    pair: string;
+    users?: number;
+    revenue?: number;
+    trades?: number;
+  }>;
+}
+
+export interface SubscriptionAnalytics {
+  subscriptionDistribution: Array<{
+    plan: string;
     count: number;
-    volume: number;
-  }[];
+    revenue: number;
+    color?: string;
+  }>;
 }
 
 export interface SystemHealth {
@@ -126,70 +123,151 @@ export interface SubscriptionData {
   revenue: number;
 }
 
-// API Functions
-export const adminApi = {
-  // Dashboard Analytics
-  getDashboardStats: async (): Promise<AnalyticsData> => {
-    const response = await api.get('/admin/dashboard-stats');
-    return response.data;
-  },
+export interface DashboardStats {
+  totalUsers: number;
+  userGrowth: number;
+  activeUsers: number;
+  activeGrowth: number;
+  totalRevenue: number;
+  revenueGrowth: number;
+  totalTrades: number;
+  tradeGrowth: number;
+}
 
-  getUserAnalytics: async (timeRange: string = '30d'): Promise<{ dailyStats: DailyStats[] }> => {
-    const response = await api.get(`/admin/user-analytics?timeRange=${timeRange}`);
-    return response.data;
-  },
+export interface Activity {
+  id: string;
+  type: string;
+  description: string;
+  timestamp: string;
+  user?: {
+    id: string;
+    name: string;
+  };
+}
 
-  getRevenueAnalytics: async (timeRange: string = '30d'): Promise<{ dailyStats: DailyStats[] }> => {
-    const response = await api.get(`/admin/revenue-analytics?timeRange=${timeRange}`);
-    return response.data;
-  },
+class AdminApi {
+  private baseUrl: string;
+  private axiosInstance;
 
-  getTradeAnalytics: async (timeRange: string = '30d'): Promise<{ topTradingPairs: TradingPair[] }> => {
-    const response = await api.get(`/admin/trade-analytics?timeRange=${timeRange}`);
-    return response.data;
-  },
+  constructor() {
+    this.baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+    this.axiosInstance = axios.create({
+      baseURL: this.baseUrl,
+      timeout: 10000,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
 
-  // Geographic Data
-  getGeographicData: async (): Promise<GeographicData[]> => {
-    const response = await api.get('/admin/geographic-data');
-    return response.data;
-  },
+    // Add response interceptor for error handling
+    this.axiosInstance.interceptors.response.use(
+      (response) => response,
+      (error) => {
+        if (error.response) {
+          // Handle specific error cases
+          switch (error.response.status) {
+            case 401:
+              // Handle unauthorized
+              window.location.href = '/login';
+              break;
+            case 403:
+              // Handle forbidden
+              console.error('Access forbidden');
+              break;
+            case 429:
+              // Handle rate limiting
+              console.error('Too many requests');
+              break;
+            default:
+              console.error('API Error:', error.response.data);
+          }
+        }
+        return Promise.reject(error);
+      }
+    );
+  }
 
-  // Activity Feed
-  getActivityFeed: async (limit: number = 50, type?: string): Promise<ActivityEvent[]> => {
-    const params = new URLSearchParams({ limit: limit.toString() });
-    if (type) params.append('type', type);
-    
-    const response = await api.get(`/admin/activity-feed?${params.toString()}`);
-    return response.data;
-  },
+  async getDashboardStats(): Promise<DashboardStats> {
+    try {
+      const response = await this.axiosInstance.get('/api/admin/dashboard/stats');
+      return response.data;
+    } catch (error) {
+      console.error('Failed to fetch dashboard stats:', error);
+      throw error;
+    }
+  }
 
-  // System Health
-  getSystemHealth: async (): Promise<SystemHealth> => {
-    const response = await api.get('/admin/system-health');
-    return response.data;
-  },
+  async getUserAnalytics(timeRange: string): Promise<AnalyticsData> {
+    try {
+      const response = await this.axiosInstance.get(`/api/admin/analytics/users?timeRange=${timeRange}`);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to fetch user analytics:', error);
+      throw error;
+    }
+  }
 
-  // User Management
-  getUsers: async (page: number = 1, limit: number = 20, search?: string): Promise<UsersResponse> => {
-    const params = new URLSearchParams({ page: page.toString(), limit: limit.toString() });
-    if (search) params.append('search', search);
-    
-    const response = await api.get(`/admin/users?${params.toString()}`);
-    return response.data;
-  },
+  async getRevenueAnalytics(timeRange: string): Promise<AnalyticsData> {
+    try {
+      const response = await this.axiosInstance.get(`/api/admin/analytics/revenue?timeRange=${timeRange}`);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to fetch revenue analytics:', error);
+      throw error;
+    }
+  }
 
-  // Top Trading Pairs
-  getTopTradingPairs: async (timeRange: string = '30d'): Promise<{ topTradingPairs: TradingPair[] }> => {
-    const response = await api.get(`/admin/top-trading-pairs?timeRange=${timeRange}`);
-    return response.data;
-  },
+  async getTradeAnalytics(timeRange: string): Promise<AnalyticsData> {
+    try {
+      const response = await this.axiosInstance.get(`/api/admin/analytics/trades?timeRange=${timeRange}`);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to fetch trade analytics:', error);
+      throw error;
+    }
+  }
 
-  // Subscription Analytics
-  getSubscriptionAnalytics: async (timeRange: string = '30d'): Promise<{ subscriptionDistribution: SubscriptionData[] }> => {
-    const response = await api.get(`/admin/subscription-analytics?timeRange=${timeRange}`);
-    return response.data;
-  },
-};
+  async getSystemHealth(): Promise<SystemHealth> {
+    try {
+      const response = await this.axiosInstance.get('/api/admin/system/health');
+      return response.data;
+    } catch (error) {
+      console.error('Failed to fetch system health:', error);
+      throw error;
+    }
+  }
+
+  async getActivityFeed(limit: number): Promise<Activity[]> {
+    try {
+      const response = await this.axiosInstance.get(`/api/admin/activity?limit=${limit}`);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to fetch activity feed:', error);
+      throw error;
+    }
+  }
+
+  async getSubscriptionAnalytics(timeRange: string): Promise<SubscriptionAnalytics> {
+    try {
+      const response = await this.axiosInstance.get(`/api/admin/analytics/subscriptions?timeRange=${timeRange}`);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to fetch subscription analytics:', error);
+      throw error;
+    }
+  }
+
+  async getGeographicData(): Promise<GeographicData[]> {
+    try {
+      const response = await this.axiosInstance.get('/api/admin/geographic');
+      return response.data;
+    } catch (error) {
+      console.error('Failed to fetch geographic data:', error);
+      throw error;
+    }
+  }
+}
+
+export const adminApi = new AdminApi();
 
 export default api; 

@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import Sidebar from '@/components/Sidebar';
-import StatsCards from '@/components/StatsCards';
 import { 
   LineChart, 
   Line, 
@@ -14,16 +13,23 @@ import {
   YAxis, 
   CartesianGrid, 
   Tooltip, 
-  ResponsiveContainer
+  ResponsiveContainer,
+  RadarChart,
+  PolarGrid,
+  PolarAngleAxis,
+  PolarRadiusAxis,
+  Radar
 } from 'recharts';
 import { 
   Download,
   Users,
-  TrendingUp,
   Activity as ActivityIcon,
-  AlertCircle,
-  CheckCircle,
-  XCircle
+  Eye,
+  RefreshCw,
+  ArrowUpRight,
+  ArrowDownRight,
+  DollarSign,
+  ShoppingCart
 } from 'lucide-react';
 import { formatNumber, timeAgo } from '@/lib/utils';
 import { adminApi } from '@/lib/api';
@@ -33,7 +39,7 @@ export default function Dashboard() {
   const [timeRange, setTimeRange] = useState<'7d' | '30d' | '90d' | '1y'>('30d');
 
   // Fetch real data from API
-  const { data: analytics, isLoading: analyticsLoading } = useQuery({
+  const { data: analytics } = useQuery({
     queryKey: ['dashboard-stats'],
     queryFn: adminApi.getDashboardStats,
     refetchInterval: 30000, // Refetch every 30 seconds
@@ -51,12 +57,6 @@ export default function Dashboard() {
     refetchInterval: 30000,
   });
 
-  const { data: tradeAnalytics } = useQuery({
-    queryKey: ['trade-analytics', timeRange],
-    queryFn: () => adminApi.getTradeAnalytics(timeRange),
-    refetchInterval: 30000,
-  });
-
   const { data: systemHealth } = useQuery({
     queryKey: ['system-health'],
     queryFn: adminApi.getSystemHealth,
@@ -69,42 +69,41 @@ export default function Dashboard() {
     refetchInterval: 5000, // Refetch every 5 seconds
   });
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'healthy': return 'text-green-400';
-      case 'warning': return 'text-yellow-400';
-      case 'critical': return 'text-red-400';
-      default: return 'text-gray-400';
-    }
-  };
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'healthy': return CheckCircle;
-      case 'warning': return AlertCircle;
-      case 'critical': return XCircle;
-      default: return AlertCircle;
-    }
-  };
+  // Performance metrics for radar chart
+  const performanceData = [
+    { metric: 'Uptime', value: systemHealth?.uptime || 0, fullMark: 100 },
+    { metric: 'Cache Hit', value: systemHealth?.cacheHitRate || 0, fullMark: 100 },
+    { metric: 'Response', value: 100 - (systemHealth?.responseTime || 0) / 10, fullMark: 100 },
+    { metric: 'CPU Usage', value: 100 - (systemHealth?.cpuUsage || 0), fullMark: 100 },
+    { metric: 'Memory', value: 100 - (systemHealth?.memoryUsage || 0), fullMark: 100 },
+  ];
 
   return (
-    <div className="flex h-screen bg-gray-950">
+    <div className="flex h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-black">
       <Sidebar isCollapsed={sidebarCollapsed} onToggle={() => setSidebarCollapsed(!sidebarCollapsed)} />
       
       <div className="flex-1 overflow-hidden">
-        {/* Header */}
-        <header className="bg-gray-900 border-b border-gray-800 px-6 py-4">
-          <div className="flex items-center justify-between">
+        {/* Header with Glassmorphism */}
+        <header className="bg-gray-900/50 backdrop-blur-xl border-b border-gray-800/50 px-4 sm:px-6 py-4 sticky top-0 z-10">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
-              <h1 className="text-2xl font-bold text-white">Dashboard</h1>
-              <p className="text-gray-400">Welcome to TradeTaper Admin Panel</p>
+              <h1 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-blue-400 to-green-400 bg-clip-text text-transparent">
+                Dashboard Overview
+              </h1>
+              <p className="text-gray-400 text-sm mt-1">
+                Real-time analytics and insights • Last updated {new Date().toLocaleTimeString()}
+              </p>
             </div>
             
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-2 sm:space-x-4 w-full sm:w-auto">
+              <button className="p-2 rounded-lg bg-gray-800/50 hover:bg-gray-700/50 text-gray-400 hover:text-white transition-all">
+                <RefreshCw className="w-4 h-4" />
+              </button>
+              
               <select
                 value={timeRange}
                 onChange={(e) => setTimeRange(e.target.value as '7d' | '30d' | '90d' | '1y')}
-                className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm"
+                className="bg-gray-800/50 backdrop-blur-xl border border-gray-700 rounded-lg px-3 sm:px-4 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent flex-1 sm:flex-none"
               >
                 <option value="7d">Last 7 days</option>
                 <option value="30d">Last 30 days</option>
@@ -112,232 +111,217 @@ export default function Dashboard() {
                 <option value="1y">Last year</option>
               </select>
               
-              <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm flex items-center space-x-2 transition-colors">
+              <button className="bg-gradient-to-r from-blue-600 to-green-600 hover:from-blue-700 hover:to-green-700 text-white px-3 sm:px-4 py-2 rounded-lg text-sm flex items-center space-x-2 transition-all shadow-lg hover:shadow-blue-500/25">
                 <Download className="w-4 h-4" />
-                <span>Export</span>
+                <span className="hidden sm:inline">Export</span>
               </button>
             </div>
           </div>
         </header>
 
         {/* Main Content */}
-        <main className="flex-1 overflow-y-auto p-6 space-y-6">
-          {/* Stats Cards */}
-          <StatsCards 
-            stats={{
-              totalUsers: analytics?.totalUsers || 0,
-              activeUsers: analytics?.activeUsers || 0,
-              totalRevenue: analytics?.totalRevenue || 0,
-              totalTrades: analytics?.totalTrades || 0,
-              userGrowth: analytics?.userGrowth || 0,
-              revenueGrowth: analytics?.revenueGrowth || 0,
-              tradeGrowth: analytics?.tradeGrowth || 0,
-              activeGrowth: analytics?.activeGrowth || 0,
-            }}
-            loading={analyticsLoading}
-          />
-
-          {/* Charts Row */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Revenue Chart */}
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 sm:space-y-6">
+          {/* Enhanced Stats Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+            {/* Total Users Card */}
             <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.3 }}
-              className="bg-gray-800 border border-gray-700 rounded-xl p-6"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+              className="bg-gradient-to-br from-gray-900/90 to-gray-800/90 backdrop-blur-xl border border-gray-700/50 rounded-2xl p-6 shadow-xl"
             >
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-lg font-semibold text-white">Revenue Trend</h3>
-                <div className="flex items-center space-x-2 text-green-400">
-                  <TrendingUp className="w-4 h-4" />
-                  <span className="text-sm">+{analytics?.revenueGrowth || 0}%</span>
+              <div className="flex items-center justify-between mb-4">
+                <div className="p-3 bg-blue-500/10 rounded-xl">
+                  <Users className="w-6 h-6 text-blue-400" />
+                </div>
+                <div className={`flex items-center space-x-1 text-sm ${(analytics?.userGrowth ?? 0) > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                  {(analytics?.userGrowth ?? 0) > 0 ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
+                  <span>{analytics?.userGrowth || 0}%</span>
                 </div>
               </div>
-              
-              <ResponsiveContainer width="100%" height={300}>
-                <AreaChart data={revenueAnalytics?.dailyStats || []}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                  <XAxis dataKey="date" stroke="#9CA3AF" fontSize={12} />
-                  <YAxis stroke="#9CA3AF" fontSize={12} />
-                  <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: '#1F2937', 
-                      border: '1px solid #374151',
-                      borderRadius: '8px',
-                      color: '#fff'
-                    }} 
-                  />
-                  <Area 
-                    type="monotone" 
-                    dataKey="revenue" 
-                    stroke="#3B82F6" 
-                    fill="url(#revenueGradient)" 
-                    strokeWidth={2}
-                  />
-                  <defs>
-                    <linearGradient id="revenueGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.3}/>
-                      <stop offset="95%" stopColor="#3B82F6" stopOpacity={0}/>
-                    </linearGradient>
-                  </defs>
-                </AreaChart>
-              </ResponsiveContainer>
+              <h3 className="text-3xl font-bold text-white mb-1">{formatNumber(analytics?.totalUsers || 0)}</h3>
+              <p className="text-gray-400 text-sm">Total Users</p>
+              <div className="mt-4 h-1 bg-gray-700 rounded-full overflow-hidden">
+                <div className="h-full bg-gradient-to-r from-blue-500 to-blue-400" style={{ width: '75%' }}></div>
+              </div>
             </motion.div>
 
-            {/* User Activity Chart */}
+            {/* Active Users Card */}
             <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.4 }}
-              className="bg-gray-800 border border-gray-700 rounded-xl p-6"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="bg-gradient-to-br from-gray-900/90 to-gray-800/90 backdrop-blur-xl border border-gray-700/50 rounded-2xl p-6 shadow-xl"
             >
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-lg font-semibold text-white">User Activity</h3>
-                <div className="flex items-center space-x-2 text-blue-400">
-                  <Users className="w-4 h-4" />
-                  <span className="text-sm">{formatNumber(analytics?.activeUsers || 0)} active</span>
+              <div className="flex items-center justify-between mb-4">
+                <div className="p-3 bg-green-500/10 rounded-xl">
+                  <Eye className="w-6 h-6 text-green-400" />
+                </div>
+                <div className={`flex items-center space-x-1 text-sm ${(analytics?.activeGrowth ?? 0) > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                  {(analytics?.activeGrowth ?? 0) > 0 ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
+                  <span>{analytics?.activeGrowth || 0}%</span>
                 </div>
               </div>
-              
-              <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={userAnalytics?.dailyStats || []}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                  <XAxis dataKey="date" stroke="#9CA3AF" fontSize={12} />
-                  <YAxis stroke="#9CA3AF" fontSize={12} />
-                  <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: '#1F2937', 
-                      border: '1px solid #374151',
-                      borderRadius: '8px',
-                      color: '#fff'
-                    }} 
-                  />
-                  <Line 
-                    type="monotone" 
-                    dataKey="users" 
-                    stroke="#10B981" 
-                    strokeWidth={2}
-                    dot={{ fill: '#10B981', strokeWidth: 2, r: 4 }}
-                  />
-                  <Line 
-                    type="monotone" 
-                    dataKey="signups" 
-                    stroke="#F59E0B" 
-                    strokeWidth={2}
-                    dot={{ fill: '#F59E0B', strokeWidth: 2, r: 4 }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
+              <h3 className="text-3xl font-bold text-white mb-1">{formatNumber(analytics?.activeUsers || 0)}</h3>
+              <p className="text-gray-400 text-sm">Active Users</p>
+              <div className="mt-4 h-1 bg-gray-700 rounded-full overflow-hidden">
+                <div className="h-full bg-gradient-to-r from-green-500 to-green-400" style={{ width: '65%' }}></div>
+              </div>
+            </motion.div>
+
+            {/* Revenue Card */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className="bg-gradient-to-br from-gray-900/90 to-gray-800/90 backdrop-blur-xl border border-gray-700/50 rounded-2xl p-6 shadow-xl"
+            >
+              <div className="flex items-center justify-between mb-4">
+                <div className="p-3 bg-purple-500/10 rounded-xl">
+                  <DollarSign className="w-6 h-6 text-purple-400" />
+                </div>
+                <div className={`flex items-center space-x-1 text-sm ${(analytics?.revenueGrowth ?? 0) > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                  {(analytics?.revenueGrowth ?? 0) > 0 ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
+                  <span>{analytics?.revenueGrowth ?? 0}%</span>
+                </div>
+              </div>
+              <h3 className="text-3xl font-bold text-white mb-1">${formatNumber(analytics?.totalRevenue || 0)}</h3>
+              <p className="text-gray-400 text-sm">Total Revenue</p>
+              <div className="mt-4 h-1 bg-gray-700 rounded-full overflow-hidden">
+                <div className="h-full bg-gradient-to-r from-purple-500 to-purple-400" style={{ width: '85%' }}></div>
+              </div>
+            </motion.div>
+
+            {/* Total Trades Card */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 }}
+              className="bg-gradient-to-br from-gray-900/90 to-gray-800/90 backdrop-blur-xl border border-gray-700/50 rounded-2xl p-6 shadow-xl"
+            >
+              <div className="flex items-center justify-between mb-4">
+                <div className="p-3 bg-orange-500/10 rounded-xl">
+                  <ShoppingCart className="w-6 h-6 text-orange-400" />
+                </div>
+                <div className={`flex items-center space-x-1 text-sm ${(analytics?.tradeGrowth ?? 0) > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                  {(analytics?.tradeGrowth ?? 0) > 0 ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
+                  <span>{analytics?.tradeGrowth ?? 0}%</span>
+                </div>
+              </div>
+              <h3 className="text-3xl font-bold text-white mb-1">{formatNumber(analytics?.totalTrades || 0)}</h3>
+              <p className="text-gray-400 text-sm">Total Trades</p>
+              <div className="mt-4 h-1 bg-gray-700 rounded-full overflow-hidden">
+                <div className="h-full bg-gradient-to-r from-orange-500 to-orange-400" style={{ width: '70%' }}></div>
+              </div>
             </motion.div>
           </div>
 
-          {/* Bottom Row */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* System Health */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5 }}
-              className="bg-gray-800 border border-gray-700 rounded-xl p-6"
-            >
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-lg font-semibold text-white">System Health</h3>
-                {systemHealth && (
-                  <div className={`flex items-center space-x-2 ${getStatusColor(systemHealth.status)}`}>
-                    {(() => {
-                      const StatusIcon = getStatusIcon(systemHealth.status);
-                      return <StatusIcon className="w-4 h-4" />;
-                    })()}
-                    <span className="text-sm capitalize">{systemHealth.status}</span>
-                  </div>
-                )}
+          {/* Charts Section */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+            {/* User Growth Chart */}
+            <div className="bg-gray-900/90 backdrop-blur-xl border border-gray-700/50 rounded-2xl p-4 sm:p-6">
+              <h3 className="text-lg font-semibold text-white mb-4">User Growth</h3>
+              <div className="h-[300px] sm:h-[400px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={userAnalytics?.data || []}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                    <XAxis dataKey="date" stroke="#9CA3AF" />
+                    <YAxis stroke="#9CA3AF" />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: 'rgba(17, 24, 39, 0.9)',
+                        border: '1px solid rgba(75, 85, 99, 0.5)',
+                        borderRadius: '0.5rem',
+                      }}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="users"
+                      stroke="#3B82F6"
+                      strokeWidth={2}
+                      dot={false}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
               </div>
-              
-              {systemHealth && (
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-400">Uptime</span>
-                    <span className="text-white font-medium">{systemHealth.uptime}%</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-400">Response Time</span>
-                    <span className="text-white font-medium">{systemHealth.responseTime}ms</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-400">CPU Usage</span>
-                    <span className="text-white font-medium">{systemHealth.cpuUsage}%</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-400">Memory Usage</span>
-                    <span className="text-white font-medium">{systemHealth.memoryUsage}%</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-400">API Calls (24h)</span>
-                    <span className="text-white font-medium">{formatNumber(systemHealth.apiCalls24h)}</span>
-                  </div>
-                </div>
-              )}
-            </motion.div>
+            </div>
 
-            {/* Top Trading Pairs */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.6 }}
-              className="bg-gray-800 border border-gray-700 rounded-xl p-6"
-            >
-              <h3 className="text-lg font-semibold text-white mb-6">Top Trading Pairs</h3>
-              
+            {/* Revenue Chart */}
+            <div className="bg-gray-900/90 backdrop-blur-xl border border-gray-700/50 rounded-2xl p-4 sm:p-6">
+              <h3 className="text-lg font-semibold text-white mb-4">Revenue</h3>
+              <div className="h-[300px] sm:h-[400px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={revenueAnalytics?.data || []}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                    <XAxis dataKey="date" stroke="#9CA3AF" />
+                    <YAxis stroke="#9CA3AF" />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: 'rgba(17, 24, 39, 0.9)',
+                        border: '1px solid rgba(75, 85, 99, 0.5)',
+                        borderRadius: '0.5rem',
+                      }}
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="revenue"
+                      stroke="#10B981"
+                      fill="#10B981"
+                      fillOpacity={0.2}
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          </div>
+
+          {/* Activity Feed and System Health */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+            {/* Activity Feed */}
+            <div className="bg-gray-900/90 backdrop-blur-xl border border-gray-700/50 rounded-2xl p-4 sm:p-6">
+              <h3 className="text-lg font-semibold text-white mb-4">Recent Activity</h3>
               <div className="space-y-4">
-                {tradeAnalytics?.topTradingPairs?.slice(0, 4).map((pair) => (
-                  <div key={pair.pair} className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-                      <span className="text-white font-medium">{pair.pair}</span>
+                {activityFeed?.map((activity) => (
+                  <div
+                    key={activity.id}
+                    className="flex items-start space-x-3 p-3 rounded-lg bg-gray-800/50"
+                  >
+                    <div className="flex-shrink-0">
+                      <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center">
+                        <ActivityIcon className="w-4 h-4 text-blue-400" />
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <div className="text-white font-medium">{formatNumber(pair.count)}</div>
-                      <div className="text-xs text-gray-400">${formatNumber(pair.volume / 1000000)}M</div>
-                    </div>
-                  </div>
-                )) || (
-                  <div className="text-center py-4 text-gray-400">
-                    No trading data available
-                  </div>
-                )}
-              </div>
-            </motion.div>
-
-            {/* Recent Activity */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.7 }}
-              className="bg-gray-800 border border-gray-700 rounded-xl p-6"
-            >
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-lg font-semibold text-white">Recent Activity</h3>
-                <ActivityIcon className="w-5 h-5 text-gray-400" />
-              </div>
-              
-              <div className="space-y-4 max-h-80 overflow-y-auto">
-                {activityFeed?.slice(0, 5).map((activity) => (
-                  <div key={activity.id} className="flex items-start space-x-3">
-                    <div className="w-2 h-2 rounded-full bg-green-500 mt-2 flex-shrink-0"></div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm text-white">{activity.description}</p>
                       <p className="text-xs text-gray-400 mt-1">
-                        {activity.userName} • {timeAgo(new Date(activity.timestamp))}
+                        {timeAgo(new Date(activity.timestamp))}
                       </p>
                     </div>
                   </div>
-                )) || (
-                  <div className="text-center py-4 text-gray-400">
-                    No recent activity
-                  </div>
-                )}
+                ))}
               </div>
-            </motion.div>
+            </div>
+
+            {/* System Health */}
+            <div className="bg-gray-900/90 backdrop-blur-xl border border-gray-700/50 rounded-2xl p-4 sm:p-6">
+              <h3 className="text-lg font-semibold text-white mb-4">System Health</h3>
+              <div className="h-[300px] sm:h-[400px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <RadarChart data={performanceData}>
+                    <PolarGrid stroke="#374151" />
+                    <PolarAngleAxis dataKey="metric" stroke="#9CA3AF" />
+                    <PolarRadiusAxis stroke="#9CA3AF" />
+                    <Radar
+                      name="Performance"
+                      dataKey="value"
+                      stroke="#3B82F6"
+                      fill="#3B82F6"
+                      fillOpacity={0.2}
+                    />
+                  </RadarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
           </div>
         </main>
       </div>

@@ -34,6 +34,9 @@ export class AuthService {
     if (!validatedUser)
       throw new UnauthorizedException('Error during login process');
 
+    // Update lastLoginAt
+    await this.usersService.updateLastLogin(validatedUser.id);
+
     const payload: JwtPayload = {
       email: validatedUser.email,
       sub: validatedUser.id,

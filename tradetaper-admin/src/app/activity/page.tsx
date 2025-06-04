@@ -202,7 +202,12 @@ export default function ActivityPage() {
             {/* Live Activity Feed */}
             <div className="lg:col-span-2">
               <LiveActivityFeed 
-                activities={activityFeed || []} 
+                activities={(activityFeed || []).map(activity => ({
+                  ...activity,
+                  userId: activity.user?.id || 'unknown',
+                  userName: activity.user?.name || 'Unknown User',
+                  type: activity.type as 'login' | 'trade_created' | 'trade_closed' | 'subscription_changed' | 'image_uploaded'
+                }))} 
                 loading={isLoading}
                 onRefresh={handleRefresh}
               />

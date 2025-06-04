@@ -229,7 +229,7 @@ export default function SubscriptionsPage() {
               </div>
               
               <ResponsiveContainer width="100%" height={300}>
-                <AreaChart data={revenueAnalytics?.dailyStats || monthlyRevenueData}>
+                <AreaChart data={revenueAnalytics?.data || monthlyRevenueData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                   <XAxis dataKey="date" stroke="#9CA3AF" fontSize={12} />
                   <YAxis stroke="#9CA3AF" fontSize={12} />

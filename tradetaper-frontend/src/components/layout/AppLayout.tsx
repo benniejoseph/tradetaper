@@ -1,6 +1,6 @@
 // src/components/layout/AppLayout.tsx
 "use client";
-import React, { ReactNode, useState } from 'react';
+import React, { ReactNode, useState, useEffect } from 'react';
 import Sidebar from './Sidebar';
 // import Header from './Header'; // This is the existing mobile-only header, currently commented out
 import ContentHeader from './ContentHeader'; // Import the new ContentHeader
@@ -14,6 +14,7 @@ interface AppLayoutProps {
 
 export default function AppLayout({ children }: AppLayoutProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
   // Initialize WebSocket connection for the entire app
   useWebSocket({
@@ -23,6 +24,20 @@ export default function AppLayout({ children }: AppLayoutProps) {
     onError: (error) => console.error('WebSocket error:', error),
   });
 
+  // Handle responsive behavior
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+      if (window.innerWidth >= 768) {
+        setIsSidebarOpen(false);
+      }
+    };
+
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
   };
@@ -31,12 +46,12 @@ export default function AppLayout({ children }: AppLayoutProps) {
     <ProtectedRoute>
       <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-green-50 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800">
         {/* Sidebar */}
-        <Sidebar isOpen={isSidebarOpen} toggleSidebar={toggleSidebar} />
+        <Sidebar isOpen={isSidebarOpen} toggleSidebar={toggleSidebar} isMobile={isMobile} />
         
         {/* Main Content Area */}
-        <div className="md:ml-64">
+        <div className={`transition-all duration-300 ${isMobile ? 'ml-0' : 'md:ml-64'}`}>
           {/* Content Header */}
-          <ContentHeader toggleSidebar={toggleSidebar} />
+          <ContentHeader toggleSidebar={toggleSidebar} isMobile={isMobile} />
           
           {/* Page Content */}
           <main className="p-4 md:p-6 lg:p-8 max-w-full">
@@ -48,7 +63,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
 
         {/* Global Toast Notifications */}
         <Toaster
-          position="top-right"
+          position={isMobile ? "top-center" : "top-right"}
           toastOptions={{
             duration: 4000,
             style: {
@@ -57,6 +72,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
               border: '1px solid rgba(229, 231, 235, 0.5)',
               borderRadius: '12px',
               boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+              maxWidth: isMobile ? '90vw' : '400px',
             },
             success: {
               iconTheme: {

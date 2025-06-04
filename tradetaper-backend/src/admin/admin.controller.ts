@@ -7,17 +7,16 @@ import {
   ParseIntPipe,
   DefaultValuePipe,
 } from '@nestjs/common';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { AdminGuard } from '../auth/guards/admin.guard';
 import { AdminService } from './admin.service';
 
-@UseGuards(JwtAuthGuard)
+@UseGuards(AdminGuard)
 @Controller('admin')
 export class AdminController {
   constructor(private readonly adminService: AdminService) {}
 
   @Get('dashboard-stats')
-  async getDashboardStats(@Request() req) {
-    // TODO: Add admin role check
+  async getDashboardStats() {
     return this.adminService.getDashboardStats();
   }
 
