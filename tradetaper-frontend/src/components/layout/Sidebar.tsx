@@ -79,12 +79,12 @@ export default function Sidebar({ isOpen, toggleSidebar, isMobile }: SidebarProp
             </Link>
             
             {isMobile && (
-              <button 
-                onClick={toggleSidebar} 
+            <button 
+              onClick={toggleSidebar} 
                 className="p-2 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 transition-colors duration-200"
-                aria-label="Close sidebar">
-                <FaTimes className="h-4 w-4" />
-              </button>
+              aria-label="Close sidebar">
+              <FaTimes className="h-4 w-4" />
+            </button>
             )}
           </div>
         </div>
@@ -203,25 +203,25 @@ export default function Sidebar({ isOpen, toggleSidebar, isMobile }: SidebarProp
         {/* Footer Section */}
         <div className="p-4 border-t border-gray-200/50 dark:border-gray-700/50">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
+              <div className="flex items-center space-x-3">
               <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-green-500 flex items-center justify-center text-white">
                 <FaUserCircle className="w-5 h-5" />
-              </div>
+                  </div>
               <div>
                 <p className="text-sm font-medium text-gray-900 dark:text-white">
                   {user?.firstName || user?.email?.split('@')[0] || 'User'}
-                </p>
+                  </p>
                 <p className="text-xs text-gray-500 dark:text-gray-400">
                   {user?.email || 'user@example.com'}
-                </p>
+                  </p>
               </div>
             </div>
-            <button
-              onClick={handleLogout}
+          <button
+            onClick={handleLogout}
               className="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:text-red-500 dark:hover:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-200"
               aria-label="Logout">
               <FaSignOutAlt className="w-5 h-5" />
-            </button>
+          </button>
           </div>
         </div>
       </aside>

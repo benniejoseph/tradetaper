@@ -49,6 +49,76 @@
     @apply transition-colors duration-300 ease-in-out; /* Smooth theme transition */
   }
 
+  /* Fix for dropdown and modal alignment issues */
+  .react-select__menu {
+    z-index: 9999 !important;
+  }
+
+  .react-select__menu-portal {
+    z-index: 9999 !important;
+  }
+
+  /* Ensure dropdowns don't get cut off */
+  .react-select__control {
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Fix for date picker overlays */
+  .react-datepicker-popper {
+    z-index: 9998 !important;
+  }
+
+  .react-datepicker__portal {
+    z-index: 9998 !important;
+  }
+
+  /* Ensure modals are properly centered and responsive */
+  .modal-overlay {
+    @apply fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center p-4;
+    z-index: 50;
+  }
+
+  .modal-content {
+    @apply bg-white dark:bg-gray-900 rounded-xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto;
+  }
+
+  /* Fix for mobile dropdown alignment */
+  @media (max-width: 640px) {
+    .react-select__menu {
+      position: fixed !important;
+      top: auto !important;
+      bottom: 10px !important;
+      left: 10px !important;
+      right: 10px !important;
+      max-height: 50vh !important;
+    }
+  }
+
+  /* Custom scrollbar for better UX */
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(155, 155, 155, 0.5) transparent;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background-color: rgba(155, 155, 155, 0.5);
+    border-radius: 20px;
+    border: transparent;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(155, 155, 155, 0.7);
+  }
+
   /* Make thin text a bit more legible if needed, or specific elements can use heavier weights */
   h1, h2, h3, h4, h5, h6 {
     font-weight: 500; /* Medium for headings */

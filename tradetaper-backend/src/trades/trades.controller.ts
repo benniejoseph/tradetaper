@@ -54,4 +54,29 @@ export class TradesController {
   remove(@Param("id", ParseUUIDPipe) id: string, @Request() req): Promise<void> {
     return this.tradesService.remove(id, req.user);
   }
+
+  // Bulk operations
+  @Post("bulk/delete")
+  @HttpCode(HttpStatus.OK)
+  bulkDelete(@Body() body: { tradeIds: string[] }, @Request() req): Promise<{ deletedCount: number }> {
+    return this.tradesService.bulkDelete(body.tradeIds, req.user);
+  }
+
+  @Post("bulk/update")
+  @HttpCode(HttpStatus.OK)
+  bulkUpdate(
+    @Body() body: { updates: { id: string; data: Partial<UpdateTradeDto> }[] },
+    @Request() req
+  ): Promise<{ updatedCount: number; trades: Trade[] }> {
+    return this.tradesService.bulkUpdate(body.updates, req.user);
+  }
+
+  @Post("bulk/import")
+  @HttpCode(HttpStatus.CREATED)
+  bulkImport(
+    @Body() body: { trades: CreateTradeDto[] },
+    @Request() req
+  ): Promise<{ importedCount: number; trades: Trade[] }> {
+    return this.tradesService.bulkImport(body.trades, req.user);
+  }
 }

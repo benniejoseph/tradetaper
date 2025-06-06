@@ -142,15 +142,25 @@ export class TradesService {
     const whereClause: FindManyOptions<Trade>['where'] = {
       userId: userContext.id,
     };
+    
     if (accountId) {
+      // Filter by specific account
       whereClause.accountId = accountId;
     }
-    return this.tradesRepository.find({
+    // If no accountId specified, return all trades (including those with null accountId)
+    
+    const trades = await this.tradesRepository.find({
       where: whereClause,
       relations: ['tags'],
       order: { entryDate: 'DESC' },
       ...options,
     });
+
+    this.logger.log(
+      `Found ${trades.length} trades for user ${userContext.id}, account filter: ${accountId || 'all'}`,
+    );
+
+    return trades;
   }
 
   async findOne(id: string, userContext: UserResponseDto): Promise<Trade> {

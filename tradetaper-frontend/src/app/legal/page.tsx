@@ -45,16 +45,16 @@ const LegalDocumentCard = ({
     
     <div className="relative z-10">
       <div className={`w-16 h-16 rounded-2xl ${gradient} flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300 shadow-lg`}>
-        <Icon className="text-2xl text-white" />
-      </div>
+      <Icon className="text-2xl text-white" />
+    </div>
       
       <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-3 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-        {title}
-      </h3>
+      {title}
+    </h3>
       
       <p className="text-gray-600 dark:text-gray-400 leading-relaxed mb-6 text-lg">
-        {description}
-      </p>
+      {description}
+    </p>
       
       <div className="flex items-center justify-between">
         <div className="text-sm text-gray-500 dark:text-gray-500">
@@ -65,8 +65,8 @@ const LegalDocumentCard = ({
           </div>
         </div>
         
-        <div className="flex items-center text-blue-600 dark:text-blue-400 font-medium group-hover:translate-x-2 transition-transform duration-300">
-          Read document <FaArrowRight className="ml-2 text-sm" />
+    <div className="flex items-center text-blue-600 dark:text-blue-400 font-medium group-hover:translate-x-2 transition-transform duration-300">
+      Read document <FaArrowRight className="ml-2 text-sm" />
         </div>
       </div>
     </div>
@@ -245,32 +245,32 @@ export default function LegalIndexPage() {
           <div className="relative z-10">
             <div className="bg-white/10 backdrop-blur-sm rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-6">
               <FaQuestionCircle className="text-4xl text-white" />
-            </div>
-            
+          </div>
+          
             <h2 className="text-3xl font-bold text-white mb-4">
               Have Questions About Our Policies?
-            </h2>
-            
+          </h2>
+          
             <p className="text-xl text-white/90 mb-8 leading-relaxed max-w-2xl mx-auto">
               Our legal team is here to help clarify any questions you may have about our terms, 
               privacy practices, or compliance measures.
-            </p>
-            
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link
-                href="/support"
+          </p>
+          
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Link
+              href="/support"
                 className="inline-flex items-center justify-center px-8 py-4 bg-white text-blue-600 rounded-xl hover:bg-gray-100 transition-all duration-300 transform hover:scale-105 shadow-lg font-semibold"
-              >
-                <FaQuestionCircle className="mr-2" />
-                Visit Support Center
-              </Link>
-              
-              <a
-                href="mailto:legal@tradetaper.com"
+            >
+              <FaQuestionCircle className="mr-2" />
+              Visit Support Center
+            </Link>
+            
+            <a
+              href="mailto:legal@tradetaper.com"
                 className="inline-flex items-center justify-center px-8 py-4 bg-white/10 backdrop-blur-sm text-white border-2 border-white/30 rounded-xl hover:bg-white/20 transition-all duration-300 font-semibold"
-              >
-                Contact Legal Team
-              </a>
+            >
+              Contact Legal Team
+            </a>
             </div>
           </div>
         </div>
@@ -280,7 +280,7 @@ export default function LegalIndexPage() {
       <div className="bg-gray-100 dark:bg-gray-900 py-8">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center text-sm text-gray-600 dark:text-gray-400">
-            <p>All legal documents are regularly reviewed and updated to ensure compliance and clarity.</p>
+          <p>All legal documents are regularly reviewed and updated to ensure compliance and clarity.</p>
             <p className="mt-1 font-medium">Last comprehensive review: December 2024</p>
           </div>
         </div>

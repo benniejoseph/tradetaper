@@ -16,6 +16,10 @@ import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 import { ContentModule } from './content/content.module';
 import { AdminModule } from './admin/admin.module';
 import { Subscription } from './subscriptions/entities/subscription.entity';
+import { User } from './users/entities/user.entity';
+import { Trade } from './trades/entities/trade.entity';
+import { Tag } from './tags/entities/tag.entity';
+import { MT5Account } from './users/entities/mt5-account.entity';
 // import { ServeStaticModule } from '@nestjs/serve-static';
 // import { join } from 'path';
 
@@ -29,39 +33,35 @@ import { Subscription } from './subscriptions/entities/subscription.entity';
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => {
-        // Check if DATABASE_URL is provided (common in deployment platforms)
-        const databaseUrl = configService.get<string>('DATABASE_URL');
+        const isProduction = configService.get<string>('NODE_ENV') === 'production';
         
-        if (databaseUrl) {
-          // Parse DATABASE_URL for platforms like Railway, Render, Heroku
+        // Using DATABASE_URL for production (Railway, Heroku, etc)
+        if (isProduction && configService.get<string>('DATABASE_URL')) {
           return {
             type: 'postgres',
-            url: databaseUrl,
-            entities: [__dirname + '/**/*.entity{.ts,.js}'],
-            synchronize:
-              configService.get<string>('TYPEORM_SYNCHRONIZE') === 'true' ||
-              configService.get<string>('NODE_ENV') !== 'production',
-            ssl: configService.get<string>('NODE_ENV') === 'production' ? {
-              rejectUnauthorized: false,
-            } : false,
+            url: configService.get<string>('DATABASE_URL'),
+            entities: [User, Trade, Tag, MT5Account],
+            synchronize: false, // Never auto-sync in production!
+            ssl: {
+              rejectUnauthorized: false // Required for Railway and some other providers
+            },
+            migrations: [__dirname + '/migrations/**/*{.ts,.js}'],
+            migrationsRun: true,
           };
         }
         
-        // Fallback to individual database variables
+        // Using individual DB config params for development
         return {
           type: 'postgres',
           host: configService.get<string>('DB_HOST', 'localhost'),
-          port: configService.get<number>('DB_PORT', 5435),
-          username: configService.get<string>('DB_USERNAME', 'bennie'),
-          password: configService.get<string>('DB_PASSWORD', 'tradetaperpass'),
-          database: configService.get<string>('DB_DATABASE', 'tradetaper_dev'),
-          entities: [__dirname + '/**/*.entity{.ts,.js}'],
-          synchronize:
-            configService.get<string>('TYPEORM_SYNCHRONIZE') === 'true' ||
-            configService.get<string>('NODE_ENV') !== 'production',
-          ssl: configService.get<string>('NODE_ENV') === 'production' ? {
-            rejectUnauthorized: false,
-          } : false,
+          port: configService.get<number>('DB_PORT', 5432),
+          username: configService.get<string>('DB_USERNAME', 'postgres'),
+          password: configService.get<string>('DB_PASSWORD', 'postgres'),
+          database: configService.get<string>('DB_DATABASE', 'trading_journal'),
+          entities: [User, Trade, Tag, MT5Account],
+          synchronize: configService.get<string>('NODE_ENV') !== 'production',
+          migrations: [__dirname + '/migrations/**/*{.ts,.js}'],
+          migrationsRun: true,
         };
       },
     }),

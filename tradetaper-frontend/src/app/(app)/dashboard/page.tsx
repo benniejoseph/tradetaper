@@ -6,10 +6,13 @@ import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '@/store/store';
 import { fetchTrades } from '@/store/features/tradesSlice';
 import { selectSelectedAccountId } from '@/store/features/accountSlice';
+import { selectSelectedMT5AccountId } from '@/store/features/mt5AccountsSlice';
 import Link from 'next/link';
 import { calculateDashboardStats, calculateEquityCurveData } from '@/utils/analytics';
 import { useTheme } from '@/context/ThemeContext';
 import DashboardCard from '@/components/dashboard/DashboardCard';
+import { AnimatedCard, MetricCard } from '@/components/ui/AnimatedCard';
+import { AnimatedButton, FloatingActionButton } from '@/components/ui/AnimatedButton';
 import { TradeStatus } from '@/types/trade';
 import { format as formatDateFns, subDays, isAfter, parseISO } from 'date-fns';
 import { 
@@ -18,7 +21,8 @@ import {
     FaDotCircle, FaChartLine, FaPlus, FaBookOpen, FaCalendarAlt, FaListOl,
     FaChartPie, FaExchangeAlt, FaSync, FaCog, FaShareAlt, FaBell, FaCalendarDay,
     FaRocket, FaArrowUp, FaWallet, FaEye
-} from 'react-icons/fa'; 
+} from 'react-icons/fa';
+import { CurrencyAmount } from '@/components/common/CurrencyAmount'; 
 import { 
     ResponsiveContainer, LineChart, Line, XAxis, YAxis, 
     Tooltip, Area, ComposedChart, CartesianGrid, Legend,
@@ -43,6 +47,7 @@ export default function DashboardPage() {
   const { trades, isLoading: tradesLoading } = useSelector((state: RootState) => state.trades);
   const { user, isAuthenticated } = useSelector((state: RootState) => state.auth);
   const selectedAccountId = useSelector(selectSelectedAccountId);
+  const selectedMT5AccountId = useSelector(selectSelectedMT5AccountId);
   const { theme } = useTheme();
   const [timeRange, setTimeRange] = useState('All'); // Default to 'All'
   const [isSetTargetModalOpen, setIsSetTargetModalOpen] = useState(false);
@@ -51,9 +56,11 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (isAuthenticated) {
-      dispatch(fetchTrades(selectedAccountId || undefined));
+      // Get the actual selected account ID (could be MT5 or regular account)
+      const currentAccountId = selectedAccountId || selectedMT5AccountId;
+      dispatch(fetchTrades(currentAccountId || undefined));
     }
-  }, [dispatch, isAuthenticated, selectedAccountId]);
+  }, [dispatch, isAuthenticated, selectedAccountId, selectedMT5AccountId]);
 
   const filteredTrades = useMemo(() => {
     const days = timeRangeDaysMapping[timeRange];
@@ -163,86 +170,114 @@ export default function DashboardPage() {
 
   if (tradesLoading && trades.length === 0 && !dashboardStats) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-500 mx-auto mb-4"></div>
-          <p className="text-gray-600 dark:text-gray-300 text-lg">Loading your trading dashboard...</p>
-        </div>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-green-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+        <AnimatedCard variant="glass" hoverEffect="pulse" className="text-center backdrop-blur-xl bg-white/10 dark:bg-gray-800/10">
+          <div className="relative">
+            <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-500/30 border-t-blue-500 mx-auto mb-4"></div>
+            <div className="absolute inset-0 rounded-full bg-blue-500/20 animate-ping"></div>
+          </div>
+          <p className="text-gray-600 dark:text-gray-300 text-lg font-medium">Loading your trading dashboard...</p>
+          <div className="mt-4 flex justify-center space-x-1">
+            <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"></div>
+            <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
+            <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
+          </div>
+        </AnimatedCard>
       </div>
     );
   }
 
   return (
-    <div className="space-y-8">
-      {/* Welcome Header */}
-      <div className="text-center space-y-4">
-        <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-blue-600 to-green-600 bg-clip-text text-transparent">
-          Welcome back, {user?.firstName || user?.email?.split('@')[0] || 'Trader'}!
-            </h1>
-        <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
-          Here&apos;s your trading performance overview. Track your progress and optimize your strategy.
-        </p>
-      </div>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50/50 via-white to-green-50/50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+      <div className="space-y-8 relative z-10">
+        {/* Welcome Header with Animation */}
+        <AnimatedCard 
+          variant="glass" 
+          hoverEffect="glow" 
+          className="text-center space-y-4 bg-white/5 dark:bg-gray-800/5 backdrop-blur-xl border border-white/10 dark:border-gray-700/10"
+        >
+          <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-blue-600 to-green-600 bg-clip-text text-transparent">
+            Welcome back, {user?.firstName || user?.email?.split('@')[0] || 'Trader'}!
+          </h1>
+          <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
+            Here&apos;s your trading performance overview. Track your progress and optimize your strategy.
+          </p>
+        </AnimatedCard>
 
-      {/* Quick Action Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Link href="/journal/new" 
-              className="group relative bg-gradient-to-br from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white p-6 rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 overflow-hidden">
-          <div className="relative z-10">
-            <div className="flex items-center justify-between mb-4">
-              <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
-                <FaPlus className="w-6 h-6" />
+        {/* Quick Action Cards - Now with stunning animations */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <AnimatedCard 
+            variant="gradient" 
+            hoverEffect="lift" 
+            delay={0.1}
+            className="bg-gradient-to-br from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white overflow-hidden"
+            onClick={() => window.location.href = '/journal/new'}
+          >
+            <div className="relative z-10">
+              <div className="flex items-center justify-between mb-4">
+                <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
+                  <FaPlus className="w-6 h-6" />
+                </div>
+                <div className="text-right">
+                  <div className="text-sm opacity-80">Quick Action</div>
+                  <div className="text-lg font-semibold">Log Trade</div>
+                </div>
               </div>
-              <div className="text-right">
-                <div className="text-sm opacity-80">Quick Action</div>
-                <div className="text-lg font-semibold">Log Trade</div>
-              </div>
+              <p className="text-blue-100">Record a new trade with all the details</p>
             </div>
-            <p className="text-blue-100">Record a new trade with all the details</p>
-          </div>
-          <div className="absolute -top-4 -right-4 w-24 h-24 bg-white/10 rounded-full blur-xl"></div>
-                </Link>
+            <div className="absolute -top-4 -right-4 w-24 h-24 bg-white/10 rounded-full blur-xl"></div>
+          </AnimatedCard>
 
-        <Link href="/trades" 
-              className="group relative bg-gradient-to-br from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white p-6 rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 overflow-hidden">
-          <div className="relative z-10">
-            <div className="flex items-center justify-between mb-4">
-              <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
-                <FaBookOpen className="w-6 h-6" />
+          <AnimatedCard 
+            variant="gradient" 
+            hoverEffect="lift" 
+            delay={0.2}
+            className="bg-gradient-to-br from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white overflow-hidden"
+            onClick={() => window.location.href = '/trades'}
+          >
+            <div className="relative z-10">
+              <div className="flex items-center justify-between mb-4">
+                <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
+                  <FaBookOpen className="w-6 h-6" />
+                </div>
+                <div className="text-right">
+                  <div className="text-sm opacity-80">View All</div>
+                  <div className="text-lg font-semibold">Journal</div>
+                </div>
               </div>
-              <div className="text-right">
-                <div className="text-sm opacity-80">View All</div>
-                <div className="text-lg font-semibold">Journal</div>
-              </div>
+              <p className="text-green-100">Review your complete trading journal</p>
             </div>
-            <p className="text-green-100">Review your complete trading journal</p>
-          </div>
-          <div className="absolute -top-4 -right-4 w-24 h-24 bg-white/10 rounded-full blur-xl"></div>
-                </Link>
+            <div className="absolute -top-4 -right-4 w-24 h-24 bg-white/10 rounded-full blur-xl"></div>
+          </AnimatedCard>
 
-        <Link href="/analytics" 
-              className="group relative bg-gradient-to-br from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white p-6 rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 overflow-hidden">
-          <div className="relative z-10">
-            <div className="flex items-center justify-between mb-4">
-              <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
-                <FaChartLine className="w-6 h-6" />
+          <AnimatedCard 
+            variant="gradient" 
+            hoverEffect="lift" 
+            delay={0.3}
+            className="bg-gradient-to-br from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white overflow-hidden"
+            onClick={() => window.location.href = '/analytics'}
+          >
+            <div className="relative z-10">
+              <div className="flex items-center justify-between mb-4">
+                <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
+                  <FaChartLine className="w-6 h-6" />
+                </div>
+                <div className="text-right">
+                  <div className="text-sm opacity-80">Deep Dive</div>
+                  <div className="text-lg font-semibold">Analytics</div>
+                </div>
               </div>
-              <div className="text-right">
-                <div className="text-sm opacity-80">Deep Dive</div>
-                <div className="text-lg font-semibold">Analytics</div>
-              </div>
+              <p className="text-purple-100">Advanced performance insights</p>
             </div>
-            <p className="text-purple-100">Advanced performance insights</p>
-          </div>
-          <div className="absolute -top-4 -right-4 w-24 h-24 bg-white/10 rounded-full blur-xl"></div>
-        </Link>
-      </div>
+            <div className="absolute -top-4 -right-4 w-24 h-24 bg-white/10 rounded-full blur-xl"></div>
+          </AnimatedCard>
+        </div>
 
-      {/* Main Dashboard Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-6">
-        
-        {/* Balance Card */}
-        <DashboardCard 
+        {/* Main Dashboard Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-6">
+          
+          {/* Balance Card */}
+          <DashboardCard 
           title="Portfolio Balance" 
           icon={FaWallet}
           showTimeRangeSelector 
@@ -253,9 +288,9 @@ export default function DashboardPage() {
           <div className="space-y-4">
             <div>
               <div className="flex items-baseline space-x-3">
-                <p className="text-3xl font-bold text-gray-900 dark:text-white">
-                  ${dashboardStats?.currentBalance?.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) || '0.00'}
-                </p>
+                <div className="text-3xl font-bold text-gray-900 dark:text-white">
+                  <CurrencyAmount amount={dashboardStats?.currentBalance || 0} />
+                </div>
                 <span className={`px-2 py-1 rounded-lg text-sm font-medium ${
                   periodMetrics.balancePercentageChange >= 0 
                     ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' 
@@ -265,8 +300,8 @@ export default function DashboardPage() {
                 </span>
               </div>
               <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                Initial: ${periodMetrics.initialBalanceForPeriod?.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) || '0.00'} • 
-                Net P&L: ${dashboardStats?.totalNetPnl?.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) || '0.00'}
+                Initial: <CurrencyAmount amount={periodMetrics.initialBalanceForPeriod || 0} className="inline" /> • 
+                Net P&L: <CurrencyAmount amount={dashboardStats?.totalNetPnl || 0} className="inline" />
               </p>
               </div>
 
@@ -288,7 +323,7 @@ export default function DashboardPage() {
                     }} 
                     labelStyle={{color: rechartsTextFill, fontWeight: 'bold'}}
                     itemStyle={{color: '#3B82F6'}}
-                    formatter={(value: number) => [`$${value.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}`, "Balance"]}
+                    formatter={(value: number, name: string) => [`$${value.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}`, name]}
                   />
                   <Line type="monotone" dataKey="value" stroke="#3B82F6" strokeWidth={3} dot={false} />
                   <Area type="monotone" dataKey="value" stroke="none" fillOpacity={1} fill="url(#balanceGradient)" />
@@ -307,11 +342,11 @@ export default function DashboardPage() {
         >
           <div className="space-y-4">
             <div className="flex items-baseline space-x-2">
-              <p className="text-3xl font-bold text-gray-900 dark:text-white">
-                ${personalTargetCurrent.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
-              </p>
+              <div className="text-3xl font-bold text-gray-900 dark:text-white">
+                <CurrencyAmount amount={personalTargetCurrent} />
+              </div>
               <span className="text-sm text-gray-500 dark:text-gray-400">
-                / ${personalTargetGoal.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                / <CurrencyAmount amount={personalTargetGoal} className="inline" />
               </span>
             </div>
             
@@ -331,11 +366,17 @@ export default function DashboardPage() {
               </div>
             </div>
             
-            <button 
+            <AnimatedButton 
               onClick={handleOpenSetTargetModal}
-              className="w-full bg-gradient-to-r from-blue-500 to-green-500 hover:from-blue-600 hover:to-green-600 text-white py-2.5 px-4 rounded-xl font-semibold transition-all duration-200 shadow-lg hover:shadow-xl">
+              variant="gradient"
+              size="lg"
+              fullWidth
+              className="bg-gradient-to-r from-blue-500 to-green-500 hover:from-blue-600 hover:to-green-600"
+              ripple
+              glow
+            >
               Update Target
-            </button>
+            </AnimatedButton>
           </div>
         </DashboardCard>
         
@@ -351,13 +392,13 @@ export default function DashboardPage() {
         >
           <div className="space-y-4">
             <div className="flex items-baseline space-x-3">
-              <p className={`text-3xl font-bold ${
+              <div className={`text-3xl font-bold ${
                 (dashboardStats?.totalNetPnl || 0) >= 0 
                   ? 'text-green-600 dark:text-green-400' 
                   : 'text-red-600 dark:text-red-400'
               }`}>
-                {(dashboardStats?.totalNetPnl || 0) >= 0 ? '+' : ''}${dashboardStats?.totalNetPnl?.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) || '0.00'}
-              </p>
+                {(dashboardStats?.totalNetPnl || 0) >= 0 ? '+' : ''}<CurrencyAmount amount={dashboardStats?.totalNetPnl || 0} className="inline" />
+              </div>
               <span className={`px-2 py-1 rounded-lg text-sm font-medium ${
                 periodMetrics.roiPercentage >= 0 
                   ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' 
@@ -382,7 +423,7 @@ export default function DashboardPage() {
                       : 'text-red-600 dark:text-red-400'
                   }`}>
                     {item.value !== undefined && item.value !== null ? 
-                      `${item.isPositive && item.value > 0 ? '+' : ''}$${Math.abs(item.value).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}` : 'N/A'}
+                      <>{item.isPositive && item.value > 0 ? '+' : ''}<CurrencyAmount amount={Math.abs(item.value)} className="inline" /></> : 'N/A'}
                   </span>
                 </div>
               ))}
@@ -447,7 +488,7 @@ export default function DashboardPage() {
                   }} 
                   labelStyle={{color: rechartsTextFill, fontWeight: 'bold'}}
                   itemStyle={{color: '#3B82F6'}}
-                  formatter={(value: number) => [`$${value.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}`, "Balance"]} 
+                  formatter={(value: number, name: string) => [`$${value.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}`, name]} 
                 />
                 <Area 
                   type="monotone" 
@@ -542,14 +583,16 @@ export default function DashboardPage() {
         >
           <div className="space-y-4">
             {[
-              { label: 'Total Commissions', value: `$${dashboardStats?.totalCommissions?.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) || '0.00'}`, color: 'text-gray-900 dark:text-white' },
-              { label: 'Avg Fees per Trade', value: `$${(dashboardStats?.totalCommissions && dashboardStats?.closedTrades ? dashboardStats.totalCommissions / dashboardStats.closedTrades : 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`, color: 'text-gray-900 dark:text-white' },
-              { label: 'P&L to Fees Ratio', value: (dashboardStats?.totalNetPnl && dashboardStats?.totalCommissions && dashboardStats.totalCommissions !== 0 ? (dashboardStats.totalNetPnl / dashboardStats.totalCommissions).toFixed(2) : '0.00'), color: (dashboardStats?.totalNetPnl && dashboardStats?.totalCommissions && (dashboardStats.totalNetPnl / dashboardStats.totalCommissions) < 1 && dashboardStats.totalCommissions !==0) ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400' },
-              { label: 'Avg Fees per Day', value: `$${avgFeesPerDay.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`, color: 'text-gray-900 dark:text-white' },
+              { label: 'Total Commissions', value: dashboardStats?.totalCommissions || 0, color: 'text-gray-900 dark:text-white', isRatio: false },
+              { label: 'Avg Fees per Trade', value: (dashboardStats?.totalCommissions && dashboardStats?.closedTrades ? dashboardStats.totalCommissions / dashboardStats.closedTrades : 0), color: 'text-gray-900 dark:text-white', isRatio: false },
+              { label: 'P&L to Fees Ratio', value: (dashboardStats?.totalNetPnl && dashboardStats?.totalCommissions && dashboardStats.totalCommissions !== 0 ? (dashboardStats.totalNetPnl / dashboardStats.totalCommissions) : 0), color: (dashboardStats?.totalNetPnl && dashboardStats?.totalCommissions && (dashboardStats.totalNetPnl / dashboardStats.totalCommissions) < 1 && dashboardStats.totalCommissions !==0) ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400', isRatio: true },
+              { label: 'Avg Fees per Day', value: avgFeesPerDay, color: 'text-gray-900 dark:text-white', isRatio: false },
             ].map((item, index) => (
               <div key={index} className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-800/50 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
                 <span className="text-sm font-medium text-gray-600 dark:text-gray-400">{item.label}</span>
-                <span className={`text-sm font-bold ${item.color}`}>{item.value}</span>
+                <span className={`text-sm font-bold ${item.color}`}>
+                  {item.isRatio ? (typeof item.value === 'number' ? item.value.toFixed(2) : '0.00') : <CurrencyAmount amount={item.value} className="inline" />}
+                </span>
               </div>
             ))}
           </div>
@@ -631,22 +674,38 @@ export default function DashboardPage() {
             <p className="text-gray-600 dark:text-gray-400">
               Start your trading journey by logging your first trade or adjust the time range to view historical data.
             </p>
-            <Link href="/journal/new" 
-                  className="inline-flex items-center space-x-2 bg-gradient-to-r from-blue-500 to-green-500 hover:from-blue-600 hover:to-green-600 text-white px-6 py-3 rounded-xl font-semibold transition-all duration-200 shadow-lg hover:shadow-xl">
-              <FaPlus className="w-4 h-4" />
-              <span>Log Your First Trade</span>
-            </Link>
+            <AnimatedButton 
+              onClick={() => window.location.href = '/journal/new'}
+              variant="gradient"
+              size="lg"
+              icon={<FaPlus className="w-4 h-4" />}
+              iconPosition="left"
+              className="bg-gradient-to-r from-blue-500 to-green-500 hover:from-blue-600 hover:to-green-600"
+              ripple
+              glow
+            >
+              Log Your First Trade
+            </AnimatedButton>
           </div>
         </div>
       )}
 
-      {/* Set Target Modal */}
-      <SetTargetModal 
-        isOpen={isSetTargetModalOpen}
-        onClose={handleCloseSetTargetModal}
-        currentGoal={personalTargetGoal}
-        onSave={handleSaveTarget}
-      />
+        {/* Set Target Modal */}
+        <SetTargetModal 
+          isOpen={isSetTargetModalOpen}
+          onClose={handleCloseSetTargetModal}
+          currentGoal={personalTargetGoal}
+          onSave={handleSaveTarget}
+        />
+
+        {/* Floating Action Button for Quick Trade Entry */}
+        <FloatingActionButton
+          onClick={() => window.location.href = '/journal/new'}
+          icon={<FaPlus className="w-6 h-6" />}
+          tooltip="Log New Trade"
+          position="bottom-right"
+        />
       </div>
+    </div>
   );
 }

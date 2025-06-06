@@ -4,6 +4,7 @@ import { Trade, TradeStatus, TradeDirection } from '@/types/trade';
 import { FaStar, FaRegStar, FaEdit, FaEye, FaArrowUp, FaArrowDown, FaChartLine } from 'react-icons/fa';
 import { format } from 'date-fns';
 import Link from 'next/link';
+import { CurrencyAmount } from '@/components/common/CurrencyAmount';
 
 interface TradeCardProps {
   trade: Trade;
@@ -104,11 +105,11 @@ export default function TradeCard({ trade, isSelected = false, onSelect, showChe
               isLoss ? 'text-red-600 dark:text-red-400' : 
               'text-gray-600 dark:text-gray-400'
             }`}>
-              {profitOrLoss.toLocaleString(undefined, { 
-                style: 'currency', 
-                currency: 'USD', 
-                signDisplay: 'always' 
-              })}
+              {profitOrLoss >= 0 ? '+' : ''}<CurrencyAmount 
+                amount={profitOrLoss} 
+                className="inline"
+                showOriginal={false}
+              />
             </span>
           </div>
         </div>
@@ -119,7 +120,7 @@ export default function TradeCard({ trade, isSelected = false, onSelect, showChe
         <div className="bg-white/60 dark:bg-gray-800/40 backdrop-blur-sm rounded-xl p-3 border border-gray-200/30 dark:border-gray-700/30 hover:bg-white/80 dark:hover:bg-gray-800/60 transition-all duration-200">
           <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">ENTRY</div>
           <div className="text-sm font-mono font-semibold text-gray-900 dark:text-white">
-            {trade.entryPrice ? `$${trade.entryPrice.toLocaleString()}` : '-'}
+            {trade.entryPrice ? <CurrencyAmount amount={trade.entryPrice} className="inline" /> : '-'}
           </div>
         </div>
 
@@ -127,7 +128,7 @@ export default function TradeCard({ trade, isSelected = false, onSelect, showChe
           <div className="bg-white/60 dark:bg-gray-800/40 backdrop-blur-sm rounded-xl p-3 border border-gray-200/30 dark:border-gray-700/30 hover:bg-white/80 dark:hover:bg-gray-800/60 transition-all duration-200">
             <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">EXIT</div>
             <div className="text-sm font-mono font-semibold text-gray-900 dark:text-white">
-              {trade.exitPrice ? `$${trade.exitPrice.toLocaleString()}` : '-'}
+              {trade.exitPrice ? <CurrencyAmount amount={trade.exitPrice} className="inline" /> : '-'}
             </div>
           </div>
         )}

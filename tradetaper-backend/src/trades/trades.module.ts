@@ -1,23 +1,23 @@
 // src/trades/trades.module.ts
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Trade } from './entities/trade.entity';
-import { Tag } from '../tags/entities/tag.entity'; // Import Tag
+import { Tag } from '../tags/entities/tag.entity';
 import { TradesService } from './trades.service';
 import { ExportService } from './export.service';
 import { PerformanceService } from './performance.service';
+import { AdvancedAnalyticsService } from './advanced-analytics.service';
 import { TradesController } from './trades.controller';
 import { TradesGateway } from '../websocket/trades.gateway';
-// UsersModule might not be strictly needed here anymore if not directly used by controller/service
 import { UsersModule } from '../users/users.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Trade, Tag]), // Add Tag here
-    UsersModule,
+    forwardRef(() => UsersModule),
   ],
-  providers: [TradesService, ExportService, PerformanceService, TradesGateway],
+  providers: [TradesService, ExportService, PerformanceService, AdvancedAnalyticsService, TradesGateway],
   controllers: [TradesController],
-  exports: [TradesService, ExportService, PerformanceService, TradesGateway],
+  exports: [TradesService, ExportService, PerformanceService, AdvancedAnalyticsService, TradesGateway],
 })
 export class TradesModule {}

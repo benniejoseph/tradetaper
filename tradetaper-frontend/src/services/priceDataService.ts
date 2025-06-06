@@ -41,15 +41,34 @@ export async function fetchRealPriceData(
             interval: interval,
         });
         
-        // Split forex symbol (e.g., NZD/USD) into base and quote currencies
-        const symbolParts = symbol.toUpperCase().split('/');
-        if (symbolParts.length !== 2) {
-            throw new Error(`Invalid forex symbol format: ${symbol}. Expected format: BASE/QUOTE (e.g., NZD/USD)`);
+        // Handle both forex symbol formats: NZD/USD (with slash) and NZDUSD (without slash)
+        let symbolParts: string[];
+        const upperSymbol = symbol.toUpperCase();
+        
+        if (upperSymbol.includes('/')) {
+            // Format: NZD/USD
+            symbolParts = upperSymbol.split('/');
+        } else {
+            // Format: NZDUSD - split into 3-letter currency codes
+            if (upperSymbol.length === 6) {
+                symbolParts = [upperSymbol.slice(0, 3), upperSymbol.slice(3, 6)];
+            } else {
+                throw new Error(`Invalid forex symbol format: ${symbol}. Expected format: BASE/QUOTE (e.g., NZD/USD) or BASEQUOTE (e.g., NZDUSD)`);
+            }
+        }
+        
+        if (symbolParts.length !== 2 || symbolParts[0].length !== 3 || symbolParts[1].length !== 3) {
+            throw new Error(`Invalid forex symbol format: ${symbol}. Expected format: BASE/QUOTE (e.g., NZD/USD) or BASEQUOTE (e.g., NZDUSD)`);
         }
         
         const [baseCurrency, quoteCurrency] = symbolParts;
         const apiUrl = `/market-data/historical/forex/${baseCurrency}/${quoteCurrency}?${params.toString()}`;
-        console.log('%c[FRONTEND - fetchRealPriceData] Request URL to backend:', 'color: blue;', apiUrl);
+        console.log('%c[FRONTEND - fetchRealPriceData] Converted symbol format:', 'color: blue;', {
+            originalSymbol: symbol,
+            baseCurrency,
+            quoteCurrency,
+            apiUrl
+        });
 
         const response = await authApiClient.get<ApiPriceDataPoint[]>(apiUrl);
 

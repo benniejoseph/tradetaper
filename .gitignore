@@ -25,11 +25,13 @@ tradetaper-backend/dist/
 tradetaper-backend/uploads/
 
 # Environment files
-.env
+# .env
 .env.local
 .env.*.local
 .env.production
 .env.development
+!.env.example
+!env.example
 
 # IDE files
 .idea/

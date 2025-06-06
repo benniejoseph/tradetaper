@@ -17,7 +17,7 @@ import * as path from 'path';
 export class FilesService implements OnModuleInit {
   private readonly logger = new Logger(FilesService.name);
   private storage: Storage;
-  private bucket: Bucket; // Will be initialized in onModuleInit
+  private bucket: Bucket | null; // Will be initialized in onModuleInit
   private bucketName: string; // Will be initialized in onModuleInit
   private gcsPublicUrlPrefix: string; // Will be initialized in onModuleInit
 
@@ -67,25 +67,26 @@ export class FilesService implements OnModuleInit {
     const bucketNameFromConfig =
       this.configService.get<string>('GCS_BUCKET_NAME');
     if (!bucketNameFromConfig) {
-      this.logger.error(
-        'FATAL: GCS_BUCKET_NAME is not configured in environment variables!',
+      this.logger.warn(
+        'GCS_BUCKET_NAME is not configured. FilesService will operate in local mode.',
       );
-      throw new Error(
-        'FATAL: GCS_BUCKET_NAME is not configured. FilesService cannot operate.',
+      this.bucketName = '';
+      this.bucket = null;
+      this.gcsPublicUrlPrefix = '';
+    } else {
+      this.bucketName = bucketNameFromConfig;
+      this.bucket = this.storage.bucket(this.bucketName);
+
+      // Initialize public URL prefix
+      this.gcsPublicUrlPrefix =
+        this.configService.get<string>('GCS_PUBLIC_URL_PREFIX') ||
+        `https://storage.googleapis.com/${this.bucketName}`;
+
+      this.logger.log(
+        `FilesService initialized. Target GCS Bucket: ${this.bucketName}`,
       );
+      this.logger.log(`Public URL prefix: ${this.gcsPublicUrlPrefix}`);
     }
-    this.bucketName = bucketNameFromConfig;
-    this.bucket = this.storage.bucket(this.bucketName);
-
-    // Initialize public URL prefix
-    this.gcsPublicUrlPrefix =
-      this.configService.get<string>('GCS_PUBLIC_URL_PREFIX') ||
-      `https://storage.googleapis.com/${this.bucketName}`;
-
-    this.logger.log(
-      `FilesService initialized. Target GCS Bucket: ${this.bucketName}`,
-    );
-    this.logger.log(`Public URL prefix: ${this.gcsPublicUrlPrefix}`);
   }
 
   async uploadFileToGCS(

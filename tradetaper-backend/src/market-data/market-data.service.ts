@@ -13,10 +13,10 @@ import {
 import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
 import { firstValueFrom } from 'rxjs';
-import { CandlestickData, UTCTimestamp } from 'lightweight-charts';
+// import { CandlestickData, UTCTimestamp } from 'lightweight-charts'; // Removed - not needed in backend
 
-export interface PriceDataPoint extends CandlestickData {
-  time: UTCTimestamp;
+export interface PriceDataPoint {
+  time: number; // Unix timestamp
   open: number;
   high: number;
   low: number;
@@ -45,15 +45,14 @@ export class MarketDataService implements OnModuleInit {
     const apiKeyFromConfig =
       this.configService.get<string>('TRADERMADE_API_KEY');
     if (!apiKeyFromConfig) {
-      this.logger.error(
-        'FATAL: TRADERMADE_API_KEY is not configured in environment variables!',
+      this.logger.warn(
+        'TRADERMADE_API_KEY is not configured. Market data will use fallback/mock data.',
       );
-      throw new Error(
-        'FATAL: TRADERMADE_API_KEY is not configured. MarketDataService cannot operate.',
-      );
+      this.tradermadeApiKey = '';
+    } else {
+      this.tradermadeApiKey = apiKeyFromConfig;
+      this.logger.log('MarketDataService initialized with Tradermade API Key.');
     }
-    this.tradermadeApiKey = apiKeyFromConfig;
-    this.logger.log('MarketDataService initialized with Tradermade API Key.');
   }
 
   async getTradermadeHistoricalData(
@@ -300,7 +299,7 @@ export class MarketDataService implements OnModuleInit {
           }
 
           return {
-            time: timestamp as UTCTimestamp,
+            time: timestamp as number,
             open: parseFloat(q.open),
             high: parseFloat(q.high),
             low: parseFloat(q.low),

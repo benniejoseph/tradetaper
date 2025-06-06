@@ -7,6 +7,7 @@ import React from 'react'; // Import React for React.ReactNode
 import { usePagination } from '@/hooks/usePagination'; // Import pagination hook
 import { FaChevronLeft, FaChevronRight } from 'react-icons/fa'; // Import icons for pagination
 import { TableLoader } from '@/components/common/LoadingSpinner'; // Import loading component
+import { CurrencyAmount } from '@/components/common/CurrencyAmount';
 
 interface TradesTableProps {
   trades: Trade[];
@@ -32,9 +33,14 @@ export const formatPnl = (pnl: number | undefined | null): React.ReactNode => {
   if (pnl === undefined || pnl === null || typeof pnl !== 'number') {
     return <span className="text-[var(--color-text-dark-secondary)] dark:text-text-light-secondary">-</span>;
   }
-  const pnlValue = pnl.toFixed(2);
   const textColor = pnl > 0 ? 'text-accent-green' : pnl < 0 ? 'text-accent-red' : 'text-[var(--color-text-dark-secondary)] dark:text-text-light-secondary';
-  return <span className={textColor}>{pnl > 0 ? '+' : ''}{pnlValue}</span>;
+  return (
+    <CurrencyAmount 
+      amount={pnl} 
+      className={`${textColor} ${pnl > 0 ? 'font-medium' : ''}`}
+      showOriginal={false}
+    />
+  );
 };
 
 export const getWeekday = (dateString: string | undefined): string => {

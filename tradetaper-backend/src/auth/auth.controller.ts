@@ -9,41 +9,36 @@ import {
   HttpStatus,
   Get,
   UnauthorizedException,
+  UsePipes,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { LocalAuthGuard } from './guards/local-auth.guard'; // We'll create this
-import { JwtAuthGuard } from './guards/jwt-auth.guard'; // We'll create this
+import { LocalAuthGuard } from './guards/local-auth.guard';
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { RegisterUserDto } from './dto/register-user.dto';
 import { LoginUserDto } from './dto/login-user.dto';
-import { UserResponseDto } from '../users/dto/user-response.dto'; // Adjust path
+import { UserResponseDto } from '../users/dto/user-response.dto';
+import { RateLimitGuard, AuthRateLimit, StrictRateLimit } from '../common/guards/rate-limit.guard';
+import { EnhancedValidationPipe } from '../common/pipes/validation.pipe';
 
 @Controller('auth') // Route prefix /api/v1/auth
+@UseGuards(RateLimitGuard)
 export class AuthController {
   constructor(private authService: AuthService) {}
 
   @Post('register')
   @HttpCode(HttpStatus.CREATED)
+  @AuthRateLimit()
+  @UsePipes(new EnhancedValidationPipe({ sanitize: true }))
   async register(
     @Body() registerUserDto: RegisterUserDto,
   ): Promise<UserResponseDto> {
     return this.authService.register(registerUserDto);
   }
 
-  @Post('test-login')
-  @HttpCode(HttpStatus.OK)
-  async testLogin(
-    @Body() loginUserDto: LoginUserDto,
-  ): Promise<{ accessToken: string; user: UserResponseDto }> {
-    const user = await this.authService.validateUser(loginUserDto.email, loginUserDto.password);
-    if (!user) {
-      throw new UnauthorizedException('Invalid credentials');
-    }
-    return this.authService.login(user);
-  }
-
-  // @UseGuards(LocalAuthGuard) // This guard will use LocalStrategy - temporarily disabled
   @Post('login')
   @HttpCode(HttpStatus.OK)
+  @AuthRateLimit()
+  @UsePipes(new EnhancedValidationPipe({ sanitize: true }))
   async login(
     @Body() loginUserDto: LoginUserDto,
   ): Promise<{ accessToken: string; user: UserResponseDto }> {
@@ -54,11 +49,10 @@ export class AuthController {
     return this.authService.login(user);
   }
 
-  @UseGuards(JwtAuthGuard) // This guard will use JwtStrategy
+  @UseGuards(JwtAuthGuard)
   @Get('profile')
+  @StrictRateLimit()
   getProfile(@Request() req): UserResponseDto {
-    // If JwtAuthGuard passes, req.user will be populated by JwtStrategy.validate()
-    // which returns UserResponseDto
     return req.user;
   }
 }

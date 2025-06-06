@@ -6,6 +6,7 @@ import { UsersModule } from '../users/users.module'; // Import UsersModule
 import { PassportModule } from '@nestjs/passport';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { CacheModule } from '@nestjs/cache-manager';
 import { LocalStrategy } from './strategies/local.strategy';
 import { JwtStrategy } from './strategies/jwt.strategy';
 
@@ -14,6 +15,10 @@ import { JwtStrategy } from './strategies/jwt.strategy';
     UsersModule, // To use UsersService
     PassportModule,
     ConfigModule, // To use ConfigService for JWT_SECRET
+    CacheModule.register({
+      ttl: 15 * 60 * 1000, // 15 minutes
+      max: 1000, // maximum number of items in cache
+    }),
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],

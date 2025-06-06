@@ -4,6 +4,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import { RootState, AppDispatch } from '@/store/store';
 import { fetchTrades } from '@/store/features/tradesSlice';
 import { selectSelectedAccountId } from '@/store/features/accountSlice';
+import { selectSelectedMT5AccountId } from '@/store/features/mt5AccountsSlice';
 import { Trade, TradeStatus } from '@/types/trade';
 import TradeCard from '@/components/trades/TradeCard';
 import ExportModal from '@/components/common/ExportModal';
@@ -18,6 +19,7 @@ export default function TradesPage() {
   const { trades, isLoading, error } = useSelector((state: RootState) => state.trades);
   const { isAuthenticated } = useSelector((state: RootState) => state.auth);
   const selectedAccountId = useSelector(selectSelectedAccountId);
+  const selectedMT5AccountId = useSelector(selectSelectedMT5AccountId);
   
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedTrades, setSelectedTrades] = useState<Trade[]>([]);
@@ -28,16 +30,18 @@ export default function TradesPage() {
   // Initialize WebSocket connection
   useWebSocket({
     enabled: true,
-    onConnect: () => console.log('Connected to trades WebSocket'),
-    onDisconnect: () => console.log('Disconnected from trades WebSocket'),
+    onConnect: () => {/* Connected to trades WebSocket */},
+    onDisconnect: () => {/* Disconnected from trades WebSocket */},
     onError: (error) => console.error('WebSocket error:', error),
   });
 
   useEffect(() => {
     if (isAuthenticated) {
-      dispatch(fetchTrades(selectedAccountId || undefined));
+      // Get the actual selected account ID (could be MT5 or regular account)
+      const currentAccountId = selectedAccountId || selectedMT5AccountId;
+      dispatch(fetchTrades(currentAccountId || undefined));
     }
-  }, [dispatch, isAuthenticated, selectedAccountId]);
+  }, [dispatch, isAuthenticated, selectedAccountId, selectedMT5AccountId]);
 
   // Apply filters and search
   const filteredTrades = useMemo(() => {
@@ -123,18 +127,18 @@ export default function TradesPage() {
   };
 
   const handleBulkDelete = (tradeIds: string[]) => {
-    // Implement bulk delete logic
-    console.log('Bulk delete:', tradeIds);
+    // TODO: Implement bulk delete logic
+    // Dispatch bulk delete action here
   };
 
   const handleBulkUpdateStatus = (tradeIds: string[], status: TradeStatus) => {
-    // Implement bulk status update logic
-    console.log('Bulk status update:', tradeIds, status);
+    // TODO: Implement bulk status update logic
+    // Dispatch bulk status update action here
   };
 
   const handleBulkToggleStar = (tradeIds: string[], starred: boolean) => {
-    // Implement bulk star toggle logic
-    console.log('Bulk star toggle:', tradeIds, starred);
+    // TODO: Implement bulk star toggle logic
+    // Dispatch bulk star toggle action here
   };
 
   const clearFilters = () => {
@@ -163,7 +167,10 @@ export default function TradesPage() {
           <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Error Loading Trades</h3>
           <p className="text-red-600 dark:text-red-400 mb-4">{error}</p>
           <button 
-            onClick={() => dispatch(fetchTrades(selectedAccountId || undefined))}
+            onClick={() => {
+              const currentAccountId = selectedAccountId || selectedMT5AccountId;
+              dispatch(fetchTrades(currentAccountId || undefined));
+            }}
             className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-semibold rounded-xl transition-all duration-200 hover:scale-105 shadow-lg"
           >
             Try Again
