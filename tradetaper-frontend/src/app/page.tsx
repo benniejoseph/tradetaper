@@ -302,12 +302,12 @@ export default function LandingPage() {
                 }`}
               >
                 {tier.recommended && (
-                  <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                    <span className="bg-yellow-400 text-gray-900 px-4 py-1 rounded-full text-sm font-semibold flex items-center">
-                      <FaCrown className="mr-1" />
-                      Most Popular
-                    </span>
-                  </div>
+              <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
+                <span className="bg-yellow-400 text-gray-900 px-4 py-1 rounded-full text-sm font-semibold flex items-center">
+                  <FaCrown className="mr-1" />
+                  Most Popular
+                </span>
+              </div>
                 )}
                 <div className="text-center">
                   <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">{tier.name}</h3>
@@ -319,15 +319,15 @@ export default function LandingPage() {
                         ${tier.price}<span className="text-lg">/{tier.interval}</span>
                       </>
                     )}
-                  </div>
+                </div>
                   <ul className="space-y-4 mb-8 text-left">
                     {tier.features.slice(0, 5).map((feature, index) => (
                       <li key={index} className="flex items-start text-gray-600 dark:text-gray-300">
                         <FaCheck className="text-green-500 mr-3 mt-1 flex-shrink-0" />
                         <span>{feature}</span>
-                      </li>
+                  </li>
                     ))}
-                  </ul>
+                </ul>
                   <Link 
                     href="/register" 
                     className={`w-full py-3 rounded-lg font-semibold transition-colors block text-center ${
@@ -337,7 +337,7 @@ export default function LandingPage() {
                     }`}
                   >
                     {tier.price === 0 ? 'Get Started' : 'Start Free Trial'}
-                  </Link>
+                </Link>
                 </div>
               </div>
             ))}

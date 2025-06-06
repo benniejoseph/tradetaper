@@ -385,6 +385,11 @@ export default function TradeForm({ initialData, isEditMode = false, onFormSubmi
       borderWidth: '1px',
       borderRadius: '0.5rem',
       boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06)', // Standard shadow
+      zIndex: 9999, // Ensure dropdown appears above other elements
+    }),
+    menuPortal: (provided) => ({
+      ...provided,
+      zIndex: 9999, // For portal mode if needed
     }),
     option: (provided, state) => ({
       ...provided,

@@ -1,7 +1,7 @@
 // src/trades/entities/trade.entity.ts
 import { User } from '../../users/entities/user.entity'; // Adjust path
 import { Type } from 'class-transformer';
-import { Tag } from 'src/tags/entities/tag.entity';
+import { Tag } from '../../tags/entities/tag.entity';
 
 import {
   Entity,

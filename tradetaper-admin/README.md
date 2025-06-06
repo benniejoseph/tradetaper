@@ -87,7 +87,7 @@ A comprehensive, modern admin dashboard for the TradeTaper trading platform. Bui
    
    Configure the following variables:
    ```env
-   NEXT_PUBLIC_API_URL=https://tradetaper-backend-production.up.railway.app/api/v1
+   NEXT_PUBLIC_API_URL=https://your-backend.railway.app/api/v1
    NEXT_PUBLIC_APP_NAME=TradeTaper Admin Dashboard
    NEXT_PUBLIC_APP_VERSION=1.0.0
    ```

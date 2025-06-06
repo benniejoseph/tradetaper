@@ -6,6 +6,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '@/store/store';
 import { fetchTrades, deleteTrade, setCurrentTrade } from '@/store/features/tradesSlice';
 import { selectSelectedAccountId, selectAvailableAccounts, selectSelectedAccount } from '@/store/features/accountSlice';
+import { selectSelectedMT5AccountId } from '@/store/features/mt5AccountsSlice';
 import Link from 'next/link';
 import { calculateDashboardStats, DashboardStats } from '@/utils/analytics';
 import { Trade, TradeStatus } from '@/types/trade';
@@ -23,6 +24,7 @@ import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { applyAllFilters } from '@/utils/tradeFilters';
 import { useDebounce } from '@/hooks/useDebounce';
+import { CurrencyAmount } from '@/components/common/CurrencyAmount';
 
 export default function JournalPage() {
   const dispatch = useDispatch<AppDispatch>();
@@ -30,6 +32,7 @@ export default function JournalPage() {
   const { trades: allTrades, isLoading, error } = useSelector((state: RootState) => state.trades);
   const { isAuthenticated } = useSelector((state: RootState) => state.auth);
   const selectedAccountId = useSelector(selectSelectedAccountId);
+  const selectedMT5AccountId = useSelector(selectSelectedMT5AccountId);
   const selectedAccount = useSelector(selectSelectedAccount);
   const accounts = useSelector(selectAvailableAccounts);
 
@@ -50,20 +53,24 @@ export default function JournalPage() {
 
   useEffect(() => {
     if (isAuthenticated) {
-      dispatch(fetchTrades(selectedAccountId || undefined)); 
+      // Get the actual selected account ID (could be MT5 or regular account)
+      const currentAccountId = selectedAccountId || selectedMT5AccountId;
+      dispatch(fetchTrades(currentAccountId || undefined)); 
     }
-  }, [dispatch, isAuthenticated, selectedAccountId]);
+  }, [dispatch, isAuthenticated, selectedAccountId, selectedMT5AccountId]);
 
   const filteredTrades = useMemo(() => {
+    // Use the currently selected account (MT5 or regular)
+    const currentAccountId = selectedAccountId || selectedMT5AccountId;
     return applyAllFilters(allTrades, {
-      accountId: selectedAccountId,
+      accountId: currentAccountId,
       positionFilter: activePositionFilter,
       timeFilter: activeTimeFilter,
       customDateRange,
       searchQuery: debouncedSearchQuery,
       showOnlyStarred
     });
-  }, [allTrades, selectedAccountId, activePositionFilter, activeTimeFilter, customDateRange, debouncedSearchQuery, showOnlyStarred]);
+  }, [allTrades, selectedAccountId, selectedMT5AccountId, activePositionFilter, activeTimeFilter, customDateRange, debouncedSearchQuery, showOnlyStarred]);
 
   const headerStats = useMemo(() => {
     if (!filteredTrades || filteredTrades.length === 0) {
@@ -216,7 +223,7 @@ export default function JournalPage() {
             <p className={`text-3xl font-bold mb-4 ${
               headerStats.monthlyPnl >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
             }`}>
-              {headerStats.monthlyPnl >= 0 ? '+' : ''}${headerStats.monthlyPnl.toFixed(2)}
+              {headerStats.monthlyPnl >= 0 ? '+' : ''}<CurrencyAmount amount={headerStats.monthlyPnl} className="inline" />
             </p>
             <div className="h-8 flex items-center">
               <svg viewBox="0 0 100 30" className="w-full h-full" preserveAspectRatio="none">
@@ -243,7 +250,7 @@ export default function JournalPage() {
               </div>
             </div>
             <p className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-              ${selectedAccount?.balance !== undefined ? selectedAccount.balance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : 'N/A'}
+              {selectedAccount?.balance !== undefined ? <CurrencyAmount amount={selectedAccount.balance} className="inline" /> : 'N/A'}
             </p>
             <p className="text-sm text-gray-500 dark:text-gray-400">
               {selectedAccount?.name || 'All Accounts'}
@@ -439,19 +446,23 @@ export default function JournalPage() {
         <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 p-6 shadow-lg">
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-4">
             {[
-              { label: 'Total P&L', value: footerStats.totalNetPnl.toLocaleString(undefined, {style: 'currency', currency: 'USD', signDisplay: 'always'}), color: footerStats.totalNetPnl >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400' },
-              { label: 'Total Trades', value: footerStats.totalTrades.toString(), color: 'text-gray-900 dark:text-white' },
-              { label: 'Commissions', value: footerStats.totalCommissions.toLocaleString(undefined, {style: 'currency', currency: 'USD'}), color: 'text-gray-900 dark:text-white' },
-              { label: 'Total Value', value: footerStats.totalTradedValue.toLocaleString(undefined, {style: 'currency', currency: 'USD'}), color: 'text-gray-900 dark:text-white' },
-              { label: 'Avg Win', value: footerStats.averageWin.toLocaleString(undefined, {style: 'currency', currency: 'USD', signDisplay: 'always'}), color: 'text-green-600 dark:text-green-400' },
-              { label: 'Avg Loss', value: footerStats.averageLoss.toLocaleString(undefined, {style: 'currency', currency: 'USD', signDisplay: 'always'}), color: 'text-red-600 dark:text-red-400' },
-              { label: 'Avg R:R', value: `${footerStats.averageRR.toFixed(2)}R`, color: 'text-gray-900 dark:text-white' },
+              { label: 'Total P&L', value: footerStats.totalNetPnl, color: footerStats.totalNetPnl >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400', isAmount: true, showSign: true },
+              { label: 'Total Trades', value: footerStats.totalTrades, color: 'text-gray-900 dark:text-white', isAmount: false },
+              { label: 'Commissions', value: footerStats.totalCommissions, color: 'text-gray-900 dark:text-white', isAmount: true },
+              { label: 'Total Value', value: footerStats.totalTradedValue, color: 'text-gray-900 dark:text-white', isAmount: true },
+              { label: 'Avg Win', value: footerStats.averageWin, color: 'text-green-600 dark:text-green-400', isAmount: true, showSign: true },
+              { label: 'Avg Loss', value: footerStats.averageLoss, color: 'text-red-600 dark:text-red-400', isAmount: true, showSign: true },
+              { label: 'Avg R:R', value: `${footerStats.averageRR.toFixed(2)}R`, color: 'text-gray-900 dark:text-white', isAmount: false },
             ].map((stat, index) => (
               <div key={index} className="text-center p-4 bg-gray-50/80 dark:bg-gray-800/50 rounded-xl hover:bg-gray-100/80 dark:hover:bg-gray-800/80 transition-colors duration-200 min-w-0">
                 <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2 truncate">{stat.label}</p>
-                <p className={`text-base lg:text-lg font-bold ${stat.color} truncate`} title={stat.value}>
-                  {stat.value}
-                </p>
+                <div className={`text-base lg:text-lg font-bold ${stat.color} truncate`}>
+                  {stat.isAmount ? (
+                    <>{stat.showSign && typeof stat.value === 'number' && stat.value >= 0 ? '+' : ''}<CurrencyAmount amount={typeof stat.value === 'number' ? stat.value : 0} className="inline" /></>
+                  ) : (
+                    stat.value
+                  )}
+                </div>
               </div>
             ))}
           </div>

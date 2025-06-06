@@ -3,9 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev -p 3001",
     "build": "next build",
-    "start": "next start",
+    "start": "next start -p 3001",
     "lint": "next lint"
   },
   "dependencies": {
@@ -17,7 +17,6 @@
     "@types/react-datepicker": "^7.0.0",
     "axios": "^1.9.0",
     "date-fns": "^4.1.0",
-    "fs-extra": "^11.3.0",
     "html2canvas": "^1.4.1",
     "lightweight-charts": "^5.0.7",
     "lucide-react": "^0.513.0",
@@ -31,16 +30,16 @@
     "react-redux": "^9.2.0",
     "react-select": "^5.10.1",
     "recharts": "^2.15.3",
-    "socket.io-client": "^4.8.1"
+    "socket.io-client": "^4.8.1",
+    "framer-motion": "^12.3.0",
+    "isomorphic-dompurify": "^2.16.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
-    "@types/fs-extra": "^11.0.4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/react-select": "^5.0.1",
-    "@types/react-tooltip": "^4.2.4",
     "autoprefixer": "^10.4.19",
     "eslint": "^9",
     "eslint-config-next": "15.3.2",

@@ -1,6 +1,9 @@
 // src/components/layout/AppLayout.tsx
 "use client";
 import React, { ReactNode, useState, useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { AppDispatch, RootState } from '@/store/store';
+import { fetchMT5Accounts } from '@/store/features/mt5AccountsSlice';
 import Sidebar from './Sidebar';
 // import Header from './Header'; // This is the existing mobile-only header, currently commented out
 import ContentHeader from './ContentHeader'; // Import the new ContentHeader
@@ -13,6 +16,8 @@ interface AppLayoutProps {
 }
 
 export default function AppLayout({ children }: AppLayoutProps) {
+  const dispatch = useDispatch<AppDispatch>();
+  const { isAuthenticated } = useSelector((state: RootState) => state.auth);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
@@ -23,6 +28,13 @@ export default function AppLayout({ children }: AppLayoutProps) {
     onDisconnect: () => console.log('WebSocket disconnected'),
     onError: (error) => console.error('WebSocket error:', error),
   });
+
+  // Fetch MT5 accounts when authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      dispatch(fetchMT5Accounts());
+    }
+  }, [dispatch, isAuthenticated]);
 
   // Handle responsive behavior
   useEffect(() => {

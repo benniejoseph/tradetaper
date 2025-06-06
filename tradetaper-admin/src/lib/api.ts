@@ -1,7 +1,7 @@
 import axios from 'axios';
 
-// API Base URL - update this to your actual backend URL
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://tradetaper-backend-production.up.railway.app/api/v1';
+// API Base URL - configured via environment variables
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api/v1';
 
 // Create axios instance
 const api = axios.create({
@@ -154,7 +154,7 @@ class AdminApi {
   private axiosInstance;
 
   constructor() {
-    this.baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+    this.baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api/v1';
     this.axiosInstance = axios.create({
       baseURL: this.baseUrl,
       timeout: 10000,

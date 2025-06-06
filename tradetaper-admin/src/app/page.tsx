@@ -160,13 +160,13 @@ export default function Dashboard() {
                 <div className={`flex items-center space-x-1 text-sm ${(analytics?.activeGrowth ?? 0) > 0 ? 'text-green-400' : 'text-red-400'}`}>
                   {(analytics?.activeGrowth ?? 0) > 0 ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
                   <span>{analytics?.activeGrowth || 0}%</span>
-                </div>
+                  </div>
               </div>
               <h3 className="text-3xl font-bold text-white mb-1">{formatNumber(analytics?.activeUsers || 0)}</h3>
               <p className="text-gray-400 text-sm">Active Users</p>
               <div className="mt-4 h-1 bg-gray-700 rounded-full overflow-hidden">
                 <div className="h-full bg-gradient-to-r from-green-500 to-green-400" style={{ width: '65%' }}></div>
-              </div>
+                </div>
             </motion.div>
 
             {/* Revenue Card */}
@@ -179,12 +179,12 @@ export default function Dashboard() {
               <div className="flex items-center justify-between mb-4">
                 <div className="p-3 bg-purple-500/10 rounded-xl">
                   <DollarSign className="w-6 h-6 text-purple-400" />
-                </div>
+                    </div>
                 <div className={`flex items-center space-x-1 text-sm ${(analytics?.revenueGrowth ?? 0) > 0 ? 'text-green-400' : 'text-red-400'}`}>
                   {(analytics?.revenueGrowth ?? 0) > 0 ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
                   <span>{analytics?.revenueGrowth ?? 0}%</span>
-                </div>
-              </div>
+                    </div>
+                  </div>
               <h3 className="text-3xl font-bold text-white mb-1">${formatNumber(analytics?.totalRevenue || 0)}</h3>
               <p className="text-gray-400 text-sm">Total Revenue</p>
               <div className="mt-4 h-1 bg-gray-700 rounded-full overflow-hidden">
@@ -273,8 +273,8 @@ export default function Dashboard() {
                 </ResponsiveContainer>
               </div>
             </div>
-          </div>
-
+              </div>
+              
           {/* Activity Feed and System Health */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
             {/* Activity Feed */}
@@ -300,7 +300,7 @@ export default function Dashboard() {
                   </div>
                 ))}
               </div>
-            </div>
+                  </div>
 
             {/* System Health */}
             <div className="bg-gray-900/90 backdrop-blur-xl border border-gray-700/50 rounded-2xl p-4 sm:p-6">
