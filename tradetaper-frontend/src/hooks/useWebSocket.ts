@@ -23,7 +23,7 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
       return;
     }
 
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://tradetaper-backend-production.up.railway.app';
+    const backendUrl = 'https://tradetaper-backend-production.up.railway.app';
     // Convert HTTPS to WSS for WebSocket connections
     const websocketUrl = backendUrl.replace(/^http/, 'ws');
     
