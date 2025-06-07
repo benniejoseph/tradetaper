@@ -23,6 +23,7 @@ const nextConfig: NextConfig = {
     ],
   },
   /* config options here */
+  // Deployment trigger: Updated environment variables for production
 };
 
 export default nextConfig;
