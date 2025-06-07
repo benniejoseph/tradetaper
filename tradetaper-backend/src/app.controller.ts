@@ -59,6 +59,11 @@ export class AppController {
           "updatedAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
       `);
+      
+      // Add lastLoginAt column if it doesn't exist
+      await this.subscriptionRepository.query(`
+        ALTER TABLE users ADD COLUMN IF NOT EXISTS "lastLoginAt" TIMESTAMP;
+      `);
       console.log('✅ Users table created');
 
       // Create trades table
