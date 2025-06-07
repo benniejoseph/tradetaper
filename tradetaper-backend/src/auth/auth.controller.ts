@@ -21,14 +21,11 @@ import { RateLimitGuard, AuthRateLimit, StrictRateLimit } from '../common/guards
 import { EnhancedValidationPipe } from '../common/pipes/validation.pipe';
 
 @Controller('auth') // Route prefix /api/v1/auth
-@UseGuards(RateLimitGuard)
 export class AuthController {
   constructor(private authService: AuthService) {}
 
   @Post('register')
   @HttpCode(HttpStatus.CREATED)
-  @AuthRateLimit()
-  @UsePipes(new EnhancedValidationPipe({ sanitize: true }))
   async register(
     @Body() registerUserDto: RegisterUserDto,
   ): Promise<UserResponseDto> {
@@ -37,8 +34,6 @@ export class AuthController {
 
   @Post('login')
   @HttpCode(HttpStatus.OK)
-  @AuthRateLimit()
-  @UsePipes(new EnhancedValidationPipe({ sanitize: true }))
   async login(
     @Body() loginUserDto: LoginUserDto,
   ): Promise<{ accessToken: string; user: UserResponseDto }> {
