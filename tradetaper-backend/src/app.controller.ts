@@ -132,6 +132,100 @@ export class AppController {
     }
   }
 
+  @Post('create-schema')
+  async createSchema() {
+    try {
+      console.log('🔍 Creating database schema...');
+      
+      // Create users table
+      await this.subscriptionRepository.query(`
+        CREATE TABLE IF NOT EXISTS users (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          email VARCHAR(255) UNIQUE NOT NULL,
+          password VARCHAR(255) NOT NULL,
+          "firstName" VARCHAR(100),
+          "lastName" VARCHAR(100),
+          "lastLoginAt" TIMESTAMP,
+          "createdAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          "updatedAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+      `);
+      console.log('✅ Users table created');
+
+      // Create trades table
+      await this.subscriptionRepository.query(`
+        CREATE TABLE IF NOT EXISTS trades (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          "userId" UUID NOT NULL,
+          symbol VARCHAR(50) NOT NULL,
+          side VARCHAR(10) NOT NULL,
+          quantity DECIMAL(15,8) NOT NULL,
+          "openPrice" DECIMAL(15,8),
+          "closePrice" DECIMAL(15,8),
+          "openTime" TIMESTAMP,
+          "closeTime" TIMESTAMP,
+          pnl DECIMAL(15,2),
+          commission DECIMAL(15,2),
+          swap DECIMAL(15,2),
+          notes TEXT,
+          "createdAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          "updatedAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY ("userId") REFERENCES users(id) ON DELETE CASCADE
+        );
+      `);
+      console.log('✅ Trades table created');
+
+      // Create mt5_accounts table
+      await this.subscriptionRepository.query(`
+        CREATE TABLE IF NOT EXISTS mt5_accounts (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          "userId" UUID NOT NULL,
+          "accountId" VARCHAR(255) NOT NULL,
+          name VARCHAR(255),
+          server VARCHAR(255),
+          login VARCHAR(255),
+          password VARCHAR(255),
+          "isActive" BOOLEAN DEFAULT true,
+          "createdAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          "updatedAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY ("userId") REFERENCES users(id) ON DELETE CASCADE
+        );
+      `);
+      console.log('✅ MT5 accounts table created');
+
+      // Create tags table
+      await this.subscriptionRepository.query(`
+        CREATE TABLE IF NOT EXISTS tags (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          name VARCHAR(100) NOT NULL,
+          color VARCHAR(7),
+          "userId" UUID NOT NULL,
+          "createdAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          "updatedAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY ("userId") REFERENCES users(id) ON DELETE CASCADE
+        );
+      `);
+      console.log('✅ Tags table created');
+
+      // Subscriptions table should already exist from migration
+      console.log('✅ Schema creation completed');
+
+      return {
+        success: true,
+        message: 'All database tables created successfully',
+        timestamp: new Date().toISOString(),
+      };
+    } catch (error) {
+      console.error('❌ Schema creation error:', error);
+      return {
+        success: false,
+        error: error.message,
+        stack: error.stack,
+        timestamp: new Date().toISOString(),
+      };
+    }
+  }
+
   @Post('debug-stripe')
   async debugStripe() {
     try {
