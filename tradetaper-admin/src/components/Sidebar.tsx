@@ -12,7 +12,6 @@ import {
   Settings,
   Shield,
   BarChart3,
-  MapPin,
   Globe,
   Database,
   ChevronLeft,
@@ -38,28 +37,42 @@ const menuItems = [
     ],
   },
   {
-    section: 'Analytics',
+    section: 'User Management',
+    items: [
+      { icon: Users, label: 'Users', href: '/users' },
+      { icon: Shield, label: 'Role Management', href: '/roles' },
+      { icon: Activity, label: 'User Activity', href: '/user-activity' },
+    ],
+  },
+  {
+    section: 'Subscription & Billing',
+    items: [
+      { icon: DollarSign, label: 'Billing & Revenue', href: '/billing' },
+      { icon: TrendingUp, label: 'Subscriptions', href: '/subscriptions' },
+      { icon: BarChart3, label: 'Revenue Analytics', href: '/revenue' },
+    ],
+  },
+  {
+    section: 'System Health',
+    items: [
+      { icon: Database, label: 'System Monitor', href: '/system' },
+      { icon: Zap, label: 'Performance', href: '/performance' },
+      { icon: Globe, label: 'Integrations', href: '/integrations' },
+    ],
+  },
+  {
+    section: 'Analytics & Reports',
     items: [
       { icon: BarChart3, label: 'Analytics', href: '/analytics' },
-      { icon: DollarSign, label: 'Revenue', href: '/revenue' },
-      { icon: TrendingUp, label: 'Performance', href: '/performance' },
+      { icon: TrendingUp, label: 'Trades', href: '/trades' },
       { icon: Globe, label: 'Geographic', href: '/geographic' },
     ],
   },
   {
-    section: 'Management',
+    section: 'Security & Audits',
     items: [
-      { icon: Users, label: 'Users', href: '/users' },
-      { icon: TrendingUp, label: 'Trades', href: '/trades' },
-      { icon: MapPin, label: 'Live Users', href: '/live-users' },
-    ],
-  },
-  {
-    section: 'System',
-    items: [
-      { icon: Database, label: 'System Health', href: '/system' },
-      { icon: Zap, label: 'API Monitor', href: '/api' },
-      { icon: Shield, label: 'Security', href: '/security' },
+      { icon: Shield, label: 'Security Logs', href: '/security' },
+      { icon: Activity, label: 'Audit Trail', href: '/audit' },
       { icon: Settings, label: 'Settings', href: '/settings' },
     ],
   },
