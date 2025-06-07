@@ -421,10 +421,11 @@ export class AppController {
   }
 
 
-  @Post('create-test-data')
-  async createTestData(@Body() body: { userId: string }) {
+  @Post('seed-trades')
+  async seedTrades() {
     try {
-      console.log('🔍 Creating test data for user:', body.userId);
+      const testUserId = '0eb6dc08-f35a-4eca-bb55-08df3b05320d';
+      console.log('🔍 Creating test trades for user:', testUserId);
       
       // Create sample trades
       const sampleTrades = [
@@ -481,13 +482,13 @@ export class AppController {
         const result = await this.subscriptionRepository.query(`
           INSERT INTO trades (
             "userId", "assetType", symbol, direction, status, "entryDate", "entryPrice", 
-            "exitDate", "exitPrice", quantity, commission, notes, "stopLoss", "takeProfit"
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+            "exitDate", "exitPrice", quantity, commission, notes
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
           RETURNING id, symbol, direction, "entryPrice", "exitPrice", quantity;
         `, [
           trade.userId, trade.assetType, trade.symbol, trade.direction, trade.status,
           trade.entryDate, trade.entryPrice, trade.exitDate, trade.exitPrice,
-          trade.quantity, trade.commission, trade.notes, trade.stopLoss, trade.takeProfit
+          trade.quantity, trade.commission, trade.notes
         ]);
         createdTrades.push(result[0]);
       }
