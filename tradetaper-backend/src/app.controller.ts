@@ -299,26 +299,38 @@ export class AppController {
   @Post('debug-users')
   async debugUsers() {
     try {
-      console.log('🔍 Testing user creation...');
+      console.log('🔍 Testing user creation with proper password hashing...');
       
-      // Test direct SQL user creation
+      const bcrypt = require('bcrypt');
+      const hashedPassword = await bcrypt.hash('testpassword123', 10);
+      
+      // First delete any existing test user
+      await this.subscriptionRepository.query(`
+        DELETE FROM users WHERE email = 'logintest@example.com';
+      `);
+      
+      // Test direct SQL user creation with hashed password
       const testUserId = await this.subscriptionRepository.query(`
         INSERT INTO users (email, password, "firstName", "lastName") 
-        VALUES ('debug@test.com', 'hashedpassword123', 'Debug', 'User') 
+        VALUES ('logintest@example.com', $1, 'Login', 'Test') 
         RETURNING id;
-      `);
-      console.log('✅ Direct SQL user creation:', testUserId);
+      `, [hashedPassword]);
+      console.log('✅ Direct SQL user creation with hashed password:', testUserId);
 
       // Test user query
       const users = await this.subscriptionRepository.query(`
         SELECT id, email, "firstName", "lastName", "createdAt" FROM users;
       `);
-      console.log('✅ Users in database:', users);
+      console.log('✅ Users in database:', users.length);
 
       return {
         success: true,
         testUserId: testUserId[0],
-        allUsers: users,
+        userCount: users.length,
+        testCredentials: {
+          email: 'logintest@example.com',
+          password: 'testpassword123'
+        },
         timestamp: new Date().toISOString(),
       };
     } catch (error) {
