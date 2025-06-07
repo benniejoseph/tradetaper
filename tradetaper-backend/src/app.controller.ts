@@ -399,6 +399,17 @@ export class AppController {
       `);
       console.log('✅ Users in database:', users.length);
 
+      // Create sample trades for testing
+      const userId = '0eb6dc08-f35a-4eca-bb55-08df3b05320d';
+      await this.subscriptionRepository.query(`
+        INSERT INTO trades ("userId", "assetType", symbol, direction, status, "entryDate", "entryPrice", "exitDate", "exitPrice", quantity, commission, notes)
+        VALUES 
+        ($1, 'Forex', 'EURUSD', 'Long', 'Closed', '2025-06-01T10:00:00Z', 1.1250, '2025-06-01T15:30:00Z', 1.1320, 10000, 5.50, 'Good breakout trade'),
+        ($1, 'Forex', 'GBPUSD', 'Short', 'Closed', '2025-06-02T08:00:00Z', 1.2650, '2025-06-02T12:00:00Z', 1.2580, 15000, 7.25, 'Nice pullback trade'),
+        ($1, 'Crypto', 'BTCUSD', 'Long', 'Open', '2025-06-05T14:00:00Z', 45000, NULL, NULL, 0.1, 15.00, 'Long term Bitcoin position')
+        ON CONFLICT DO NOTHING;
+      `, [userId]);
+
       return {
         success: true,
         testUserId: testUserId[0],
@@ -407,6 +418,7 @@ export class AppController {
           email: 'logintest@example.com',
           password: 'testpassword123'
         },
+        tradesCreated: 'Sample trades created',
         timestamp: new Date().toISOString(),
       };
     } catch (error) {
