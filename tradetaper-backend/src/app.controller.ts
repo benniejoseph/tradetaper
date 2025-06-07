@@ -23,11 +23,22 @@ export class AppController {
   }
 
   @Get('health')
-  getHealth(): { status: string; timestamp: string } {
-    return {
-      status: 'ok',
-      timestamp: new Date().toISOString(),
-    };
+  async getHealth(): Promise<{ status: string; timestamp: string; database?: string }> {
+    try {
+      // Test database connectivity
+      await this.subscriptionRepository.query('SELECT 1');
+      return {
+        status: 'ok',
+        timestamp: new Date().toISOString(),
+        database: 'connected',
+      };
+    } catch (error) {
+      return {
+        status: 'ok', // Still return ok for health check, but note DB issue
+        timestamp: new Date().toISOString(),
+        database: 'error',
+      };
+    }
   }
 
   @Post('migrate')
