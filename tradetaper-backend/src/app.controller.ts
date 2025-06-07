@@ -159,9 +159,80 @@ export class AppController {
       `);
       console.log('Updated existing subscriptions:', result);
 
+      // Create sample trades for testing
+      const testUserId = '0eb6dc08-f35a-4eca-bb55-08df3b05320d'; // logintest@example.com
+      
+      // Check if test data already exists
+      const existingTrades = await this.subscriptionRepository.query(`
+        SELECT COUNT(*) as count FROM trades WHERE "userId" = $1;
+      `, [testUserId]);
+      
+      if (parseInt(existingTrades[0].count) === 0) {
+        console.log('Creating sample trades for testing...');
+        
+        const sampleTrades = [
+          {
+            userId: testUserId,
+            assetType: 'Forex',
+            symbol: 'EURUSD',
+            direction: 'Long',
+            status: 'Closed',
+            entryDate: '2025-06-01T10:00:00Z',
+            entryPrice: 1.1250,
+            exitDate: '2025-06-01T15:30:00Z',
+            exitPrice: 1.1320,
+            quantity: 10000,
+            commission: 5.50,
+            notes: 'Good breakout trade on EURUSD'
+          },
+          {
+            userId: testUserId,
+            assetType: 'Forex',
+            symbol: 'GBPUSD',
+            direction: 'Short',
+            status: 'Closed',
+            entryDate: '2025-06-02T08:00:00Z',
+            entryPrice: 1.2650,
+            exitDate: '2025-06-02T12:00:00Z',
+            exitPrice: 1.2580,
+            quantity: 15000,
+            commission: 7.25,
+            notes: 'Nice pullback trade'
+          },
+          {
+            userId: testUserId,
+            assetType: 'Crypto',
+            symbol: 'BTCUSD',
+            direction: 'Long',
+            status: 'Open',
+            entryDate: '2025-06-05T14:00:00Z',
+            entryPrice: 45000,
+            quantity: 0.1,
+            commission: 15.00,
+            notes: 'Long term Bitcoin position'
+          }
+        ];
+
+        for (const trade of sampleTrades) {
+          await this.subscriptionRepository.query(`
+            INSERT INTO trades (
+              "userId", "assetType", symbol, direction, status, "entryDate", "entryPrice", 
+              "exitDate", "exitPrice", quantity, commission, notes
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12);
+          `, [
+            trade.userId, trade.assetType, trade.symbol, trade.direction, trade.status,
+            trade.entryDate, trade.entryPrice, trade.exitDate, trade.exitPrice,
+            trade.quantity, trade.commission, trade.notes
+          ]);
+        }
+        console.log('✅ Sample trades created');
+      } else {
+        console.log('✅ Sample trades already exist');
+      }
+
       return { 
         success: true, 
-        message: 'Migration completed successfully - created all tables, dropped and recreated usage_tracking table, added plan column',
+        message: 'Migration completed successfully - created all tables, sample trades, dropped and recreated usage_tracking table, added plan column',
         timestamp: new Date().toISOString(),
       };
     } catch (error) {
