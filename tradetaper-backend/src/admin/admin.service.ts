@@ -99,62 +99,118 @@ export class AdminService {
     const days = this.parseTimeRange(timeRange);
 
     // Get daily user signups
-    const dailyStats: DailyStatItem[] = [];
+    const data = [];
+    let cumulativeUsers = 0;
+    
     for (let i = days - 1; i >= 0; i--) {
       const date = new Date(Date.now() - i * 24 * 60 * 60 * 1000);
       const nextDate = new Date(date.getTime() + 24 * 60 * 60 * 1000);
       
-      const users = await this.usersRepository.count({
+      const dailySignups = await this.usersRepository.count({
         where: {
           createdAt: Between(date, nextDate),
         },
       });
 
-      dailyStats.push({
+      // Get total users up to this date
+      const totalUsers = await this.usersRepository.count({
+        where: {
+          createdAt: Between(new Date(0), nextDate),
+        },
+      });
+
+      data.push({
         date: date.toISOString().split('T')[0],
-        users,
-        signups: users, // Same as users for new signups
+        users: totalUsers,
+        signups: dailySignups,
       });
     }
 
-    return { dailyStats };
+    return { data };
   }
 
   async getTradeAnalytics(timeRange: string) {
-    // Get top trading pairs
+    const days = this.parseTimeRange(timeRange);
+    const startDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+
+    // Get daily trade data
+    const data = [];
+    for (let i = days - 1; i >= 0; i--) {
+      const date = new Date(Date.now() - i * 24 * 60 * 60 * 1000);
+      const nextDate = new Date(date.getTime() + 24 * 60 * 60 * 1000);
+      
+      const trades = await this.tradesRepository.count({
+        where: {
+          createdAt: Between(date, nextDate),
+        },
+      });
+
+      data.push({
+        date: date.toISOString().split('T')[0],
+        trades,
+      });
+    }
+
+    // Get top trading pairs within time range
     const topTradingPairs = await this.tradesRepository
       .createQueryBuilder('trade')
-      .select('trade.pair, COUNT(*) as count')
-      .groupBy('trade.pair')
+      .select('trade.symbol as pair, COUNT(*) as count')
+      .where('trade.createdAt >= :startDate', { startDate })
+      .groupBy('trade.symbol')
       .orderBy('count', 'DESC')
       .limit(10)
       .getRawMany();
 
-    // Calculate volumes (mock calculation)
-    const topTradingPairsWithVolume = topTradingPairs.map(pair => ({
-      pair: pair.pair,
-      count: parseInt(pair.count),
-      volume: parseInt(pair.count) * 50000, // Mock volume calculation
-    }));
+    // Calculate real volumes based on trade quantity and price
+    const topTradingPairsWithVolume = await Promise.all(
+      topTradingPairs.map(async (pair) => {
+        const volume = await this.tradesRepository
+          .createQueryBuilder('trade')
+          .select('SUM(trade.quantity * trade.entryPrice)', 'volume')
+          .where('trade.symbol = :symbol', { symbol: pair.pair })
+          .where('trade.createdAt >= :startDate', { startDate })
+          .getRawOne();
 
-    return { topTradingPairs: topTradingPairsWithVolume };
+        return {
+          pair: pair.pair,
+          count: parseInt(pair.count),
+          volume: parseFloat(volume?.volume || 0),
+        };
+      })
+    );
+
+    return { 
+      data,
+      topTradingPairs: topTradingPairsWithVolume 
+    };
   }
 
   async getRevenueAnalytics(timeRange: string) {
     const days = this.parseTimeRange(timeRange);
     
-    // Mock revenue data (would integrate with subscription service)
-    const dailyStats: RevenueStatItem[] = [];
+    // Calculate revenue based on user growth and subscription assumptions
+    const data = [];
     for (let i = days - 1; i >= 0; i--) {
       const date = new Date(Date.now() - i * 24 * 60 * 60 * 1000);
+      const nextDate = new Date(date.getTime() + 24 * 60 * 60 * 1000);
       
-      dailyStats.push({
+      // Get users created on this day
+      const dailyUsers = await this.usersRepository.count({
+        where: {
+          createdAt: Between(date, nextDate),
+        },
+      });
+
+      // Calculate estimated revenue: assume 15% conversion rate and avg $19.99/month
+      const estimatedRevenue = dailyUsers * 0.15 * 19.99;
+      
+      data.push({
         date: date.toISOString().split('T')[0],
-        revenue: Math.floor(Math.random() * 5000) + 2000,
+        revenue: Math.max(estimatedRevenue, 0),
       });
     }
 
-    return { dailyStats };
+    return { data };
   }
 
   async getGeographicData() {
