@@ -16,7 +16,13 @@ import {
   Tooltip, 
   CartesianGrid
 } from 'recharts';
-import { FaTimes, FaPlus, FaChartLine, FaDownload, FaFilter, FaCalendarAlt } from 'react-icons/fa';
+import { 
+  FaTimes, FaPlus, FaChartLine, FaDownload, FaFilter, FaCalendarAlt, 
+  FaTrophy, FaFire, FaShieldAlt, FaClock, FaBolt, FaChartBar,
+  FaArrowUp, FaArrowDown, FaCoins, FaBalanceScale,
+  FaEye, FaStar, FaPercentage, FaExclamationTriangle
+} from 'react-icons/fa';
+import { FaBullseye } from 'react-icons/fa';
 
 interface ChartDataPoint {
   date: string;
@@ -181,6 +187,121 @@ export default function OverviewPage() {
     return pairStats;
   }, [filteredTrades]);
 
+  // Calculate comprehensive statistics
+  const statistics = useMemo(() => {
+    const closedTrades = filteredTrades.filter(t => t.status === TradeStatus.CLOSED);
+    const openTrades = filteredTrades.filter(t => t.status === TradeStatus.OPEN);
+    
+    if (closedTrades.length === 0) {
+      return {
+        totalTrades: filteredTrades.length,
+        totalPnL: 0,
+        winRate: 0,
+        totalWins: 0,
+        totalLosses: 0,
+        avgWin: 0,
+        avgLoss: 0,
+        largestWin: 0,
+        largestLoss: 0,
+        profitFactor: 0,
+        expectancy: 0,
+        sharpeRatio: 0,
+        maxDrawdown: 0,
+        avgHoldTime: 0,
+        currentStreak: 0,
+        longestWinStreak: 0,
+        longestLossStreak: 0,
+        totalCommissions: 0,
+        netPnL: 0,
+        riskRewardRatio: 0,
+        openTrades: openTrades.length,
+        totalVolume: 0
+      };
+    }
+
+    const wins = closedTrades.filter(t => (t.profitOrLoss || 0) > 0);
+    const losses = closedTrades.filter(t => (t.profitOrLoss || 0) < 0);
+    
+    const totalPnL = closedTrades.reduce((sum, t) => sum + (t.profitOrLoss || 0), 0);
+    const totalCommissions = closedTrades.reduce((sum, t) => sum + (t.commission || 0), 0);
+    const totalWins = wins.reduce((sum, t) => sum + (t.profitOrLoss || 0), 0);
+    const totalLosses = Math.abs(losses.reduce((sum, t) => sum + (t.profitOrLoss || 0), 0));
+    
+    const avgWin = wins.length > 0 ? totalWins / wins.length : 0;
+    const avgLoss = losses.length > 0 ? totalLosses / losses.length : 0;
+    const largestWin = wins.length > 0 ? Math.max(...wins.map(t => t.profitOrLoss || 0)) : 0;
+    const largestLoss = losses.length > 0 ? Math.min(...losses.map(t => t.profitOrLoss || 0)) : 0;
+    
+    const profitFactor = totalLosses > 0 ? totalWins / totalLosses : totalWins > 0 ? 999 : 0;
+    const winRate = (wins.length / closedTrades.length) * 100;
+    const expectancy = (winRate / 100) * avgWin - ((100 - winRate) / 100) * avgLoss;
+    
+    // Calculate streaks
+    let currentStreak = 0;
+    let longestWinStreak = 0;
+    let longestLossStreak = 0;
+    let tempWinStreak = 0;
+    let tempLossStreak = 0;
+    
+    for (let i = closedTrades.length - 1; i >= 0; i--) {
+      const pnl = closedTrades[i].profitOrLoss || 0;
+      if (i === closedTrades.length - 1) {
+        currentStreak = pnl > 0 ? 1 : pnl < 0 ? -1 : 0;
+      }
+      
+      if (pnl > 0) {
+        tempWinStreak++;
+        tempLossStreak = 0;
+        longestWinStreak = Math.max(longestWinStreak, tempWinStreak);
+      } else if (pnl < 0) {
+        tempLossStreak++;
+        tempWinStreak = 0;
+        longestLossStreak = Math.max(longestLossStreak, tempLossStreak);
+      }
+    }
+    
+    // Calculate average hold time
+    const holdTimes = closedTrades
+      .filter(t => t.entryDate && t.exitDate)
+      .map(t => {
+        const entry = new Date(t.entryDate!);
+        const exit = new Date(t.exitDate!);
+        return (exit.getTime() - entry.getTime()) / (1000 * 60 * 60); // hours
+      });
+    const avgHoldTime = holdTimes.length > 0 ? holdTimes.reduce((a, b) => a + b, 0) / holdTimes.length : 0;
+    
+    // Calculate risk-reward ratio
+    const riskRewardRatio = avgLoss > 0 ? avgWin / avgLoss : 0;
+    
+    // Calculate total volume
+    const totalVolume = closedTrades.reduce((sum, t) => sum + ((t.entryPrice || 0) * (t.quantity || 0)), 0);
+    
+    return {
+      totalTrades: closedTrades.length,
+      totalPnL,
+      winRate,
+      totalWins,
+      totalLosses,
+      avgWin,
+      avgLoss,
+      largestWin,
+      largestLoss,
+      profitFactor,
+      expectancy,
+      sharpeRatio: 0, // Would need more data for proper calculation
+      maxDrawdown: 0, // Would need equity curve for proper calculation
+      avgHoldTime,
+      currentStreak,
+      longestWinStreak,
+      longestLossStreak,
+      totalCommissions,
+      netPnL: totalPnL - totalCommissions,
+      riskRewardRatio,
+      openTrades: openTrades.length,
+      totalVolume
+    };
+  }, [filteredTrades]);
+
   const removeMetric = (metric: MetricType) => {
     setSelectedMetrics(prev => prev.filter(m => m !== metric));
   };
@@ -288,6 +409,168 @@ export default function OverviewPage() {
                 {range}
               </button>
             ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Key Metrics Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {/* Total P&L Card */}
+        <div className="bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl p-6 text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
+          <div className="flex items-center justify-between mb-4">
+            <FaCoins className="w-8 h-8 opacity-80" />
+            <span className="text-green-100 text-sm font-medium">Total P&L</span>
+          </div>
+          <div className="space-y-1">
+            <p className="text-3xl font-bold">${statistics.totalPnL.toFixed(2)}</p>
+            <p className="text-green-100 text-sm">Net: ${statistics.netPnL.toFixed(2)}</p>
+          </div>
+        </div>
+
+        {/* Win Rate Card */}
+        <div className="bg-gradient-to-br from-blue-500 to-cyan-600 rounded-2xl p-6 text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
+          <div className="flex items-center justify-between mb-4">
+            <FaBullseye className="w-8 h-8 opacity-80" />
+            <span className="text-blue-100 text-sm font-medium">Win Rate</span>
+          </div>
+          <div className="space-y-1">
+            <p className="text-3xl font-bold">{statistics.winRate.toFixed(1)}%</p>
+            <p className="text-blue-100 text-sm">{statistics.totalTrades} trades</p>
+          </div>
+        </div>
+
+        {/* Profit Factor Card */}
+        <div className="bg-gradient-to-br from-purple-500 to-indigo-600 rounded-2xl p-6 text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
+          <div className="flex items-center justify-between mb-4">
+            <FaBalanceScale className="w-8 h-8 opacity-80" />
+            <span className="text-purple-100 text-sm font-medium">Profit Factor</span>
+          </div>
+          <div className="space-y-1">
+            <p className="text-3xl font-bold">{statistics.profitFactor === 999 ? '∞' : statistics.profitFactor.toFixed(2)}</p>
+            <p className="text-purple-100 text-sm">R:R {statistics.riskRewardRatio.toFixed(2)}</p>
+          </div>
+        </div>
+
+        {/* Current Streak Card */}
+        <div className={`bg-gradient-to-br ${statistics.currentStreak > 0 ? 'from-orange-500 to-red-500' : statistics.currentStreak < 0 ? 'from-red-500 to-pink-600' : 'from-gray-500 to-gray-600'} rounded-2xl p-6 text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105`}>
+          <div className="flex items-center justify-between mb-4">
+            <FaFire className="w-8 h-8 opacity-80" />
+            <span className="text-white text-opacity-80 text-sm font-medium">Current Streak</span>
+          </div>
+          <div className="space-y-1">
+            <p className="text-3xl font-bold">{Math.abs(statistics.currentStreak)}</p>
+            <p className="text-white text-opacity-80 text-sm">{statistics.currentStreak > 0 ? 'Wins' : statistics.currentStreak < 0 ? 'Losses' : 'None'}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Advanced Statistics */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Performance Metrics */}
+        <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 p-6 shadow-lg">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-2 bg-gradient-to-r from-green-500/20 to-emerald-500/20 rounded-xl">
+              <FaChartBar className="w-5 h-5 text-green-600 dark:text-green-400" />
+            </div>
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white">Performance Metrics</h3>
+          </div>
+          
+          <div className="space-y-4">
+            <div className="flex justify-between items-center p-3 rounded-lg bg-gray-50/80 dark:bg-gray-800/80">
+              <div className="flex items-center gap-3">
+                <FaArrowUp className="w-4 h-4 text-green-500" />
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Average Win</span>
+              </div>
+              <span className="font-bold text-green-600 dark:text-green-400">${statistics.avgWin.toFixed(2)}</span>
+            </div>
+            
+            <div className="flex justify-between items-center p-3 rounded-lg bg-gray-50/80 dark:bg-gray-800/80">
+              <div className="flex items-center gap-3">
+                <FaArrowDown className="w-4 h-4 text-red-500" />
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Average Loss</span>
+              </div>
+              <span className="font-bold text-red-600 dark:text-red-400">${statistics.avgLoss.toFixed(2)}</span>
+            </div>
+            
+            <div className="flex justify-between items-center p-3 rounded-lg bg-gray-50/80 dark:bg-gray-800/80">
+              <div className="flex items-center gap-3">
+                <FaTrophy className="w-4 h-4 text-yellow-500" />
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Largest Win</span>
+              </div>
+              <span className="font-bold text-green-600 dark:text-green-400">${statistics.largestWin.toFixed(2)}</span>
+            </div>
+            
+            <div className="flex justify-between items-center p-3 rounded-lg bg-gray-50/80 dark:bg-gray-800/80">
+              <div className="flex items-center gap-3">
+                <FaExclamationTriangle className="w-4 h-4 text-red-500" />
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Largest Loss</span>
+              </div>
+              <span className="font-bold text-red-600 dark:text-red-400">${Math.abs(statistics.largestLoss).toFixed(2)}</span>
+            </div>
+            
+            <div className="flex justify-between items-center p-3 rounded-lg bg-gray-50/80 dark:bg-gray-800/80">
+              <div className="flex items-center gap-3">
+                <FaBolt className="w-4 h-4 text-blue-500" />
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Expectancy</span>
+              </div>
+              <span className={`font-bold ${statistics.expectancy > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                ${statistics.expectancy.toFixed(2)}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Risk & Time Metrics */}
+        <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 p-6 shadow-lg">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-2 bg-gradient-to-r from-purple-500/20 to-indigo-500/20 rounded-xl">
+              <FaShieldAlt className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+            </div>
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white">Risk & Time Analysis</h3>
+          </div>
+          
+          <div className="space-y-4">
+            <div className="flex justify-between items-center p-3 rounded-lg bg-gray-50/80 dark:bg-gray-800/80">
+              <div className="flex items-center gap-3">
+                <FaClock className="w-4 h-4 text-blue-500" />
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Avg Hold Time</span>
+              </div>
+              <span className="font-bold text-gray-900 dark:text-white">
+                {statistics.avgHoldTime < 24 ? `${statistics.avgHoldTime.toFixed(1)}h` : `${(statistics.avgHoldTime / 24).toFixed(1)}d`}
+              </span>
+            </div>
+            
+            <div className="flex justify-between items-center p-3 rounded-lg bg-gray-50/80 dark:bg-gray-800/80">
+              <div className="flex items-center gap-3">
+                <FaEye className="w-4 h-4 text-green-500" />
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Open Positions</span>
+              </div>
+              <span className="font-bold text-blue-600 dark:text-blue-400">{statistics.openTrades}</span>
+            </div>
+            
+            <div className="flex justify-between items-center p-3 rounded-lg bg-gray-50/80 dark:bg-gray-800/80">
+              <div className="flex items-center gap-3">
+                <FaFire className="w-4 h-4 text-orange-500" />
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Longest Win Streak</span>
+              </div>
+              <span className="font-bold text-green-600 dark:text-green-400">{statistics.longestWinStreak}</span>
+            </div>
+            
+            <div className="flex justify-between items-center p-3 rounded-lg bg-gray-50/80 dark:bg-gray-800/80">
+              <div className="flex items-center gap-3">
+                <FaExclamationTriangle className="w-4 h-4 text-red-500" />
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Longest Loss Streak</span>
+              </div>
+              <span className="font-bold text-red-600 dark:text-red-400">{statistics.longestLossStreak}</span>
+            </div>
+            
+            <div className="flex justify-between items-center p-3 rounded-lg bg-gray-50/80 dark:bg-gray-800/80">
+              <div className="flex items-center gap-3">
+                <FaPercentage className="w-4 h-4 text-yellow-500" />
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Total Commissions</span>
+              </div>
+              <span className="font-bold text-orange-600 dark:text-orange-400">${statistics.totalCommissions.toFixed(2)}</span>
+            </div>
           </div>
         </div>
       </div>

@@ -33,33 +33,11 @@ export default function DailyBalancesPage() {
     }
   }, [dispatch, isAuthenticated, selectedAccountId]);
 
-  // Calculate daily balances
+  // Calculate daily balances from real trade data only
   const dailyBalances = useMemo(() => {
-    // Show dummy data when no account is selected or no trades exist
-    if (!selectedAccount || (!trades || trades.length === 0)) {
-      const dummyDays = parseInt(daysToShow === 'all' ? '30' : daysToShow);
-      const dummyData: BalanceEntry[] = [];
-      let currentBalance = 6578.98;
-
-      for (let i = 0; i < dummyDays; i++) {
-        const date = new Date();
-        date.setDate(date.getDate() - i);
-        const dateString = format(date, 'yyyy-MM-dd');
-        
-        // Generate realistic dummy P&L
-        const dailyPnl = (Math.random() - 0.5) * 200; // Random P&L between -100 and +100
-        currentBalance -= dailyPnl; // Work backwards
-        
-        dummyData.push({
-          date: dateString,
-          balance: currentBalance + dailyPnl,
-          dailyPnl: dailyPnl,
-          tradesCount: Math.floor(Math.random() * 5), // 0-4 trades per day
-          apiName: 'Demo Account'
-        });
-      }
-      
-      return dummyData.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    // Return empty array if no trades exist - show only real data
+    if (!trades || trades.length === 0) {
+      return [];
     }
 
     const accountTrades = selectedAccountId 
@@ -71,7 +49,14 @@ export default function DailyBalancesPage() {
       .filter(trade => trade.exitDate)
       .sort((a, b) => new Date(a.exitDate!).getTime() - new Date(b.exitDate!).getTime());
 
-    let currentBalance = selectedAccount.balance;
+    // Calculate starting balance - if no account selected, calculate from total P&L
+    let currentBalance = selectedAccount?.balance || 10000; // Default starting balance
+    
+    if (!selectedAccount) {
+      // Calculate total P&L and assume starting balance
+      const totalPnL = sortedTrades.reduce((sum, trade) => sum + (trade.profitOrLoss || 0), 0);
+      currentBalance = 10000 + totalPnL; // Current balance = starting + total P&L
+    }
 
     // Work backwards from current balance to get starting balance
     for (let i = sortedTrades.length - 1; i >= 0; i--) {
@@ -102,15 +87,16 @@ export default function DailyBalancesPage() {
     const balanceHistory: BalanceEntry[] = [];
     const sortedDates = Object.keys(dailyGroups).sort().reverse(); // Most recent first
 
-    // Add today if it's not in the data and we have an account
+    // Add today if it's not in the data (show current balance)
     const today = format(new Date(), 'yyyy-MM-dd');
-    if (!dailyGroups[today] && selectedAccount) {
+    if (!dailyGroups[today]) {
+      const currentTotalBalance = selectedAccount?.balance || (10000 + sortedTrades.reduce((sum, trade) => sum + (trade.profitOrLoss || 0), 0));
       balanceHistory.push({
         date: today,
-        balance: selectedAccount.balance,
+        balance: currentTotalBalance,
         dailyPnl: 0,
         tradesCount: 0,
-        apiName: selectedAccount.name || 'Demo Account'
+        apiName: selectedAccount?.name || 'Trading Account'
       });
     }
 
@@ -119,14 +105,15 @@ export default function DailyBalancesPage() {
       if (date !== today) { // Skip today if we already added it
         const dayTrades = dailyGroups[date];
         const dailyPnl = dayTrades.reduce((sum, trade) => sum + (trade.profitOrLoss || 0), 0);
-        runningBalance = date === sortedDates[0] ? selectedAccount.balance - dailyPnl : runningBalance - dailyPnl;
+        const currentTotalBalance = selectedAccount?.balance || (10000 + sortedTrades.reduce((sum, trade) => sum + (trade.profitOrLoss || 0), 0));
+        runningBalance = date === sortedDates[0] ? currentTotalBalance - dailyPnl : runningBalance - dailyPnl;
         
         balanceHistory.push({
           date,
           balance: runningBalance + dailyPnl,
           dailyPnl,
           tradesCount: dayTrades.length,
-          apiName: selectedAccount.name || 'Demo Account'
+          apiName: selectedAccount?.name || 'Trading Account'
         });
       }
     });
