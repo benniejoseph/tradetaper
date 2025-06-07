@@ -34,19 +34,32 @@ import { MT5Account } from './users/entities/mt5-account.entity';
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => {
         const isProduction = configService.get<string>('NODE_ENV') === 'production';
+        const databaseUrl = configService.get<string>('DATABASE_URL');
         
         // Using DATABASE_URL for production (Railway, Heroku, etc)
-        if (isProduction && configService.get<string>('DATABASE_URL')) {
+        if (isProduction && databaseUrl) {
           return {
             type: 'postgres',
-            url: configService.get<string>('DATABASE_URL'),
-            entities: [User, Trade, Tag, MT5Account],
+            url: databaseUrl,
+            entities: [User, Trade, Tag, MT5Account, Subscription],
             synchronize: false, // Never auto-sync in production!
             ssl: {
               rejectUnauthorized: false // Required for Railway and some other providers
             },
             migrations: [__dirname + '/migrations/**/*{.ts,.js}'],
             migrationsRun: true,
+          };
+        }
+        
+        // Using DATABASE_URL for development if provided
+        if (databaseUrl && databaseUrl.startsWith('postgresql://')) {
+          return {
+            type: 'postgres',
+            url: databaseUrl,
+            entities: [User, Trade, Tag, MT5Account, Subscription],
+            synchronize: configService.get<string>('NODE_ENV') !== 'production',
+            migrations: [__dirname + '/migrations/**/*{.ts,.js}'],
+            migrationsRun: false, // Manual migration control in development
           };
         }
         
@@ -57,11 +70,11 @@ import { MT5Account } from './users/entities/mt5-account.entity';
           port: configService.get<number>('DB_PORT', 5432),
           username: configService.get<string>('DB_USERNAME', 'postgres'),
           password: configService.get<string>('DB_PASSWORD', 'postgres'),
-          database: configService.get<string>('DB_DATABASE', 'trading_journal'),
-          entities: [User, Trade, Tag, MT5Account],
+          database: configService.get<string>('DB_DATABASE', 'tradetaper_dev'),
+          entities: [User, Trade, Tag, MT5Account, Subscription],
           synchronize: configService.get<string>('NODE_ENV') !== 'production',
           migrations: [__dirname + '/migrations/**/*{.ts,.js}'],
-          migrationsRun: true,
+          migrationsRun: false, // Manual migration control in development
         };
       },
     }),

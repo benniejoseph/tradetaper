@@ -25,7 +25,7 @@ tradetaper-backend/dist/
 tradetaper-backend/uploads/
 
 # Environment files
-# .env
+.env
 .env.local
 .env.*.local
 .env.production

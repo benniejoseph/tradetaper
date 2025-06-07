@@ -1,8 +1,9 @@
 [build]
   builder = "NIXPACKS"
+  buildCommand = "cd tradetaper-backend && npm install && npm run build"
 
 [deploy]
-  startCommand = "npm run start:prod"
+  startCommand = "cd tradetaper-backend && npm run start:prod"
   healthcheckPath = "/health"
   healthcheckTimeout = 100
   restartPolicyType = "ON_FAILURE"
