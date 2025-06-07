@@ -2,8 +2,8 @@
 import axios from 'axios';
 import { RootState } from '@/store/store'; // Removed unused AppDispatch import
 
-// FORCE USE OF PRODUCTION URL - TEMPORARY FIX
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://tradetaper-backend-production.up.railway.app/api/v1';
+// TEMPORARILY HARDCODE PRODUCTION URL TO FIX DEPLOYMENT ISSUE
+const API_BASE_URL = 'https://tradetaper-backend-production.up.railway.app/api/v1';
 
 // Debug: Log the API URL being used
 console.log('🔍 Frontend API_BASE_URL:', API_BASE_URL);
