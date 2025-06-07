@@ -350,6 +350,94 @@ export class AppController {
   }
 
 
+  @Post('create-test-data')
+  async createTestData(@Body() body: { userId: string }) {
+    try {
+      console.log('🔍 Creating test data for user:', body.userId);
+      
+      // Create sample trades
+      const sampleTrades = [
+        {
+          userId: body.userId,
+          assetType: 'Forex',
+          symbol: 'EURUSD',
+          direction: 'Long',
+          status: 'Closed',
+          entryDate: '2025-06-01T10:00:00Z',
+          entryPrice: 1.1250,
+          exitDate: '2025-06-01T15:30:00Z',
+          exitPrice: 1.1320,
+          quantity: 10000,
+          commission: 5.50,
+          notes: 'Good breakout trade on EURUSD',
+          stopLoss: 1.1200,
+          takeProfit: 1.1350
+        },
+        {
+          userId: body.userId,
+          assetType: 'Forex',
+          symbol: 'GBPUSD',
+          direction: 'Short',
+          status: 'Closed',
+          entryDate: '2025-06-02T08:00:00Z',
+          entryPrice: 1.2650,
+          exitDate: '2025-06-02T12:00:00Z',
+          exitPrice: 1.2580,
+          quantity: 15000,
+          commission: 7.25,
+          notes: 'Nice pullback trade',
+          stopLoss: 1.2700,
+          takeProfit: 1.2550
+        },
+        {
+          userId: body.userId,
+          assetType: 'Crypto',
+          symbol: 'BTCUSD',
+          direction: 'Long',
+          status: 'Open',
+          entryDate: '2025-06-05T14:00:00Z',
+          entryPrice: 45000,
+          quantity: 0.1,
+          commission: 15.00,
+          notes: 'Long term Bitcoin position',
+          stopLoss: 42000,
+          takeProfit: 50000
+        }
+      ];
+
+      const createdTrades = [];
+      for (const trade of sampleTrades) {
+        const result = await this.subscriptionRepository.query(`
+          INSERT INTO trades (
+            "userId", "assetType", symbol, direction, status, "entryDate", "entryPrice", 
+            "exitDate", "exitPrice", quantity, commission, notes, "stopLoss", "takeProfit"
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+          RETURNING id, symbol, direction, "entryPrice", "exitPrice", quantity;
+        `, [
+          trade.userId, trade.assetType, trade.symbol, trade.direction, trade.status,
+          trade.entryDate, trade.entryPrice, trade.exitDate, trade.exitPrice,
+          trade.quantity, trade.commission, trade.notes, trade.stopLoss, trade.takeProfit
+        ]);
+        createdTrades.push(result[0]);
+      }
+
+      return {
+        success: true,
+        message: 'Test data created successfully',
+        createdTrades,
+        timestamp: new Date().toISOString(),
+      };
+    } catch (error) {
+      console.error('❌ Create test data error:', error);
+      return {
+        success: false,
+        error: error.message,
+        stack: error.stack,
+        timestamp: new Date().toISOString(),
+      };
+    }
+  }
+
   @Post('debug-stripe')
   async debugStripe() {
     try {
