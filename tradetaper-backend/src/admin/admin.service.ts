@@ -99,8 +99,11 @@ export class AdminService {
     const days = this.parseTimeRange(timeRange);
 
     // Get daily user signups
-    const data = [];
-    let cumulativeUsers = 0;
+    const data: Array<{
+      date: string;
+      users: number;
+      signups: number;
+    }> = [];
     
     for (let i = days - 1; i >= 0; i--) {
       const date = new Date(Date.now() - i * 24 * 60 * 60 * 1000);
@@ -134,7 +137,11 @@ export class AdminService {
     const startDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
 
     // Get daily trade data
-    const data = [];
+    const data: Array<{
+      date: string;
+      trades: number;
+    }> = [];
+    
     for (let i = days - 1; i >= 0; i--) {
       const date = new Date(Date.now() - i * 24 * 60 * 60 * 1000);
       const nextDate = new Date(date.getTime() + 24 * 60 * 60 * 1000);
@@ -189,7 +196,11 @@ export class AdminService {
     const days = this.parseTimeRange(timeRange);
     
     // Calculate revenue based on user growth and subscription assumptions
-    const data = [];
+    const data: Array<{
+      date: string;
+      revenue: number;
+    }> = [];
+    
     for (let i = days - 1; i >= 0; i--) {
       const date = new Date(Date.now() - i * 24 * 60 * 60 * 1000);
       const nextDate = new Date(date.getTime() + 24 * 60 * 60 * 1000);
