@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
 import React, { useEffect, useState, useMemo } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
@@ -126,17 +127,17 @@ export default function TradesPage() {
     }
   };
 
-  const handleBulkDelete = (tradeIds: string[]) => {
+  const handleBulkDelete = (_tradeIds: string[]) => {
     // TODO: Implement bulk delete logic
     // Dispatch bulk delete action here
   };
 
-  const handleBulkUpdateStatus = (tradeIds: string[], status: TradeStatus) => {
+  const handleBulkUpdateStatus = (_tradeIds: string[], _status: TradeStatus) => {
     // TODO: Implement bulk status update logic
     // Dispatch bulk status update action here
   };
 
-  const handleBulkToggleStar = (tradeIds: string[], starred: boolean) => {
+  const handleBulkToggleStar = (_tradeIds: string[], _starred: boolean) => {
     // TODO: Implement bulk star toggle logic
     // Dispatch bulk star toggle action here
   };
