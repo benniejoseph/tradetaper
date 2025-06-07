@@ -14,9 +14,10 @@ import { useCurrency, CURRENCIES, CurrencyCode } from '@/context/CurrencyContext
 interface ContentHeaderProps {
   toggleSidebar: () => void;
   isMobile: boolean;
+  isSidebarExpanded?: boolean;
 }
 
-export default function ContentHeader({ toggleSidebar, isMobile }: ContentHeaderProps) {
+export default function ContentHeader({ toggleSidebar, isMobile, isSidebarExpanded }: ContentHeaderProps) {
   const dispatch = useDispatch<AppDispatch>();
   const pathname = usePathname();
   const { user } = useSelector((state: RootState) => state.auth);
@@ -70,20 +71,17 @@ export default function ContentHeader({ toggleSidebar, isMobile }: ContentHeader
       <div className="px-4 sm:px-6 py-4">
         <div className="flex items-center justify-between">
           {/* Left side - Menu button, title, and account selector */}
-          <div className="flex items-center space-x-4">
+          <div className={`flex items-center ${isMobile || !isSidebarExpanded ? 'space-x-4' : 'space-x-6'}`}>
             {/* Mobile hamburger menu - only show on mobile/tablet */}
-            {isMobile ? (
+            {isMobile && (
               <button 
                 onClick={toggleSidebar}
                 className="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-200"
                 aria-label="Toggle sidebar">
                 <FaBars className="w-5 h-5" />
               </button>
-            ) : (
-              // Add invisible placeholder on desktop to maintain consistent spacing
-              <div className="w-9 h-9"></div>
             )}
-            <h1 className="text-xl font-semibold text-gray-900 dark:text-white">
+            <h1 className={`font-semibold text-gray-900 dark:text-white ${isMobile ? 'text-lg' : isSidebarExpanded ? 'text-2xl' : 'text-xl'}`}>
               {getPageTitle()}
             </h1>
             
@@ -92,12 +90,12 @@ export default function ContentHeader({ toggleSidebar, isMobile }: ContentHeader
               <select
                 value={selectedAccount?.id || ''}
                 onChange={(e) => handleAccountChange(e.target.value || null)}
-                className="appearance-none bg-white/80 dark:bg-gray-800/80 border border-gray-200/50 dark:border-gray-700/50 rounded-lg px-3 py-2 pr-8 text-sm font-medium text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 transition-all duration-200"
+                className={`appearance-none bg-white/80 dark:bg-gray-800/80 border border-gray-200/50 dark:border-gray-700/50 rounded-lg px-3 py-2 pr-8 text-sm font-medium text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 transition-all duration-200 ${isMobile ? 'w-32' : isSidebarExpanded ? 'w-48' : 'w-40'}`}
               >
                 <option value="">All Accounts</option>
                 {allAccounts.map(account => (
                   <option key={account.id} value={account.id}>
-                    {account.name} ({account.type}) - ${Number(account.balance || 0).toFixed(2)}
+                    {isMobile ? `${account.name}` : `${account.name} (${account.type}) - $${Number(account.balance || 0).toFixed(2)}`}
                   </option>
                 ))}
               </select>
@@ -110,12 +108,12 @@ export default function ContentHeader({ toggleSidebar, isMobile }: ContentHeader
                 value={selectedCurrency}
                 onChange={(e) => setSelectedCurrency(e.target.value as CurrencyCode)}
                 disabled={isLoading}
-                className="appearance-none bg-white/80 dark:bg-gray-800/80 border border-gray-200/50 dark:border-gray-700/50 rounded-lg px-3 py-2 pr-8 text-sm font-medium text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 transition-all duration-200 disabled:opacity-50"
+                className={`appearance-none bg-white/80 dark:bg-gray-800/80 border border-gray-200/50 dark:border-gray-700/50 rounded-lg px-3 py-2 pr-8 text-sm font-medium text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 transition-all duration-200 disabled:opacity-50 ${isMobile ? 'w-20' : 'w-28'}`}
                 title="Select display currency"
               >
                 {Object.entries(CURRENCIES).map(([code, currency]) => (
                   <option key={code} value={code}>
-                    {currency.flag} {code} ({currency.symbol})
+                    {isMobile ? code : `${currency.flag} ${code}`}
                   </option>
                 ))}
               </select>
@@ -130,14 +128,14 @@ export default function ContentHeader({ toggleSidebar, isMobile }: ContentHeader
               </div>
               
           {/* Right side - Search, notifications, and theme toggle */}
-          <div className="flex items-center space-x-2 sm:space-x-4">
+          <div className={`flex items-center ${isMobile ? 'space-x-2' : 'space-x-3'}`}>
             {/* Search - Only show on desktop */}
             {!isMobile && (
               <div className="relative hidden sm:block">
                 <input
                   type="text"
                   placeholder="Search..."
-                  className="w-64 px-4 py-2 pl-10 text-sm bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
+                  className={`px-4 py-2 pl-10 text-sm bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 transition-all duration-200 ${isSidebarExpanded ? 'w-72' : 'w-64'}`}
                 />
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
               </div>

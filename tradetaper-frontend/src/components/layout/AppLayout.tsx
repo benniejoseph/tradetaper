@@ -20,6 +20,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
   const { isAuthenticated } = useSelector((state: RootState) => state.auth);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
 
   // Initialize WebSocket connection for the entire app
   useWebSocket({
@@ -58,12 +59,27 @@ export default function AppLayout({ children }: AppLayoutProps) {
     <ProtectedRoute>
       <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-green-50 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800">
         {/* Sidebar */}
-        <Sidebar isOpen={isSidebarOpen} toggleSidebar={toggleSidebar} isMobile={isMobile} />
+        <Sidebar 
+          isOpen={isSidebarOpen} 
+          toggleSidebar={toggleSidebar} 
+          isMobile={isMobile}
+          onExpandChange={setIsSidebarExpanded}
+        />
         
         {/* Main Content Area */}
-        <div className={`transition-all duration-300 ${isMobile ? 'ml-0' : 'md:ml-64'}`}>
+        <div className={`transition-all duration-500 ${
+          isMobile 
+            ? 'ml-0' 
+            : isSidebarExpanded 
+              ? 'ml-72' 
+              : 'ml-20'
+        }`}>
           {/* Content Header */}
-          <ContentHeader toggleSidebar={toggleSidebar} isMobile={isMobile} />
+          <ContentHeader 
+            toggleSidebar={toggleSidebar} 
+            isMobile={isMobile}
+            isSidebarExpanded={isSidebarExpanded}
+          />
           
           {/* Page Content */}
           <main className="p-4 md:p-6 lg:p-8 max-w-full">

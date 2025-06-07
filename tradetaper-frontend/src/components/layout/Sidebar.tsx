@@ -21,16 +21,17 @@ interface SidebarProps {
   isOpen: boolean;
   toggleSidebar: () => void;
   isMobile: boolean;
+  onExpandChange?: (expanded: boolean) => void;
 }
 
-export default function Sidebar({ isOpen, toggleSidebar, isMobile }: SidebarProps) {
+export default function Sidebar({ isOpen, toggleSidebar, isMobile, onExpandChange }: SidebarProps) {
   const pathname = usePathname();
   const dispatch = useDispatch<AppDispatch>();
   const router = useRouter();
   const { user } = useSelector((state: RootState) => state.auth);
   
-  // Expandable sidebar state
-  const [isExpanded, setIsExpanded] = useState(true);
+  // Expandable sidebar state - collapsed by default
+  const [isExpanded, setIsExpanded] = useState(false);
   const [hoverTimeout, setHoverTimeout] = useState<NodeJS.Timeout | null>(null);
 
   const handleLogout = () => {
@@ -44,50 +45,26 @@ export default function Sidebar({ isOpen, toggleSidebar, isMobile }: SidebarProp
     }
   };
 
-  // Expandable sidebar handlers
-  const handleMouseEnter = () => {
-    if (!isMobile && !isExpanded) {
-      if (hoverTimeout) {
-        clearTimeout(hoverTimeout);
-      }
-      const timeout = setTimeout(() => {
-        setIsExpanded(true);
-      }, 300);
-      setHoverTimeout(timeout);
-    }
-  };
-
-  const handleMouseLeave = () => {
-    if (!isMobile && isExpanded && hoverTimeout) {
-      clearTimeout(hoverTimeout);
-      const timeout = setTimeout(() => {
-        setIsExpanded(false);
-      }, 500);
-      setHoverTimeout(timeout);
-    }
-  };
-
+  // Expandable sidebar handlers - only button click, no hover
   const toggleExpanded = () => {
     if (!isMobile) {
-      setIsExpanded(!isExpanded);
+      const newExpanded = !isExpanded;
+      setIsExpanded(newExpanded);
+      onExpandChange?.(newExpanded);
     }
   };
 
-  // Clean up timeout on unmount
-  useEffect(() => {
-    return () => {
-      if (hoverTimeout) {
-        clearTimeout(hoverTimeout);
-      }
-    };
-  }, [hoverTimeout]);
-
-  // Auto-collapse on mobile
+  // Auto-expand on mobile (always expanded on mobile)
   useEffect(() => {
     if (isMobile) {
       setIsExpanded(true);
+      onExpandChange?.(true);
+    } else {
+      // Reset to collapsed on desktop
+      setIsExpanded(false);
+      onExpandChange?.(false);
     }
-  }, [isMobile]);
+  }, [isMobile, onExpandChange]);
 
   return (
     <>
@@ -107,11 +84,9 @@ export default function Sidebar({ isOpen, toggleSidebar, isMobile }: SidebarProp
                         border-r border-gray-200/50 dark:border-gray-700/50
                         fixed top-0 left-0 z-50 h-screen 
                         transition-all duration-500 ease-out md:translate-x-0
-                        shadow-2xl dark:shadow-2xl group
+                        shadow-2xl dark:shadow-2xl
                         ${isOpen ? 'translate-x-0' : '-translate-x-full'}
-                        ${isMobile ? 'w-72' : ''}`}
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}>
+                        ${isMobile ? 'w-72' : ''}`}>
         
         {/* Header with Logo */}
         <div className="p-4 sm:p-6 border-b border-gray-200/50 dark:border-gray-700/50">
