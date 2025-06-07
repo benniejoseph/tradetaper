@@ -23,7 +23,7 @@ const nextConfig: NextConfig = {
     ],
   },
   /* config options here */
-  // Deployment trigger: Updated environment variables for production
+  // Deployment trigger: Fixed CORS environment variables for production
 };
 
 export default nextConfig;
