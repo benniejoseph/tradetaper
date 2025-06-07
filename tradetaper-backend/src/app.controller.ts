@@ -296,6 +296,42 @@ export class AppController {
     }
   }
 
+  @Post('debug-users')
+  async debugUsers() {
+    try {
+      console.log('🔍 Testing user creation...');
+      
+      // Test direct SQL user creation
+      const testUserId = await this.subscriptionRepository.query(`
+        INSERT INTO users (email, password, "firstName", "lastName") 
+        VALUES ('debug@test.com', 'hashedpassword123', 'Debug', 'User') 
+        RETURNING id;
+      `);
+      console.log('✅ Direct SQL user creation:', testUserId);
+
+      // Test user query
+      const users = await this.subscriptionRepository.query(`
+        SELECT id, email, "firstName", "lastName", "createdAt" FROM users;
+      `);
+      console.log('✅ Users in database:', users);
+
+      return {
+        success: true,
+        testUserId: testUserId[0],
+        allUsers: users,
+        timestamp: new Date().toISOString(),
+      };
+    } catch (error) {
+      console.error('❌ Debug users error:', error);
+      return {
+        success: false,
+        error: error.message,
+        stack: error.stack,
+        timestamp: new Date().toISOString(),
+      };
+    }
+  }
+
   @Post('debug-stripe')
   async debugStripe() {
     try {
