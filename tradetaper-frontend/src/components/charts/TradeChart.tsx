@@ -7,17 +7,11 @@ import {
     ISeriesApi,
     CandlestickData,
     UTCTimestamp,
-    SeriesMarker,
-    Time,
     CandlestickSeriesOptions,
     DeepPartial,
     CandlestickSeries,
     LineSeriesOptions,
     LineData,
-    SeriesMarkerPosition,
-    SeriesMarkerShape,
-    ISeriesMarkersPluginApi,
-    LineStyleOptions,
     AreaSeries,
     LineSeries,
     ColorType,
@@ -306,23 +300,10 @@ const TradeChart = memo(({
       }
     }
 
-    // Add trade markers and price lines
+    // Add trade price lines (works reliably across all series types)
     if (mainSeries) {
-      const markers: SeriesMarker<Time>[] = [];
-
-      // Entry marker
-      if (trade.entryDate && trade.entryPrice) {
-        const entryTime = (new Date(trade.entryDate).getTime() / 1000) as UTCTimestamp;
-        markers.push({
-          time: entryTime,
-          position: 'belowBar' as SeriesMarkerPosition,
-          color: '#3b82f6',
-          shape: 'arrowUp' as SeriesMarkerShape,
-          text: 'Entry',
-          size: 2,
-        });
-
-        // Entry price line
+      // Entry price line
+      if (trade.entryPrice) {
         mainSeries.createPriceLine({
           price: trade.entryPrice,
           color: '#3b82f6',
@@ -333,20 +314,9 @@ const TradeChart = memo(({
         });
       }
 
-      // Exit marker
-      if (trade.exitDate && trade.exitPrice) {
-        const exitTime = (new Date(trade.exitDate).getTime() / 1000) as UTCTimestamp;
+      // Exit price line
+      if (trade.exitPrice) {
         const isProfit = trade.profitOrLoss && trade.profitOrLoss > 0;
-        markers.push({
-          time: exitTime,
-          position: 'aboveBar' as SeriesMarkerPosition,
-          color: isProfit ? '#10b981' : '#ef4444',
-          shape: 'arrowDown' as SeriesMarkerShape,
-          text: 'Exit',
-          size: 2,
-        });
-
-        // Exit price line
         mainSeries.createPriceLine({
           price: trade.exitPrice,
           color: isProfit ? '#10b981' : '#ef4444',
@@ -379,18 +349,6 @@ const TradeChart = memo(({
           axisLabelVisible: true,
           title: `TP @ ${trade.takeProfit.toFixed(4)}`,
         });
-      }
-
-      // Set markers (only on candlestick series)
-      if (markers.length > 0 && chartType === 'candlestick' && mainSeries) {
-        try {
-          // setMarkers is only available on candlestick series
-          if ('setMarkers' in mainSeries) {
-            (mainSeries as any).setMarkers(markers);
-          }
-        } catch (error) {
-          console.warn('Failed to set markers on series:', error);
-        }
       }
     }
 
