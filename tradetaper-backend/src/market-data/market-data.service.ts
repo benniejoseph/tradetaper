@@ -68,15 +68,32 @@ export class MarketDataService implements OnModuleInit {
       );
     }
 
-    // For minute intervals, we need to handle them differently
-    if (interval.includes('minute')) {
-      return this.getMinuteHistoricalData(currencyPair, startDate, endDate, interval);
-    } else if (interval === 'hourly') {
-      return this.getHourlyHistoricalData(currencyPair, startDate, endDate);
-    } else {
-      // Use timeseries for daily data
-      return this.getTimeseriesData(currencyPair, startDate, endDate, interval);
+    // Check if the request is for intraday data (minute/hourly)
+    const isIntradayRequest = interval.includes('minute') || interval === 'hourly';
+    
+    if (isIntradayRequest) {
+      this.logger.warn(
+        `Intraday data requested (${interval}) but API key may not support it. Falling back to daily data.`
+      );
+      
+      // Try intraday first, but fallback to daily if it fails
+      try {
+        if (interval.includes('minute')) {
+          return await this.getMinuteHistoricalData(currencyPair, startDate, endDate, interval);
+        } else if (interval === 'hourly') {
+          return await this.getHourlyHistoricalData(currencyPair, startDate, endDate);
+        }
+      } catch (error) {
+        this.logger.warn(
+          `Intraday data failed for ${currencyPair} (${interval}). Falling back to daily data.`
+        );
+        // Fallback to daily data
+        return this.getTimeseriesData(currencyPair, startDate, endDate, 'daily');
+      }
     }
+
+    // Use timeseries for daily data
+    return this.getTimeseriesData(currencyPair, startDate, endDate, interval);
   }
 
   private async getMinuteHistoricalData(
@@ -347,11 +364,23 @@ export class MarketDataService implements OnModuleInit {
         error.response.statusText;
       
       // Provide helpful error messages for common API limitations
-      if (error.response.status === 403 && apiErrorMessage?.includes('working days')) {
-        throw new HttpException(
-          `Tradermade API limit: ${apiErrorMessage}. Try selecting a shorter date range or higher timeframe.`,
-          HttpStatus.BAD_REQUEST,
-        );
+      if (error.response.status === 403) {
+        if (apiErrorMessage?.includes('working days')) {
+          throw new HttpException(
+            `Tradermade API limit: ${apiErrorMessage}. Try selecting a shorter date range or higher timeframe.`,
+            HttpStatus.BAD_REQUEST,
+          );
+        } else if (apiErrorMessage?.includes('one month history')) {
+          throw new HttpException(
+            `Historical data access limited: ${apiErrorMessage}. Your API plan may not support ${interval} data. Please upgrade your Tradermade subscription or use daily data.`,
+            HttpStatus.FORBIDDEN,
+          );
+        } else {
+          throw new HttpException(
+            `Tradermade API access denied: ${apiErrorMessage}. Your API plan may not support ${interval} data.`,
+            HttpStatus.FORBIDDEN,
+          );
+        }
       }
       
       throw new HttpException(
