@@ -91,6 +91,16 @@ export async function fetchRealPriceData(
             console.error('%c[FRONTEND - fetchRealPriceData] Axios error.response.data:', 'color: red;', error.response.data);
             console.error('%c[FRONTEND - fetchRealPriceData] Axios error.response.status:', 'color: red;', error.response.status);
             console.error('%c[FRONTEND - fetchRealPriceData] Axios error.response.headers:', 'color: red;', error.response.headers);
+            
+            // Add specific handling for common API limitation errors
+            if (error.response.status === 403 || error.response.status === 400) {
+                const errorMessage = error.response.data?.message || error.response.data?.error || 'API access limitation';
+                console.warn('%c[FRONTEND - fetchRealPriceData] API Limitation detected:', 'color: orange;', errorMessage);
+                
+                if (errorMessage.includes('one month history') || errorMessage.includes('working days')) {
+                    console.info('%c[FRONTEND - fetchRealPriceData] Suggestion: Try using daily interval or shorter date range', 'color: blue;');
+                }
+            }
         } else if (error.request) {
              console.error('%c[FRONTEND - fetchRealPriceData] Axios error: No response received, request was made.', 'color: red;', error.request);
         } else {

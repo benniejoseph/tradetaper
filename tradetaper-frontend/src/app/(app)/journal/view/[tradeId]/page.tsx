@@ -41,6 +41,7 @@ export default function ViewTradePage() {
   const [priceData, setPriceData] = useState<CandlestickData[]>([]);
   const [priceDataLoading, setPriceDataLoading] = useState(false);
   const [selectedInterval, setSelectedInterval] = useState('15minute');
+  const [dataFallbackMessage, setDataFallbackMessage] = useState<string | null>(null);
 
   useEffect(() => {
     if (tradeId) {
@@ -51,6 +52,7 @@ export default function ViewTradePage() {
   useEffect(() => {
     if (currentTrade && currentTrade.id === tradeId && selectedInterval) {
       setPriceDataLoading(true);
+      setDataFallbackMessage(null); // Clear any previous fallback messages
 
       const entryDate = new Date(currentTrade.entryDate);
       let fromDate: Date;
@@ -81,10 +83,33 @@ export default function ViewTradePage() {
       fetchRealPriceData(currentTrade.symbol, fromDate, toDate, selectedInterval)
         .then(data => {
           setPriceData(data);
+          setDataFallbackMessage(null); // Clear fallback message on success
         })
         .catch(err => {
           console.error('Failed to fetch price data:', err);
-          setPriceData([]);
+          
+          // Check if this is an API limitation error and try daily fallback
+          if (err.response?.status === 403 || err.response?.status === 400) {
+            console.log('Attempting fallback to daily data due to API limitations...');
+            
+            // Set a fallback message to inform the user
+            setDataFallbackMessage(`${selectedInterval} data is not available with current API plan. Showing daily data instead.`);
+            
+            // Fallback to daily data if minute/hourly data is not available
+            return fetchRealPriceData(currentTrade.symbol, fromDate, toDate, 'daily')
+              .then(fallbackData => {
+                console.log('Fallback to daily data successful:', fallbackData.length, 'data points');
+                setPriceData(fallbackData);
+              })
+              .catch(fallbackErr => {
+                console.error('Fallback to daily data also failed:', fallbackErr);
+                setPriceData([]);
+                setDataFallbackMessage('Unable to load price data. Please try again later.');
+              });
+          } else {
+            setPriceData([]);
+            setDataFallbackMessage('Unable to load price data. Please check your connection and try again.');
+          }
         })
         .finally(() => {
             setPriceDataLoading(false);
@@ -311,6 +336,20 @@ export default function ViewTradePage() {
 
         {/* Chart */}
         <div className="p-6">
+          {/* Fallback Message */}
+          {dataFallbackMessage && (
+            <div className="mb-4 p-4 bg-amber-50/80 dark:bg-amber-900/20 backdrop-blur-sm border border-amber-200/50 dark:border-amber-700/50 rounded-xl">
+              <div className="flex items-center space-x-3">
+                <div className="w-5 h-5 text-amber-600 dark:text-amber-400">
+                  ⚠️
+                </div>
+                <div className="text-sm text-amber-800 dark:text-amber-200 font-medium">
+                  {dataFallbackMessage}
+                </div>
+              </div>
+            </div>
+          )}
+          
           <div className="h-[600px] w-full rounded-xl overflow-hidden bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm">
             {priceDataLoading ? (
               <div className="flex items-center justify-center h-full w-full">
