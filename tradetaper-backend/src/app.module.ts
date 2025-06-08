@@ -15,11 +15,13 @@ import { WebSocketGatewayModule } from './websocket/websocket.module';
 import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 import { ContentModule } from './content/content.module';
 import { AdminModule } from './admin/admin.module';
+import { StrategiesModule } from './strategies/strategies.module';
 import { Subscription } from './subscriptions/entities/subscription.entity';
 import { User } from './users/entities/user.entity';
 import { Trade } from './trades/entities/trade.entity';
 import { Tag } from './tags/entities/tag.entity';
 import { MT5Account } from './users/entities/mt5-account.entity';
+import { Strategy } from './strategies/entities/strategy.entity';
 // import { ServeStaticModule } from '@nestjs/serve-static';
 // import { join } from 'path';
 
@@ -41,7 +43,7 @@ import { MT5Account } from './users/entities/mt5-account.entity';
           return {
             type: 'postgres',
             url: databaseUrl,
-            entities: [User, Trade, Tag, MT5Account, Subscription],
+            entities: [User, Trade, Tag, MT5Account, Subscription, Strategy],
             synchronize: false, // Never auto-sync in production!
             ssl: {
               rejectUnauthorized: false // Required for Railway and some other providers
@@ -56,7 +58,7 @@ import { MT5Account } from './users/entities/mt5-account.entity';
           return {
             type: 'postgres',
             url: databaseUrl,
-            entities: [User, Trade, Tag, MT5Account, Subscription],
+            entities: [User, Trade, Tag, MT5Account, Subscription, Strategy],
             synchronize: configService.get<string>('NODE_ENV') !== 'production',
             migrations: [__dirname + '/migrations/**/*{.ts,.js}'],
             migrationsRun: false, // Manual migration control in development
@@ -93,6 +95,7 @@ import { MT5Account } from './users/entities/mt5-account.entity';
     SubscriptionsModule,
     ContentModule,
     AdminModule,
+    StrategiesModule,
     TypeOrmModule.forFeature([Subscription]),
     // ... other modules will go here
   ],

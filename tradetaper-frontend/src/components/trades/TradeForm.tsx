@@ -7,6 +7,8 @@ import { useState, useEffect, FormEvent, ChangeEvent, useMemo } from 'react';
 import { Trade, CreateTradePayload, UpdateTradePayload, AssetType, TradeDirection, TradeStatus,
   Tag as TradeTagType
  } from '@/types/trade';
+import { Strategy } from '@/types/strategy';
+import { strategiesService } from '@/services/strategiesService';
 import { ICTConcept, TradingSession } from '@/types/enums';
 import { useRouter } from 'next/navigation';
 import { useDispatch, useSelector } from 'react-redux';
@@ -91,7 +93,7 @@ export default function TradeForm({ initialData, isEditMode = false, onFormSubmi
   const [selectedTags, setSelectedTags] = useState<MultiValue<TagOption>>([]);
 
   const [formData, setFormData] = useState<Omit<CreateTradePayload | UpdateTradePayload, 'tagNames' | 'strategyTag'> & 
-    { stopLoss?: number; takeProfit?: number; rMultiple?: number; ictConcept?: ICTConcept; session?: TradingSession; accountId?: string; isStarred?: boolean; }>
+    { stopLoss?: number; takeProfit?: number; rMultiple?: number; ictConcept?: ICTConcept; session?: TradingSession; accountId?: string; isStarred?: boolean; strategyId?: string; }>
   ({
     accountId: initialData?.accountId || selectedAccountIdFromStore || undefined,
     assetType: initialData?.assetType || AssetType.STOCK,
@@ -115,6 +117,7 @@ export default function TradeForm({ initialData, isEditMode = false, onFormSubmi
     imageUrl: initialData?.imageUrl || '',
     rMultiple: initialData?.rMultiple ?? undefined,
     isStarred: initialData?.isStarred || false,
+    strategyId: initialData?.strategyId || undefined,
   });
 
   // State for calculated R:R - to be implemented properly later
@@ -125,6 +128,7 @@ export default function TradeForm({ initialData, isEditMode = false, onFormSubmi
   const [isUploading, setIsUploading] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [strategies, setStrategies] = useState<Strategy[]>([]);
 
   // Calculate R:R and update formData.rMultiple
   useEffect(() => {
@@ -158,6 +162,19 @@ export default function TradeForm({ initialData, isEditMode = false, onFormSubmi
     }
   }, [formData.entryPrice, formData.stopLoss, formData.takeProfit, formData.direction]);
 
+  // Load strategies
+  useEffect(() => {
+    const loadStrategies = async () => {
+      try {
+        const data = await strategiesService.getStrategies();
+        setStrategies(data);
+      } catch (error) {
+        console.error('Error loading strategies:', error);
+      }
+    };
+    loadStrategies();
+  }, []);
+
   useEffect(() => {
     if (initialData) {
       setFormData(prevFormData => ({
@@ -184,6 +201,7 @@ export default function TradeForm({ initialData, isEditMode = false, onFormSubmi
         imageUrl: initialData.imageUrl || '',
         rMultiple: initialData.rMultiple ?? undefined,
         isStarred: initialData.isStarred || false,
+        strategyId: initialData.strategyId || undefined,
       }));
       setImagePreviewUrl(initialData.imageUrl || null);
       setSelectedFile(null);
@@ -614,7 +632,7 @@ export default function TradeForm({ initialData, isEditMode = false, onFormSubmi
               </div>
               <span>Strategy & Analysis</span>
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-5">
                 <div>
                     <label htmlFor="ictConcept" className={labelClasses}>ICT Concept</label>
                     <select id="ictConcept" name="ictConcept" value={formData.ictConcept} onChange={handleChange} className={themedSelectClasses}>
@@ -627,7 +645,18 @@ export default function TradeForm({ initialData, isEditMode = false, onFormSubmi
                         {Object.values(TradingSession).map(sess => <option key={sess} value={sess} className={optionThemeClass}>{sess}</option>)}
                     </select>
                 </div>
-                <div className="md:col-span-2">
+                <div>
+                    <label htmlFor="strategyId" className={labelClasses}>Strategy</label>
+                    <select id="strategyId" name="strategyId" value={formData.strategyId || ''} onChange={handleChange} className={themedSelectClasses}>
+                        <option value="" className={optionThemeClass}>No strategy selected</option>
+                        {strategies.filter(s => s.isActive).map(strategy => (
+                            <option key={strategy.id} value={strategy.id} className={optionThemeClass}>
+                                {strategy.name}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+                <div className="md:col-span-3">
                     <label htmlFor="tags" className={labelClasses}>Tags</label>
                     <CreatableSelect
                         isMulti
