@@ -21,7 +21,7 @@ const colorClasses = {
   accent: 'border-accent-green'
 };
 
-export default function LoadingSpinner({ 
+function LoadingSpinner({ 
   size = 'md', 
   color = 'primary', 
   text, 
@@ -64,4 +64,10 @@ export function TableLoader({ text = "Loading data..." }: { text?: string }) {
 
 export function ButtonLoader() {
   return <LoadingSpinner size="sm" className="inline-flex" />;
-} 
+}
+
+// Named export
+export { LoadingSpinner };
+
+// Default export
+export default LoadingSpinner; 

@@ -4,7 +4,17 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Strategy, UpdateStrategyDto, ChecklistItem } from '@/types/strategy';
 import { strategiesService } from '@/services/strategiesService';
-import { ContentHeader } from '@/components/layout/ContentHeader';
+// Simple content header component
+function ContentHeader({ title, description }: { title: string; description?: string }) {
+  return (
+    <div className="mb-6">
+      <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{title}</h1>
+      {description && (
+        <p className="text-gray-600 dark:text-gray-400 mt-1">{description}</p>
+      )}
+    </div>
+  );
+}
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { FiPlus, FiTrash2 } from 'react-icons/fi';
 import { MdDragIndicator } from 'react-icons/md';

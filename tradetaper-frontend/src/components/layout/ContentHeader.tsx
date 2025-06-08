@@ -17,7 +17,7 @@ interface ContentHeaderProps {
   isSidebarExpanded?: boolean;
 }
 
-export default function ContentHeader({ toggleSidebar, isMobile, isSidebarExpanded }: ContentHeaderProps) {
+function ContentHeader({ toggleSidebar, isMobile, isSidebarExpanded }: ContentHeaderProps) {
   const dispatch = useDispatch<AppDispatch>();
   const pathname = usePathname();
   const { user } = useSelector((state: RootState) => state.auth);
@@ -175,4 +175,10 @@ export default function ContentHeader({ toggleSidebar, isMobile, isSidebarExpand
       </div>
     </header>
   );
-} 
+}
+
+// Named export
+export { ContentHeader };
+
+// Default export
+export default ContentHeader; 
