@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 // src/config/navigation.ts
 import { IconType } from 'react-icons';
-import { FaTachometerAlt, FaListAlt, FaChartBar, FaPenSquare, FaCog, FaBook, FaCalendarAlt, FaChartPie, FaBalanceScale, FaInfoCircle, FaUsers, FaCreditCard, FaDollarSign } from 'react-icons/fa';
+import { FaTachometerAlt, FaListAlt, FaChartBar, FaPenSquare, FaCog, FaBook, FaCalendarAlt, FaChartPie, FaBalanceScale, FaInfoCircle, FaUsers, FaCreditCard, FaDollarSign, FaBullseye } from 'react-icons/fa';
 
 export interface NavItem {
   label: string;
@@ -12,6 +12,7 @@ export interface NavItem {
 export const mainNavItems: NavItem[] = [
   { label: 'Dashboard', href: '/dashboard', icon: FaTachometerAlt },
   { label: 'Journal', href: '/journal', icon: FaBook }, // Changed Trades to Journal, new icon
+  { label: 'Strategies', href: '/strategies', icon: FaBullseye }, // New strategies page
   { label: 'Daily Stats', href: '/daily-stats', icon: FaChartBar }, // New item
   { label: 'Daily Balances', href: '/daily-balances', icon: FaBalanceScale }, // New item
   { label: 'Overview', href: '/overview', icon: FaChartPie }, // New item

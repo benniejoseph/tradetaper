@@ -2,6 +2,7 @@
 import { User } from '../../users/entities/user.entity'; // Adjust path
 import { Type } from 'class-transformer';
 import { Tag } from '../../tags/entities/tag.entity';
+import { Strategy } from '../../strategies/entities/strategy.entity';
 
 import {
   Entity,
@@ -77,6 +78,17 @@ export class Trade {
 
   @Column()
   userId: string; // Foreign key storage
+
+  // Strategy relationship
+  @ManyToOne(() => Strategy, (strategy) => strategy.trades, {
+    eager: false,
+    onDelete: 'SET NULL',
+  })
+  @JoinColumn({ name: 'strategyId' })
+  strategy: Strategy;
+
+  @Column({ nullable: true })
+  strategyId?: string;
 
   @Column({ type: 'varchar', length: 255, nullable: true }) // Added accountId
   accountId?: string;

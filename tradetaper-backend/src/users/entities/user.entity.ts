@@ -6,8 +6,10 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   BeforeInsert,
+  OneToMany,
 } from 'typeorm';
 import * as bcrypt from 'bcrypt';
+import { Strategy } from '../../strategies/entities/strategy.entity';
 
 @Entity('users') // This will create a table named 'users'
 export class User {
@@ -34,6 +36,10 @@ export class User {
 
   @UpdateDateColumn()
   updatedAt: Date;
+
+  // Relations
+  @OneToMany(() => Strategy, (strategy) => strategy.user)
+  strategies: Strategy[];
 
   // We'll add other fields like subscription status, etc., later
 
