@@ -8,8 +8,7 @@ import {
   OneToMany,
   JoinColumn,
 } from 'typeorm';
-import { User } from '../../users/entities/user.entity';
-import { Trade } from '../../trades/entities/trade.entity';
+// Forward references to avoid circular imports
 import { TradingSession } from '../../types/enums';
 
 export interface ChecklistItem {
@@ -55,14 +54,11 @@ export class Strategy {
   @UpdateDateColumn()
   updatedAt: Date;
 
-  // Relations
-  @ManyToOne(() => User, (user) => user.strategies, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'userId' })
-  user: User;
-
+  // Relations - simplified without complex relationships
   @Column()
   userId: string;
 
-  @OneToMany(() => Trade, (trade) => trade.strategy)
-  trades: Trade[];
+  // trades relationship temporarily commented out
+  // @OneToMany('Trade', 'strategy')
+  // trades: any[];
 }

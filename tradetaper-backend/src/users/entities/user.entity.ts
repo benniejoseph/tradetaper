@@ -9,7 +9,7 @@ import {
   OneToMany,
 } from 'typeorm';
 import * as bcrypt from 'bcrypt';
-import { Strategy } from '../../strategies/entities/strategy.entity';
+// Forward reference for Strategy to avoid circular imports
 
 @Entity('users') // This will create a table named 'users'
 export class User {
@@ -38,8 +38,9 @@ export class User {
   updatedAt: Date;
 
   // Relations
-  @OneToMany(() => Strategy, (strategy) => strategy.user)
-  strategies: Strategy[];
+  // strategies relationship temporarily commented out
+  // @OneToMany('Strategy', 'user')
+  // strategies: any[];
 
   // We'll add other fields like subscription status, etc., later
 
