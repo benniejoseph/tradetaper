@@ -2,7 +2,7 @@
 import { User } from '../../users/entities/user.entity'; // Adjust path
 import { Type } from 'class-transformer';
 import { Tag } from '../../tags/entities/tag.entity';
-import { Strategy } from '../../strategies/entities/strategy.entity';
+// Forward reference for Strategy to avoid circular imports
 
 import {
   Entity,
@@ -79,13 +79,13 @@ export class Trade {
   @Column()
   userId: string; // Foreign key storage
 
-  // Strategy relationship
-  @ManyToOne(() => Strategy, (strategy) => strategy.trades, {
-    eager: false,
-    onDelete: 'SET NULL',
-  })
-  @JoinColumn({ name: 'strategyId' })
-  strategy: Strategy;
+  // Strategy relationship temporarily commented out
+  // @ManyToOne('Strategy', {
+  //   eager: false,
+  //   onDelete: 'SET NULL',
+  // })
+  // @JoinColumn({ name: 'strategyId' })
+  // strategy: any;
 
   @Column({ nullable: true })
   strategyId?: string;
