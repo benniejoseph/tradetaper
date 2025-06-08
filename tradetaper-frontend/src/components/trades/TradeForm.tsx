@@ -564,15 +564,6 @@ export default function TradeForm({ initialData, isEditMode = false, onFormSubmi
               <input type="number" id="exitPrice" name="exitPrice" value={formData.exitPrice || ''} onChange={handleChange} placeholder="0.00" step="any" className={themedInputClasses} />
               {renderFieldError('exitPrice')}
             </div>
-            <div>
-              <label htmlFor="quantity" className={labelClasses}>Quantity / Size <span className="text-accent-red">*</span></label>
-              <input type="number" id="quantity" name="quantity" value={formData.quantity || ''} onChange={handleChange} required placeholder="e.g., 100, 0.01" step="any" className={themedInputClasses} />
-              {renderFieldError('quantity')}
-            </div>
-            <div>
-              <label htmlFor="commission" className={labelClasses}>Commission</label>
-              <input type="number" id="commission" name="commission" value={formData.commission || ''} onChange={handleChange} placeholder="0.00" step="any" className={themedInputClasses} />
-            </div>
           </div>
         </div>
         
@@ -598,10 +589,12 @@ export default function TradeForm({ initialData, isEditMode = false, onFormSubmi
                 <div>
                     <label htmlFor="quantity" className={labelClasses}>Quantity / Size <span className="text-accent-red">*</span></label>
                     <input type="number" id="quantity" name="quantity" value={formData.quantity || ''} onChange={handleChange} required placeholder="e.g., 100, 0.01" step="any" className={themedInputClasses} />
+                    {renderFieldError('quantity')}
                 </div>
                 <div>
                     <label htmlFor="commission" className={labelClasses}>Commission</label>
                     <input type="number" id="commission" name="commission" value={formData.commission || ''} onChange={handleChange} placeholder="0.00" step="any" className={themedInputClasses} />
+                    {renderFieldError('commission')}
                 </div>
                 {formData.rMultiple !== undefined && (
                     <div className="md:col-span-2">

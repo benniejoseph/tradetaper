@@ -30,6 +30,7 @@ import {
 } from 'recharts'; 
 import SetTargetModal from '@/components/dashboard/SetTargetModal';
 import TradesCalendarHeatmap from '@/components/dashboard/TradesCalendarHeatmap';
+import TradingActivityModal from '@/components/dashboard/TradingActivityModal';
 import TopTradesByReturn from '@/components/dashboard/TopPairsTraded';
 import DashboardPnlCalendar from '@/components/dashboard/DashboardPnlCalendar';
 
@@ -53,6 +54,11 @@ export default function DashboardPage() {
   const [isSetTargetModalOpen, setIsSetTargetModalOpen] = useState(false);
   const [personalTargetCurrent, setPersonalTargetCurrent] = useState(0); // Initialize with 0 or fetched P&L
   const [personalTargetGoal, setPersonalTargetGoal] = useState(1000);
+  
+  // Trading Activity Modal State
+  const [isTradingActivityModalOpen, setIsTradingActivityModalOpen] = useState(false);
+  const [selectedDateData, setSelectedDateData] = useState<any>(null);
+  const [selectedDateTrades, setSelectedDateTrades] = useState<any[]>([]);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -125,6 +131,13 @@ export default function DashboardPage() {
       initialBalanceForPeriod
     };
   }, [equityCurve, dashboardStats]);
+
+  // Handler for heatmap date clicks
+  const handleHeatmapDateClick = (dateData: any, tradesForDate: any[]) => {
+    setSelectedDateData(dateData);
+    setSelectedDateTrades(tradesForDate);
+    setIsTradingActivityModalOpen(true);
+  };
 
   const personalTargetProgress = useMemo(() => {
     if (personalTargetGoal === 0) return 0;
@@ -657,7 +670,10 @@ export default function DashboardPage() {
           selectedTimeRange={timeRange}
           onTimeRangeChange={setTimeRange}
         >
-          <TradesCalendarHeatmap trades={filteredTrades} />
+          <TradesCalendarHeatmap 
+            trades={filteredTrades} 
+            onDateClick={handleHeatmapDateClick}
+          />
         </DashboardCard>
       </div>
 
@@ -696,6 +712,14 @@ export default function DashboardPage() {
           onClose={handleCloseSetTargetModal}
           currentGoal={personalTargetGoal}
           onSave={handleSaveTarget}
+        />
+
+        {/* Trading Activity Modal */}
+        <TradingActivityModal
+          isOpen={isTradingActivityModalOpen}
+          onClose={() => setIsTradingActivityModalOpen(false)}
+          selectedDate={selectedDateData}
+          tradesForDate={selectedDateTrades}
         />
 
         {/* Floating Action Button for Quick Trade Entry */}

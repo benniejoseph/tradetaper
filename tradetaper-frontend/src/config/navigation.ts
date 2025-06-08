@@ -14,7 +14,6 @@ export const mainNavItems: NavItem[] = [
   { label: 'Journal', href: '/journal', icon: FaBook }, // Changed Trades to Journal, new icon
   { label: 'Daily Stats', href: '/daily-stats', icon: FaChartBar }, // New item
   { label: 'Daily Balances', href: '/daily-balances', icon: FaBalanceScale }, // New item
-  { label: 'Calendar', href: '/calendar', icon: FaCalendarAlt }, // New item, existing icon from analytics could be PnlCalendar itself
   { label: 'Overview', href: '/overview', icon: FaChartPie }, // New item
   { label: 'Guides', href: '/guides', icon: FaInfoCircle }, // New item
   // Removing old items like 'Add Trade' and 'Analytics' as they are not in the new design.
