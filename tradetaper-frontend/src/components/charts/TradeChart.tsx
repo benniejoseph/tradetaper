@@ -115,7 +115,8 @@ const TradeChart = memo(({
   }, []);
 
   const initializeChart = useCallback(() => {
-    if (!chartContainerRef.current) return;
+    try {
+      if (!chartContainerRef.current) return;
 
     const colors = getThemeColors();
     const chartOptions: DeepPartial<ChartOptions> = {
@@ -184,6 +185,10 @@ const TradeChart = memo(({
 
     const chart = createChart(chartContainerRef.current, chartOptions);
     chartApiRef.current = chart;
+    } catch (error) {
+      console.error('Error initializing chart:', error);
+      // Graceful fallback - just log the error
+    }
   }, [getThemeColors, height, isFullscreen, showCrosshair, showVolume, enableInteraction]);
 
   const clearAllSeries = useCallback((chart: IChartApi) => {
@@ -209,15 +214,16 @@ const TradeChart = memo(({
   }, []);
 
   const updateChart = useCallback(() => {
-    const container = chartContainerRef.current;
-    const chart = chartApiRef.current;
+    try {
+      const container = chartContainerRef.current;
+      const chart = chartApiRef.current;
 
-    if (!container || !chart) return;
+      if (!container || !chart) return;
 
-    chart.resize(container.clientWidth, isFullscreen ? window.innerHeight : height);
-    clearAllSeries(chart);
+      chart.resize(container.clientWidth, isFullscreen ? window.innerHeight : height);
+      clearAllSeries(chart);
 
-    if (priceData.length === 0) return;
+      if (priceData.length === 0) return;
 
     const colors = getThemeColors();
     let mainSeries: ISeriesApi<any> | null = null;
@@ -375,14 +381,25 @@ const TradeChart = memo(({
         });
       }
 
-      // Set markers
-      if (markers.length > 0) {
-        (mainSeries as any).setMarkers(markers);
+      // Set markers (only on candlestick series)
+      if (markers.length > 0 && chartType === 'candlestick' && mainSeries) {
+        try {
+          // setMarkers is only available on candlestick series
+          if ('setMarkers' in mainSeries) {
+            (mainSeries as any).setMarkers(markers);
+          }
+        } catch (error) {
+          console.warn('Failed to set markers on series:', error);
+        }
       }
     }
 
     // Auto-fit chart content
     chart.timeScale().fitContent();
+    } catch (error) {
+      console.error('Error updating chart:', error);
+      // Graceful fallback - just log the error and continue
+    }
   }, [
     priceData, 
     volumeData, 
