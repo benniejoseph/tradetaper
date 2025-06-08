@@ -9,7 +9,7 @@ import { Trade, CreateTradePayload, UpdateTradePayload, AssetType, TradeDirectio
  } from '@/types/trade';
 import { Strategy } from '@/types/strategy';
 import { strategiesService } from '@/services/strategiesService';
-import { ICTConcept, TradingSession } from '@/types/enums';
+import { TradingSession } from '@/types/enums';
 import { useRouter } from 'next/navigation';
 import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '@/store/store';
@@ -93,7 +93,7 @@ export default function TradeForm({ initialData, isEditMode = false, onFormSubmi
   const [selectedTags, setSelectedTags] = useState<MultiValue<TagOption>>([]);
 
   const [formData, setFormData] = useState<Omit<CreateTradePayload | UpdateTradePayload, 'tagNames' | 'strategyTag'> & 
-    { stopLoss?: number; takeProfit?: number; rMultiple?: number; ictConcept?: ICTConcept; session?: TradingSession; accountId?: string; isStarred?: boolean; strategyId?: string; }>
+    { stopLoss?: number; takeProfit?: number; rMultiple?: number; session?: TradingSession; accountId?: string; isStarred?: boolean; strategyId?: string; }>
   ({
     accountId: initialData?.accountId || selectedAccountIdFromStore || undefined,
     assetType: initialData?.assetType || AssetType.STOCK,
@@ -109,7 +109,6 @@ export default function TradeForm({ initialData, isEditMode = false, onFormSubmi
     quantity: initialData?.quantity || 0,
     commission: initialData?.commission || 0,
     notes: initialData?.notes || '',
-    ictConcept: getEnumValue(ICTConcept, initialData?.ictConcept, ICTConcept.FVG),
     session: getEnumValue(TradingSession, initialData?.session, TradingSession.NEW_YORK),
     setupDetails: initialData?.setupDetails || '',
     mistakesMade: initialData?.mistakesMade || '',
@@ -193,7 +192,6 @@ export default function TradeForm({ initialData, isEditMode = false, onFormSubmi
         quantity: initialData.quantity,
         commission: initialData.commission,
         notes: initialData.notes || '',
-        ictConcept: getEnumValue(ICTConcept, initialData.ictConcept, ICTConcept.FVG),
         session: getEnumValue(TradingSession, initialData.session, TradingSession.NEW_YORK),
         setupDetails: initialData.setupDetails || '',
         mistakesMade: initialData.mistakesMade || '',
@@ -300,7 +298,6 @@ export default function TradeForm({ initialData, isEditMode = false, onFormSubmi
     const finalTagNames = selectedTags.map(tagOption => tagOption.value);
     const payload: CreateTradePayload | UpdateTradePayload = {
         ...formData,
-        ictConcept: formData.ictConcept,
         session: formData.session,
         tagNames: finalTagNames,
         imageUrl: finalImageUrl,
@@ -624,7 +621,7 @@ export default function TradeForm({ initialData, isEditMode = false, onFormSubmi
             </div>
         </div>
         
-        {/* Section 4: ICT Concepts & Tags */}
+        {/* Section 4: Strategy & Tags */}
         <div className={sectionContainerClasses}>
             <h2 className={sectionTitleClasses}>
               <div className="p-2 bg-gradient-to-r from-purple-500/20 to-indigo-500/20 rounded-xl">
@@ -632,21 +629,9 @@ export default function TradeForm({ initialData, isEditMode = false, onFormSubmi
               </div>
               <span>Strategy & Analysis</span>
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-5">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
                 <div>
-                    <label htmlFor="ictConcept" className={labelClasses}>ICT Concept</label>
-                    <select id="ictConcept" name="ictConcept" value={formData.ictConcept} onChange={handleChange} className={themedSelectClasses}>
-                        {Object.values(ICTConcept).map(concept => <option key={concept} value={concept} className={optionThemeClass}>{concept}</option>)}
-                    </select>
-                </div>
-                <div>
-                    <label htmlFor="session" className={labelClasses}>Trading Session</label>
-                    <select id="session" name="session" value={formData.session} onChange={handleChange} className={themedSelectClasses}>
-                        {Object.values(TradingSession).map(sess => <option key={sess} value={sess} className={optionThemeClass}>{sess}</option>)}
-                    </select>
-                </div>
-                <div>
-                    <label htmlFor="strategyId" className={labelClasses}>Strategy</label>
+                    <label htmlFor="strategyId" className={labelClasses}>Trading Strategy</label>
                     <select id="strategyId" name="strategyId" value={formData.strategyId || ''} onChange={handleChange} className={themedSelectClasses}>
                         <option value="" className={optionThemeClass}>No strategy selected</option>
                         {strategies.filter(s => s.isActive).map(strategy => (
@@ -655,8 +640,20 @@ export default function TradeForm({ initialData, isEditMode = false, onFormSubmi
                             </option>
                         ))}
                     </select>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        Link this trade to a specific trading strategy for performance tracking
+                    </p>
                 </div>
-                <div className="md:col-span-3">
+                <div>
+                    <label htmlFor="session" className={labelClasses}>Trading Session</label>
+                    <select id="session" name="session" value={formData.session} onChange={handleChange} className={themedSelectClasses}>
+                        {Object.values(TradingSession).map(sess => <option key={sess} value={sess} className={optionThemeClass}>{sess}</option>)}
+                    </select>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        Market session when this trade was executed
+                    </p>
+                </div>
+                <div className="md:col-span-2">
                     <label htmlFor="tags" className={labelClasses}>Tags</label>
                     <CreatableSelect
                         isMulti
@@ -664,7 +661,7 @@ export default function TradeForm({ initialData, isEditMode = false, onFormSubmi
                         options={[]} // You might want to load existing tags as suggestions here
                         value={selectedTags}
                         onChange={handleTagChange}
-                        placeholder="Type to add tags (e.g., Scalp, Breakout)"
+                        placeholder="Type to add tags (e.g., Scalp, Breakout, Reversal)"
                         classNamePrefix="react-select" // Useful for more specific global CSS if needed
                         styles={selectStyles} // Apply custom styles
                         theme={(currentTheme) => ({
@@ -693,6 +690,9 @@ export default function TradeForm({ initialData, isEditMode = false, onFormSubmi
                             },
                         })}
                     />
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        Add custom tags to categorize and filter your trades
+                    </p>
                 </div>
             </div>
         </div>
