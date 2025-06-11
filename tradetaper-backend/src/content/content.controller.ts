@@ -1,4 +1,11 @@
-import { Controller, Get, Param, Res, HttpException, HttpStatus } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Param,
+  Res,
+  HttpException,
+  HttpStatus,
+} from '@nestjs/common';
 import { Response } from 'express';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -38,25 +45,28 @@ export class ContentController {
   }
 
   @Get('legal/:document')
-  async getLegalDocument(@Param('document') document: string, @Res() res: Response) {
+  async getLegalDocument(
+    @Param('document') document: string,
+    @Res() res: Response,
+  ) {
     const allowedDocuments = ['terms', 'privacy', 'cancellation-refund'];
     if (!allowedDocuments.includes(document)) {
       throw new HttpException('Document not found', HttpStatus.NOT_FOUND);
     }
-    
+
     const fileMap = {
-      'terms': 'TERMS_OF_SERVICE.md',
-      'privacy': 'PRIVACY_POLICY.md',
-      'cancellation-refund': 'CANCELLATION_REFUND_POLICY.md'
+      terms: 'TERMS_OF_SERVICE.md',
+      privacy: 'PRIVACY_POLICY.md',
+      'cancellation-refund': 'CANCELLATION_REFUND_POLICY.md',
     };
-    
+
     return this.serveContent(`legal/${fileMap[document]}`, res);
   }
 
   private async serveContent(relativePath: string, res: Response) {
     try {
       const filePath = path.join(this.contentPath, relativePath);
-      
+
       // Security check: ensure file is within content directory
       if (!filePath.startsWith(this.contentPath)) {
         throw new HttpException('Invalid file path', HttpStatus.BAD_REQUEST);
@@ -68,7 +78,7 @@ export class ContentController {
       }
 
       const content = fs.readFileSync(filePath, 'utf8');
-      
+
       res.setHeader('Content-Type', 'text/markdown; charset=utf-8');
       res.setHeader('Cache-Control', 'public, max-age=3600'); // Cache for 1 hour
       res.send(content);
@@ -76,7 +86,10 @@ export class ContentController {
       if (error instanceof HttpException) {
         throw error;
       }
-      throw new HttpException('Error reading content', HttpStatus.INTERNAL_SERVER_ERROR);
+      throw new HttpException(
+        'Error reading content',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   }
-} 
+}

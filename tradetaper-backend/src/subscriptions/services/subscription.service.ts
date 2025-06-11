@@ -477,7 +477,10 @@ export class SubscriptionService {
   }
 
   // Check if user can perform an action based on usage limits
-  async checkUsageLimit(userId: string, feature: 'trades' | 'accounts'): Promise<boolean> {
+  async checkUsageLimit(
+    userId: string,
+    feature: 'trades' | 'accounts',
+  ): Promise<boolean> {
     const subscription = await this.getOrCreateSubscription(userId);
     const plan = this.getPricingPlan(subscription.plan);
 
@@ -487,7 +490,7 @@ export class SubscriptionService {
     if (feature === 'trades' && plan.limits.trades === 'unlimited') {
       return true;
     }
-    
+
     if (feature === 'accounts' && plan.limits.accounts === 'unlimited') {
       return true;
     }
@@ -495,14 +498,18 @@ export class SubscriptionService {
     // For now, return true during development/migration phase
     // TODO: Implement proper usage tracking once usage_tracking table is stable
     const usage = await this.getCurrentUsage(userId);
-    
+
     if (feature === 'trades') {
-      const limit = typeof plan.limits.trades === 'number' ? plan.limits.trades : Infinity;
+      const limit =
+        typeof plan.limits.trades === 'number' ? plan.limits.trades : Infinity;
       return usage.trades < limit;
     }
-    
+
     if (feature === 'accounts') {
-      const limit = typeof plan.limits.accounts === 'number' ? plan.limits.accounts : Infinity;
+      const limit =
+        typeof plan.limits.accounts === 'number'
+          ? plan.limits.accounts
+          : Infinity;
       return usage.accounts < limit;
     }
 
@@ -524,20 +531,22 @@ export class SubscriptionService {
     priceId: string,
   ): Promise<{ paymentLinkId: string; url: string }> {
     try {
-      this.logger.log(`🔗 Creating payment link for user ${userId}, price: ${priceId}`);
-      
+      this.logger.log(
+        `🔗 Creating payment link for user ${userId}, price: ${priceId}`,
+      );
+
       // Get or create subscription to ensure customer exists
       const subscription = await this.getOrCreateSubscription(userId);
-      
+
       let customerId = subscription.stripeCustomerId;
-      
+
       if (!customerId) {
         this.logger.log(`🆕 Creating new Stripe customer for payment link`);
         const customer = await this.stripe.customers.create({
           metadata: { userId },
         });
         customerId = customer.id;
-        
+
         subscription.stripeCustomerId = customerId;
         await this.subscriptionRepository.save(subscription);
         this.logger.log(`✅ Created customer for payment link: ${customerId}`);
@@ -571,7 +580,7 @@ export class SubscriptionService {
         userId,
         priceId,
       });
-      
+
       throw new HttpException(
         `Failed to create payment link: ${error.message}`,
         HttpStatus.INTERNAL_SERVER_ERROR,

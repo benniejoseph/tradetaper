@@ -139,7 +139,7 @@ export class CreateMT5AccountsTable1717789011000 implements MigrationInterface {
             },
           ],
         }),
-        true
+        true,
       );
 
       // Create indexes explicitly
@@ -148,7 +148,7 @@ export class CreateMT5AccountsTable1717789011000 implements MigrationInterface {
         new TableIndex({
           name: 'idx_mt5_accounts_user_id',
           columnNames: ['user_id'],
-        })
+        }),
       );
 
       await queryRunner.createIndex(
@@ -156,7 +156,7 @@ export class CreateMT5AccountsTable1717789011000 implements MigrationInterface {
         new TableIndex({
           name: 'idx_mt5_accounts_server_login',
           columnNames: ['server', 'login'],
-        })
+        }),
       );
     }
   }
@@ -173,7 +173,10 @@ export class CreateMT5AccountsTable1717789011000 implements MigrationInterface {
       }
 
       try {
-        await queryRunner.dropIndex('mt5_accounts', 'idx_mt5_accounts_server_login');
+        await queryRunner.dropIndex(
+          'mt5_accounts',
+          'idx_mt5_accounts_server_login',
+        );
       } catch (e) {
         // Index might not exist, continue
       }
@@ -182,4 +185,4 @@ export class CreateMT5AccountsTable1717789011000 implements MigrationInterface {
       await queryRunner.dropTable('mt5_accounts');
     }
   }
-} 
+}

@@ -5,4 +5,4 @@ import { TradesGateway } from './trades.gateway';
   providers: [TradesGateway],
   exports: [TradesGateway],
 })
-export class WebSocketGatewayModule {} 
+export class WebSocketGatewayModule {}

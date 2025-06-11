@@ -39,7 +39,7 @@ export class AdminService {
 
     // Calculate growth metrics by comparing with previous period
     const sixtyDaysAgo = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000);
-    
+
     const [previousUsers, previousTrades] = await Promise.all([
       this.usersRepository.count({
         where: {
@@ -66,19 +66,21 @@ export class AdminService {
     });
 
     // Calculate growth percentages
-    const userGrowth = previousUsers > 0 
-      ? ((currentMonthUsers - previousUsers) / previousUsers) * 100 
-      : 0;
-    
-    const tradeGrowth = previousTrades > 0 
-      ? ((currentMonthTrades - previousTrades) / previousTrades) * 100 
-      : 0;
+    const userGrowth =
+      previousUsers > 0
+        ? ((currentMonthUsers - previousUsers) / previousUsers) * 100
+        : 0;
+
+    const tradeGrowth =
+      previousTrades > 0
+        ? ((currentMonthTrades - previousTrades) / previousTrades) * 100
+        : 0;
 
     // Get revenue data (simplified - would need subscription service integration)
     const avgSubscriptionPrice = 19.99; // Average of all plan prices
     const paidUsers = Math.floor(totalUsers * 0.15); // Assume 15% conversion rate
     const totalRevenue = paidUsers * avgSubscriptionPrice;
-    
+
     // Calculate revenue growth (mock for now)
     const revenueGrowth = 12.5;
     const activeGrowth = userGrowth * 0.8; // Active users grow slightly slower than total
@@ -104,11 +106,11 @@ export class AdminService {
       users: number;
       signups: number;
     }> = [];
-    
+
     for (let i = days - 1; i >= 0; i--) {
       const date = new Date(Date.now() - i * 24 * 60 * 60 * 1000);
       const nextDate = new Date(date.getTime() + 24 * 60 * 60 * 1000);
-      
+
       const dailySignups = await this.usersRepository.count({
         where: {
           createdAt: Between(date, nextDate),
@@ -141,11 +143,11 @@ export class AdminService {
       date: string;
       trades: number;
     }> = [];
-    
+
     for (let i = days - 1; i >= 0; i--) {
       const date = new Date(Date.now() - i * 24 * 60 * 60 * 1000);
       const nextDate = new Date(date.getTime() + 24 * 60 * 60 * 1000);
-      
+
       const trades = await this.tradesRepository.count({
         where: {
           createdAt: Between(date, nextDate),
@@ -183,28 +185,28 @@ export class AdminService {
           count: parseInt(pair.count),
           volume: parseFloat(volume?.volume || 0),
         };
-      })
+      }),
     );
 
-    return { 
+    return {
       data,
-      topTradingPairs: topTradingPairsWithVolume 
+      topTradingPairs: topTradingPairsWithVolume,
     };
   }
 
   async getRevenueAnalytics(timeRange: string) {
     const days = this.parseTimeRange(timeRange);
-    
+
     // Calculate revenue based on user growth and subscription assumptions
     const data: Array<{
       date: string;
       revenue: number;
     }> = [];
-    
+
     for (let i = days - 1; i >= 0; i--) {
       const date = new Date(Date.now() - i * 24 * 60 * 60 * 1000);
       const nextDate = new Date(date.getTime() + 24 * 60 * 60 * 1000);
-      
+
       // Get users created on this day
       const dailyUsers = await this.usersRepository.count({
         where: {
@@ -214,7 +216,7 @@ export class AdminService {
 
       // Calculate estimated revenue: assume 15% conversion rate and avg $19.99/month
       const estimatedRevenue = dailyUsers * 0.15 * 19.99;
-      
+
       data.push({
         date: date.toISOString().split('T')[0],
         revenue: Math.max(estimatedRevenue, 0),
@@ -227,11 +229,41 @@ export class AdminService {
   async getGeographicData() {
     // Mock geographic data (would integrate with IP geolocation)
     return [
-      { country: 'United States', users: 5432, trades: 12456, revenue: 78900, coordinates: [-95.7129, 37.0902] },
-      { country: 'United Kingdom', users: 3456, trades: 8765, revenue: 56700, coordinates: [-3.4360, 55.3781] },
-      { country: 'Germany', users: 2345, trades: 6789, revenue: 45600, coordinates: [10.4515, 51.1657] },
-      { country: 'Canada', users: 1876, trades: 4567, revenue: 34500, coordinates: [-106.3468, 56.1304] },
-      { country: 'Australia', users: 1543, trades: 3456, revenue: 23400, coordinates: [133.7751, -25.2744] },
+      {
+        country: 'United States',
+        users: 5432,
+        trades: 12456,
+        revenue: 78900,
+        coordinates: [-95.7129, 37.0902],
+      },
+      {
+        country: 'United Kingdom',
+        users: 3456,
+        trades: 8765,
+        revenue: 56700,
+        coordinates: [-3.436, 55.3781],
+      },
+      {
+        country: 'Germany',
+        users: 2345,
+        trades: 6789,
+        revenue: 45600,
+        coordinates: [10.4515, 51.1657],
+      },
+      {
+        country: 'Canada',
+        users: 1876,
+        trades: 4567,
+        revenue: 34500,
+        coordinates: [-106.3468, 56.1304],
+      },
+      {
+        country: 'Australia',
+        users: 1543,
+        trades: 3456,
+        revenue: 23400,
+        coordinates: [133.7751, -25.2744],
+      },
     ];
   }
 
@@ -245,7 +277,8 @@ export class AdminService {
     const activities = recentUsers.map((user, index) => ({
       id: user.id,
       userId: user.id,
-      userName: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email,
+      userName:
+        `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email,
       type: 'login' as const,
       description: 'User registered on the platform',
       timestamp: user.createdAt.toISOString(),
@@ -275,11 +308,11 @@ export class AdminService {
 
   async getUsers(page: number, limit: number, search?: string) {
     const query = this.usersRepository.createQueryBuilder('user');
-    
+
     if (search) {
       query.where(
         'user.firstName ILIKE :search OR user.lastName ILIKE :search OR user.email ILIKE :search',
-        { search: `%${search}%` }
+        { search: `%${search}%` },
       );
     }
 
@@ -315,11 +348,16 @@ export class AdminService {
 
   private parseTimeRange(timeRange: string): number {
     switch (timeRange) {
-      case '7d': return 7;
-      case '30d': return 30;
-      case '90d': return 90;
-      case '1y': return 365;
-      default: return 30;
+      case '7d':
+        return 7;
+      case '30d':
+        return 30;
+      case '90d':
+        return 90;
+      case '1y':
+        return 365;
+      default:
+        return 30;
     }
   }
-} 
+}

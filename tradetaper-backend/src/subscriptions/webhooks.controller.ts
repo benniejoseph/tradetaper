@@ -27,7 +27,7 @@ export class WebhooksController {
     if (!stripeSecretKey) {
       throw new Error('STRIPE_SECRET_KEY is required');
     }
-    
+
     this.stripe = new Stripe(stripeSecretKey, {
       apiVersion: '2025-05-28.basil',
     });
@@ -45,19 +45,23 @@ export class WebhooksController {
       if (!request.rawBody) {
         throw new Error('No raw body found in request');
       }
-      
-      const webhookSecret = this.configService.get<string>('STRIPE_WEBHOOK_SECRET');
+
+      const webhookSecret = this.configService.get<string>(
+        'STRIPE_WEBHOOK_SECRET',
+      );
       if (!webhookSecret) {
         throw new Error('STRIPE_WEBHOOK_SECRET is required');
       }
-      
+
       event = this.stripe.webhooks.constructEvent(
         request.rawBody,
         signature,
         webhookSecret,
       );
     } catch (error) {
-      this.logger.error(`Webhook signature verification failed: ${error.message}`);
+      this.logger.error(
+        `Webhook signature verification failed: ${error.message}`,
+      );
       throw error;
     }
 
@@ -72,4 +76,4 @@ export class WebhooksController {
       throw error;
     }
   }
-} 
+}

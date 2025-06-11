@@ -1,7 +1,16 @@
 {
-  "dependencies": {
-    "@types/pg": "^8.15.4",
-    "pg": "^8.16.0",
-    "xlsx": "^0.18.5"
+  "name": "tradetaper",
+  "version": "1.0.0",
+  "description": "TradeTaper - Trading Journal Application",
+  "private": true,
+  "workspaces": [
+    "tradetaper-frontend",
+    "tradetaper-backend",
+    "tradetaper-admin"
+  ],
+  "scripts": {
+    "dev": "./start-dev.sh",
+    "build": "npm run build --workspaces",
+    "start": "npm run start --workspaces"
   }
 }

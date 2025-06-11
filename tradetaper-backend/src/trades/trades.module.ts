@@ -16,8 +16,20 @@ import { UsersModule } from '../users/users.module';
     TypeOrmModule.forFeature([Trade, Tag]), // Add Tag here
     forwardRef(() => UsersModule),
   ],
-  providers: [TradesService, ExportService, PerformanceService, AdvancedAnalyticsService, TradesGateway],
+  providers: [
+    TradesService,
+    ExportService,
+    PerformanceService,
+    AdvancedAnalyticsService,
+    TradesGateway,
+  ],
   controllers: [TradesController],
-  exports: [TradesService, ExportService, PerformanceService, AdvancedAnalyticsService, TradesGateway],
+  exports: [
+    TradesService,
+    ExportService,
+    PerformanceService,
+    AdvancedAnalyticsService,
+    TradesGateway,
+  ],
 })
 export class TradesModule {}

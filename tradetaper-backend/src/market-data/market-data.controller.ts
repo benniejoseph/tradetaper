@@ -28,7 +28,7 @@ export class MarketDataController {
     @Query('interval') interval: string,
   ): Promise<PriceDataPoint[]> {
     const pair = `${baseCurrency}/${quoteCurrency}`;
-    
+
     // ADD DETAILED LOGGING HERE
     this.logger.log(
       `[MarketDataController] Received request for /historical/forex/${baseCurrency}/${quoteCurrency} with query:`,
@@ -76,7 +76,7 @@ export class MarketDataController {
 
     // Convert to the format expected by Tradermade API (NZDUSD instead of NZD/USD)
     const tradermadePair = `${baseCurrency.toUpperCase()}${quoteCurrency.toUpperCase()}`;
-    
+
     // Log before calling the service
     this.logger.log(
       `[MarketDataController] Calling MarketDataService.getTradermadeHistoricalData with: pair=${tradermadePair}, startDate=${startDate}, endDate=${endDate}, interval=${interval.toLowerCase()}`,

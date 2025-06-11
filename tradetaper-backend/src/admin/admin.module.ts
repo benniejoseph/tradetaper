@@ -11,4 +11,4 @@ import { Trade } from '../trades/entities/trade.entity';
   providers: [AdminService],
   exports: [AdminService],
 })
-export class AdminModule {} 
+export class AdminModule {}

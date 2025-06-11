@@ -1,4 +1,12 @@
-import { IsString, IsOptional, IsBoolean, IsArray, IsEnum, MaxLength, MinLength } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsBoolean,
+  IsArray,
+  IsEnum,
+  MaxLength,
+  MinLength,
+} from 'class-validator';
 import { TradingSession } from '../../types/enums';
 import { ChecklistItem } from '../entities/strategy.entity';
 

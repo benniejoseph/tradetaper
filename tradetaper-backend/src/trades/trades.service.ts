@@ -142,13 +142,13 @@ export class TradesService {
     const whereClause: FindManyOptions<Trade>['where'] = {
       userId: userContext.id,
     };
-    
+
     if (accountId) {
       // Filter by specific account
       whereClause.accountId = accountId;
     }
     // If no accountId specified, return all trades (including those with null accountId)
-    
+
     const trades = await this.tradesRepository.find({
       where: whereClause,
       relations: ['tags'],
@@ -229,10 +229,10 @@ export class TradesService {
 
     this.calculateAndSetPnl(trade);
     const updatedTrade = await this.tradesRepository.save(trade);
-    
+
     // Emit WebSocket notification
     this.tradesGateway.notifyTradeUpdated(updatedTrade);
-    
+
     return updatedTrade;
   }
 
@@ -245,22 +245,29 @@ export class TradesService {
       );
     }
     this.logger.log(`User ${userContext.id} removed trade with ID ${id}`);
-    
+
     // Emit WebSocket notification
     this.tradesGateway.notifyTradeDeleted(id);
   }
 
   // Bulk operations
-  async bulkDelete(tradeIds: string[], userContext: UserResponseDto): Promise<{ deletedCount: number }> {
-    this.logger.log(`User ${userContext.id} bulk deleting ${tradeIds.length} trades`);
-    
+  async bulkDelete(
+    tradeIds: string[],
+    userContext: UserResponseDto,
+  ): Promise<{ deletedCount: number }> {
+    this.logger.log(
+      `User ${userContext.id} bulk deleting ${tradeIds.length} trades`,
+    );
+
     // Verify all trades belong to the user
     const trades = await this.tradesRepository.find({
       where: { id: In(tradeIds), userId: userContext.id },
     });
 
     if (trades.length !== tradeIds.length) {
-      throw new NotFoundException('Some trades not found or do not belong to user');
+      throw new NotFoundException(
+        'Some trades not found or do not belong to user',
+      );
     }
 
     const result = await this.tradesRepository.delete({
@@ -269,11 +276,13 @@ export class TradesService {
     });
 
     const deletedCount = result.affected || 0;
-    this.logger.log(`User ${userContext.id} bulk deleted ${deletedCount} trades`);
-    
+    this.logger.log(
+      `User ${userContext.id} bulk deleted ${deletedCount} trades`,
+    );
+
     // Emit WebSocket notification
     this.tradesGateway.notifyBulkOperation('delete', deletedCount);
-    
+
     return { deletedCount };
   }
 
@@ -281,49 +290,57 @@ export class TradesService {
     updates: { id: string; data: Partial<UpdateTradeDto> }[],
     userContext: UserResponseDto,
   ): Promise<{ updatedCount: number; trades: Trade[] }> {
-    this.logger.log(`User ${userContext.id} bulk updating ${updates.length} trades`);
-    
-    const tradeIds = updates.map(u => u.id);
+    this.logger.log(
+      `User ${userContext.id} bulk updating ${updates.length} trades`,
+    );
+
+    const tradeIds = updates.map((u) => u.id);
     const trades = await this.tradesRepository.find({
       where: { id: In(tradeIds), userId: userContext.id },
       relations: ['tags'],
     });
 
     if (trades.length !== updates.length) {
-      throw new NotFoundException('Some trades not found or do not belong to user');
+      throw new NotFoundException(
+        'Some trades not found or do not belong to user',
+      );
     }
 
     const updatedTrades: Trade[] = [];
-    
+
     for (const update of updates) {
-      const trade = trades.find(t => t.id === update.id);
+      const trade = trades.find((t) => t.id === update.id);
       if (trade) {
         const { tagNames, entryDate, exitDate, ...otherData } = update.data;
-        
+
         // Apply updates
         Object.assign(trade, otherData);
-        
+
         if (entryDate !== undefined) {
           trade.entryDate = new Date(entryDate);
         }
         if (exitDate !== undefined) {
           trade.exitDate = exitDate === null ? undefined : new Date(exitDate);
         }
-        
+
         if (tagNames !== undefined) {
           trade.tags = await this.findOrCreateTags(tagNames, userContext.id);
         }
-        
+
         this.calculateAndSetPnl(trade);
         updatedTrades.push(trade);
       }
     }
 
     const savedTrades = await this.tradesRepository.save(updatedTrades);
-    
+
     // Emit WebSocket notification
-    this.tradesGateway.notifyBulkOperation('update', savedTrades.length, savedTrades);
-    
+    this.tradesGateway.notifyBulkOperation(
+      'update',
+      savedTrades.length,
+      savedTrades,
+    );
+
     return { updatedCount: savedTrades.length, trades: savedTrades };
   }
 
@@ -331,10 +348,12 @@ export class TradesService {
     trades: CreateTradeDto[],
     userContext: UserResponseDto,
   ): Promise<{ importedCount: number; trades: Trade[] }> {
-    this.logger.log(`User ${userContext.id} bulk importing ${trades.length} trades`);
-    
+    this.logger.log(
+      `User ${userContext.id} bulk importing ${trades.length} trades`,
+    );
+
     const createdTrades: Trade[] = [];
-    
+
     for (const tradeDto of trades) {
       const { tagNames, ...tradeDetails } = tradeDto;
       const resolvedTags = await this.findOrCreateTags(
@@ -355,10 +374,14 @@ export class TradesService {
     }
 
     const savedTrades = await this.tradesRepository.save(createdTrades);
-    
+
     // Emit WebSocket notification
-    this.tradesGateway.notifyBulkOperation('import', savedTrades.length, savedTrades);
-    
+    this.tradesGateway.notifyBulkOperation(
+      'import',
+      savedTrades.length,
+      savedTrades,
+    );
+
     return { importedCount: savedTrades.length, trades: savedTrades };
   }
 }

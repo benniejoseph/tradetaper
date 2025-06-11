@@ -12,4 +12,4 @@ export class CreateCheckoutSessionDto {
   @IsUrl()
   @IsNotEmpty()
   cancelUrl: string;
-} 
+}

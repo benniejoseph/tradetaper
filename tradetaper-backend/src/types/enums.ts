@@ -2,7 +2,7 @@ export enum TradingSession {
   LONDON = 'london',
   NEW_YORK = 'newyork',
   ASIA = 'asia',
-  SYDNEY = 'sydney'
+  SYDNEY = 'sydney',
 }
 
 export enum ICTConcept {
@@ -15,5 +15,5 @@ export enum ICTConcept {
   SUPPLY_DEMAND = 'Supply/Demand',
   SMART_MONEY = 'Smart Money',
   FRACTAL = 'Fractal',
-  MITIGATION = 'Mitigation'
+  MITIGATION = 'Mitigation',
 }

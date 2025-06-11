@@ -411,4 +411,4 @@ export class SeedService implements OnApplicationBootstrap {
 
     return mistakes[Math.floor(Math.random() * mistakes.length)];
   }
-} 
+}

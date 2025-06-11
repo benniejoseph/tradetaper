@@ -85,7 +85,10 @@ export class MultiProviderMarketDataService {
     },
   ];
 
-  private requestCounts = new Map<string, { count: number; resetTime: number }>();
+  private requestCounts = new Map<
+    string,
+    { count: number; resetTime: number }
+  >();
 
   constructor(
     private readonly configService: ConfigService,
@@ -93,9 +96,12 @@ export class MultiProviderMarketDataService {
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
   ) {}
 
-  async getRealTimePrice(symbol: string, assetType: string): Promise<MarketDataResponse> {
+  async getRealTimePrice(
+    symbol: string,
+    assetType: string,
+  ): Promise<MarketDataResponse> {
     const cacheKey = `price:${symbol}:${assetType}`;
-    
+
     // Check cache first
     const cached = await this.cacheManager.get<PriceQuote>(cacheKey);
     if (cached) {
@@ -109,7 +115,7 @@ export class MultiProviderMarketDataService {
 
     // Find suitable providers
     const suitableProviders = this.providers
-      .filter(p => p.isActive && p.supports.includes(assetType))
+      .filter((p) => p.isActive && p.supports.includes(assetType))
       .sort((a, b) => a.priority - b.priority);
 
     for (const provider of suitableProviders) {
@@ -119,7 +125,11 @@ export class MultiProviderMarketDataService {
       }
 
       try {
-        const result = await this.fetchPriceFromProvider(provider.name, symbol, assetType);
+        const result = await this.fetchPriceFromProvider(
+          provider.name,
+          symbol,
+          assetType,
+        );
         if (result.success && result.data) {
           // Cache for 30 seconds
           await this.cacheManager.set(cacheKey, result.data, 30000);
@@ -127,7 +137,9 @@ export class MultiProviderMarketDataService {
           return { ...result, cached: false };
         }
       } catch (error) {
-        this.logger.error(`Error fetching from ${provider.name}: ${error.message}`);
+        this.logger.error(
+          `Error fetching from ${provider.name}: ${error.message}`,
+        );
         continue;
       }
     }
@@ -148,7 +160,7 @@ export class MultiProviderMarketDataService {
     toDate?: Date,
   ): Promise<MarketDataResponse> {
     const cacheKey = `history:${symbol}:${assetType}:${interval}:${fromDate?.toISOString()}:${toDate?.toISOString()}`;
-    
+
     // Check cache first (cache for 1 hour for historical data)
     const cached = await this.cacheManager.get<HistoricalPrice[]>(cacheKey);
     if (cached) {
@@ -161,7 +173,7 @@ export class MultiProviderMarketDataService {
     }
 
     const suitableProviders = this.providers
-      .filter(p => p.isActive && p.supports.includes(assetType))
+      .filter((p) => p.isActive && p.supports.includes(assetType))
       .sort((a, b) => a.priority - b.priority);
 
     for (const provider of suitableProviders) {
@@ -178,14 +190,16 @@ export class MultiProviderMarketDataService {
           fromDate,
           toDate,
         );
-        
+
         if (result.success && result.data) {
           await this.cacheManager.set(cacheKey, result.data, 3600000); // 1 hour
           this.incrementRequestCount(provider.name);
           return { ...result, cached: false };
         }
       } catch (error) {
-        this.logger.error(`Error fetching historical from ${provider.name}: ${error.message}`);
+        this.logger.error(
+          `Error fetching historical from ${provider.name}: ${error.message}`,
+        );
         continue;
       }
     }
@@ -234,11 +248,29 @@ export class MultiProviderMarketDataService {
   ): Promise<MarketDataResponse> {
     switch (providerName) {
       case 'alphaVantage':
-        return this.fetchHistoricalFromAlphaVantage(symbol, assetType, interval, fromDate, toDate);
+        return this.fetchHistoricalFromAlphaVantage(
+          symbol,
+          assetType,
+          interval,
+          fromDate,
+          toDate,
+        );
       case 'yahooFinance':
-        return this.fetchHistoricalFromYahooFinance(symbol, assetType, interval, fromDate, toDate);
+        return this.fetchHistoricalFromYahooFinance(
+          symbol,
+          assetType,
+          interval,
+          fromDate,
+          toDate,
+        );
       case 'iexCloud':
-        return this.fetchHistoricalFromIEXCloud(symbol, assetType, interval, fromDate, toDate);
+        return this.fetchHistoricalFromIEXCloud(
+          symbol,
+          assetType,
+          interval,
+          fromDate,
+          toDate,
+        );
       default:
         return {
           success: false,
@@ -249,7 +281,10 @@ export class MultiProviderMarketDataService {
     }
   }
 
-  private async fetchFromTraderMade(symbol: string, assetType: string): Promise<MarketDataResponse> {
+  private async fetchFromTraderMade(
+    symbol: string,
+    assetType: string,
+  ): Promise<MarketDataResponse> {
     try {
       const apiKey = this.configService.get<string>('TRADERMADE_API_KEY');
       if (!apiKey) {
@@ -258,8 +293,12 @@ export class MultiProviderMarketDataService {
 
       const url = `https://marketdata.tradermade.com/api/v1/live?currency=${symbol}&api_key=${apiKey}`;
       const response = await firstValueFrom(this.httpService.get(url));
-      
-      if (response.data && response.data.quotes && response.data.quotes.length > 0) {
+
+      if (
+        response.data &&
+        response.data.quotes &&
+        response.data.quotes.length > 0
+      ) {
         const quote = response.data.quotes[0];
         return {
           success: true,
@@ -290,7 +329,10 @@ export class MultiProviderMarketDataService {
     }
   }
 
-  private async fetchFromAlphaVantage(symbol: string, assetType: string): Promise<MarketDataResponse> {
+  private async fetchFromAlphaVantage(
+    symbol: string,
+    assetType: string,
+  ): Promise<MarketDataResponse> {
     try {
       const apiKey = this.configService.get<string>('ALPHA_VANTAGE_API_KEY');
       if (!apiKey) {
@@ -305,11 +347,13 @@ export class MultiProviderMarketDataService {
       } else if (assetType === 'crypto') {
         url = `https://www.alphavantage.co/query?function=CURRENCY_EXCHANGE_RATE&from_currency=${symbol}&to_currency=USD&apikey=${apiKey}`;
       } else {
-        throw new Error(`Asset type ${assetType} not supported by Alpha Vantage`);
+        throw new Error(
+          `Asset type ${assetType} not supported by Alpha Vantage`,
+        );
       }
 
       const response = await firstValueFrom(this.httpService.get(url));
-      
+
       if (assetType === 'forex' || assetType === 'crypto') {
         const exchangeRate = response.data['Realtime Currency Exchange Rate'];
         if (exchangeRate) {
@@ -342,7 +386,9 @@ export class MultiProviderMarketDataService {
               ask: parseFloat(quote['05. price']) * 1.001, // Approximate ask
               last: parseFloat(quote['05. price']),
               change: parseFloat(quote['09. change']),
-              changePercent: parseFloat(quote['10. change percent'].replace('%', '')),
+              changePercent: parseFloat(
+                quote['10. change percent'].replace('%', ''),
+              ),
               volume: parseInt(quote['06. volume']),
               timestamp: new Date(quote['07. latest trading day']),
               provider: 'alphaVantage',
@@ -364,7 +410,10 @@ export class MultiProviderMarketDataService {
     }
   }
 
-  private async fetchFromIEXCloud(symbol: string, assetType: string): Promise<MarketDataResponse> {
+  private async fetchFromIEXCloud(
+    symbol: string,
+    assetType: string,
+  ): Promise<MarketDataResponse> {
     try {
       const apiKey = this.configService.get<string>('IEX_CLOUD_API_KEY');
       if (!apiKey) {
@@ -377,7 +426,7 @@ export class MultiProviderMarketDataService {
 
       const url = `https://cloud.iexapis.com/stable/stock/${symbol}/quote?token=${apiKey}`;
       const response = await firstValueFrom(this.httpService.get(url));
-      
+
       if (response.data) {
         const data = response.data;
         return {
@@ -409,11 +458,14 @@ export class MultiProviderMarketDataService {
     }
   }
 
-  private async fetchFromYahooFinance(symbol: string, assetType: string): Promise<MarketDataResponse> {
+  private async fetchFromYahooFinance(
+    symbol: string,
+    assetType: string,
+  ): Promise<MarketDataResponse> {
     try {
       // Yahoo Finance doesn't require API key but has unofficial endpoints
       let yahooSymbol = symbol;
-      
+
       if (assetType === 'forex') {
         yahooSymbol = `${symbol}=X`;
       } else if (assetType === 'crypto') {
@@ -422,11 +474,15 @@ export class MultiProviderMarketDataService {
 
       const url = `https://query1.finance.yahoo.com/v8/finance/chart/${yahooSymbol}`;
       const response = await firstValueFrom(this.httpService.get(url));
-      
-      if (response.data && response.data.chart && response.data.chart.result.length > 0) {
+
+      if (
+        response.data &&
+        response.data.chart &&
+        response.data.chart.result.length > 0
+      ) {
         const result = response.data.chart.result[0];
         const meta = result.meta;
-        
+
         return {
           success: true,
           data: {
@@ -435,7 +491,10 @@ export class MultiProviderMarketDataService {
             ask: meta.ask || meta.regularMarketPrice * 1.001,
             last: meta.regularMarketPrice,
             change: meta.regularMarketPrice - meta.previousClose,
-            changePercent: ((meta.regularMarketPrice - meta.previousClose) / meta.previousClose) * 100,
+            changePercent:
+              ((meta.regularMarketPrice - meta.previousClose) /
+                meta.previousClose) *
+              100,
             volume: meta.regularMarketVolume || 0,
             timestamp: new Date(meta.regularMarketTime * 1000),
             provider: 'yahooFinance',
@@ -456,7 +515,10 @@ export class MultiProviderMarketDataService {
     }
   }
 
-  private async fetchFromCoinGecko(symbol: string, assetType: string): Promise<MarketDataResponse> {
+  private async fetchFromCoinGecko(
+    symbol: string,
+    assetType: string,
+  ): Promise<MarketDataResponse> {
     try {
       if (assetType !== 'crypto') {
         throw new Error(`Asset type ${assetType} not supported by CoinGecko`);
@@ -464,12 +526,12 @@ export class MultiProviderMarketDataService {
 
       const url = `https://api.coingecko.com/api/v3/simple/price?ids=${symbol.toLowerCase()}&vs_currencies=usd&include_24hr_change=true`;
       const response = await firstValueFrom(this.httpService.get(url));
-      
+
       const coinId = symbol.toLowerCase();
       if (response.data && response.data[coinId]) {
         const data = response.data[coinId];
         const price = data.usd;
-        
+
         return {
           success: true,
           data: {
@@ -518,11 +580,13 @@ export class MultiProviderMarketDataService {
       } else if (assetType === 'forex') {
         url = `https://www.alphavantage.co/query?function=FX_DAILY&from_symbol=${symbol.substring(0, 3)}&to_symbol=${symbol.substring(3, 6)}&apikey=${apiKey}`;
       } else {
-        throw new Error(`Historical data for ${assetType} not supported by Alpha Vantage`);
+        throw new Error(
+          `Historical data for ${assetType} not supported by Alpha Vantage`,
+        );
       }
 
       const response = await firstValueFrom(this.httpService.get(url));
-      
+
       let timeSeries: any;
       if (assetType === 'stocks') {
         timeSeries = response.data['Time Series (Daily)'];
@@ -532,12 +596,12 @@ export class MultiProviderMarketDataService {
 
       if (timeSeries) {
         const historicalData: HistoricalPrice[] = [];
-        
+
         Object.entries(timeSeries).forEach(([date, data]: [string, any]) => {
           const timestamp = new Date(date);
           if (fromDate && timestamp < fromDate) return;
           if (toDate && timestamp > toDate) return;
-          
+
           historicalData.push({
             timestamp,
             open: parseFloat(data['1. open'] || data['1. Open']),
@@ -550,7 +614,9 @@ export class MultiProviderMarketDataService {
 
         return {
           success: true,
-          data: historicalData.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime()),
+          data: historicalData.sort(
+            (a, b) => a.timestamp.getTime() - b.timestamp.getTime(),
+          ),
           provider: 'alphaVantage',
           cached: false,
         };
@@ -576,32 +642,42 @@ export class MultiProviderMarketDataService {
   ): Promise<MarketDataResponse> {
     try {
       let yahooSymbol = symbol;
-      
+
       if (assetType === 'forex') {
         yahooSymbol = `${symbol}=X`;
       } else if (assetType === 'crypto') {
         yahooSymbol = `${symbol}-USD`;
       }
 
-      const period1 = fromDate ? Math.floor(fromDate.getTime() / 1000) : Math.floor(Date.now() / 1000) - 365 * 24 * 60 * 60;
-      const period2 = toDate ? Math.floor(toDate.getTime() / 1000) : Math.floor(Date.now() / 1000);
-      
+      const period1 = fromDate
+        ? Math.floor(fromDate.getTime() / 1000)
+        : Math.floor(Date.now() / 1000) - 365 * 24 * 60 * 60;
+      const period2 = toDate
+        ? Math.floor(toDate.getTime() / 1000)
+        : Math.floor(Date.now() / 1000);
+
       const url = `https://query1.finance.yahoo.com/v8/finance/chart/${yahooSymbol}?period1=${period1}&period2=${period2}&interval=1d`;
       const response = await firstValueFrom(this.httpService.get(url));
-      
-      if (response.data && response.data.chart && response.data.chart.result.length > 0) {
+
+      if (
+        response.data &&
+        response.data.chart &&
+        response.data.chart.result.length > 0
+      ) {
         const result = response.data.chart.result[0];
         const timestamps = result.timestamp;
         const ohlcv = result.indicators.quote[0];
-        
-        const historicalData: HistoricalPrice[] = timestamps.map((timestamp: number, index: number) => ({
-          timestamp: new Date(timestamp * 1000),
-          open: ohlcv.open[index] || 0,
-          high: ohlcv.high[index] || 0,
-          low: ohlcv.low[index] || 0,
-          close: ohlcv.close[index] || 0,
-          volume: ohlcv.volume[index] || 0,
-        }));
+
+        const historicalData: HistoricalPrice[] = timestamps.map(
+          (timestamp: number, index: number) => ({
+            timestamp: new Date(timestamp * 1000),
+            open: ohlcv.open[index] || 0,
+            high: ohlcv.high[index] || 0,
+            low: ohlcv.low[index] || 0,
+            close: ohlcv.close[index] || 0,
+            volume: ohlcv.volume[index] || 0,
+          }),
+        );
 
         return {
           success: true,
@@ -641,7 +717,7 @@ export class MultiProviderMarketDataService {
 
       const url = `https://cloud.iexapis.com/stable/stock/${symbol}/chart/1y?token=${apiKey}`;
       const response = await firstValueFrom(this.httpService.get(url));
-      
+
       if (response.data && Array.isArray(response.data)) {
         const historicalData: HistoricalPrice[] = response.data
           .filter((item: any) => {
@@ -681,42 +757,63 @@ export class MultiProviderMarketDataService {
   private canMakeRequest(providerName: string, rateLimit: number): boolean {
     const now = Date.now();
     const windowMs = 60000; // 1 minute
-    
-    const current = this.requestCounts.get(providerName) || { count: 0, resetTime: now + windowMs };
-    
+
+    const current = this.requestCounts.get(providerName) || {
+      count: 0,
+      resetTime: now + windowMs,
+    };
+
     if (now > current.resetTime) {
-      this.requestCounts.set(providerName, { count: 0, resetTime: now + windowMs });
+      this.requestCounts.set(providerName, {
+        count: 0,
+        resetTime: now + windowMs,
+      });
       return true;
     }
-    
+
     return current.count < rateLimit;
   }
 
   private incrementRequestCount(providerName: string): void {
-    const current = this.requestCounts.get(providerName) || { count: 0, resetTime: Date.now() + 60000 };
+    const current = this.requestCounts.get(providerName) || {
+      count: 0,
+      resetTime: Date.now() + 60000,
+    };
     current.count++;
     this.requestCounts.set(providerName, current);
   }
 
   getProviderStatus(): any {
-    return this.providers.map(provider => ({
+    return this.providers.map((provider) => ({
       ...provider,
       requestsUsed: this.requestCounts.get(provider.name)?.count || 0,
-      nextReset: new Date(this.requestCounts.get(provider.name)?.resetTime || Date.now()),
+      nextReset: new Date(
+        this.requestCounts.get(provider.name)?.resetTime || Date.now(),
+      ),
     }));
   }
 
   async testAllProviders(): Promise<any[]> {
     const results: any[] = [];
-    
-    for (const provider of this.providers.filter(p => p.isActive)) {
+
+    for (const provider of this.providers.filter((p) => p.isActive)) {
       try {
-        const testSymbol = provider.supports.includes('forex') ? 'EURUSD' : 
-                          provider.supports.includes('stocks') ? 'AAPL' : 'bitcoin';
-        const assetType = provider.supports.includes('forex') ? 'forex' : 
-                         provider.supports.includes('stocks') ? 'stocks' : 'crypto';
-        
-        const result = await this.fetchPriceFromProvider(provider.name, testSymbol, assetType);
+        const testSymbol = provider.supports.includes('forex')
+          ? 'EURUSD'
+          : provider.supports.includes('stocks')
+            ? 'AAPL'
+            : 'bitcoin';
+        const assetType = provider.supports.includes('forex')
+          ? 'forex'
+          : provider.supports.includes('stocks')
+            ? 'stocks'
+            : 'crypto';
+
+        const result = await this.fetchPriceFromProvider(
+          provider.name,
+          testSymbol,
+          assetType,
+        );
         results.push({
           provider: provider.name,
           status: result.success ? 'working' : 'failed',
@@ -732,7 +829,7 @@ export class MultiProviderMarketDataService {
         });
       }
     }
-    
+
     return results;
   }
 }

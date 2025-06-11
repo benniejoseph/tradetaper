@@ -139,4 +139,4 @@ export interface TradeHistoryUploadResponse {
   accountCurrency?: string;
   totalNetProfit?: number;
   equity?: number;
-} 
+}
