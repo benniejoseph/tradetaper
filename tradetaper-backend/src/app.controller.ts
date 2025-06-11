@@ -119,4 +119,31 @@ export class AppController {
       timestamp: new Date().toISOString(),
     };
   }
+
+  @Post('force-schema-sync')
+  async forceSchemaSync() {
+    try {
+      // Force drop and recreate tables by running a raw query
+      await this.subscriptionRepository.query('DROP TABLE IF EXISTS trade_tags CASCADE');
+      await this.subscriptionRepository.query('DROP TABLE IF EXISTS trades CASCADE');
+      await this.subscriptionRepository.query('DROP TABLE IF EXISTS strategies CASCADE');
+      await this.subscriptionRepository.query('DROP TABLE IF EXISTS tags CASCADE');
+      await this.subscriptionRepository.query('DROP TABLE IF EXISTS mt5_accounts CASCADE');
+      await this.subscriptionRepository.query('DROP TABLE IF EXISTS usage_tracking CASCADE');
+      await this.subscriptionRepository.query('DROP TABLE IF EXISTS subscriptions CASCADE');
+      await this.subscriptionRepository.query('DROP TABLE IF EXISTS users CASCADE');
+      
+      return {
+        success: true,
+        message: 'Tables dropped. Restart application to recreate with synchronize=true',
+        timestamp: new Date().toISOString(),
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message,
+        timestamp: new Date().toISOString(),
+      };
+    }
+  }
 }
