@@ -1,4 +1,4 @@
-import { MigrationInterface, QueryRunner, Table, Index } from 'typeorm';
+import { MigrationInterface, QueryRunner, Table, TableIndex } from 'typeorm';
 
 export class CreateMT5AccountsTable1735774000002 implements MigrationInterface {
   name = 'CreateMT5AccountsTable1735774000002';
@@ -144,17 +144,26 @@ export class CreateMT5AccountsTable1735774000002 implements MigrationInterface {
     // Create indices for better performance
     await queryRunner.createIndex(
       'mt5_accounts',
-      new Index('IDX_mt5_accounts_userId', ['userId']),
+      new TableIndex({
+        name: 'IDX_mt5_accounts_userId',
+        columnNames: ['userId'],
+      }),
     );
 
     await queryRunner.createIndex(
       'mt5_accounts',
-      new Index('IDX_mt5_accounts_server_login', ['server', 'login']),
+      new TableIndex({
+        name: 'IDX_mt5_accounts_server_login',
+        columnNames: ['server', 'login'],
+      }),
     );
 
     await queryRunner.createIndex(
       'mt5_accounts',
-      new Index('IDX_mt5_accounts_isActive', ['isActive']),
+      new TableIndex({
+        name: 'IDX_mt5_accounts_isActive',
+        columnNames: ['isActive'],
+      }),
     );
   }
 

@@ -53,7 +53,6 @@ async function bootstrap() {
 
   // Get services for global providers
   const productionLogger = app.get(ProductionLoggerService);
-  const configService = app.get(ConfigService);
 
   // Configure global filters and interceptors
   app.useGlobalFilters(new GlobalExceptionFilter(productionLogger, configService));
