@@ -7,7 +7,7 @@ import {
   AssetType,
   TradeDirection,
   TradeStatus,
-} from '../entities/trade.entity';
+} from '../../types/enums';
 
 export class TradeResponseDto {
   id: string;

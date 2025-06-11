@@ -3,17 +3,18 @@
 import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, FindManyOptions, In } from 'typeorm';
+import { Trade } from './entities/trade.entity';
 import {
-  Trade,
   TradeStatus,
   TradeDirection,
   AssetType,
-} from './entities/trade.entity'; // Import AssetType if used
+} from '../types/enums';
 import { Tag } from '../tags/entities/tag.entity';
 import { CreateTradeDto } from './dto/create-trade.dto';
 import { UpdateTradeDto } from './dto/update-trade.dto';
 import { UserResponseDto } from '../users/dto/user-response.dto';
 import { TradesGateway } from '../websocket/trades.gateway';
+import { Inject, forwardRef } from '@nestjs/common';
 
 @Injectable()
 export class TradesService {
@@ -24,6 +25,7 @@ export class TradesService {
     private readonly tradesRepository: Repository<Trade>,
     @InjectRepository(Tag)
     private readonly tagRepository: Repository<Tag>,
+    @Inject(forwardRef(() => TradesGateway))
     private readonly tradesGateway: TradesGateway,
   ) {}
 

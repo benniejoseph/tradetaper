@@ -38,7 +38,7 @@ import {
   AssetType,
   TradeDirection,
   TradeStatus,
-} from '../trades/entities/trade.entity';
+} from '../types/enums';
 
 @Controller('mt5-accounts')
 @UseGuards(JwtAuthGuard)
