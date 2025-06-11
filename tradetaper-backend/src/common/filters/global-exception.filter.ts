@@ -66,14 +66,10 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       requestId,
     };
 
-    // Add error details in development AND temporarily in production for debugging
-    if (this.configService.get<string>('NODE_ENV') !== 'production' || true) {
+    // Add error details in development
+    if (this.configService.get<string>('NODE_ENV') !== 'production') {
       errorResponse.error = error;
       errorResponse.details = this.getErrorDetails(exception);
-      if (exception instanceof Error) {
-        errorResponse.details.stack = exception.stack;
-        errorResponse.details.originalMessage = exception.message;
-      }
     }
 
     // Send response
