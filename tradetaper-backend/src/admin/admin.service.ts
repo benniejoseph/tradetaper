@@ -175,7 +175,7 @@ export class AdminService {
       topTradingPairs.map(async (pair) => {
         const volume = await this.tradesRepository
           .createQueryBuilder('trade')
-          .select('SUM(trade.quantity * trade.entryPrice)', 'volume')
+          .select('SUM(trade.quantity * trade.openPrice)', 'volume')
           .where('trade.symbol = :symbol', { symbol: pair.pair })
           .where('trade.createdAt >= :startDate', { startDate })
           .getRawOne();

@@ -123,12 +123,12 @@ export class AdvancedAnalyticsService {
     const whereClause: any = { userId };
 
     if (fromDate && toDate) {
-      whereClause.entryDate = Between(fromDate, toDate);
+      whereClause.openTime = Between(fromDate, toDate);
     }
 
     return this.tradesRepository.find({
       where: whereClause,
-      order: { entryDate: 'ASC' },
+      order: { openTime: 'ASC' },
     });
   }
 
@@ -137,11 +137,11 @@ export class AdvancedAnalyticsService {
 
     trades.forEach((trade) => {
       if (
-        trade.exitDate &&
+        trade.closeTime &&
         trade.profitOrLoss !== null &&
         trade.profitOrLoss !== undefined
       ) {
-        const date = trade.exitDate.toISOString().split('T')[0];
+        const date = trade.closeTime.toISOString().split('T')[0];
         const currentPnL = dailyPnL.get(date) || 0;
         dailyPnL.set(date, currentPnL + trade.profitOrLoss);
       }
@@ -155,11 +155,11 @@ export class AdvancedAnalyticsService {
 
     trades.forEach((trade) => {
       if (
-        trade.exitDate &&
+        trade.closeTime &&
         trade.profitOrLoss !== null &&
         trade.profitOrLoss !== undefined
       ) {
-        const month = trade.exitDate.toISOString().substring(0, 7); // YYYY-MM
+        const month = trade.closeTime.toISOString().substring(0, 7); // YYYY-MM
         const currentPnL = monthlyPnL.get(month) || 0;
         monthlyPnL.set(month, currentPnL + trade.profitOrLoss);
       }
@@ -441,9 +441,9 @@ export class AdvancedAnalyticsService {
   private calculateTradesPerDay(trades: Trade[]): number {
     if (trades.length === 0) return 0;
 
-    const firstTrade = trades[0].entryDate;
+    const firstTrade = trades[0].openTime;
     const lastTrade =
-      trades[trades.length - 1].exitDate || trades[trades.length - 1].entryDate;
+      trades[trades.length - 1].closeTime || trades[trades.length - 1].openTime;
     const daysDiff = Math.ceil(
       (lastTrade.getTime() - firstTrade.getTime()) / (1000 * 60 * 60 * 24),
     );
@@ -452,12 +452,12 @@ export class AdvancedAnalyticsService {
   }
 
   private calculateAverageHoldingPeriod(trades: Trade[]): number {
-    const closedTrades = trades.filter((t) => t.exitDate);
+    const closedTrades = trades.filter((t) => t.closeTime);
     if (closedTrades.length === 0) return 0;
 
     const totalHours = closedTrades.reduce((sum, trade) => {
       const hours =
-        (trade.exitDate!.getTime() - trade.entryDate.getTime()) /
+        (trade.closeTime!.getTime() - trade.openTime.getTime()) /
         (1000 * 60 * 60);
       return sum + hours;
     }, 0);
@@ -478,7 +478,7 @@ export class AdvancedAnalyticsService {
     ];
 
     trades.forEach((trade) => {
-      const day = days[trade.entryDate.getDay()];
+      const day = days[trade.openTime.getDay()];
       const current = dayStats.get(day) || { trades: 0, profit: 0 };
       dayStats.set(day, {
         trades: current.trades + 1,
@@ -493,7 +493,7 @@ export class AdvancedAnalyticsService {
     const monthStats = new Map<string, { trades: number; profit: number }>();
 
     trades.forEach((trade) => {
-      const month = trade.entryDate.toISOString().substring(0, 7);
+      const month = trade.openTime.toISOString().substring(0, 7);
       const current = monthStats.get(month) || { trades: 0, profit: 0 };
       monthStats.set(month, {
         trades: current.trades + 1,
@@ -569,7 +569,7 @@ export class AdvancedAnalyticsService {
       .map(() => ({ trades: 0, profit: 0 }));
 
     trades.forEach((trade) => {
-      const month = trade.entryDate.getMonth();
+      const month = trade.openTime.getMonth();
       monthlyStats[month].trades++;
       monthlyStats[month].profit += trade.profitOrLoss || 0;
     });
@@ -683,7 +683,7 @@ export class AdvancedAnalyticsService {
     const dailyTradeCounts = new Map<string, number>();
 
     trades.forEach((trade) => {
-      const date = trade.entryDate.toISOString().split('T')[0];
+      const date = trade.openTime.toISOString().split('T')[0];
       dailyTradeCounts.set(date, (dailyTradeCounts.get(date) || 0) + 1);
     });
 

@@ -492,7 +492,7 @@ export class MT5AccountsController {
       }
 
       // Convert MT5 trade type to our trade direction
-      const direction =
+      const side =
         trade.type === 'buy' ? TradeDirection.LONG : TradeDirection.SHORT;
 
       // MT5 trades are already closed when we import from history
@@ -501,12 +501,12 @@ export class MT5AccountsController {
       const dto: CreateTradeDto = {
         assetType,
         symbol: trade.symbol,
-        direction,
+        side,
         status,
-        entryDate: trade.openTime.toISOString(),
-        entryPrice: trade.openPrice,
-        exitDate: trade.closeTime.toISOString(),
-        exitPrice: trade.closePrice,
+        openTime: trade.openTime.toISOString(),
+        openPrice: trade.openPrice,
+        closeTime: trade.closeTime.toISOString(),
+        closePrice: trade.closePrice,
         quantity: trade.volume,
         commission: Math.abs(trade.commission || 0) + Math.abs(trade.swap || 0), // Include swap as part of commission
         notes:

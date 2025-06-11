@@ -64,7 +64,7 @@ export enum TradingSession {
 }
 
 @Entity('trades')
-@Index(['user', 'entryDate']) // Example index for querying user's trades by date
+@Index(['user', 'openTime']) // Example index for querying user's trades by date
 export class Trade {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -110,7 +110,7 @@ export class Trade {
     type: 'enum',
     enum: TradeDirection,
   })
-  direction: TradeDirection;
+  side: TradeDirection;
 
   @Column({
     type: 'enum',
@@ -120,18 +120,18 @@ export class Trade {
   status: TradeStatus;
 
   @Column('timestamptz') // timestamp with time zone
-  entryDate: Date;
+  openTime: Date;
 
   @Type(() => Number)
   @Column('decimal', { precision: 19, scale: 8 }) // Suitable for prices
-  entryPrice: number;
+  openPrice: number;
 
   @Column('timestamptz', { nullable: true })
-  exitDate?: Date;
+  closeTime?: Date;
 
   @Type(() => Number)
   @Column('decimal', { precision: 19, scale: 8, nullable: true })
-  exitPrice?: number;
+  closePrice?: number;
 
   @Type(() => Number)
   @Column('decimal', { precision: 19, scale: 8 }) // Suitable for quantity/size
@@ -218,15 +218,15 @@ export class Trade {
   calculatePnl(): void {
     if (
       this.status === TradeStatus.CLOSED &&
-      this.entryPrice &&
-      this.exitPrice &&
+      this.openPrice &&
+      this.closePrice &&
       this.quantity
     ) {
       let pnl = 0;
-      if (this.direction === TradeDirection.LONG) {
-        pnl = (this.exitPrice - this.entryPrice) * this.quantity;
-      } else if (this.direction === TradeDirection.SHORT) {
-        pnl = (this.entryPrice - this.exitPrice) * this.quantity;
+      if (this.side === TradeDirection.LONG) {
+        pnl = (this.closePrice - this.openPrice) * this.quantity;
+      } else if (this.side === TradeDirection.SHORT) {
+        pnl = (this.openPrice - this.closePrice) * this.quantity;
       }
       this.profitOrLoss = parseFloat((pnl - (this.commission || 0)).toFixed(4));
     } else {

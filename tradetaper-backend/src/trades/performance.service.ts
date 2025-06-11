@@ -73,11 +73,11 @@ export class PerformanceService {
     }
 
     if (dateFrom) {
-      queryBuilder.andWhere('trade.entryDate >= :dateFrom', { dateFrom });
+      queryBuilder.andWhere('trade.openTime >= :dateFrom', { dateFrom });
     }
 
     if (dateTo) {
-      queryBuilder.andWhere('trade.entryDate <= :dateTo', { dateTo });
+      queryBuilder.andWhere('trade.openTime <= :dateTo', { dateTo });
     }
 
     const trades = await queryBuilder.getMany();
@@ -97,7 +97,7 @@ export class PerformanceService {
       .createQueryBuilder('trade')
       .where('trade.userId = :userId', { userId: userContext.id })
       .andWhere('trade.status = :status', { status: TradeStatus.CLOSED })
-      .andWhere('trade.exitDate >= :dateFrom', {
+      .andWhere('trade.closeTime >= :dateFrom', {
         dateFrom: dateFrom.toISOString(),
       });
 
@@ -122,7 +122,7 @@ export class PerformanceService {
       .createQueryBuilder('trade')
       .where('trade.userId = :userId', { userId: userContext.id })
       .andWhere('trade.status = :status', { status: TradeStatus.CLOSED })
-      .andWhere('trade.exitDate >= :dateFrom', {
+      .andWhere('trade.closeTime >= :dateFrom', {
         dateFrom: dateFrom.toISOString(),
       });
 
@@ -234,10 +234,10 @@ export class PerformanceService {
 
   private calculateMaxDrawdown(trades: Trade[]): number {
     const sortedTrades = trades
-      .filter((t) => t.exitDate)
+      .filter((t) => t.closeTime)
       .sort(
         (a, b) =>
-          new Date(a.exitDate!).getTime() - new Date(b.exitDate!).getTime(),
+          new Date(a.closeTime!).getTime() - new Date(b.closeTime!).getTime(),
       );
 
     let peak = 0;
@@ -263,10 +263,10 @@ export class PerformanceService {
     consecutiveLosses: number;
   } {
     const sortedTrades = trades
-      .filter((t) => t.exitDate)
+      .filter((t) => t.closeTime)
       .sort(
         (a, b) =>
-          new Date(a.exitDate!).getTime() - new Date(b.exitDate!).getTime(),
+          new Date(a.closeTime!).getTime() - new Date(b.closeTime!).getTime(),
       );
 
     let maxWins = 0;
@@ -293,8 +293,8 @@ export class PerformanceService {
   private calculateTradingDays(trades: Trade[]): number {
     const uniqueDays = new Set(
       trades
-        .filter((t) => t.exitDate)
-        .map((t) => new Date(t.exitDate!).toDateString()),
+        .filter((t) => t.closeTime)
+        .map((t) => new Date(t.closeTime!).toDateString()),
     );
     return uniqueDays.size;
   }
@@ -303,8 +303,8 @@ export class PerformanceService {
     const dailyGroups: { [key: string]: Trade[] } = {};
 
     trades.forEach((trade) => {
-      if (trade.exitDate) {
-        const dateKey = new Date(trade.exitDate).toISOString().split('T')[0];
+      if (trade.closeTime) {
+        const dateKey = new Date(trade.closeTime).toISOString().split('T')[0];
         if (!dailyGroups[dateKey]) {
           dailyGroups[dateKey] = [];
         }
@@ -340,8 +340,8 @@ export class PerformanceService {
     const monthlyGroups: { [key: string]: Trade[] } = {};
 
     trades.forEach((trade) => {
-      if (trade.exitDate) {
-        const date = new Date(trade.exitDate);
+      if (trade.closeTime) {
+        const date = new Date(trade.closeTime);
         const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
         if (!monthlyGroups[monthKey]) {
           monthlyGroups[monthKey] = [];

@@ -5,6 +5,9 @@ import { ConfigService } from '@nestjs/config';
 import { ClassSerializerInterceptor, ValidationPipe } from '@nestjs/common';
 import { NestExpressApplication } from '@nestjs/platform-express'; // Import this
 import { join } from 'path'; // Import join from path
+import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
+import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
+import { ProductionLoggerService } from './common/services/logger.service';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
@@ -48,7 +51,16 @@ async function bootstrap() {
     }),
   );
 
-  app.useGlobalInterceptors(new ClassSerializerInterceptor(app.get(Reflector)));
+  // Get services for global providers
+  const productionLogger = app.get(ProductionLoggerService);
+  const configService = app.get(ConfigService);
+
+  // Configure global filters and interceptors
+  app.useGlobalFilters(new GlobalExceptionFilter(productionLogger, configService));
+  app.useGlobalInterceptors(
+    new LoggingInterceptor(productionLogger),
+    new ClassSerializerInterceptor(app.get(Reflector)),
+  );
 
   // --- ADD STATIC ASSETS SERVING ---
   // This makes files in the 'uploads' directory (at the project root)

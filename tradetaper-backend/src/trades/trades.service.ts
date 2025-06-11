@@ -30,17 +30,17 @@ export class TradesService {
   private calculateAndSetPnl(trade: Trade): void {
     if (
       trade.status === TradeStatus.CLOSED &&
-      trade.entryPrice != null &&
-      trade.exitPrice != null &&
+      trade.openPrice != null &&
+      trade.closePrice != null &&
       trade.quantity != null
     ) {
       let pnl = 0;
-      if (trade.direction === TradeDirection.LONG) {
+      if (trade.side === TradeDirection.LONG) {
         // Compare with enum member
-        pnl = (trade.exitPrice - trade.entryPrice) * trade.quantity;
-      } else if (trade.direction === TradeDirection.SHORT) {
+        pnl = (trade.closePrice - trade.openPrice) * trade.quantity;
+      } else if (trade.side === TradeDirection.SHORT) {
         // Compare with enum member
-        pnl = (trade.entryPrice - trade.exitPrice) * trade.quantity;
+        pnl = (trade.openPrice - trade.closePrice) * trade.quantity;
       }
       trade.profitOrLoss = parseFloat(
         (pnl - (trade.commission || 0)).toFixed(4),
@@ -114,9 +114,9 @@ export class TradesService {
 
     const trade = this.tradesRepository.create({
       ...tradeDetails,
-      entryDate: new Date(createTradeDto.entryDate),
-      exitDate: createTradeDto.exitDate
-        ? new Date(createTradeDto.exitDate)
+      openTime: new Date(createTradeDto.openTime),
+      closeTime: createTradeDto.closeTime
+        ? new Date(createTradeDto.closeTime)
         : undefined,
       userId: userContext.id,
       tags: resolvedTags,
@@ -152,7 +152,7 @@ export class TradesService {
     const trades = await this.tradesRepository.find({
       where: whereClause,
       relations: ['tags'],
-      order: { entryDate: 'DESC' },
+      order: { openTime: 'DESC' },
       ...options,
     });
 
@@ -203,22 +203,22 @@ export class TradesService {
       );
     }
 
-    const { tagNames, entryDate, exitDate, ...otherDetailsToUpdate } =
+    const { tagNames, openTime, closeTime, ...otherDetailsToUpdate } =
       updateTradeDto;
 
     const partialUpdateData: Partial<Trade> = { ...otherDetailsToUpdate };
 
-    if (entryDate !== undefined) {
-      partialUpdateData.entryDate = new Date(entryDate);
+    if (openTime !== undefined) {
+      partialUpdateData.openTime = new Date(openTime);
     }
-    if (exitDate !== undefined) {
-      partialUpdateData.exitDate =
-        exitDate === null ? undefined : new Date(exitDate);
+    if (closeTime !== undefined) {
+      partialUpdateData.closeTime =
+        closeTime === null ? undefined : new Date(closeTime);
     } else if (
-      Object.prototype.hasOwnProperty.call(updateTradeDto, 'exitDate') &&
-      exitDate === null
+      Object.prototype.hasOwnProperty.call(updateTradeDto, 'closeTime') &&
+      closeTime === null
     ) {
-      partialUpdateData.exitDate = undefined;
+      partialUpdateData.closeTime = undefined;
     }
 
     this.tradesRepository.merge(trade, partialUpdateData);
@@ -311,16 +311,16 @@ export class TradesService {
     for (const update of updates) {
       const trade = trades.find((t) => t.id === update.id);
       if (trade) {
-        const { tagNames, entryDate, exitDate, ...otherData } = update.data;
+        const { tagNames, openTime, closeTime, ...otherData } = update.data;
 
         // Apply updates
         Object.assign(trade, otherData);
 
-        if (entryDate !== undefined) {
-          trade.entryDate = new Date(entryDate);
+        if (openTime !== undefined) {
+          trade.openTime = new Date(openTime);
         }
-        if (exitDate !== undefined) {
-          trade.exitDate = exitDate === null ? undefined : new Date(exitDate);
+        if (closeTime !== undefined) {
+          trade.closeTime = closeTime === null ? undefined : new Date(closeTime);
         }
 
         if (tagNames !== undefined) {
@@ -363,8 +363,8 @@ export class TradesService {
 
       const trade = this.tradesRepository.create({
         ...tradeDetails,
-        entryDate: new Date(tradeDto.entryDate),
-        exitDate: tradeDto.exitDate ? new Date(tradeDto.exitDate) : undefined,
+        openTime: new Date(tradeDto.openTime),
+        closeTime: tradeDto.closeTime ? new Date(tradeDto.closeTime) : undefined,
         userId: userContext.id,
         tags: resolvedTags,
       });
