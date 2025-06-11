@@ -258,7 +258,7 @@ export class TradeHistoryParserService {
       const worksheet = workbook.Sheets[sheetName];
       const sheetData = XLSX.utils.sheet_to_json(worksheet, {
         header: 1,
-      });
+      }) as any[][];
 
       // Extract account balance and currency from header rows (first 10 rows)
       for (let i = 0; i < Math.min(sheetData.length, 10); i++) {
