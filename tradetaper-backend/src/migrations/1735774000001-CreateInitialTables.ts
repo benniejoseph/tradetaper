@@ -1,4 +1,4 @@
-import { MigrationInterface, QueryRunner, Table, Index } from 'typeorm';
+import { MigrationInterface, QueryRunner, Table, TableIndex } from 'typeorm';
 
 export class CreateInitialTables1735774000001 implements MigrationInterface {
   name = 'CreateInitialTables1735774000001';
@@ -205,7 +205,9 @@ export class CreateInitialTables1735774000001 implements MigrationInterface {
     // Create unique constraint on usage_tracking
     await queryRunner.createIndex(
       'usage_tracking',
-      new Index('IDX_usage_tracking_user_period', ['userId', 'periodStart'], {
+      new TableIndex({
+        name: 'IDX_usage_tracking_user_period',
+        columnNames: ['userId', 'periodStart'],
         isUnique: true,
       }),
     );
@@ -584,23 +586,36 @@ export class CreateInitialTables1735774000001 implements MigrationInterface {
     // Create indices for better performance
     await queryRunner.createIndex(
       'trades',
-      new Index('IDX_trades_user_openTime', ['userId', 'openTime']),
+      new TableIndex({
+        name: 'IDX_trades_user_openTime',
+        columnNames: ['userId', 'openTime'],
+      }),
     );
 
     await queryRunner.createIndex(
       'trades',
-      new Index('IDX_trades_symbol', ['symbol']),
+      new TableIndex({
+        name: 'IDX_trades_symbol',
+        columnNames: ['symbol'],
+      }),
     );
 
     await queryRunner.createIndex(
       'trades',
-      new Index('IDX_trades_status', ['status']),
+      new TableIndex({
+        name: 'IDX_trades_status',
+        columnNames: ['status'],
+      }),
     );
 
     // Create primary key for trade_tags junction table
     await queryRunner.createIndex(
       'trade_tags',
-      new Index('PK_trade_tags', ['tradeId', 'tagId'], { isPrimary: true }),
+      new TableIndex({
+        name: 'PK_trade_tags',
+        columnNames: ['tradeId', 'tagId'],
+        isUnique: true,
+      }),
     );
   }
 

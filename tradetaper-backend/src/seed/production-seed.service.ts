@@ -2,8 +2,9 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from '../users/entities/user.entity';
-import { Subscription } from '../subscriptions/entities/subscription.entity';
+import { Subscription, SubscriptionStatus } from '../subscriptions/entities/subscription.entity';
 import { ConfigService } from '@nestjs/config';
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class ProductionSeedService {
@@ -67,7 +68,7 @@ export class ProductionSeedService {
     const subscription = this.subscriptionRepository.create({
       userId: savedUser.id,
       plan: 'free',
-      status: 'active',
+      status: SubscriptionStatus.ACTIVE,
     });
     await this.subscriptionRepository.save(subscription);
 
