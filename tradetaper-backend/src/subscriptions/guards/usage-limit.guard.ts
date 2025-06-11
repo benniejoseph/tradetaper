@@ -1,4 +1,10 @@
-import { Injectable, CanActivate, ExecutionContext, ForbiddenException, SetMetadata } from '@nestjs/common';
+import {
+  Injectable,
+  CanActivate,
+  ExecutionContext,
+  ForbiddenException,
+  SetMetadata,
+} from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { SubscriptionService } from '../services/subscription.service';
 
@@ -31,7 +37,10 @@ export class UsageLimitGuard implements CanActivate {
       throw new ForbiddenException('User not authenticated');
     }
 
-    const canUse = await this.subscriptionService.checkUsageLimit(userId, feature);
+    const canUse = await this.subscriptionService.checkUsageLimit(
+      userId,
+      feature,
+    );
 
     if (!canUse) {
       throw new ForbiddenException(
@@ -41,4 +50,4 @@ export class UsageLimitGuard implements CanActivate {
 
     return true;
   }
-} 
+}

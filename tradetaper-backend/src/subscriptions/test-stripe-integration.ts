@@ -68,4 +68,4 @@ async function testStripeIntegration() {
 }
 
 // Run the test
-testStripeIntegration(); 
+testStripeIntegration();

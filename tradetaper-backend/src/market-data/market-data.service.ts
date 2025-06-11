@@ -69,26 +69,41 @@ export class MarketDataService implements OnModuleInit {
     }
 
     // Check if the request is for intraday data (minute/hourly)
-    const isIntradayRequest = interval.includes('minute') || interval === 'hourly';
-    
+    const isIntradayRequest =
+      interval.includes('minute') || interval === 'hourly';
+
     if (isIntradayRequest) {
       this.logger.warn(
-        `Intraday data requested (${interval}) but API key may not support it. Falling back to daily data.`
+        `Intraday data requested (${interval}) but API key may not support it. Falling back to daily data.`,
       );
-      
+
       // Try intraday first, but fallback to daily if it fails
       try {
         if (interval.includes('minute')) {
-          return await this.getMinuteHistoricalData(currencyPair, startDate, endDate, interval);
+          return await this.getMinuteHistoricalData(
+            currencyPair,
+            startDate,
+            endDate,
+            interval,
+          );
         } else if (interval === 'hourly') {
-          return await this.getHourlyHistoricalData(currencyPair, startDate, endDate);
+          return await this.getHourlyHistoricalData(
+            currencyPair,
+            startDate,
+            endDate,
+          );
         }
       } catch (error) {
         this.logger.warn(
-          `Intraday data failed for ${currencyPair} (${interval}). Falling back to daily data.`
+          `Intraday data failed for ${currencyPair} (${interval}). Falling back to daily data.`,
         );
         // Fallback to daily data
-        return this.getTimeseriesData(currencyPair, startDate, endDate, 'daily');
+        return this.getTimeseriesData(
+          currencyPair,
+          startDate,
+          endDate,
+          'daily',
+        );
       }
     }
 
@@ -104,12 +119,14 @@ export class MarketDataService implements OnModuleInit {
   ): Promise<PriceDataPoint[]> {
     // For minute data, we need to use timeseries endpoint with proper parameters
     // Tradermade allows max 2 working days for 1m and 5m data
-    
+
     // Calculate working days between start and end date
     const start = new Date(startDate);
     const end = new Date(endDate);
-    const daysDiff = Math.ceil((end.getTime() - start.getTime()) / (1000 * 3600 * 24));
-    
+    const daysDiff = Math.ceil(
+      (end.getTime() - start.getTime()) / (1000 * 3600 * 24),
+    );
+
     // If requesting 1m or 5m data and the range is too large, limit it
     if ((interval === '1minute' || interval === '5minute') && daysDiff > 2) {
       this.logger.warn(
@@ -120,7 +137,7 @@ export class MarketDataService implements OnModuleInit {
       limitedEndDate.setDate(start.getDate() + 2);
       endDate = limitedEndDate.toISOString().split('T')[0];
     }
-    
+
     // If requesting 15m or 30m data and the range is too large, limit it to 5 working days
     if ((interval === '15minute' || interval === '30minute') && daysDiff > 5) {
       this.logger.warn(
@@ -183,7 +200,7 @@ export class MarketDataService implements OnModuleInit {
       currency: currencyPair,
       api_key: this.tradermadeApiKey,
       start_date: `${startDate}-00:00`, // YYYY-MM-DD-HH:MM format for hourly data
-      end_date: `${endDate}-23:00`,     // YYYY-MM-DD-HH:MM format for hourly data
+      end_date: `${endDate}-23:00`, // YYYY-MM-DD-HH:MM format for hourly data
       interval: 'hourly',
       period: '1',
       format: 'records',
@@ -218,7 +235,7 @@ export class MarketDataService implements OnModuleInit {
       currency: currencyPair,
       api_key: this.tradermadeApiKey,
       start_date: startDate, // YYYY-MM-DD format for daily data
-      end_date: endDate,     // YYYY-MM-DD format for daily data
+      end_date: endDate, // YYYY-MM-DD format for daily data
       format: 'records',
     };
 
@@ -316,7 +333,7 @@ export class MarketDataService implements OnModuleInit {
           }
 
           return {
-            time: timestamp as number,
+            time: timestamp,
             open: parseFloat(q.open),
             high: parseFloat(q.high),
             low: parseFloat(q.low),
@@ -362,7 +379,7 @@ export class MarketDataService implements OnModuleInit {
         error.response.data?.message ||
         error.response.data?.error ||
         error.response.statusText;
-      
+
       // Provide helpful error messages for common API limitations
       if (error.response.status === 403) {
         if (apiErrorMessage?.includes('working days')) {
@@ -382,7 +399,7 @@ export class MarketDataService implements OnModuleInit {
           );
         }
       }
-      
+
       throw new HttpException(
         `Tradermade API HTTP error: ${apiErrorMessage}`,
         error.response.status,

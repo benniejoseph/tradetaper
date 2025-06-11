@@ -1,14 +1,12 @@
 // src/services/api.ts
 import axios from 'axios';
-import { RootState } from '@/store/store'; // Removed unused AppDispatch import
+import { RootState } from '@/store/store';
 
-// TEMPORARILY HARDCODE PRODUCTION URL TO FIX DEPLOYMENT ISSUE
-const API_BASE_URL = 'https://tradetaper-backend-production.up.railway.app/api/v1';
-
-// Debug: Log the API URL being used
-console.log('🔍 Frontend API_BASE_URL:', API_BASE_URL);
-console.log('🔍 NEXT_PUBLIC_API_URL env var:', process.env.NEXT_PUBLIC_API_URL);
-console.log('🔍 NODE_ENV:', process.env.NODE_ENV);
+// Use environment variable with fallback
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 
+  (process.env.NODE_ENV === 'production' 
+    ? 'https://tradetaper-backend-production.up.railway.app/api/v1'
+    : 'http://localhost:3000/api/v1');
 
 // Default instance for public routes
 export const apiClient = axios.create({

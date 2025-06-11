@@ -35,9 +35,10 @@ import { Strategy } from './strategies/entities/strategy.entity';
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => {
-        const isProduction = configService.get<string>('NODE_ENV') === 'production';
+        const isProduction =
+          configService.get<string>('NODE_ENV') === 'production';
         const databaseUrl = configService.get<string>('DATABASE_URL');
-        
+
         // Using DATABASE_URL for production (Railway, Heroku, etc)
         if (isProduction && databaseUrl) {
           return {
@@ -46,13 +47,13 @@ import { Strategy } from './strategies/entities/strategy.entity';
             entities: [User, Trade, Tag, MT5Account, Subscription, Strategy],
             synchronize: false, // Never auto-sync in production!
             ssl: {
-              rejectUnauthorized: false // Required for Railway and some other providers
+              rejectUnauthorized: false, // Required for Railway and some other providers
             },
             migrations: [__dirname + '/migrations/**/*{.ts,.js}'],
             migrationsRun: true,
           };
         }
-        
+
         // Using DATABASE_URL for development if provided
         if (databaseUrl && databaseUrl.startsWith('postgresql://')) {
           return {
@@ -64,7 +65,7 @@ import { Strategy } from './strategies/entities/strategy.entity';
             migrationsRun: false, // Manual migration control in development
           };
         }
-        
+
         // Using individual DB config params for development
         return {
           type: 'postgres',
@@ -73,7 +74,7 @@ import { Strategy } from './strategies/entities/strategy.entity';
           username: configService.get<string>('DB_USERNAME', 'postgres'),
           password: configService.get<string>('DB_PASSWORD', 'postgres'),
           database: configService.get<string>('DB_DATABASE', 'tradetaper_dev'),
-          entities: [User, Trade, Tag, MT5Account, Subscription],
+          entities: [User, Trade, Tag, MT5Account, Subscription, Strategy],
           synchronize: configService.get<string>('NODE_ENV') !== 'production',
           migrations: [__dirname + '/migrations/**/*{.ts,.js}'],
           migrationsRun: false, // Manual migration control in development

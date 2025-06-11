@@ -93,4 +93,4 @@ export class Subscription {
 
   @UpdateDateColumn()
   updatedAt: Date;
-} 
+}

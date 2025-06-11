@@ -37,10 +37,17 @@ export class EnhancedValidationPipe implements PipeTransform<any> {
 
   async transform(value: any, metadata: ArgumentMetadata): Promise<any> {
     // First, run standard validation
-    const transformedValue = await this.validationPipe.transform(value, metadata);
+    const transformedValue = await this.validationPipe.transform(
+      value,
+      metadata,
+    );
 
     // If sanitization is enabled, sanitize string fields
-    if (this.options.sanitize && transformedValue && typeof transformedValue === 'object') {
+    if (
+      this.options.sanitize &&
+      transformedValue &&
+      typeof transformedValue === 'object'
+    ) {
       return this.sanitizeObject(transformedValue);
     }
 
@@ -49,7 +56,7 @@ export class EnhancedValidationPipe implements PipeTransform<any> {
 
   private sanitizeObject(obj: any): any {
     if (Array.isArray(obj)) {
-      return obj.map(item => this.sanitizeObject(item));
+      return obj.map((item) => this.sanitizeObject(item));
     }
 
     if (obj && typeof obj === 'object') {
@@ -73,7 +80,7 @@ export class EnhancedValidationPipe implements PipeTransform<any> {
   private sanitizeString(str: string): string {
     // Remove HTML tags and potentially dangerous content
     let sanitized = DOMPurify.sanitize(str, { ALLOWED_TAGS: [] });
-    
+
     // Additional sanitization rules
     sanitized = sanitized
       .replace(/[<>]/g, '') // Remove any remaining angle brackets
@@ -107,7 +114,8 @@ export const SanitizingValidationPipe = new EnhancedValidationPipe({
 export class SecurityValidators {
   static validatePassword(password: string): boolean {
     // At least 8 characters, 1 uppercase, 1 lowercase, 1 number, 1 special character
-    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+    const passwordRegex =
+      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
     return passwordRegex.test(password);
   }
 
@@ -128,11 +136,19 @@ export class SecurityValidators {
     return currencyRegex.test(currency);
   }
 
-  static validateNumericRange(value: number, min: number, max: number): boolean {
+  static validateNumericRange(
+    value: number,
+    min: number,
+    max: number,
+  ): boolean {
     return !isNaN(value) && value >= min && value <= max;
   }
 
-  static validateDateRange(date: Date, minDate?: Date, maxDate?: Date): boolean {
+  static validateDateRange(
+    date: Date,
+    minDate?: Date,
+    maxDate?: Date,
+  ): boolean {
     if (!(date instanceof Date) || isNaN(date.getTime())) {
       return false;
     }
@@ -165,7 +181,8 @@ export class SecurityValidators {
   }
 
   static isValidUUID(uuid: string): boolean {
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    const uuidRegex =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
     return uuidRegex.test(uuid);
   }
 
@@ -180,20 +197,22 @@ export class SecurityValidators {
   static validateIPAddress(ip: string): boolean {
     const ipv4Regex = /^(\d{1,3}\.){3}\d{1,3}$/;
     const ipv6Regex = /^([0-9a-f]{1,4}:){7}[0-9a-f]{1,4}$/i;
-    
+
     if (ipv4Regex.test(ip)) {
-      return ip.split('.').every(octet => {
+      return ip.split('.').every((octet) => {
         const num = parseInt(octet, 10);
         return num >= 0 && num <= 255;
       });
     }
-    
+
     return ipv6Regex.test(ip);
   }
 
   static validateUserAgent(userAgent: string): boolean {
     // Basic user agent validation - not empty and reasonable length
-    return Boolean(userAgent && userAgent.length > 0 && userAgent.length <= 1000);
+    return Boolean(
+      userAgent && userAgent.length > 0 && userAgent.length <= 1000,
+    );
   }
 
   static detectSQLInjection(input: string): boolean {
@@ -204,8 +223,8 @@ export class SecurityValidators {
       /'[^']*'/,
       /\bxp_\w+/i,
     ];
-    
-    return sqlPatterns.some(pattern => pattern.test(input));
+
+    return sqlPatterns.some((pattern) => pattern.test(input));
   }
 
   static detectXSS(input: string): boolean {
@@ -218,8 +237,8 @@ export class SecurityValidators {
       /<object[^>]*>.*?<\/object>/gi,
       /<embed[^>]*>.*?<\/embed>/gi,
     ];
-    
-    return xssPatterns.some(pattern => pattern.test(input));
+
+    return xssPatterns.some((pattern) => pattern.test(input));
   }
 
   static validateJSONStructure(json: string, maxDepth: number = 10): boolean {
@@ -231,17 +250,23 @@ export class SecurityValidators {
     }
   }
 
-  private static checkObjectDepth(obj: any, maxDepth: number, currentDepth: number = 0): boolean {
+  private static checkObjectDepth(
+    obj: any,
+    maxDepth: number,
+    currentDepth: number = 0,
+  ): boolean {
     if (currentDepth > maxDepth) {
       return false;
     }
 
     if (obj && typeof obj === 'object') {
       if (Array.isArray(obj)) {
-        return obj.every(item => this.checkObjectDepth(item, maxDepth, currentDepth + 1));
+        return obj.every((item) =>
+          this.checkObjectDepth(item, maxDepth, currentDepth + 1),
+        );
       } else {
-        return Object.values(obj).every(value => 
-          this.checkObjectDepth(value, maxDepth, currentDepth + 1)
+        return Object.values(obj).every((value) =>
+          this.checkObjectDepth(value, maxDepth, currentDepth + 1),
         );
       }
     }

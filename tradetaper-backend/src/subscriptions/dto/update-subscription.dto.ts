@@ -4,4 +4,4 @@ export class UpdateSubscriptionDto {
   @IsString()
   @IsNotEmpty()
   priceId: string;
-} 
+}

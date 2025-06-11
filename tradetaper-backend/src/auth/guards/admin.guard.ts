@@ -31,4 +31,4 @@ export class AdminGuard extends JwtAuthGuard implements CanActivate {
 
     return adminEmails.includes(user.email?.toLowerCase());
   }
-} 
+}

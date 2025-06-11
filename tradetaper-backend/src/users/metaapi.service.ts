@@ -1,13 +1,18 @@
-import { Injectable, Logger, BadRequestException, InternalServerErrorException } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  BadRequestException,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import MetaApi, { 
-  MetatraderAccount, 
-  ProvisioningProfile, 
-  MetatraderAccountInformation, 
+import MetaApi, {
+  MetatraderAccount,
+  ProvisioningProfile,
+  MetatraderAccountInformation,
   MetatraderDeal,
   MetatraderPosition,
   MetatraderOrder,
-  StreamingMetaApiConnectionInstance
+  StreamingMetaApiConnectionInstance,
 } from 'metaapi.cloud-sdk';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -53,9 +58,18 @@ export class MetaApiService {
 
   private initializeMetaApi() {
     const apiToken = this.configService.get<string>('METAAPI_API_TOKEN');
-    const environment = this.configService.get<string>('METAAPI_ENVIRONMENT', 'sandbox');
-    const domain = this.configService.get<string>('METAAPI_DOMAIN', 'agiliumtrade.ai');
-    const requestTimeout = parseInt(this.configService.get<string>('METAAPI_REQUEST_TIMEOUT', '60000'), 10);
+    const environment = this.configService.get<string>(
+      'METAAPI_ENVIRONMENT',
+      'sandbox',
+    );
+    const domain = this.configService.get<string>(
+      'METAAPI_DOMAIN',
+      'agiliumtrade.ai',
+    );
+    const requestTimeout = parseInt(
+      this.configService.get<string>('METAAPI_REQUEST_TIMEOUT', '60000'),
+      10,
+    );
 
     if (!apiToken) {
       this.logger.error('MetaApi API token not configured');
@@ -68,8 +82,8 @@ export class MetaApiService {
       retryOpts: {
         retries: 3,
         minDelayInSeconds: 1,
-        maxDelayInSeconds: 30
-      }
+        maxDelayInSeconds: 30,
+      },
     });
 
     this.logger.log(`MetaApi initialized for ${environment} environment`);
@@ -89,14 +103,14 @@ export class MetaApiService {
         { name: 'Alpari-Demo', type: 'demo' },
         { name: 'XM-Demo', type: 'demo' },
         { name: 'IG-Demo', type: 'demo' },
-        { name: 'OANDA-Demo', type: 'demo' }
+        { name: 'OANDA-Demo', type: 'demo' },
       ];
     } catch (error) {
       this.logger.error('Failed to fetch available servers', error);
       return [
         { name: 'MetaQuotes-Demo', type: 'demo' },
         { name: 'ICMarkets-Demo', type: 'demo' },
-        { name: 'Pepperstone-Demo', type: 'demo' }
+        { name: 'Pepperstone-Demo', type: 'demo' },
       ];
     }
   }
@@ -104,12 +118,15 @@ export class MetaApiService {
   /**
    * Create or get a provisioning profile for the broker server
    */
-  private async getProvisioningProfile(server: string): Promise<ProvisioningProfile> {
+  private async getProvisioningProfile(
+    server: string,
+  ): Promise<ProvisioningProfile> {
     try {
-      const profiles = await this.metaApi.provisioningProfileApi.getProvisioningProfilesWithInfiniteScrollPagination();
-      
+      const profiles =
+        await this.metaApi.provisioningProfileApi.getProvisioningProfilesWithInfiniteScrollPagination();
+
       // Find existing profile for this server by name
-      let profile = profiles.find(p => p.name.includes(server));
+      let profile = profiles.find((p) => p.name.includes(server));
 
       if (!profile) {
         // Create new provisioning profile
@@ -117,26 +134,41 @@ export class MetaApiService {
           name: `TradeTaper-${server}`,
           version: 5,
           brokerTimezone: 'EET',
-          brokerDSTSwitchTimezone: 'EET'
+          brokerDSTSwitchTimezone: 'EET',
         };
 
-        profile = await this.metaApi.provisioningProfileApi.createProvisioningProfile(profileData);
-        this.logger.log(`Created new provisioning profile for server: ${server}`);
+        profile =
+          await this.metaApi.provisioningProfileApi.createProvisioningProfile(
+            profileData,
+          );
+        this.logger.log(
+          `Created new provisioning profile for server: ${server}`,
+        );
       }
 
       return profile;
     } catch (error) {
-      this.logger.error(`Failed to get/create provisioning profile for ${server}`, error);
-      throw new InternalServerErrorException('Failed to setup broker connection');
+      this.logger.error(
+        `Failed to get/create provisioning profile for ${server}`,
+        error,
+      );
+      throw new InternalServerErrorException(
+        'Failed to setup broker connection',
+      );
     }
   }
 
   /**
    * Add a new MT5 account with MetaApi integration
    */
-  async addMT5Account(userId: string, credentials: MT5AccountCredentials): Promise<MT5Account> {
+  async addMT5Account(
+    userId: string,
+    credentials: MT5AccountCredentials,
+  ): Promise<MT5Account> {
     try {
-      this.logger.log(`Adding MT5 account for user ${userId} on server ${credentials.server}`);
+      this.logger.log(
+        `Adding MT5 account for user ${userId} on server ${credentials.server}`,
+      );
 
       // Check if user exists
       const user = await this.userRepository.findOne({ where: { id: userId } });
@@ -146,7 +178,7 @@ export class MetaApiService {
 
       // Check if account already exists
       const existingAccount = await this.mt5AccountRepository.findOne({
-        where: { userId, login: credentials.login, server: credentials.server }
+        where: { userId, login: credentials.login, server: credentials.server },
       });
 
       if (existingAccount) {
@@ -168,20 +200,24 @@ export class MetaApiService {
         quoteConnection: false,
         reliability: 'regular' as const,
         tags: ['tradetaper', userId],
-        region: 'new-york' // Required field
+        region: 'new-york', // Required field
       };
 
-      const metaApiAccount = await this.metaApi.metatraderAccountApi.createAccount(accountData);
-      
+      const metaApiAccount =
+        await this.metaApi.metatraderAccountApi.createAccount(accountData);
+
       // Deploy the account
       await metaApiAccount.deploy();
 
       // Wait for deployment (with timeout)
       const deploymentTimeout = 300000; // 5 minutes
       const startTime = Date.now();
-      
-      while (!['DEPLOYED'].includes(metaApiAccount.state) && Date.now() - startTime < deploymentTimeout) {
-        await new Promise(resolve => setTimeout(resolve, 5000));
+
+      while (
+        !['DEPLOYED'].includes(metaApiAccount.state) &&
+        Date.now() - startTime < deploymentTimeout
+      ) {
+        await new Promise((resolve) => setTimeout(resolve, 5000));
         await metaApiAccount.reload();
       }
 
@@ -202,19 +238,21 @@ export class MetaApiService {
         isRealAccount: credentials.isRealAccount,
         isActive: true,
         userId: userId,
-        region: metaApiAccount.region || 'new-york'
+        region: metaApiAccount.region || 'new-york',
       });
 
       const savedAccount = await this.mt5AccountRepository.save(mt5Account);
-      
+
       // Start initial connection
-      this.connectAccount(savedAccount.id).catch(error => {
-        this.logger.error(`Failed to connect account ${savedAccount.id}`, error);
+      this.connectAccount(savedAccount.id).catch((error) => {
+        this.logger.error(
+          `Failed to connect account ${savedAccount.id}`,
+          error,
+        );
       });
 
       this.logger.log(`Successfully added MT5 account: ${savedAccount.id}`);
       return savedAccount;
-
     } catch (error) {
       this.logger.error('Failed to add MT5 account', error);
       if (error instanceof BadRequestException) {
@@ -229,22 +267,29 @@ export class MetaApiService {
    */
   async connectAccount(accountId: string): Promise<void> {
     try {
-      const account = await this.mt5AccountRepository.findOne({ where: { id: accountId } });
+      const account = await this.mt5AccountRepository.findOne({
+        where: { id: accountId },
+      });
       if (!account || !account.metaApiAccountId) {
         throw new BadRequestException('Account not found or not configured');
       }
 
-      const metaApiAccount = await this.metaApi.metatraderAccountApi.getAccount(account.metaApiAccountId);
-      
+      const metaApiAccount = await this.metaApi.metatraderAccountApi.getAccount(
+        account.metaApiAccountId,
+      );
+
       if (!['DEPLOYED'].includes(metaApiAccount.state)) {
         await metaApiAccount.deploy();
-        
+
         // Wait for deployment
         const deploymentTimeout = 300000; // 5 minutes
         const startTime = Date.now();
-        
-        while (!['DEPLOYED'].includes(metaApiAccount.state) && Date.now() - startTime < deploymentTimeout) {
-          await new Promise(resolve => setTimeout(resolve, 5000));
+
+        while (
+          !['DEPLOYED'].includes(metaApiAccount.state) &&
+          Date.now() - startTime < deploymentTimeout
+        ) {
+          await new Promise((resolve) => setTimeout(resolve, 5000));
           await metaApiAccount.reload();
         }
       }
@@ -254,7 +299,10 @@ export class MetaApiService {
       await connection.connect();
 
       // Wait for synchronization
-      await connection.waitSynchronized({ applicationPattern: 'TradeTaper', timeoutInSeconds: 300 });
+      await connection.waitSynchronized({
+        applicationPattern: 'TradeTaper',
+        timeoutInSeconds: 300,
+      });
 
       // Update account status
       await this.mt5AccountRepository.update(accountId, {
@@ -263,20 +311,19 @@ export class MetaApiService {
         connectionStatus: 'CONNECTED',
         lastHeartbeatAt: new Date(),
         isStreamingActive: true,
-        lastSyncAt: new Date()
+        lastSyncAt: new Date(),
       });
 
       this.logger.log(`Account ${accountId} connected and synchronized`);
-
     } catch (error) {
       this.logger.error(`Failed to connect account ${accountId}`, error);
-      
+
       await this.mt5AccountRepository.update(accountId, {
         connectionState: 'DISCONNECTED',
         connectionStatus: 'DISCONNECTED',
         lastSyncErrorAt: new Date(),
         lastSyncError: error.message,
-        isStreamingActive: false
+        isStreamingActive: false,
       });
 
       throw error;
@@ -286,14 +333,21 @@ export class MetaApiService {
   /**
    * Get historical trades with filtering options
    */
-  async getHistoricalTrades(accountId: string, filter?: HistoricalTradeFilter): Promise<MetatraderDeal[]> {
+  async getHistoricalTrades(
+    accountId: string,
+    filter?: HistoricalTradeFilter,
+  ): Promise<MetatraderDeal[]> {
     try {
-      const account = await this.mt5AccountRepository.findOne({ where: { id: accountId } });
+      const account = await this.mt5AccountRepository.findOne({
+        where: { id: accountId },
+      });
       if (!account || !account.metaApiAccountId) {
         throw new BadRequestException('Account not found');
       }
 
-      const metaApiAccount = await this.metaApi.metatraderAccountApi.getAccount(account.metaApiAccountId);
+      const metaApiAccount = await this.metaApi.metatraderAccountApi.getAccount(
+        account.metaApiAccountId,
+      );
       const connection = await metaApiAccount.getStreamingConnection();
 
       // Ensure connection is established
@@ -303,26 +357,38 @@ export class MetaApiService {
       }
 
       // Set default date range if not provided
-      const fromDate = filter?.fromDate || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000); // Last 30 days
+      const fromDate =
+        filter?.fromDate || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000); // Last 30 days
       const toDate = filter?.toDate || new Date();
 
       // Get deals from history storage
-      const deals = connection.historyStorage.getDealsByTimeRange(fromDate, toDate);
+      const deals = connection.historyStorage.getDealsByTimeRange(
+        fromDate,
+        toDate,
+      );
 
       // Filter by symbol and type if specified
       let filteredDeals = deals;
       if (filter?.symbol) {
-        filteredDeals = filteredDeals.filter(deal => deal.symbol === filter.symbol);
+        filteredDeals = filteredDeals.filter(
+          (deal) => deal.symbol === filter.symbol,
+        );
       }
       if (filter?.type) {
-        filteredDeals = filteredDeals.filter(deal => deal.type === filter.type);
+        filteredDeals = filteredDeals.filter(
+          (deal) => deal.type === filter.type,
+        );
       }
 
       return filteredDeals;
-
     } catch (error) {
-      this.logger.error(`Failed to get historical trades for account ${accountId}`, error);
-      throw new InternalServerErrorException('Failed to fetch historical trades');
+      this.logger.error(
+        `Failed to get historical trades for account ${accountId}`,
+        error,
+      );
+      throw new InternalServerErrorException(
+        'Failed to fetch historical trades',
+      );
     }
   }
 
@@ -331,12 +397,16 @@ export class MetaApiService {
    */
   async getLiveTradeData(accountId: string): Promise<LiveTradeData> {
     try {
-      const account = await this.mt5AccountRepository.findOne({ where: { id: accountId } });
+      const account = await this.mt5AccountRepository.findOne({
+        where: { id: accountId },
+      });
       if (!account || !account.metaApiAccountId) {
         throw new BadRequestException('Account not found');
       }
 
-      const metaApiAccount = await this.metaApi.metatraderAccountApi.getAccount(account.metaApiAccountId);
+      const metaApiAccount = await this.metaApi.metatraderAccountApi.getAccount(
+        account.metaApiAccountId,
+      );
       const connection = await metaApiAccount.getStreamingConnection();
 
       // Ensure connection is established
@@ -353,7 +423,10 @@ export class MetaApiService {
 
       // Get recent deals (last 24 hours)
       const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
-      const deals = connection.historyStorage.getDealsByTimeRange(yesterday, new Date());
+      const deals = connection.historyStorage.getDealsByTimeRange(
+        yesterday,
+        new Date(),
+      );
 
       // Update account info in database
       if (accountInfo) {
@@ -366,19 +439,21 @@ export class MetaApiService {
           leverage: accountInfo.leverage || 1,
           currency: accountInfo.currency || 'USD',
           lastHeartbeatAt: new Date(),
-          accountInfo: accountInfo as any
+          accountInfo: accountInfo as any,
         });
       }
 
       return {
         positions,
         orders,
-        accountInfo: accountInfo!,
-        deals
+        accountInfo: accountInfo,
+        deals,
       };
-
     } catch (error) {
-      this.logger.error(`Failed to get live trade data for account ${accountId}`, error);
+      this.logger.error(
+        `Failed to get live trade data for account ${accountId}`,
+        error,
+      );
       throw new InternalServerErrorException('Failed to fetch live trade data');
     }
   }
@@ -386,14 +461,20 @@ export class MetaApiService {
   /**
    * Start real-time streaming for an account
    */
-  async startStreaming(accountId: string): Promise<StreamingMetaApiConnectionInstance> {
+  async startStreaming(
+    accountId: string,
+  ): Promise<StreamingMetaApiConnectionInstance> {
     try {
-      const account = await this.mt5AccountRepository.findOne({ where: { id: accountId } });
+      const account = await this.mt5AccountRepository.findOne({
+        where: { id: accountId },
+      });
       if (!account || !account.metaApiAccountId) {
         throw new BadRequestException('Account not found');
       }
 
-      const metaApiAccount = await this.metaApi.metatraderAccountApi.getAccount(account.metaApiAccountId);
+      const metaApiAccount = await this.metaApi.metatraderAccountApi.getAccount(
+        account.metaApiAccountId,
+      );
       const connection = await metaApiAccount.getStreamingConnection();
 
       // Connect and start streaming (without custom listeners for now)
@@ -405,20 +486,22 @@ export class MetaApiService {
         isStreamingActive: true,
         connectionState: 'SYNCHRONIZED',
         connectionStatus: 'CONNECTED',
-        lastHeartbeatAt: new Date()
+        lastHeartbeatAt: new Date(),
       });
 
       this.logger.log(`Streaming started for account ${accountId}`);
       return connection;
-
     } catch (error) {
-      this.logger.error(`Failed to start streaming for account ${accountId}`, error);
-      
+      this.logger.error(
+        `Failed to start streaming for account ${accountId}`,
+        error,
+      );
+
       await this.mt5AccountRepository.update(accountId, {
         isStreamingActive: false,
         connectionState: 'DISCONNECTED',
         lastSyncError: error.message,
-        lastSyncErrorAt: new Date()
+        lastSyncErrorAt: new Date(),
       });
 
       throw error;
@@ -430,12 +513,16 @@ export class MetaApiService {
    */
   async stopStreaming(accountId: string): Promise<void> {
     try {
-      const account = await this.mt5AccountRepository.findOne({ where: { id: accountId } });
+      const account = await this.mt5AccountRepository.findOne({
+        where: { id: accountId },
+      });
       if (!account || !account.metaApiAccountId) {
         throw new BadRequestException('Account not found');
       }
 
-      const metaApiAccount = await this.metaApi.metatraderAccountApi.getAccount(account.metaApiAccountId);
+      const metaApiAccount = await this.metaApi.metatraderAccountApi.getAccount(
+        account.metaApiAccountId,
+      );
       const connection = await metaApiAccount.getStreamingConnection();
 
       await connection.close();
@@ -444,13 +531,15 @@ export class MetaApiService {
       await this.mt5AccountRepository.update(accountId, {
         isStreamingActive: false,
         connectionState: 'DISCONNECTED',
-        connectionStatus: 'DISCONNECTED'
+        connectionStatus: 'DISCONNECTED',
       });
 
       this.logger.log(`Streaming stopped for account ${accountId}`);
-
     } catch (error) {
-      this.logger.error(`Failed to stop streaming for account ${accountId}`, error);
+      this.logger.error(
+        `Failed to stop streaming for account ${accountId}`,
+        error,
+      );
       throw error;
     }
   }
@@ -460,10 +549,10 @@ export class MetaApiService {
    */
   async removeMT5Account(accountId: string, userId: string): Promise<void> {
     try {
-      const account = await this.mt5AccountRepository.findOne({ 
-        where: { id: accountId, userId } 
+      const account = await this.mt5AccountRepository.findOne({
+        where: { id: accountId, userId },
       });
-      
+
       if (!account) {
         throw new BadRequestException('Account not found');
       }
@@ -474,11 +563,17 @@ export class MetaApiService {
       // Remove from MetaApi if exists
       if (account.metaApiAccountId) {
         try {
-          const metaApiAccount = await this.metaApi.metatraderAccountApi.getAccount(account.metaApiAccountId);
+          const metaApiAccount =
+            await this.metaApi.metatraderAccountApi.getAccount(
+              account.metaApiAccountId,
+            );
           await metaApiAccount.undeploy();
           await metaApiAccount.remove();
         } catch (error) {
-          this.logger.warn(`Failed to remove MetaApi account ${account.metaApiAccountId}`, error);
+          this.logger.warn(
+            `Failed to remove MetaApi account ${account.metaApiAccountId}`,
+            error,
+          );
         }
       }
 
@@ -486,7 +581,6 @@ export class MetaApiService {
       await this.mt5AccountRepository.remove(account);
 
       this.logger.log(`Successfully removed MT5 account: ${accountId}`);
-
     } catch (error) {
       this.logger.error(`Failed to remove MT5 account ${accountId}`, error);
       throw error;
@@ -504,8 +598,10 @@ export class MetaApiService {
     lastHeartbeat?: Date;
     lastError?: string;
   }> {
-    const account = await this.mt5AccountRepository.findOne({ where: { id: accountId } });
-    
+    const account = await this.mt5AccountRepository.findOne({
+      where: { id: accountId },
+    });
+
     if (!account) {
       throw new BadRequestException('Account not found');
     }
@@ -516,25 +612,30 @@ export class MetaApiService {
       deploymentState: account.deploymentState,
       connectionState: account.connectionState,
       lastHeartbeat: account.lastHeartbeatAt,
-      lastError: account.lastSyncError
+      lastError: account.lastSyncError,
     };
   }
 
   /**
    * Health check for MetaApi service
    */
-  async healthCheck(): Promise<{ status: string; message: string; details?: any }> {
+  async healthCheck(): Promise<{
+    status: string;
+    message: string;
+    details?: any;
+  }> {
     try {
       // Try to get user information to test API connectivity
-      const profiles = await this.metaApi.provisioningProfileApi.getProvisioningProfilesWithInfiniteScrollPagination();
-      
+      const profiles =
+        await this.metaApi.provisioningProfileApi.getProvisioningProfilesWithInfiniteScrollPagination();
+
       return {
         status: 'ok',
         message: 'MetaApi service is healthy',
         details: {
           profileCount: profiles.length,
-          timestamp: new Date().toISOString()
-        }
+          timestamp: new Date().toISOString(),
+        },
       };
     } catch (error) {
       this.logger.error('MetaApi health check failed', error);
@@ -543,9 +644,9 @@ export class MetaApiService {
         message: 'MetaApi service is unhealthy',
         details: {
           error: error.message,
-          timestamp: new Date().toISOString()
-        }
+          timestamp: new Date().toISOString(),
+        },
       };
     }
   }
-} 
+}

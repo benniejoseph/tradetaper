@@ -144,21 +144,28 @@ export class StripeService {
     newPriceId: string,
   ): Promise<Stripe.Subscription> {
     try {
-      const subscription = await this.stripe.subscriptions.retrieve(subscriptionId);
-      const updatedSubscription = await this.stripe.subscriptions.update(subscriptionId, {
-        items: [
-          {
-            id: subscription.items.data[0].id,
-            price: newPriceId,
-          },
-        ],
-        proration_behavior: 'create_prorations',
-      });
+      const subscription =
+        await this.stripe.subscriptions.retrieve(subscriptionId);
+      const updatedSubscription = await this.stripe.subscriptions.update(
+        subscriptionId,
+        {
+          items: [
+            {
+              id: subscription.items.data[0].id,
+              price: newPriceId,
+            },
+          ],
+          proration_behavior: 'create_prorations',
+        },
+      );
 
       this.logger.log(`Updated subscription: ${subscriptionId}`);
       return updatedSubscription;
     } catch (error) {
-      this.logger.error(`Failed to update subscription ${subscriptionId}`, error);
+      this.logger.error(
+        `Failed to update subscription ${subscriptionId}`,
+        error,
+      );
       throw error;
     }
   }
@@ -172,12 +179,17 @@ export class StripeService {
       if (error.code === 'invoice_upcoming_none') {
         return null;
       }
-      this.logger.error(`Failed to get upcoming invoice for customer ${customerId}`, error);
+      this.logger.error(
+        `Failed to get upcoming invoice for customer ${customerId}`,
+        error,
+      );
       throw error;
     }
   }
 
-  async getCustomerPaymentMethods(customerId: string): Promise<Stripe.PaymentMethod[]> {
+  async getCustomerPaymentMethods(
+    customerId: string,
+  ): Promise<Stripe.PaymentMethod[]> {
     try {
       const paymentMethods = await this.stripe.paymentMethods.list({
         customer: customerId,
@@ -185,22 +197,31 @@ export class StripeService {
       });
       return paymentMethods.data;
     } catch (error) {
-      this.logger.error(`Failed to get payment methods for customer ${customerId}`, error);
+      this.logger.error(
+        `Failed to get payment methods for customer ${customerId}`,
+        error,
+      );
       throw error;
     }
   }
 
   constructEvent(payload: Buffer, signature: string): Stripe.Event {
-    const webhookSecret = this.configService.get<string>('STRIPE_WEBHOOK_SECRET');
+    const webhookSecret = this.configService.get<string>(
+      'STRIPE_WEBHOOK_SECRET',
+    );
     if (!webhookSecret) {
       throw new Error('STRIPE_WEBHOOK_SECRET environment variable is required');
     }
 
     try {
-      return this.stripe.webhooks.constructEvent(payload, signature, webhookSecret);
+      return this.stripe.webhooks.constructEvent(
+        payload,
+        signature,
+        webhookSecret,
+      );
     } catch (error) {
       this.logger.error('Failed to construct Stripe event', error);
       throw error;
     }
   }
-} 
+}

@@ -4,4 +4,4 @@ export class CreatePortalSessionDto {
   @IsUrl()
   @IsNotEmpty()
   return_url: string;
-} 
+}

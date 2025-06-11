@@ -123,4 +123,4 @@ export class MT5Account {
 
   @UpdateDateColumn()
   updatedAt: Date;
-} 
+}

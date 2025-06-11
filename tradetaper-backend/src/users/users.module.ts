@@ -23,8 +23,18 @@ import { TradesModule } from '../trades/trades.module';
     }),
     forwardRef(() => TradesModule),
   ],
-  providers: [UsersService, MT5AccountsService, MetaApiService, TradeHistoryParserService],
-  exports: [UsersService, MT5AccountsService, MetaApiService, TradeHistoryParserService],
+  providers: [
+    UsersService,
+    MT5AccountsService,
+    MetaApiService,
+    TradeHistoryParserService,
+  ],
+  exports: [
+    UsersService,
+    MT5AccountsService,
+    MetaApiService,
+    TradeHistoryParserService,
+  ],
   controllers: [MT5AccountsController],
 })
 export class UsersModule {}

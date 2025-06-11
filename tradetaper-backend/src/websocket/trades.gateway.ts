@@ -74,4 +74,4 @@ export class TradesGateway implements OnGatewayConnection, OnGatewayDisconnect {
   getConnectionCount(): number {
     return this.connectedClients.size;
   }
-} 
+}

@@ -3,7 +3,11 @@ import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { MT5Account } from './entities/mt5-account.entity';
-import { CreateMT5AccountDto, UpdateMT5AccountDto, MT5AccountResponseDto } from './dto/mt5-account.dto';
+import {
+  CreateMT5AccountDto,
+  UpdateMT5AccountDto,
+  MT5AccountResponseDto,
+} from './dto/mt5-account.dto';
 import { UserResponseDto } from './dto/user-response.dto';
 import { ConfigService } from '@nestjs/config';
 import { MetaApiService } from './metaapi.service';
@@ -22,21 +26,25 @@ export class MT5AccountsService {
     private readonly metaApiService: MetaApiService,
   ) {
     // Get encryption keys from environment variables or generate them
-    const encryptionKeyString = this.configService.get<string>('MT5_ENCRYPTION_KEY') || 
+    const encryptionKeyString =
+      this.configService.get<string>('MT5_ENCRYPTION_KEY') ||
       crypto.randomBytes(32).toString('hex');
-    const encryptionIVString = this.configService.get<string>('MT5_ENCRYPTION_IV') || 
+    const encryptionIVString =
+      this.configService.get<string>('MT5_ENCRYPTION_IV') ||
       crypto.randomBytes(16).toString('hex');
-    
+
     // Convert strings to buffers for crypto operations
     this.encryptionKey = Buffer.from(encryptionKeyString, 'hex');
     this.encryptionIV = Buffer.from(encryptionIVString, 'hex');
-    
+
     // Log if using generated keys (only in development)
-    if (!this.configService.get<string>('MT5_ENCRYPTION_KEY') && 
-        this.configService.get<string>('NODE_ENV') !== 'production') {
+    if (
+      !this.configService.get<string>('MT5_ENCRYPTION_KEY') &&
+      this.configService.get<string>('NODE_ENV') !== 'production'
+    ) {
       this.logger.warn(
         'Using generated encryption keys. Set MT5_ENCRYPTION_KEY and MT5_ENCRYPTION_IV ' +
-        'environment variables for production use.'
+          'environment variables for production use.',
       );
     }
   }
@@ -44,9 +52,9 @@ export class MT5AccountsService {
   // Encrypt sensitive data
   private encrypt(text: string): string {
     const cipher = crypto.createCipheriv(
-      'aes-256-cbc', 
-      this.encryptionKey, 
-      this.encryptionIV
+      'aes-256-cbc',
+      this.encryptionKey,
+      this.encryptionIV,
     );
     let encrypted = cipher.update(text, 'utf8', 'hex');
     encrypted += cipher.final('hex');
@@ -58,13 +66,15 @@ export class MT5AccountsService {
     try {
       // Handle null/undefined values
       if (!encryptedText || typeof encryptedText !== 'string') {
-        throw new Error('Invalid encrypted data: data is null, undefined, or not a string');
+        throw new Error(
+          'Invalid encrypted data: data is null, undefined, or not a string',
+        );
       }
-      
+
       const decipher = crypto.createDecipheriv(
-        'aes-256-cbc', 
-        this.encryptionKey, 
-        this.encryptionIV
+        'aes-256-cbc',
+        this.encryptionKey,
+        this.encryptionIV,
       );
       let decrypted = decipher.update(encryptedText, 'hex', 'utf8');
       decrypted += decipher.final('utf8');
@@ -100,7 +110,9 @@ export class MT5AccountsService {
   }
 
   async createManual(manualAccountData: any): Promise<any> {
-    this.logger.log(`Creating manual MT5 account for user ${manualAccountData.userId}`);
+    this.logger.log(
+      `Creating manual MT5 account for user ${manualAccountData.userId}`,
+    );
 
     // For manual accounts, we don't encrypt credentials since they're not used for real connections
     const mt5Account = this.mt5AccountRepository.create({
@@ -120,11 +132,11 @@ export class MT5AccountsService {
       equity: 0,
       leverage: 1,
       autoSyncEnabled: false,
-      metadata: { isManual: true }
+      metadata: { isManual: true },
     });
 
     const savedAccount = await this.mt5AccountRepository.save(mt5Account);
-    
+
     // Return simplified response for manual accounts
     return {
       id: savedAccount.id,
@@ -142,7 +154,7 @@ export class MT5AccountsService {
       leverage: savedAccount.leverage,
       createdAt: savedAccount.createdAt,
       updatedAt: savedAccount.updatedAt,
-      userId: savedAccount.userId
+      userId: savedAccount.userId,
     };
   }
 
@@ -160,7 +172,9 @@ export class MT5AccountsService {
         const responseDto = this.mapToResponseDto(account);
         validAccounts.push(responseDto);
       } catch (error) {
-        this.logger.warn(`Account ${account.id} has corrupted encryption data, marking for cleanup: ${error.message}`);
+        this.logger.warn(
+          `Account ${account.id} has corrupted encryption data, marking for cleanup: ${error.message}`,
+        );
         corruptedAccountIds.push(account.id);
       }
     }
@@ -186,56 +200,56 @@ export class MT5AccountsService {
     const account = await this.mt5AccountRepository.findOne({
       where: { id },
     });
-    
+
     if (!account) {
       throw new NotFoundException(`MT5 account with id ${id} not found`);
     }
 
     // Create updated data object
     const updatedData: Partial<MT5Account> = {};
-    
+
     // Process fields that need encryption
     if (updateMT5AccountDto.password) {
       updatedData.password = this.encrypt(updateMT5AccountDto.password);
     }
-    
+
     if (updateMT5AccountDto.login) {
       updatedData.login = this.encrypt(updateMT5AccountDto.login);
     }
-    
+
     if (updateMT5AccountDto.server) {
       updatedData.server = this.encrypt(updateMT5AccountDto.server);
     }
-    
+
     // Add non-sensitive fields
     if (updateMT5AccountDto.accountName) {
       updatedData.accountName = updateMT5AccountDto.accountName;
     }
-    
+
     if (updateMT5AccountDto.accountType !== undefined) {
       updatedData.accountType = updateMT5AccountDto.accountType;
     }
-    
+
     if (updateMT5AccountDto.currency !== undefined) {
       updatedData.currency = updateMT5AccountDto.currency;
     }
-    
+
     if (updateMT5AccountDto.isActive !== undefined) {
       updatedData.isActive = updateMT5AccountDto.isActive;
     }
 
     // Update the account
     await this.mt5AccountRepository.update(id, updatedData);
-    
+
     // Fetch the updated account
     const updatedAccount = await this.mt5AccountRepository.findOne({
       where: { id },
     });
-    
+
     if (!updatedAccount) {
       throw new NotFoundException(`MT5 account with id ${id} not found`);
     }
-    
+
     return this.mapToResponseDto(updatedAccount);
   }
 
@@ -243,24 +257,26 @@ export class MT5AccountsService {
     const account = await this.mt5AccountRepository.findOne({
       where: { id },
     });
-    
+
     if (!account) {
       throw new NotFoundException(`MT5 account with id ${id} not found`);
     }
-    
+
     // First, orphan any trades associated with this account by setting accountId to null
     // This preserves the trades while removing the MT5 account reference
     try {
       await this.mt5AccountRepository.manager.query(
         'UPDATE trades SET "accountId" = NULL WHERE "accountId" = $1',
-        [id]
+        [id],
       );
       this.logger.log(`Orphaned trades associated with MT5 account ${id}`);
     } catch (error) {
-      this.logger.warn(`Failed to orphan trades for account ${id}: ${error.message}`);
+      this.logger.warn(
+        `Failed to orphan trades for account ${id}: ${error.message}`,
+      );
       // Continue with deletion even if orphaning fails
     }
-    
+
     await this.mt5AccountRepository.delete(id);
     this.logger.log(`Successfully deleted MT5 account ${id}`);
   }
@@ -269,24 +285,28 @@ export class MT5AccountsService {
     const account = await this.mt5AccountRepository.findOne({
       where: { id },
     });
-    
+
     if (!account) {
       throw new NotFoundException(`MT5 account with id ${id} not found`);
     }
-    
+
     try {
       // For now, just update the sync timestamp
       // Later this can be connected to MetaApi for real sync
       account.lastSyncAt = new Date();
       account.connectionStatus = 'CONNECTED';
-      
+
       const updatedAccount = await this.mt5AccountRepository.save(account);
-      
-      this.logger.log(`Successfully synced MT5 account ${account.accountName} (ID: ${account.id})`);
-      
+
+      this.logger.log(
+        `Successfully synced MT5 account ${account.accountName} (ID: ${account.id})`,
+      );
+
       return this.mapToResponseDto(updatedAccount);
     } catch (error) {
-      this.logger.error(`Failed to sync MT5 account ${account.id}: ${error.message}`);
+      this.logger.error(
+        `Failed to sync MT5 account ${account.id}: ${error.message}`,
+      );
       throw new Error(`Failed to sync MT5 account: ${error.message}`);
     }
   }
@@ -316,18 +336,24 @@ export class MT5AccountsService {
       const account = await this.mt5AccountRepository.findOne({
         where: { id: accountId },
       });
-      
+
       if (!account) {
-        throw new NotFoundException(`MT5 account with id ${accountId} not found`);
+        throw new NotFoundException(
+          `MT5 account with id ${accountId} not found`,
+        );
       }
 
       // For now, return empty array
       // Later this can be connected to MetaApi for real trade import
-      this.logger.log(`Importing trades from MT5 account ${accountId} (${fromDate.toISOString()} to ${toDate.toISOString()})`);
-      
+      this.logger.log(
+        `Importing trades from MT5 account ${accountId} (${fromDate.toISOString()} to ${toDate.toISOString()})`,
+      );
+
       return [];
     } catch (error) {
-      this.logger.error(`Failed to import trades from MT5 account ${accountId}: ${error.message}`);
+      this.logger.error(
+        `Failed to import trades from MT5 account ${accountId}: ${error.message}`,
+      );
       throw error;
     }
   }
@@ -335,10 +361,11 @@ export class MT5AccountsService {
   // Helper method to map entity to response DTO (omitting sensitive fields)
   private mapToResponseDto(account: MT5Account): MT5AccountResponseDto {
     // Check if this is a manual account (stored in metadata or by connection status)
-    const isManual = account.metadata?.isManual || account.connectionStatus === 'manual';
-    
+    const isManual =
+      account.metadata?.isManual || account.connectionStatus === 'manual';
+
     const { password, login, server, ...rest } = account;
-    
+
     return {
       ...rest,
       login: isManual ? login : this.decrypt(login),
@@ -349,11 +376,15 @@ export class MT5AccountsService {
   // Clean up accounts with corrupted encryption data
   private async cleanupCorruptedAccounts(accountIds: string[]): Promise<void> {
     try {
-      this.logger.log(`Cleaning up ${accountIds.length} corrupted MT5 accounts: ${accountIds.join(', ')}`);
+      this.logger.log(
+        `Cleaning up ${accountIds.length} corrupted MT5 accounts: ${accountIds.join(', ')}`,
+      );
       await this.mt5AccountRepository.delete(accountIds);
       this.logger.log(`Successfully cleaned up corrupted MT5 accounts`);
     } catch (error) {
-      this.logger.error(`Failed to cleanup corrupted accounts: ${error.message}`);
+      this.logger.error(
+        `Failed to cleanup corrupted accounts: ${error.message}`,
+      );
     }
   }
 }

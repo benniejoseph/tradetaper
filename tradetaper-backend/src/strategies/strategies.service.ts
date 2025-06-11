@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Strategy } from './entities/strategy.entity';
@@ -12,7 +16,10 @@ export class StrategiesService {
     private strategiesRepository: Repository<Strategy>,
   ) {}
 
-  async create(createStrategyDto: CreateStrategyDto, userId: string): Promise<Strategy> {
+  async create(
+    createStrategyDto: CreateStrategyDto,
+    userId: string,
+  ): Promise<Strategy> {
     const strategy = this.strategiesRepository.create({
       ...createStrategyDto,
       userId,
@@ -39,9 +46,13 @@ export class StrategiesService {
     return strategy;
   }
 
-  async update(id: string, updateStrategyDto: UpdateStrategyDto, userId: string): Promise<Strategy> {
+  async update(
+    id: string,
+    updateStrategyDto: UpdateStrategyDto,
+    userId: string,
+  ): Promise<Strategy> {
     const strategy = await this.findOne(id, userId);
-    
+
     Object.assign(strategy, updateStrategyDto);
     return await this.strategiesRepository.save(strategy);
   }
@@ -78,7 +89,7 @@ export class StrategiesService {
 
   async getAllStrategiesWithStats(userId: string) {
     const strategies = await this.findAll(userId);
-    
+
     const strategiesWithStats = await Promise.all(
       strategies.map(async (strategy) => {
         const stats = await this.getStrategyStats(strategy.id, userId);
@@ -86,7 +97,7 @@ export class StrategiesService {
           ...strategy,
           stats,
         };
-      })
+      }),
     );
 
     return strategiesWithStats;

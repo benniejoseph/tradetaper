@@ -17,4 +17,4 @@ import { WebhooksController } from './webhooks.controller';
   providers: [SubscriptionService],
   exports: [SubscriptionService],
 })
-export class SubscriptionsModule {} 
+export class SubscriptionsModule {}
