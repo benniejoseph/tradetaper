@@ -14,12 +14,12 @@ export class TradeResponseDto {
   userId: string; // Expose userId
   assetType: AssetType;
   symbol: string;
-  direction: TradeDirection;
+  side: TradeDirection;
   status: TradeStatus;
-  entryDate: Date; // Or string if you prefer ISO strings in response
-  entryPrice: number;
-  exitDate?: Date; // Or string
-  exitPrice?: number;
+  openTime: Date; // Or string if you prefer ISO strings in response
+  openPrice: number;
+  closeTime?: Date; // Or string
+  closePrice?: number;
   quantity: number;
   commission: number;
   notes?: string;

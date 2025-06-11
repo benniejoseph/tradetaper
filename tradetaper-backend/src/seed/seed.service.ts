@@ -39,7 +39,16 @@ export class SeedService implements OnApplicationBootstrap {
   ) {}
 
   async onApplicationBootstrap() {
-    if (this.configService.get<string>('NODE_ENV') !== 'development') {
+    const nodeEnv = this.configService.get<string>('NODE_ENV');
+    const forceSeed = this.configService.get<string>('FORCE_SEED');
+    
+    // Only seed in development OR when explicitly forced
+    if (nodeEnv === 'production' && forceSeed !== 'true') {
+      this.logger.log('Skipping seed data in production environment. Use FORCE_SEED=true to override.');
+      return;
+    }
+    
+    if (nodeEnv !== 'development' && forceSeed !== 'true') {
       this.logger.log('Skipping seed data in non-development environment.');
       return;
     }
@@ -177,15 +186,15 @@ export class SeedService implements OnApplicationBootstrap {
   private calculateTradeMetrics(trade: Trade) {
     if (
       trade.status === TradeStatus.CLOSED &&
-      trade.entryPrice != null &&
-      trade.exitPrice != null &&
+      trade.openPrice != null &&
+      trade.closePrice != null &&
       trade.quantity != null
     ) {
       let pnl = 0;
-      if (trade.direction === TradeDirection.LONG) {
-        pnl = (trade.exitPrice - trade.entryPrice) * trade.quantity;
-      } else if (trade.direction === TradeDirection.SHORT) {
-        pnl = (trade.entryPrice - trade.exitPrice) * trade.quantity;
+      if (trade.side === TradeDirection.LONG) {
+        pnl = (trade.closePrice - trade.openPrice) * trade.quantity;
+      } else if (trade.side === TradeDirection.SHORT) {
+        pnl = (trade.openPrice - trade.closePrice) * trade.quantity;
       }
       trade.profitOrLoss = parseFloat(
         (pnl - (trade.commission || 0)).toFixed(4),
@@ -194,7 +203,7 @@ export class SeedService implements OnApplicationBootstrap {
       // Calculate R-Multiple for closed trades
       if (trade.stopLoss != null) {
         const riskAmount =
-          Math.abs(trade.entryPrice - trade.stopLoss) * trade.quantity;
+          Math.abs(trade.openPrice - trade.stopLoss) * trade.quantity;
         if (riskAmount > 0) {
           trade.rMultiple = parseFloat(
             (trade.profitOrLoss / riskAmount).toFixed(2),
@@ -261,19 +270,19 @@ export class SeedService implements OnApplicationBootstrap {
       // Vary the entry dates (spread over different time periods)
       const daysBack =
         baseDaysBack + Math.floor(i * 2.5) + Math.floor(Math.random() * 5);
-      const entryDate = subDays(new Date(), daysBack);
+      const openTime = subDays(new Date(), daysBack);
 
       // Calculate realistic prices with some variation
       const priceVariation = (Math.random() - 0.5) * 0.02; // ±2% variation
-      const entryPrice = pair.basePrice * (1 + priceVariation);
+      const openPrice = pair.basePrice * (1 + priceVariation);
 
       // Calculate exit price for closed trades (with realistic win/loss ratio)
-      let exitPrice: number | undefined;
-      let exitDate: Date | undefined;
+      let closePrice: number | undefined;
+      let closeTime: Date | undefined;
       let profitFactor = 1;
 
       if (status === TradeStatus.CLOSED) {
-        exitDate = addDays(entryDate, Math.floor(Math.random() * 5) + 1); // Hold for 1-5 days
+        closeTime = addDays(openTime, Math.floor(Math.random() * 5) + 1); // Hold for 1-5 days
 
         // Create realistic win/loss distribution (65% winners for user1, 58% for user2)
         const winRate = userNumber === 1 ? 0.65 : 0.58;
@@ -283,12 +292,12 @@ export class SeedService implements OnApplicationBootstrap {
           // Winning trade: 20-80 pip moves
           const pipMove = (20 + Math.random() * 60) * pair.pipValue;
           profitFactor = direction === TradeDirection.LONG ? 1 : -1;
-          exitPrice = entryPrice + pipMove * profitFactor;
+          closePrice = openPrice + pipMove * profitFactor;
         } else {
           // Losing trade: 10-40 pip moves against
           const pipMove = (10 + Math.random() * 30) * pair.pipValue;
           profitFactor = direction === TradeDirection.LONG ? -1 : 1;
-          exitPrice = entryPrice + pipMove * profitFactor;
+          closePrice = openPrice + pipMove * profitFactor;
         }
       }
 
@@ -298,13 +307,13 @@ export class SeedService implements OnApplicationBootstrap {
 
       const stopLoss =
         direction === TradeDirection.LONG
-          ? entryPrice - stopLossPips
-          : entryPrice + stopLossPips;
+          ? openPrice - stopLossPips
+          : openPrice + stopLossPips;
 
       const takeProfit =
         direction === TradeDirection.LONG
-          ? entryPrice + takeProfitPips
-          : entryPrice - takeProfitPips;
+          ? openPrice + takeProfitPips
+          : openPrice - takeProfitPips;
 
       // Vary position sizes
       const sizeVariation = 0.5 + Math.random(); // 0.5x to 1.5x base size
@@ -326,15 +335,15 @@ export class SeedService implements OnApplicationBootstrap {
         accountId,
         assetType: AssetType.FOREX,
         symbol: pair.symbol,
-        direction,
+        side: direction,
         status,
-        entryDate,
-        entryPrice: parseFloat(
-          entryPrice.toFixed(pair.symbol.includes('JPY') ? 3 : 5),
+        openTime,
+        openPrice: parseFloat(
+          openPrice.toFixed(pair.symbol.includes('JPY') ? 3 : 5),
         ),
-        exitDate,
-        exitPrice: exitPrice
-          ? parseFloat(exitPrice.toFixed(pair.symbol.includes('JPY') ? 3 : 5))
+        closeTime,
+        closePrice: closePrice
+          ? parseFloat(closePrice.toFixed(pair.symbol.includes('JPY') ? 3 : 5))
           : undefined,
         quantity,
         commission: parseFloat(commission.toFixed(2)),

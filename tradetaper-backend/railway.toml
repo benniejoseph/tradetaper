@@ -2,7 +2,7 @@
   builder = "NIXPACKS"
 
 [deploy]
-  startCommand = "npm run start:prod"
+  startCommand = "./start-production.sh"
   healthcheckPath = "/api/v1/health"
   healthcheckTimeout = 300
   restartPolicyType = "ON_FAILURE"
@@ -10,4 +10,6 @@
 
 [variables]
   NODE_ENV = "production"
-  PORT = "3000" 
+  PORT = "3000"
+  RUN_MIGRATIONS = "true"
+  FRONTEND_URL = "https://tradetaper-frontend-benniejosephs-projects.vercel.app" 

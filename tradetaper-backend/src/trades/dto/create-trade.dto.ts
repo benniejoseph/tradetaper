@@ -35,7 +35,7 @@ export class CreateTradeDto {
 
   @IsNotEmpty()
   @IsEnum(TradeDirection)
-  direction: TradeDirection;
+  side: TradeDirection;
 
   @IsOptional()
   @IsEnum(TradeStatus)
@@ -43,21 +43,21 @@ export class CreateTradeDto {
 
   @IsNotEmpty()
   @IsDateString() // Expect ISO8601 date string from client
-  entryDate: string; // Will be converted to Date by TypeORM or service
+  openTime: string; // Will be converted to Date by TypeORM or service
 
   @IsNotEmpty()
   @IsNumber({ maxDecimalPlaces: 8 })
   @Min(0)
-  entryPrice: number;
+  openPrice: number;
 
   @IsOptional()
   @IsDateString()
-  exitDate?: string;
+  closeTime?: string;
 
   @IsOptional()
   @IsNumber({ maxDecimalPlaces: 8 })
   @Min(0)
-  exitPrice?: number;
+  closePrice?: number;
 
   @IsNotEmpty()
   @IsNumber({ maxDecimalPlaces: 8 })

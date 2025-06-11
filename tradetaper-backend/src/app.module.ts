@@ -16,7 +16,9 @@ import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 import { ContentModule } from './content/content.module';
 import { AdminModule } from './admin/admin.module';
 import { StrategiesModule } from './strategies/strategies.module';
+import { CommonModule } from './common/common.module';
 import { Subscription } from './subscriptions/entities/subscription.entity';
+import { Usage } from './subscriptions/entities/usage.entity';
 import { User } from './users/entities/user.entity';
 import { Trade } from './trades/entities/trade.entity';
 import { Tag } from './tags/entities/tag.entity';
@@ -44,13 +46,13 @@ import { Strategy } from './strategies/entities/strategy.entity';
           return {
             type: 'postgres',
             url: databaseUrl,
-            entities: [User, Trade, Tag, MT5Account, Subscription, Strategy],
+            entities: [User, Trade, Tag, MT5Account, Subscription, Usage, Strategy],
             synchronize: false, // Never auto-sync in production!
             ssl: {
               rejectUnauthorized: false, // Required for Railway and some other providers
             },
             migrations: [__dirname + '/migrations/**/*{.ts,.js}'],
-            migrationsRun: true,
+            migrationsRun: configService.get<string>('RUN_MIGRATIONS') === 'true',
           };
         }
 
@@ -59,7 +61,7 @@ import { Strategy } from './strategies/entities/strategy.entity';
           return {
             type: 'postgres',
             url: databaseUrl,
-            entities: [User, Trade, Tag, MT5Account, Subscription, Strategy],
+            entities: [User, Trade, Tag, MT5Account, Subscription, Usage, Strategy],
             synchronize: configService.get<string>('NODE_ENV') !== 'production',
             migrations: [__dirname + '/migrations/**/*{.ts,.js}'],
             migrationsRun: false, // Manual migration control in development
@@ -97,6 +99,7 @@ import { Strategy } from './strategies/entities/strategy.entity';
     ContentModule,
     AdminModule,
     StrategiesModule,
+    CommonModule,
     TypeOrmModule.forFeature([Subscription]),
     // ... other modules will go here
   ],

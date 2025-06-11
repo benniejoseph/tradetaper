@@ -5,6 +5,7 @@ import { Subscription } from './entities/subscription.entity';
 import { Usage } from './entities/usage.entity';
 import { User } from '../users/entities/user.entity';
 import { SubscriptionService } from './services/subscription.service';
+import { StripeValidationService } from './services/stripe-validation.service';
 import { SubscriptionsController } from './subscriptions.controller';
 import { WebhooksController } from './webhooks.controller';
 
@@ -14,7 +15,7 @@ import { WebhooksController } from './webhooks.controller';
     TypeOrmModule.forFeature([Subscription, Usage, User]),
   ],
   controllers: [SubscriptionsController, WebhooksController],
-  providers: [SubscriptionService],
-  exports: [SubscriptionService],
+  providers: [SubscriptionService, StripeValidationService],
+  exports: [SubscriptionService, StripeValidationService],
 })
 export class SubscriptionsModule {}
