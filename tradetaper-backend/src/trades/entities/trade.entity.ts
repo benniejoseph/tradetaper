@@ -1,8 +1,14 @@
 // src/trades/entities/trade.entity.ts
-import { User } from '../../users/entities/user.entity'; // Adjust path
+import { User } from '../../users/entities/user.entity';
 import { Type } from 'class-transformer';
 import { Tag } from '../../tags/entities/tag.entity';
-// Forward reference for Strategy to avoid circular imports
+import {
+  AssetType,
+  TradeDirection,
+  TradeStatus,
+  ICTConcept,
+  TradingSession,
+} from '../../types/enums';
 
 import {
   Entity,
@@ -14,54 +20,8 @@ import {
   JoinColumn,
   Index,
   ManyToMany,
-  JoinTable, // Import ManyToMany, JoinTable
+  JoinTable,
 } from 'typeorm';
-
-export enum AssetType {
-  STOCK = 'Stock',
-  CRYPTO = 'Crypto',
-  FOREX = 'Forex',
-  FUTURES = 'Futures',
-  OPTIONS = 'Options',
-}
-
-export enum TradeDirection {
-  LONG = 'Long',
-  SHORT = 'Short',
-}
-
-export enum TradeStatus {
-  OPEN = 'Open',
-  CLOSED = 'Closed',
-  PENDING = 'Pending', // For planned trades
-  CANCELLED = 'Cancelled', // ADDED from frontend type
-}
-
-// ADDED ICTConcept Enum
-export enum ICTConcept {
-  FVG = 'Fair Value Gap',
-  ORDER_BLOCK = 'Order Block',
-  BREAKER_BLOCK = 'Breaker Block',
-  MITIGATION_BLOCK = 'Mitigation Block',
-  LIQUIDITY_GRAB = 'Liquidity Grab (BSL/SSL)',
-  LIQUIDITY_VOID = 'Liquidity Void',
-  SILVER_BULLET = 'Silver Bullet',
-  JUDAS_SWING = 'Judas Swing',
-  SMT_DIVERGENCE = 'SMT Divergence',
-  POWER_OF_THREE = 'Power of Three (AMD)',
-  OPTIMAL_TRADE_ENTRY = 'Optimal Trade Entry (OTE)',
-  MARKET_STRUCTURE_SHIFT = 'Market Structure Shift (MSS)',
-  OTHER = 'Other',
-}
-
-// ADDED TradingSession Enum
-export enum TradingSession {
-  LONDON = 'London',
-  NEW_YORK = 'New York',
-  ASIA = 'Asia',
-  LONDON_NY_OVERLAP = 'London-NY Overlap',
-  OTHER = 'Other',
-}
 
 @Entity('trades')
 @Index(['user', 'openTime']) // Example index for querying user's trades by date

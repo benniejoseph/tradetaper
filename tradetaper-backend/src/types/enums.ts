@@ -1,19 +1,44 @@
+// Trading enums - centralized definitions
+export enum AssetType {
+  STOCK = 'Stock',
+  CRYPTO = 'Crypto',
+  FOREX = 'Forex',
+  FUTURES = 'Futures',
+  OPTIONS = 'Options',
+}
+
+export enum TradeDirection {
+  LONG = 'Long',
+  SHORT = 'Short',
+}
+
+export enum TradeStatus {
+  OPEN = 'Open',
+  CLOSED = 'Closed',
+  PENDING = 'Pending',
+  CANCELLED = 'Cancelled',
+}
+
 export enum TradingSession {
-  LONDON = 'london',
-  NEW_YORK = 'newyork',
-  ASIA = 'asia',
-  SYDNEY = 'sydney',
+  LONDON = 'London',
+  NEW_YORK = 'New York',
+  ASIA = 'Asia',
+  LONDON_NY_OVERLAP = 'London-NY Overlap',
+  OTHER = 'Other',
 }
 
 export enum ICTConcept {
-  FVG = 'FVG',
-  BREAKER = 'Breaker',
+  FVG = 'Fair Value Gap',
   ORDER_BLOCK = 'Order Block',
-  LIQUIDITY_GRAB = 'Liquidity Grab',
-  DISPLACEMENT = 'Displacement',
-  PREMIUM_DISCOUNT = 'Premium/Discount',
-  SUPPLY_DEMAND = 'Supply/Demand',
-  SMART_MONEY = 'Smart Money',
-  FRACTAL = 'Fractal',
-  MITIGATION = 'Mitigation',
+  BREAKER_BLOCK = 'Breaker Block',
+  MITIGATION_BLOCK = 'Mitigation Block',
+  LIQUIDITY_GRAB = 'Liquidity Grab (BSL/SSL)',
+  LIQUIDITY_VOID = 'Liquidity Void',
+  SILVER_BULLET = 'Silver Bullet',
+  JUDAS_SWING = 'Judas Swing',
+  SMT_DIVERGENCE = 'SMT Divergence',
+  POWER_OF_THREE = 'Power of Three (AMD)',
+  OPTIMAL_TRADE_ENTRY = 'Optimal Trade Entry (OTE)',
+  MARKET_STRUCTURE_SHIFT = 'Market Structure Shift (MSS)',
+  OTHER = 'Other',
 }

@@ -1,7 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Trade, TradeStatus } from './entities/trade.entity';
+import { Trade } from './entities/trade.entity';
+import { TradeStatus } from '../types/enums';
 import { UserResponseDto } from '../users/dto/user-response.dto';
 
 export interface PerformanceMetrics {

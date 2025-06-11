@@ -21,7 +21,7 @@ import {
   TradeStatus,
   ICTConcept,
   TradingSession,
-} from '../entities/trade.entity';
+} from '../../types/enums';
 
 export class CreateTradeDto {
   @IsNotEmpty()

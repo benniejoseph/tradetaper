@@ -5,14 +5,14 @@ import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from '../users/entities/user.entity';
+import { Trade } from '../trades/entities/trade.entity';
 import {
-  Trade,
   AssetType,
   TradeDirection,
   TradeStatus,
   ICTConcept,
   TradingSession,
-} from '../trades/entities/trade.entity';
+} from '../types/enums';
 import { UsersService } from '../users/users.service';
 import { ConfigService } from '@nestjs/config';
 import { addDays, subDays, format } from 'date-fns';

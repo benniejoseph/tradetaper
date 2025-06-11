@@ -8,20 +8,20 @@ import { ExportService } from './export.service';
 import { PerformanceService } from './performance.service';
 import { AdvancedAnalyticsService } from './advanced-analytics.service';
 import { TradesController } from './trades.controller';
-import { TradesGateway } from '../websocket/trades.gateway';
 import { UsersModule } from '../users/users.module';
+import { WebSocketGatewayModule } from '../websocket/websocket.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Trade, Tag]), // Add Tag here
+    TypeOrmModule.forFeature([Trade, Tag]),
     forwardRef(() => UsersModule),
+    forwardRef(() => WebSocketGatewayModule),
   ],
   providers: [
     TradesService,
     ExportService,
     PerformanceService,
     AdvancedAnalyticsService,
-    TradesGateway,
   ],
   controllers: [TradesController],
   exports: [
@@ -29,7 +29,6 @@ import { UsersModule } from '../users/users.module';
     ExportService,
     PerformanceService,
     AdvancedAnalyticsService,
-    TradesGateway,
   ],
 })
 export class TradesModule {}

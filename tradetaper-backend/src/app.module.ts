@@ -47,7 +47,7 @@ import { Strategy } from './strategies/entities/strategy.entity';
             type: 'postgres',
             url: databaseUrl,
             entities: [User, Trade, Tag, MT5Account, Subscription, Usage, Strategy],
-            synchronize: false, // Never auto-sync in production!
+            synchronize: true, // TEMPORARY: Force schema sync // Never auto-sync in production!
             ssl: {
               rejectUnauthorized: false, // Required for Railway and some other providers
             },
