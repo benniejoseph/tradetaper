@@ -76,7 +76,7 @@ import { Strategy } from './strategies/entities/strategy.entity';
           username: configService.get<string>('DB_USERNAME', 'postgres'),
           password: configService.get<string>('DB_PASSWORD', 'postgres'),
           database: configService.get<string>('DB_DATABASE', 'tradetaper_dev'),
-          entities: [User, Trade, Tag, MT5Account, Subscription, Strategy],
+          entities: [User, Trade, Tag, MT5Account, Subscription, Usage, Strategy],
           synchronize: configService.get<string>('NODE_ENV') !== 'production',
           migrations: [__dirname + '/migrations/**/*{.ts,.js}'],
           migrationsRun: false, // Manual migration control in development
