@@ -78,5 +78,9 @@ async function bootstrap() {
   console.log(`Tradetaper Backend is running on: ${await app.getUrl()}`);
   console.log(`Current NODE_ENV: ${configService.get<string>('NODE_ENV')}`);
   console.log(`Port: ${port}`);
+  console.log(`Health check available at: /api/v1/health`);
+  console.log(`Ping endpoint available at: /api/v1/ping`);
+  console.log(`Database URL configured: ${configService.get<string>('DATABASE_URL') ? 'Yes' : 'No'}`);
+  console.log(`JWT Secret configured: ${configService.get<string>('JWT_SECRET') ? 'Yes' : 'No'}`);
 }
 void bootstrap();
