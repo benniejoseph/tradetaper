@@ -13,6 +13,7 @@ import { UserResponseDto } from '../../users/dto/user-response.dto';
 export interface JwtPayload {
   sub: string;
   email: string;
+  role?: string;
 }
 
 function getJwtSecret(configService: ConfigService): string {
@@ -49,6 +50,20 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     this.logger.debug(
       `Validating JWT for user ID: ${payload.sub} and email: ${payload.email}`,
     );
+
+    // Handle admin users
+    if (payload.role === 'admin' && payload.sub === 'admin-user-id') {
+      return {
+        id: 'admin-user-id',
+        email: payload.email,
+        firstName: 'Admin',
+        lastName: 'User',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+    }
+
+    // Handle regular users
     const user = await this.usersService.findOneById(payload.sub);
     if (!user) {
       this.logger.warn(
