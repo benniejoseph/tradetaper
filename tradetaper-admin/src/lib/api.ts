@@ -13,13 +13,67 @@ const api = axios.create({
 
 // Add request interceptor to include auth token
 api.interceptors.request.use((config) => {
-  // TODO: Get token from localStorage or cookies
-  // const token = localStorage.getItem('token');
-  // if (token) {
-  //   config.headers.Authorization = `Bearer ${token}`;
-  // }
+  // Get token from localStorage
+  if (typeof window !== 'undefined') {
+    const token = localStorage.getItem('admin_token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+  }
   return config;
 });
+
+// Add response interceptor to handle auth errors
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      // Token expired or invalid, clear auth data
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('admin_token');
+        localStorage.removeItem('admin_authenticated');
+        localStorage.removeItem('admin_user');
+        // Redirect to login if not already there
+        if (window.location.pathname !== '/login') {
+          window.location.href = '/login';
+        }
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
+// Admin login function
+export const adminLogin = async (email: string, password: string) => {
+  try {
+    const response = await api.post('/auth/admin/login', { email, password });
+    const { accessToken, user } = response.data;
+    
+    // Store token and user data
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('admin_token', accessToken);
+      localStorage.setItem('admin_authenticated', 'true');
+      localStorage.setItem('admin_user', JSON.stringify({
+        ...user,
+        loginTime: new Date().toISOString(),
+      }));
+    }
+    
+    return { accessToken, user };
+  } catch (error) {
+    console.error('Admin login error:', error);
+    throw error;
+  }
+};
+
+// Admin logout function
+export const adminLogout = () => {
+  if (typeof window !== 'undefined') {
+    localStorage.removeItem('admin_token');
+    localStorage.removeItem('admin_authenticated');
+    localStorage.removeItem('admin_user');
+  }
+};
 
 // Types
 export interface User {

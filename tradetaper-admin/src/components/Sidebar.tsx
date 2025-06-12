@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import toast from 'react-hot-toast';
+import { adminLogout } from '@/lib/api';
 
 interface SidebarProps {
   isCollapsed: boolean;
@@ -65,9 +66,8 @@ export default function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
   const router = useRouter();
 
   const handleLogout = () => {
-    // Clear authentication data
-    localStorage.removeItem('admin_authenticated');
-    localStorage.removeItem('admin_user');
+    // Clear authentication data using the proper logout function
+    adminLogout();
     
     // Show success message
     toast.success('Logged out successfully');
