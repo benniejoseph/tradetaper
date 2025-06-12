@@ -41,7 +41,7 @@ export default function Dashboard() {
   // Fetch real data from API
   const { data: analytics, isLoading: analyticsLoading, error: analyticsError } = useQuery({
     queryKey: ['dashboard-stats'],
-    queryFn: adminApi.getDashboardStats,
+    queryFn: () => adminApi.getDashboardStats(),
     refetchInterval: 30000, // Refetch every 30 seconds
   });
 
@@ -59,7 +59,7 @@ export default function Dashboard() {
 
   const { data: systemHealth, isLoading: systemHealthLoading, error: systemHealthError } = useQuery({
     queryKey: ['system-health'],
-    queryFn: adminApi.getSystemHealth,
+    queryFn: () => adminApi.getSystemHealth(),
     refetchInterval: 10000, // Refetch every 10 seconds
   });
 
