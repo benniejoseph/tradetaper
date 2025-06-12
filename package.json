@@ -12,5 +12,8 @@
     "dev": "./start-dev.sh",
     "build": "npm run build --workspaces",
     "start": "npm run start --workspaces"
+  },
+  "dependencies": {
+    "psql": "^0.0.1"
   }
 }
