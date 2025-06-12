@@ -15,15 +15,93 @@ export interface RevenueStatItem {
   revenue: number;
 }
 
+export interface LogEntry {
+  id: string;
+  level: 'error' | 'warn' | 'info' | 'debug';
+  message: string;
+  context?: string;
+  details?: Record<string, any>;
+  timestamp: string;
+  userId?: string;
+  endpoint?: string;
+  method?: string;
+}
+
+export interface SystemDiagnostics {
+  database: {
+    status: string;
+    connectionCount: number;
+    queryTime: number;
+  };
+  memory: {
+    used: number;
+    total: number;
+    percentage: number;
+  };
+  cpu: {
+    usage: number;
+    loadAverage: number[];
+  };
+  disk: {
+    used: number;
+    total: number;
+    percentage: number;
+  };
+  network: {
+    inbound: number;
+    outbound: number;
+  };
+}
+
 @Injectable()
 export class AdminService {
+  private logs: LogEntry[] = [];
+  private debugSessions: any[] = [];
+
   constructor(
     @InjectRepository(User)
     private usersRepository: Repository<User>,
     @InjectRepository(Trade)
     private tradesRepository: Repository<Trade>,
     private dataSource: DataSource,
-  ) {}
+  ) {
+    // Initialize with some sample logs
+    this.initializeSampleLogs();
+  }
+
+  private initializeSampleLogs() {
+    const sampleLogs: LogEntry[] = [
+      {
+        id: '1',
+        level: 'info',
+        message: 'System initialized successfully',
+        context: 'Application',
+        timestamp: new Date().toISOString(),
+      },
+      {
+        id: '2',
+        level: 'debug',
+        message: 'Database connection established',
+        context: 'Database',
+        timestamp: new Date(Date.now() - 60000).toISOString(),
+      },
+      {
+        id: '3',
+        level: 'warn',
+        message: 'High memory usage detected: 85%',
+        context: 'System',
+        timestamp: new Date(Date.now() - 120000).toISOString(),
+      },
+      {
+        id: '4',
+        level: 'error',
+        message: 'Failed to connect to external API',
+        context: 'ExternalAPI',
+        timestamp: new Date(Date.now() - 180000).toISOString(),
+      },
+    ];
+    this.logs = sampleLogs;
+  }
 
   async getDashboardStats() {
     const [totalUsers, totalTrades] = await Promise.all([
@@ -408,6 +486,223 @@ export class AdminService {
       page,
       limit,
       totalPages: Math.ceil(total / limit),
+    };
+  }
+
+  // --- New Enhanced Admin Methods ---
+
+  async getLogs(
+    limit: number = 100,
+    offset: number = 0,
+    level?: string,
+    startDate?: string,
+    endDate?: string,
+  ) {
+    let filteredLogs = [...this.logs];
+
+    // Filter by level
+    if (level && level !== 'all') {
+      filteredLogs = filteredLogs.filter(log => log.level === level);
+    }
+
+    // Filter by date range
+    if (startDate) {
+      const start = new Date(startDate);
+      filteredLogs = filteredLogs.filter(log => new Date(log.timestamp) >= start);
+    }
+
+    if (endDate) {
+      const end = new Date(endDate);
+      filteredLogs = filteredLogs.filter(log => new Date(log.timestamp) <= end);
+    }
+
+    // Sort by timestamp (newest first)
+    filteredLogs.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+    // Paginate
+    const paginatedLogs = filteredLogs.slice(offset, offset + limit);
+
+    return {
+      data: paginatedLogs,
+      total: filteredLogs.length,
+      limit,
+      offset,
+    };
+  }
+
+  async getLogsStream() {
+    // This would implement Server-Sent Events for real-time logs
+    // For now, return the latest logs
+    return {
+      message: 'Real-time log streaming would be implemented here',
+      latestLogs: this.logs.slice(-10),
+    };
+  }
+
+  async testEndpoint(testData: {
+    endpoint: string;
+    method: string;
+    headers?: Record<string, string>;
+    body?: any;
+    queryParams?: Record<string, string>;
+  }) {
+    // This would make internal API calls to test endpoints
+    // For now, return a mock response
+    return {
+      success: true,
+      message: 'Endpoint test functionality would be implemented here',
+      testData,
+      mockResponse: {
+        status: 200,
+        data: { message: 'Test successful' },
+        duration: Math.floor(Math.random() * 500) + 50,
+      },
+    };
+  }
+
+  async getSystemDiagnostics(): Promise<SystemDiagnostics> {
+    // Mock system diagnostics (would integrate with actual system monitoring)
+    return {
+      database: {
+        status: 'connected',
+        connectionCount: 12,
+        queryTime: 45,
+      },
+      memory: {
+        used: 2048,
+        total: 4096,
+        percentage: 50,
+      },
+      cpu: {
+        usage: 23,
+        loadAverage: [0.5, 0.7, 0.8],
+      },
+      disk: {
+        used: 15360,
+        total: 51200,
+        percentage: 30,
+      },
+      network: {
+        inbound: 1024,
+        outbound: 2048,
+      },
+    };
+  }
+
+  async clearCache(keys?: string[]) {
+    // This would clear application cache
+    return {
+      success: true,
+      message: keys ? `Cleared cache for keys: ${keys.join(', ')}` : 'Cleared all cache',
+      clearedKeys: keys || ['all'],
+      timestamp: new Date().toISOString(),
+    };
+  }
+
+  async getPerformanceMetrics(timeRange: string) {
+    // Mock performance metrics
+    const hours = timeRange === '1h' ? 1 : timeRange === '24h' ? 24 : 1;
+    const dataPoints = Math.min(hours * 6, 144); // 6 points per hour, max 144
+
+    const data = Array.from({ length: dataPoints }, (_, i) => {
+      const timestamp = new Date(Date.now() - (dataPoints - i - 1) * 10 * 60 * 1000);
+      return {
+        timestamp: timestamp.toISOString(),
+        responseTime: Math.floor(Math.random() * 200) + 50,
+        throughput: Math.floor(Math.random() * 1000) + 500,
+        errorRate: Math.random() * 5,
+        cpuUsage: Math.random() * 80 + 10,
+        memoryUsage: Math.random() * 70 + 20,
+      };
+    });
+
+    return { data };
+  }
+
+  async getErrorAnalytics(timeRange: string) {
+    // Mock error analytics
+    return {
+      totalErrors: 45,
+      errorsByType: [
+        { type: '500 Internal Server Error', count: 20 },
+        { type: '404 Not Found', count: 15 },
+        { type: '401 Unauthorized', count: 7 },
+        { type: '400 Bad Request', count: 3 },
+      ],
+      errorsByEndpoint: [
+        { endpoint: '/api/v1/trades', count: 12 },
+        { endpoint: '/api/v1/users/profile', count: 8 },
+        { endpoint: '/api/v1/auth/login', count: 6 },
+      ],
+      timeRange,
+    };
+  }
+
+  async createDebugSession(sessionData: { description: string; userId?: string }) {
+    const session = {
+      id: Date.now().toString(),
+      description: sessionData.description,
+      userId: sessionData.userId,
+      createdAt: new Date().toISOString(),
+      status: 'active',
+      logs: [],
+    };
+
+    this.debugSessions.push(session);
+    return session;
+  }
+
+  async getDebugSessions() {
+    return {
+      data: this.debugSessions,
+      total: this.debugSessions.length,
+    };
+  }
+
+  async getApiUsageStats(timeRange: string) {
+    // Mock API usage statistics
+    return {
+      totalRequests: 125430,
+      requestsByEndpoint: [
+        { endpoint: '/api/v1/trades', count: 45230, avgResponseTime: 120 },
+        { endpoint: '/api/v1/users', count: 32100, avgResponseTime: 85 },
+        { endpoint: '/api/v1/auth/login', count: 28900, avgResponseTime: 95 },
+        { endpoint: '/api/v1/market-data', count: 19200, avgResponseTime: 200 },
+      ],
+      requestsByMethod: [
+        { method: 'GET', count: 89340, percentage: 71.2 },
+        { method: 'POST', count: 25670, percentage: 20.5 },
+        { method: 'PUT', count: 7890, percentage: 6.3 },
+        { method: 'DELETE', count: 2530, percentage: 2.0 },
+      ],
+      timeRange,
+    };
+  }
+
+  async backupDatabase() {
+    // Mock database backup
+    return {
+      success: true,
+      message: 'Database backup initiated',
+      backupId: `backup_${Date.now()}`,
+      estimatedDuration: '5-10 minutes',
+      timestamp: new Date().toISOString(),
+    };
+  }
+
+  async getBackupStatus() {
+    // Mock backup status
+    return {
+      lastBackup: {
+        id: `backup_${Date.now() - 86400000}`,
+        timestamp: new Date(Date.now() - 86400000).toISOString(),
+        status: 'completed',
+        size: '2.5 GB',
+        duration: '8 minutes',
+      },
+      nextScheduledBackup: new Date(Date.now() + 86400000).toISOString(),
+      backupRetentionDays: 30,
+      totalBackups: 15,
     };
   }
 }
