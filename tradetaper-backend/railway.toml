@@ -1,11 +1,10 @@
 [build]
-  builder = "nixpacks"
-  buildCommand = "npm run build"
+  builder = "dockerfile"
 
 [deploy]
-  startCommand = "npm run start:prod"
-  healthcheckPath = "/api/v1/health"
-  healthcheckTimeout = 300
+  startCommand = "node dist/main"
+  healthcheckPath = "/api/v1/ping"
+  healthcheckTimeout = 120
   restartPolicyType = "always"
   restartPolicyMaxRetries = 10
 

@@ -98,11 +98,13 @@ export class AppController {
 
   // Additional simple health check endpoint
   @Get('ping')
-  ping(): { message: string; timestamp: string } {
-    console.log('Ping endpoint called');
+  ping(): { message: string; timestamp: string; status: string; uptime: number } {
+    console.log('Ping endpoint called at:', new Date().toISOString());
     return {
       message: 'pong',
       timestamp: new Date().toISOString(),
+      status: 'ok',
+      uptime: Math.floor(process.uptime()),
     };
   }
 
