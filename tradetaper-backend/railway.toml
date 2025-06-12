@@ -4,7 +4,7 @@
 
 [deploy]
   startCommand = "echo 'Starting TradeTaper Backend...' && node dist/main"
-  healthcheckPath = "/api/v1/ping"
+  healthcheckPath = "/api/v1/health"
   healthcheckTimeout = 300
   healthcheckInterval = 30
   restartPolicyType = "always"
