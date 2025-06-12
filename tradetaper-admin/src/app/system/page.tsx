@@ -35,8 +35,7 @@ export default function SystemPage() {
     data: dbTables = [],
     isLoading: dbTablesLoading,
     error: dbTablesError,
-    refetch: refetchTables,
-  } = useQuery({
+  } = useQuery<string[]>({
     queryKey: ['db-tables'],
     queryFn: adminApi.getDatabaseTables,
   });
@@ -46,7 +45,7 @@ export default function SystemPage() {
     isLoading: dbColumnsLoading,
     error: dbColumnsError,
     refetch: refetchColumns,
-  } = useQuery({
+  } = useQuery<Array<{ column_name: string; data_type: string; is_nullable: string; column_default: string | null }>>({
     queryKey: ['db-columns', selectedTable],
     queryFn: () => selectedTable ? adminApi.getDatabaseColumns(selectedTable) : Promise.resolve([]),
     enabled: !!selectedTable,
@@ -57,7 +56,13 @@ export default function SystemPage() {
     isLoading: dbRowsLoading,
     error: dbRowsError,
     refetch: refetchRows,
-  } = useQuery({
+  } = useQuery<{
+    data: Record<string, unknown>[];
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  }>({
     queryKey: ['db-rows', selectedTable, dbPage, dbLimit],
     queryFn: () => selectedTable ? adminApi.getDatabaseRows(selectedTable, dbPage, dbLimit) : Promise.resolve({ data: [], total: 0, page: 1, limit: dbLimit, totalPages: 1 }),
     enabled: !!selectedTable,
@@ -194,7 +199,7 @@ export default function SystemPage() {
                         {dbColumnsLoading && <SkeletonBox height={24} />}
                         {dbColumnsError && <ErrorMessage message="Failed to load columns." />}
                         <div className="flex flex-wrap gap-2">
-                          {dbColumns && dbColumns.map((col: any) => (
+                          {dbColumns && dbColumns.map((col) => (
                             <span
                               key={col.column_name}
                               className="px-2 py-1 rounded bg-gray-800 text-gray-200 text-xs"
@@ -214,7 +219,7 @@ export default function SystemPage() {
                           <table className="min-w-full text-xs text-gray-200">
                             <thead>
                               <tr>
-                                {dbColumns && dbColumns.map((col: any) => (
+                                {dbColumns && dbColumns.map((col) => (
                                   <th key={col.column_name} className="px-2 py-1 bg-gray-800 font-semibold">
                                     {col.column_name}
                                   </th>
@@ -223,9 +228,9 @@ export default function SystemPage() {
                             </thead>
                             <tbody>
                               {dbRows && dbRows.data && dbRows.data.length > 0 ? (
-                                dbRows.data.map((row: any, idx: number) => (
+                                dbRows.data.map((row, idx) => (
                                   <tr key={idx} className="border-b border-gray-800 hover:bg-gray-800/50">
-                                    {dbColumns && dbColumns.map((col: any) => (
+                                    {dbColumns && dbColumns.map((col) => (
                                       <td key={col.column_name} className="px-2 py-1">
                                         {row[col.column_name]?.toString() ?? ''}
                                       </td>
