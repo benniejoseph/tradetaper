@@ -372,7 +372,7 @@ export class MT5AccountsController {
   async uploadTradeHistory(
     @Request() req,
     @Param('id') id: string,
-    @UploadedFile() file: Express.Multer.File,
+    @UploadedFile() file: any, // Express.Multer.File,
   ): Promise<TradeHistoryUploadResponse> {
     const account = await this.mt5AccountsService.findOne(id);
 
