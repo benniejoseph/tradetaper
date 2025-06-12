@@ -12,7 +12,6 @@ interface AuthWrapperProps {
 export default function AuthWrapper({ children }: AuthWrapperProps) {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [hasRedirected, setHasRedirected] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
 
@@ -24,32 +23,52 @@ export default function AuthWrapper({ children }: AuthWrapperProps) {
     // Only run on client side
     if (typeof window === 'undefined') return;
 
+    console.log('AuthWrapper: Checking authentication for path:', pathname);
+
     // Check authentication status
     const checkAuth = () => {
       try {
+        const token = localStorage.getItem('admin_token');
         const isAuth = localStorage.getItem('admin_authenticated') === 'true';
         const adminUser = localStorage.getItem('admin_user');
         
-        if (isAuth && adminUser) {
-          const user = JSON.parse(adminUser);
-          // Check if login is not too old (24 hours)
-          const loginTime = new Date(user.loginTime);
-          const now = new Date();
-          const hoursDiff = (now.getTime() - loginTime.getTime()) / (1000 * 60 * 60);
-          
-          if (hoursDiff < 24) {
-            setIsAuthenticated(true);
-          } else {
-            // Session expired
+        console.log('AuthWrapper: Auth check results:', { token: !!token, isAuth, adminUser: !!adminUser });
+        
+        if (token && isAuth && adminUser) {
+          try {
+            const user = JSON.parse(adminUser);
+            // Check if login is not too old (24 hours)
+            const loginTime = new Date(user.loginTime);
+            const now = new Date();
+            const hoursDiff = (now.getTime() - loginTime.getTime()) / (1000 * 60 * 60);
+            
+            console.log('AuthWrapper: Session age (hours):', hoursDiff);
+            
+            if (hoursDiff < 24) {
+              console.log('AuthWrapper: User is authenticated');
+              setIsAuthenticated(true);
+            } else {
+              console.log('AuthWrapper: Session expired, clearing auth data');
+              // Session expired
+              localStorage.removeItem('admin_token');
+              localStorage.removeItem('admin_authenticated');
+              localStorage.removeItem('admin_user');
+              setIsAuthenticated(false);
+            }
+          } catch (parseError) {
+            console.error('AuthWrapper: Error parsing admin user data:', parseError);
+            // Clear corrupted data
+            localStorage.removeItem('admin_token');
             localStorage.removeItem('admin_authenticated');
             localStorage.removeItem('admin_user');
             setIsAuthenticated(false);
           }
         } else {
+          console.log('AuthWrapper: User is not authenticated');
           setIsAuthenticated(false);
         }
       } catch (error) {
-        console.error('Auth check error:', error);
+        console.error('AuthWrapper: Auth check error:', error);
         setIsAuthenticated(false);
       } finally {
         setIsLoading(false);
@@ -59,21 +78,26 @@ export default function AuthWrapper({ children }: AuthWrapperProps) {
     // Small delay to prevent hydration issues
     const timer = setTimeout(checkAuth, 100);
     return () => clearTimeout(timer);
-  }, []);
+  }, [pathname]);
 
   useEffect(() => {
-    // Prevent multiple redirects
-    if (isLoading || hasRedirected || isAuthenticated === null) return;
+    // Don't redirect while loading or if auth state is unknown
+    if (isLoading || isAuthenticated === null) {
+      console.log('AuthWrapper: Skipping redirect - loading or auth state unknown');
+      return;
+    }
 
-    // Redirect logic with safeguards
+    console.log('AuthWrapper: Redirect logic - isAuthenticated:', isAuthenticated, 'isPublicPath:', isPublicPath, 'pathname:', pathname);
+
+    // Redirect logic
     if (!isAuthenticated && !isPublicPath) {
-      setHasRedirected(true);
+      console.log('AuthWrapper: Redirecting to login - user not authenticated');
       router.replace('/login');
     } else if (isAuthenticated && pathname === '/login') {
-      setHasRedirected(true);
+      console.log('AuthWrapper: Redirecting to dashboard - user already authenticated');
       router.replace('/');
     }
-  }, [isAuthenticated, isLoading, isPublicPath, pathname, router, hasRedirected]);
+  }, [isAuthenticated, isLoading, isPublicPath, pathname, router]);
 
   // Show loading spinner while checking authentication
   if (isLoading) {
