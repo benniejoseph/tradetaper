@@ -1,15 +1,17 @@
 [build]
-  builder = "dockerfile"
+  builder = "nixpacks"
+  buildCommand = "npm install --legacy-peer-deps && npm run build"
 
 [deploy]
   startCommand = "node dist/main"
   healthcheckPath = "/api/v1/ping"
-  healthcheckTimeout = 120
+  healthcheckTimeout = 180
   restartPolicyType = "always"
-  restartPolicyMaxRetries = 10
+  restartPolicyMaxRetries = 5
 
 [variables]
   NODE_ENV = "production"
   PORT = "3000"
-  RUN_MIGRATIONS = "true"
+  NODE_OPTIONS = "--max-old-space-size=2048"
+  NPM_CONFIG_LEGACY_PEER_DEPS = "true"
   FRONTEND_URL = "https://tradetaper-frontend-benniejosephs-projects.vercel.app" 
