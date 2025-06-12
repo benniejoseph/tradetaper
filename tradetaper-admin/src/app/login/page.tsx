@@ -20,11 +20,13 @@ export default function LoginPage() {
     setError('');
 
     try {
-      await adminLogin(email, password);
+      console.log('LoginPage: Attempting login with:', { email });
+      const result = await adminLogin(email, password);
+      console.log('LoginPage: Login successful, redirecting to dashboard');
       // Redirect to dashboard on successful login
-      router.push('/');
+      router.replace('/');
     } catch (error: any) {
-      console.error('Login failed:', error);
+      console.error('LoginPage: Login failed:', error);
       setError(
         error.response?.data?.message || 
         'Login failed. Please check your credentials.'
