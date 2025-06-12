@@ -208,7 +208,7 @@ class AdminApi {
     table: string,
     page: number = 1,
     limit: number = 20
-  ): Promise<{ data: any[]; total: number; page: number; limit: number; totalPages: number }> {
+  ): Promise<{ data: Record<string, unknown>[]; total: number; page: number; limit: number; totalPages: number }> {
     const response = await this.axiosInstance.get('/admin/database/rows', {
       params: { table, page, limit },
     });
