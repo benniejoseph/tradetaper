@@ -41,18 +41,30 @@ import { Strategy } from './strategies/entities/strategy.entity';
           configService.get<string>('NODE_ENV') === 'production';
         const databaseUrl = configService.get<string>('DATABASE_URL');
 
+        console.log('🔧 Database configuration:', {
+          isProduction,
+          hasDatabaseUrl: !!databaseUrl,
+          nodeEnv: process.env.NODE_ENV
+        });
+
         // Using DATABASE_URL for production (Railway, Heroku, etc)
         if (isProduction && databaseUrl) {
           return {
             type: 'postgres',
             url: databaseUrl,
             entities: [User, Trade, Tag, MT5Account, Subscription, Usage, Strategy],
-            synchronize: true, // TEMPORARY: Force schema sync // Never auto-sync in production!
+            synchronize: true, // TEMPORARY: Force schema sync
             ssl: {
               rejectUnauthorized: false, // Required for Railway and some other providers
             },
-            migrations: [__dirname + '/migrations/**/*{.ts,.js}'],
-            migrationsRun: configService.get<string>('RUN_MIGRATIONS') === 'true',
+            retryAttempts: 3,
+            retryDelay: 3000,
+            autoLoadEntities: true,
+            logging: false, // Disable query logging in production
+            maxQueryExecutionTime: 30000, // 30 seconds timeout
+            connectTimeoutMS: 30000,
+            acquireTimeoutMillis: 30000,
+            timeout: 30000,
           };
         }
 
@@ -63,8 +75,10 @@ import { Strategy } from './strategies/entities/strategy.entity';
             url: databaseUrl,
             entities: [User, Trade, Tag, MT5Account, Subscription, Usage, Strategy],
             synchronize: configService.get<string>('NODE_ENV') !== 'production',
-            migrations: [__dirname + '/migrations/**/*{.ts,.js}'],
-            migrationsRun: false, // Manual migration control in development
+            retryAttempts: 3,
+            retryDelay: 3000,
+            autoLoadEntities: true,
+            logging: false,
           };
         }
 
@@ -78,8 +92,10 @@ import { Strategy } from './strategies/entities/strategy.entity';
           database: configService.get<string>('DB_DATABASE', 'tradetaper_dev'),
           entities: [User, Trade, Tag, MT5Account, Subscription, Usage, Strategy],
           synchronize: configService.get<string>('NODE_ENV') !== 'production',
-          migrations: [__dirname + '/migrations/**/*{.ts,.js}'],
-          migrationsRun: false, // Manual migration control in development
+          retryAttempts: 3,
+          retryDelay: 3000,
+          autoLoadEntities: true,
+          logging: false,
         };
       },
     }),
