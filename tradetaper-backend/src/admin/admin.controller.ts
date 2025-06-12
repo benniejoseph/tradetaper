@@ -1,11 +1,13 @@
 import {
   Controller,
   Get,
+  Post,
   UseGuards,
   Request,
   Query,
   ParseIntPipe,
   DefaultValuePipe,
+  Body,
 } from '@nestjs/common';
 import { AdminGuard } from '../auth/guards/admin.guard';
 import { AdminService } from './admin.service';
@@ -106,5 +108,88 @@ export class AdminController {
     @Request() req,
   ) {
     return this.adminService.getSubscriptionAnalytics(timeRange);
+  }
+
+  // New endpoints for enhanced admin functionality
+
+  @Get('logs')
+  async getLogs(
+    @Query('limit', new DefaultValuePipe(100), ParseIntPipe) limit: number,
+    @Query('offset', new DefaultValuePipe(0), ParseIntPipe) offset: number,
+    @Query('level') level?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ) {
+    return this.adminService.getLogs(limit, offset, level, startDate, endDate);
+  }
+
+  @Get('logs/stream')
+  async getLogsStream(@Request() req) {
+    // This would be implemented with Server-Sent Events for real-time logs
+    return this.adminService.getLogsStream();
+  }
+
+  @Post('test-endpoint')
+  async testEndpoint(
+    @Body() testData: {
+      endpoint: string;
+      method: string;
+      headers?: Record<string, string>;
+      body?: any;
+      queryParams?: Record<string, string>;
+    },
+  ) {
+    return this.adminService.testEndpoint(testData);
+  }
+
+  @Get('system-diagnostics')
+  async getSystemDiagnostics() {
+    return this.adminService.getSystemDiagnostics();
+  }
+
+  @Post('clear-cache')
+  async clearCache(@Body() cacheKeys?: { keys?: string[] }) {
+    return this.adminService.clearCache(cacheKeys?.keys);
+  }
+
+  @Get('performance-metrics')
+  async getPerformanceMetrics(
+    @Query('timeRange') timeRange: string = '1h',
+  ) {
+    return this.adminService.getPerformanceMetrics(timeRange);
+  }
+
+  @Get('error-analytics')
+  async getErrorAnalytics(
+    @Query('timeRange') timeRange: string = '24h',
+  ) {
+    return this.adminService.getErrorAnalytics(timeRange);
+  }
+
+  @Post('debug-session')
+  async createDebugSession(@Body() sessionData: { description: string; userId?: string }) {
+    return this.adminService.createDebugSession(sessionData);
+  }
+
+  @Get('debug-sessions')
+  async getDebugSessions() {
+    return this.adminService.getDebugSessions();
+  }
+
+  @Get('api-usage-stats')
+  async getApiUsageStats(
+    @Query('timeRange') timeRange: string = '24h',
+  ) {
+    return this.adminService.getApiUsageStats(timeRange);
+  }
+
+  @Post('backup-database')
+  async backupDatabase() {
+    return this.adminService.backupDatabase();
+  }
+
+  @Get('backup-status')
+  async getBackupStatus() {
+    return this.adminService.getBackupStatus();
   }
 }

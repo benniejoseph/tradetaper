@@ -14,6 +14,7 @@ import {
   ChevronLeft,
   ChevronRight,
   LogOut,
+  TestTube,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -37,16 +38,16 @@ const menuItems = [
     ],
   },
   {
-    section: 'Subscription & Billing',
+    section: 'Revenue Management',
     items: [
-      { icon: DollarSign, label: 'Billing', href: '/billing' },
-      { icon: TrendingUp, label: 'Subscriptions', href: '/subscriptions' },
+      { icon: DollarSign, label: 'Revenue & Billing', href: '/billing' },
     ],
   },
   {
     section: 'System',
     items: [
       { icon: Database, label: 'System', href: '/system' },
+      { icon: TestTube, label: 'Testing', href: '/testing' },
     ],
   },
   {

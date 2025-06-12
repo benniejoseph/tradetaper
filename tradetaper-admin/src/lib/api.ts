@@ -75,6 +75,7 @@ export interface SubscriptionAnalytics {
     count: number;
     revenue: number;
     color?: string;
+    price?: number;
   }>;
 }
 
@@ -147,6 +148,69 @@ export interface Activity {
     id: string;
     name: string;
   };
+}
+
+export interface LogEntry {
+  id: string;
+  level: 'error' | 'warn' | 'info' | 'debug';
+  message: string;
+  context?: string;
+  details?: Record<string, any>;
+  timestamp: string;
+  userId?: string;
+  endpoint?: string;
+  method?: string;
+}
+
+export interface SystemDiagnostics {
+  database: {
+    status: string;
+    connectionCount: number;
+    queryTime: number;
+  };
+  memory: {
+    used: number;
+    total: number;
+    percentage: number;
+  };
+  cpu: {
+    usage: number;
+    loadAverage: number[];
+  };
+  disk: {
+    used: number;
+    total: number;
+    percentage: number;
+  };
+  network: {
+    inbound: number;
+    outbound: number;
+  };
+}
+
+export interface PerformanceMetrics {
+  data: Array<{
+    timestamp: string;
+    responseTime: number;
+    throughput: number;
+    errorRate: number;
+    cpuUsage: number;
+    memoryUsage: number;
+  }>;
+}
+
+export interface ErrorAnalytics {
+  totalErrors: number;
+  errorsByType: Array<{ type: string; count: number }>;
+  errorsByEndpoint: Array<{ endpoint: string; count: number }>;
+  timeRange: string;
+}
+
+export interface ApiUsageStats {
+  totalRequests: number;
+  requestsByEndpoint: Array<{ endpoint: string; count: number; avgResponseTime: number }>;
+  requestsByMethod: Array<{ method: string; count: number; percentage: number }>;
+  timeRange: string;
 }
 
 class AdminApi {
@@ -383,6 +447,149 @@ class AdminApi {
         limit,
         totalPages: 1,
       };
+    }
+  }
+
+  // --- New Enhanced Admin Methods ---
+
+  async getLogs(
+    limit: number = 100,
+    offset: number = 0,
+    level?: string,
+    startDate?: string,
+    endDate?: string
+  ): Promise<{ data: LogEntry[]; total: number; limit: number; offset: number }> {
+    try {
+      const params = new URLSearchParams({
+        limit: limit.toString(),
+        offset: offset.toString(),
+      });
+      
+      if (level) params.append('level', level);
+      if (startDate) params.append('startDate', startDate);
+      if (endDate) params.append('endDate', endDate);
+      
+      const response = await this.axiosInstance.get(`/admin/logs?${params}`);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to fetch logs:', error);
+      throw error;
+    }
+  }
+
+  async getLogsStream(): Promise<{ message: string; latestLogs: LogEntry[] }> {
+    try {
+      const response = await this.axiosInstance.get('/admin/logs/stream');
+      return response.data;
+    } catch (error) {
+      console.error('Failed to fetch logs stream:', error);
+      throw error;
+    }
+  }
+
+  async testEndpoint(testData: {
+    endpoint: string;
+    method: string;
+    headers?: Record<string, string>;
+    body?: any;
+    queryParams?: Record<string, string>;
+  }): Promise<any> {
+    try {
+      const response = await this.axiosInstance.post('/admin/test-endpoint', testData);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to test endpoint:', error);
+      throw error;
+    }
+  }
+
+  async getSystemDiagnostics(): Promise<SystemDiagnostics> {
+    try {
+      const response = await this.axiosInstance.get('/admin/system-diagnostics');
+      return response.data;
+    } catch (error) {
+      console.error('Failed to fetch system diagnostics:', error);
+      throw error;
+    }
+  }
+
+  async clearCache(keys?: string[]): Promise<{ success: boolean; message: string; clearedKeys: string[]; timestamp: string }> {
+    try {
+      const response = await this.axiosInstance.post('/admin/clear-cache', { keys });
+      return response.data;
+    } catch (error) {
+      console.error('Failed to clear cache:', error);
+      throw error;
+    }
+  }
+
+  async getPerformanceMetrics(timeRange: string = '1h'): Promise<PerformanceMetrics> {
+    try {
+      const response = await this.axiosInstance.get(`/admin/performance-metrics?timeRange=${timeRange}`);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to fetch performance metrics:', error);
+      throw error;
+    }
+  }
+
+  async getErrorAnalytics(timeRange: string = '24h'): Promise<ErrorAnalytics> {
+    try {
+      const response = await this.axiosInstance.get(`/admin/error-analytics?timeRange=${timeRange}`);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to fetch error analytics:', error);
+      throw error;
+    }
+  }
+
+  async createDebugSession(sessionData: { description: string; userId?: string }): Promise<any> {
+    try {
+      const response = await this.axiosInstance.post('/admin/debug-session', sessionData);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to create debug session:', error);
+      throw error;
+    }
+  }
+
+  async getDebugSessions(): Promise<{ data: any[]; total: number }> {
+    try {
+      const response = await this.axiosInstance.get('/admin/debug-sessions');
+      return response.data;
+    } catch (error) {
+      console.error('Failed to fetch debug sessions:', error);
+      throw error;
+    }
+  }
+
+  async getApiUsageStats(timeRange: string = '24h'): Promise<ApiUsageStats> {
+    try {
+      const response = await this.axiosInstance.get(`/admin/api-usage-stats?timeRange=${timeRange}`);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to fetch API usage stats:', error);
+      throw error;
+    }
+  }
+
+  async backupDatabase(): Promise<{ success: boolean; message: string; backupId: string; estimatedDuration: string; timestamp: string }> {
+    try {
+      const response = await this.axiosInstance.post('/admin/backup-database');
+      return response.data;
+    } catch (error) {
+      console.error('Failed to backup database:', error);
+      throw error;
+    }
+  }
+
+  async getBackupStatus(): Promise<any> {
+    try {
+      const response = await this.axiosInstance.get('/admin/backup-status');
+      return response.data;
+    } catch (error) {
+      console.error('Failed to fetch backup status:', error);
+      throw error;
     }
   }
 }
