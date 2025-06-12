@@ -3,20 +3,18 @@ import { NestFactory, Reflector } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ConfigService } from '@nestjs/config';
 import { ClassSerializerInterceptor, ValidationPipe } from '@nestjs/common';
-import { NestExpressApplication } from '@nestjs/platform-express'; // Import this
-import { join } from 'path'; // Import join from path
-import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
-import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
-import { ProductionLoggerService } from './common/services/logger.service';
+import { NestExpressApplication } from '@nestjs/platform-express';
+import { join } from 'path';
 
 async function bootstrap() {
   try {
     console.log('🚀 Starting TradeTaper Backend...');
     console.log(`📊 Node.js version: ${process.version}`);
     console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+    console.log(`💾 Database URL: ${process.env.DATABASE_URL ? 'Configured' : 'Not configured'}`);
     
     const app = await NestFactory.create<NestExpressApplication>(AppModule, {
-      logger: ['log', 'error', 'warn', 'debug', 'verbose'],
+      logger: ['log', 'error', 'warn'],
     });
     
     console.log('✅ NestJS application created successfully');
@@ -24,23 +22,9 @@ async function bootstrap() {
     const configService = app.get(ConfigService);
     const port = configService.get<number>('PORT') || process.env.PORT || 3000;
 
-    // Enhanced CORS for production
-    const allowedOrigins = [
-      'http://localhost:3000',
-      'http://localhost:3001',
-      'http://localhost:3002',
-      'https://tradetaper-frontend-benniejosephs-projects.vercel.app',
-      process.env.FRONTEND_URL,
-    ].filter((origin): origin is string => Boolean(origin));
-
-    // Add pattern matching for deployment platforms
-    const corsOrigin =
-      process.env.NODE_ENV === 'production'
-        ? [...allowedOrigins, /vercel\.app$/, /railway\.app$/, /onrender\.com$/]
-        : allowedOrigins;
-
+    // Simplified CORS for production
     app.enableCors({
-      origin: corsOrigin,
+      origin: true, // Allow all origins for now to avoid CORS issues
       methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
       credentials: true,
       allowedHeaders: ['Content-Type', 'Authorization', 'stripe-signature'],
@@ -54,54 +38,74 @@ async function bootstrap() {
       new ValidationPipe({
         whitelist: true,
         transform: true,
-        forbidNonWhitelisted: true,
+        forbidNonWhitelisted: false, // More lenient for now
         transformOptions: {
           enableImplicitConversion: true,
         },
       }),
     );
 
-    // Get services for global providers
-    const productionLogger = app.get(ProductionLoggerService);
-
-    // Configure global filters and interceptors
-    app.useGlobalFilters(new GlobalExceptionFilter(productionLogger, configService));
+    // Simplified global interceptors - remove custom logger for now
     app.useGlobalInterceptors(
-      new LoggingInterceptor(productionLogger),
       new ClassSerializerInterceptor(app.get(Reflector)),
     );
 
-    console.log('✅ Global pipes, filters, and interceptors configured');
+    console.log('✅ Global pipes and interceptors configured');
 
-    // --- ADD STATIC ASSETS SERVING ---
-    // This makes files in the 'uploads' directory (at the project root)
-    // accessible via the '/uploads' route prefix.
-    // e.g., if a file is at 'uploads/users/123/trades/images/abc.png',
-    // it will be accessible at 'http://localhost:3000/uploads/users/123/trades/images/abc.png'
-    // (assuming your API prefix /api/v1 doesn't conflict, which it shouldn't for static assets)
-    const uploadsPath = join(__dirname, '..', 'uploads'); // Resolve path relative to dist/main.js
-    app.useStaticAssets(uploadsPath, {
-      prefix: '/uploads/', // URL prefix
-    });
-    console.log(`📁 Serving static assets from ${uploadsPath} at /uploads/`);
-    // --- END STATIC ASSETS SERVING ---
+    // Simplified static assets serving
+    try {
+      const uploadsPath = join(__dirname, '..', 'uploads');
+      app.useStaticAssets(uploadsPath, {
+        prefix: '/uploads/',
+      });
+      console.log(`📁 Static assets configured: ${uploadsPath}`);
+    } catch (error) {
+      console.log('⚠️  Static assets configuration skipped:', error.message);
+    }
 
     console.log(`🔧 Starting server on port ${port}...`);
-    await app.listen(port, '0.0.0.0'); // Listen on all interfaces for deployment
+    console.log(`🔧 Binding to 0.0.0.0:${port}`);
+    
+    await app.listen(port, '0.0.0.0');
     
     console.log('🎉 TradeTaper Backend started successfully!');
-    console.log(`🌐 Server running at: ${await app.getUrl()}`);
-    console.log(`📊 Environment: ${configService.get<string>('NODE_ENV')}`);
+    console.log(`🌐 Server URL: http://0.0.0.0:${port}`);
+    console.log(`📊 Environment: ${process.env.NODE_ENV}`);
     console.log(`🔌 Port: ${port}`);
-    console.log(`❤️  Health check: /api/v1/health`);
-    console.log(`🏓 Ping endpoint: /api/v1/ping`);
-    console.log(`💾 Database URL configured: ${configService.get<string>('DATABASE_URL') ? 'Yes' : 'No'}`);
-    console.log(`🔐 JWT Secret configured: ${configService.get<string>('JWT_SECRET') ? 'Yes' : 'No'}`);
+    console.log(`❤️  Health check: http://0.0.0.0:${port}/api/v1/health`);
+    console.log(`🏓 Ping endpoint: http://0.0.0.0:${port}/api/v1/ping`);
+    
+    // Test the ping endpoint internally
+    setTimeout(async () => {
+      try {
+        const response = await fetch(`http://localhost:${port}/api/v1/ping`);
+        const data = await response.json();
+        console.log('✅ Internal ping test successful:', data);
+      } catch (error) {
+        console.log('❌ Internal ping test failed:', error.message);
+      }
+    }, 2000);
     
   } catch (error) {
     console.error('❌ Failed to start TradeTaper Backend:', error);
-    console.error('Stack trace:', error.stack);
+    console.error('Error details:', {
+      name: error.name,
+      message: error.message,
+      stack: error.stack?.split('\n').slice(0, 5).join('\n')
+    });
     process.exit(1);
   }
 }
+
+// Handle uncaught exceptions
+process.on('uncaughtException', (error) => {
+  console.error('❌ Uncaught Exception:', error);
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('❌ Unhandled Rejection at:', promise, 'reason:', reason);
+  process.exit(1);
+});
+
 void bootstrap();

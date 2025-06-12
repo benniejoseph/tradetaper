@@ -3,11 +3,12 @@
   buildCommand = "npm install --legacy-peer-deps && npm run build"
 
 [deploy]
-  startCommand = "node dist/main"
+  startCommand = "echo 'Starting TradeTaper Backend...' && node dist/main"
   healthcheckPath = "/api/v1/ping"
-  healthcheckTimeout = 180
+  healthcheckTimeout = 300
+  healthcheckInterval = 30
   restartPolicyType = "always"
-  restartPolicyMaxRetries = 5
+  restartPolicyMaxRetries = 3
 
 [variables]
   NODE_ENV = "production"

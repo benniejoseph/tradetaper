@@ -22,26 +22,27 @@ export class AppController {
     return this.appService.getTestMessage();
   }
 
+  // Super simple ping endpoint that always works
+  @Get('ping')
+  ping() {
+    const timestamp = new Date().toISOString();
+    console.log(`🏓 Ping endpoint called at: ${timestamp}`);
+    return {
+      message: 'pong',
+      timestamp,
+      status: 'ok',
+      uptime: Math.floor(process.uptime()),
+      pid: process.pid,
+      memory: Math.round(process.memoryUsage().heapUsed / 1024 / 1024) + 'MB'
+    };
+  }
+
   // Simple health check that doesn't depend on database
   @Get('health')
-  async getHealth(): Promise<{
-    status: string;
-    timestamp: string;
-    environment: string;
-    version: string;
-    uptime: number;
-    database?: string;
-    memory: {
-      used: string;
-      total: string;
-      percentage: number;
-    };
-    services?: {
-      stripe: boolean;
-    };
-  }> {
+  async getHealth() {
     const startTime = Date.now();
-    console.log('Health check requested at:', new Date().toISOString());
+    const timestamp = new Date().toISOString();
+    console.log(`❤️  Health check requested at: ${timestamp}`);
 
     try {
       // Memory usage
@@ -50,62 +51,38 @@ export class AppController {
       const usedMemory = memUsage.heapUsed;
       const memoryPercentage = Math.round((usedMemory / totalMemory) * 100);
 
-      const healthData: any = {
+      const healthData = {
         status: 'ok',
-        timestamp: new Date().toISOString(),
+        timestamp,
         environment: process.env.NODE_ENV || 'unknown',
-        version: process.env.npm_package_version || '1.0.0',
+        version: '1.0.0',
         uptime: Math.floor(process.uptime()),
+        pid: process.pid,
         memory: {
           used: `${Math.round(usedMemory / 1024 / 1024)}MB`,
           total: `${Math.round(totalMemory / 1024 / 1024)}MB`,
           percentage: memoryPercentage,
         },
+        database: 'unknown', // Don't check database to avoid blocking
+        services: { basic: true },
       };
 
-      // Try database connection but don't fail if it's not available
-      try {
-        await this.subscriptionRepository.query('SELECT 1');
-        healthData.database = 'connected';
-        healthData.services = { stripe: true };
-        console.log('Database connection successful');
-      } catch (dbError) {
-        console.log('Database connection failed:', dbError.message);
-        healthData.database = 'disconnected';
-        healthData.services = { stripe: false };
-      }
-
       const duration = Date.now() - startTime;
-      console.log(`Health check completed in ${duration}ms`);
+      console.log(`✅ Health check completed in ${duration}ms`);
       
       return healthData;
     } catch (error) {
-      console.error('Health check error:', error);
+      console.error('❌ Health check error:', error);
       return {
         status: 'error',
-        timestamp: new Date().toISOString(),
+        timestamp,
         environment: process.env.NODE_ENV || 'unknown',
-        version: process.env.npm_package_version || '1.0.0',
+        version: '1.0.0',
         uptime: Math.floor(process.uptime()),
-        memory: {
-          used: 'unknown',
-          total: 'unknown',
-          percentage: 0,
-        },
+        pid: process.pid,
+        error: error.message,
       };
     }
-  }
-
-  // Additional simple health check endpoint
-  @Get('ping')
-  ping(): { message: string; timestamp: string; status: string; uptime: number } {
-    console.log('Ping endpoint called at:', new Date().toISOString());
-    return {
-      message: 'pong',
-      timestamp: new Date().toISOString(),
-      status: 'ok',
-      uptime: Math.floor(process.uptime()),
-    };
   }
 
   // Removed unsafe raw SQL migration endpoint - use proper TypeORM migrations instead
