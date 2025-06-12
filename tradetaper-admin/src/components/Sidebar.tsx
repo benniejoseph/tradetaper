@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import {
   LayoutDashboard,
@@ -17,6 +17,7 @@ import {
   TestTube,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import toast from 'react-hot-toast';
 
 interface SidebarProps {
   isCollapsed: boolean;
@@ -61,6 +62,19 @@ const menuItems = [
 
 export default function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
   const pathname = usePathname();
+  const router = useRouter();
+
+  const handleLogout = () => {
+    // Clear authentication data
+    localStorage.removeItem('admin_authenticated');
+    localStorage.removeItem('admin_user');
+    
+    // Show success message
+    toast.success('Logged out successfully');
+    
+    // Redirect to login
+    router.push('/login');
+  };
 
   return (
     <motion.div
@@ -172,10 +186,12 @@ export default function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
           )}
           
           <button
+            onClick={handleLogout}
             className={cn(
               'p-2 rounded-lg hover:bg-gray-800 transition-colors text-gray-400 hover:text-white',
               isCollapsed && 'mx-auto'
             )}
+            title="Logout"
           >
             <LogOut className="w-4 h-4" />
           </button>
