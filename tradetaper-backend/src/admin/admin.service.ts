@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Between } from 'typeorm';
+import { Repository, Between, DataSource } from 'typeorm';
 import { User } from '../users/entities/user.entity';
 import { Trade } from '../trades/entities/trade.entity';
 
@@ -22,6 +22,7 @@ export class AdminService {
     private usersRepository: Repository<User>,
     @InjectRepository(Trade)
     private tradesRepository: Repository<Trade>,
+    private dataSource: DataSource,
   ) {}
 
   async getDashboardStats() {
@@ -359,5 +360,54 @@ export class AdminService {
       default:
         return 30;
     }
+  }
+
+  // --- Database Viewer Methods ---
+
+  async getDatabaseTables() {
+    // List all user tables in the public schema
+    const result = await this.dataSource.query(`
+      SELECT table_name
+      FROM information_schema.tables
+      WHERE table_schema = 'public'
+      ORDER BY table_name
+    `);
+    return result.map((row: any) => row.table_name);
+  }
+
+  async getDatabaseColumns(table: string) {
+    // List columns for a given table
+    const result = await this.dataSource.query(
+      `
+      SELECT column_name, data_type, is_nullable, column_default
+      FROM information_schema.columns
+      WHERE table_schema = 'public' AND table_name = $1
+      ORDER BY ordinal_position
+      `,
+      [table]
+    );
+    return result;
+  }
+
+  async getDatabaseRows(table: string, page: number = 1, limit: number = 20) {
+    // Paginate rows for a given table
+    const offset = (page - 1) * limit;
+    // Use identifier escaping to prevent SQL injection
+    const rows = await this.dataSource.query(
+      `SELECT * FROM "${table}" ORDER BY 1 LIMIT $1 OFFSET $2`,
+      [limit, offset]
+    );
+    // Get total count
+    const countResult = await this.dataSource.query(
+      `SELECT COUNT(*) FROM "${table}"`
+    );
+    const total = parseInt(countResult[0]?.count || '0', 10);
+    return {
+      data: rows,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
   }
 }

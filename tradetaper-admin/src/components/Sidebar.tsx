@@ -9,16 +9,11 @@ import {
   TrendingUp,
   DollarSign,
   Activity,
-  Settings,
-  Shield,
-  BarChart3,
   Globe,
   Database,
   ChevronLeft,
   ChevronRight,
   LogOut,
-  Bell,
-  Zap,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -32,48 +27,33 @@ const menuItems = [
     section: 'Overview',
     items: [
       { icon: LayoutDashboard, label: 'Dashboard', href: '/' },
-      { icon: Activity, label: 'Live Activity', href: '/activity' },
-      { icon: Bell, label: 'Alerts', href: '/alerts', badge: '3' },
+      { icon: Activity, label: 'Activity', href: '/activity' },
     ],
   },
   {
     section: 'User Management',
     items: [
       { icon: Users, label: 'Users', href: '/users' },
-      { icon: Shield, label: 'Role Management', href: '/roles' },
-      { icon: Activity, label: 'User Activity', href: '/user-activity' },
     ],
   },
   {
     section: 'Subscription & Billing',
     items: [
-      { icon: DollarSign, label: 'Billing & Revenue', href: '/billing' },
+      { icon: DollarSign, label: 'Billing', href: '/billing' },
       { icon: TrendingUp, label: 'Subscriptions', href: '/subscriptions' },
-      { icon: BarChart3, label: 'Revenue Analytics', href: '/revenue' },
     ],
   },
   {
-    section: 'System Health',
+    section: 'System',
     items: [
-      { icon: Database, label: 'System Monitor', href: '/system' },
-      { icon: Zap, label: 'Performance', href: '/performance' },
-      { icon: Globe, label: 'Integrations', href: '/integrations' },
+      { icon: Database, label: 'System', href: '/system' },
     ],
   },
   {
     section: 'Analytics & Reports',
     items: [
-      { icon: BarChart3, label: 'Analytics', href: '/analytics' },
       { icon: TrendingUp, label: 'Trades', href: '/trades' },
       { icon: Globe, label: 'Geographic', href: '/geographic' },
-    ],
-  },
-  {
-    section: 'Security & Audits',
-    items: [
-      { icon: Shield, label: 'Security Logs', href: '/security' },
-      { icon: Activity, label: 'Audit Trail', href: '/audit' },
-      { icon: Settings, label: 'Settings', href: '/settings' },
     ],
   },
 ];
@@ -155,27 +135,14 @@ export default function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
                       {!isCollapsed && (
                         <>
                           <span className="flex-1">{item.label}</span>
-                          {item.badge && (
-                            <span className="bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-full">
-                              {item.badge}
-                            </span>
-                          )}
                         </>
                       )}
                       
-                      {isCollapsed && item.badge && (
-                        <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full"></div>
-                      )}
                       
                       {/* Tooltip for collapsed state */}
                       {isCollapsed && (
                         <div className="absolute left-16 px-2 py-1 bg-gray-800 text-white text-sm rounded-md opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50 border border-gray-700">
                           {item.label}
-                          {item.badge && (
-                            <span className="ml-2 bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-full">
-                              {item.badge}
-                            </span>
-                          )}
                           <div className="absolute left-0 top-1/2 transform -translate-y-1/2 -translate-x-1 w-2 h-2 bg-gray-800 border-l border-t border-gray-700 rotate-45"></div>
                         </div>
                       )}
@@ -215,4 +182,4 @@ export default function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
       </div>
     </motion.div>
   );
-} 
+}

@@ -39,31 +39,31 @@ export default function Dashboard() {
   const [timeRange, setTimeRange] = useState<'7d' | '30d' | '90d' | '1y'>('30d');
 
   // Fetch real data from API
-  const { data: analytics } = useQuery({
+  const { data: analytics, isLoading: analyticsLoading, error: analyticsError } = useQuery({
     queryKey: ['dashboard-stats'],
     queryFn: adminApi.getDashboardStats,
     refetchInterval: 30000, // Refetch every 30 seconds
   });
 
-  const { data: userAnalytics } = useQuery({
+  const { data: userAnalytics, isLoading: userAnalyticsLoading, error: userAnalyticsError } = useQuery({
     queryKey: ['user-analytics', timeRange],
     queryFn: () => adminApi.getUserAnalytics(timeRange),
     refetchInterval: 30000,
   });
 
-  const { data: revenueAnalytics } = useQuery({
+  const { data: revenueAnalytics, isLoading: revenueAnalyticsLoading, error: revenueAnalyticsError } = useQuery({
     queryKey: ['revenue-analytics', timeRange],
     queryFn: () => adminApi.getRevenueAnalytics(timeRange),
     refetchInterval: 30000,
   });
 
-  const { data: systemHealth } = useQuery({
+  const { data: systemHealth, isLoading: systemHealthLoading, error: systemHealthError } = useQuery({
     queryKey: ['system-health'],
     queryFn: adminApi.getSystemHealth,
     refetchInterval: 10000, // Refetch every 10 seconds
   });
 
-  const { data: activityFeed } = useQuery({
+  const { data: activityFeed, isLoading: activityFeedLoading, error: activityFeedError } = useQuery({
     queryKey: ['activity-feed'],
     queryFn: () => adminApi.getActivityFeed(5), // Get 5 recent activities
     refetchInterval: 5000, // Refetch every 5 seconds
@@ -77,6 +77,35 @@ export default function Dashboard() {
     { metric: 'CPU Usage', value: 100 - (systemHealth?.cpuUsage || 0), fullMark: 100 },
     { metric: 'Memory', value: 100 - (systemHealth?.memoryUsage || 0), fullMark: 100 },
   ];
+
+  // Skeleton Card
+  const SkeletonCard = () => (
+    <div className="bg-gradient-to-br from-gray-900/90 to-gray-800/90 backdrop-blur-xl border border-gray-700/50 rounded-2xl p-6 shadow-xl animate-pulse">
+      <div className="flex items-center justify-between mb-4">
+        <div className="p-3 bg-gray-700/10 rounded-xl w-10 h-10" />
+        <div className="w-12 h-4 bg-gray-700 rounded" />
+      </div>
+      <div className="h-8 w-24 bg-gray-700 rounded mb-1" />
+      <div className="h-4 w-16 bg-gray-800 rounded mb-2" />
+      <div className="mt-4 h-1 bg-gray-700 rounded-full overflow-hidden">
+        <div className="h-full bg-gradient-to-r from-blue-500 to-blue-400 w-1/2"></div>
+      </div>
+    </div>
+  );
+
+  // Skeleton Chart
+  const SkeletonChart = () => (
+    <div className="bg-gray-900/90 backdrop-blur-xl border border-gray-700/50 rounded-2xl p-4 sm:p-6 animate-pulse">
+      <div className="h-[300px] sm:h-[400px] w-full bg-gray-800 rounded" />
+    </div>
+  );
+
+  // Error Message
+  const ErrorMessage = ({ message }: { message: string }) => (
+    <div className="bg-red-900/80 border border-red-700 text-red-200 rounded-lg p-4 my-2">
+      <span className="font-bold">Error:</span> {message}
+    </div>
+  );
 
   return (
     <div className="flex h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-black">
@@ -123,205 +152,242 @@ export default function Dashboard() {
         <main className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 sm:space-y-6">
           {/* Enhanced Stats Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-            {/* Total Users Card */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-              className="bg-gradient-to-br from-gray-900/90 to-gray-800/90 backdrop-blur-xl border border-gray-700/50 rounded-2xl p-6 shadow-xl"
-            >
-              <div className="flex items-center justify-between mb-4">
-                <div className="p-3 bg-blue-500/10 rounded-xl">
-                  <Users className="w-6 h-6 text-blue-400" />
-                </div>
-                <div className={`flex items-center space-x-1 text-sm ${(analytics?.userGrowth ?? 0) > 0 ? 'text-green-400' : 'text-red-400'}`}>
-                  {(analytics?.userGrowth ?? 0) > 0 ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
-                  <span>{analytics?.userGrowth || 0}%</span>
-                </div>
-              </div>
-              <h3 className="text-3xl font-bold text-white mb-1">{formatNumber(analytics?.totalUsers || 0)}</h3>
-              <p className="text-gray-400 text-sm">Total Users</p>
-              <div className="mt-4 h-1 bg-gray-700 rounded-full overflow-hidden">
-                <div className="h-full bg-gradient-to-r from-blue-500 to-blue-400" style={{ width: '75%' }}></div>
-              </div>
-            </motion.div>
+            {analyticsLoading
+              ? Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />)
+              : analyticsError
+                ? <ErrorMessage message="Failed to load dashboard stats." />
+                : (
+                  <>
+                    {/* Total Users Card */}
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.1 }}
+                      className="bg-gradient-to-br from-gray-900/90 to-gray-800/90 backdrop-blur-xl border border-gray-700/50 rounded-2xl p-6 shadow-xl"
+                    >
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="p-3 bg-blue-500/10 rounded-xl">
+                          <Users className="w-6 h-6 text-blue-400" />
+                        </div>
+                        <div className={`flex items-center space-x-1 text-sm ${(analytics?.userGrowth ?? 0) > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                          {(analytics?.userGrowth ?? 0) > 0 ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
+                          <span>{analytics?.userGrowth || 0}%</span>
+                        </div>
+                      </div>
+                      <h3 className="text-3xl font-bold text-white mb-1">{formatNumber(analytics?.totalUsers || 0)}</h3>
+                      <p className="text-gray-400 text-sm">Total Users</p>
+                      <div className="mt-4 h-1 bg-gray-700 rounded-full overflow-hidden">
+                        <div className="h-full bg-gradient-to-r from-blue-500 to-blue-400" style={{ width: '75%' }}></div>
+                      </div>
+                    </motion.div>
 
-            {/* Active Users Card */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-              className="bg-gradient-to-br from-gray-900/90 to-gray-800/90 backdrop-blur-xl border border-gray-700/50 rounded-2xl p-6 shadow-xl"
-            >
-              <div className="flex items-center justify-between mb-4">
-                <div className="p-3 bg-green-500/10 rounded-xl">
-                  <Eye className="w-6 h-6 text-green-400" />
-                </div>
-                <div className={`flex items-center space-x-1 text-sm ${(analytics?.activeGrowth ?? 0) > 0 ? 'text-green-400' : 'text-red-400'}`}>
-                  {(analytics?.activeGrowth ?? 0) > 0 ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
-                  <span>{analytics?.activeGrowth || 0}%</span>
-                  </div>
-              </div>
-              <h3 className="text-3xl font-bold text-white mb-1">{formatNumber(analytics?.activeUsers || 0)}</h3>
-              <p className="text-gray-400 text-sm">Active Users</p>
-              <div className="mt-4 h-1 bg-gray-700 rounded-full overflow-hidden">
-                <div className="h-full bg-gradient-to-r from-green-500 to-green-400" style={{ width: '65%' }}></div>
-                </div>
-            </motion.div>
+                    {/* Active Users Card */}
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.2 }}
+                      className="bg-gradient-to-br from-gray-900/90 to-gray-800/90 backdrop-blur-xl border border-gray-700/50 rounded-2xl p-6 shadow-xl"
+                    >
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="p-3 bg-green-500/10 rounded-xl">
+                          <Eye className="w-6 h-6 text-green-400" />
+                        </div>
+                        <div className={`flex items-center space-x-1 text-sm ${(analytics?.activeGrowth ?? 0) > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                          {(analytics?.activeGrowth ?? 0) > 0 ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
+                          <span>{analytics?.activeGrowth || 0}%</span>
+                        </div>
+                      </div>
+                      <h3 className="text-3xl font-bold text-white mb-1">{formatNumber(analytics?.activeUsers || 0)}</h3>
+                      <p className="text-gray-400 text-sm">Active Users</p>
+                      <div className="mt-4 h-1 bg-gray-700 rounded-full overflow-hidden">
+                        <div className="h-full bg-gradient-to-r from-green-500 to-green-400" style={{ width: '65%' }}></div>
+                      </div>
+                    </motion.div>
 
-            {/* Revenue Card */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
-              className="bg-gradient-to-br from-gray-900/90 to-gray-800/90 backdrop-blur-xl border border-gray-700/50 rounded-2xl p-6 shadow-xl"
-            >
-              <div className="flex items-center justify-between mb-4">
-                <div className="p-3 bg-purple-500/10 rounded-xl">
-                  <DollarSign className="w-6 h-6 text-purple-400" />
-                    </div>
-                <div className={`flex items-center space-x-1 text-sm ${(analytics?.revenueGrowth ?? 0) > 0 ? 'text-green-400' : 'text-red-400'}`}>
-                  {(analytics?.revenueGrowth ?? 0) > 0 ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
-                  <span>{analytics?.revenueGrowth ?? 0}%</span>
-                    </div>
-                  </div>
-              <h3 className="text-3xl font-bold text-white mb-1">${formatNumber(analytics?.totalRevenue || 0)}</h3>
-              <p className="text-gray-400 text-sm">Total Revenue</p>
-              <div className="mt-4 h-1 bg-gray-700 rounded-full overflow-hidden">
-                <div className="h-full bg-gradient-to-r from-purple-500 to-purple-400" style={{ width: '85%' }}></div>
-              </div>
-            </motion.div>
+                    {/* Revenue Card */}
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.3 }}
+                      className="bg-gradient-to-br from-gray-900/90 to-gray-800/90 backdrop-blur-xl border border-gray-700/50 rounded-2xl p-6 shadow-xl"
+                    >
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="p-3 bg-purple-500/10 rounded-xl">
+                          <DollarSign className="w-6 h-6 text-purple-400" />
+                        </div>
+                        <div className={`flex items-center space-x-1 text-sm ${(analytics?.revenueGrowth ?? 0) > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                          {(analytics?.revenueGrowth ?? 0) > 0 ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
+                          <span>{analytics?.revenueGrowth ?? 0}%</span>
+                        </div>
+                      </div>
+                      <h3 className="text-3xl font-bold text-white mb-1">${formatNumber(analytics?.totalRevenue || 0)}</h3>
+                      <p className="text-gray-400 text-sm">Total Revenue</p>
+                      <div className="mt-4 h-1 bg-gray-700 rounded-full overflow-hidden">
+                        <div className="h-full bg-gradient-to-r from-purple-500 to-purple-400" style={{ width: '85%' }}></div>
+                      </div>
+                    </motion.div>
 
-            {/* Total Trades Card */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4 }}
-              className="bg-gradient-to-br from-gray-900/90 to-gray-800/90 backdrop-blur-xl border border-gray-700/50 rounded-2xl p-6 shadow-xl"
-            >
-              <div className="flex items-center justify-between mb-4">
-                <div className="p-3 bg-orange-500/10 rounded-xl">
-                  <ShoppingCart className="w-6 h-6 text-orange-400" />
-                </div>
-                <div className={`flex items-center space-x-1 text-sm ${(analytics?.tradeGrowth ?? 0) > 0 ? 'text-green-400' : 'text-red-400'}`}>
-                  {(analytics?.tradeGrowth ?? 0) > 0 ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
-                  <span>{analytics?.tradeGrowth ?? 0}%</span>
-                </div>
-              </div>
-              <h3 className="text-3xl font-bold text-white mb-1">{formatNumber(analytics?.totalTrades || 0)}</h3>
-              <p className="text-gray-400 text-sm">Total Trades</p>
-              <div className="mt-4 h-1 bg-gray-700 rounded-full overflow-hidden">
-                <div className="h-full bg-gradient-to-r from-orange-500 to-orange-400" style={{ width: '70%' }}></div>
-              </div>
-            </motion.div>
+                    {/* Total Trades Card */}
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.4 }}
+                      className="bg-gradient-to-br from-gray-900/90 to-gray-800/90 backdrop-blur-xl border border-gray-700/50 rounded-2xl p-6 shadow-xl"
+                    >
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="p-3 bg-orange-500/10 rounded-xl">
+                          <ShoppingCart className="w-6 h-6 text-orange-400" />
+                        </div>
+                        <div className={`flex items-center space-x-1 text-sm ${(analytics?.tradeGrowth ?? 0) > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                          {(analytics?.tradeGrowth ?? 0) > 0 ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
+                          <span>{analytics?.tradeGrowth ?? 0}%</span>
+                        </div>
+                      </div>
+                      <h3 className="text-3xl font-bold text-white mb-1">{formatNumber(analytics?.totalTrades || 0)}</h3>
+                      <p className="text-gray-400 text-sm">Total Trades</p>
+                      <div className="mt-4 h-1 bg-gray-700 rounded-full overflow-hidden">
+                        <div className="h-full bg-gradient-to-r from-orange-500 to-orange-400" style={{ width: '70%' }}></div>
+                      </div>
+                    </motion.div>
+                  </>
+                )
+            }
           </div>
 
           {/* Charts Section */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
             {/* User Growth Chart */}
-            <div className="bg-gray-900/90 backdrop-blur-xl border border-gray-700/50 rounded-2xl p-4 sm:p-6">
-              <h3 className="text-lg font-semibold text-white mb-4">User Growth</h3>
-              <div className="h-[300px] sm:h-[400px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={userAnalytics?.data || []}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                    <XAxis dataKey="date" stroke="#9CA3AF" />
-                    <YAxis stroke="#9CA3AF" />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: 'rgba(17, 24, 39, 0.9)',
-                        border: '1px solid rgba(75, 85, 99, 0.5)',
-                        borderRadius: '0.5rem',
-                      }}
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="users"
-                      stroke="#3B82F6"
-                      strokeWidth={2}
-                      dot={false}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
+            {userAnalyticsLoading
+              ? <SkeletonChart />
+              : userAnalyticsError
+                ? <ErrorMessage message="Failed to load user analytics." />
+                : (
+                  <div className="bg-gray-900/90 backdrop-blur-xl border border-gray-700/50 rounded-2xl p-4 sm:p-6">
+                    <h3 className="text-lg font-semibold text-white mb-4">User Growth</h3>
+                    <div className="h-[300px] sm:h-[400px]">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={userAnalytics?.data || []}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                          <XAxis dataKey="date" stroke="#9CA3AF" />
+                          <YAxis stroke="#9CA3AF" />
+                          <Tooltip
+                            contentStyle={{
+                              backgroundColor: 'rgba(17, 24, 39, 0.9)',
+                              border: '1px solid rgba(75, 85, 99, 0.5)',
+                              borderRadius: '0.5rem',
+                            }}
+                          />
+                          <Line
+                            type="monotone"
+                            dataKey="users"
+                            stroke="#3B82F6"
+                            strokeWidth={2}
+                            dot={false}
+                          />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+                )
+            }
 
             {/* Revenue Chart */}
-            <div className="bg-gray-900/90 backdrop-blur-xl border border-gray-700/50 rounded-2xl p-4 sm:p-6">
-              <h3 className="text-lg font-semibold text-white mb-4">Revenue</h3>
-              <div className="h-[300px] sm:h-[400px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={revenueAnalytics?.data || []}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                    <XAxis dataKey="date" stroke="#9CA3AF" />
-                    <YAxis stroke="#9CA3AF" />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: 'rgba(17, 24, 39, 0.9)',
-                        border: '1px solid rgba(75, 85, 99, 0.5)',
-                        borderRadius: '0.5rem',
-                      }}
-                    />
-                    <Area
-                      type="monotone"
-                      dataKey="revenue"
-                      stroke="#10B981"
-                      fill="#10B981"
-                      fillOpacity={0.2}
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-              </div>
+            {revenueAnalyticsLoading
+              ? <SkeletonChart />
+              : revenueAnalyticsError
+                ? <ErrorMessage message="Failed to load revenue analytics." />
+                : (
+                  <div className="bg-gray-900/90 backdrop-blur-xl border border-gray-700/50 rounded-2xl p-4 sm:p-6">
+                    <h3 className="text-lg font-semibold text-white mb-4">Revenue</h3>
+                    <div className="h-[300px] sm:h-[400px]">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={revenueAnalytics?.data || []}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                          <XAxis dataKey="date" stroke="#9CA3AF" />
+                          <YAxis stroke="#9CA3AF" />
+                          <Tooltip
+                            contentStyle={{
+                              backgroundColor: 'rgba(17, 24, 39, 0.9)',
+                              border: '1px solid rgba(75, 85, 99, 0.5)',
+                              borderRadius: '0.5rem',
+                            }}
+                          />
+                          <Area
+                            type="monotone"
+                            dataKey="revenue"
+                            stroke="#10B981"
+                            fill="#10B981"
+                            fillOpacity={0.2}
+                          />
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+                )
+            }
+          </div>
               
           {/* Activity Feed and System Health */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
             {/* Activity Feed */}
-            <div className="bg-gray-900/90 backdrop-blur-xl border border-gray-700/50 rounded-2xl p-4 sm:p-6">
-              <h3 className="text-lg font-semibold text-white mb-4">Recent Activity</h3>
-              <div className="space-y-4">
-                {activityFeed?.map((activity) => (
-                  <div
-                    key={activity.id}
-                    className="flex items-start space-x-3 p-3 rounded-lg bg-gray-800/50"
-                  >
-                    <div className="flex-shrink-0">
-                      <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center">
-                        <ActivityIcon className="w-4 h-4 text-blue-400" />
-                      </div>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm text-white">{activity.description}</p>
-                      <p className="text-xs text-gray-400 mt-1">
-                        {timeAgo(new Date(activity.timestamp))}
-                      </p>
+            {activityFeedLoading
+              ? <SkeletonChart />
+              : activityFeedError
+                ? <ErrorMessage message="Failed to load activity feed." />
+                : (
+                  <div className="bg-gray-900/90 backdrop-blur-xl border border-gray-700/50 rounded-2xl p-4 sm:p-6">
+                    <h3 className="text-lg font-semibold text-white mb-4">Recent Activity</h3>
+                    <div className="space-y-4">
+                      {activityFeed?.map((activity) => (
+                        <div
+                          key={activity.id}
+                          className="flex items-start space-x-3 p-3 rounded-lg bg-gray-800/50"
+                        >
+                          <div className="flex-shrink-0">
+                            <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center">
+                              <ActivityIcon className="w-4 h-4 text-blue-400" />
+                            </div>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm text-white">{activity.description}</p>
+                            <p className="text-xs text-gray-400 mt-1">
+                              {timeAgo(new Date(activity.timestamp))}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
-                ))}
-              </div>
-                  </div>
+                )
+            }
 
             {/* System Health */}
-            <div className="bg-gray-900/90 backdrop-blur-xl border border-gray-700/50 rounded-2xl p-4 sm:p-6">
-              <h3 className="text-lg font-semibold text-white mb-4">System Health</h3>
-              <div className="h-[300px] sm:h-[400px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <RadarChart data={performanceData}>
-                    <PolarGrid stroke="#374151" />
-                    <PolarAngleAxis dataKey="metric" stroke="#9CA3AF" />
-                    <PolarRadiusAxis stroke="#9CA3AF" />
-                    <Radar
-                      name="Performance"
-                      dataKey="value"
-                      stroke="#3B82F6"
-                      fill="#3B82F6"
-                      fillOpacity={0.2}
-                    />
-                  </RadarChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
+            {systemHealthLoading
+              ? <SkeletonChart />
+              : systemHealthError
+                ? <ErrorMessage message="Failed to load system health." />
+                : (
+                  <div className="bg-gray-900/90 backdrop-blur-xl border border-gray-700/50 rounded-2xl p-4 sm:p-6">
+                    <h3 className="text-lg font-semibold text-white mb-4">System Health</h3>
+                    <div className="h-[300px] sm:h-[400px]">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <RadarChart data={performanceData}>
+                          <PolarGrid stroke="#374151" />
+                          <PolarAngleAxis dataKey="metric" stroke="#9CA3AF" />
+                          <PolarRadiusAxis stroke="#9CA3AF" />
+                          <Radar
+                            name="Performance"
+                            dataKey="value"
+                            stroke="#3B82F6"
+                            fill="#3B82F6"
+                            fillOpacity={0.2}
+                          />
+                        </RadarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+                )
+            }
           </div>
         </main>
       </div>

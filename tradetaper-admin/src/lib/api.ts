@@ -191,6 +191,30 @@ class AdminApi {
     );
   }
 
+  // --- Database Viewer Methods ---
+  async getDatabaseTables(): Promise<string[]> {
+    const response = await this.axiosInstance.get('/admin/database/tables');
+    return response.data;
+  }
+
+  async getDatabaseColumns(table: string): Promise<
+    Array<{ column_name: string; data_type: string; is_nullable: string; column_default: string | null }>
+  > {
+    const response = await this.axiosInstance.get('/admin/database/columns', { params: { table } });
+    return response.data;
+  }
+
+  async getDatabaseRows(
+    table: string,
+    page: number = 1,
+    limit: number = 20
+  ): Promise<{ data: any[]; total: number; page: number; limit: number; totalPages: number }> {
+    const response = await this.axiosInstance.get('/admin/database/rows', {
+      params: { table, page, limit },
+    });
+    return response.data;
+  }
+
   async getDashboardStats(): Promise<DashboardStats> {
     try {
       const response = await this.axiosInstance.get('/admin/dashboard-stats');
@@ -365,4 +389,4 @@ class AdminApi {
 
 export const adminApi = new AdminApi();
 
-export default api; 
+export default api;

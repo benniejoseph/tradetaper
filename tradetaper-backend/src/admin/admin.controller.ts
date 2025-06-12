@@ -15,6 +15,25 @@ import { AdminService } from './admin.service';
 export class AdminController {
   constructor(private readonly adminService: AdminService) {}
 
+  @Get('database/tables')
+  async getDatabaseTables() {
+    return this.adminService.getDatabaseTables();
+  }
+
+  @Get('database/columns')
+  async getDatabaseColumns(@Query('table') table: string) {
+    return this.adminService.getDatabaseColumns(table);
+  }
+
+  @Get('database/rows')
+  async getDatabaseRows(
+    @Query('table') table: string,
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
+    @Query('limit', new DefaultValuePipe(20), ParseIntPipe) limit: number,
+  ) {
+    return this.adminService.getDatabaseRows(table, page, limit);
+  }
+
   @Get('dashboard-stats')
   async getDashboardStats() {
     return this.adminService.getDashboardStats();
