@@ -1,19 +1,10 @@
 'use client';
 
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { Shield } from 'lucide-react';
+import { Shield, ArrowRight } from 'lucide-react';
 
 export default function LoginPage() {
-  const router = useRouter();
-
-  // Automatically redirect to dashboard since auth is disabled
-  useEffect(() => {
-    console.log('LoginPage: Authentication disabled, redirecting to dashboard');
-    router.replace('/');
-  }, [router]);
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-black flex items-center justify-center p-4">
       <motion.div
@@ -30,15 +21,22 @@ export default function LoginPage() {
         >
           <Shield className="w-10 h-10 text-white" />
         </motion.div>
-        <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-green-400 bg-clip-text text-transparent mb-2">
+        <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-green-400 bg-clip-text text-transparent mb-4">
           TradeTaper Admin
         </h1>
-        <p className="text-gray-400 mb-4">Authentication disabled - redirecting to dashboard...</p>
-        <div className="flex items-center justify-center space-x-2">
-          <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"></div>
-          <div className="w-2 h-2 bg-green-500 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-          <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-        </div>
+        <p className="text-gray-400 mb-8">Authentication has been disabled for this admin panel.</p>
+        
+        <Link 
+          href="/"
+          className="inline-flex items-center space-x-2 bg-gradient-to-r from-blue-600 to-green-600 hover:from-blue-700 hover:to-green-700 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200 shadow-lg hover:shadow-blue-500/25"
+        >
+          <span>Access Admin Dashboard</span>
+          <ArrowRight className="w-5 h-5" />
+        </Link>
+        
+        <p className="text-gray-500 text-sm mt-4">
+          Click the button above to access the admin dashboard directly.
+        </p>
       </motion.div>
     </div>
   );
