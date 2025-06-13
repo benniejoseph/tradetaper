@@ -22,12 +22,11 @@ export default function LoginPage() {
     try {
       console.log('LoginPage: Attempting login with:', { email });
       const result = await adminLogin(email, password);
-      console.log('LoginPage: Login successful, redirecting to dashboard');
+      console.log('LoginPage: Login successful, auth data stored');
       
-      // Add a small delay to ensure localStorage is updated
-      setTimeout(() => {
-        router.replace('/');
-      }, 200);
+      // Force a page reload to ensure AuthWrapper picks up the new auth state
+      window.location.href = '/';
+      
     } catch (error: any) {
       console.error('LoginPage: Login failed:', error);
       setError(
