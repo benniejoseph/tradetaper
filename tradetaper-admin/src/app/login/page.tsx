@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuthStorage } from '@/hooks/useLocalStorage';
 import { motion } from 'framer-motion';
 import { Eye, EyeOff, Shield, User, Lock, ArrowRight, AlertCircle } from 'lucide-react';
 import { adminLogin } from '@/lib/api';
@@ -14,7 +13,6 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const router = useRouter();
-  const { login } = useAuthStorage();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -24,17 +22,28 @@ export default function LoginPage() {
     try {
       console.log('LoginPage: Attempting login with:', { email });
       const result = await adminLogin(email, password);
-      console.log('LoginPage: Login successful, storing auth data in hook');
+      console.log('LoginPage: Login successful, storing auth data directly');
       
-      // Use the auth hook to store authentication data
-      login(result.accessToken, result.user);
-      console.log('LoginPage: Auth data stored via hook');
+      // Store authentication data directly in localStorage
+      localStorage.setItem('admin_token', result.accessToken);
+      localStorage.setItem('admin_authenticated', 'true');
+      localStorage.setItem('admin_user', JSON.stringify({
+        ...result.user,
+        loginTime: new Date().toISOString(),
+      }));
       
-      // Add a small delay to ensure localStorage is written and state is updated
-      await new Promise(resolve => setTimeout(resolve, 150));
-      console.log('LoginPage: Navigating to dashboard after delay');
+      console.log('LoginPage: Auth data stored, triggering storage event');
       
-      // Navigate to dashboard
+      // Trigger custom storage event for AuthWrapper
+      window.dispatchEvent(new StorageEvent('storage', {
+        key: 'admin_authenticated',
+        newValue: 'true'
+      }));
+      
+      // Small delay then navigate
+      await new Promise(resolve => setTimeout(resolve, 100));
+      console.log('LoginPage: Navigating to dashboard');
+      
       router.replace('/');
       
     } catch (error: any) {
