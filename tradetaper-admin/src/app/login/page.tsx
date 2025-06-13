@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useAuthStorage } from '@/hooks/useLocalStorage';
 import { motion } from 'framer-motion';
 import { Eye, EyeOff, Shield, User, Lock, ArrowRight, AlertCircle } from 'lucide-react';
 import { adminLogin } from '@/lib/api';
@@ -13,6 +14,7 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const router = useRouter();
+  const { login } = useAuthStorage();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -22,10 +24,14 @@ export default function LoginPage() {
     try {
       console.log('LoginPage: Attempting login with:', { email });
       const result = await adminLogin(email, password);
-      console.log('LoginPage: Login successful, auth data stored');
+      console.log('LoginPage: Login successful, storing auth data in hook');
       
-      // Force a page reload to ensure AuthWrapper picks up the new auth state
-      window.location.href = '/';
+      // Use the auth hook to store authentication data
+      login(result.accessToken, result.user);
+      console.log('LoginPage: Auth data stored via hook, navigating to dashboard');
+      
+      // Navigate immediately - AuthWrapper will handle the redirect logic
+      router.replace('/');
       
     } catch (error: any) {
       console.error('LoginPage: Login failed:', error);
