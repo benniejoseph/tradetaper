@@ -5,7 +5,7 @@ import { AppService } from './app.service';
 import { ConfigModule } from '@nestjs/config';
 // import { TypeOrmModule } from '@nestjs/typeorm';
 // import { UsersModule } from './users/users.module';
-import { AuthModule } from './auth/auth.module';
+// import { AuthModule } from './auth/auth.module';
 // import { TradesModule } from './trades/trades.module';
 import { MarketDataModule } from './market-data/market-data.module';
 // import { SeedModule } from './seed/seed.module';
@@ -41,7 +41,7 @@ import { CommonModule } from './common/common.module';
     // }),
     // TEMPORARY: Disable database-dependent modules for initial GCP deployment
     // UsersModule,
-    AuthModule,
+    // AuthModule, // Depends on UsersModule
     // TradesModule,
     MarketDataModule,
     // TagsModule,
