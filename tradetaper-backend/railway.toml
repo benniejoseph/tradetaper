@@ -1,15 +1,15 @@
 [build]
   builder = "nixpacks"
-  buildCommand = "npm install --legacy-peer-deps && npm run build:simple"
+  buildCommand = "npm install --legacy-peer-deps && npm run build"
   watchPatterns = ["**/*.ts", "**/*.js", "**/*.json"]
 
 [deploy]
   startCommand = "node dist/main"
   healthcheckPath = "/api/v1/health"
-  healthcheckTimeout = 300
-  healthcheckInterval = 30
+  healthcheckTimeout = 120
+  healthcheckInterval = 15
   restartPolicyType = "always"
-  restartPolicyMaxRetries = 3
+  restartPolicyMaxRetries = 5
 
 [variables]
   NODE_ENV = "production"

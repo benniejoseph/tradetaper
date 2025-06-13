@@ -57,14 +57,18 @@ import { Strategy } from './strategies/entities/strategy.entity';
             ssl: {
               rejectUnauthorized: false, // Required for Railway and some other providers
             },
-            retryAttempts: 3,
-            retryDelay: 3000,
+            retryAttempts: 5,
+            retryDelay: 1000, // Reduced from 3000
             autoLoadEntities: true,
             logging: false, // Disable query logging in production
-            maxQueryExecutionTime: 30000, // 30 seconds timeout
-            connectTimeoutMS: 30000,
-            acquireTimeoutMillis: 30000,
-            timeout: 30000,
+            maxQueryExecutionTime: 5000, // Reduced from 30000
+            connectTimeoutMS: 10000, // Reduced from 30000
+            acquireTimeoutMillis: 5000, // Reduced from 30000
+            timeout: 5000, // Reduced from 30000
+            extra: {
+              connectionTimeoutMillis: 5000,
+              idleTimeoutMillis: 30000,
+            },
           };
         }
 
