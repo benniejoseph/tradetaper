@@ -28,9 +28,13 @@ export default function LoginPage() {
       
       // Use the auth hook to store authentication data
       login(result.accessToken, result.user);
-      console.log('LoginPage: Auth data stored via hook, navigating to dashboard');
+      console.log('LoginPage: Auth data stored via hook');
       
-      // Navigate immediately - AuthWrapper will handle the redirect logic
+      // Add a small delay to ensure localStorage is written and state is updated
+      await new Promise(resolve => setTimeout(resolve, 150));
+      console.log('LoginPage: Navigating to dashboard after delay');
+      
+      // Navigate to dashboard
       router.replace('/');
       
     } catch (error: any) {
