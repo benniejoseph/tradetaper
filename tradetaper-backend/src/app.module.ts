@@ -52,16 +52,18 @@ import { Strategy } from './strategies/entities/strategy.entity';
             type: 'postgres',
             url: databaseUrl,
             entities: [User, Trade, Tag, MT5Account, Subscription, Usage, Strategy],
-            synchronize: true, // TEMPORARY: Force schema sync
+            synchronize: false, // Disable auto-sync to prevent blocking
             ssl: { rejectUnauthorized: false },
-            retryAttempts: 3,
-            retryDelay: 1000,
+            retryAttempts: 1, // Minimal retries
+            retryDelay: 500,
             autoLoadEntities: true,
             logging: false,
-            maxQueryExecutionTime: 5000,
-            connectTimeoutMS: 10000,
-            acquireTimeoutMillis: 5000,
-            timeout: 5000,
+            maxQueryExecutionTime: 3000,
+            connectTimeoutMS: 3000,
+            acquireTimeoutMillis: 2000,
+            timeout: 2000,
+            migrationsRun: false, // Disable migrations
+            dropSchema: false,
           };
         }
 
