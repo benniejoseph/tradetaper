@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import toast from 'react-hot-toast';
-import { adminLogout } from '@/lib/api';
+// adminLogout removed - auth disabled
 
 interface SidebarProps {
   isCollapsed: boolean;
@@ -71,13 +71,8 @@ export default function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
   const router = useRouter();
 
   const handleLogout = () => {
-    // Clear authentication data using the proper logout function
-    adminLogout();
-    
-    // Show success message
-    toast.success('Logged out successfully');
-    
-    // Redirect to login
+    // Authentication disabled - redirect to login page (which will redirect back to dashboard)
+    toast.success('Authentication disabled - redirecting to dashboard');
     router.push('/login');
   };
 
