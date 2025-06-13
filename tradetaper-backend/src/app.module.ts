@@ -33,27 +33,87 @@ import { Strategy } from './strategies/entities/strategy.entity';
       isGlobal: true,
       envFilePath: '.env',
     }),
-    // TEMPORARY: Disable TypeORM entirely for Railway deployment testing
-    // TypeOrmModule.forRootAsync({ ... }),
+    TypeOrmModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => {
+        const isProduction = configService.get<string>('NODE_ENV') === 'production';
+        const databaseUrl = configService.get<string>('DATABASE_URL');
+
+        console.log('🔧 Database configuration:', {
+          isProduction,
+          hasDatabaseUrl: !!databaseUrl,
+          nodeEnv: process.env.NODE_ENV
+        });
+
+        // Using DATABASE_URL for production (Railway, Heroku, etc)
+        if (isProduction && databaseUrl) {
+          return {
+            type: 'postgres',
+            url: databaseUrl,
+            entities: [User, Trade, Tag, MT5Account, Subscription, Usage, Strategy],
+            synchronize: true, // TEMPORARY: Force schema sync
+            ssl: { rejectUnauthorized: false },
+            retryAttempts: 3,
+            retryDelay: 1000,
+            autoLoadEntities: true,
+            logging: false,
+            maxQueryExecutionTime: 5000,
+            connectTimeoutMS: 10000,
+            acquireTimeoutMillis: 5000,
+            timeout: 5000,
+          };
+        }
+
+        // Using DATABASE_URL for development if provided
+        if (databaseUrl && databaseUrl.startsWith('postgresql://')) {
+          return {
+            type: 'postgres',
+            url: databaseUrl,
+            entities: [User, Trade, Tag, MT5Account, Subscription, Usage, Strategy],
+            synchronize: configService.get<string>('NODE_ENV') !== 'production',
+            retryAttempts: 3,
+            retryDelay: 3000,
+            autoLoadEntities: true,
+            logging: false,
+          };
+        }
+
+        // Using individual DB config params for development
+        return {
+          type: 'postgres',
+          host: configService.get<string>('DB_HOST', 'localhost'),
+          port: configService.get<number>('DB_PORT', 5432),
+          username: configService.get<string>('DB_USERNAME', 'postgres'),
+          password: configService.get<string>('DB_PASSWORD', 'postgres'),
+          database: configService.get<string>('DB_DATABASE', 'tradetaper_dev'),
+          entities: [User, Trade, Tag, MT5Account, Subscription, Usage, Strategy],
+          synchronize: configService.get<string>('NODE_ENV') !== 'production',
+          retryAttempts: 3,
+          retryDelay: 3000,
+          autoLoadEntities: true,
+          logging: false,
+        };
+      },
+    }),
     // ServeStaticModule.forRoot({
     //   rootPath: join(__dirname, '..', 'public'),
     //   serveRoot: '/uploads',
     // }),
-    // TEMPORARY: Disable database-dependent modules for Railway deployment testing
-    // UsersModule,
+    UsersModule,
     AuthModule,
-    // TradesModule,
+    TradesModule,
     MarketDataModule,
-    // TagsModule,
-    // SeedModule,
+    TagsModule,
+    SeedModule,
     FilesModule,
-    // WebSocketGatewayModule,
-    // SubscriptionsModule,
+    WebSocketGatewayModule,
+    SubscriptionsModule,
     ContentModule,
-    // AdminModule,
-    // StrategiesModule,
+    AdminModule,
+    StrategiesModule,
     CommonModule,
-    // TypeOrmModule.forFeature([Subscription]),
+    TypeOrmModule.forFeature([Subscription]),
     // ... other modules will go here
   ],
   controllers: [AppController],
