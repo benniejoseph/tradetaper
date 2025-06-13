@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import Sidebar from '@/components/Sidebar';
 import { motion } from 'framer-motion';
 import { 
   TestTube,
