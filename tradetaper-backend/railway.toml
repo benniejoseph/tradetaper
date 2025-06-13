@@ -1,6 +1,6 @@
 [build]
   builder = "nixpacks"
-  buildCommand = "npm install --legacy-peer-deps && npm run build"
+  buildCommand = "npm install --legacy-peer-deps && npm run build:simple"
   watchPatterns = ["**/*.ts", "**/*.js", "**/*.json"]
 
 [deploy]
