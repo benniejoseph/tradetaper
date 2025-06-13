@@ -26,16 +26,18 @@ export class AppController {
   @Get('ping')
   ping() {
     const timestamp = new Date().toISOString();
-    console.log(`🏓 Ping endpoint called at: ${timestamp} - Working correctly!`);
+    console.log(`🏓 Ping endpoint called at: ${timestamp} - Working correctly! Updated deployment.`);
     return {
       message: 'pong',
       timestamp,
       status: 'ok',
       service: 'tradetaper-backend',
+      version: '1.0.1',
       uptime: Math.floor(process.uptime()),
       pid: process.pid,
       memory: Math.round(process.memoryUsage().heapUsed / 1024 / 1024) + 'MB',
-      routes: 'registered'
+      routes: 'registered',
+      deployment: 'updated'
     };
   }
 
@@ -94,8 +96,9 @@ export class AppController {
       status: 'healthy',
       timestamp: new Date().toISOString(),
       service: 'tradetaper-backend',
-      version: '1.0.0',
-      environment: process.env.NODE_ENV || 'production'
+      version: '1.0.1',
+      environment: process.env.NODE_ENV || 'production',
+      deployment: 'updated'
     };
   }
 
