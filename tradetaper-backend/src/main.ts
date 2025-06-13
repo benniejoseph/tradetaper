@@ -20,6 +20,12 @@ async function bootstrap() {
     // Minimal CORS
     app.enableCors({ origin: true, credentials: true });
 
+    // Add root health endpoint for Railway
+    const express = app.getHttpAdapter().getInstance();
+    express.get('/health', (req, res) => {
+      res.json({ status: 'ok', timestamp: new Date().toISOString() });
+    });
+
     app.setGlobalPrefix('api/v1');
 
     // Minimal validation
