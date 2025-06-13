@@ -107,4 +107,7 @@ quick-upload-test.sh
 production-readiness-check.js
 check-*.js
 delete-*.js
-run-*.js 
+run-*.js
+
+# Claude context files
+claudeContext.txt 
