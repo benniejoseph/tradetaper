@@ -1,6 +1,7 @@
 [build]
   builder = "nixpacks"
   buildCommand = "npm install --legacy-peer-deps && npm run build"
+  watchPatterns = ["**/*.ts", "**/*.js", "**/*.json"]
 
 [deploy]
   startCommand = "echo 'Starting TradeTaper Backend...' && node dist/main"

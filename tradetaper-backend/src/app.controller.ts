@@ -26,14 +26,16 @@ export class AppController {
   @Get('ping')
   ping() {
     const timestamp = new Date().toISOString();
-    console.log(`🏓 Ping endpoint called at: ${timestamp}`);
+    console.log(`🏓 Ping endpoint called at: ${timestamp} - Working correctly!`);
     return {
       message: 'pong',
       timestamp,
       status: 'ok',
+      service: 'tradetaper-backend',
       uptime: Math.floor(process.uptime()),
       pid: process.pid,
-      memory: Math.round(process.memoryUsage().heapUsed / 1024 / 1024) + 'MB'
+      memory: Math.round(process.memoryUsage().heapUsed / 1024 / 1024) + 'MB',
+      routes: 'registered'
     };
   }
 
@@ -85,15 +87,17 @@ export class AppController {
     }
   }
 
-  // Removed unsafe raw SQL migration endpoint - use proper TypeORM migrations instead
-
-  // Removed debug subscription endpoint - use proper admin endpoints or logging instead
-
-  // Removed unsafe schema creation endpoint - use proper TypeORM migrations instead
-
-  // Removed unsafe debug users endpoint - use proper admin endpoints or seeding service instead
-
-  // Removed unsafe seed trades endpoint - use proper seeding service instead
+  // Health check for Railway deployment
+  @Get('railway-health')
+  railwayHealth() {
+    return {
+      status: 'healthy',
+      timestamp: new Date().toISOString(),
+      service: 'tradetaper-backend',
+      version: '1.0.0',
+      environment: process.env.NODE_ENV || 'production'
+    };
+  }
 
   @Post('validate-stripe')
   async validateStripe() {
