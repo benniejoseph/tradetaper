@@ -15,6 +15,8 @@ import {
   ChevronRight,
   LogOut,
   TestTube,
+  Terminal,
+  HardDrive,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import toast from 'react-hot-toast';
@@ -46,10 +48,12 @@ const menuItems = [
     ],
   },
   {
-    section: 'System',
+    section: 'System & Development',
     items: [
       { icon: Database, label: 'System', href: '/system' },
       { icon: TestTube, label: 'Testing', href: '/testing' },
+      { icon: HardDrive, label: 'Database', href: '/database' },
+      { icon: Terminal, label: 'Logs', href: '/logs' },
     ],
   },
   {
