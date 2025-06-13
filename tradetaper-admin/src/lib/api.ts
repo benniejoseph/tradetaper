@@ -210,6 +210,7 @@ export interface ApiUsageStats {
 class AdminApi {
   private baseUrl: string;
   private axiosInstance;
+  private adminToken: string | null = null;
 
   constructor() {
     this.baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api/v1';
@@ -221,7 +222,35 @@ class AdminApi {
       },
     });
 
-    // No authentication interceptors - open access admin panel
+    // Add request interceptor to include admin token
+    this.axiosInstance.interceptors.request.use(async (config) => {
+      if (!this.adminToken) {
+        await this.getAdminToken();
+      }
+      if (this.adminToken) {
+        config.headers['Authorization'] = `Bearer ${this.adminToken}`;
+      }
+      return config;
+    });
+  }
+
+  private async getAdminToken(): Promise<void> {
+    try {
+      // Try to login with admin credentials
+      const response = await axios.post(`${this.baseUrl}/auth/login`, {
+        email: 'admin@tradetaper.com',
+        password: 'admin123'
+      });
+      
+      if (response.data?.accessToken) {
+        this.adminToken = response.data.accessToken;
+        console.log('🔑 Admin authentication successful');
+      }
+    } catch (error) {
+      console.warn('⚠️ Admin authentication failed, some features may not work:', error);
+      // Use a placeholder token to avoid infinite retry
+      this.adminToken = 'failed';
+    }
   }
 
   // --- Database Viewer Methods ---
