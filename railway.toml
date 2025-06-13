@@ -4,11 +4,11 @@
 
 [deploy]
   startCommand = "cd tradetaper-backend && node dist/main"
-  healthcheckPath = "/api/v1/health"
-  healthcheckTimeout = 300
-  healthcheckInterval = 30
+  healthcheckPath = "/api/v1/ping"
+  healthcheckTimeout = 120
+  healthcheckInterval = 15
   restartPolicyType = "always"
-  restartPolicyMaxRetries = 3
+  restartPolicyMaxRetries = 5
 
 [variables]
 NODE_ENV = "production"
