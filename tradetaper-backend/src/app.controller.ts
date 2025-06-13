@@ -41,52 +41,20 @@ export class AppController {
     };
   }
 
-  // Simple health check that doesn't depend on database
+  // Ultra-simple health check for Railway
   @Get('health')
-  async getHealth() {
-    const startTime = Date.now();
+  getHealth() {
     const timestamp = new Date().toISOString();
-    console.log(`❤️  Health check requested at: ${timestamp}`);
-
-    try {
-      // Memory usage
-      const memUsage = process.memoryUsage();
-      const totalMemory = memUsage.heapTotal;
-      const usedMemory = memUsage.heapUsed;
-      const memoryPercentage = Math.round((usedMemory / totalMemory) * 100);
-
-      const healthData = {
-        status: 'ok',
-        timestamp,
-        environment: process.env.NODE_ENV || 'unknown',
-        version: '1.0.0',
-        uptime: Math.floor(process.uptime()),
-        pid: process.pid,
-        memory: {
-          used: `${Math.round(usedMemory / 1024 / 1024)}MB`,
-          total: `${Math.round(totalMemory / 1024 / 1024)}MB`,
-          percentage: memoryPercentage,
-        },
-        database: 'unknown', // Don't check database to avoid blocking
-        services: { basic: true },
-      };
-
-      const duration = Date.now() - startTime;
-      console.log(`✅ Health check completed in ${duration}ms`);
-      
-      return healthData;
-    } catch (error) {
-      console.error('❌ Health check error:', error);
-      return {
-        status: 'error',
-        timestamp,
-        environment: process.env.NODE_ENV || 'unknown',
-        version: '1.0.0',
-        uptime: Math.floor(process.uptime()),
-        pid: process.pid,
-        error: error.message,
-      };
-    }
+    console.log(`❤️ Ultra-simple health check at: ${timestamp}`);
+    
+    return {
+      status: 'ok',
+      timestamp,
+      service: 'tradetaper-backend',
+      uptime: Math.floor(process.uptime()),
+      port: process.env.PORT || 3000,
+      environment: process.env.NODE_ENV || 'production'
+    };
   }
 
   // Health check for Railway deployment
