@@ -2,28 +2,28 @@
 import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { ConfigModule, ConfigService } from '@nestjs/config';
-import { TypeOrmModule } from '@nestjs/typeorm';
-import { UsersModule } from './users/users.module';
+import { ConfigModule } from '@nestjs/config';
+// import { TypeOrmModule } from '@nestjs/typeorm';
+// import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
-import { TradesModule } from './trades/trades.module';
+// import { TradesModule } from './trades/trades.module';
 import { MarketDataModule } from './market-data/market-data.module';
-import { SeedModule } from './seed/seed.module';
+// import { SeedModule } from './seed/seed.module';
 import { FilesModule } from './files/files.module';
-import { TagsModule } from './tags/tags.module';
-import { WebSocketGatewayModule } from './websocket/websocket.module';
-import { SubscriptionsModule } from './subscriptions/subscriptions.module';
+// import { TagsModule } from './tags/tags.module';
+// import { WebSocketGatewayModule } from './websocket/websocket.module';
+// import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 import { ContentModule } from './content/content.module';
-import { AdminModule } from './admin/admin.module';
-import { StrategiesModule } from './strategies/strategies.module';
+// import { AdminModule } from './admin/admin.module';
+// import { StrategiesModule } from './strategies/strategies.module';
 import { CommonModule } from './common/common.module';
-import { Subscription } from './subscriptions/entities/subscription.entity';
-import { Usage } from './subscriptions/entities/usage.entity';
-import { User } from './users/entities/user.entity';
-import { Trade } from './trades/entities/trade.entity';
-import { Tag } from './tags/entities/tag.entity';
-import { MT5Account } from './users/entities/mt5-account.entity';
-import { Strategy } from './strategies/entities/strategy.entity';
+// import { Subscription } from './subscriptions/entities/subscription.entity';
+// import { Usage } from './subscriptions/entities/usage.entity';
+// import { User } from './users/entities/user.entity';
+// import { Trade } from './trades/entities/trade.entity';
+// import { Tag } from './tags/entities/tag.entity';
+// import { MT5Account } from './users/entities/mt5-account.entity';
+// import { Strategy } from './strategies/entities/strategy.entity';
 // import { ServeStaticModule } from '@nestjs/serve-static';
 // import { join } from 'path';
 
@@ -33,90 +33,27 @@ import { Strategy } from './strategies/entities/strategy.entity';
       isGlobal: true,
       envFilePath: '.env',
     }),
-    TypeOrmModule.forRootAsync({
-      imports: [ConfigModule],
-      inject: [ConfigService],
-      useFactory: (configService: ConfigService) => {
-        const isProduction = configService.get<string>('NODE_ENV') === 'production';
-        const databaseUrl = configService.get<string>('DATABASE_URL');
-
-        console.log('🔧 Database configuration:', {
-          isProduction,
-          hasDatabaseUrl: !!databaseUrl,
-          nodeEnv: process.env.NODE_ENV
-        });
-
-        // Using DATABASE_URL for production (Railway, GCP, etc)
-        if (isProduction && databaseUrl && databaseUrl.includes('postgresql://')) {
-          return {
-            type: 'postgres',
-            url: databaseUrl,
-            entities: [User, Trade, Tag, MT5Account, Subscription, Usage, Strategy],
-            synchronize: false, // Disable auto-sync to prevent blocking
-            ssl: { rejectUnauthorized: false },
-            retryAttempts: 1, // Minimal retries
-            retryDelay: 500,
-            autoLoadEntities: true,
-            logging: false,
-            maxQueryExecutionTime: 3000,
-            connectTimeoutMS: 3000,
-            acquireTimeoutMillis: 2000,
-            timeout: 2000,
-            migrationsRun: false, // Disable migrations
-            dropSchema: false,
-          };
-        }
-
-        // Using DATABASE_URL for development if provided
-        if (databaseUrl && databaseUrl.startsWith('postgresql://')) {
-          return {
-            type: 'postgres',
-            url: databaseUrl,
-            entities: [User, Trade, Tag, MT5Account, Subscription, Usage, Strategy],
-            synchronize: configService.get<string>('NODE_ENV') !== 'production',
-            retryAttempts: 3,
-            retryDelay: 3000,
-            autoLoadEntities: true,
-            logging: false,
-          };
-        }
-
-        // Fallback: No database configuration (for basic container startup)
-        console.log('⚠️ No valid database configuration found - running without database');
-        return {
-          type: 'postgres',
-          host: 'localhost',
-          port: 5432,
-          username: 'temp',
-          password: 'temp',
-          database: 'temp',
-          entities: [],
-          synchronize: false,
-          autoLoadEntities: false,
-          logging: false,
-          retryAttempts: 0,
-          retryDelay: 1000,
-        };
-      },
-    }),
+    // TEMPORARY: Disable TypeORM for initial GCP deployment test
+    // TypeOrmModule.forRootAsync({ ... }),
     // ServeStaticModule.forRoot({
     //   rootPath: join(__dirname, '..', 'public'),
     //   serveRoot: '/uploads',
     // }),
-    UsersModule,
+    // TEMPORARY: Disable database-dependent modules for initial GCP deployment
+    // UsersModule,
     AuthModule,
-    TradesModule,
+    // TradesModule,
     MarketDataModule,
-    TagsModule,
-    SeedModule,
+    // TagsModule,
+    // SeedModule,
     FilesModule,
-    WebSocketGatewayModule,
-    SubscriptionsModule,
+    // WebSocketGatewayModule,
+    // SubscriptionsModule,
     ContentModule,
-    AdminModule,
-    StrategiesModule,
+    // AdminModule,
+    // StrategiesModule,
     CommonModule,
-    TypeOrmModule.forFeature([Subscription]),
+    // TypeOrmModule.forFeature([Subscription]),
     // ... other modules will go here
   ],
   controllers: [AppController],
