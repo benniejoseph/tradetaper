@@ -25,44 +25,22 @@ export default function AuthWrapper({ children }: AuthWrapperProps) {
 
     console.log('AuthWrapper: Checking authentication for path:', pathname);
 
-    // Check authentication status
+    // Simplified authentication check
     const checkAuth = () => {
       try {
         const token = localStorage.getItem('admin_token');
         const isAuth = localStorage.getItem('admin_authenticated') === 'true';
-        const adminUser = localStorage.getItem('admin_user');
         
-        console.log('AuthWrapper: Auth check results:', { token: !!token, isAuth, adminUser: !!adminUser });
+        console.log('AuthWrapper: Auth check results:', { 
+          token: !!token, 
+          isAuth, 
+          pathname 
+        });
         
-        if (token && isAuth && adminUser) {
-          try {
-            const user = JSON.parse(adminUser);
-            // Check if login is not too old (24 hours)
-            const loginTime = new Date(user.loginTime);
-            const now = new Date();
-            const hoursDiff = (now.getTime() - loginTime.getTime()) / (1000 * 60 * 60);
-            
-            console.log('AuthWrapper: Session age (hours):', hoursDiff);
-            
-            if (hoursDiff < 24) {
-              console.log('AuthWrapper: User is authenticated');
-              setIsAuthenticated(true);
-            } else {
-              console.log('AuthWrapper: Session expired, clearing auth data');
-              // Session expired
-              localStorage.removeItem('admin_token');
-              localStorage.removeItem('admin_authenticated');
-              localStorage.removeItem('admin_user');
-              setIsAuthenticated(false);
-            }
-          } catch (parseError) {
-            console.error('AuthWrapper: Error parsing admin user data:', parseError);
-            // Clear corrupted data
-            localStorage.removeItem('admin_token');
-            localStorage.removeItem('admin_authenticated');
-            localStorage.removeItem('admin_user');
-            setIsAuthenticated(false);
-          }
+        // Simplified check - if token exists and auth flag is true, user is authenticated
+        if (token && isAuth) {
+          console.log('AuthWrapper: User is authenticated');
+          setIsAuthenticated(true);
         } else {
           console.log('AuthWrapper: User is not authenticated');
           setIsAuthenticated(false);
@@ -75,9 +53,22 @@ export default function AuthWrapper({ children }: AuthWrapperProps) {
       }
     };
 
-    // Small delay to prevent hydration issues
-    const timer = setTimeout(checkAuth, 100);
-    return () => clearTimeout(timer);
+    // Initial check
+    checkAuth();
+
+    // Listen for storage changes (when login completes)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'admin_token' || e.key === 'admin_authenticated') {
+        console.log('AuthWrapper: Storage changed, rechecking auth');
+        checkAuth();
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
   }, [pathname]);
 
   useEffect(() => {
@@ -89,19 +80,14 @@ export default function AuthWrapper({ children }: AuthWrapperProps) {
 
     console.log('AuthWrapper: Redirect logic - isAuthenticated:', isAuthenticated, 'isPublicPath:', isPublicPath, 'pathname:', pathname);
 
-    // Add small delay to prevent redirect loops
-    const timeoutId = setTimeout(() => {
-      // Redirect logic
-      if (!isAuthenticated && !isPublicPath) {
-        console.log('AuthWrapper: Redirecting to login - user not authenticated');
-        router.replace('/login');
-      } else if (isAuthenticated && pathname === '/login') {
-        console.log('AuthWrapper: Redirecting to dashboard - user already authenticated');
-        router.replace('/');
-      }
-    }, 100);
-
-    return () => clearTimeout(timeoutId);
+    // Only redirect if we have a definitive auth state
+    if (isAuthenticated === false && !isPublicPath) {
+      console.log('AuthWrapper: Redirecting to login - user not authenticated');
+      router.replace('/login');
+    } else if (isAuthenticated === true && pathname === '/login') {
+      console.log('AuthWrapper: Redirecting to dashboard - user already authenticated');
+      router.replace('/');
+    }
   }, [isAuthenticated, isLoading, isPublicPath, pathname, router]);
 
   // Show loading spinner while checking authentication
