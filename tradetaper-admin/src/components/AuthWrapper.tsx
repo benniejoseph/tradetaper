@@ -1,43 +1,93 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Shield } from 'lucide-react';
-import { useAuthStorage } from '@/hooks/useLocalStorage';
 
 interface AuthWrapperProps {
   children: React.ReactNode;
 }
 
 export default function AuthWrapper({ children }: AuthWrapperProps) {
-  const { isAuthenticated, token } = useAuthStorage();
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const router = useRouter();
   const pathname = usePathname();
   const hasRedirected = useRef(false);
-  const lastAuthState = useRef<boolean | null>(null);
+  const checkInProgress = useRef(false);
 
   // Public paths that don't require authentication
-  const publicPaths = ['/login'];
+  const publicPaths = ['/login', '/debug-auth'];
   const isPublicPath = publicPaths.includes(pathname);
 
-  console.log('AuthWrapper: Render - pathname:', pathname, 'isAuthenticated:', isAuthenticated, 'token:', !!token, 'lastAuthState:', lastAuthState.current);
+  // Direct localStorage check for authentication
+  const checkAuthStatus = () => {
+    if (checkInProgress.current) return;
+    checkInProgress.current = true;
+    
+    try {
+      const token = localStorage.getItem('admin_token');
+      const authFlag = localStorage.getItem('admin_authenticated');
+      const isAuth = !!(token && authFlag === 'true');
+      
+      console.log('AuthWrapper: Direct auth check - token:', !!token, 'authFlag:', authFlag, 'isAuth:', isAuth);
+      
+      setIsAuthenticated(prevState => {
+        if (prevState !== isAuth) {
+          console.log('AuthWrapper: Auth state changed from', prevState, 'to', isAuth);
+          return isAuth;
+        }
+        return prevState;
+      });
+    } catch (error) {
+      console.error('AuthWrapper: Auth check error:', error);
+      setIsAuthenticated(false);
+    } finally {
+      checkInProgress.current = false;
+    }
+  };
+
+  // Check auth on mount and pathname changes
+  useEffect(() => {
+    console.log('AuthWrapper: Checking auth for pathname:', pathname);
+    checkAuthStatus();
+  }, [pathname]);
+
+  // Listen for localStorage changes
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'admin_token' || e.key === 'admin_authenticated') {
+        console.log('AuthWrapper: Storage changed, rechecking auth');
+        hasRedirected.current = false; // Reset redirect flag on auth change
+        checkAuthStatus();
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
+
+  console.log('AuthWrapper: Render - pathname:', pathname, 'isAuthenticated:', isAuthenticated, 'isPublicPath:', isPublicPath);
 
   // Handle redirects based on authentication status
   useEffect(() => {
-    // Prevent multiple redirects for the same auth state and path
-    if (hasRedirected.current && lastAuthState.current === isAuthenticated) {
-      console.log('AuthWrapper: Already redirected for this auth state, skipping');
+    if (isAuthenticated === null) {
+      console.log('AuthWrapper: Auth state unknown, skipping redirect');
       return;
     }
 
-    console.log('AuthWrapper: Redirect logic - isAuthenticated:', isAuthenticated, 'isPublicPath:', isPublicPath, 'pathname:', pathname);
+    // Prevent multiple redirects
+    if (hasRedirected.current) {
+      console.log('AuthWrapper: Already redirected, skipping');
+      return;
+    }
+
+    console.log('AuthWrapper: Redirect logic - isAuthenticated:', isAuthenticated, 'isPublicPath:', isPublicPath);
 
     // Handle unauthenticated users trying to access protected routes
     if (!isAuthenticated && !isPublicPath) {
       console.log('AuthWrapper: Redirecting to login - user not authenticated');
       hasRedirected.current = true;
-      lastAuthState.current = isAuthenticated;
       router.replace('/login');
       return;
     }
@@ -46,15 +96,11 @@ export default function AuthWrapper({ children }: AuthWrapperProps) {
     if (isAuthenticated && pathname === '/login') {
       console.log('AuthWrapper: Redirecting to dashboard - user already authenticated');
       hasRedirected.current = true;
-      lastAuthState.current = isAuthenticated;
       router.replace('/');
       return;
     }
 
-    // Update last auth state and reset redirect flag for valid navigation
-    lastAuthState.current = isAuthenticated;
-    hasRedirected.current = false;
-    console.log('AuthWrapper: Valid navigation, resetting redirect flag');
+    console.log('AuthWrapper: Valid navigation, no redirect needed');
   }, [isAuthenticated, isPublicPath, pathname, router]);
 
   // Reset redirect flag when pathname changes
