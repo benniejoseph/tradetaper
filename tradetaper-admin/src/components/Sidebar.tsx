@@ -51,6 +51,7 @@ const menuItems = [
     section: 'System & Development',
     items: [
       { icon: Database, label: 'System', href: '/system' },
+      { icon: Activity, label: 'Status', href: '/status' },
       { icon: TestTube, label: 'Testing', href: '/testing' },
       { icon: HardDrive, label: 'Database', href: '/database' },
       { icon: Terminal, label: 'Logs', href: '/logs' },
