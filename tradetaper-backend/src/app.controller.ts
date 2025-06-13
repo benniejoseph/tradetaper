@@ -1,15 +1,15 @@
 import { Controller, Get, Post, Body } from '@nestjs/common';
 import { AppService } from './app.service';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { Subscription } from './subscriptions/entities/subscription.entity';
+// import { InjectRepository } from '@nestjs/typeorm';
+// import { Repository } from 'typeorm';
+// import { Subscription } from './subscriptions/entities/subscription.entity';
 
 @Controller() // Will be prefixed by 'api/v1'
 export class AppController {
   constructor(
     private readonly appService: AppService,
-    @InjectRepository(Subscription)
-    private subscriptionRepository: Repository<Subscription>,
+    // @InjectRepository(Subscription)
+    // private subscriptionRepository: Repository<Subscription>,
   ) {}
 
   @Get()
@@ -82,30 +82,13 @@ export class AppController {
     };
   }
 
-  @Post('force-schema-sync')
-  async forceSchemaSync() {
-    try {
-      // Force drop and recreate tables by running a raw query
-      await this.subscriptionRepository.query('DROP TABLE IF EXISTS trade_tags CASCADE');
-      await this.subscriptionRepository.query('DROP TABLE IF EXISTS trades CASCADE');
-      await this.subscriptionRepository.query('DROP TABLE IF EXISTS strategies CASCADE');
-      await this.subscriptionRepository.query('DROP TABLE IF EXISTS tags CASCADE');
-      await this.subscriptionRepository.query('DROP TABLE IF EXISTS mt5_accounts CASCADE');
-      await this.subscriptionRepository.query('DROP TABLE IF EXISTS usage_tracking CASCADE');
-      await this.subscriptionRepository.query('DROP TABLE IF EXISTS subscriptions CASCADE');
-      await this.subscriptionRepository.query('DROP TABLE IF EXISTS users CASCADE');
-      
-      return {
-        success: true,
-        message: 'Tables dropped. Restart application to recreate with synchronize=true',
-        timestamp: new Date().toISOString(),
-      };
-    } catch (error) {
-      return {
-        success: false,
-        error: error.message,
-        timestamp: new Date().toISOString(),
-      };
-    }
-  }
+  // TEMPORARY: Disabled for GCP deployment without database
+  // @Post('force-schema-sync')
+  // async forceSchemaSync() {
+  //   return {
+  //     success: false,
+  //     message: 'Database operations disabled for this deployment',
+  //     timestamp: new Date().toISOString(),
+  //   };
+  // }
 }
