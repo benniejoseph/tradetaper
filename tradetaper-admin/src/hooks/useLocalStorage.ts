@@ -11,7 +11,18 @@ export function useLocalStorage<T>(key: string, initialValue: T) {
     }
     try {
       const item = window.localStorage.getItem(key);
-      return item ? JSON.parse(item) : initialValue;
+      if (item === null) return initialValue;
+      
+      // Handle legacy string boolean values
+      if (item === 'true') return true as T;
+      if (item === 'false') return false as T;
+      
+      // Try to parse as JSON, fallback to string value
+      try {
+        return JSON.parse(item);
+      } catch {
+        return item as T;
+      }
     } catch (error) {
       console.error(`Error reading localStorage key "${key}":`, error);
       return initialValue;
@@ -21,33 +32,56 @@ export function useLocalStorage<T>(key: string, initialValue: T) {
   // Function to set value in localStorage and state
   const setValue = useCallback((value: T | ((val: T) => T)) => {
     try {
-      const valueToStore = value instanceof Function ? value(storedValue) : value;
-      setStoredValue(valueToStore);
-      
-      if (typeof window !== 'undefined') {
-        if (valueToStore === null || valueToStore === undefined) {
-          window.localStorage.removeItem(key);
-        } else {
-          window.localStorage.setItem(key, JSON.stringify(valueToStore));
+      setStoredValue(currentValue => {
+        const valueToStore = value instanceof Function ? value(currentValue) : value;
+        
+        if (typeof window !== 'undefined') {
+          if (valueToStore === null || valueToStore === undefined) {
+            window.localStorage.removeItem(key);
+          } else {
+            window.localStorage.setItem(key, JSON.stringify(valueToStore));
+          }
+          
+          // Trigger custom event for cross-tab communication
+          window.dispatchEvent(new CustomEvent('localStorage-change', {
+            detail: { key, value: valueToStore }
+          }));
         }
         
-        // Trigger custom event for cross-tab communication
-        window.dispatchEvent(new CustomEvent('localStorage-change', {
-          detail: { key, value: valueToStore }
-        }));
-      }
+        return valueToStore;
+      });
     } catch (error) {
       console.error(`Error setting localStorage key "${key}":`, error);
     }
-  }, [key, storedValue]);
+  }, [key]);
 
   // Listen for changes in localStorage
   useEffect(() => {
     const handleStorageChange = (e: StorageEvent | CustomEvent) => {
       if ('key' in e && e.key === key) {
         try {
-          const newValue = e.newValue ? JSON.parse(e.newValue) : initialValue;
-          setStoredValue(newValue);
+          if (!e.newValue) {
+            setStoredValue(initialValue);
+            return;
+          }
+          
+          // Handle legacy string boolean values
+          if (e.newValue === 'true') {
+            setStoredValue(true as T);
+            return;
+          }
+          if (e.newValue === 'false') {
+            setStoredValue(false as T);
+            return;
+          }
+          
+          // Try to parse as JSON, fallback to string value
+          try {
+            const newValue = JSON.parse(e.newValue);
+            setStoredValue(newValue);
+          } catch {
+            setStoredValue(e.newValue as T);
+          }
         } catch (error) {
           console.error(`Error parsing localStorage change for key "${key}":`, error);
         }
@@ -69,34 +103,42 @@ export function useLocalStorage<T>(key: string, initialValue: T) {
   return [storedValue, setValue] as const;
 }
 
-// Specialized hook for authentication
+// Specialized hook for authentication - uses string storage for backward compatibility
 export function useAuthStorage() {
   const [token, setToken] = useLocalStorage<string | null>('admin_token', null);
-  const [isAuthenticated, setIsAuthenticated] = useLocalStorage<boolean>('admin_authenticated', false);
+  const [authFlag, setAuthFlag] = useLocalStorage<string>('admin_authenticated', 'false');
   const [user, setUser] = useLocalStorage<any>('admin_user', null);
 
   const login = useCallback((tokenValue: string, userData: any) => {
+    console.log('useAuthStorage: login called with token:', !!tokenValue);
     setToken(tokenValue);
-    setIsAuthenticated(true);
-    setUser(userData);
-  }, [setToken, setIsAuthenticated, setUser]);
+    setAuthFlag('true');
+    setUser({
+      ...userData,
+      loginTime: new Date().toISOString(),
+    });
+  }, [setToken, setAuthFlag, setUser]);
 
   const logout = useCallback(() => {
+    console.log('useAuthStorage: logout called');
     setToken(null);
-    setIsAuthenticated(false);
+    setAuthFlag('false');
     setUser(null);
-  }, [setToken, setIsAuthenticated, setUser]);
+  }, [setToken, setAuthFlag, setUser]);
 
-  const isLoggedIn = token && isAuthenticated;
+  // User is authenticated if both token exists and auth flag is 'true'
+  const isAuthenticated = !!(token && authFlag === 'true');
+
+  console.log('useAuthStorage: state check', { token: !!token, authFlag, isAuthenticated });
 
   return {
     token,
-    isAuthenticated: isLoggedIn,
+    isAuthenticated,
     user,
     login,
     logout,
     setToken,
-    setIsAuthenticated,
+    setAuthFlag,
     setUser,
   };
 }
