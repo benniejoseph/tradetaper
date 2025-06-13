@@ -46,8 +46,8 @@ import { Strategy } from './strategies/entities/strategy.entity';
           nodeEnv: process.env.NODE_ENV
         });
 
-        // Using DATABASE_URL for production (Railway, Heroku, etc)
-        if (isProduction && databaseUrl) {
+        // Using DATABASE_URL for production (Railway, GCP, etc)
+        if (isProduction && databaseUrl && databaseUrl.includes('postgresql://')) {
           return {
             type: 'postgres',
             url: databaseUrl,
@@ -81,20 +81,21 @@ import { Strategy } from './strategies/entities/strategy.entity';
           };
         }
 
-        // Using individual DB config params for development
+        // Fallback: No database configuration (for basic container startup)
+        console.log('⚠️ No valid database configuration found - running without database');
         return {
           type: 'postgres',
-          host: configService.get<string>('DB_HOST', 'localhost'),
-          port: configService.get<number>('DB_PORT', 5432),
-          username: configService.get<string>('DB_USERNAME', 'postgres'),
-          password: configService.get<string>('DB_PASSWORD', 'postgres'),
-          database: configService.get<string>('DB_DATABASE', 'tradetaper_dev'),
-          entities: [User, Trade, Tag, MT5Account, Subscription, Usage, Strategy],
-          synchronize: configService.get<string>('NODE_ENV') !== 'production',
-          retryAttempts: 3,
-          retryDelay: 3000,
-          autoLoadEntities: true,
+          host: 'localhost',
+          port: 5432,
+          username: 'temp',
+          password: 'temp',
+          database: 'temp',
+          entities: [],
+          synchronize: false,
+          autoLoadEntities: false,
           logging: false,
+          retryAttempts: 0,
+          retryDelay: 1000,
         };
       },
     }),
