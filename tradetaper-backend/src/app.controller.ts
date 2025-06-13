@@ -47,6 +47,17 @@ export class AppController {
     return { status: 'ok', timestamp: new Date().toISOString() };
   }
 
+  // Test endpoint to verify latest deployment
+  @Get('test-deployment')
+  testDeployment() {
+    return {
+      status: 'latest-deployment-active',
+      timestamp: new Date().toISOString(),
+      version: '2.0.0',
+      deploymentFixed: true
+    };
+  }
+
   // Health check for Railway deployment
   @Get('railway-health')
   railwayHealth() {
