@@ -15,26 +15,19 @@ export default function AuthWrapper({ children }: AuthWrapperProps) {
   const router = useRouter();
   const pathname = usePathname();
   const hasRedirected = useRef(false);
-  const isInitialLoad = useRef(true);
+  const lastAuthState = useRef<boolean | null>(null);
 
   // Public paths that don't require authentication
   const publicPaths = ['/login'];
   const isPublicPath = publicPaths.includes(pathname);
 
-  console.log('AuthWrapper: Render - pathname:', pathname, 'isAuthenticated:', isAuthenticated, 'token:', !!token);
+  console.log('AuthWrapper: Render - pathname:', pathname, 'isAuthenticated:', isAuthenticated, 'token:', !!token, 'lastAuthState:', lastAuthState.current);
 
   // Handle redirects based on authentication status
   useEffect(() => {
-    // Skip redirect on initial load to prevent flash
-    if (isInitialLoad.current) {
-      isInitialLoad.current = false;
-      console.log('AuthWrapper: Initial load, skipping redirect');
-      return;
-    }
-
-    // Prevent multiple redirects for the same navigation
-    if (hasRedirected.current) {
-      console.log('AuthWrapper: Already redirected, skipping');
+    // Prevent multiple redirects for the same auth state and path
+    if (hasRedirected.current && lastAuthState.current === isAuthenticated) {
+      console.log('AuthWrapper: Already redirected for this auth state, skipping');
       return;
     }
 
@@ -44,6 +37,7 @@ export default function AuthWrapper({ children }: AuthWrapperProps) {
     if (!isAuthenticated && !isPublicPath) {
       console.log('AuthWrapper: Redirecting to login - user not authenticated');
       hasRedirected.current = true;
+      lastAuthState.current = isAuthenticated;
       router.replace('/login');
       return;
     }
@@ -52,13 +46,15 @@ export default function AuthWrapper({ children }: AuthWrapperProps) {
     if (isAuthenticated && pathname === '/login') {
       console.log('AuthWrapper: Redirecting to dashboard - user already authenticated');
       hasRedirected.current = true;
+      lastAuthState.current = isAuthenticated;
       router.replace('/');
       return;
     }
 
-    // Reset redirect flag for valid navigation
-    console.log('AuthWrapper: Valid navigation, resetting redirect flag');
+    // Update last auth state and reset redirect flag for valid navigation
+    lastAuthState.current = isAuthenticated;
     hasRedirected.current = false;
+    console.log('AuthWrapper: Valid navigation, resetting redirect flag');
   }, [isAuthenticated, isPublicPath, pathname, router]);
 
   // Reset redirect flag when pathname changes

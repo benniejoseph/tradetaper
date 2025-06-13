@@ -4,13 +4,15 @@ import { useState, useEffect, useCallback } from 'react';
 
 // Custom hook for localStorage with real-time updates
 export function useLocalStorage<T>(key: string, initialValue: T) {
-  // State to store our value
+  // State to store our value with immediate localStorage read
   const [storedValue, setStoredValue] = useState<T>(() => {
     if (typeof window === 'undefined') {
       return initialValue;
     }
     try {
       const item = window.localStorage.getItem(key);
+      console.log(`useLocalStorage init: ${key} = ${item}`);
+      
       if (item === null) return initialValue;
       
       // Handle legacy string boolean values
@@ -28,6 +30,40 @@ export function useLocalStorage<T>(key: string, initialValue: T) {
       return initialValue;
     }
   });
+
+  // Force a re-read on mount to ensure we have the latest value
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
+    try {
+      const item = window.localStorage.getItem(key);
+      console.log(`useLocalStorage mount check: ${key} = ${item}`);
+      
+      if (item === null) return;
+      
+      let parsedValue;
+      // Handle legacy string boolean values
+      if (item === 'true') parsedValue = true as T;
+      else if (item === 'false') parsedValue = false as T;
+      else {
+        try {
+          parsedValue = JSON.parse(item);
+        } catch {
+          parsedValue = item as T;
+        }
+      }
+      
+      setStoredValue(currentValue => {
+        if (JSON.stringify(currentValue) !== JSON.stringify(parsedValue)) {
+          console.log(`useLocalStorage: Updating ${key} from ${currentValue} to ${parsedValue}`);
+          return parsedValue;
+        }
+        return currentValue;
+      });
+    } catch (error) {
+      console.error(`Error re-reading localStorage key "${key}":`, error);
+    }
+  }, [key]);
 
   // Function to set value in localStorage and state
   const setValue = useCallback((value: T | ((val: T) => T)) => {
