@@ -3,7 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { Toaster } from 'react-hot-toast';
 import Providers from './providers';
-import SimpleAuthWrapper from '@/components/SimpleAuthWrapper';
+import NoAuthWrapper from '@/components/NoAuthWrapper';
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -24,9 +24,9 @@ export default function RootLayout({
     <html lang="en" className="dark">
       <body className={`${inter.className} bg-gray-950 text-white antialiased`}>
         <Providers>
-          <SimpleAuthWrapper>
+          <NoAuthWrapper>
             {children}
-          </SimpleAuthWrapper>
+          </NoAuthWrapper>
           <Toaster 
             position="top-right"
             toastOptions={{
