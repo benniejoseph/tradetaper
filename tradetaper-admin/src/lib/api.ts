@@ -57,19 +57,7 @@ export const adminLogin = async (email: string, password: string) => {
     const response = await api.post('/auth/admin/login', { email, password });
     const { accessToken, user } = response.data;
     
-    console.log('adminLogin: Login successful, storing auth data');
-    
-    // Store token and user data
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('admin_token', accessToken);
-      localStorage.setItem('admin_authenticated', 'true');
-      localStorage.setItem('admin_user', JSON.stringify({
-        ...user,
-        loginTime: new Date().toISOString(),
-      }));
-      
-      console.log('adminLogin: Auth data stored successfully');
-    }
+    console.log('adminLogin: Login successful, returning auth data');
     
     return { accessToken, user };
   } catch (error: any) {
@@ -92,17 +80,7 @@ export const adminLogin = async (email: string, password: string) => {
           updatedAt: new Date().toISOString(),
         };
         
-        // Store mock auth data
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('admin_token', mockToken);
-          localStorage.setItem('admin_authenticated', 'true');
-          localStorage.setItem('admin_user', JSON.stringify({
-            ...mockUser,
-            loginTime: new Date().toISOString(),
-          }));
-          
-          console.log('adminLogin: Mock auth data stored successfully');
-        }
+        console.log('adminLogin: Mock auth data created successfully');
         
         return { accessToken: mockToken, user: mockUser };
       } else {
