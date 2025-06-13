@@ -89,14 +89,19 @@ export default function AuthWrapper({ children }: AuthWrapperProps) {
 
     console.log('AuthWrapper: Redirect logic - isAuthenticated:', isAuthenticated, 'isPublicPath:', isPublicPath, 'pathname:', pathname);
 
-    // Redirect logic
-    if (!isAuthenticated && !isPublicPath) {
-      console.log('AuthWrapper: Redirecting to login - user not authenticated');
-      router.replace('/login');
-    } else if (isAuthenticated && pathname === '/login') {
-      console.log('AuthWrapper: Redirecting to dashboard - user already authenticated');
-      router.replace('/');
-    }
+    // Add small delay to prevent redirect loops
+    const timeoutId = setTimeout(() => {
+      // Redirect logic
+      if (!isAuthenticated && !isPublicPath) {
+        console.log('AuthWrapper: Redirecting to login - user not authenticated');
+        router.replace('/login');
+      } else if (isAuthenticated && pathname === '/login') {
+        console.log('AuthWrapper: Redirecting to dashboard - user already authenticated');
+        router.replace('/');
+      }
+    }, 100);
+
+    return () => clearTimeout(timeoutId);
   }, [isAuthenticated, isLoading, isPublicPath, pathname, router]);
 
   // Show loading spinner while checking authentication

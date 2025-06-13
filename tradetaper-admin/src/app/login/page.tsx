@@ -23,15 +23,17 @@ export default function LoginPage() {
       console.log('LoginPage: Attempting login with:', { email });
       const result = await adminLogin(email, password);
       console.log('LoginPage: Login successful, redirecting to dashboard');
-      // Redirect to dashboard on successful login
-      router.replace('/');
+      
+      // Add a small delay to ensure localStorage is updated
+      setTimeout(() => {
+        router.replace('/');
+      }, 200);
     } catch (error: any) {
       console.error('LoginPage: Login failed:', error);
       setError(
         error.response?.data?.message || 
         'Login failed. Please check your credentials.'
       );
-    } finally {
       setIsLoading(false);
     }
   };

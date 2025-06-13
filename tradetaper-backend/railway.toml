@@ -4,7 +4,7 @@
   watchPatterns = ["**/*.ts", "**/*.js", "**/*.json"]
 
 [deploy]
-  startCommand = "echo 'Starting TradeTaper Backend...' && node dist/main"
+  startCommand = "node dist/main"
   healthcheckPath = "/api/v1/health"
   healthcheckTimeout = 300
   healthcheckInterval = 30
