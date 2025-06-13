@@ -20,11 +20,6 @@ async function bootstrap() {
     // Minimal CORS
     app.enableCors({ origin: true, credentials: true });
 
-    // Root health check - instant response
-    app.get('/health', (req, res) => {
-      res.json({ status: 'ok', timestamp: new Date().toISOString() });
-    });
-
     app.setGlobalPrefix('api/v1');
 
     // Minimal validation
