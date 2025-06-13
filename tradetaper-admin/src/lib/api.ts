@@ -253,18 +253,8 @@ class AdminApi {
       const response = await this.axiosInstance.get('/admin/dashboard-stats');
       return response.data;
     } catch (error) {
-      console.error('Failed to fetch dashboard stats, using mock data:', error);
-      // Return mock data when API is unavailable
-      return {
-        totalUsers: 12547,
-        userGrowth: 12.5,
-        activeUsers: 8934,
-        activeGrowth: 8.2,
-        totalRevenue: 284750,
-        revenueGrowth: 15.8,
-        totalTrades: 45623,
-        tradeGrowth: 22.1
-      };
+      console.error('Failed to fetch dashboard stats:', error);
+      throw error;
     }
   }
 
@@ -273,21 +263,8 @@ class AdminApi {
       const response = await this.axiosInstance.get(`/admin/user-analytics?timeRange=${timeRange}`);
       return response.data;
     } catch (error) {
-      console.error('Failed to fetch user analytics, using mock data:', error);
-      // Return mock data when API is unavailable
-      return {
-        labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'],
-        values: [2500, 3200, 2800, 4100, 3600, 4200, 3800],
-        data: [
-          { date: '2024-01-01', users: 2500 },
-          { date: '2024-02-01', users: 3200 },
-          { date: '2024-03-01', users: 2800 },
-          { date: '2024-04-01', users: 4100 },
-          { date: '2024-05-01', users: 3600 },
-          { date: '2024-06-01', users: 4200 },
-          { date: '2024-07-01', users: 3800 }
-        ]
-      };
+      console.error('Failed to fetch user analytics:', error);
+      throw error;
     }
   }
 
@@ -296,79 +273,18 @@ class AdminApi {
       const response = await this.axiosInstance.get(`/admin/revenue-analytics?timeRange=${timeRange}`);
       return response.data;
     } catch (error) {
-      console.error('Failed to fetch revenue analytics, using mock data:', error);
-      // Return mock data when API is unavailable
-      return {
-        labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'],
-        values: [45000, 52000, 48000, 61000, 58000, 67000, 63000],
-        data: [
-          { date: '2024-01-01', revenue: 45000 },
-          { date: '2024-02-01', revenue: 52000 },
-          { date: '2024-03-01', revenue: 48000 },
-          { date: '2024-04-01', revenue: 61000 },
-          { date: '2024-05-01', revenue: 58000 },
-          { date: '2024-06-01', revenue: 67000 },
-          { date: '2024-07-01', revenue: 63000 }
-        ]
-      };
+      console.error('Failed to fetch revenue analytics:', error);
+      throw error;
     }
   }
 
   async getTradeAnalytics(timeRange: string): Promise<TradeAnalyticsData> {
     try {
-      // TODO: Uncomment when backend endpoint is ready
-      // const response = await this.axiosInstance.get(`/api/admin/analytics/trades?timeRange=${timeRange}`);
-      // return response.data;
-      
-      // For now, return mock data since the backend endpoint might not exist yet
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const _ = timeRange; // Acknowledge the parameter until backend is ready
-      const mockData: TradeAnalyticsData = {
-        labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-        values: [120, 190, 300, 500, 200, 300, 450],
-        data: [
-          { date: '2024-01-01', trades: 120 },
-          { date: '2024-01-02', trades: 190 },
-          { date: '2024-01-03', trades: 300 },
-          { date: '2024-01-04', trades: 500 },
-          { date: '2024-01-05', trades: 200 },
-          { date: '2024-01-06', trades: 300 },
-          { date: '2024-01-07', trades: 450 },
-        ],
-        topTradingPairs: [
-          { pair: 'EUR/USD', count: 1250, volume: 2500000 },
-          { pair: 'GBP/USD', count: 980, volume: 1950000 },
-          { pair: 'USD/JPY', count: 750, volume: 1500000 },
-          { pair: 'AUD/USD', count: 620, volume: 1240000 },
-          { pair: 'EUR/GBP', count: 450, volume: 900000 },
-          { pair: 'USD/CAD', count: 380, volume: 760000 },
-        ]
-      };
-      return mockData;
+      const response = await this.axiosInstance.get(`/admin/trade-analytics?timeRange=${timeRange}`);
+      return response.data;
     } catch (error) {
       console.error('Failed to fetch trade analytics:', error);
-      // Return mock data as fallback
-      return {
-        labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-        values: [120, 190, 300, 500, 200, 300, 450],
-        data: [
-          { date: '2024-01-01', trades: 120 },
-          { date: '2024-01-02', trades: 190 },
-          { date: '2024-01-03', trades: 300 },
-          { date: '2024-01-04', trades: 500 },
-          { date: '2024-01-05', trades: 200 },
-          { date: '2024-01-06', trades: 300 },
-          { date: '2024-01-07', trades: 450 },
-        ],
-        topTradingPairs: [
-          { pair: 'EUR/USD', count: 1250, volume: 2500000 },
-          { pair: 'GBP/USD', count: 980, volume: 1950000 },
-          { pair: 'USD/JPY', count: 750, volume: 1500000 },
-          { pair: 'AUD/USD', count: 620, volume: 1240000 },
-          { pair: 'EUR/GBP', count: 450, volume: 900000 },
-          { pair: 'USD/CAD', count: 380, volume: 760000 },
-        ]
-      };
+      throw error;
     }
   }
 
@@ -377,20 +293,8 @@ class AdminApi {
       const response = await this.axiosInstance.get('/admin/system-health');
       return response.data;
     } catch (error) {
-      console.error('Failed to fetch system health, using mock data:', error);
-      // Return mock data when API is unavailable
-      return {
-        status: 'healthy' as const,
-        uptime: 95.8,
-        responseTime: 125,
-        memoryUsage: 68.2,
-        cpuUsage: 45.1,
-        diskUsage: 42.7,
-        databaseConnections: 12,
-        errors24h: 3,
-        apiCalls24h: 156789,
-        cacheHitRate: 92.4
-      };
+      console.error('Failed to fetch system health:', error);
+      throw error;
     }
   }
 
@@ -399,45 +303,8 @@ class AdminApi {
       const response = await this.axiosInstance.get(`/admin/activity-feed?limit=${limit}`);
       return response.data;
     } catch (error) {
-      console.error('Failed to fetch activity feed, using mock data:', error);
-      // Return mock data when API is unavailable
-      const mockActivities: Activity[] = [
-        {
-          id: '1',
-          type: 'user_signup',
-          description: 'New user registered: john.doe@example.com',
-          timestamp: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
-          user: { id: '123', name: 'John Doe' }
-        },
-        {
-          id: '2', 
-          type: 'trade_executed',
-          description: 'Large trade executed: EUR/USD 50,000',
-          timestamp: new Date(Date.now() - 15 * 60 * 1000).toISOString(),
-          user: { id: '456', name: 'Jane Smith' }
-        },
-        {
-          id: '3',
-          type: 'system_alert',
-          description: 'System performance optimized',
-          timestamp: new Date(Date.now() - 30 * 60 * 1000).toISOString()
-        },
-        {
-          id: '4',
-          type: 'user_login',
-          description: 'Admin user logged in',
-          timestamp: new Date(Date.now() - 45 * 60 * 1000).toISOString(),
-          user: { id: '789', name: 'Admin User' }
-        },
-        {
-          id: '5',
-          type: 'trade_executed', 
-          description: 'Trade completed: GBP/USD 25,000',
-          timestamp: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
-          user: { id: '321', name: 'Mike Johnson' }
-        }
-      ];
-      return mockActivities.slice(0, limit);
+      console.error('Failed to fetch activity feed:', error);
+      throw error;
     }
   }
 
@@ -476,31 +343,7 @@ class AdminApi {
       return response.data;
     } catch (error) {
       console.error('Failed to fetch users:', error);
-      // Return mock data as fallback
-      return {
-        data: [
-          {
-            id: '1',
-            email: 'john.doe@example.com',
-            firstName: 'John',
-            lastName: 'Doe',
-            createdAt: '2024-01-01T00:00:00Z',
-            updatedAt: '2024-01-01T00:00:00Z',
-          },
-          {
-            id: '2',
-            email: 'jane.smith@example.com',
-            firstName: 'Jane',
-            lastName: 'Smith',
-            createdAt: '2024-01-02T00:00:00Z',
-            updatedAt: '2024-01-02T00:00:00Z',
-          },
-        ],
-        total: 2,
-        page,
-        limit,
-        totalPages: 1,
-      };
+      throw error;
     }
   }
 
