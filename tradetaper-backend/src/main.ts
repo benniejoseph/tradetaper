@@ -32,6 +32,11 @@ async function bootstrap() {
 
     console.log('✅ CORS configured');
 
+    // Add a simple health check before setting global prefix
+    app.get('/health', (req, res) => {
+      res.json({ status: 'ok', timestamp: new Date().toISOString(), service: 'tradetaper-backend' });
+    });
+
     app.setGlobalPrefix('api/v1');
 
     app.useGlobalPipes(
