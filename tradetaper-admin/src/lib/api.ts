@@ -221,32 +221,7 @@ class AdminApi {
       },
     });
 
-    // Add response interceptor for error handling
-    this.axiosInstance.interceptors.response.use(
-      (response) => response,
-      (error) => {
-        if (error.response) {
-          // Handle specific error cases
-          switch (error.response.status) {
-            case 401:
-              // Handle unauthorized
-              window.location.href = '/login';
-              break;
-            case 403:
-              // Handle forbidden
-              console.error('Access forbidden');
-              break;
-            case 429:
-              // Handle rate limiting
-              console.error('Too many requests');
-              break;
-            default:
-              console.error('API Error:', error.response.data);
-          }
-        }
-        return Promise.reject(error);
-      }
-    );
+    // No authentication interceptors - open access admin panel
   }
 
   // --- Database Viewer Methods ---
