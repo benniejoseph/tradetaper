@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
+import { InjectRepository, InjectDataSource } from '@nestjs/typeorm';
 import { Repository, Between, DataSource } from 'typeorm';
 import { User } from '../users/entities/user.entity';
 import { Trade } from '../trades/entities/trade.entity';
@@ -59,12 +59,12 @@ export class AdminService {
   private debugSessions: any[] = [];
 
   constructor(
-    // TEMPORARY: Comment out for initial deployment to get admin endpoints working
-    // @InjectRepository(User)
-    // private usersRepository: Repository<User>,
-    // @InjectRepository(Trade)
-    // private tradesRepository: Repository<Trade>,
-    // private dataSource: DataSource,
+    @InjectRepository(User)
+    private usersRepository: Repository<User>,
+    @InjectRepository(Trade)
+    private tradesRepository: Repository<Trade>,
+    @InjectDataSource()
+    private dataSource: DataSource,
   ) {
     // Initialize with some sample logs
     this.initializeSampleLogs();
