@@ -49,6 +49,7 @@
     "isomorphic-dompurify": "^2.16.0",
     "metaapi.cloud-sdk": "^29.0.5",
     "multer": "^2.0.1",
+    "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
     "passport-local": "^1.0.0",
     "pg": "^8.16.0",
