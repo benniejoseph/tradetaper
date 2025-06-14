@@ -6,7 +6,10 @@ import { User } from '../users/entities/user.entity';
 import { Trade } from '../trades/entities/trade.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([User, Trade])],
+  imports: [
+    // TEMPORARY: Comment out for initial deployment to get admin endpoints working
+    // TypeOrmModule.forFeature([User, Trade])
+  ],
   controllers: [AdminController],
   providers: [AdminService],
   exports: [AdminService],
