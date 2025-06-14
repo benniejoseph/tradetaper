@@ -31,7 +31,6 @@ import { Strategy } from './strategies/entities/strategy.entity';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: '.env',
     }),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
@@ -48,20 +47,27 @@ import { Strategy } from './strategies/entities/strategy.entity';
 
         // Using DATABASE_URL for production (GCP Cloud SQL)
         if (isProduction && databaseUrl && databaseUrl.includes('postgresql://')) {
+          console.log('Attempting production database connection with URL:', databaseUrl);
+          console.log('FINAL DATABASE CONFIG (app.module.ts):', {
+            isProduction,
+            databaseUrl,
+            ssl: false,
+            nodeEnv: process.env.NODE_ENV,
+          });
           return {
             type: 'postgres',
             url: databaseUrl,
             entities: [User, Trade, Tag, MT5Account, Subscription, Usage, Strategy],
             synchronize: false, // Don't auto-sync in production
-            ssl: false, // Cloud SQL doesn't need SSL with unix socket
-            retryAttempts: 3,
-            retryDelay: 1000,
+            ssl: false, // Disable SSL for Cloud SQL
+            retryAttempts: 5, // Increase retry attempts
+            retryDelay: 3000, // Increase retry delay
             autoLoadEntities: true,
             logging: false,
-            maxQueryExecutionTime: 5000,
-            connectTimeoutMS: 10000,
-            acquireTimeoutMillis: 5000,
-            timeout: 10000,
+            maxQueryExecutionTime: 10000, // Increase timeout
+            connectTimeoutMS: 20000, // Increase connect timeout
+            acquireTimeoutMillis: 10000, // Increase acquire timeout
+            timeout: 20000, // Increase overall timeout
           };
         }
 

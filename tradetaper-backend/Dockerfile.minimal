@@ -1,0 +1,29 @@
+# Minimal Dockerfile for admin API deployment
+FROM node:20-alpine
+
+# Set working directory
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+
+# Install only production dependencies
+RUN npm ci --only=production && npm cache clean --force
+
+# Copy source code
+COPY . .
+
+# Build application with minimal main
+RUN npx tsc src/main.minimal.ts --outDir dist --target es2020 --module commonjs --experimentalDecorators --emitDecoratorMetadata
+RUN npx tsc src/app.module.minimal.ts --outDir dist --target es2020 --module commonjs --experimentalDecorators --emitDecoratorMetadata
+
+# Expose port
+# EXPOSE 8080
+
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider /api/v1/ping || exit 1
+
+# Start the minimal application
+CMD ["node", "dist/main.minimal.js"]

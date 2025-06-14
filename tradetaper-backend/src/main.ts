@@ -15,7 +15,11 @@ async function bootstrap() {
       logger: ['error', 'warn'], // Minimal logging
     });
     
-    const port = process.env.PORT || 8080; // GCP Cloud Run uses port 8080
+    const port = process.env.PORT;
+    if (!port) {
+      console.error('PORT environment variable is not set.');
+      process.exit(1);
+    }
 
     // Minimal CORS
     app.enableCors({ origin: true, credentials: true });

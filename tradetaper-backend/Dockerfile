@@ -1,4 +1,4 @@
-# Optimized Dockerfile for Google Cloud Run
+# Minimal Dockerfile for admin API deployment
 FROM node:20-alpine
 
 # Set working directory
@@ -7,30 +7,24 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install all dependencies (including dev dependencies for build)
+# Install all dependencies for build
 RUN npm install && npm cache clean --force
 
 # Copy source code
 COPY . .
 
-# Build the application
+# Build application
 RUN npm run build
 
-# Remove dev dependencies and source files to reduce image size
-RUN rm -rf src/ test/ node_modules/
-RUN npm install --omit=dev && npm cache clean --force
-
-# Create non-root user for security
-RUN addgroup -g 1001 -S nodejs
-RUN adduser -S nestjs -u 1001
-USER nestjs
-
 # Expose port
-EXPOSE 8080
+# EXPOSE 8080
+
+# Set environment variables
+ENV NODE_ENV=production
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:8080/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"
+  CMD wget --no-verbose --tries=1 --spider /api/v1/ping || exit 1
 
 # Start the application
-CMD ["node", "dist/main"]
+CMD ["node", "dist/main.minimal.js"]
