@@ -256,7 +256,7 @@ class AdminApi {
 
   async getDashboardStats(): Promise<DashboardStats> {
     try {
-      const response = await this.axiosInstance.get('/admin/dashboard-stats');
+      const response = await this.axiosInstance.get('/admin/dashboard/stats');
       return response.data;
     } catch (error) {
       console.error('Failed to fetch dashboard stats:', error);
@@ -266,7 +266,7 @@ class AdminApi {
 
   async getUserAnalytics(timeRange: string): Promise<AnalyticsData> {
     try {
-      const response = await this.axiosInstance.get(`/admin/user-analytics?timeRange=${timeRange}`);
+      const response = await this.axiosInstance.get(`/admin/users/analytics?timeRange=${timeRange}`);
       return response.data;
     } catch (error) {
       console.error('Failed to fetch user analytics:', error);
@@ -276,7 +276,7 @@ class AdminApi {
 
   async getRevenueAnalytics(timeRange: string): Promise<AnalyticsData> {
     try {
-      const response = await this.axiosInstance.get(`/admin/revenue-analytics?timeRange=${timeRange}`);
+      const response = await this.axiosInstance.get(`/admin/revenue/analytics?timeRange=${timeRange}`);
       return response.data;
     } catch (error) {
       console.error('Failed to fetch revenue analytics:', error);
@@ -286,7 +286,7 @@ class AdminApi {
 
   async getTradeAnalytics(timeRange: string): Promise<TradeAnalyticsData> {
     try {
-      const response = await this.axiosInstance.get(`/admin/trade-analytics?timeRange=${timeRange}`);
+      const response = await this.axiosInstance.get(`/admin/trades/analytics?timeRange=${timeRange}`);
       return response.data;
     } catch (error) {
       console.error('Failed to fetch trade analytics:', error);
@@ -296,7 +296,7 @@ class AdminApi {
 
   async getSystemHealth(): Promise<SystemHealth> {
     try {
-      const response = await this.axiosInstance.get('/admin/system-health');
+      const response = await this.axiosInstance.get('/admin/system/health');
       return response.data;
     } catch (error) {
       console.error('Failed to fetch system health:', error);
@@ -306,7 +306,7 @@ class AdminApi {
 
   async getActivityFeed(limit: number): Promise<Activity[]> {
     try {
-      const response = await this.axiosInstance.get(`/admin/activity-feed?limit=${limit}`);
+      const response = await this.axiosInstance.get(`/admin/activity?limit=${limit}`);
       return response.data;
     } catch (error) {
       console.error('Failed to fetch activity feed:', error);
@@ -316,7 +316,7 @@ class AdminApi {
 
   async getSubscriptionAnalytics(timeRange: string): Promise<SubscriptionAnalytics> {
     try {
-      const response = await this.axiosInstance.get(`/admin/subscription-analytics?timeRange=${timeRange}`);
+      const response = await this.axiosInstance.get(`/admin/subscription/analytics?timeRange=${timeRange}`);
       return response.data;
     } catch (error) {
       console.error('Failed to fetch subscription analytics:', error);
@@ -326,7 +326,7 @@ class AdminApi {
 
   async getGeographicData(): Promise<GeographicData[]> {
     try {
-      const response = await this.axiosInstance.get('/admin/geographic-data');
+      const response = await this.axiosInstance.get('/admin/analytics/geographic');
       return response.data;
     } catch (error) {
       console.error('Failed to fetch geographic data:', error);
@@ -428,7 +428,7 @@ class AdminApi {
 
   async getPerformanceMetrics(timeRange: string = '1h'): Promise<PerformanceMetrics> {
     try {
-      const response = await this.axiosInstance.get(`/admin/performance-metrics?timeRange=${timeRange}`);
+      const response = await this.axiosInstance.get(`/admin/analytics/performance?timeRange=${timeRange}`);
       return response.data;
     } catch (error) {
       console.error('Failed to fetch performance metrics:', error);
@@ -468,7 +468,7 @@ class AdminApi {
 
   async getApiUsageStats(timeRange: string = '24h'): Promise<ApiUsageStats> {
     try {
-      const response = await this.axiosInstance.get(`/admin/api-usage-stats?timeRange=${timeRange}`);
+      const response = await this.axiosInstance.get(`/admin/api/usage?timeRange=${timeRange}`);
       return response.data;
     } catch (error) {
       console.error('Failed to fetch API usage stats:', error);

@@ -8,29 +8,61 @@ import { Subscription } from '../subscriptions/entities/subscription.entity';
 import { Usage } from '../subscriptions/entities/usage.entity';
 import { Strategy } from '../strategies/entities/strategy.entity';
 
-// Removed dotenv.config() as Cloud Run provides environment variables directly
-
 const isProduction = process.env.NODE_ENV === 'production';
-const databaseUrl = process.env.DATABASE_URL;
+
+console.log('🔧 Database configuration (data-source.ts):', {
+  isProduction,
+  nodeEnv: process.env.NODE_ENV
+});
+
+let dbConfig: any = {};
+
+// For production, use Cloud SQL with Unix socket
+if (isProduction) {
+  console.log('Using Cloud SQL configuration for production');
+  
+  dbConfig = {
+    type: 'postgres' as const,
+    host: '/cloudsql/tradetaper:us-central1:tradetaper-postgres',
+    username: 'tradetaper',
+    password: 'TradeTaper2024',
+    database: 'tradetaper',
+    ssl: false,
+    retryAttempts: 5,
+    retryDelay: 3000,
+    connectTimeoutMS: 60000,
+    extra: {
+      max: 10,
+      connectionTimeoutMillis: 60000,
+    }
+  };
+} else {
+  // For development
+  console.log('Using local database configuration for development');
+  dbConfig = {
+    type: 'postgres' as const,
+    host: 'localhost',
+    port: 5432,
+    username: 'postgres',
+    password: 'postgres',
+    database: 'tradetaper',
+    ssl: false,
+  };
+}
 
 console.log('FINAL DATABASE CONFIG (data-source.ts):', {
   isProduction,
-  databaseUrl,
-  ssl: false,
+  host: dbConfig.host,
+  username: dbConfig.username,
+  database: dbConfig.database,
+  ssl: dbConfig.ssl,
   nodeEnv: process.env.NODE_ENV,
 });
 
 export const AppDataSource = new DataSource({
-  type: 'postgres',
-  url: isProduction && databaseUrl ? databaseUrl : undefined,
-  host: isProduction ? undefined : process.env.DB_HOST || 'localhost',
-  port: isProduction ? undefined : parseInt(process.env.DB_PORT || '5432'),
-  username: process.env.DB_USERNAME || 'postgres',
-  password: process.env.DB_PASSWORD || 'postgres',
-  database: process.env.DB_DATABASE || 'tradetaper_dev',
+  ...dbConfig,
   entities: [User, Trade, Tag, MT5Account, Subscription, Usage, Strategy],
-  migrations: ['src/migrations/*{.ts,.js}'],
+  migrations: [isProduction ? 'dist/migrations/*{.ts,.js}' : 'src/migrations/*{.ts,.js}'],
   synchronize: false, // Always false for production safety
   logging: process.env.NODE_ENV !== 'production',
-  ssl: false,
 });

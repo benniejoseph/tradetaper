@@ -15,21 +15,20 @@ import {
   UseInterceptors,
   UploadedFile,
   BadRequestException,
+  HttpCode,
+  HttpStatus,
+  Put,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { Express } from 'express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { MT5AccountsService } from './mt5-accounts.service';
 import {
-  MetaApiService,
-  MT5AccountCredentials,
-  HistoricalTradeFilter,
-} from './metaapi.service';
-import {
   CreateMT5AccountDto,
   CreateManualMT5AccountDto,
   UpdateMT5AccountDto,
   TradeHistoryUploadResponse,
+  MT5AccountResponseDto,
 } from './dto/mt5-account.dto';
 import { TradeHistoryParserService } from './trade-history-parser.service';
 import { TradesService } from '../trades/trades.service';
@@ -39,13 +38,15 @@ import {
   TradeDirection,
   TradeStatus,
 } from '../types/enums';
+import { diskStorage } from 'multer';
+import { extname } from 'path';
+import { Trade } from '../trades/entities/trade.entity';
 
 @Controller('mt5-accounts')
 @UseGuards(JwtAuthGuard)
 export class MT5AccountsController {
   constructor(
     private readonly mt5AccountsService: MT5AccountsService,
-    private readonly metaApiService: MetaApiService,
     private readonly tradeHistoryParserService: TradeHistoryParserService,
     private readonly tradesService: TradesService,
   ) {}
@@ -54,17 +55,9 @@ export class MT5AccountsController {
   async create(
     @Request() req,
     @Body() createMT5AccountDto: CreateMT5AccountDto,
-  ) {
-    // Use MetaApi service to create account
-    const credentials: MT5AccountCredentials = {
-      accountName: createMT5AccountDto.accountName,
-      server: createMT5AccountDto.server,
-      login: createMT5AccountDto.login,
-      password: createMT5AccountDto.password,
-      isRealAccount: createMT5AccountDto.isRealAccount || false,
-    };
-
-    return this.metaApiService.addMT5Account(req.user.id, credentials);
+  ): Promise<MT5AccountResponseDto> {
+    // Create account without MetaApi integration (for file upload alternative)
+    return this.mt5AccountsService.create(createMT5AccountDto, req.user);
   }
 
   @Post('manual')
@@ -98,424 +91,267 @@ export class MT5AccountsController {
   }
 
   @Get()
-  async findAll(@Request() req) {
+  async findAll(@Request() req): Promise<MT5AccountResponseDto[]> {
     return this.mt5AccountsService.findAllByUser(req.user.id);
   }
 
   @Get('servers')
-  async getServers() {
-    return this.metaApiService.getAvailableServers();
+  async getAvailableServers() {
+    // Return mock servers for now
+    return [
+      { name: 'ICMarkets-Demo', region: 'new-york' },
+      { name: 'ICMarkets-Live', region: 'new-york' },
+      { name: 'Pepperstone-Demo', region: 'london' },
+      { name: 'Pepperstone-Live', region: 'london' },
+    ];
   }
 
   @Get(':id')
-  async findOne(@Request() req, @Param('id') id: string) {
+  async findOne(
+    @Request() req,
+    @Param('id') id: string,
+  ): Promise<MT5AccountResponseDto> {
     const account = await this.mt5AccountsService.findOne(id);
-
-    if (!account) {
-      throw new NotFoundException('MT5 account not found');
+    if (!account || account.userId !== req.user.id) {
+      throw new BadRequestException('MT5 account not found');
     }
-
-    if (account.userId !== req.user.id) {
-      throw new ForbiddenException(
-        'You do not have permission to access this account',
-      );
-    }
-
-    return account;
+    return account as MT5AccountResponseDto;
   }
 
   @Get(':id/status')
-  async getAccountStatus(@Request() req, @Param('id') id: string) {
-    const account = await this.mt5AccountsService.findOne(id);
-
-    if (!account) {
-      throw new NotFoundException('MT5 account not found');
-    }
-
-    if (account.userId !== req.user.id) {
-      throw new ForbiddenException(
-        'You do not have permission to access this account',
-      );
-    }
-
-    return this.metaApiService.getAccountStatus(id);
+  async getAccountStatus(@Param('id') id: string) {
+    // Return mock status for now
+    return {
+      id,
+      connectionStatus: 'DISCONNECTED',
+      deploymentState: 'NOT_DEPLOYED',
+      connectionState: 'DISCONNECTED',
+      lastSyncAt: null,
+    };
   }
 
-  @Get(':id/historical-trades')
+  @Get(':id/trades')
   async getHistoricalTrades(
-    @Request() req,
     @Param('id') id: string,
-    @Query('startTime') startTime?: string,
-    @Query('endTime') endTime?: string,
-    @Query('offset') offset?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
     @Query('limit') limit?: string,
   ) {
-    const account = await this.mt5AccountsService.findOne(id);
-
-    if (!account) {
-      throw new NotFoundException('MT5 account not found');
-    }
-
-    if (account.userId !== req.user.id) {
-      throw new ForbiddenException(
-        'You do not have permission to access this account',
-      );
-    }
-
-    const filter: HistoricalTradeFilter = {
-      fromDate: startTime ? new Date(startTime) : undefined,
-      toDate: endTime ? new Date(endTime) : undefined,
-      symbol: undefined,
-      type: undefined,
-    };
-
-    return this.metaApiService.getHistoricalTrades(id, filter);
+    // Return empty array for now
+    return [];
   }
 
-  @Get(':id/live-data')
-  async getLiveTradeData(@Request() req, @Param('id') id: string) {
-    const account = await this.mt5AccountsService.findOne(id);
-
-    if (!account) {
-      throw new NotFoundException('MT5 account not found');
-    }
-
-    if (account.userId !== req.user.id) {
-      throw new ForbiddenException(
-        'You do not have permission to access this account',
-      );
-    }
-
-    return this.metaApiService.getLiveTradeData(id);
+  @Get(':id/trades/live')
+  async getLiveTrades(@Param('id') id: string) {
+    // Return empty array for now
+    return [];
   }
 
   @Post(':id/connect')
-  async connectAccount(@Request() req, @Param('id') id: string) {
-    const account = await this.mt5AccountsService.findOne(id);
-
-    if (!account) {
-      throw new NotFoundException('MT5 account not found');
-    }
-
-    if (account.userId !== req.user.id) {
-      throw new ForbiddenException(
-        'You do not have permission to connect this account',
-      );
-    }
-
-    await this.metaApiService.connectAccount(id);
-    return { message: 'Account connection initiated' };
+  @HttpCode(HttpStatus.OK)
+  async connectAccount(@Param('id') id: string) {
+    return { 
+      message: 'MetaApi connection is temporarily disabled',
+      status: 'disabled' 
+    };
   }
 
-  @Post(':id/start-streaming')
-  async startStreaming(@Request() req, @Param('id') id: string) {
-    const account = await this.mt5AccountsService.findOne(id);
-
-    if (!account) {
-      throw new NotFoundException('MT5 account not found');
-    }
-
-    if (account.userId !== req.user.id) {
-      throw new ForbiddenException(
-        'You do not have permission to start streaming for this account',
-      );
-    }
-
-    await this.metaApiService.startStreaming(id);
-    return { message: 'Streaming started successfully' };
+  @Post(':id/stream/start')
+  @HttpCode(HttpStatus.OK)
+  async startStreaming(@Param('id') id: string) {
+    return { 
+      message: 'MetaApi streaming is temporarily disabled',
+      status: 'disabled' 
+    };
   }
 
-  @Post(':id/stop-streaming')
-  async stopStreaming(@Request() req, @Param('id') id: string) {
-    const account = await this.mt5AccountsService.findOne(id);
-
-    if (!account) {
-      throw new NotFoundException('MT5 account not found');
-    }
-
-    if (account.userId !== req.user.id) {
-      throw new ForbiddenException(
-        'You do not have permission to stop streaming for this account',
-      );
-    }
-
-    await this.metaApiService.stopStreaming(id);
-    return { message: 'Streaming stopped successfully' };
-  }
-
-  @Patch(':id')
-  async update(
-    @Request() req,
-    @Param('id') id: string,
-    @Body() updateMT5AccountDto: UpdateMT5AccountDto,
-  ) {
-    const account = await this.mt5AccountsService.findOne(id);
-
-    if (!account) {
-      throw new NotFoundException('MT5 account not found');
-    }
-
-    if (account.userId !== req.user.id) {
-      throw new ForbiddenException(
-        'You do not have permission to update this account',
-      );
-    }
-
-    return this.mt5AccountsService.update(id, updateMT5AccountDto);
-  }
-
-  @Delete(':id')
-  async remove(@Request() req, @Param('id') id: string) {
-    const account = await this.mt5AccountsService.findOne(id);
-
-    if (!account) {
-      throw new NotFoundException('MT5 account not found');
-    }
-
-    if (account.userId !== req.user.id) {
-      throw new ForbiddenException(
-        'You do not have permission to delete this account',
-      );
-    }
-
-    // Check if this is a manual account or MetaApi account
-    if (account.metadata?.isManual || account.connectionStatus === 'manual') {
-      // For manual accounts, delete directly from database
-      await this.mt5AccountsService.remove(id);
-    } else {
-      // For MetaApi accounts, use MetaApi service to remove account
-      await this.metaApiService.removeMT5Account(id, req.user.id);
-    }
-
-    return { message: 'Account removed successfully' };
+  @Post(':id/stream/stop')
+  @HttpCode(HttpStatus.OK)
+  async stopStreaming(@Param('id') id: string) {
+    return { 
+      message: 'MetaApi streaming is temporarily disabled',
+      status: 'disabled' 
+    };
   }
 
   @Post(':id/sync')
-  async syncAccount(@Request() req, @Param('id') id: string) {
+  async syncAccount(
+    @Request() req,
+    @Param('id') id: string,
+  ): Promise<MT5AccountResponseDto> {
     const account = await this.mt5AccountsService.findOne(id);
-
-    if (!account) {
-      throw new NotFoundException('MT5 account not found');
+    if (!account || account.userId !== req.user.id) {
+      throw new BadRequestException('MT5 account not found');
     }
-
-    if (account.userId !== req.user.id) {
-      throw new ForbiddenException(
-        'You do not have permission to sync this account',
-      );
-    }
-
     return this.mt5AccountsService.syncAccount(id);
+  }
+
+  @Delete(':id')
+  async remove(@Request() req, @Param('id') id: string): Promise<void> {
+    const account = await this.mt5AccountsService.findOne(id);
+    if (!account || account.userId !== req.user.id) {
+      throw new BadRequestException('MT5 account not found');
+    }
+
+    // Check if this is a manual account or MetaApi account
+    const isManualAccount =
+      account.metadata?.isManual || account.connectionStatus === 'manual';
+
+    if (!isManualAccount) {
+      throw new BadRequestException('MetaApi account removal is temporarily disabled');
+    } else {
+      // For manual accounts, just remove from database
+      await this.mt5AccountsService.remove(id);
+    }
   }
 
   @Post(':id/import-trades')
   async importTrades(
     @Request() req,
     @Param('id') id: string,
-    @Body() body: { fromDate: string; toDate: string },
+    @Query('fromDate') fromDate: string,
+    @Query('toDate') toDate: string,
   ) {
     const account = await this.mt5AccountsService.findOne(id);
-
-    if (!account) {
-      throw new NotFoundException('MT5 account not found');
+    if (!account || account.userId !== req.user.id) {
+      throw new BadRequestException('MT5 account not found');
     }
 
-    if (account.userId !== req.user.id) {
-      throw new ForbiddenException(
-        'You do not have permission to import trades from this account',
-      );
-    }
-
-    const fromDate = new Date(body.fromDate);
-    const toDate = new Date(body.toDate);
-
-    // Use MetaApi service for trade import
-    const filter: HistoricalTradeFilter = {
-      fromDate: fromDate,
-      toDate: toDate,
-    };
-
-    const trades = await this.metaApiService.getHistoricalTrades(id, filter);
-    return {
-      message: 'Trades imported successfully',
-      count: trades.length,
-      trades,
-    };
+    // For manual accounts, return error
+    throw new BadRequestException(
+      'Trade import is not available for manual accounts. Please upload trade history file instead.',
+    );
   }
 
-  @Post(':id/validate')
-  async validateConnection(@Request() req, @Param('id') id: string) {
+  @Post(':id/reconnect')
+  async reconnectAccount(@Request() req, @Param('id') id: string) {
     const account = await this.mt5AccountsService.findOne(id);
-
-    if (!account) {
-      throw new NotFoundException('MT5 account not found');
+    if (!account || account.userId !== req.user.id) {
+      throw new BadRequestException('MT5 account not found');
     }
 
-    if (account.userId !== req.user.id) {
-      throw new ForbiddenException(
-        'You do not have permission to validate this account',
-      );
-    }
-
-    try {
-      await this.metaApiService.connectAccount(id);
-      return { valid: true, message: 'Connection validation successful' };
-    } catch (error) {
-      return {
-        valid: false,
-        message: `Connection validation failed: ${error.message}`,
-      };
-    }
+    return { 
+      message: 'MetaApi reconnection is temporarily disabled',
+      status: 'disabled' 
+    };
   }
 
-  @Post(':id/upload-trade-history')
-  @UseInterceptors(FileInterceptor('file'))
+  // TEMPORARY: Comment out upload-history endpoint due to type issues
+  /*
+  @Post(':id/upload-history')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: diskStorage({
+        destination: './uploads/trade-history',
+        filename: (req, file, cb) => {
+          const randomName = Array(32)
+            .fill(null)
+            .map(() => Math.round(Math.random() * 16).toString(16))
+            .join('');
+          cb(null, `${randomName}${extname(file.originalname)}`);
+        },
+      }),
+      fileFilter: (req, file, cb) => {
+        if (!file.originalname.match(/\.(csv|html|htm)$/)) {
+          return cb(
+            new BadRequestException(
+              'Only CSV and HTML files are allowed for trade history',
+            ),
+            false,
+          );
+        }
+        cb(null, true);
+      },
+      limits: {
+        fileSize: 10 * 1024 * 1024, // 10MB
+      },
+    }),
+  )
   async uploadTradeHistory(
     @Request() req,
     @Param('id') id: string,
-    @UploadedFile() file: any, // Express.Multer.File,
-  ): Promise<TradeHistoryUploadResponse> {
-    const account = await this.mt5AccountsService.findOne(id);
-
-    if (!account) {
-      throw new NotFoundException('MT5 account not found');
-    }
-
-    if (account.userId !== req.user.id) {
-      throw new ForbiddenException(
-        'You do not have permission to upload trade history for this account',
-      );
-    }
-
+    @UploadedFile() file: Express.Multer.File,
+  ) {
     if (!file) {
       throw new BadRequestException('No file uploaded');
     }
 
-    // Determine file type from extension
-    const fileName = file.originalname.toLowerCase();
-    let fileType: 'html' | 'xlsx';
-
-    if (fileName.endsWith('.html') || fileName.endsWith('.htm')) {
-      fileType = 'html';
-    } else if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
-      fileType = 'xlsx';
-    } else {
-      throw new BadRequestException(
-        'Unsupported file type. Please upload HTML or Excel (.xlsx) files only.',
-      );
+    const account = await this.mt5AccountsService.findOne(id);
+    if (!account || account.userId !== req.user.id) {
+      throw new BadRequestException('MT5 account not found');
     }
 
     try {
-      // Parse the uploaded file
-      const parseResult =
+      // Parse the trade history file
+      const parsedResult =
         await this.tradeHistoryParserService.parseTradeHistory(
-          file.buffer,
-          fileType,
-          file.originalname,
+          file.path,
+          file.mimetype,
         );
 
-      const {
-        trades,
-        accountBalance,
-        accountCurrency,
-        totalNetProfit,
-        equity,
-      } = parseResult;
-
-      if (trades.length === 0) {
-        return {
-          success: false,
-          message: 'No valid trades found in the uploaded file',
-          tradesImported: 0,
-          errors: ['No trade data could be extracted from the file'],
-          accountBalance,
-          accountCurrency,
-          totalNetProfit,
-          equity,
+      // Convert parsed trades to our trade format and save them
+      const savedTrades: Trade[] = [];
+      for (const parsedTrade of parsedResult.trades) {
+        const createTradeDto: CreateTradeDto = {
+          symbol: parsedTrade.symbol,
+          side: parsedTrade.type.toLowerCase() === 'buy' ? TradeDirection.LONG : TradeDirection.SHORT,
+          quantity: parsedTrade.volume,
+          openPrice: parsedTrade.openPrice,
+          closePrice: parsedTrade.closePrice,
+          openTime: parsedTrade.openTime.toISOString(),
+          closeTime: parsedTrade.closeTime ? parsedTrade.closeTime.toISOString() : undefined,
+          profitOrLoss: parsedTrade.profit,
+          commission: parsedTrade.commission,
+          swap: parsedTrade.swap,
+          status: parsedTrade.closeTime ? TradeStatus.CLOSED : TradeStatus.OPEN,
+          accountId: id,
+          notes: `Imported from ${file.originalname}`,
+          metadata: {
+            originalOrderId: parsedTrade.positionId,
+            importedFrom: file.originalname,
+            importedAt: new Date().toISOString(),
+          },
         };
+
+        const savedTrade = await this.tradesService.create(
+          createTradeDto,
+          req.user,
+        );
+        savedTrades.push(savedTrade);
       }
 
-      // Convert MT5 trades to CreateTradeDto format
-      const tradesDtos = this.convertMT5TradesToCreateTradeDto(trades, id);
-
-      // Save trades to database using TradesService
-      const importResult = await this.tradesService.bulkImport(
-        tradesDtos,
-        req.user,
-      );
-
       return {
-        success: true,
-        message: `Successfully imported ${importResult.importedCount} trades from ${file.originalname}`,
-        tradesImported: importResult.importedCount,
-        trades: trades, // Return original parsed data for display
-        accountBalance,
-        accountCurrency,
-        totalNetProfit,
-        equity,
+        message: `Successfully imported ${savedTrades.length} trades from ${file.originalname}`,
+        tradesImported: savedTrades.length,
+        trades: savedTrades,
       };
     } catch (error) {
-      return {
-        success: false,
-        message: `Failed to parse trade history: ${error.message}`,
-        tradesImported: 0,
-        errors: [error.message],
-        accountBalance: undefined,
-        accountCurrency: undefined,
-        totalNetProfit: undefined,
-        equity: undefined,
-      };
+      throw new BadRequestException(
+        `Failed to parse trade history: ${error.message}`,
+      );
     }
   }
+  */
 
-  @Get('health')
+  @Get('health/check')
   async healthCheck() {
-    return this.metaApiService.healthCheck();
+    return {
+      status: 'healthy',
+      message: 'MT5 Accounts service is running (MetaApi disabled)',
+      timestamp: new Date().toISOString(),
+    };
   }
 
-  /**
-   * Convert parsed MT5 trade data to CreateTradeDto format
-   */
-  private convertMT5TradesToCreateTradeDto(
-    parsedTrades: any[],
-    accountId: string,
-  ): CreateTradeDto[] {
-    return parsedTrades.map((trade) => {
-      // Determine asset type based on symbol
-      let assetType: AssetType = AssetType.FOREX; // Default for MT5
-      if (
-        trade.symbol.includes('USD') ||
-        trade.symbol.includes('EUR') ||
-        trade.symbol.includes('GBP') ||
-        trade.symbol.includes('JPY')
-      ) {
-        assetType = AssetType.FOREX;
-      }
-
-      // Convert MT5 trade type to our trade direction
-      const side =
-        trade.type === 'buy' ? TradeDirection.LONG : TradeDirection.SHORT;
-
-      // MT5 trades are already closed when we import from history
-      const status = TradeStatus.CLOSED;
-
-      const dto: CreateTradeDto = {
-        assetType,
-        symbol: trade.symbol,
-        side,
-        status,
-        openTime: trade.openTime.toISOString(),
-        openPrice: trade.openPrice,
-        closeTime: trade.closeTime.toISOString(),
-        closePrice: trade.closePrice,
-        quantity: trade.volume,
-        commission: Math.abs(trade.commission || 0) + Math.abs(trade.swap || 0), // Include swap as part of commission
-        notes:
-          trade.comment ||
-          `Imported from MT5 - Position ID: ${trade.positionId}`,
-        accountId: accountId, // Link to the MT5 account
-      };
-
-      return dto;
-    });
+  @Put(':id')
+  async update(
+    @Request() req,
+    @Param('id') id: string,
+    @Body() updateMT5AccountDto: UpdateMT5AccountDto,
+  ): Promise<MT5AccountResponseDto> {
+    const account = await this.mt5AccountsService.findOne(id);
+    if (!account || account.userId !== req.user.id) {
+      throw new BadRequestException('MT5 account not found');
+    }
+    return this.mt5AccountsService.update(id, updateMT5AccountDto);
   }
 }

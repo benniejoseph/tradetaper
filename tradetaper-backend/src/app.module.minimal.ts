@@ -9,9 +9,9 @@ import { AdminModule } from './admin/admin.module';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: '.env',
+      // Remove envFilePath - Cloud Run provides env vars directly
     }),
-    AdminModule,
+    AdminModule, // Re-enabled for admin functionality
   ],
   controllers: [AppController],
   providers: [AppService],

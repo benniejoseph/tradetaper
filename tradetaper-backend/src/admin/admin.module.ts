@@ -4,10 +4,11 @@ import { AdminController } from './admin.controller';
 import { AdminService } from './admin.service';
 import { User } from '../users/entities/user.entity';
 import { Trade } from '../trades/entities/trade.entity';
+import { Subscription } from '../subscriptions/entities/subscription.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User, Trade])
+    TypeOrmModule.forFeature([User, Trade, Subscription]),
   ],
   controllers: [AdminController],
   providers: [AdminService],
