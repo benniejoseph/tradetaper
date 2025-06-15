@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import Sidebar from '@/components/Sidebar';
 import { Database, Table, Search, Eye, Edit, Trash2, Plus, RefreshCw, Filter, Download, AlertTriangle } from 'lucide-react';
 import { adminApi } from '@/lib/api';
 
@@ -71,17 +72,6 @@ const TableDataViewer = ({
   onRefresh 
 }: TableDataViewerProps) => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [sortColumn, setSortColumn] = useState<string | null>(null);
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
-
-  const handleSort = (column: string) => {
-    if (sortColumn === column) {
-      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortColumn(column);
-      setSortDirection('asc');
-    }
-  };
 
   const formatCellValue = (value: any, dataType: string) => {
     if (value === null || value === undefined) {
@@ -138,7 +128,7 @@ const TableDataViewer = ({
         </div>
       </div>
 
-      {/* Search and Filter */}
+      {/* Search */}
       <div className="flex items-center space-x-4 mb-4">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -150,9 +140,6 @@ const TableDataViewer = ({
             className="w-full pl-10 pr-4 py-2 bg-gray-800/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
-        <button className="p-2 bg-gray-800/50 hover:bg-gray-700/50 border border-gray-600 rounded-lg transition-all">
-          <Filter className="w-4 h-4 text-gray-400" />
-        </button>
       </div>
 
       {/* Table */}
@@ -163,8 +150,7 @@ const TableDataViewer = ({
               {columns.map((column) => (
                 <th
                   key={column.column_name}
-                  className="text-left p-3 text-sm font-medium text-gray-300 cursor-pointer hover:text-white transition-colors"
-                  onClick={() => handleSort(column.column_name)}
+                  className="text-left p-3 text-sm font-medium text-gray-300"
                 >
                   <div className="flex items-center space-x-1">
                     <span>{column.column_name}</span>
@@ -235,6 +221,7 @@ const TableDataViewer = ({
 };
 
 export default function DatabasePage() {
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [tables, setTables] = useState<string[]>([]);
   const [selectedTable, setSelectedTable] = useState<string | null>(null);
   const [columns, setColumns] = useState<TableColumn[]>([]);
@@ -323,84 +310,90 @@ export default function DatabasePage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-black p-6">
-      <div className="max-w-full mx-auto">
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="mb-8"
-        >
-          <div className="flex items-center mb-4">
-            <div className="inline-flex items-center justify-center w-12 h-12 bg-gradient-to-r from-blue-600 to-green-600 rounded-xl mr-4">
-              <Database className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-green-400 bg-clip-text text-transparent">
-                Database Viewer
-              </h1>
-              <p className="text-gray-400">Explore and manage Railway PostgreSQL database</p>
+    <div className="flex h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-black">
+      <Sidebar isCollapsed={sidebarCollapsed} onToggle={() => setSidebarCollapsed(!sidebarCollapsed)} />
+      
+      <div className="flex-1 overflow-hidden">
+        <main className="flex-1 scrollable-content p-6">
+          <div className="max-w-full mx-auto">
+            {/* Header */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6 }}
+              className="mb-8"
+            >
+              <div className="flex items-center mb-4">
+                <div className="inline-flex items-center justify-center w-12 h-12 bg-gradient-to-r from-blue-600 to-green-600 rounded-xl mr-4">
+                  <Database className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-green-400 bg-clip-text text-transparent">
+                    Database Viewer
+                  </h1>
+                  <p className="text-gray-400">Explore and manage Railway PostgreSQL database</p>
+                </div>
+              </div>
+
+              {error && (
+                <div className="bg-red-900/30 border border-red-700/50 rounded-lg p-4 flex items-center space-x-3 mb-4">
+                  <AlertTriangle className="w-5 h-5 text-red-400 flex-shrink-0" />
+                  <p className="text-red-200 text-sm">{error}</p>
+                </div>
+              )}
+            </motion.div>
+
+            {/* Main Content */}
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+              {/* Tables Sidebar */}
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.6, delay: 0.1 }}
+                className="lg:col-span-1"
+              >
+                <DatabaseViewer
+                  tables={tables}
+                  selectedTable={selectedTable}
+                  onTableSelect={handleTableSelect}
+                />
+              </motion.div>
+
+              {/* Table Data Viewer */}
+              <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.6, delay: 0.2 }}
+                className="lg:col-span-3"
+              >
+                {selectedTable && columns.length > 0 ? (
+                  <TableDataViewer
+                    table={selectedTable}
+                    columns={columns}
+                    data={data}
+                    total={total}
+                    page={page}
+                    limit={limit}
+                    totalPages={totalPages}
+                    onPageChange={handlePageChange}
+                    onRefresh={handleRefresh}
+                  />
+                ) : loading ? (
+                  <div className="bg-gray-900/80 backdrop-blur-xl border border-gray-700/50 rounded-2xl p-12 text-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+                    <p className="text-gray-400">Loading table data...</p>
+                  </div>
+                ) : (
+                  <div className="bg-gray-900/80 backdrop-blur-xl border border-gray-700/50 rounded-2xl p-12 text-center">
+                    <Database className="w-12 h-12 text-gray-500 mx-auto mb-4" />
+                    <p className="text-gray-400">Select a table to view its data</p>
+                  </div>
+                )}
+              </motion.div>
             </div>
           </div>
-
-          {error && (
-            <div className="bg-red-900/30 border border-red-700/50 rounded-lg p-4 flex items-center space-x-3 mb-4">
-              <AlertTriangle className="w-5 h-5 text-red-400 flex-shrink-0" />
-              <p className="text-red-200 text-sm">{error}</p>
-            </div>
-          )}
-        </motion.div>
-
-        {/* Main Content */}
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          {/* Tables Sidebar */}
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.6, delay: 0.1 }}
-            className="lg:col-span-1"
-          >
-            <DatabaseViewer
-              tables={tables}
-              selectedTable={selectedTable}
-              onTableSelect={handleTableSelect}
-            />
-          </motion.div>
-
-          {/* Table Data Viewer */}
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
-            className="lg:col-span-3"
-          >
-            {selectedTable && columns.length > 0 ? (
-              <TableDataViewer
-                table={selectedTable}
-                columns={columns}
-                data={data}
-                total={total}
-                page={page}
-                limit={limit}
-                totalPages={totalPages}
-                onPageChange={handlePageChange}
-                onRefresh={handleRefresh}
-              />
-            ) : loading ? (
-              <div className="bg-gray-900/80 backdrop-blur-xl border border-gray-700/50 rounded-2xl p-12 text-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-                <p className="text-gray-400">Loading table data...</p>
-              </div>
-            ) : (
-              <div className="bg-gray-900/80 backdrop-blur-xl border border-gray-700/50 rounded-2xl p-12 text-center">
-                <Database className="w-12 h-12 text-gray-500 mx-auto mb-4" />
-                <p className="text-gray-400">Select a table to view its data</p>
-              </div>
-            )}
-          </motion.div>
-        </div>
+        </main>
       </div>
     </div>
   );
-}
+} 

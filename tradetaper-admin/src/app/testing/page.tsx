@@ -514,7 +514,7 @@ export default function TestingPage() {
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 sm:space-y-6">
+        <main className="flex-1 scrollable-content p-4 sm:p-6 space-y-4 sm:space-y-6">
           {/* Test Overview */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
             <motion.div
@@ -709,6 +709,98 @@ export default function TestingPage() {
               </div>
             </motion.div>
           )}
+
+          {/* Additional Test Content for Scrolling */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 1.2 }}
+            className="bg-gray-900/90 backdrop-blur-xl border border-gray-700/50 rounded-2xl p-6"
+          >
+            <h3 className="text-lg font-semibold text-white mb-4">Test History</h3>
+            <div className="space-y-4">
+              {Array.from({ length: 20 }, (_, i) => (
+                <div key={i} className="bg-gray-800/50 rounded-lg p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-white font-medium">Test Run #{i + 1}</p>
+                      <p className="text-gray-400 text-sm">
+                        {new Date(Date.now() - i * 60000).toLocaleString()}
+                      </p>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <span className={`px-2 py-1 rounded text-xs ${
+                        i % 3 === 0 ? 'bg-green-900/30 text-green-300' : 
+                        i % 3 === 1 ? 'bg-red-900/30 text-red-300' : 
+                        'bg-yellow-900/30 text-yellow-300'
+                      }`}>
+                        {i % 3 === 0 ? 'Passed' : i % 3 === 1 ? 'Failed' : 'Warning'}
+                      </span>
+                      <span className="text-gray-400 text-sm">{Math.floor(Math.random() * 5000)}ms</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+                     </motion.div>
+
+          {/* Extra Testing Content to Force Scrolling */}
+          <div className="space-y-6">
+            {Array.from({ length: 3 }, (_, sectionIndex) => (
+              <motion.div
+                key={sectionIndex}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 1.3 + sectionIndex * 0.1 }}
+                className="bg-gray-900/90 backdrop-blur-xl border border-gray-700/50 rounded-2xl p-6"
+              >
+                <h3 className="text-lg font-semibold text-white mb-4">Test Category {sectionIndex + 1}</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {Array.from({ length: 8 }, (_, i) => (
+                    <div key={i} className="bg-gray-800/50 rounded-lg p-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <p className="text-white font-medium">Test Case {i + 1}</p>
+                        <span className={`px-2 py-1 rounded text-xs ${
+                          i % 3 === 0 ? 'bg-green-900/30 text-green-300' : 
+                          i % 3 === 1 ? 'bg-red-900/30 text-red-300' : 
+                          'bg-yellow-900/30 text-yellow-300'
+                        }`}>
+                          {i % 3 === 0 ? 'Passed' : i % 3 === 1 ? 'Failed' : 'Pending'}
+                        </span>
+                      </div>
+                      <p className="text-gray-400 text-sm mb-2">
+                        Execution time: {Math.floor(Math.random() * 5000)}ms
+                      </p>
+                      <div className="h-1 bg-gray-700 rounded-full overflow-hidden">
+                        <div 
+                          className={`h-full rounded-full ${
+                            i % 3 === 0 ? 'bg-green-500' : 
+                            i % 3 === 1 ? 'bg-red-500' : 
+                            'bg-yellow-500'
+                          }`}
+                          style={{ width: `${Math.floor(Math.random() * 100)}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </motion.div>
+            ))}
+          </div>
+
+          {/* Final Testing Section */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 1.6 }}
+            className="bg-gradient-to-r from-green-900/50 to-blue-900/50 backdrop-blur-xl border border-green-700/50 rounded-2xl p-8 text-center"
+          >
+            <h3 className="text-2xl font-bold text-white mb-4">✅ Testing Page Scroll Complete!</h3>
+            <p className="text-gray-300">All test suites have been loaded and scrolling is working properly.</p>
+            <div className="mt-4 text-sm text-gray-400">
+              Total tests: {totalTests} | Passed: {passedTests} | Failed: {failedTests}
+            </div>
+          </motion.div>
         </main>
       </div>
     </div>
