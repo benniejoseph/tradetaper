@@ -22,7 +22,7 @@ export default function GeographicPage() {
 
   const { data: geographicData, isLoading } = useQuery({
     queryKey: ['geographic-data'],
-    queryFn: adminApi.getGeographicData,
+    queryFn: () => adminApi.getGeographicData(),
     refetchInterval: 30000,
   });
 

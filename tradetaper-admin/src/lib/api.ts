@@ -209,37 +209,63 @@ export interface ApiUsageStats {
 
 class AdminApi {
   private baseUrl: string;
-  private axiosInstance;
+  private axiosInstance: any;
   private adminToken: string | null = null;
 
   constructor() {
-    this.baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api/v1';
-    this.axiosInstance = axios.create({
-      baseURL: this.baseUrl,
-      timeout: 10000,
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
+    this.baseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://tradetaper-backend-481634875325.us-central1.run.app/api/v1';
+    this.initializeAxios();
+  }
 
-    // Add request interceptor to include mock admin token for demo purposes
-    this.axiosInstance.interceptors.request.use((config) => {
-      // Use mock token that backend admin guard recognizes for bypass
-      config.headers['Authorization'] = 'Bearer mock-admin-token';
-      return config;
-    });
+  private initializeAxios() {
+    if (typeof window !== 'undefined') {
+      // Client-side initialization
+      this.axiosInstance = axios.create({
+        baseURL: this.baseUrl,
+        timeout: 10000,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      // Add request interceptor to include mock admin token for demo purposes
+      this.axiosInstance.interceptors.request.use((config: any) => {
+        // Use mock token that backend admin guard recognizes for bypass
+        config.headers['Authorization'] = 'Bearer mock-admin-token';
+        return config;
+      });
+    } else {
+      // Server-side: create a minimal axios instance
+      this.axiosInstance = axios.create({
+        baseURL: this.baseUrl,
+        timeout: 10000,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer mock-admin-token',
+        },
+      });
+    }
+  }
+
+  private ensureAxiosInstance() {
+    if (!this.axiosInstance) {
+      this.initializeAxios();
+    }
+    return this.axiosInstance;
   }
 
   // --- Database Viewer Methods ---
   async getDatabaseTables(): Promise<string[]> {
-    const response = await this.axiosInstance.get('/admin/database/tables');
+    const axiosInstance = this.ensureAxiosInstance();
+    const response = await axiosInstance.get('/admin/database/tables');
     return response.data;
   }
 
   async getDatabaseColumns(table: string): Promise<
     Array<{ column_name: string; data_type: string; is_nullable: string; column_default: string | null }>
   > {
-    const response = await this.axiosInstance.get('/admin/database/columns', { params: { table } });
+    const axiosInstance = this.ensureAxiosInstance();
+    const response = await axiosInstance.get(`/admin/database/columns/${table}`);
     return response.data;
   }
 
@@ -248,15 +274,15 @@ class AdminApi {
     page: number = 1,
     limit: number = 20
   ): Promise<{ data: Record<string, unknown>[]; total: number; page: number; limit: number; totalPages: number }> {
-    const response = await this.axiosInstance.get('/admin/database/rows', {
-      params: { table, page, limit },
-    });
+    const axiosInstance = this.ensureAxiosInstance();
+    const response = await axiosInstance.get(`/admin/database/rows/${table}?page=${page}&limit=${limit}`);
     return response.data;
   }
 
   async getDashboardStats(): Promise<DashboardStats> {
     try {
-      const response = await this.axiosInstance.get('/admin/dashboard/stats');
+      const axiosInstance = this.ensureAxiosInstance();
+      const response = await axiosInstance.get('/admin/dashboard/stats');
       return response.data;
     } catch (error) {
       console.error('Failed to fetch dashboard stats:', error);
@@ -266,7 +292,8 @@ class AdminApi {
 
   async getUserAnalytics(timeRange: string): Promise<AnalyticsData> {
     try {
-      const response = await this.axiosInstance.get(`/admin/users/analytics?timeRange=${timeRange}`);
+      const axiosInstance = this.ensureAxiosInstance();
+      const response = await axiosInstance.get(`/admin/user-analytics/${timeRange}`);
       return response.data;
     } catch (error) {
       console.error('Failed to fetch user analytics:', error);
@@ -276,7 +303,8 @@ class AdminApi {
 
   async getRevenueAnalytics(timeRange: string): Promise<AnalyticsData> {
     try {
-      const response = await this.axiosInstance.get(`/admin/revenue/analytics?timeRange=${timeRange}`);
+      const axiosInstance = this.ensureAxiosInstance();
+      const response = await axiosInstance.get(`/admin/revenue-analytics/${timeRange}`);
       return response.data;
     } catch (error) {
       console.error('Failed to fetch revenue analytics:', error);
@@ -286,7 +314,8 @@ class AdminApi {
 
   async getTradeAnalytics(timeRange: string): Promise<TradeAnalyticsData> {
     try {
-      const response = await this.axiosInstance.get(`/admin/trades/analytics?timeRange=${timeRange}`);
+      const axiosInstance = this.ensureAxiosInstance();
+      const response = await axiosInstance.get(`/admin/trades/analytics?timeRange=${timeRange}`);
       return response.data;
     } catch (error) {
       console.error('Failed to fetch trade analytics:', error);
@@ -296,7 +325,8 @@ class AdminApi {
 
   async getSystemHealth(): Promise<SystemHealth> {
     try {
-      const response = await this.axiosInstance.get('/admin/system/health');
+      const axiosInstance = this.ensureAxiosInstance();
+      const response = await axiosInstance.get('/admin/system-health');
       return response.data;
     } catch (error) {
       console.error('Failed to fetch system health:', error);
@@ -306,7 +336,8 @@ class AdminApi {
 
   async getActivityFeed(limit: number): Promise<Activity[]> {
     try {
-      const response = await this.axiosInstance.get(`/admin/activity?limit=${limit}`);
+      const axiosInstance = this.ensureAxiosInstance();
+      const response = await axiosInstance.get(`/admin/activity-feed?limit=${limit}`);
       return response.data;
     } catch (error) {
       console.error('Failed to fetch activity feed:', error);
@@ -316,7 +347,8 @@ class AdminApi {
 
   async getSubscriptionAnalytics(timeRange: string): Promise<SubscriptionAnalytics> {
     try {
-      const response = await this.axiosInstance.get(`/admin/subscription/analytics?timeRange=${timeRange}`);
+      const axiosInstance = this.ensureAxiosInstance();
+      const response = await axiosInstance.get(`/admin/subscription/analytics?timeRange=${timeRange}`);
       return response.data;
     } catch (error) {
       console.error('Failed to fetch subscription analytics:', error);
@@ -326,7 +358,8 @@ class AdminApi {
 
   async getGeographicData(): Promise<GeographicData[]> {
     try {
-      const response = await this.axiosInstance.get('/admin/analytics/geographic');
+      const axiosInstance = this.ensureAxiosInstance();
+      const response = await axiosInstance.get('/admin/analytics/geographic');
       return response.data;
     } catch (error) {
       console.error('Failed to fetch geographic data:', error);
@@ -345,7 +378,8 @@ class AdminApi {
         params.append('search', search);
       }
       
-      const response = await this.axiosInstance.get(`/admin/users?${params}`);
+      const axiosInstance = this.ensureAxiosInstance();
+      const response = await axiosInstance.get(`/admin/users?${params}`);
       return response.data;
     } catch (error) {
       console.error('Failed to fetch users:', error);
@@ -372,7 +406,8 @@ class AdminApi {
       if (startDate) params.append('startDate', startDate);
       if (endDate) params.append('endDate', endDate);
       
-      const response = await this.axiosInstance.get(`/admin/logs?${params}`);
+      const axiosInstance = this.ensureAxiosInstance();
+      const response = await axiosInstance.get(`/admin/logs?${params}`);
       return response.data;
     } catch (error) {
       console.error('Failed to fetch logs:', error);
@@ -382,7 +417,8 @@ class AdminApi {
 
   async getLogsStream(): Promise<{ message: string; latestLogs: LogEntry[] }> {
     try {
-      const response = await this.axiosInstance.get('/admin/logs/stream');
+      const axiosInstance = this.ensureAxiosInstance();
+      const response = await axiosInstance.get('/admin/logs/stream');
       return response.data;
     } catch (error) {
       console.error('Failed to fetch logs stream:', error);
@@ -398,7 +434,8 @@ class AdminApi {
     queryParams?: Record<string, string>;
   }): Promise<any> {
     try {
-      const response = await this.axiosInstance.post('/admin/test-endpoint', testData);
+      const axiosInstance = this.ensureAxiosInstance();
+      const response = await axiosInstance.post('/admin/test-endpoint', testData);
       return response.data;
     } catch (error) {
       console.error('Failed to test endpoint:', error);
@@ -408,7 +445,8 @@ class AdminApi {
 
   async getSystemDiagnostics(): Promise<SystemDiagnostics> {
     try {
-      const response = await this.axiosInstance.get('/admin/system-diagnostics');
+      const axiosInstance = this.ensureAxiosInstance();
+      const response = await axiosInstance.get('/admin/system-diagnostics');
       return response.data;
     } catch (error) {
       console.error('Failed to fetch system diagnostics:', error);
@@ -418,7 +456,8 @@ class AdminApi {
 
   async clearCache(keys?: string[]): Promise<{ success: boolean; message: string; clearedKeys: string[]; timestamp: string }> {
     try {
-      const response = await this.axiosInstance.post('/admin/clear-cache', { keys });
+      const axiosInstance = this.ensureAxiosInstance();
+      const response = await axiosInstance.post('/admin/clear-cache', { keys });
       return response.data;
     } catch (error) {
       console.error('Failed to clear cache:', error);
@@ -428,7 +467,8 @@ class AdminApi {
 
   async getPerformanceMetrics(timeRange: string = '1h'): Promise<PerformanceMetrics> {
     try {
-      const response = await this.axiosInstance.get(`/admin/analytics/performance?timeRange=${timeRange}`);
+      const axiosInstance = this.ensureAxiosInstance();
+      const response = await axiosInstance.get(`/admin/analytics/performance?timeRange=${timeRange}`);
       return response.data;
     } catch (error) {
       console.error('Failed to fetch performance metrics:', error);
@@ -438,7 +478,8 @@ class AdminApi {
 
   async getErrorAnalytics(timeRange: string = '24h'): Promise<ErrorAnalytics> {
     try {
-      const response = await this.axiosInstance.get(`/admin/error-analytics?timeRange=${timeRange}`);
+      const axiosInstance = this.ensureAxiosInstance();
+      const response = await axiosInstance.get(`/admin/error-analytics?timeRange=${timeRange}`);
       return response.data;
     } catch (error) {
       console.error('Failed to fetch error analytics:', error);
@@ -448,7 +489,8 @@ class AdminApi {
 
   async createDebugSession(sessionData: { description: string; userId?: string }): Promise<any> {
     try {
-      const response = await this.axiosInstance.post('/admin/debug-session', sessionData);
+      const axiosInstance = this.ensureAxiosInstance();
+      const response = await axiosInstance.post('/admin/debug-session', sessionData);
       return response.data;
     } catch (error) {
       console.error('Failed to create debug session:', error);
@@ -458,7 +500,8 @@ class AdminApi {
 
   async getDebugSessions(): Promise<{ data: any[]; total: number }> {
     try {
-      const response = await this.axiosInstance.get('/admin/debug-sessions');
+      const axiosInstance = this.ensureAxiosInstance();
+      const response = await axiosInstance.get('/admin/debug-sessions');
       return response.data;
     } catch (error) {
       console.error('Failed to fetch debug sessions:', error);
@@ -468,7 +511,8 @@ class AdminApi {
 
   async getApiUsageStats(timeRange: string = '24h'): Promise<ApiUsageStats> {
     try {
-      const response = await this.axiosInstance.get(`/admin/api/usage?timeRange=${timeRange}`);
+      const axiosInstance = this.ensureAxiosInstance();
+      const response = await axiosInstance.get(`/admin/api/usage?timeRange=${timeRange}`);
       return response.data;
     } catch (error) {
       console.error('Failed to fetch API usage stats:', error);
@@ -478,7 +522,8 @@ class AdminApi {
 
   async backupDatabase(): Promise<{ success: boolean; message: string; backupId: string; estimatedDuration: string; timestamp: string }> {
     try {
-      const response = await this.axiosInstance.post('/admin/backup-database');
+      const axiosInstance = this.ensureAxiosInstance();
+      const response = await axiosInstance.post('/admin/backup-database');
       return response.data;
     } catch (error) {
       console.error('Failed to backup database:', error);
@@ -488,7 +533,8 @@ class AdminApi {
 
   async getBackupStatus(): Promise<any> {
     try {
-      const response = await this.axiosInstance.get('/admin/backup-status');
+      const axiosInstance = this.ensureAxiosInstance();
+      const response = await axiosInstance.get('/admin/backup-status');
       return response.data;
     } catch (error) {
       console.error('Failed to fetch backup status:', error);
@@ -499,4 +545,4 @@ class AdminApi {
 
 export const adminApi = new AdminApi();
 
-export default api;
+export default adminApi;

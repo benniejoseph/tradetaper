@@ -95,7 +95,7 @@ export default function TestingPage() {
   // System health query for real-time monitoring
   const { data: systemHealth } = useQuery({
     queryKey: ['system-health'],
-    queryFn: adminApi.getSystemHealth,
+    queryFn: () => adminApi.getSystemHealth(),
     refetchInterval: 5000,
   });
 
