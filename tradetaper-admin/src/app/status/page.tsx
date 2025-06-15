@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import Sidebar from '@/components/Sidebar';
 import { 
   Server, 
   Database, 
@@ -62,6 +63,7 @@ interface SystemInfo {
 }
 
 export default function StatusPage() {
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [services, setServices] = useState<ServiceStatus[]>([]);
   const [systemInfo, setSystemInfo] = useState<SystemInfo | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -368,8 +370,12 @@ export default function StatusPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-black p-6">
-      <div className="max-w-7xl mx-auto">
+    <div className="flex h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-black">
+      <Sidebar isCollapsed={sidebarCollapsed} onToggle={() => setSidebarCollapsed(!sidebarCollapsed)} />
+      
+      <div className="flex-1 overflow-hidden">
+        <main className="flex-1 scrollable-content p-6">
+          <div className="max-w-7xl mx-auto">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -595,6 +601,8 @@ export default function StatusPage() {
             </div>
           </motion.div>
         )}
+          </div>
+        </main>
       </div>
     </div>
   );
