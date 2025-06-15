@@ -55,7 +55,7 @@ export default function RevenueManagementPage() {
 
   const { data: dashboardStats } = useQuery({
     queryKey: ['dashboard-stats'],
-    queryFn: adminApi.getDashboardStats,
+    queryFn: () => adminApi.getDashboardStats(),
     refetchInterval: 30000,
   });
 

@@ -29,13 +29,13 @@ export default function ActivityPage() {
 
   const { data: systemHealth } = useQuery({
     queryKey: ['system-health'],
-    queryFn: adminApi.getSystemHealth,
+    queryFn: () => adminApi.getSystemHealth(),
     refetchInterval: 30000,
   });
 
   const { data: dashboardStats } = useQuery({
     queryKey: ['dashboard-stats'],
-    queryFn: adminApi.getDashboardStats,
+    queryFn: () => adminApi.getDashboardStats(),
     refetchInterval: 30000,
   });
 

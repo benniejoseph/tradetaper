@@ -108,7 +108,7 @@ export default function SystemPage() {
     error: dbTablesError,
   } = useQuery<string[]>({
     queryKey: ['db-tables'],
-    queryFn: adminApi.getDatabaseTables,
+    queryFn: () => adminApi.getDatabaseTables(),
   });
 
   const {
@@ -142,7 +142,7 @@ export default function SystemPage() {
   // System health query
   const { data: systemHealth, isLoading: systemHealthLoading } = useQuery({
     queryKey: ['system-health'],
-    queryFn: adminApi.getSystemHealth,
+    queryFn: () => adminApi.getSystemHealth(),
     refetchInterval: autoRefresh ? 10000 : false,
   });
 
