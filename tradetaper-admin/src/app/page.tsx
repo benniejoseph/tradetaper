@@ -33,6 +33,7 @@ import {
 } from 'lucide-react';
 import { formatNumber, timeAgo } from '@/lib/utils';
 import { adminApi } from '@/lib/api';
+import ClientTimeDisplay from '@/components/ClientTimeDisplay';
 
 export default function Dashboard() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -43,30 +44,51 @@ export default function Dashboard() {
     queryKey: ['dashboard-stats'],
     queryFn: () => adminApi.getDashboardStats(),
     refetchInterval: 30000, // Refetch every 30 seconds
+    retry: (failureCount, error: any) => {
+      // Don't retry if it's a 404 error
+      if (error?.response?.status === 404) return false;
+      return failureCount < 3;
+    },
   });
 
   const { data: userAnalytics, isLoading: userAnalyticsLoading, error: userAnalyticsError } = useQuery({
     queryKey: ['user-analytics', timeRange],
     queryFn: () => adminApi.getUserAnalytics(timeRange),
     refetchInterval: 30000,
+    retry: (failureCount, error: any) => {
+      if (error?.response?.status === 404) return false;
+      return failureCount < 3;
+    },
   });
 
   const { data: revenueAnalytics, isLoading: revenueAnalyticsLoading, error: revenueAnalyticsError } = useQuery({
     queryKey: ['revenue-analytics', timeRange],
     queryFn: () => adminApi.getRevenueAnalytics(timeRange),
     refetchInterval: 30000,
+    retry: (failureCount, error: any) => {
+      if (error?.response?.status === 404) return false;
+      return failureCount < 3;
+    },
   });
 
   const { data: systemHealth, isLoading: systemHealthLoading, error: systemHealthError } = useQuery({
     queryKey: ['system-health'],
     queryFn: () => adminApi.getSystemHealth(),
     refetchInterval: 10000, // Refetch every 10 seconds
+    retry: (failureCount, error: any) => {
+      if (error?.response?.status === 404) return false;
+      return failureCount < 3;
+    },
   });
 
   const { data: activityFeed, isLoading: activityFeedLoading, error: activityFeedError } = useQuery({
     queryKey: ['activity-feed'],
     queryFn: () => adminApi.getActivityFeed(5), // Get 5 recent activities
     refetchInterval: 5000, // Refetch every 5 seconds
+    retry: (failureCount, error: any) => {
+      if (error?.response?.status === 404) return false;
+      return failureCount < 3;
+    },
   });
 
   // Performance metrics for radar chart
@@ -120,7 +142,7 @@ export default function Dashboard() {
                 Dashboard Overview
               </h1>
               <p className="text-gray-400 text-sm mt-1">
-                Real-time analytics and insights • Last updated {new Date().toLocaleTimeString()}
+                Real-time analytics and insights • Last updated <ClientTimeDisplay />
               </p>
             </div>
             
@@ -478,16 +500,16 @@ export default function Dashboard() {
                   {Array.from({ length: 9 }, (_, i) => (
                     <div key={i} className="bg-gray-800/50 rounded-lg p-4">
                       <p className="text-gray-400 text-sm">Item {i + 1}</p>
-                      <p className="text-white text-xl font-bold">{Math.floor(Math.random() * 1000)}</p>
+                      <p className="text-white text-xl font-bold">{222 + i * 100}</p>
                       <div className="mt-2 h-2 bg-gray-700 rounded-full overflow-hidden">
                         <div 
                           className="h-full bg-gradient-to-r from-blue-500 to-green-500 rounded-full" 
-                          style={{ width: `${Math.floor(Math.random() * 100)}%` }}
+                          style={{ width: `${(i * 15 + 25) % 100}%` }}
                         ></div>
                       </div>
-                      <p className="text-gray-500 text-xs mt-2">
-                        Updated {Math.floor(Math.random() * 60)} minutes ago
-                      </p>
+                                              <p className="text-gray-500 text-xs mt-2">
+                          Updated {(i * 7 + 5) % 60} minutes ago
+                        </p>
                     </div>
                   ))}
                 </div>
@@ -505,7 +527,7 @@ export default function Dashboard() {
             <h3 className="text-2xl font-bold text-white mb-4">🎉 You've reached the bottom!</h3>
             <p className="text-gray-300">This confirms that scrolling is working properly on the dashboard.</p>
             <div className="mt-4 text-sm text-gray-400">
-              Dashboard loaded at {new Date().toLocaleString()}
+              Dashboard loaded at <ClientTimeDisplay prefix="" />
             </div>
           </motion.div>
         </main>
