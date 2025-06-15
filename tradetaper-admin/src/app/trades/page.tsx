@@ -35,6 +35,10 @@ export default function TradesPage() {
     queryKey: ['trade-analytics', selectedTimeRange],
     queryFn: () => adminApi.getTradeAnalytics(selectedTimeRange),
     refetchInterval: 30000,
+    retry: (failureCount, error: any) => {
+      if (error?.response?.status === 404) return false;
+      return failureCount < 3;
+    },
   });
 
   // Mock trades data (in real app, this would come from an API)
@@ -503,23 +507,23 @@ export default function TradesPage() {
                       <div className="flex items-center justify-between mb-2">
                         <p className="text-white font-medium">Trade #{i + 1}</p>
                         <span className={`px-2 py-1 rounded text-xs ${
-                          Math.random() > 0.5 ? 'bg-green-900/30 text-green-300' : 'bg-red-900/30 text-red-300'
+                          i % 2 === 0 ? 'bg-green-900/30 text-green-300' : 'bg-red-900/30 text-red-300'
                         }`}>
-                          {Math.random() > 0.5 ? 'Profit' : 'Loss'}
+                          {i % 2 === 0 ? 'Profit' : 'Loss'}
                         </span>
                       </div>
                       <p className="text-gray-400 text-sm mb-2">
-                        Amount: ${(Math.random() * 10000).toFixed(2)}
+                        Amount: ${((i * 1234 + 500) % 10000).toFixed(2)}
                       </p>
                       <p className="text-gray-400 text-sm mb-2">
-                        P&L: {Math.random() > 0.5 ? '+' : '-'}${(Math.random() * 1000).toFixed(2)}
+                        P&L: {i % 2 === 0 ? '+' : '-'}${((i * 123 + 100) % 1000).toFixed(2)}
                       </p>
                       <div className="h-1 bg-gray-600 rounded-full overflow-hidden">
                         <div 
                           className={`h-full rounded-full ${
-                            Math.random() > 0.5 ? 'bg-green-500' : 'bg-red-500'
+                            i % 2 === 0 ? 'bg-green-500' : 'bg-red-500'
                           }`}
-                          style={{ width: `${Math.floor(Math.random() * 100)}%` }}
+                          style={{ width: `${(i * 15 + 40) % 100}%` }}
                         ></div>
                       </div>
                     </div>

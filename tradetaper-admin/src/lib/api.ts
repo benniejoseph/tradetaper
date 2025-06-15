@@ -320,8 +320,10 @@ class AdminApi {
       const axiosInstance = this.ensureAxiosInstance();
       const response = await axiosInstance.get(`/admin/trades/analytics?timeRange=${timeRange}`);
       return response.data;
-    } catch (error) {
-      console.error('Failed to fetch trade analytics:', error);
+    } catch (error: any) {
+      if (error?.response?.status !== 404) {
+        console.error('Failed to fetch trade analytics:', error);
+      }
       throw error;
     }
   }
@@ -364,8 +366,10 @@ class AdminApi {
       const axiosInstance = this.ensureAxiosInstance();
       const response = await axiosInstance.get('/admin/analytics/geographic');
       return response.data;
-    } catch (error) {
-      console.error('Failed to fetch geographic data:', error);
+    } catch (error: any) {
+      if (error?.response?.status !== 404) {
+        console.error('Failed to fetch geographic data:', error);
+      }
       throw error;
     }
   }
@@ -412,8 +416,10 @@ class AdminApi {
       const axiosInstance = this.ensureAxiosInstance();
       const response = await axiosInstance.get(`/admin/logs?${params}`);
       return response.data;
-    } catch (error) {
-      console.error('Failed to fetch logs:', error);
+    } catch (error: any) {
+      if (error?.response?.status !== 404) {
+        console.error('Failed to fetch logs:', error);
+      }
       throw error;
     }
   }
