@@ -23,7 +23,8 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
       return;
     }
 
-    const backendUrl = 'https://tradetaper-backend-production.up.railway.app';
+    // Use environment variable with fallback to GCP backend
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://tradetaper-backend-481634875325.us-central1.run.app';
     // Convert HTTPS to WSS for WebSocket connections
     const websocketUrl = backendUrl.replace(/^http/, 'ws');
     
