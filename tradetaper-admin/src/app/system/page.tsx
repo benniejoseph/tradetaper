@@ -140,10 +140,22 @@ export default function SystemPage() {
   });
 
   // System health query
-  const { data: systemHealth, isLoading: systemHealthLoading } = useQuery({
+  const { data: systemHealth, isLoading: systemHealthLoading, error: systemHealthError } = useQuery({
     queryKey: ['system-health'],
-    queryFn: () => adminApi.getSystemHealth(),
+    queryFn: async () => {
+      console.log('Fetching system health...');
+      try {
+        const result = await adminApi.getSystemHealth();
+        console.log('System health result:', result);
+        return result;
+      } catch (error) {
+        console.error('System health error:', error);
+        throw error;
+      }
+    },
     refetchInterval: autoRefresh ? 10000 : false,
+    retry: 3,
+    retryDelay: 1000,
   });
 
   // API Testing functions
@@ -338,6 +350,8 @@ export default function SystemPage() {
                       <SkeletonBox key={i} height={24} />
                     ))}
                   </div>
+                ) : systemHealthError ? (
+                  <ErrorMessage message={`Failed to load system health: ${systemHealthError.message}`} />
                 ) : systemHealth ? (
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
@@ -370,7 +384,7 @@ export default function SystemPage() {
                     </div>
                   </div>
                 ) : (
-                  <ErrorMessage message="Failed to load system health data." />
+                  <ErrorMessage message="No system health data available." />
                 )}
               </div>
 
