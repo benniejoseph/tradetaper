@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
+import Sidebar from '@/components/Sidebar';
 import { 
   Terminal, 
   Search, 
@@ -43,6 +44,7 @@ interface SystemMetrics {
 }
 
 const LogViewer = () => {
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [loading, setLoading] = useState(false);
   const [autoRefresh, setAutoRefresh] = useState(false);
@@ -236,8 +238,12 @@ const LogViewer = () => {
   });
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-black p-6">
-      <div className="max-w-full mx-auto">
+    <div className="flex h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-black">
+      <Sidebar isCollapsed={sidebarCollapsed} onToggle={() => setSidebarCollapsed(!sidebarCollapsed)} />
+      
+      <div className="flex-1 overflow-hidden">
+        <main className="flex-1 scrollable-content p-6">
+          <div className="max-w-full mx-auto">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -605,6 +611,8 @@ const LogViewer = () => {
             </motion.div>
           </div>
         )}
+          </div>
+        </main>
       </div>
     </div>
   );
