@@ -1,4 +1,4 @@
-import { Controller, Get, Query, Param } from '@nestjs/common';
+import { Controller, Get, Query, Param, Post } from '@nestjs/common';
 import { AdminService } from './admin.service';
 
 @Controller('admin')
@@ -8,6 +8,26 @@ export class AdminController {
   @Get('dashboard/stats')
   async getDashboardStats() {
     return this.adminService.getDashboardStats();
+  }
+
+  @Get('user-analytics/:timeRange')
+  async getUserAnalytics(@Param('timeRange') timeRange: string) {
+    return this.adminService.getUserAnalytics(timeRange);
+  }
+
+  @Get('revenue-analytics/:timeRange')
+  async getRevenueAnalytics(@Param('timeRange') timeRange: string) {
+    return this.adminService.getRevenueAnalytics(timeRange);
+  }
+
+  @Get('system-health')
+  async getSystemHealth() {
+    return this.adminService.getSystemHealth();
+  }
+
+  @Get('activity-feed')
+  async getActivityFeed(@Query('limit') limit: string = '5') {
+    return this.adminService.getActivityFeed(parseInt(limit));
   }
 
   @Get('users')
@@ -34,5 +54,24 @@ export class AdminController {
   @Get('database/table/:table')
   async getDatabaseTable(@Param('table') table: string) {
     return this.adminService.getDatabaseTable(table);
+  }
+
+  @Get('database/columns/:table')
+  async getDatabaseColumns(@Param('table') table: string) {
+    return this.adminService.getDatabaseColumns(table);
+  }
+
+  @Get('database/rows/:table')
+  async getDatabaseRows(
+    @Param('table') table: string,
+    @Query('page') page: string = '1',
+    @Query('limit') limit: string = '20'
+  ) {
+    return this.adminService.getDatabaseRows(table, parseInt(page), parseInt(limit));
+  }
+
+  @Post('seed-sample-data')
+  async seedSampleData() {
+    return this.adminService.seedSampleData();
   }
 }
