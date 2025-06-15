@@ -49,7 +49,7 @@ export class AdminService {
         users: 0 // Real data would come from database queries
       });
     }
-    
+
     return {
       labels: data.map(d => d.date),
       values: data.map(d => d.users),
@@ -61,7 +61,7 @@ export class AdminService {
     // Generate sample data points for the chart
     const days = this.getDaysFromTimeRange(timeRange);
     const data: Array<{ date: string; revenue: number }> = [];
-    
+
     for (let i = days - 1; i >= 0; i--) {
       const date = new Date();
       date.setDate(date.getDate() - i);
@@ -183,8 +183,8 @@ export class AdminService {
       // Get paginated data
       const dataQuery = `SELECT * FROM "${tableName}" LIMIT $1 OFFSET $2;`;
       const data = await this.dataSource.query(dataQuery, [limit, offset]);
-      
-      return {
+    
+    return {
         data,
         total,
         page,
@@ -196,8 +196,8 @@ export class AdminService {
       return {
         data: [],
         total: 0,
-        page,
-        limit,
+      page,
+      limit,
         totalPages: 0
       };
     }
@@ -397,8 +397,8 @@ export class AdminService {
       // TODO: Fix subscription entity/database schema mismatch
       console.log('Skipping subscription seeding due to schema mismatch');
 
-      return {
-        success: true,
+    return {
+      success: true,
         message: 'Sample data seeded successfully',
         data: {
           users: createdUsers.length,
