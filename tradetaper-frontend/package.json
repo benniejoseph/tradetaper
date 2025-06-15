@@ -15,9 +15,11 @@
     "@tailwindcss/forms": "^0.5.10",
     "@types/react-calendar-heatmap": "^1.9.0",
     "@types/react-datepicker": "^7.0.0",
-    "axios": "^1.9.0",
+    "axios": "^1.10.0",
     "date-fns": "^4.1.0",
+    "framer-motion": "^12.3.0",
     "html2canvas": "^1.4.1",
+    "isomorphic-dompurify": "^2.16.0",
     "lightweight-charts": "^5.0.7",
     "lucide-react": "^0.513.0",
     "next": "15.3.2",
@@ -30,9 +32,7 @@
     "react-redux": "^9.2.0",
     "react-select": "^5.10.1",
     "recharts": "^2.15.3",
-    "socket.io-client": "^4.8.1",
-    "framer-motion": "^12.3.0",
-    "isomorphic-dompurify": "^2.16.0"
+    "socket.io-client": "^4.8.1"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",

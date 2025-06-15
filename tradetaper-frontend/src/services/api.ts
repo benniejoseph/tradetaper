@@ -2,10 +2,10 @@
 import axios from 'axios';
 import { RootState } from '@/store/store';
 
-// Use environment variable with fallback
+// Use environment variable with fallback to GCP backend
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 
   (process.env.NODE_ENV === 'production' 
-    ? 'https://tradetaper-backend-production.up.railway.app/api/v1'
+    ? 'https://tradetaper-backend-481634875325.us-central1.run.app/api/v1'
     : 'http://localhost:3000/api/v1');
 
 // Default instance for public routes
@@ -26,19 +26,19 @@ export const authApiClient = axios.create({
 
 export function setupAuthInterceptors(getState: () => RootState) { // removed unused dispatch parameter
     authApiClient.interceptors.request.use(
-        (config) => {
+        (config: any) => {
             const token = getState().auth.token;
             if (token) {
                 config.headers.Authorization = `Bearer ${token}`;
             }
             return config;
         },
-        (error) => Promise.reject(error)
+        (error: any) => Promise.reject(error)
     );
 
     authApiClient.interceptors.response.use(
-        (response) => response,
-        (error) => {
+        (response: any) => response,
+        (error: any) => {
             if (error.response && error.response.status === 401) {
                 console.log('Unauthorized from interceptor...');
                 // Handle token refresh failure (e.g., redirect to login)
