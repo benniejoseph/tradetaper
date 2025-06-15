@@ -2,33 +2,26 @@
 import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Trade } from './entities/trade.entity';
-import { Tag } from '../tags/entities/tag.entity';
 import { TradesService } from './trades.service';
-import { ExportService } from './export.service';
-import { PerformanceService } from './performance.service';
-import { AdvancedAnalyticsService } from './advanced-analytics.service';
 import { TradesController } from './trades.controller';
 import { UsersModule } from '../users/users.module';
-import { WebSocketGatewayModule } from '../websocket/websocket.module';
+import { TagsModule } from '../tags/tags.module';
+import { CacheModule } from '@nestjs/cache-manager';
+// import { WebSocketGatewayModule } from '../websocket/websocket.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Trade, Tag]),
+    TypeOrmModule.forFeature([Trade]),
     forwardRef(() => UsersModule),
-    forwardRef(() => WebSocketGatewayModule),
+    TagsModule,
+    // forwardRef(() => WebSocketGatewayModule),
+    CacheModule.register({
+      ttl: 60 * 60 * 1000, // 1 hour
+      max: 100, // maximum number of items in cache
+    }),
   ],
-  providers: [
-    TradesService,
-    ExportService,
-    PerformanceService,
-    AdvancedAnalyticsService,
-  ],
+  providers: [TradesService],
   controllers: [TradesController],
-  exports: [
-    TradesService,
-    ExportService,
-    PerformanceService,
-    AdvancedAnalyticsService,
-  ],
+  exports: [TradesService],
 })
 export class TradesModule {}

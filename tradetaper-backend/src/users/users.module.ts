@@ -7,7 +7,7 @@ import { ConfigModule } from '@nestjs/config';
 import { MT5Account } from './entities/mt5-account.entity';
 import { MT5AccountsService } from './mt5-accounts.service';
 import { MT5AccountsController } from './mt5-accounts.controller';
-import { MetaApiService } from './metaapi.service';
+// import { MetaApiService } from './metaapi.service';
 import { TradeHistoryParserService } from './trade-history-parser.service';
 import { CacheModule } from '@nestjs/cache-manager';
 import { TradesModule } from '../trades/trades.module';
@@ -26,13 +26,13 @@ import { TradesModule } from '../trades/trades.module';
   providers: [
     UsersService,
     MT5AccountsService,
-    MetaApiService,
+    // MetaApiService, // TEMPORARY: Disabled for admin deployment
     TradeHistoryParserService,
   ],
   exports: [
     UsersService,
     MT5AccountsService,
-    MetaApiService,
+    // MetaApiService, // TEMPORARY: Disabled for admin deployment
     TradeHistoryParserService,
   ],
   controllers: [MT5AccountsController],

@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 // src/trades/trades.service.ts
-import { Injectable, NotFoundException, Logger } from '@nestjs/common';
+import { Injectable, NotFoundException, Logger, Inject, forwardRef } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, FindManyOptions, In } from 'typeorm';
 import { Trade } from './entities/trade.entity';
@@ -13,8 +13,7 @@ import { Tag } from '../tags/entities/tag.entity';
 import { CreateTradeDto } from './dto/create-trade.dto';
 import { UpdateTradeDto } from './dto/update-trade.dto';
 import { UserResponseDto } from '../users/dto/user-response.dto';
-import { TradesGateway } from '../websocket/trades.gateway';
-import { Inject, forwardRef } from '@nestjs/common';
+// import { TradesGateway } from '../websocket/trades.gateway';
 
 @Injectable()
 export class TradesService {
@@ -25,8 +24,8 @@ export class TradesService {
     private readonly tradesRepository: Repository<Trade>,
     @InjectRepository(Tag)
     private readonly tagRepository: Repository<Tag>,
-    @Inject(forwardRef(() => TradesGateway))
-    private readonly tradesGateway: TradesGateway,
+    // @Inject(forwardRef(() => TradesGateway))
+    // private readonly tradesGateway: TradesGateway,
   ) {}
 
   private calculateAndSetPnl(trade: Trade): void {
@@ -127,10 +126,22 @@ export class TradesService {
     this.calculateAndSetPnl(trade);
     const savedTrade = await this.tradesRepository.save(trade);
 
-    // Emit WebSocket notification
-    this.tradesGateway.notifyTradeCreated(savedTrade);
+    // Load the complete trade with relations for response
+    const completeTradeData = await this.tradesRepository.findOne({
+      where: { id: savedTrade.id },
+      relations: ['tags'],
+    });
 
-    return savedTrade;
+    if (!completeTradeData) {
+      throw new NotFoundException(`Trade with id ${savedTrade.id} not found after creation`);
+    }
+
+    this.logger.log(`Trade created successfully: ${savedTrade.id}`);
+
+    // Emit WebSocket notification
+    // this.tradesGateway.notifyTradeCreated(savedTrade);
+
+    return completeTradeData;
   }
 
   async findAll(
@@ -233,7 +244,7 @@ export class TradesService {
     const updatedTrade = await this.tradesRepository.save(trade);
 
     // Emit WebSocket notification
-    this.tradesGateway.notifyTradeUpdated(updatedTrade);
+    // this.tradesGateway.notifyTradeUpdated(updatedTrade);
 
     return updatedTrade;
   }
@@ -249,7 +260,7 @@ export class TradesService {
     this.logger.log(`User ${userContext.id} removed trade with ID ${id}`);
 
     // Emit WebSocket notification
-    this.tradesGateway.notifyTradeDeleted(id);
+    // this.tradesGateway.notifyTradeDeleted(id);
   }
 
   // Bulk operations
@@ -283,7 +294,7 @@ export class TradesService {
     );
 
     // Emit WebSocket notification
-    this.tradesGateway.notifyBulkOperation('delete', deletedCount);
+    // this.tradesGateway.notifyBulkOperation('delete', deletedCount);
 
     return { deletedCount };
   }
@@ -337,11 +348,11 @@ export class TradesService {
     const savedTrades = await this.tradesRepository.save(updatedTrades);
 
     // Emit WebSocket notification
-    this.tradesGateway.notifyBulkOperation(
-      'update',
-      savedTrades.length,
-      savedTrades,
-    );
+    // this.tradesGateway.notifyBulkOperation(
+    //   'update',
+    //   savedTrades.length,
+    //   savedTrades,
+    // );
 
     return { updatedCount: savedTrades.length, trades: savedTrades };
   }
@@ -378,11 +389,11 @@ export class TradesService {
     const savedTrades = await this.tradesRepository.save(createdTrades);
 
     // Emit WebSocket notification
-    this.tradesGateway.notifyBulkOperation(
-      'import',
-      savedTrades.length,
-      savedTrades,
-    );
+    // this.tradesGateway.notifyBulkOperation(
+    //   'import',
+    //   savedTrades.length,
+    //   savedTrades,
+    // );
 
     return { importedCount: savedTrades.length, trades: savedTrades };
   }
