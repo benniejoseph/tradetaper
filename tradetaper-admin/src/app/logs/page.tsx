@@ -107,9 +107,13 @@ const LogViewer = () => {
       } else {
         setLogs(response.data);
       }
-    } catch (error) {
-      console.error('Failed to load logs:', error);
-      // Mock data for development
+    } catch (error: any) {
+      // Only log non-404 errors to avoid console spam
+      if (error?.response?.status !== 404) {
+        console.error('Failed to load logs:', error);
+      }
+      
+      // Generate more comprehensive mock data for development
       const mockLogs: LogEntry[] = [
         {
           id: '1',
@@ -138,9 +142,58 @@ const LogViewer = () => {
           endpoint: '/api/v1/auth/login',
           method: 'POST',
           userId: 'user-123'
+        },
+        {
+          id: '4',
+          level: 'debug',
+          message: 'Cache hit for user profile',
+          context: 'Cache',
+          timestamp: new Date(Date.now() - 180000).toISOString(),
+          details: { cacheKey: 'user:123:profile', hitRate: 95.2 }
+        },
+        {
+          id: '5',
+          level: 'error',
+          message: 'Payment processing failed',
+          context: 'Payment',
+          timestamp: new Date(Date.now() - 240000).toISOString(),
+          endpoint: '/api/v1/payments/process',
+          method: 'POST',
+          details: { paymentId: 'pay_123', error: 'Insufficient funds' }
+        },
+        {
+          id: '6',
+          level: 'info',
+          message: 'Trade executed successfully',
+          context: 'Trading',
+          timestamp: new Date(Date.now() - 300000).toISOString(),
+          endpoint: '/api/v1/trades',
+          method: 'POST',
+          details: { tradeId: 'trade_456', pair: 'EUR/USD', amount: 1000 }
+        },
+        {
+          id: '7',
+          level: 'warn',
+          message: 'Rate limit approaching for user',
+          context: 'RateLimit',
+          timestamp: new Date(Date.now() - 360000).toISOString(),
+          details: { userId: 'user-789', requests: 95, limit: 100 }
+        },
+        {
+          id: '8',
+          level: 'info',
+          message: 'System backup completed',
+          context: 'Backup',
+          timestamp: new Date(Date.now() - 420000).toISOString(),
+          details: { backupSize: '2.3GB', duration: '45 minutes' }
         }
       ];
-      setLogs(mockLogs);
+      
+      if (append) {
+        setLogs(prev => [...prev, ...mockLogs]);
+      } else {
+        setLogs(mockLogs);
+      }
     } finally {
       setLoading(false);
     }

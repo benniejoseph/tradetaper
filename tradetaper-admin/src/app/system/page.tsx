@@ -995,10 +995,10 @@ export default function SystemPage() {
                             </span>
                           </div>
                           <p className="text-gray-400 text-sm mb-2">
-                            Process ID: {Math.floor(Math.random() * 10000)}
+                            Process ID: {(i * 1234 + 1000) % 10000}
                           </p>
                           <p className="text-gray-400 text-sm mb-2">
-                            Memory: {(Math.random() * 100).toFixed(1)}MB
+                            Memory: {((i * 12.5 + 25) % 100).toFixed(1)}MB
                           </p>
                           <div className="h-1 bg-gray-700 rounded-full overflow-hidden">
                             <div 
@@ -1007,7 +1007,7 @@ export default function SystemPage() {
                                 i % 3 === 1 ? 'bg-red-500' : 
                                 'bg-yellow-500'
                               }`}
-                              style={{ width: `${Math.floor(Math.random() * 100)}%` }}
+                              style={{ width: `${(i * 13 + 35) % 100}%` }}
                             ></div>
                           </div>
                         </div>

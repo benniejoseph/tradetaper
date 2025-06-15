@@ -366,10 +366,10 @@ export default function ActivityPage() {
                         }`}></div>
                       </div>
                       <p className="text-gray-400 text-sm mb-2">
-                        User: User{Math.floor(Math.random() * 1000)}
+                        User: User{(i * 123 + 100) % 1000}
                       </p>
                       <p className="text-gray-400 text-sm mb-2">
-                        Time: {new Date(Date.now() - Math.random() * 86400000).toLocaleTimeString()}
+                        Time: {new Date(Date.now() - (i * 3600000 + 1800000)).toLocaleTimeString()}
                       </p>
                       <div className="h-1 bg-gray-600 rounded-full overflow-hidden">
                         <div 
@@ -379,7 +379,7 @@ export default function ActivityPage() {
                             i % 4 === 2 ? 'bg-yellow-500' :
                             'bg-purple-500'
                           }`}
-                          style={{ width: `${Math.floor(Math.random() * 100)}%` }}
+                          style={{ width: `${(i * 11 + 20) % 100}%` }}
                         ></div>
                       </div>
                     </div>
