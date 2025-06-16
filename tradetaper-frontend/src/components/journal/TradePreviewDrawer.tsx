@@ -4,7 +4,6 @@ import { Trade, TradeStatus, UpdateTradePayload, TradeDirection } from '@/types/
 import { FaTimes, FaEdit, FaTrashAlt, FaExternalLinkAlt, FaShareSquare, FaStar as FaStarSolid, FaRegStar as FaStarOutline, FaTwitter, FaLinkedin, FaCopy, FaDownload, FaChartLine, FaClock, FaDollarSign } from 'react-icons/fa';
 import { format, parseISO } from 'date-fns';
 import { getWeekday, getHoldTime, formatPrice } from './TradesTable';
-import Image from 'next/image';
 import React, { useState, useRef } from 'react';
 import { useDispatch } from 'react-redux';
 import { AppDispatch } from '@/store/store';
@@ -482,8 +481,12 @@ export default function TradePreviewDrawer({
                 <div className="mt-6">
                     <SectionTitle title="Chart Attachment" icon={<FaChartLine className="w-5 h-5 text-teal-600 dark:text-teal-400" />} />
                     <div className="bg-white/60 dark:bg-gray-800/40 backdrop-blur-sm rounded-2xl border border-gray-200/30 dark:border-gray-700/30 p-4 hover:bg-white/80 dark:hover:bg-gray-800/60 transition-all duration-200">
-                        <div className="relative w-full aspect-[16/9] rounded-xl overflow-hidden">
-                            <Image src={trade.imageUrl} alt={`${trade.symbol} trade chart`} layout="fill" objectFit="cover" className="hover:scale-105 transition-transform duration-300" />
+                        <div className="relative w-full rounded-xl overflow-hidden cursor-pointer" onClick={() => window.open(trade.imageUrl, '_blank')}>
+                            <img 
+                                src={trade.imageUrl} 
+                                alt={`${trade.symbol} trade chart`} 
+                                className="w-full h-auto max-h-64 object-contain hover:scale-105 transition-transform duration-300 rounded-xl" 
+                            />
                         </div>
                     </div>
                 </div>
