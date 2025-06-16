@@ -88,6 +88,7 @@ export class AccountsService {
       currency: account.currency,
       description: account.description,
       isActive: account.isActive,
+      target: Number(account.target),
       userId: account.userId,
       createdAt: account.createdAt,
       updatedAt: account.updatedAt,

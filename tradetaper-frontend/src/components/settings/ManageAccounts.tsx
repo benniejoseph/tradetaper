@@ -25,13 +25,15 @@ interface AccountFormData {
   balance: string; // Input as string, convert to number on save
   currency?: string;
   description?: string;
+  target?: string; // Input as string, convert to number on save
 }
 
 const initialFormState: AccountFormData = {
   name: '',
   balance: '',
   currency: 'USD',
-  description: ''
+  description: '',
+  target: ''
 };
 
 export default function ManageAccounts() {
@@ -70,6 +72,7 @@ export default function ManageAccounts() {
       balance: account.balance.toString(),
       currency: account.currency,
       description: account.description || '',
+      target: account.target?.toString() || ''
     });
     setShowAddForm(true); // Re-use the same form for editing
   };
@@ -99,14 +102,16 @@ export default function ManageAccounts() {
           name: formData.name.trim(), 
           balance: balanceNum,
           currency: formData.currency,
-          description: formData.description?.trim() || undefined
+          description: formData.description?.trim() || undefined,
+          target: formData.target ? parseFloat(formData.target) : undefined
         })).unwrap();
       } else {
         await dispatch(createAccount({ 
           name: formData.name.trim(), 
           balance: balanceNum,
           currency: formData.currency,
-          description: formData.description?.trim() || undefined
+          description: formData.description?.trim() || undefined,
+          target: formData.target ? parseFloat(formData.target) : undefined
         })).unwrap();
       }
       handleCancelEdit(); // Close form and reset
@@ -226,6 +231,25 @@ export default function ManageAccounts() {
                 placeholder="USD"
                 maxLength={3}
               />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Target
+              </label>
+              <div className="relative">
+                <FaDollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <input 
+                  type="text" 
+                  inputMode="decimal" 
+                  pattern="[0-9]*[.,]?[0-9]*" 
+                  name="target" 
+                  value={formData.target || ''} 
+                  onChange={handleInputChange}
+                  className="w-full pl-10 pr-4 py-3 border border-gray-200/50 dark:border-gray-700/50 rounded-xl bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                  placeholder="Target amount"
+                />
+              </div>
             </div>
 
             <div>

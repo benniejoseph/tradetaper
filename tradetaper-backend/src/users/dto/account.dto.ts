@@ -9,7 +9,8 @@ export class CreateAccountDto {
   @IsNumber()
   @Type(() => Number)
   @Min(0)
-  balance: number;
+  @IsOptional()
+  balance?: number;
 
   @IsOptional()
   @IsString()
@@ -18,6 +19,11 @@ export class CreateAccountDto {
   @IsOptional()
   @IsString()
   description?: string;
+
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  target?: number;
 
   @IsOptional()
   @IsBoolean()
@@ -46,6 +52,11 @@ export class UpdateAccountDto {
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;
+
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  target?: number;
 }
 
 export class AccountResponseDto {
@@ -53,8 +64,9 @@ export class AccountResponseDto {
   name: string;
   balance: number;
   currency: string;
-  description?: string;
+  description: string;
   isActive: boolean;
+  target: number;
   userId: string;
   createdAt: Date;
   updatedAt: Date;

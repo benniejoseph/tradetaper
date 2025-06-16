@@ -1,4 +1,4 @@
-import { Controller, Get, Query, Param, Post, Delete } from '@nestjs/common';
+import { Controller, Get, Query, Param, Post, Delete, Body } from '@nestjs/common';
 import { AdminService } from './admin.service';
 import { TestUserSeedService } from '../seed/test-user-seed.service';
 
@@ -48,6 +48,14 @@ export class AdminController {
     @Query('limit') limit: string = '50'
   ) {
     return this.adminService.getTrades(parseInt(page), parseInt(limit));
+  }
+
+  @Get('accounts')
+  async getAccounts(
+    @Query('page') page: string = '1',
+    @Query('limit') limit: string = '50'
+  ) {
+    return this.adminService.getAccounts(parseInt(page), parseInt(limit));
   }
 
   @Get('database/tables')
@@ -144,5 +152,20 @@ export class AdminController {
   @Get('database/table-stats')
   async getTableStats() {
     return this.adminService.getTableStats();
+  }
+
+  @Post('database/run-sql')
+  async runSql(
+    @Query('confirm') confirm: string,
+    @Body() body: { sql: string }
+  ) {
+    if (confirm !== 'ADMIN_SQL_EXECUTE') {
+      return {
+        error: 'Safety confirmation required',
+        message: 'Add query parameter: ?confirm=ADMIN_SQL_EXECUTE',
+      };
+    }
+
+    return this.adminService.runSql(body.sql);
   }
 }
