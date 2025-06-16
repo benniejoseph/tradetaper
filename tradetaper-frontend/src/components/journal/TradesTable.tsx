@@ -142,6 +142,7 @@ export default function TradesTable({ trades, accounts, onRowClick, isLoading, i
               <th className={thClasses}>Exit</th>
               <th className={thClasses}>P&L</th>
               <th className={thClasses}>R-Multiple</th>
+              <th className={thClasses}>Chart</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200/30 dark:divide-gray-700/30">
@@ -184,6 +185,23 @@ export default function TradesTable({ trades, accounts, onRowClick, isLoading, i
                       {trade.rMultiple.toFixed(2)}R
                     </span>
                   ) : '-'}
+                </td>
+                <td className={`${tdClasses} text-center`}>
+                  {trade.imageUrl ? (
+                    <div className="flex justify-center">
+                      <img
+                        src={trade.imageUrl}
+                        alt={`${trade.symbol} chart`}
+                        className="w-12 h-8 object-cover rounded-lg shadow-sm hover:scale-110 transition-transform duration-200 cursor-pointer"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          window.open(trade.imageUrl, '_blank');
+                        }}
+                      />
+                    </div>
+                  ) : (
+                    <span className="text-gray-400 dark:text-gray-500 text-xs">No image</span>
+                  )}
                 </td>
               </tr>
             ))}

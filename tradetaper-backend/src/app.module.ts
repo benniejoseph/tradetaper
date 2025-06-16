@@ -20,6 +20,7 @@ import { Trade } from './trades/entities/trade.entity';
 import { Tag } from './tags/entities/tag.entity';
 import { MT5Account } from './users/entities/mt5-account.entity';
 import { Strategy } from './strategies/entities/strategy.entity';
+import { SimpleWebSocketModule } from './websocket/simple-websocket.module';
 
 @Module({
   imports: [
@@ -87,6 +88,7 @@ import { Strategy } from './strategies/entities/strategy.entity';
     // WebSocketGatewayModule,
     StrategiesModule,
     FilesModule,
+    SimpleWebSocketModule,
   ],
   controllers: [AppController],
   providers: [AppService],
