@@ -64,17 +64,34 @@ export default function DashboardPage() {
     if (isAuthenticated) {
       // Get the actual selected account ID (could be MT5 or regular account)
       const currentAccountId = selectedAccountId || selectedMT5AccountId;
+      console.log('Dashboard fetchTrades - accountId:', currentAccountId, 'authenticated:', isAuthenticated);
       dispatch(fetchTrades(currentAccountId || undefined));
     }
   }, [dispatch, isAuthenticated, selectedAccountId, selectedMT5AccountId]);
 
+  // Debug logging for trades data
+  useEffect(() => {
+    console.log('Dashboard trades data:', {
+      tradesCount: trades?.length || 0,
+      trades: trades,
+      isLoading: tradesLoading,
+      selectedAccountId,
+      selectedMT5AccountId
+    });
+  }, [trades, tradesLoading, selectedAccountId, selectedMT5AccountId]);
+
   const filteredTrades = useMemo(() => {
     const days = timeRangeDaysMapping[timeRange];
     if (days === Infinity || !trades || trades.length === 0) {
+      console.log('Dashboard filteredTrades - using all trades or empty:', { 
+        timeRange, 
+        days, 
+        tradesLength: trades?.length 
+      });
       return trades;
     }
     const cutOffDate = subDays(new Date(), days);
-    return trades.filter(trade => {
+    const filtered = trades.filter(trade => {
       // Use exitDate for closed trades, entryDate for open/pending trades
       const tradeDateString = trade.status === TradeStatus.CLOSED && trade.exitDate ? trade.exitDate : trade.entryDate;
       if (!tradeDateString) return false; // Should not happen if data is clean
@@ -86,12 +103,22 @@ export default function DashboardPage() {
         return false;
       }
     });
+    console.log('Dashboard filteredTrades - filtered result:', {
+      timeRange,
+      originalCount: trades.length,
+      filteredCount: filtered.length,
+      cutOffDate: cutOffDate.toISOString()
+    });
+    return filtered;
   }, [trades, timeRange]);
 
   const dashboardStats = useMemo(() => {
     if (filteredTrades && filteredTrades.length > 0) {
-      return calculateDashboardStats(filteredTrades);
+      const stats = calculateDashboardStats(filteredTrades);
+      console.log('Dashboard calculateDashboardStats result:', stats);
+      return stats;
     }
+    console.log('Dashboard no stats - no trades:', { filteredTradesLength: filteredTrades?.length });
     return null;
   }, [filteredTrades]);
 
@@ -224,7 +251,7 @@ export default function DashboardPage() {
             hoverEffect="lift" 
             delay={0.1}
             className="bg-gradient-to-br from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white overflow-hidden"
-            onClick={() => window.location.href = '/journal/new'}
+            onClick={() => { window.location.href = '/journal/new'; }}
           >
             <div className="relative z-10">
               <div className="flex items-center justify-between mb-4">
@@ -691,7 +718,7 @@ export default function DashboardPage() {
               Start your trading journey by logging your first trade or adjust the time range to view historical data.
             </p>
             <AnimatedButton 
-              onClick={() => window.location.href = '/journal/new'}
+              onClick={() => { window.location.href = '/journal/new'; }}
               variant="gradient"
               size="lg"
               icon={<FaPlus className="w-4 h-4" />}
@@ -724,7 +751,7 @@ export default function DashboardPage() {
 
         {/* Floating Action Button for Quick Trade Entry */}
         <FloatingActionButton
-          onClick={() => window.location.href = '/journal/new'}
+              onClick={() => { window.location.href = '/journal/new'; }}
           icon={<FaPlus className="w-6 h-6" />}
           tooltip="Log New Trade"
           position="bottom-right"

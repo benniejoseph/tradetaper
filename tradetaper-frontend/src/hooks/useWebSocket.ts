@@ -13,12 +13,17 @@ interface UseWebSocketOptions {
 }
 
 export const useWebSocket = (options: UseWebSocketOptions = {}) => {
-  const { enabled = true, onConnect, onDisconnect, onError } = options;
+  const { enabled = false, onConnect, onDisconnect, onError } = options;
   const dispatch = useDispatch<AppDispatch>();
   const socketRef = useRef<Socket | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const connect = useCallback(() => {
+    if (!enabled) {
+      console.log('WebSocket disabled - skipping connection');
+      return;
+    }
+
     if (socketRef.current?.connected) {
       return;
     }
@@ -27,6 +32,8 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
     const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://tradetaper-backend-481634875325.us-central1.run.app';
     // Convert HTTPS to WSS for WebSocket connections
     const websocketUrl = backendUrl.replace(/^http/, 'ws');
+    
+    console.log('Attempting WebSocket connection to:', `${websocketUrl}/trades`);
     
     socketRef.current = io(`${websocketUrl}/trades`, {
       withCredentials: true,
