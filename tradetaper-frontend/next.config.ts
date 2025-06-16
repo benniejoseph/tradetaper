@@ -13,7 +13,7 @@ const nextConfig: NextConfig = {
         protocol: 'https',
         hostname: 'storage.googleapis.com',
         // port: '', // Optional: Defaults to HTTP/HTTPS standard ports
-        pathname: '/tradetaper-bucket-images/**', // Adjusted to match bucket structure
+        pathname: '/tradetaper-uploads/**', // Fixed to match actual bucket name
       },
       // Add other patterns here if needed
     ],
