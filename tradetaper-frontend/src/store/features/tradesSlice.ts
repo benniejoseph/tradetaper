@@ -76,14 +76,31 @@ function transformApiTradeToFrontend(apiTrade: any): Trade {
 
 // Helper function to transform frontend payload to backend API format
 function transformFrontendToApiPayload(frontendPayload: CreateTradePayload | UpdateTradePayload): any {
+  // Helper function to convert datetime-local input to ISO 8601 string
+  const formatDateTimeForAPI = (dateTimeString?: string): string | undefined => {
+    if (!dateTimeString) return undefined;
+    try {
+      // If the string is already in ISO format, return as is
+      if (dateTimeString.includes('T') && (dateTimeString.includes('Z') || dateTimeString.includes('+') || dateTimeString.includes('-'))) {
+        return dateTimeString;
+      }
+      // If it's datetime-local format (YYYY-MM-DDTHH:mm), convert to ISO 8601
+      const date = new Date(dateTimeString);
+      return date.toISOString();
+    } catch (error) {
+      console.error('Error formatting date for API:', dateTimeString, error);
+      return undefined;
+    }
+  };
+
   return {
     assetType: frontendPayload.assetType,
     symbol: frontendPayload.symbol,
     side: frontendPayload.direction, // Frontend: direction → API: side
     status: frontendPayload.status,
-    openTime: frontendPayload.entryDate, // Frontend: entryDate → API: openTime
+    openTime: formatDateTimeForAPI(frontendPayload.entryDate), // Frontend: entryDate → API: openTime
     openPrice: frontendPayload.entryPrice, // Frontend: entryPrice → API: openPrice
-    closeTime: frontendPayload.exitDate, // Frontend: exitDate → API: closeTime
+    closeTime: formatDateTimeForAPI(frontendPayload.exitDate), // Frontend: exitDate → API: closeTime
     closePrice: frontendPayload.exitPrice, // Frontend: exitPrice → API: closePrice
     quantity: frontendPayload.quantity,
     stopLoss: frontendPayload.stopLoss,
