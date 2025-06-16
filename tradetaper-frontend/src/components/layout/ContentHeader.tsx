@@ -68,7 +68,7 @@ function ContentHeader({ toggleSidebar, isMobile, isSidebarExpanded }: ContentHe
 
   return (
     <header className="sticky top-0 z-30 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-b border-gray-200/50 dark:border-gray-700/50">
-      <div className="px-9 sm:px-6 py-4">
+      <div className="px-4 sm:px-9 py-balance">
         <div className="flex items-center justify-between">
           {/* Left side - Menu button, title, and account selector */}
           <div className={`flex items-center ${isMobile || !isSidebarExpanded ? 'space-x-4' : 'space-x-6'}`}>

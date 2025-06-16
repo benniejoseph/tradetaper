@@ -123,7 +123,10 @@
   h1, h2, h3, h4, h5, h6 {
     font-weight: 500; /* Medium for headings */
   }
-
+  .py-balance {
+    padding-top: 1.35rem;
+    padding-bottom: 1.35rem;
+  }
   /* You can add more base styles here if needed */
   /* For example, consistent link styling if not handled by components directly */
   /* a {
