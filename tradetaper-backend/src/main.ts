@@ -1,65 +1,98 @@
 // trading-journal-backend/src/main.ts
-import { NestFactory, Reflector } from '@nestjs/core';
+import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { ConfigService } from '@nestjs/config';
-import { ClassSerializerInterceptor, ValidationPipe } from '@nestjs/common';
-import { NestExpressApplication } from '@nestjs/platform-express';
-import { join } from 'path';
+import { ValidationPipe } from '@nestjs/common';
+import { CorsOptions } from '@nestjs/common/interfaces/external/cors-options.interface';
+import { DataSource } from 'typeorm';
+
+async function runMigrations() {
+  const isProduction = process.env.NODE_ENV === 'production';
+  
+  if (isProduction) {
+    console.log('🔄 Running database migrations...');
+    
+    const AppDataSource = new DataSource({
+      type: 'postgres',
+      host: '/cloudsql/tradetaper:us-central1:tradetaper-postgres',
+      username: 'tradetaper',
+      password: 'TradeTaper2024',
+      database: 'tradetaper',
+      entities: ['dist/**/*.entity.js'],
+      migrations: ['dist/migrations/*.js'],
+      ssl: false,
+      migrationsRun: true,
+      synchronize: false,
+    });
+
+    try {
+      await AppDataSource.initialize();
+      await AppDataSource.runMigrations();
+      console.log('✅ Migrations completed successfully');
+      await AppDataSource.destroy();
+    } catch (error) {
+      console.error('❌ Migration failed:', error);
+      // Don't fail the app startup, just log the error
+    }
+  }
+}
 
 async function bootstrap() {
   try {
     console.log('🚀 TradeTaper Backend Starting...');
     console.log(`📊 Node.js: ${process.version}, ENV: ${process.env.NODE_ENV}, PORT: ${process.env.PORT}`);
-    
-    const app = await NestFactory.create<NestExpressApplication>(AppModule, {
-      logger: ['error', 'warn', 'log'], // Enable more logging for debugging
-    });
-    
-    const port = process.env.PORT || 8080;
+
+    // Run migrations first in production
+    await runMigrations();
+
+    const app = await NestFactory.create(AppModule);
+
+    const port = process.env.PORT || 3000;
     console.log(`🔧 Using port: ${port}`);
 
-    // Enable CORS
-    app.enableCors({ 
-      origin: true, 
+    // CORS configuration
+    const corsOptions: CorsOptions = {
+      origin: [
+        'http://localhost:3000',
+        'http://localhost:3001',
+        'http://localhost:3002', 
+        'https://tradetaper-frontend-benniejosephs-projects.vercel.app',
+        'https://tradetaper-admin.vercel.app',
+        process.env.FRONTEND_URL || 'http://localhost:3000',
+      ],
+      methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+      allowedHeaders: ['Content-Type', 'Authorization'],
       credentials: true,
-      methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-      allowedHeaders: ['Content-Type', 'Authorization']
-    });
+    };
 
-    // Add health endpoints
-    const express = app.getHttpAdapter().getInstance();
-    express.get('/health', (req, res) => {
+    app.enableCors(corsOptions);
+
+    // Add health endpoint
+    app.getHttpAdapter().get('/health', (req, res) => {
       res.json({ 
         status: 'ok', 
         timestamp: new Date().toISOString(),
-        port: port,
-        env: process.env.NODE_ENV
+        uptime: process.uptime(),
+        memory: process.memoryUsage()
       });
     });
 
-    express.get('/', (req, res) => {
-      res.json({ 
-        message: 'TradeTaper Backend API',
-        status: 'running',
-        timestamp: new Date().toISOString(),
-        version: '1.0.0'
-      });
-    });
-
+    // Global prefix for all routes
     app.setGlobalPrefix('api/v1');
 
-    // Add validation
-    app.useGlobalPipes(new ValidationPipe({ 
-      whitelist: true, 
-      forbidNonWhitelisted: false,
-      transform: true
-    }));
+    // Global validation pipe
+    app.useGlobalPipes(
+      new ValidationPipe({
+        whitelist: true,
+        forbidNonWhitelisted: true,
+        transform: true,
+      }),
+    );
 
     console.log(`🔧 Starting server on port ${port}...`);
     await app.listen(port, '0.0.0.0');
     
-    console.log('✅ TradeTaper Backend STARTED!');
-    console.log(`🌐 Server: http://0.0.0.0:${port}`);
+    console.log(`🚀 TradeTaper Backend is running on port ${port}`);
+    console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
     console.log(`❤️ Health: http://0.0.0.0:${port}/health`);
     console.log(`📊 API: http://0.0.0.0:${port}/api/v1`);
     
