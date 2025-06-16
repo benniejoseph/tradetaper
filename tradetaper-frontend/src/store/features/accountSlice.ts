@@ -1,19 +1,42 @@
-import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { RootState } from '../store';
+import { accountsService, Account, CreateAccountPayload, UpdateAccountPayload } from '@/services/accountsService';
 
-export interface Account {
-  id: string;
-  name: string;
-  balance: number;
-  // In a real scenario, balance might be fetched or stored here too
-  // balance: number; 
-}
+// Async thunks for API calls
+export const fetchAccounts = createAsyncThunk(
+  'accounts/fetchAccounts',
+  async () => {
+    const accounts = await accountsService.getAccounts();
+    return accounts;
+  }
+);
 
-// Payload for adding an account, ID will be generated
-type AddAccountPayload = Omit<Account, 'id'>;
+export const createAccount = createAsyncThunk(
+  'accounts/createAccount',
+  async (accountData: CreateAccountPayload) => {
+    const account = await accountsService.createAccount(accountData);
+    return account;
+  }
+);
+
+export const updateAccountThunk = createAsyncThunk(
+  'accounts/updateAccount',
+  async ({ id, ...updateData }: UpdateAccountPayload & { id: string }) => {
+    const account = await accountsService.updateAccount(id, updateData);
+    return account;
+  }
+);
+
+export const deleteAccountThunk = createAsyncThunk(
+  'accounts/deleteAccount',
+  async (id: string) => {
+    await accountsService.deleteAccount(id);
+    return id;
+  }
+);
 
 // Payload for updating an account, ID is required to find the account
-type UpdateAccountPayload = Partial<Omit<Account, 'id'>> & { id: string };
+type UpdateAccountSlicePayload = Partial<Omit<Account, 'id'>> & { id: string };
 
 interface AccountState {
   accounts: Account[];
@@ -23,11 +46,7 @@ interface AccountState {
 }
 
 const initialState: AccountState = {
-  accounts: [
-    { id: 'acc_binance_main', name: 'Binance Main', balance: 6578.98 },
-    { id: 'acc_kucoin_spot', name: 'KuCoin Spot', balance: 12345.67 },
-    { id: 'acc_bybit_futures', name: 'Bybit Futures', balance: 888.88 },
-  ],
+  accounts: [],
   selectedAccountId: null, // Default to show all trades from all accounts
   isLoading: false,
   error: null,
@@ -54,18 +73,14 @@ const accountSlice = createSlice({
         console.warn(`Attempted to select non-existent account ID: ${action.payload}`);
       }
     },
-    addAccount: (state, action: PayloadAction<AddAccountPayload>) => {
-      const newAccount: Account = {
-        id: `acc_${new Date().getTime()}_${Math.random().toString(36).substring(2, 7)}`, // Generate a simple unique ID
-        ...action.payload,
-      };
-      state.accounts.push(newAccount);
+    addAccount: (state, action: PayloadAction<Account>) => {
+      state.accounts.push(action.payload);
       // If no account was selected, select the newly added one.
       if (!state.selectedAccountId) {
-        state.selectedAccountId = newAccount.id;
+        state.selectedAccountId = action.payload.id;
       }
     },
-    updateAccount: (state, action: PayloadAction<UpdateAccountPayload>) => {
+    updateAccount: (state, action: PayloadAction<UpdateAccountSlicePayload>) => {
       const index = state.accounts.findIndex(acc => acc.id === action.payload.id);
       if (index !== -1) {
         // Merge existing account with payload fields
@@ -82,7 +97,6 @@ const accountSlice = createSlice({
         state.selectedAccountId = null;
       }
     },
-    // Placeholder for future async fetching
     setLoading: (state, action: PayloadAction<boolean>) => {
       state.isLoading = action.payload;
     },
@@ -90,7 +104,76 @@ const accountSlice = createSlice({
       state.error = action.payload;
     },
   },
-  // Extra reducers for async thunks would go here if we had them for fetching accounts
+  extraReducers: (builder) => {
+    builder
+      // Fetch accounts
+      .addCase(fetchAccounts.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(fetchAccounts.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.accounts = action.payload;
+        // Reset selected account if it no longer exists
+        if (state.selectedAccountId && !action.payload.find(acc => acc.id === state.selectedAccountId)) {
+          state.selectedAccountId = null;
+        }
+      })
+      .addCase(fetchAccounts.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.error.message || 'Failed to fetch accounts';
+      })
+      // Create account
+      .addCase(createAccount.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(createAccount.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.accounts.push(action.payload);
+        // If no account was selected, select the newly created one
+        if (!state.selectedAccountId) {
+          state.selectedAccountId = action.payload.id;
+        }
+      })
+      .addCase(createAccount.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.error.message || 'Failed to create account';
+      })
+      // Update account
+      .addCase(updateAccountThunk.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(updateAccountThunk.fulfilled, (state, action) => {
+        state.isLoading = false;
+        const index = state.accounts.findIndex(acc => acc.id === action.payload.id);
+        if (index !== -1) {
+          state.accounts[index] = action.payload;
+        }
+      })
+      .addCase(updateAccountThunk.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.error.message || 'Failed to update account';
+      })
+      // Delete account
+      .addCase(deleteAccountThunk.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(deleteAccountThunk.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.accounts = state.accounts.filter(acc => acc.id !== action.payload);
+        // If the deleted account was selected, reset to null
+        if (state.selectedAccountId === action.payload) {
+          state.selectedAccountId = null;
+        }
+      })
+      .addCase(deleteAccountThunk.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.error.message || 'Failed to delete account';
+      });
+  },
 });
 
 export const { setAccounts, setSelectedAccount, addAccount, updateAccount, deleteAccount, setLoading, setError } = accountSlice.actions;

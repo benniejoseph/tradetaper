@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '@/store/store';
 import { fetchTrades, deleteTrade, setCurrentTrade } from '@/store/features/tradesSlice';
-import { selectSelectedAccountId, selectAvailableAccounts, selectSelectedAccount } from '@/store/features/accountSlice';
+import { selectSelectedAccountId, selectAvailableAccounts, selectSelectedAccount, fetchAccounts } from '@/store/features/accountSlice';
 import { selectSelectedMT5AccountId } from '@/store/features/mt5AccountsSlice';
 import Link from 'next/link';
 import { calculateDashboardStats, DashboardStats } from '@/utils/analytics';
@@ -53,6 +53,9 @@ export default function JournalPage() {
 
   useEffect(() => {
     if (isAuthenticated) {
+      // Fetch accounts first
+      dispatch(fetchAccounts());
+      
       // Get the actual selected account ID (could be MT5 or regular account)
       const currentAccountId = selectedAccountId || selectedMT5AccountId;
       dispatch(fetchTrades(currentAccountId || undefined)); 

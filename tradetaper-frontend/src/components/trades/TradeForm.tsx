@@ -491,9 +491,9 @@ export default function TradeForm({ initialData, isEditMode = false, onFormSubmi
             <span>Core Trade Information</span>
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
-            {isEditMode && availableAccounts.length > 0 && (
-              <div className="md:col-span-2">
-                <label htmlFor="accountId" className={labelClasses}>Account <span className="text-accent-red">*</span></label>
+            <div className="md:col-span-2">
+              <label htmlFor="accountId" className={labelClasses}>Account <span className="text-accent-red">*</span></label>
+              {availableAccounts.length > 0 ? (
                 <select 
                   id="accountId" 
                   name="accountId" 
@@ -505,12 +505,21 @@ export default function TradeForm({ initialData, isEditMode = false, onFormSubmi
                   <option value="" disabled className={optionThemeClass}>Select an account</option>
                   {availableAccounts.map(account => (
                     <option key={account.id} value={account.id} className={optionThemeClass}>
-                      {account.name} (Balance: ${account.balance.toFixed(2)})
+                      {account.name} (Balance: {account.currency} {Number(account.balance).toFixed(2)})
                     </option>
                   ))}
                 </select>
-              </div>
-            )}
+              ) : (
+                <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-xl p-4">
+                  <p className="text-sm text-yellow-800 dark:text-yellow-200 mb-2">
+                    <strong>No accounts available.</strong> You need to create a trading account first.
+                  </p>
+                  <p className="text-xs text-yellow-600 dark:text-yellow-300">
+                    Go to <strong>Settings → Manage Accounts</strong> to add your first trading account.
+                  </p>
+                </div>
+              )}
+            </div>
             <div>
               <label htmlFor="assetType" className={labelClasses}>Asset Type <span className="text-accent-red">*</span></label>
               <select id="assetType" name="assetType" value={formData.assetType} onChange={handleChange} required className={themedSelectClasses}>
