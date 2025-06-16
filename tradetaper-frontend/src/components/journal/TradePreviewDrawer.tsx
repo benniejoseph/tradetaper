@@ -468,6 +468,40 @@ export default function TradePreviewDrawer({
                 <DetailItem label="Quantity" value={trade.quantity?.toLocaleString()} />
                 <DetailItem label="R-Multiple" value={trade.rMultiple !== undefined && trade.rMultiple !== null ? `${trade.rMultiple.toFixed(2)}R` : '-'} />
               </div>
+
+              {/* Notes Section in Details Tab */}
+              {(trade.notes || trade.setupDetails || trade.mistakesMade || trade.lessonsLearned) && (
+                <>
+                  <SectionTitle title="Notes & Analysis" icon={<FaEdit className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />} />
+                  <div className="space-y-3">
+                    {trade.notes && <DetailItem label="Notes" value={<div className="text-right max-w-xs whitespace-pre-wrap text-sm">{trade.notes}</div>} />}
+                    {trade.setupDetails && <DetailItem label="Setup Details" value={<div className="text-right max-w-xs whitespace-pre-wrap text-sm">{trade.setupDetails}</div>} />}
+                    {trade.mistakesMade && <DetailItem label="Mistakes Made" value={<div className="text-right max-w-xs whitespace-pre-wrap text-sm">{trade.mistakesMade}</div>} />}
+                    {trade.lessonsLearned && <DetailItem label="Lessons Learned" value={<div className="text-right max-w-xs whitespace-pre-wrap text-sm">{trade.lessonsLearned}</div>} />}
+                  </div>
+                </>
+              )}
+
+              {/* Chart Attachment in Details Tab */}
+              {trade.imageUrl && (
+                <>
+                  <SectionTitle title="Chart Attachment" icon={<FaChartLine className="w-5 h-5 text-teal-600 dark:text-teal-400" />} />
+                  <div className="bg-white/60 dark:bg-gray-800/40 backdrop-blur-sm rounded-2xl border border-gray-200/30 dark:border-gray-700/30 p-4 hover:bg-white/80 dark:hover:bg-gray-800/60 transition-all duration-200">
+                    <div className="relative w-full rounded-xl overflow-hidden cursor-pointer" onClick={() => window.open(trade.imageUrl, '_blank')}>
+                      <img 
+                        src={trade.imageUrl} 
+                        alt={`${trade.symbol} trade chart`} 
+                        className="w-full h-auto max-h-64 object-contain hover:scale-105 transition-transform duration-300 rounded-xl" 
+                        onError={(e) => {
+                          console.error('Image failed to load:', trade.imageUrl);
+                          (e.target as HTMLImageElement).style.display = 'none';
+                        }}
+                        onLoad={() => console.log('Image loaded successfully:', trade.imageUrl)}
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
             </>
           )}
 
