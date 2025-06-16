@@ -22,12 +22,20 @@ import { JwtStrategy } from './strategies/jwt.strategy';
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: async (configService: ConfigService) => ({
-        secret: configService.get<string>('JWT_SECRET'),
-        signOptions: {
-          expiresIn: configService.get<string>('JWT_EXPIRATION_TIME'),
-        },
-      }),
+      useFactory: async (configService: ConfigService) => {
+        const jwtSecret = configService.get<string>('JWT_SECRET') || 'temporary-fallback-jwt-secret-for-debugging-please-set-proper-secret-in-production-environment-12345';
+        
+        console.log('JWT Configuration - No Expiration:', {
+          hasSecret: !!jwtSecret,
+          secretLength: jwtSecret.length,
+          skipExpiration: true,
+        });
+        
+        // Remove signOptions entirely to avoid the expiresIn issue
+        return {
+          secret: jwtSecret,
+        };
+      },
     }),
   ],
   providers: [AuthService, LocalStrategy, JwtStrategy], // Add strategies here

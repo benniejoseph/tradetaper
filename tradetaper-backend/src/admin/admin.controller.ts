@@ -1,9 +1,13 @@
-import { Controller, Get, Query, Param, Post } from '@nestjs/common';
+import { Controller, Get, Query, Param, Post, Delete } from '@nestjs/common';
 import { AdminService } from './admin.service';
+import { TestUserSeedService } from '../seed/test-user-seed.service';
 
 @Controller('admin')
 export class AdminController {
-  constructor(private readonly adminService: AdminService) {}
+  constructor(
+    private readonly adminService: AdminService,
+    private readonly testUserSeedService: TestUserSeedService,
+  ) {}
 
   @Get('dashboard/stats')
   async getDashboardStats() {
@@ -73,5 +77,72 @@ export class AdminController {
   @Post('seed-sample-data')
   async seedSampleData() {
     return this.adminService.seedSampleData();
+  }
+
+  @Post('test-user/create')
+  async createTestUser() {
+    const result = await this.testUserSeedService.createTestUser();
+    return {
+      message: 'Test user created successfully',
+      user: {
+        id: result.user.id,
+        email: result.user.email,
+        firstName: result.user.firstName,
+        lastName: result.user.lastName,
+      },
+      stats: result.stats,
+    };
+  }
+
+  @Delete('test-user/delete')
+  async deleteTestUser() {
+    await this.testUserSeedService.deleteTestUser();
+    return {
+      message: 'Test user deleted successfully',
+    };
+  }
+
+  @Delete('database/clear-table/:tableName')
+  async clearTable(
+    @Param('tableName') tableName: string,
+    @Query('confirm') confirm: string,
+  ) {
+    if (confirm !== 'DELETE_ALL_DATA') {
+      return {
+        error: 'Safety confirmation required',
+        message: 'Add query parameter: ?confirm=DELETE_ALL_DATA',
+      };
+    }
+
+    const result = await this.adminService.clearTable(tableName);
+    return {
+      message: `Table ${tableName} cleared successfully`,
+      deletedCount: result.deletedCount,
+    };
+  }
+
+  @Delete('database/clear-all-tables')
+  async clearAllTables(
+    @Query('confirm') confirm: string,
+    @Query('doubleConfirm') doubleConfirm: string,
+  ) {
+    if (confirm !== 'DELETE_ALL_DATA' || doubleConfirm !== 'I_UNDERSTAND_THIS_WILL_DELETE_EVERYTHING') {
+      return {
+        error: 'Double safety confirmation required',
+        message: 'Add query parameters: ?confirm=DELETE_ALL_DATA&doubleConfirm=I_UNDERSTAND_THIS_WILL_DELETE_EVERYTHING',
+      };
+    }
+
+    const result = await this.adminService.clearAllTables();
+    return {
+      message: 'All tables cleared successfully',
+      tablesCleared: result.tablesCleared,
+      totalDeleted: result.totalDeleted,
+    };
+  }
+
+  @Get('database/table-stats')
+  async getTableStats() {
+    return this.adminService.getTableStats();
   }
 }
