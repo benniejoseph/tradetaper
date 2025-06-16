@@ -85,37 +85,22 @@ export class TestUserSeedService {
         server: 'FTMO-Server',
         login: '5012345',
         password: 'demo-password',
-        accountType: 'demo',
-        currency: 'USD',
-        balance: 100000,
-        equity: 102500.75,
-        leverage: 100,
-        isRealAccount: false,
         isActive: true,
-        connectionStatus: 'CONNECTED',
+        userId,
       },
       {
         accountName: 'Live Account - ICMarkets',
         server: 'ICMarkets-Live',
         login: '8012345',
         password: 'live-password',
-        accountType: 'live',
-        currency: 'USD',
-        balance: 15000,
-        equity: 14250.30,
-        leverage: 30,
-        isRealAccount: true,
         isActive: true,
-        connectionStatus: 'CONNECTED',
+        userId,
       },
     ];
 
     const accounts: MT5Account[] = [];
     for (const accountData of accountsData) {
-      const account = this.mt5AccountRepository.create({
-        ...accountData,
-        userId,
-      });
+      const account = this.mt5AccountRepository.create(accountData);
       accounts.push(await this.mt5AccountRepository.save(account));
     }
 
