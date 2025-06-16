@@ -12,6 +12,7 @@ import { AdminModule } from './admin/admin.module';
 import { CommonModule } from './common/common.module';
 // import { WebSocketGatewayModule } from './websocket/websocket.module';
 import { StrategiesModule } from './strategies/strategies.module';
+import { FilesModule } from './files/files.module';
 import { Subscription } from './subscriptions/entities/subscription.entity';
 import { Usage } from './subscriptions/entities/usage.entity';
 import { User } from './users/entities/user.entity';
@@ -85,6 +86,7 @@ import { Strategy } from './strategies/entities/strategy.entity';
     CommonModule,
     // WebSocketGatewayModule,
     StrategiesModule,
+    FilesModule,
   ],
   controllers: [AppController],
   providers: [AppService],
