@@ -22,27 +22,27 @@ export class StrategiesController {
 
   @Post()
   async create(@Body() createStrategyDto: CreateStrategyDto, @Request() req) {
-    return this.strategiesService.create(createStrategyDto, req.user.userId);
+    return this.strategiesService.create(createStrategyDto, req.user.id);
   }
 
   @Get()
   async findAll(@Request() req) {
-    return this.strategiesService.findAll(req.user.userId);
+    return this.strategiesService.findAll(req.user.id);
   }
 
   @Get('with-stats')
   async getAllWithStats(@Request() req) {
-    return this.strategiesService.getAllStrategiesWithStats(req.user.userId);
+    return this.strategiesService.getAllStrategiesWithStats(req.user.id);
   }
 
   @Get(':id')
   async findOne(@Param('id', ParseUUIDPipe) id: string, @Request() req) {
-    return this.strategiesService.findOne(id, req.user.userId);
+    return this.strategiesService.findOne(id, req.user.id);
   }
 
   @Get(':id/stats')
   async getStats(@Param('id', ParseUUIDPipe) id: string, @Request() req) {
-    return this.strategiesService.getStrategyStats(id, req.user.userId);
+    return this.strategiesService.getStrategyStats(id, req.user.id);
   }
 
   @Patch(':id')
@@ -54,18 +54,18 @@ export class StrategiesController {
     return this.strategiesService.update(
       id,
       updateStrategyDto,
-      req.user.userId,
+      req.user.id,
     );
   }
 
   @Patch(':id/toggle-active')
   async toggleActive(@Param('id', ParseUUIDPipe) id: string, @Request() req) {
-    return this.strategiesService.toggleActive(id, req.user.userId);
+    return this.strategiesService.toggleActive(id, req.user.id);
   }
 
   @Delete(':id')
   async remove(@Param('id', ParseUUIDPipe) id: string, @Request() req) {
-    await this.strategiesService.remove(id, req.user.userId);
+    await this.strategiesService.remove(id, req.user.id);
     return { message: 'Strategy deleted successfully' };
   }
 }
