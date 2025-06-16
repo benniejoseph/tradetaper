@@ -647,25 +647,25 @@ export default function DatabasePage() {
       
       <div className="flex-1 overflow-hidden">
         <main className="flex-1 scrollable-content p-6">
-          <div className="max-w-full mx-auto">
-            {/* Header */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-              className="mb-8"
-            >
+      <div className="max-w-full mx-auto">
+        {/* Header */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+          className="mb-8"
+        >
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center">
-                  <div className="inline-flex items-center justify-center w-12 h-12 bg-gradient-to-r from-blue-600 to-green-600 rounded-xl mr-4">
-                    <Database className="w-6 h-6 text-white" />
-                  </div>
-                  <div>
-                    <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-green-400 bg-clip-text text-transparent">
+            <div className="inline-flex items-center justify-center w-12 h-12 bg-gradient-to-r from-blue-600 to-green-600 rounded-xl mr-4">
+              <Database className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-green-400 bg-clip-text text-transparent">
                       Database Management
-                    </h1>
+              </h1>
                     <p className="text-gray-400">Explore database, manage test data, and administrative controls</p>
-                  </div>
+            </div>
                 </div>
                 <button
                   onClick={handleRefreshAll}
@@ -674,15 +674,15 @@ export default function DatabasePage() {
                   <RefreshCw className="w-4 h-4" />
                   <span>Refresh All</span>
                 </button>
-              </div>
+          </div>
 
-              {error && (
-                <div className="bg-red-900/30 border border-red-700/50 rounded-lg p-4 flex items-center space-x-3 mb-4">
-                  <AlertTriangle className="w-5 h-5 text-red-400 flex-shrink-0" />
-                  <p className="text-red-200 text-sm">{error}</p>
-                </div>
-              )}
-            </motion.div>
+          {error && (
+            <div className="bg-red-900/30 border border-red-700/50 rounded-lg p-4 flex items-center space-x-3 mb-4">
+              <AlertTriangle className="w-5 h-5 text-red-400 flex-shrink-0" />
+              <p className="text-red-200 text-sm">{error}</p>
+            </div>
+          )}
+        </motion.div>
 
             {/* Management Controls */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
@@ -706,56 +706,56 @@ export default function DatabasePage() {
             </div>
 
             {/* Database Viewer */}
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-              {/* Tables Sidebar */}
-              <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          {/* Tables Sidebar */}
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.6, delay: 0.3 }}
-                className="lg:col-span-1"
-              >
-                <DatabaseViewer
-                  tables={tables}
-                  selectedTable={selectedTable}
-                  onTableSelect={handleTableSelect}
-                />
-              </motion.div>
+            className="lg:col-span-1"
+          >
+            <DatabaseViewer
+              tables={tables}
+              selectedTable={selectedTable}
+              onTableSelect={handleTableSelect}
+            />
+          </motion.div>
 
-              {/* Table Data Viewer */}
-              <motion.div
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
+          {/* Table Data Viewer */}
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.6, delay: 0.4 }}
-                className="lg:col-span-3"
-              >
-                {selectedTable && columns.length > 0 ? (
-                  <TableDataViewer
-                    table={selectedTable}
-                    columns={columns}
-                    data={data}
-                    total={total}
-                    page={page}
-                    limit={limit}
-                    totalPages={totalPages}
-                    onPageChange={handlePageChange}
-                    onRefresh={handleRefresh}
-                  />
-                ) : loading ? (
-                  <div className="bg-gray-900/80 backdrop-blur-xl border border-gray-700/50 rounded-2xl p-12 text-center">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-                    <p className="text-gray-400">Loading table data...</p>
-                  </div>
-                ) : (
-                  <div className="bg-gray-900/80 backdrop-blur-xl border border-gray-700/50 rounded-2xl p-12 text-center">
-                    <Database className="w-12 h-12 text-gray-500 mx-auto mb-4" />
-                    <p className="text-gray-400">Select a table to view its data</p>
-                  </div>
-                )}
-              </motion.div>
-            </div>
+            className="lg:col-span-3"
+          >
+            {selectedTable && columns.length > 0 ? (
+              <TableDataViewer
+                table={selectedTable}
+                columns={columns}
+                data={data}
+                total={total}
+                page={page}
+                limit={limit}
+                totalPages={totalPages}
+                onPageChange={handlePageChange}
+                onRefresh={handleRefresh}
+              />
+            ) : loading ? (
+              <div className="bg-gray-900/80 backdrop-blur-xl border border-gray-700/50 rounded-2xl p-12 text-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+                <p className="text-gray-400">Loading table data...</p>
+              </div>
+            ) : (
+              <div className="bg-gray-900/80 backdrop-blur-xl border border-gray-700/50 rounded-2xl p-12 text-center">
+                <Database className="w-12 h-12 text-gray-500 mx-auto mb-4" />
+                <p className="text-gray-400">Select a table to view its data</p>
+              </div>
+            )}
+          </motion.div>
+        </div>
           </div>
         </main>
       </div>
     </div>
   );
-} 
+}

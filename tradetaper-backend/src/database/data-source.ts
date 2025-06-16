@@ -1,6 +1,7 @@
 import { DataSource } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
 import { User } from '../users/entities/user.entity';
+import { Account } from '../users/entities/account.entity';
 import { Trade } from '../trades/entities/trade.entity';
 import { Tag } from '../tags/entities/tag.entity';
 import { MT5Account } from '../users/entities/mt5-account.entity';
@@ -61,7 +62,7 @@ console.log('FINAL DATABASE CONFIG (data-source.ts):', {
 
 export const AppDataSource = new DataSource({
   ...dbConfig,
-  entities: [User, Trade, Tag, MT5Account, Subscription, Usage, Strategy],
+  entities: [User, Account, Trade, Tag, MT5Account, Subscription, Usage, Strategy],
   migrations: [isProduction ? 'dist/migrations/*{.ts,.js}' : 'src/migrations/*{.ts,.js}'],
   synchronize: false, // Always false for production safety
   logging: process.env.NODE_ENV !== 'production',

@@ -110,7 +110,7 @@ const LogViewer = () => {
     } catch (error: any) {
       // Only log non-404 errors to avoid console spam
       if (error?.response?.status !== 404) {
-        console.error('Failed to load logs:', error);
+      console.error('Failed to load logs:', error);
       }
       
       // Generate more comprehensive mock data for development
@@ -192,7 +192,7 @@ const LogViewer = () => {
       if (append) {
         setLogs(prev => [...prev, ...mockLogs]);
       } else {
-        setLogs(mockLogs);
+      setLogs(mockLogs);
       }
     } finally {
       setLoading(false);
@@ -296,7 +296,7 @@ const LogViewer = () => {
       
       <div className="flex-1 overflow-hidden">
         <main className="flex-1 scrollable-content p-6">
-          <div className="max-w-full mx-auto">
+      <div className="max-w-full mx-auto">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
