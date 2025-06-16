@@ -7,6 +7,7 @@ export interface Account {
   currency: string;
   description?: string;
   isActive: boolean;
+  target: number;
   userId: string;
   createdAt: string;
   updatedAt: string;
@@ -14,10 +15,10 @@ export interface Account {
 
 export interface CreateAccountPayload {
   name: string;
-  balance: number;
+  balance?: number;
   currency?: string;
   description?: string;
-  isActive?: boolean;
+  target?: number;
 }
 
 export interface UpdateAccountPayload {
@@ -26,32 +27,31 @@ export interface UpdateAccountPayload {
   currency?: string;
   description?: string;
   isActive?: boolean;
+  target?: number;
 }
 
-class AccountsService {
+export const accountsService = {
   async getAccounts(): Promise<Account[]> {
     const response = await authApiClient.get('/accounts');
     return response.data;
-  }
+  },
 
   async getAccount(id: string): Promise<Account> {
     const response = await authApiClient.get(`/accounts/${id}`);
     return response.data;
-  }
+  },
 
-  async createAccount(payload: CreateAccountPayload): Promise<Account> {
-    const response = await authApiClient.post('/accounts', payload);
+  async createAccount(data: CreateAccountPayload): Promise<Account> {
+    const response = await authApiClient.post('/accounts', data);
     return response.data;
-  }
+  },
 
-  async updateAccount(id: string, payload: UpdateAccountPayload): Promise<Account> {
-    const response = await authApiClient.put(`/accounts/${id}`, payload);
+  async updateAccount(id: string, data: UpdateAccountPayload): Promise<Account> {
+    const response = await authApiClient.put(`/accounts/${id}`, data);
     return response.data;
-  }
+  },
 
   async deleteAccount(id: string): Promise<void> {
     await authApiClient.delete(`/accounts/${id}`);
-  }
-}
-
-export const accountsService = new AccountsService(); 
+  },
+}; 
