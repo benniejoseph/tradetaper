@@ -81,20 +81,26 @@ export class TestUserSeedService {
   private async createMT5Accounts(userId: string): Promise<MT5Account[]> {
     const accountsData = [
       {
+        userId,
         accountName: 'FTMO Challenge - 100K',
         server: 'FTMO-Server',
         login: '5012345',
         password: 'demo-password',
         isActive: true,
-        userId,
+        balance: 100000,
+        accountType: 'demo',
+        currency: 'USD',
       },
       {
+        userId,
         accountName: 'Live Account - ICMarkets',
         server: 'ICMarkets-Live',
         login: '8012345',
         password: 'live-password',
         isActive: true,
-        userId,
+        balance: 15000,
+        accountType: 'live',
+        currency: 'USD',
       },
     ];
 
