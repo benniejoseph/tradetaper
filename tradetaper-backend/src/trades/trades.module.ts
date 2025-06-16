@@ -7,17 +7,16 @@ import { TradesController } from './trades.controller';
 import { UsersModule } from '../users/users.module';
 import { TagsModule } from '../tags/tags.module';
 import { CacheModule } from '@nestjs/cache-manager';
-// import { WebSocketGatewayModule } from '../websocket/websocket.module';
+import { WebSocketGatewayModule } from '../websocket/websocket.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Trade]),
     forwardRef(() => UsersModule),
     TagsModule,
-    // forwardRef(() => WebSocketGatewayModule),
+    WebSocketGatewayModule,
     CacheModule.register({
       ttl: 60 * 60 * 1000, // 1 hour
-      max: 100, // maximum number of items in cache
     }),
   ],
   providers: [TradesService],

@@ -20,7 +20,6 @@ tests/
 *.spec.js
 *.spec.ts
 coverage/
-dist/
 uploads/
 railway.toml
 nixpacks.toml
