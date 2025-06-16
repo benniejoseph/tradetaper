@@ -550,6 +550,70 @@ class AdminApi {
       throw error;
     }
   }
+
+  // --- Test User Methods ---
+  async createTestUser(): Promise<{
+    message: string;
+    user: {
+      id: string;
+      email: string;
+      firstName: string;
+      lastName: string;
+    };
+    stats: {
+      trades: number;
+      accounts: number;
+      strategies: number;
+      tags: number;
+    };
+  }> {
+    const axiosInstance = this.ensureAxiosInstance();
+    const response = await axiosInstance.post('/admin/test-user/create');
+    return response.data;
+  }
+
+  async deleteTestUser(): Promise<{ message: string }> {
+    const axiosInstance = this.ensureAxiosInstance();
+    const response = await axiosInstance.delete('/admin/test-user/delete');
+    return response.data;
+  }
+
+  // --- Database Management Methods ---
+  async getTableStats(): Promise<{
+    tables: Array<{
+      tableName: string;
+      rowCount: number;
+      size: string;
+      sizeBytes: number;
+      canClear: boolean;
+      error?: string;
+    }>;
+    totalTables: number;
+    timestamp: string;
+  }> {
+    const axiosInstance = this.ensureAxiosInstance();
+    const response = await axiosInstance.get('/admin/database/table-stats');
+    return response.data;
+  }
+
+  async clearTable(tableName: string, confirm: string): Promise<{
+    message: string;
+    deletedCount: number;
+  }> {
+    const axiosInstance = this.ensureAxiosInstance();
+    const response = await axiosInstance.delete(`/admin/database/clear-table/${tableName}?confirm=${confirm}`);
+    return response.data;
+  }
+
+  async clearAllTables(confirm: string, doubleConfirm: string): Promise<{
+    message: string;
+    tablesCleared: string[];
+    totalDeleted: number;
+  }> {
+    const axiosInstance = this.ensureAxiosInstance();
+    const response = await axiosInstance.delete(`/admin/database/clear-all-tables?confirm=${confirm}&doubleConfirm=${doubleConfirm}`);
+    return response.data;
+  }
 }
 
 export const adminApi = new AdminApi();
