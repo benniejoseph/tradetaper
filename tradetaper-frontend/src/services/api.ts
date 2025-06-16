@@ -4,9 +4,13 @@ import { RootState } from '@/store/store';
 
 // Use environment variable with fallback to GCP backend
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 
-  (process.env.NODE_ENV === 'production' 
-    ? 'https://tradetaper-backend-481634875325.us-central1.run.app/api/v1'
-    : 'http://localhost:3000/api/v1');
+  'https://tradetaper-backend-481634875325.us-central1.run.app/api/v1';
+
+console.log('🔧 API Configuration:', { 
+  env: process.env.NODE_ENV,
+  apiUrl: API_BASE_URL,
+  envVar: process.env.NEXT_PUBLIC_API_URL 
+});
 
 // Default instance for public routes
 export const apiClient = axios.create({

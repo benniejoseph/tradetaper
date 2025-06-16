@@ -13,7 +13,7 @@ import { Tag } from '../tags/entities/tag.entity';
 import { CreateTradeDto } from './dto/create-trade.dto';
 import { UpdateTradeDto } from './dto/update-trade.dto';
 import { UserResponseDto } from '../users/dto/user-response.dto';
-import { TradesGateway } from '../websocket/trades.gateway';
+// import { WebSocketService } from '../websocket/websocket.service';
 
 @Injectable()
 export class TradesService {
@@ -24,8 +24,8 @@ export class TradesService {
     private readonly tradesRepository: Repository<Trade>,
     @InjectRepository(Tag)
     private readonly tagRepository: Repository<Tag>,
-    @Inject(TradesGateway)
-    private readonly tradesGateway: TradesGateway,
+    // @Inject(WebSocketService)
+    // private readonly webSocketService: WebSocketService,
   ) {}
 
   private calculateAndSetPnl(trade: Trade): void {
@@ -139,7 +139,7 @@ export class TradesService {
     this.logger.log(`Trade created successfully: ${savedTrade.id}`);
 
     // Emit WebSocket notification
-    this.tradesGateway.notifyTradeCreated(completeTradeData);
+    // this.webSocketService.notifyTradeCreated(completeTradeData);
 
     return completeTradeData;
   }
@@ -244,7 +244,7 @@ export class TradesService {
     const updatedTrade = await this.tradesRepository.save(trade);
 
     // Emit WebSocket notification
-    this.tradesGateway.notifyTradeUpdated(updatedTrade);
+    // this.webSocketService.notifyTradeUpdated(updatedTrade);
 
     return updatedTrade;
   }
@@ -260,7 +260,7 @@ export class TradesService {
     this.logger.log(`User ${userContext.id} removed trade with ID ${id}`);
 
     // Emit WebSocket notification
-    this.tradesGateway.notifyTradeDeleted(id);
+    // this.webSocketService.notifyTradeDeleted(id);
   }
 
   // Bulk operations
@@ -294,7 +294,7 @@ export class TradesService {
     );
 
     // Emit WebSocket notification
-    this.tradesGateway.notifyBulkOperation('delete', deletedCount);
+    // this.webSocketService.notifyBulkOperation('delete', deletedCount);
 
     return { deletedCount };
   }
@@ -348,11 +348,11 @@ export class TradesService {
     const savedTrades = await this.tradesRepository.save(updatedTrades);
 
     // Emit WebSocket notification
-    this.tradesGateway.notifyBulkOperation(
-      'update',
-      savedTrades.length,
-      savedTrades,
-    );
+    // this.webSocketService.notifyBulkOperation(
+    //   'update',
+    //   savedTrades.length,
+    //   savedTrades,
+    // );
 
     return { updatedCount: savedTrades.length, trades: savedTrades };
   }
@@ -389,11 +389,11 @@ export class TradesService {
     const savedTrades = await this.tradesRepository.save(createdTrades);
 
     // Emit WebSocket notification
-    this.tradesGateway.notifyBulkOperation(
-      'import',
-      savedTrades.length,
-      savedTrades,
-    );
+    // this.webSocketService.notifyBulkOperation(
+    //   'import',
+    //   savedTrades.length,
+    //   savedTrades,
+    // );
 
     return { importedCount: savedTrades.length, trades: savedTrades };
   }

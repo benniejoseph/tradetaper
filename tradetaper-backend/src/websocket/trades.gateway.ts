@@ -3,14 +3,11 @@ import {
   WebSocketServer,
   OnGatewayConnection,
   OnGatewayDisconnect,
+  OnGatewayInit,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { Logger } from '@nestjs/common';
-
-interface TradeData {
-  id: string;
-  [key: string]: any;
-}
+import { Logger, Inject } from '@nestjs/common';
+import { WebSocketService } from './websocket.service';
 
 @WebSocketGateway({
   cors: {
@@ -26,12 +23,22 @@ interface TradeData {
   },
   namespace: '/trades',
 })
-export class TradesGateway implements OnGatewayConnection, OnGatewayDisconnect {
+export class TradesGateway implements OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit {
   @WebSocketServer()
   server: Server;
 
   private logger: Logger = new Logger('TradesGateway');
   private connectedClients = new Set<Socket>();
+
+  constructor(
+    @Inject(WebSocketService)
+    private readonly webSocketService: WebSocketService,
+  ) {}
+
+  afterInit(server: Server) {
+    this.logger.log('WebSocket Gateway initialized');
+    this.webSocketService.setServer(server);
+  }
 
   handleConnection(client: Socket) {
     this.connectedClients.add(client);
@@ -47,32 +54,6 @@ export class TradesGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.connectedClients.delete(client);
     this.logger.log(
       `Client disconnected: ${client.id}. Total clients: ${this.connectedClients.size}`,
-    );
-  }
-
-  // Emit trade creation event
-  notifyTradeCreated(trade: TradeData) {
-    this.server.emit('trade:created', trade);
-    this.logger.debug(`Trade created notification sent: ${trade.id}`);
-  }
-
-  // Emit trade update event
-  notifyTradeUpdated(trade: TradeData) {
-    this.server.emit('trade:updated', trade);
-    this.logger.debug(`Trade updated notification sent: ${trade.id}`);
-  }
-
-  // Emit trade deletion event
-  notifyTradeDeleted(tradeId: string) {
-    this.server.emit('trade:deleted', { id: tradeId });
-    this.logger.debug(`Trade deleted notification sent: ${tradeId}`);
-  }
-
-  // Emit bulk operation event
-  notifyBulkOperation(operation: string, count: number, trades?: TradeData[]) {
-    this.server.emit('trades:bulk', { operation, count, trades });
-    this.logger.debug(
-      `Bulk operation notification sent: ${operation} (${count} trades)`,
     );
   }
 
