@@ -251,7 +251,11 @@ export default function TradePreviewDrawer({
   const [activeTab, setActiveTab] = useState<'details' | 'manage'>('details');
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
 
+  // Debug logging
+  console.log('TradePreviewDrawer render:', { isOpen, trade: trade?.symbol || 'null', tradeId: trade?.id });
+
   if (!isOpen || !trade) {
+    console.log('TradePreviewDrawer returning null - isOpen:', isOpen, 'trade:', !!trade);
     return null;
   }
 
@@ -486,6 +490,11 @@ export default function TradePreviewDrawer({
                                 src={trade.imageUrl} 
                                 alt={`${trade.symbol} trade chart`} 
                                 className="w-full h-auto max-h-64 object-contain hover:scale-105 transition-transform duration-300 rounded-xl" 
+                                onError={(e) => {
+                                  console.error('Image failed to load:', trade.imageUrl);
+                                  (e.target as HTMLImageElement).style.display = 'none';
+                                }}
+                                onLoad={() => console.log('Image loaded successfully:', trade.imageUrl)}
                             />
                         </div>
                     </div>
