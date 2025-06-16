@@ -122,5 +122,9 @@ export class CreateTradeDto {
   @IsBoolean() // Added for isStarred
   isStarred?: boolean;
 
+  @IsOptional()
+  @IsString()
+  strategyId?: string;
+
   // profitOrLoss and rMultiple will typically be calculated by the backend, not provided by client on create
 }
