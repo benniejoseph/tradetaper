@@ -40,6 +40,40 @@ const initialState: TradesState = {
   },
 };
 
+// Helper function to transform API response to frontend Trade interface
+function transformApiTradeToFrontend(apiTrade: any): Trade {
+  return {
+    id: apiTrade.id,
+    userId: apiTrade.userId,
+    assetType: apiTrade.assetType,
+    symbol: apiTrade.symbol,
+    direction: apiTrade.side, // API: side → Frontend: direction
+    status: apiTrade.status,
+    entryDate: apiTrade.openTime, // API: openTime → Frontend: entryDate
+    entryPrice: parseFloat(apiTrade.openPrice), // API: openPrice → Frontend: entryPrice (ensure number)
+    exitDate: apiTrade.closeTime, // API: closeTime → Frontend: exitDate
+    exitPrice: apiTrade.closePrice ? parseFloat(apiTrade.closePrice) : undefined, // API: closePrice → Frontend: exitPrice
+    quantity: parseFloat(apiTrade.quantity), // Ensure number
+    stopLoss: apiTrade.stopLoss ? parseFloat(apiTrade.stopLoss) : undefined,
+    takeProfit: apiTrade.takeProfit ? parseFloat(apiTrade.takeProfit) : undefined,
+    commission: apiTrade.commission ? parseFloat(apiTrade.commission) : undefined,
+    notes: apiTrade.notes,
+    profitOrLoss: apiTrade.profitOrLoss ? parseFloat(apiTrade.profitOrLoss) : undefined,
+    rMultiple: apiTrade.rMultiple ? parseFloat(apiTrade.rMultiple) : undefined,
+    ictConcept: apiTrade.ictConcept,
+    session: apiTrade.session,
+    setupDetails: apiTrade.setupDetails,
+    mistakesMade: apiTrade.mistakesMade,
+    lessonsLearned: apiTrade.lessonsLearned,
+    imageUrl: apiTrade.imageUrl,
+    tags: apiTrade.tags || [],
+    createdAt: apiTrade.createdAt,
+    updatedAt: apiTrade.updatedAt,
+    accountId: apiTrade.accountId,
+    isStarred: apiTrade.isStarred || false,
+  };
+}
+
 // Async Thunks for API calls
 export const fetchTrades = createAsyncThunk<
   Trade[], 
@@ -53,9 +87,14 @@ export const fetchTrades = createAsyncThunk<
       if (accountId) {
         url += `?accountId=${accountId}`; // Append accountId as query param if provided
       }
-      const response = await authApiClient.get<Trade[]>(url);
+      const response = await authApiClient.get<any[]>(url);
       console.log(`Raw fetchTrades from API (accountId: ${accountId || 'all'}):`, response.data);
-      return response.data;
+      
+      // Transform API response to frontend format
+      const transformedTrades = response.data.map(transformApiTradeToFrontend);
+      console.log('Transformed trades for frontend:', transformedTrades);
+      
+      return transformedTrades;
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || error.message || 'Failed to fetch trades');
     }
@@ -66,9 +105,14 @@ export const fetchTradeById = createAsyncThunk<Trade, string, { rejectValue: str
   'trades/fetchTradeById',
   async (tradeId, { rejectWithValue }) => {
     try {
-      const response = await authApiClient.get<Trade>(`/trades/${tradeId}`);
+      const response = await authApiClient.get<any>(`/trades/${tradeId}`);
       console.log('Raw fetchTradeById from API:', response.data);
-      return response.data;
+      
+      // Transform API response to frontend format
+      const transformedTrade = transformApiTradeToFrontend(response.data);
+      console.log('Transformed trade for frontend:', transformedTrade);
+      
+      return transformedTrade;
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || error.message || 'Failed to fetch trade');
     }
@@ -79,9 +123,14 @@ export const createTrade = createAsyncThunk<Trade, CreateTradePayload, { rejectV
   'trades/createTrade',
   async (payload, { rejectWithValue }) => {
     try {
-      const response = await authApiClient.post<Trade>('/trades', payload);
+      const response = await authApiClient.post<any>('/trades', payload);
       console.log('Raw createTrade from API:', response.data);
-      return response.data;
+      
+      // Transform API response to frontend format
+      const transformedTrade = transformApiTradeToFrontend(response.data);
+      console.log('Transformed created trade for frontend:', transformedTrade);
+      
+      return transformedTrade;
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || error.message || 'Failed to create trade');
     }
@@ -92,9 +141,14 @@ export const updateTrade = createAsyncThunk<Trade, { id: string; payload: Update
   'trades/updateTrade',
   async ({ id, payload }, { rejectWithValue }) => {
     try {
-      const response = await authApiClient.patch<Trade>(`/trades/${id}`, payload);
+      const response = await authApiClient.patch<any>(`/trades/${id}`, payload);
       console.log('Raw updateTrade from API:', response.data);
-      return response.data;
+      
+      // Transform API response to frontend format
+      const transformedTrade = transformApiTradeToFrontend(response.data);
+      console.log('Transformed updated trade for frontend:', transformedTrade);
+      
+      return transformedTrade;
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || error.message || 'Failed to update trade');
     }
