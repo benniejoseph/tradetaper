@@ -9,30 +9,31 @@ async function runMigrations() {
   const isProduction = process.env.NODE_ENV === 'production';
   
   if (isProduction) {
-    console.log('🔄 Running database migrations...');
+    console.log('🔄 Skipping database migrations for deployment debugging...');
     
-    const AppDataSource = new DataSource({
-      type: 'postgres',
-      host: '/cloudsql/tradetaper:us-central1:tradetaper-postgres',
-      username: 'tradetaper',
-      password: 'TradeTaper2024',
-      database: 'tradetaper',
-      entities: ['dist/**/*.entity.js'],
-      migrations: ['dist/migrations/*.js'],
-      ssl: false,
-      migrationsRun: true,
-      synchronize: false,
-    });
+    // Temporarily disabled to debug deployment issues
+    // const AppDataSource = new DataSource({
+    //   type: 'postgres',
+    //   host: '/cloudsql/tradetaper:us-central1:tradetaper-postgres',
+    //   username: 'tradetaper',
+    //   password: 'TradeTaper2024',
+    //   database: 'tradetaper',
+    //   entities: ['dist/**/*.entity.js'],
+    //   migrations: ['dist/migrations/*.js'],
+    //   ssl: false,
+    //   migrationsRun: true,
+    //   synchronize: false,
+    // });
 
-    try {
-      await AppDataSource.initialize();
-      await AppDataSource.runMigrations();
-      console.log('✅ Migrations completed successfully');
-      await AppDataSource.destroy();
-    } catch (error) {
-      console.error('❌ Migration failed:', error);
-      // Don't fail the app startup, just log the error
-    }
+    // try {
+    //   await AppDataSource.initialize();
+    //   await AppDataSource.runMigrations();
+    //   console.log('✅ Migrations completed successfully');
+    //   await AppDataSource.destroy();
+    // } catch (error) {
+    //   console.error('❌ Migration failed:', error);
+    //   // Don't fail the app startup, just log the error
+    // }
   }
 }
 
