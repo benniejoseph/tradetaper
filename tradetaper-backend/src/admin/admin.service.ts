@@ -415,4 +415,129 @@ export class AdminService {
       };
     }
   }
+
+  async clearTable(tableName: string): Promise<{ deletedCount: number }> {
+    // Whitelist of tables that can be safely cleared
+    const allowedTables = [
+      'trades',
+      'tags',
+      'trade_tags',
+      'mt5_accounts',
+      'strategies',
+      'subscriptions',
+      'usage_tracking',
+    ];
+
+    if (!allowedTables.includes(tableName)) {
+      throw new Error(`Table ${tableName} is not allowed to be cleared for safety reasons`);
+    }
+
+    try {
+      // Get count before deletion
+      const countQuery = `SELECT COUNT(*) as count FROM "${tableName}";`;
+      const countResult = await this.dataSource.query(countQuery);
+      const deletedCount = parseInt(countResult[0].count);
+
+      // Clear the table
+      const deleteQuery = `DELETE FROM "${tableName}";`;
+      await this.dataSource.query(deleteQuery);
+
+      return { deletedCount };
+    } catch (error) {
+      console.error(`Error clearing table ${tableName}:`, error);
+      throw new Error(`Failed to clear table ${tableName}: ${error.message}`);
+    }
+  }
+
+  async clearAllTables(): Promise<{ tablesCleared: string[]; totalDeleted: number }> {
+    const allowedTables = [
+      'trades',
+      'tags', 
+      'trade_tags',
+      'mt5_accounts',
+      'strategies',
+      'subscriptions',
+      'usage_tracking',
+    ];
+
+    let totalDeleted = 0;
+    const tablesCleared: string[] = [];
+
+    try {
+      // Clear tables in order to avoid foreign key constraints
+      const clearOrder = [
+        'trade_tags',     // Junction table first
+        'trades',         // Then trades
+        'tags',           // Then tags
+        'mt5_accounts',   // MT5 accounts
+        'strategies',     // Strategies
+        'usage_tracking', // Usage tracking
+        'subscriptions',  // Finally subscriptions
+      ];
+
+      for (const tableName of clearOrder) {
+        if (allowedTables.includes(tableName)) {
+          const result = await this.clearTable(tableName);
+          totalDeleted += result.deletedCount;
+          tablesCleared.push(tableName);
+        }
+      }
+
+      return { tablesCleared, totalDeleted };
+    } catch (error) {
+      console.error('Error clearing all tables:', error);
+      throw new Error(`Failed to clear all tables: ${error.message}`);
+    }
+  }
+
+  async getTableStats() {
+    const tables = [
+      'users',
+      'trades',
+      'tags',
+      'trade_tags',
+      'mt5_accounts',
+      'strategies',
+      'subscriptions',
+      'usage_tracking',
+    ];
+
+    const stats: any[] = [];
+    
+    for (const tableName of tables) {
+      try {
+        const countQuery = `SELECT COUNT(*) as count FROM "${tableName}";`;
+        const sizeQuery = `
+          SELECT pg_size_pretty(pg_total_relation_size('${tableName}')) as size,
+                 pg_total_relation_size('${tableName}') as size_bytes
+        `;
+        
+        const countResult = await this.dataSource.query(countQuery);
+        const sizeResult = await this.dataSource.query(sizeQuery);
+        
+        stats.push({
+          tableName,
+          rowCount: parseInt(countResult[0].count),
+          size: sizeResult[0].size,
+          sizeBytes: parseInt(sizeResult[0].size_bytes),
+          canClear: tableName !== 'users', // Users table should never be cleared
+        });
+      } catch (error) {
+        stats.push({
+          tableName,
+          rowCount: 0,
+          size: 'Unknown',
+          sizeBytes: 0,
+          canClear: false,
+          error: error.message,
+        });
+      }
+    }
+
+    return {
+      tables: stats,
+      totalTables: stats.length,
+      timestamp: new Date().toISOString(),
+    };
+  }
 }
