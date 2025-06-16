@@ -13,7 +13,7 @@ interface UseWebSocketOptions {
 }
 
 export const useWebSocket = (options: UseWebSocketOptions = {}) => {
-  const { enabled = false, onConnect, onDisconnect, onError } = options;
+  const { enabled = process.env.NEXT_PUBLIC_ENABLE_WEBSOCKETS === 'true', onConnect, onDisconnect, onError } = options;
   const dispatch = useDispatch<AppDispatch>();
   const socketRef = useRef<Socket | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
