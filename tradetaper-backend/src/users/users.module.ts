@@ -2,7 +2,10 @@
 import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from './entities/user.entity';
+import { Account } from './entities/account.entity';
 import { UsersService } from './users.service';
+import { AccountsService } from './accounts.service';
+import { AccountsController } from './accounts.controller';
 import { ConfigModule } from '@nestjs/config';
 import { MT5Account } from './entities/mt5-account.entity';
 import { MT5AccountsService } from './mt5-accounts.service';
@@ -15,7 +18,7 @@ import { TradesModule } from '../trades/trades.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User, MT5Account]),
+    TypeOrmModule.forFeature([User, Account, MT5Account]),
     ConfigModule,
     CacheModule.register({
       ttl: 24 * 60 * 60 * 1000, // 24 hours
@@ -25,16 +28,18 @@ import { TradesModule } from '../trades/trades.module';
   ],
   providers: [
     UsersService,
+    AccountsService,
     MT5AccountsService,
     // MetaApiService, // TEMPORARY: Disabled for admin deployment
     TradeHistoryParserService,
   ],
   exports: [
     UsersService,
+    AccountsService,
     MT5AccountsService,
     // MetaApiService, // TEMPORARY: Disabled for admin deployment
     TradeHistoryParserService,
   ],
-  controllers: [MT5AccountsController],
+  controllers: [AccountsController, MT5AccountsController],
 })
 export class UsersModule {}

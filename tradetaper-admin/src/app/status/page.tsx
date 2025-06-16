@@ -375,7 +375,7 @@ export default function StatusPage() {
       
       <div className="flex-1 overflow-hidden">
         <main className="flex-1 scrollable-content p-6">
-          <div className="max-w-7xl mx-auto">
+      <div className="max-w-7xl mx-auto">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}

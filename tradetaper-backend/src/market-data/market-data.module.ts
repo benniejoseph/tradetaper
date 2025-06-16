@@ -5,6 +5,7 @@ import { ConfigModule } from '@nestjs/config';
 import { CacheModule } from '@nestjs/cache-manager';
 import { MarketDataService } from './market-data.service';
 import { MarketDataController } from './market-data.controller';
+import { MarketDataPublicController } from './market-data-public.controller';
 import { MultiProviderMarketDataService } from './multi-provider.service';
 
 @Module({
@@ -17,7 +18,7 @@ import { MultiProviderMarketDataService } from './multi-provider.service';
     }),
   ],
   providers: [MarketDataService, MultiProviderMarketDataService],
-  controllers: [MarketDataController],
+  controllers: [MarketDataController, MarketDataPublicController],
   exports: [MarketDataService, MultiProviderMarketDataService],
 })
 export class MarketDataModule {}

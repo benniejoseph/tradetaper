@@ -1,35 +1,44 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { AppDispatch } from '@/store/store';
 import {
   selectAvailableAccounts,
-  addAccount,
-  updateAccount,
-  deleteAccount,
+  selectAccountsLoading,
+  selectAccountsError,
+  fetchAccounts,
+  createAccount,
+  updateAccountThunk,
+  deleteAccountThunk,
   selectSelectedAccountId
 } from '@/store/features/accountSlice';
 import { 
   FaPlus, FaEdit, FaTrash, FaSave, FaTimes, FaExclamationTriangle,
   FaDollarSign, FaBuilding, FaCheck, FaCrown, FaUsers,
-  FaChartLine, FaShieldAlt
+  FaChartLine, FaShieldAlt, FaSpinner
 } from 'react-icons/fa';
 
 interface AccountFormData {
   id?: string; // Present when editing
   name: string;
   balance: string; // Input as string, convert to number on save
+  currency?: string;
+  description?: string;
 }
 
 const initialFormState: AccountFormData = {
   name: '',
-  balance: ''
+  balance: '',
+  currency: 'USD',
+  description: ''
 };
 
 export default function ManageAccounts() {
   const dispatch = useDispatch<AppDispatch>();
   const accounts = useSelector(selectAvailableAccounts);
+  const isLoading = useSelector(selectAccountsLoading);
+  const error = useSelector(selectAccountsError);
   const selectedAccountId = useSelector(selectSelectedAccountId);
 
   const [formData, setFormData] = useState<AccountFormData>(initialFormState);
@@ -37,7 +46,12 @@ export default function ManageAccounts() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [showConfirmDelete, setShowConfirmDelete] = useState<string | null>(null); // Holds ID of account to delete
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Fetch accounts on component mount
+  useEffect(() => {
+    dispatch(fetchAccounts());
+  }, [dispatch]);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
@@ -54,6 +68,8 @@ export default function ManageAccounts() {
       id: account.id,
       name: account.name,
       balance: account.balance.toString(),
+      currency: account.currency,
+      description: account.description || '',
     });
     setShowAddForm(true); // Re-use the same form for editing
   };
@@ -64,7 +80,7 @@ export default function ManageAccounts() {
     setFormData(initialFormState);
   };
 
-  const handleSubmitForm = (e: React.FormEvent) => {
+  const handleSubmitForm = async (e: React.FormEvent) => {
     e.preventDefault();
     const balanceNum = parseFloat(formData.balance);
     if (isNaN(balanceNum) || formData.balance.trim() === '') {
@@ -76,19 +92,68 @@ export default function ManageAccounts() {
         return;
     }
 
-    if (isEditing && formData.id) {
-      dispatch(updateAccount({ id: formData.id, name: formData.name.trim(), balance: balanceNum }));
-    } else {
-      dispatch(addAccount({ name: formData.name.trim(), balance: balanceNum }));
+    try {
+      if (isEditing && formData.id) {
+        await dispatch(updateAccountThunk({ 
+          id: formData.id, 
+          name: formData.name.trim(), 
+          balance: balanceNum,
+          currency: formData.currency,
+          description: formData.description?.trim() || undefined
+        })).unwrap();
+      } else {
+        await dispatch(createAccount({ 
+          name: formData.name.trim(), 
+          balance: balanceNum,
+          currency: formData.currency,
+          description: formData.description?.trim() || undefined
+        })).unwrap();
+      }
+      handleCancelEdit(); // Close form and reset
+    } catch (error) {
+      console.error('Failed to save account:', error);
+      alert('Failed to save account. Please try again.');
     }
-    handleCancelEdit(); // Close form and reset
   };
 
-  const handleDeleteAccount = (accountId: string) => {
+  const handleDeleteAccount = async (accountId: string) => {
     if (!accountId) return; // Guard against null/undefined id
-    dispatch(deleteAccount(accountId));
-    setShowConfirmDelete(null); // Close confirmation
+    try {
+      await dispatch(deleteAccountThunk(accountId)).unwrap();
+      setShowConfirmDelete(null); // Close confirmation
+    } catch (error) {
+      console.error('Failed to delete account:', error);
+      alert('Failed to delete account. Please try again.');
+    }
   };
+
+  if (error) {
+    return (
+      <div className="space-y-8">
+        <div className="text-center py-16 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-red-200/50 dark:border-red-700/50 shadow-lg">
+          <div className="max-w-md mx-auto space-y-6">
+            <div className="w-20 h-20 bg-gradient-to-r from-red-500 to-red-600 rounded-full flex items-center justify-center mx-auto">
+              <FaExclamationTriangle className="w-10 h-10 text-white" />
+            </div>
+            <div>
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Accounts Service Setup Required</h3>
+              <p className="text-gray-600 dark:text-gray-400 mb-4">
+                {error.includes('404') || error.includes('Not Found') 
+                  ? 'The accounts feature is being deployed. Please check back in a few minutes.' 
+                  : error}
+              </p>
+              <button 
+                onClick={() => dispatch(fetchAccounts())}
+                className="inline-flex items-center space-x-2 bg-gradient-to-r from-blue-500 to-green-500 hover:from-blue-600 hover:to-green-600 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl"
+              >
+                <span>Retry</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">
@@ -130,7 +195,7 @@ export default function ManageAccounts() {
             
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Initial Balance (USD)
+                Initial Balance
               </label>
               <div className="relative">
                 <FaDollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -147,19 +212,50 @@ export default function ManageAccounts() {
                 />
               </div>
             </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Currency
+              </label>
+              <input 
+                type="text" 
+                name="currency" 
+                value={formData.currency || 'USD'} 
+                onChange={handleInputChange}
+                className="w-full px-4 py-3 border border-gray-200/50 dark:border-gray-700/50 rounded-xl bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                placeholder="USD"
+                maxLength={3}
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Description (Optional)
+              </label>
+              <textarea 
+                name="description" 
+                value={formData.description || ''} 
+                onChange={handleInputChange}
+                rows={3}
+                className="w-full px-4 py-3 border border-gray-200/50 dark:border-gray-700/50 rounded-xl bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 resize-none"
+                placeholder="Account description..."
+              />
+            </div>
             
             <div className="flex justify-end space-x-3 pt-4">
               <button 
                 type="button" 
                 onClick={handleCancelEdit}
-                className="flex items-center space-x-2 bg-gray-100/80 dark:bg-gray-800/80 hover:bg-gray-500 dark:hover:bg-gray-500 text-gray-600 dark:text-gray-400 hover:text-white px-6 py-3 rounded-xl font-medium transition-all duration-200 hover:scale-105">
+                disabled={isLoading}
+                className="flex items-center space-x-2 bg-gray-100/80 dark:bg-gray-800/80 hover:bg-gray-500 dark:hover:bg-gray-500 text-gray-600 dark:text-gray-400 hover:text-white px-6 py-3 rounded-xl font-medium transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed">
                 <FaTimes className="w-4 h-4" />
                 <span>Cancel</span>
               </button>
               <button 
                 type="submit"
-                className="flex items-center space-x-2 bg-gradient-to-r from-blue-500 to-green-500 hover:from-blue-600 hover:to-green-600 text-white px-6 py-3 rounded-xl font-medium transition-all duration-200 hover:scale-105 shadow-lg hover:shadow-xl">
-                <FaSave className="w-4 h-4" />
+                disabled={isLoading}
+                className="flex items-center space-x-2 bg-gradient-to-r from-blue-500 to-green-500 hover:from-blue-600 hover:to-green-600 text-white px-6 py-3 rounded-xl font-medium transition-all duration-200 hover:scale-105 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed">
+                {isLoading ? <FaSpinner className="w-4 h-4 animate-spin" /> : <FaSave className="w-4 h-4" />}
                 <span>{isEditing ? 'Save Changes' : 'Add Account'}</span>
               </button>
             </div>
@@ -183,33 +279,44 @@ export default function ManageAccounts() {
           {!showAddForm && (
             <button 
               onClick={handleAddNewAccount}
-              className="flex items-center space-x-2 bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 text-white px-6 py-3 rounded-xl font-medium transition-all duration-200 hover:scale-105 shadow-lg hover:shadow-xl">
+              disabled={isLoading}
+              className="flex items-center space-x-2 bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 text-white px-6 py-3 rounded-xl font-medium transition-all duration-200 hover:scale-105 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed">
               <FaPlus className="w-4 h-4" />
               <span>Add Account</span>
             </button>
           )}
         </div>
 
-        {accounts.length === 0 && !showAddForm ? (
+        {isLoading && accounts.length === 0 ? (
+          <div className="text-center py-16 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 shadow-lg">
+            <div className="max-w-md mx-auto space-y-6">
+              <div className="w-20 h-20 bg-gradient-to-r from-blue-500 to-green-500 rounded-full flex items-center justify-center mx-auto">
+                <FaSpinner className="w-10 h-10 text-white animate-spin" />
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Loading Accounts...</h3>
+                <p className="text-gray-600 dark:text-gray-400">Please wait while we fetch your accounts.</p>
+              </div>
+            </div>
+          </div>
+        ) : accounts.length === 0 && !showAddForm ? (
           <div className="text-center py-16 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 shadow-lg">
             <div className="max-w-md mx-auto space-y-6">
               <div className="w-20 h-20 bg-gradient-to-r from-blue-500 to-green-500 rounded-full flex items-center justify-center mx-auto">
                 <FaBuilding className="w-10 h-10 text-white" />
               </div>
               <div>
-                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
-                  No accounts yet
-                </h3>
-                <p className="text-gray-600 dark:text-gray-400">
-                  Create your first trading account to get started.
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">No Accounts Yet</h3>
+                <p className="text-gray-600 dark:text-gray-400 mb-6">
+                  Get started by adding your first trading account to track your performance.
                 </p>
+                <button 
+                  onClick={handleAddNewAccount}
+                  className="inline-flex items-center space-x-2 bg-gradient-to-r from-blue-500 to-green-500 hover:from-blue-600 hover:to-green-600 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl">
+                  <FaPlus className="w-4 h-4" />
+                  <span>Add Your First Account</span>
+                </button>
               </div>
-              <button 
-                onClick={handleAddNewAccount}
-                className="inline-flex items-center space-x-2 bg-gradient-to-r from-blue-500 to-green-500 hover:from-blue-600 hover:to-green-600 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl">
-                <FaPlus className="w-4 h-4" />
-                <span>Add Your First Account</span>
-              </button>
             </div>
           </div>
         ) : (
@@ -260,41 +367,28 @@ export default function ManageAccounts() {
                           </div>
                         )}
                       </div>
-                      
-                      <div className="flex items-center space-x-4 mt-2">
-                        <div className="flex items-center space-x-1">
-                          <FaDollarSign className="w-4 h-4 text-gray-500 dark:text-gray-400" />
-                          <span className="text-lg font-semibold text-gray-900 dark:text-white">
-                            {account.balance.toLocaleString(undefined, { 
-                              minimumFractionDigits: 2, 
-                              maximumFractionDigits: 2 
-                            })}
-                          </span>
-                        </div>
-                        
-                        <div className="flex items-center space-x-1">
-                          <FaShieldAlt className="w-4 h-4 text-blue-500" />
-                          <span className="text-sm text-gray-500 dark:text-gray-400">Protected</span>
-                        </div>
-                        
-                        <div className="flex items-center space-x-1">
-                          <FaChartLine className="w-4 h-4 text-purple-500" />
-                          <span className="text-sm text-gray-500 dark:text-gray-400">Live Trading</span>
-                        </div>
+                      <div className="flex items-center space-x-4 mt-1">
+                        <span className="text-2xl font-bold text-gray-900 dark:text-white">
+                          {account.currency} {Number(account.balance).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </span>
                       </div>
+                      {account.description && (
+                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{account.description}</p>
+                      )}
                     </div>
                   </div>
-
-                  <div className="flex items-center space-x-3">
+                  
+                  <div className="flex items-center space-x-2">
                     <button 
                       onClick={() => handleEditAccount(account)}
-                      className="p-3 rounded-xl bg-blue-100/80 dark:bg-blue-900/30 hover:bg-blue-500 dark:hover:bg-blue-500 text-blue-600 dark:text-blue-400 hover:text-white transition-all duration-200 hover:scale-110">
+                      disabled={isLoading}
+                      className="p-2 text-blue-600 dark:text-blue-400 hover:bg-blue-500/20 rounded-xl transition-all duration-200 hover:scale-110 disabled:opacity-50 disabled:cursor-not-allowed">
                       <FaEdit className="w-4 h-4" />
                     </button>
-                    
                     <button 
                       onClick={() => setShowConfirmDelete(account.id)}
-                      className="p-3 rounded-xl bg-red-100/80 dark:bg-red-900/30 hover:bg-red-500 dark:hover:bg-red-500 text-red-600 dark:text-red-400 hover:text-white transition-all duration-200 hover:scale-110">
+                      disabled={isLoading}
+                      className="p-2 text-red-600 dark:text-red-400 hover:bg-red-500/20 rounded-xl transition-all duration-200 hover:scale-110 disabled:opacity-50 disabled:cursor-not-allowed">
                       <FaTrash className="w-4 h-4" />
                     </button>
                   </div>
@@ -304,37 +398,33 @@ export default function ManageAccounts() {
           </div>
         )}
       </div>
-      
+
       {/* Delete Confirmation Modal */}
       {showConfirmDelete && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl p-6 rounded-2xl shadow-2xl border border-gray-200/50 dark:border-gray-700/50 max-w-md w-full">
-            <div className="flex items-center space-x-3 mb-6">
-              <div className="p-3 bg-red-100 dark:bg-red-900/30 rounded-xl">
-                <FaExclamationTriangle className="w-6 h-6 text-red-600 dark:text-red-400" />
+          <div className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl p-6 rounded-2xl shadow-2xl border border-gray-200/50 dark:border-gray-700/50 space-y-6 max-w-sm w-full">
+            <div className="text-center">
+              <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+                <FaExclamationTriangle className="w-8 h-8 text-red-600 dark:text-red-400" />
               </div>
-              <div>
-                <h3 className="text-xl font-semibold text-gray-900 dark:text-white">Confirm Deletion</h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400">This action cannot be undone</p>
-              </div>
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Delete Account</h3>
+              <p className="text-gray-600 dark:text-gray-400">
+                Are you sure you want to delete this account? This action cannot be undone.
+              </p>
             </div>
             
-            <p className="text-gray-600 dark:text-gray-300 mb-6">
-              Are you sure you want to delete this account? All associated data will be permanently removed.
-            </p>
-            
-            <div className="flex justify-end space-x-3">
+            <div className="flex space-x-3">
               <button 
                 onClick={() => setShowConfirmDelete(null)}
-                className="flex items-center space-x-2 bg-gray-100/80 dark:bg-gray-800/80 hover:bg-gray-500 dark:hover:bg-gray-500 text-gray-600 dark:text-gray-400 hover:text-white px-6 py-3 rounded-xl font-medium transition-all duration-200 hover:scale-105">
-                <FaTimes className="w-4 h-4" />
-                <span>Cancel</span>
+                disabled={isLoading}
+                className="flex-1 py-2.5 px-4 bg-gray-100/80 dark:bg-gray-800/80 hover:bg-gray-500 dark:hover:bg-gray-500 text-gray-600 dark:text-gray-400 hover:text-white rounded-xl font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed">
+                Cancel
               </button>
               <button 
-                onClick={() => handleDeleteAccount(showConfirmDelete!)}
-                className="flex items-center space-x-2 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white px-6 py-3 rounded-xl font-medium transition-all duration-200 hover:scale-105 shadow-lg hover:shadow-xl">
-                <FaTrash className="w-4 h-4" />
-                <span>Delete Account</span>
+                onClick={() => handleDeleteAccount(showConfirmDelete)}
+                disabled={isLoading}
+                className="flex-1 py-2.5 px-4 bg-red-500 hover:bg-red-600 text-white rounded-xl font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed">
+                {isLoading ? 'Deleting...' : 'Delete'}
               </button>
             </div>
           </div>

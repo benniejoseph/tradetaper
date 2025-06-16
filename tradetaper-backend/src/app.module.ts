@@ -17,6 +17,7 @@ import { MarketDataModule } from './market-data/market-data.module';
 import { Subscription } from './subscriptions/entities/subscription.entity';
 import { Usage } from './subscriptions/entities/usage.entity';
 import { User } from './users/entities/user.entity';
+import { Account } from './users/entities/account.entity';
 import { Trade } from './trades/entities/trade.entity';
 import { Tag } from './tags/entities/tag.entity';
 import { MT5Account } from './users/entities/mt5-account.entity';
@@ -49,7 +50,7 @@ import { SimpleWebSocketModule } from './websocket/simple-websocket.module';
             username: 'tradetaper',
             password: 'TradeTaper2024',
             database: 'tradetaper',
-            entities: [User, Trade, Tag, MT5Account, Subscription, Usage, Strategy],
+            entities: [User, Account, Trade, Tag, MT5Account, Subscription, Usage, Strategy],
             synchronize: false,
             ssl: false,
             retryAttempts: 5,
@@ -73,7 +74,7 @@ import { SimpleWebSocketModule } from './websocket/simple-websocket.module';
           username: 'postgres',
           password: 'postgres',
           database: 'tradetaper',
-          entities: [User, Trade, Tag, MT5Account, Subscription, Usage, Strategy],
+          entities: [User, Account, Trade, Tag, MT5Account, Subscription, Usage, Strategy],
           synchronize: true,
           autoLoadEntities: true,
           logging: true,
