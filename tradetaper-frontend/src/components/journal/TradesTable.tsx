@@ -197,6 +197,11 @@ export default function TradesTable({ trades, accounts, onRowClick, isLoading, i
                           e.stopPropagation();
                           window.open(trade.imageUrl, '_blank');
                         }}
+                        onError={(e) => {
+                          console.error('Table image failed to load:', trade.imageUrl);
+                          (e.target as HTMLImageElement).style.display = 'none';
+                        }}
+                        onLoad={() => console.log('Table image loaded:', trade.imageUrl)}
                       />
                     </div>
                   ) : (

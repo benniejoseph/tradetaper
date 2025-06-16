@@ -604,6 +604,11 @@ export default function ViewTradePage() {
                 alt={`${currentTrade.symbol} trade chart`}
                 className="w-full h-auto max-h-[600px] object-contain hover:scale-105 transition-transform duration-300 cursor-pointer"
                 onClick={() => window.open(currentTrade.imageUrl, '_blank')}
+                onError={(e) => {
+                  console.error('Image failed to load in journal view:', currentTrade.imageUrl);
+                  (e.target as HTMLImageElement).style.display = 'none';
+                }}
+                onLoad={() => console.log('Image loaded successfully in journal view:', currentTrade.imageUrl)}
               />
               <div className="absolute top-4 right-4">
                 <button
@@ -638,6 +643,84 @@ export default function ViewTradePage() {
             <div className="prose prose-sm dark:prose-invert max-w-none">
               <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">
                 {currentTrade.notes}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Setup Details */}
+      {currentTrade.setupDetails && (
+        <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 shadow-lg p-6">
+          <div className="flex items-center space-x-3 mb-6">
+            <div className="p-3 bg-gradient-to-r from-indigo-500/20 to-purple-500/20 rounded-xl">
+              <FaChartLine className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
+            </div>
+            <div>
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white">
+                Setup Details
+              </h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                Trade setup and analysis
+              </p>
+            </div>
+          </div>
+          <div className="bg-white/60 dark:bg-gray-800/40 backdrop-blur-sm rounded-xl p-6 border border-gray-200/30 dark:border-gray-700/30">
+            <div className="prose prose-sm dark:prose-invert max-w-none">
+              <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">
+                {currentTrade.setupDetails}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Mistakes Made */}
+      {currentTrade.mistakesMade && (
+        <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 shadow-lg p-6">
+          <div className="flex items-center space-x-3 mb-6">
+            <div className="p-3 bg-gradient-to-r from-red-500/20 to-orange-500/20 rounded-xl">
+              <FaEdit className="h-6 w-6 text-red-600 dark:text-red-400" />
+            </div>
+            <div>
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white">
+                Mistakes Made
+              </h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                Areas for improvement
+              </p>
+            </div>
+          </div>
+          <div className="bg-white/60 dark:bg-gray-800/40 backdrop-blur-sm rounded-xl p-6 border border-gray-200/30 dark:border-gray-700/30">
+            <div className="prose prose-sm dark:prose-invert max-w-none">
+              <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">
+                {currentTrade.mistakesMade}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Lessons Learned */}
+      {currentTrade.lessonsLearned && (
+        <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 shadow-lg p-6">
+          <div className="flex items-center space-x-3 mb-6">
+            <div className="p-3 bg-gradient-to-r from-green-500/20 to-teal-500/20 rounded-xl">
+              <FaEdit className="h-6 w-6 text-green-600 dark:text-green-400" />
+            </div>
+            <div>
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white">
+                Lessons Learned
+              </h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                Key takeaways and insights
+              </p>
+            </div>
+          </div>
+          <div className="bg-white/60 dark:bg-gray-800/40 backdrop-blur-sm rounded-xl p-6 border border-gray-200/30 dark:border-gray-700/30">
+            <div className="prose prose-sm dark:prose-invert max-w-none">
+              <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">
+                {currentTrade.lessonsLearned}
               </p>
             </div>
           </div>
