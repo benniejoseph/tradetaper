@@ -303,7 +303,7 @@ export default function Sidebar({ isOpen, toggleSidebar, isMobile, onExpandChang
           </div>
           
           {/* Theme Toggle - positioned at bottom for collapsed state */}
-          {!isExpanded && (
+          {/* {!isExpanded && (
             <div className="absolute bottom-16 left-1/2 transform -translate-x-1/2">
               <div className="relative group/tooltip">
                 <ThemeToggleButton />
@@ -313,7 +313,7 @@ export default function Sidebar({ isOpen, toggleSidebar, isMobile, onExpandChang
                 </div>
               </div>
             </div>
-          )}
+          )} */}
         </div>
       </aside>
     </>

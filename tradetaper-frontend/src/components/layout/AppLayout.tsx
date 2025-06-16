@@ -4,6 +4,7 @@ import React, { ReactNode, useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '@/store/store';
 import { fetchMT5Accounts } from '@/store/features/mt5AccountsSlice';
+import { fetchAccounts } from '@/store/features/accountSlice';
 import Sidebar from './Sidebar';
 // import Header from './Header'; // This is the existing mobile-only header, currently commented out
 import ContentHeader from './ContentHeader'; // Import the new ContentHeader
@@ -30,10 +31,11 @@ export default function AppLayout({ children }: AppLayoutProps) {
     onError: (error) => console.error('WebSocket error:', error),
   });
 
-  // Fetch MT5 accounts when authenticated
+  // Fetch MT5 accounts and regular accounts when authenticated
   useEffect(() => {
     if (isAuthenticated) {
       dispatch(fetchMT5Accounts());
+      dispatch(fetchAccounts());
     }
   }, [dispatch, isAuthenticated]);
 

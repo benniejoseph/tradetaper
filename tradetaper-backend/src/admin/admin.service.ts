@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import { User } from '../users/entities/user.entity';
+import { Account } from '../users/entities/account.entity';
 import { Trade } from '../trades/entities/trade.entity';
 import { Subscription, SubscriptionStatus, SubscriptionTier } from '../subscriptions/entities/subscription.entity';
 import { TradeDirection, TradeStatus, AssetType } from '../types/enums';
@@ -11,6 +12,8 @@ export class AdminService {
   constructor(
     @InjectRepository(User)
     private userRepository: Repository<User>,
+    @InjectRepository(Account)
+    private accountRepository: Repository<Account>,
     @InjectRepository(Trade)
     private tradeRepository: Repository<Trade>,
     @InjectRepository(Subscription)
@@ -121,6 +124,23 @@ export class AdminService {
 
     return {
       data: trades,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit)
+    };
+  }
+
+  async getAccounts(page: number = 1, limit: number = 50) {
+    const [accounts, total] = await this.accountRepository.findAndCount({
+      skip: (page - 1) * limit,
+      take: limit,
+      order: { createdAt: 'DESC' },
+      relations: ['user']
+    });
+
+    return {
+      data: accounts,
       total,
       page,
       limit,
@@ -491,53 +511,62 @@ export class AdminService {
   }
 
   async getTableStats() {
-    const tables = [
-      'users',
-      'trades',
-      'tags',
-      'trade_tags',
-      'mt5_accounts',
-      'strategies',
-      'subscriptions',
-      'usage_tracking',
-    ];
+    try {
+      const tablesQuery = `
+        SELECT 
+          schemaname as schema_name,
+          tablename as table_name,
+          attname as column_name,
+          typname as data_type
+        FROM pg_tables pt
+        LEFT JOIN pg_attribute pa ON pa.attrelid = (pt.schemaname||'.'||pt.tablename)::regclass
+        LEFT JOIN pg_type pt2 ON pa.atttypid = pt2.oid
+        WHERE schemaname = 'public'
+        AND pa.attnum > 0
+        AND NOT pa.attisdropped
+        ORDER BY table_name, pa.attnum;
+      `;
+      
+      const result = await this.dataSource.query(tablesQuery);
+      
+      // Group by table
+      const tableStats: Record<string, any> = {};
+      result.forEach((row: any) => {
+        if (!tableStats[row.table_name]) {
+          tableStats[row.table_name] = {
+            name: row.table_name,
+            columns: []
+          };
+        }
+        if (row.column_name) {
+          tableStats[row.table_name].columns.push({
+            name: row.column_name,
+            type: row.data_type
+          });
+        }
+      });
 
-    const stats: any[] = [];
-    
-    for (const tableName of tables) {
-      try {
-        const countQuery = `SELECT COUNT(*) as count FROM "${tableName}";`;
-        const sizeQuery = `
-          SELECT pg_size_pretty(pg_total_relation_size('${tableName}')) as size,
-                 pg_total_relation_size('${tableName}') as size_bytes
-        `;
-        
-        const countResult = await this.dataSource.query(countQuery);
-        const sizeResult = await this.dataSource.query(sizeQuery);
-        
-        stats.push({
-          tableName,
-          rowCount: parseInt(countResult[0].count),
-          size: sizeResult[0].size,
-          sizeBytes: parseInt(sizeResult[0].size_bytes),
-          canClear: tableName !== 'users', // Users table should never be cleared
-        });
-      } catch (error) {
-        stats.push({
-          tableName,
-          rowCount: 0,
-          size: 'Unknown',
-          sizeBytes: 0,
-          canClear: false,
-          error: error.message,
-        });
-      }
+      return Object.values(tableStats);
+    } catch (error) {
+      console.error('Error fetching table stats:', error);
+      return [];
     }
+  }
 
-    return {
-      tables: stats,
-      totalTables: stats.length,
-      timestamp: new Date().toISOString(),
-    };
+  async runSql(sql: string): Promise<{ success: boolean; result?: any; error?: string }> {
+    try {
+      console.log('Executing SQL:', sql);
+      const result = await this.dataSource.query(sql);
+      return {
+        success: true,
+        result,
+      };
+    } catch (error) {
+      console.error('SQL execution error:', error);
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
   }
 }
