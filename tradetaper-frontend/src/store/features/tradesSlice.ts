@@ -74,6 +74,34 @@ function transformApiTradeToFrontend(apiTrade: any): Trade {
   };
 }
 
+// Helper function to transform frontend payload to backend API format
+function transformFrontendToApiPayload(frontendPayload: CreateTradePayload | UpdateTradePayload): any {
+  return {
+    assetType: frontendPayload.assetType,
+    symbol: frontendPayload.symbol,
+    side: frontendPayload.direction, // Frontend: direction → API: side
+    status: frontendPayload.status,
+    openTime: frontendPayload.entryDate, // Frontend: entryDate → API: openTime
+    openPrice: frontendPayload.entryPrice, // Frontend: entryPrice → API: openPrice
+    closeTime: frontendPayload.exitDate, // Frontend: exitDate → API: closeTime
+    closePrice: frontendPayload.exitPrice, // Frontend: exitPrice → API: closePrice
+    quantity: frontendPayload.quantity,
+    stopLoss: frontendPayload.stopLoss,
+    takeProfit: frontendPayload.takeProfit,
+    commission: frontendPayload.commission,
+    notes: frontendPayload.notes,
+    ictConcept: frontendPayload.ictConcept,
+    session: frontendPayload.session,
+    setupDetails: frontendPayload.setupDetails,
+    mistakesMade: frontendPayload.mistakesMade,
+    lessonsLearned: frontendPayload.lessonsLearned,
+    imageUrl: frontendPayload.imageUrl,
+    tagNames: frontendPayload.tagNames,
+    accountId: frontendPayload.accountId,
+    isStarred: frontendPayload.isStarred,
+  };
+}
+
 // Async Thunks for API calls
 export const fetchTrades = createAsyncThunk<
   Trade[], 
@@ -123,7 +151,12 @@ export const createTrade = createAsyncThunk<Trade, CreateTradePayload, { rejectV
   'trades/createTrade',
   async (payload, { rejectWithValue }) => {
     try {
-      const response = await authApiClient.post<any>('/trades', payload);
+      // Transform frontend payload to backend API format
+      const apiPayload = transformFrontendToApiPayload(payload);
+      console.log('Frontend payload:', payload);
+      console.log('Transformed API payload:', apiPayload);
+      
+      const response = await authApiClient.post<any>('/trades', apiPayload);
       console.log('Raw createTrade from API:', response.data);
       
       // Transform API response to frontend format
@@ -141,7 +174,12 @@ export const updateTrade = createAsyncThunk<Trade, { id: string; payload: Update
   'trades/updateTrade',
   async ({ id, payload }, { rejectWithValue }) => {
     try {
-      const response = await authApiClient.patch<any>(`/trades/${id}`, payload);
+      // Transform frontend payload to backend API format
+      const apiPayload = transformFrontendToApiPayload(payload);
+      console.log('Frontend updateTrade payload:', payload);
+      console.log('Transformed updateTrade API payload:', apiPayload);
+      
+      const response = await authApiClient.patch<any>(`/trades/${id}`, apiPayload);
       console.log('Raw updateTrade from API:', response.data);
       
       // Transform API response to frontend format
