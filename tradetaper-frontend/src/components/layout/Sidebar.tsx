@@ -94,7 +94,7 @@ export default function Sidebar({ isOpen, toggleSidebar, isMobile, onExpandChang
             <Link href="/dashboard" 
                   className="flex items-center space-x-3 group focus:outline-none"
                   onClick={handleLinkClick}>
-              <div className="relative">
+              <div className="relative -ml-2">
                 <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-r from-blue-500 to-green-500 rounded-xl flex items-center justify-center text-white font-bold text-xl shadow-lg group-hover:shadow-xl group-hover:scale-105 transition-all duration-300">
                   <FaChartLine className="w-5 h-5 sm:w-6 sm:h-6" />
                 </div>
@@ -112,7 +112,7 @@ export default function Sidebar({ isOpen, toggleSidebar, isMobile, onExpandChang
               {!isMobile && (
                 <button 
                   onClick={toggleExpanded}
-                  className="p-2 rounded-lg bg-gray-100/80 dark:bg-gray-800/80 hover:bg-blue-500 dark:hover:bg-blue-500 text-gray-600 dark:text-gray-400 hover:text-white transition-all duration-200 hover:scale-105"
+                  className="p-2 ml-2 rounded-lg bg-gray-100/80 dark:bg-gray-800/80 hover:bg-blue-500 dark:hover:bg-blue-500 text-gray-600 dark:text-gray-400 hover:text-white transition-all duration-200 hover:scale-105"
                   aria-label={isExpanded ? "Collapse sidebar" : "Expand sidebar"}>
                   {isExpanded ? <FaChevronLeft className="h-4 w-4" /> : <FaChevronRight className="h-4 w-4" />}
                 </button>
