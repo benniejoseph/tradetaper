@@ -10,7 +10,7 @@ import { TradesModule } from './trades/trades.module';
 import { TagsModule } from './tags/tags.module';
 import { AdminModule } from './admin/admin.module';
 import { CommonModule } from './common/common.module';
-import { WebSocketGatewayModule } from './websocket/websocket.module';
+// import { WebSocketGatewayModule } from './websocket/websocket.module';
 import { StrategiesModule } from './strategies/strategies.module';
 import { Subscription } from './subscriptions/entities/subscription.entity';
 import { Usage } from './subscriptions/entities/usage.entity';
@@ -83,7 +83,7 @@ import { Strategy } from './strategies/entities/strategy.entity';
     TagsModule,
     AdminModule,
     CommonModule,
-    WebSocketGatewayModule,
+    // WebSocketGatewayModule,
     StrategiesModule,
   ],
   controllers: [AppController],
