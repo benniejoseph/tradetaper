@@ -581,6 +581,43 @@ export default function ViewTradePage() {
 
       {/* Additional sections can be added here following the same pattern */}
       
+      {/* Chart Image */}
+      {currentTrade.imageUrl && (
+        <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 shadow-lg p-6">
+          <div className="flex items-center space-x-3 mb-6">
+            <div className="p-3 bg-gradient-to-r from-teal-500/20 to-cyan-500/20 rounded-xl">
+              <FaChartLine className="h-6 w-6 text-teal-600 dark:text-teal-400" />
+            </div>
+            <div>
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white">
+                Trade Chart
+              </h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                Chart analysis and setup visualization
+              </p>
+            </div>
+          </div>
+          <div className="bg-white/60 dark:bg-gray-800/40 backdrop-blur-sm rounded-xl p-4 border border-gray-200/30 dark:border-gray-700/30">
+            <div className="relative w-full rounded-xl overflow-hidden shadow-lg">
+              <img
+                src={currentTrade.imageUrl}
+                alt={`${currentTrade.symbol} trade chart`}
+                className="w-full h-auto max-h-[600px] object-contain hover:scale-105 transition-transform duration-300 cursor-pointer"
+                onClick={() => window.open(currentTrade.imageUrl, '_blank')}
+              />
+              <div className="absolute top-4 right-4">
+                <button
+                  onClick={() => window.open(currentTrade.imageUrl, '_blank')}
+                  className="px-3 py-2 bg-black/50 hover:bg-black/70 text-white text-sm font-medium rounded-lg backdrop-blur-sm transition-all duration-200"
+                >
+                  View Full Size
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Trading Notes */}
       {currentTrade.notes && (
         <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 shadow-lg p-6">
