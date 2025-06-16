@@ -3,7 +3,26 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import Sidebar from '@/components/Sidebar';
-import { Database, Table, Search, Eye, Edit, Trash2, Plus, RefreshCw, Filter, Download, AlertTriangle } from 'lucide-react';
+import { 
+  Database, 
+  Table, 
+  Search, 
+  Eye, 
+  Edit, 
+  Trash2, 
+  Plus, 
+  RefreshCw, 
+  Filter, 
+  Download, 
+  AlertTriangle,
+  UserPlus,
+  Shield,
+  BarChart3,
+  ExternalLink,
+  CheckCircle,
+  XCircle,
+  AlertCircle
+} from 'lucide-react';
 import { adminApi } from '@/lib/api';
 
 interface TableColumn {
@@ -11,6 +30,15 @@ interface TableColumn {
   data_type: string;
   is_nullable: string;
   column_default: string | null;
+}
+
+interface TableStat {
+  tableName: string;
+  rowCount: number;
+  size: string;
+  sizeBytes: number;
+  canClear: boolean;
+  error?: string;
 }
 
 interface DatabaseViewerProps {
@@ -43,6 +71,292 @@ const DatabaseViewer = ({ tables, selectedTable, onTableSelect }: DatabaseViewer
             </div>
           </button>
         ))}
+      </div>
+    </div>
+  );
+};
+
+// Add Test User Management Component
+const TestUserManager = ({ onRefresh }: { onRefresh: () => void }) => {
+  const [isCreating, setIsCreating] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [result, setResult] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const createTestUser = async () => {
+    try {
+      setIsCreating(true);
+      setError(null);
+      const result = await adminApi.createTestUser();
+      setResult(result);
+      onRefresh();
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to create test user');
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
+  const deleteTestUser = async () => {
+    try {
+      setIsDeleting(true);
+      setError(null);
+      const result = await adminApi.deleteTestUser();
+      setResult(result);
+      onRefresh();
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to delete test user');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  return (
+    <div className="bg-gray-900/80 backdrop-blur-xl border border-gray-700/50 rounded-2xl p-6">
+      <div className="flex items-center mb-4">
+        <UserPlus className="w-5 h-5 text-green-400 mr-2" />
+        <h3 className="text-lg font-semibold text-white">Test User Management</h3>
+      </div>
+      
+      <div className="space-y-4">
+        <div className="flex space-x-3">
+          <button
+            onClick={createTestUser}
+            disabled={isCreating}
+            className="flex-1 bg-green-600/20 hover:bg-green-600/30 border border-green-500/30 rounded-lg px-4 py-2 text-green-300 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isCreating ? 'Creating...' : 'Create Test User'}
+          </button>
+          <button
+            onClick={deleteTestUser}
+            disabled={isDeleting}
+            className="flex-1 bg-red-600/20 hover:bg-red-600/30 border border-red-500/30 rounded-lg px-4 py-2 text-red-300 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isDeleting ? 'Deleting...' : 'Delete Test User'}
+          </button>
+        </div>
+
+        {result && (
+          <div className="bg-blue-900/30 border border-blue-500/30 rounded-lg p-4">
+            <div className="flex items-center mb-2">
+              <CheckCircle className="w-4 h-4 text-green-400 mr-2" />
+              <span className="text-green-300 font-medium">Success</span>
+            </div>
+            <p className="text-blue-200 text-sm mb-2">{result.message}</p>
+            {result.user && (
+              <div className="text-xs text-gray-400 space-y-1">
+                <p><strong>Email:</strong> {result.user.email}</p>
+                <p><strong>Password:</strong> TradeTest123!</p>
+                {result.stats && (
+                  <p><strong>Data Created:</strong> {result.stats.trades} trades, {result.stats.accounts} accounts, {result.stats.strategies} strategies, {result.stats.tags} tags</p>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {error && (
+          <div className="bg-red-900/30 border border-red-500/30 rounded-lg p-4">
+            <div className="flex items-center">
+              <XCircle className="w-4 h-4 text-red-400 mr-2" />
+              <span className="text-red-300 text-sm">{error}</span>
+            </div>
+          </div>
+        )}
+
+        <div className="text-xs text-gray-500 border-t border-gray-700 pt-3">
+          <p><strong>Test User Credentials:</strong></p>
+          <p>Email: trader@tradetaper.com</p>
+          <p>Password: TradeTest123!</p>
+          <p className="mt-2 text-yellow-400">⚠️ This user includes 50+ realistic trades with P&L data</p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Add Database Management Component
+const DatabaseManager = ({ tableStats, onRefresh }: { 
+  tableStats: TableStat[] | null; 
+  onRefresh: () => void;
+}) => {
+  const [selectedTable, setSelectedTable] = useState<string>('');
+  const [confirmText, setConfirmText] = useState('');
+  const [doubleConfirmText, setDoubleConfirmText] = useState('');
+  const [isClearing, setIsClearing] = useState(false);
+  const [result, setResult] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const clearTable = async () => {
+    if (!selectedTable || confirmText !== 'DELETE_ALL_DATA') {
+      setError('Please select a table and enter the confirmation text');
+      return;
+    }
+
+    try {
+      setIsClearing(true);
+      setError(null);
+      const result = await adminApi.clearTable(selectedTable, confirmText);
+      setResult(result);
+      onRefresh();
+      setConfirmText('');
+      setSelectedTable('');
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to clear table');
+    } finally {
+      setIsClearing(false);
+    }
+  };
+
+  const clearAllTables = async () => {
+    if (confirmText !== 'DELETE_ALL_DATA' || doubleConfirmText !== 'I_UNDERSTAND_THIS_WILL_DELETE_EVERYTHING') {
+      setError('Please enter both confirmation texts exactly as shown');
+      return;
+    }
+
+    try {
+      setIsClearing(true);
+      setError(null);
+      const result = await adminApi.clearAllTables(confirmText, doubleConfirmText);
+      setResult(result);
+      onRefresh();
+      setConfirmText('');
+      setDoubleConfirmText('');
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to clear all tables');
+    } finally {
+      setIsClearing(false);
+    }
+  };
+
+  return (
+    <div className="bg-gray-900/80 backdrop-blur-xl border border-gray-700/50 rounded-2xl p-6">
+      <div className="flex items-center mb-4">
+        <Shield className="w-5 h-5 text-red-400 mr-2" />
+        <h3 className="text-lg font-semibold text-white">Database Management</h3>
+        <span className="ml-2 px-2 py-1 bg-red-900/30 border border-red-500/30 rounded text-xs text-red-300">
+          DANGER ZONE
+        </span>
+      </div>
+
+      {/* Table Stats */}
+      {tableStats && (
+        <div className="mb-6">
+          <h4 className="text-sm font-medium text-gray-300 mb-3">Table Statistics</h4>
+          <div className="space-y-2 max-h-32 overflow-y-auto">
+            {tableStats.map((stat) => (
+              <div key={stat.tableName} className="flex items-center justify-between text-xs">
+                <span className="text-gray-400">{stat.tableName}</span>
+                <div className="flex items-center space-x-2">
+                  <span className="text-gray-500">{stat.rowCount} rows</span>
+                  <span className="text-gray-500">{stat.size}</span>
+                  {stat.canClear ? (
+                    <CheckCircle className="w-3 h-3 text-green-400" />
+                  ) : (
+                    <XCircle className="w-3 h-3 text-red-400" />
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Clear Single Table */}
+      <div className="space-y-4 mb-6">
+        <h4 className="text-sm font-medium text-gray-300">Clear Single Table</h4>
+        <select
+          value={selectedTable}
+          onChange={(e) => setSelectedTable(e.target.value)}
+          className="w-full bg-gray-800/50 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm"
+        >
+          <option value="">Select table to clear...</option>
+          {tableStats?.filter(stat => stat.canClear).map((stat) => (
+            <option key={stat.tableName} value={stat.tableName}>
+              {stat.tableName} ({stat.rowCount} rows)
+            </option>
+          ))}
+        </select>
+        <input
+          type="text"
+          placeholder="Type: DELETE_ALL_DATA"
+          value={confirmText}
+          onChange={(e) => setConfirmText(e.target.value)}
+          className="w-full bg-gray-800/50 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm placeholder-gray-400"
+        />
+        <button
+          onClick={clearTable}
+          disabled={isClearing || !selectedTable || confirmText !== 'DELETE_ALL_DATA'}
+          className="w-full bg-orange-600/20 hover:bg-orange-600/30 border border-orange-500/30 rounded-lg px-4 py-2 text-orange-300 transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+        >
+          {isClearing ? 'Clearing...' : 'Clear Selected Table'}
+        </button>
+      </div>
+
+      {/* Clear All Tables */}
+      <div className="space-y-4 border-t border-gray-700 pt-4">
+        <h4 className="text-sm font-medium text-gray-300">Clear All Tables</h4>
+        <input
+          type="text"
+          placeholder="Type: DELETE_ALL_DATA"
+          value={confirmText}
+          onChange={(e) => setConfirmText(e.target.value)}
+          className="w-full bg-gray-800/50 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm placeholder-gray-400"
+        />
+        <input
+          type="text"
+          placeholder="Type: I_UNDERSTAND_THIS_WILL_DELETE_EVERYTHING"
+          value={doubleConfirmText}
+          onChange={(e) => setDoubleConfirmText(e.target.value)}
+          className="w-full bg-gray-800/50 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm placeholder-gray-400"
+        />
+        <button
+          onClick={clearAllTables}
+          disabled={isClearing || confirmText !== 'DELETE_ALL_DATA' || doubleConfirmText !== 'I_UNDERSTAND_THIS_WILL_DELETE_EVERYTHING'}
+          className="w-full bg-red-600/20 hover:bg-red-600/30 border border-red-500/30 rounded-lg px-4 py-2 text-red-300 transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+        >
+          {isClearing ? 'Clearing...' : 'CLEAR ALL TABLES'}
+        </button>
+      </div>
+
+      {result && (
+        <div className="mt-4 bg-green-900/30 border border-green-500/30 rounded-lg p-4">
+          <div className="flex items-center mb-2">
+            <CheckCircle className="w-4 h-4 text-green-400 mr-2" />
+            <span className="text-green-300 font-medium">Success</span>
+          </div>
+          <p className="text-green-200 text-sm">{result.message}</p>
+          {result.deletedCount !== undefined && (
+            <p className="text-xs text-gray-400 mt-1">Deleted {result.deletedCount} rows</p>
+          )}
+          {result.tablesCleared && (
+            <p className="text-xs text-gray-400 mt-1">
+              Cleared tables: {result.tablesCleared.join(', ')} ({result.totalDeleted} total rows)
+            </p>
+          )}
+        </div>
+      )}
+
+      {error && (
+        <div className="mt-4 bg-red-900/30 border border-red-500/30 rounded-lg p-4">
+          <div className="flex items-center">
+            <XCircle className="w-4 h-4 text-red-400 mr-2" />
+            <span className="text-red-300 text-sm">{error}</span>
+          </div>
+        </div>
+      )}
+
+      <div className="mt-4 text-xs text-gray-500 border-t border-gray-700 pt-3">
+        <div className="flex items-center mb-2">
+          <AlertTriangle className="w-3 h-3 text-yellow-400 mr-1" />
+          <span className="text-yellow-400 font-medium">Safety Features:</span>
+        </div>
+        <ul className="space-y-1 text-gray-500">
+          <li>• Users table is protected and cannot be cleared</li>
+          <li>• Double confirmation required for destructive operations</li>
+          <li>• Foreign key constraints handled automatically</li>
+          <li>• Operations are logged for audit trail</li>
+        </ul>
       </div>
     </div>
   );
@@ -232,9 +546,11 @@ export default function DatabasePage() {
   const [totalPages, setTotalPages] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [tableStats, setTableStats] = useState<TableStat[] | null>(null);
 
   useEffect(() => {
     loadTables();
+    loadTableStats();
   }, []);
 
   useEffect(() => {
@@ -259,6 +575,15 @@ export default function DatabasePage() {
       setSelectedTable('users');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadTableStats = async () => {
+    try {
+      const stats = await adminApi.getTableStats();
+      setTableStats(stats.tables);
+    } catch (error) {
+      console.error('Failed to load table stats:', error);
     }
   };
 
@@ -307,6 +632,13 @@ export default function DatabasePage() {
 
   const handleRefresh = () => {
     loadTableData();
+    loadTableStats();
+  };
+
+  const handleRefreshAll = () => {
+    loadTables();
+    loadTableStats();
+    loadTableData();
   };
 
   return (
@@ -323,16 +655,25 @@ export default function DatabasePage() {
               transition={{ duration: 0.6 }}
               className="mb-8"
             >
-              <div className="flex items-center mb-4">
-                <div className="inline-flex items-center justify-center w-12 h-12 bg-gradient-to-r from-blue-600 to-green-600 rounded-xl mr-4">
-                  <Database className="w-6 h-6 text-white" />
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center">
+                  <div className="inline-flex items-center justify-center w-12 h-12 bg-gradient-to-r from-blue-600 to-green-600 rounded-xl mr-4">
+                    <Database className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-green-400 bg-clip-text text-transparent">
+                      Database Management
+                    </h1>
+                    <p className="text-gray-400">Explore database, manage test data, and administrative controls</p>
+                  </div>
                 </div>
-                <div>
-                  <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-green-400 bg-clip-text text-transparent">
-                    Database Viewer
-                  </h1>
-                  <p className="text-gray-400">Explore and manage Railway PostgreSQL database</p>
-                </div>
+                <button
+                  onClick={handleRefreshAll}
+                  className="bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 rounded-lg px-4 py-2 text-blue-300 transition-all flex items-center space-x-2"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                  <span>Refresh All</span>
+                </button>
               </div>
 
               {error && (
@@ -343,13 +684,34 @@ export default function DatabasePage() {
               )}
             </motion.div>
 
-            {/* Main Content */}
+            {/* Management Controls */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+              {/* Test User Management */}
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.6, delay: 0.1 }}
+              >
+                <TestUserManager onRefresh={handleRefreshAll} />
+              </motion.div>
+
+              {/* Database Management */}
+              <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.6, delay: 0.2 }}
+              >
+                <DatabaseManager tableStats={tableStats} onRefresh={handleRefreshAll} />
+              </motion.div>
+            </div>
+
+            {/* Database Viewer */}
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
               {/* Tables Sidebar */}
               <motion.div
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.6, delay: 0.1 }}
+                transition={{ duration: 0.6, delay: 0.3 }}
                 className="lg:col-span-1"
               >
                 <DatabaseViewer
@@ -363,7 +725,7 @@ export default function DatabasePage() {
               <motion.div
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.6, delay: 0.2 }}
+                transition={{ duration: 0.6, delay: 0.4 }}
                 className="lg:col-span-3"
               >
                 {selectedTable && columns.length > 0 ? (
