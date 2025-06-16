@@ -13,6 +13,7 @@ import { CommonModule } from './common/common.module';
 // import { WebSocketGatewayModule } from './websocket/websocket.module';
 import { StrategiesModule } from './strategies/strategies.module';
 import { FilesModule } from './files/files.module';
+import { MarketDataModule } from './market-data/market-data.module';
 import { Subscription } from './subscriptions/entities/subscription.entity';
 import { Usage } from './subscriptions/entities/usage.entity';
 import { User } from './users/entities/user.entity';
@@ -88,6 +89,7 @@ import { SimpleWebSocketModule } from './websocket/simple-websocket.module';
     // WebSocketGatewayModule,
     StrategiesModule,
     FilesModule,
+    MarketDataModule,
     SimpleWebSocketModule,
   ],
   controllers: [AppController],

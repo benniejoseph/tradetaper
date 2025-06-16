@@ -40,12 +40,12 @@ async function bootstrap() {
   try {
     console.log('🚀 TradeTaper Backend Starting...');
     console.log(`📊 Node.js: ${process.version}, ENV: ${process.env.NODE_ENV}, PORT: ${process.env.PORT}`);
-
+    
     // Run migrations first in production
     await runMigrations();
 
     const app = await NestFactory.create(AppModule);
-
+    
     const port = process.env.PORT || 3000;
     console.log(`🔧 Using port: ${port}`);
 
@@ -82,7 +82,7 @@ async function bootstrap() {
     // Global validation pipe
     app.useGlobalPipes(
       new ValidationPipe({
-        whitelist: true,
+      whitelist: true, 
         forbidNonWhitelisted: true,
         transform: true,
       }),
