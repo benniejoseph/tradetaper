@@ -1,334 +1,139 @@
-# TradeTaper Admin Dashboard - Cursor Rules
+# TradeTaper Admin Dashboard Cursor Rules
 
-You are an expert React/Next.js developer working on TradeTaper's admin dashboard, a comprehensive analytics and management interface.
+## Project Overview
+Next.js 15 admin dashboard for TradeTaper platform with real-time analytics, user management, system monitoring, and comprehensive data visualization.
 
-## Tech Stack
-- **Framework**: Next.js 15 with App Router
-- **Language**: TypeScript
-- **Styling**: Tailwind CSS v4
-- **State Management**: TanStack Query (React Query)
-- **Charts**: Recharts for data visualization
-- **UI Components**: Headless UI, Framer Motion
-- **Maps**: React Leaflet for geographic data
-- **Virtual Scrolling**: React Window for large datasets
-
-## Admin Dashboard Purpose
-This admin interface provides:
-- Real-time system analytics and KPIs
-- User management and analytics
-- Trading data insights and monitoring
-- Geographic distribution analysis
-- Revenue and subscription tracking
-- System health monitoring
+## Technology Stack
+- **Framework**: Next.js 15.3 with App Router and React 19
+- **State Management**: TanStack Query 5.80 for server state
+- **Styling**: Tailwind CSS 4.0 with PostCSS
+- **UI Components**: Headless UI 2.2 + custom components
+- **Charts**: Recharts 2.15 for analytics and data visualization
+- **Maps**: React Leaflet 5.0 with Leaflet 1.9
+- **Virtualization**: React Window 1.8 for large datasets
+- **HTTP Client**: Axios 1.9
+- **WebSockets**: Socket.IO Client 4.8
+- **Animations**: Framer Motion 12.16
+- **Utilities**: class-variance-authority, clsx, tailwind-merge
 
 ## Architecture Patterns
 
-### App Router Structure
-- Use Next.js 15 App Router for all routing
-- Implement proper loading.tsx and error.tsx for each route
-- Use layout.tsx for shared admin navigation
-- Prefer Server Components for static admin data
-
-### Code Organization
+### Admin App Structure
 ```
 src/
 ├── app/                    # Next.js App Router
-│   ├── page.tsx           # Main dashboard
-│   ├── users/             # User management
-│   ├── geographic/        # Geographic analytics
-│   ├── revenue/           # Revenue analytics
-│   └── layout.tsx         # Admin layout with navigation
-├── components/            # Admin-specific components
-│   ├── dashboard/         # Dashboard widgets
-│   ├── charts/           # Chart components
+│   ├── (dashboard)/       # Main dashboard routes
+│   ├── login/             # Admin authentication
+│   ├── globals.css        # Global styles
+│   ├── layout.tsx         # Root layout
+│   └── page.tsx           # Dashboard home
+├── components/            # Admin UI components
+│   ├── ui/               # Base UI components (buttons, inputs)
+│   ├── dashboard/        # Dashboard-specific components
+│   ├── charts/           # Chart and visualization components
 │   ├── tables/           # Data table components
-│   └── ui/               # Base UI components
-├── lib/                  # Utilities and API clients
-├── hooks/                # Custom React Query hooks
+│   └── modals/           # Modal components
+├── lib/                  # Utilities and configurations
+│   ├── api.ts           # API client configuration
+│   ├── utils.ts         # Utility functions
+│   └── validations.ts   # Form validation schemas
+├── hooks/                # Custom React hooks
+│   ├── useAuth.ts       # Admin authentication hook
+│   ├── useWebSocket.ts  # Real-time data hook
+│   └── useFilters.ts    # Data filtering hook
 └── types/                # TypeScript definitions
 ```
 
-## Component Guidelines
+### Core Principles
+- **Admin-First Design**: Optimize for admin workflows and efficiency
+- **Real-time Data**: Live updates for system monitoring and user activity
+- **Data-Heavy UI**: Handle large datasets with virtualization and pagination
+- **Role-Based Access**: Implement granular permission controls
+- **Audit Logging**: Track all admin actions for compliance
+- **Performance**: Fast loading and smooth interactions with large data
 
-### Admin Dashboard Components
-- Design for data-heavy interfaces
-- Implement proper loading skeletons
-- Handle empty states gracefully
-- Include error boundaries for each major section
+## Component Architecture
 
-Example Dashboard Card:
+### Base UI Components
 ```typescript
-interface DashboardCardProps {
-  title: string;
-  value: string | number;
-  change?: number;
-  icon: React.ComponentType<{ className?: string }>;
-  isLoading?: boolean;
-}
+// components/ui/Button.tsx
+import { cva, type VariantProps } from 'class-variance-authority';
 
-export function DashboardCard({ title, value, change, icon: Icon, isLoading }: DashboardCardProps) {
-  if (isLoading) {
-    return <div className="bg-white p-6 rounded-lg shadow animate-pulse">
-      <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
-      <div className="h-8 bg-gray-200 rounded w-1/2"></div>
-    </div>;
-  }
-
-  return (
-    <div className="bg-white p-6 rounded-lg shadow">
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-sm font-medium text-gray-600">{title}</p>
-          <p className="text-2xl font-bold text-gray-900">{value}</p>
-          {change !== undefined && (
-            <p className={`text-sm ${change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-              {change >= 0 ? '+' : ''}{change.toFixed(1)}%
-            </p>
-          )}
-        </div>
-        <Icon className="h-8 w-8 text-gray-400" />
-      </div>
-    </div>
-  );
-}
-```
-
-## Data Management with React Query
-
-### Query Organization
-- Create custom hooks for each data entity
-- Implement proper cache keys and invalidation
-- Use optimistic updates for admin actions
-- Handle background refetch for real-time data
-
-Example Query Hook:
-```typescript
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-
-export function useUsers(filters?: UserFilters) {
-  return useQuery({
-    queryKey: ['users', filters],
-    queryFn: () => adminApi.getUsers(filters),
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    refetchInterval: 30 * 1000, // 30 seconds for admin data
-  });
-}
-
-export function useUpdateUser() {
-  const queryClient = useQueryClient();
-  
-  return useMutation({
-    mutationFn: (data: { id: string; updates: Partial<User> }) => 
-      adminApi.updateUser(data.id, data.updates),
-    onSuccess: (updatedUser) => {
-      // Optimistic update
-      queryClient.setQueryData(['users'], (old: User[]) =>
-        old?.map(user => user.id === updatedUser.id ? updatedUser : user)
-      );
-      
-      // Invalidate related queries
-      queryClient.invalidateQueries({ queryKey: ['user-stats'] });
+const buttonVariants = cva(
+  'inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors',
+  {
+    variants: {
+      variant: {
+        default: 'bg-blue-600 text-white hover:bg-blue-700',
+        destructive: 'bg-red-600 text-white hover:bg-red-700',
+        outline: 'border border-gray-300 bg-white hover:bg-gray-50',
+      },
+      size: {
+        sm: 'h-8 px-3 text-xs',
+        md: 'h-10 px-4',
+        lg: 'h-12 px-6',
+      },
     },
-  });
-}
-```
-
-### Real-time Data Updates
-- Use polling for critical admin metrics
-- Implement WebSocket connections for live activity feeds
-- Show data freshness indicators
-- Handle connection failures gracefully
-
-```typescript
-export function useRealTimeMetrics() {
-  const [isConnected, setIsConnected] = useState(false);
-  const queryClient = useQueryClient();
-
-  useEffect(() => {
-    const socket = io('/admin', {
-      auth: { token: getAdminToken() }
-    });
-
-    socket.on('connect', () => setIsConnected(true));
-    socket.on('disconnect', () => setIsConnected(false));
-    
-    socket.on('metrics:update', (data) => {
-      queryClient.setQueryData(['dashboard-metrics'], data);
-    });
-
-    socket.on('user:activity', (activity) => {
-      queryClient.setQueryData(['recent-activity'], (old) => 
-        [activity, ...(old || []).slice(0, 49)] // Keep last 50 activities
-      );
-    });
-
-    return () => socket.disconnect();
-  }, [queryClient]);
-
-  return { isConnected };
-}
-```
-
-## Data Visualization
-
-### Chart Components with Recharts
-- Use consistent color schemes across all charts
-- Implement responsive chart sizing
-- Add proper tooltips and legends
-- Handle empty data states
-
-Example Chart Component:
-```typescript
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-
-interface RevenueChartProps {
-  data: RevenueData[];
-  isLoading?: boolean;
-}
-
-export function RevenueChart({ data, isLoading }: RevenueChartProps) {
-  if (isLoading) {
-    return <div className="h-64 bg-gray-100 animate-pulse rounded" />;
+    defaultVariants: {
+      variant: 'default',
+      size: 'md',
+    },
   }
+);
 
-  if (!data || data.length === 0) {
-    return (
-      <div className="h-64 flex items-center justify-center text-gray-500">
-        No revenue data available
-      </div>
-    );
-  }
+interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement>,
+  VariantProps<typeof buttonVariants> {}
 
+export function Button({ className, variant, size, ...props }: ButtonProps) {
   return (
-    <ResponsiveContainer width="100%" height={256}>
-      <LineChart data={data}>
-        <CartesianGrid strokeDasharray="3 3" />
-        <XAxis 
-          dataKey="date" 
-          tickFormatter={(date) => new Date(date).toLocaleDateString()}
-        />
-        <YAxis 
-          tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
-        />
-        <Tooltip 
-          labelFormatter={(date) => new Date(date).toLocaleDateString()}
-          formatter={(value) => [`$${value.toLocaleString()}`, 'Revenue']}
-        />
-        <Line 
-          type="monotone" 
-          dataKey="revenue" 
-          stroke="#3b82f6" 
-          strokeWidth={2}
-          dot={{ fill: '#3b82f6', strokeWidth: 2, r: 4 }}
-        />
-      </LineChart>
-    </ResponsiveContainer>
+    <button
+      className={cn(buttonVariants({ variant, size, className }))}
+      {...props}
+    />
   );
 }
 ```
 
-### Geographic Data Visualization
-- Use React Leaflet for world maps
-- Implement proper clustering for dense data
-- Add interactive tooltips and popups
-- Handle different zoom levels appropriately
-
+### Data Table Components
 ```typescript
-import { MapContainer, TileLayer, CircleMarker, Popup } from 'react-leaflet';
-
-interface GeographicMapProps {
-  userLocations: UserLocationData[];
-}
-
-export function GeographicMap({ userLocations }: GeographicMapProps) {
-  return (
-    <MapContainer 
-      center={[20, 0]} 
-      zoom={2} 
-      className="h-96 w-full rounded-lg"
-    >
-      <TileLayer
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        attribution='&copy; OpenStreetMap contributors'
-      />
-      {userLocations.map((location) => (
-        <CircleMarker
-          key={`${location.lat}-${location.lng}`}
-          center={[location.lat, location.lng]}
-          radius={Math.log(location.userCount) * 3}
-          fillColor="#3b82f6"
-          color="#1e40af"
-          weight={1}
-          fillOpacity={0.6}
-        >
-          <Popup>
-            <div>
-              <h3 className="font-semibold">{location.country}</h3>
-              <p>{location.userCount} users</p>
-              <p>${location.revenue.toLocaleString()} revenue</p>
-            </div>
-          </Popup>
-        </CircleMarker>
-      ))}
-    </MapContainer>
-  );
-}
-```
-
-## Data Tables and Large Datasets
-
-### Virtual Scrolling for Performance
-- Use React Window for large user lists
-- Implement proper row height calculations
-- Add search and filtering capabilities
-- Maintain selection state correctly
-
-```typescript
+// components/tables/DataTable.tsx
 import { FixedSizeList as List } from 'react-window';
 
-interface UserTableProps {
-  users: User[];
-  onUserSelect: (user: User) => void;
-  selectedUsers: Set<string>;
+interface DataTableProps<T> {
+  data: T[];
+  columns: Column<T>[];
+  onRowClick?: (item: T) => void;
+  isLoading?: boolean;
+  height?: number;
 }
 
-export function VirtualUserTable({ users, onUserSelect, selectedUsers }: UserTableProps) {
-  const Row = ({ index, style }: { index: number; style: React.CSSProperties }) => {
-    const user = users[index];
-    const isSelected = selectedUsers.has(user.id);
-
-    return (
-      <div style={style} className={`flex items-center p-2 border-b ${isSelected ? 'bg-blue-50' : ''}`}>
-        <input
-          type="checkbox"
-          checked={isSelected}
-          onChange={() => onUserSelect(user)}
-          className="mr-3"
-        />
-        <div className="flex-1 grid grid-cols-4 gap-4">
-          <span className="font-medium">{user.name}</span>
-          <span className="text-gray-600">{user.email}</span>
-          <span className="text-sm">{user.joinDate}</span>
-          <span className={`text-sm ${user.isActive ? 'text-green-600' : 'text-gray-400'}`}>
-            {user.isActive ? 'Active' : 'Inactive'}
-          </span>
+export function DataTable<T>({ 
+  data, 
+  columns, 
+  onRowClick, 
+  isLoading,
+  height = 400 
+}: DataTableProps<T>) {
+  const Row = ({ index, style }: { index: number; style: React.CSSProperties }) => (
+    <div style={style} className="flex items-center border-b">
+      {columns.map((column) => (
+        <div key={column.key} className={column.className}>
+          {column.render ? column.render(data[index]) : data[index][column.key]}
         </div>
-      </div>
-    );
-  };
+      ))}
+    </div>
+  );
+
+  if (isLoading) {
+    return <TableSkeleton />;
+  }
 
   return (
     <div className="border rounded-lg">
-      <div className="bg-gray-50 p-2 grid grid-cols-4 gap-4 font-semibold border-b">
-        <span>Name</span>
-        <span>Email</span>
-        <span>Join Date</span>
-        <span>Status</span>
-      </div>
       <List
-        height={400}
-        itemCount={users.length}
-        itemSize={60}
+        height={height}
+        itemCount={data.length}
+        itemSize={50}
         width="100%"
       >
         {Row}
@@ -338,258 +143,579 @@ export function VirtualUserTable({ users, onUserSelect, selectedUsers }: UserTab
 }
 ```
 
-## Admin-Specific UI Patterns
+## TanStack Query Integration
 
-### Bulk Actions
-- Implement multi-select with keyboard shortcuts
-- Provide bulk edit capabilities
-- Show progress for bulk operations
-- Allow operation cancellation
-
+### Query Configuration
 ```typescript
-export function useBulkActions<T extends { id: string }>(items: T[]) {
-  const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
-  const [isProcessing, setIsProcessing] = useState(false);
+// lib/queryClient.ts
+import { QueryClient } from '@tanstack/react-query';
 
-  const toggleSelection = (id: string) => {
-    setSelectedItems(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(id)) {
-        newSet.delete(id);
-      } else {
-        newSet.add(id);
-      }
-      return newSet;
-    });
-  };
+export const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      cacheTime: 10 * 60 * 1000, // 10 minutes
+      retry: (failureCount, error) => {
+        if (error.status === 401 || error.status === 403) {
+          return false; // Don't retry auth errors
+        }
+        return failureCount < 3;
+      },
+    },
+  },
+});
+```
 
-  const selectAll = () => {
-    setSelectedItems(new Set(items.map(item => item.id)));
-  };
+### Data Fetching Hooks
+```typescript
+// hooks/useUsers.ts
+export function useUsers(filters: UserFilters = {}) {
+  return useQuery({
+    queryKey: ['users', filters],
+    queryFn: () => adminApi.getUsers(filters),
+    keepPreviousData: true,
+  });
+}
 
-  const clearSelection = () => {
-    setSelectedItems(new Set());
-  };
-
-  const executeBulkAction = async (action: (ids: string[]) => Promise<void>) => {
-    if (selectedItems.size === 0) return;
-    
-    setIsProcessing(true);
-    try {
-      await action(Array.from(selectedItems));
-      clearSelection();
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  return {
-    selectedItems,
-    toggleSelection,
-    selectAll,
-    clearSelection,
-    executeBulkAction,
-    isProcessing,
-    selectedCount: selectedItems.size
-  };
+export function useUserMutation() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: adminApi.updateUser,
+    onSuccess: (updatedUser) => {
+      // Update the users list cache
+      queryClient.setQueryData(['users'], (old: User[]) =>
+        old?.map(user => user.id === updatedUser.id ? updatedUser : user)
+      );
+      
+      // Update individual user cache
+      queryClient.setQueryData(['user', updatedUser.id], updatedUser);
+      
+      toast.success('User updated successfully');
+    },
+    onError: (error) => {
+      toast.error(`Failed to update user: ${error.message}`);
+    },
+  });
 }
 ```
 
-### Confirmation Modals
-- Implement confirmation dialogs for destructive actions
-- Show impact of actions (e.g., "This will affect 25 users")
-- Provide undo functionality where possible
-
+### Real-time Data Updates
 ```typescript
-interface ConfirmationModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onConfirm: () => void;
+// hooks/useRealtimeMetrics.ts
+export function useRealtimeMetrics() {
+  const queryClient = useQueryClient();
+  
+  const { data: metrics } = useQuery({
+    queryKey: ['metrics'],
+    queryFn: adminApi.getMetrics,
+    refetchInterval: 30000, // Refetch every 30 seconds
+  });
+
+  const socket = useWebSocket(true);
+
+  useEffect(() => {
+    if (!socket) return;
+
+    socket.on('metricsUpdate', (newMetrics: Metrics) => {
+      queryClient.setQueryData(['metrics'], newMetrics);
+    });
+
+    return () => {
+      socket.off('metricsUpdate');
+    };
+  }, [socket, queryClient]);
+
+  return metrics;
+}
+```
+
+## Dashboard Components
+
+### KPI Cards
+```typescript
+// components/dashboard/KPICard.tsx
+interface KPICardProps {
   title: string;
-  message: string;
-  confirmText?: string;
-  cancelText?: string;
-  variant?: 'danger' | 'warning' | 'info';
+  value: string | number;
+  change: number;
+  changeType: 'increase' | 'decrease' | 'neutral';
+  icon: React.ComponentType<{ className?: string }>;
+  loading?: boolean;
 }
 
-export function ConfirmationModal({
-  isOpen,
-  onClose,
-  onConfirm,
-  title,
-  message,
-  confirmText = 'Confirm',
-  cancelText = 'Cancel',
-  variant = 'info'
-}: ConfirmationModalProps) {
-  const variantStyles = {
-    danger: 'bg-red-600 hover:bg-red-700',
-    warning: 'bg-yellow-600 hover:bg-yellow-700',
-    info: 'bg-blue-600 hover:bg-blue-700'
-  };
+export function KPICard({ title, value, change, changeType, icon: Icon, loading }: KPICardProps) {
+  const changeColor = {
+    increase: 'text-green-600',
+    decrease: 'text-red-600',
+    neutral: 'text-gray-600',
+  }[changeType];
+
+  if (loading) {
+    return <KPICardSkeleton />;
+  }
 
   return (
-    <Dialog open={isOpen} onClose={onClose} className="relative z-50">
-      <div className="fixed inset-0 bg-black/30" aria-hidden="true" />
-      <div className="fixed inset-0 flex items-center justify-center p-4">
-        <Dialog.Panel className="bg-white rounded-lg p-6 max-w-md mx-auto">
-          <Dialog.Title className="text-lg font-semibold mb-2">
-            {title}
-          </Dialog.Title>
-          <p className="text-gray-600 mb-6">{message}</p>
-          <div className="flex gap-3 justify-end">
-            <button
-              onClick={onClose}
-              className="px-4 py-2 text-gray-700 bg-gray-200 rounded hover:bg-gray-300"
-            >
-              {cancelText}
-            </button>
-            <button
-              onClick={onConfirm}
-              className={`px-4 py-2 text-white rounded ${variantStyles[variant]}`}
-            >
-              {confirmText}
-            </button>
-          </div>
-        </Dialog.Panel>
+    <div className="bg-white p-6 rounded-lg shadow border">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm font-medium text-gray-600">{title}</p>
+          <p className="text-2xl font-bold text-gray-900">{value}</p>
+        </div>
+        <Icon className="h-8 w-8 text-blue-600" />
       </div>
-    </Dialog>
+      <div className="mt-4 flex items-center">
+        <span className={`text-sm font-medium ${changeColor}`}>
+          {change > 0 ? '+' : ''}{change}%
+        </span>
+        <span className="text-sm text-gray-500 ml-1">vs last period</span>
+      </div>
+    </div>
   );
 }
 ```
 
-## Security and Access Control
-
-### Admin Authentication
-- Implement role-based access control
-- Use admin-specific JWT tokens
-- Add session timeout for security
-- Log all admin actions for auditing
-
+### Analytics Charts
 ```typescript
-export function useAdminAuth() {
-  const { data: adminUser, isLoading } = useQuery({
-    queryKey: ['admin-user'],
-    queryFn: () => adminApi.getCurrentAdmin(),
-    retry: false,
-    staleTime: 5 * 60 * 1000
+// components/charts/RevenueChart.tsx
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+
+interface RevenueChartProps {
+  data: RevenueData[];
+  height?: number;
+}
+
+export function RevenueChart({ data, height = 300 }: RevenueChartProps) {
+  return (
+    <div className="bg-white p-6 rounded-lg shadow border">
+      <h3 className="text-lg font-semibold mb-4">Revenue Trend</h3>
+      <ResponsiveContainer width="100%" height={height}>
+        <LineChart data={data}>
+          <CartesianGrid strokeDasharray="3 3" />
+          <XAxis 
+            dataKey="date" 
+            tickFormatter={(value) => format(new Date(value), 'MMM dd')}
+          />
+          <YAxis 
+            tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
+          />
+          <Tooltip 
+            labelFormatter={(value) => format(new Date(value), 'MMM dd, yyyy')}
+            formatter={(value: number) => [`$${value.toLocaleString()}`, 'Revenue']}
+          />
+          <Line 
+            type="monotone" 
+            dataKey="revenue" 
+            stroke="#3B82F6" 
+            strokeWidth={2}
+            dot={{ fill: '#3B82F6', strokeWidth: 2, r: 4 }}
+          />
+        </LineChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+```
+
+## User Management
+
+### User List Component
+```typescript
+// components/users/UserList.tsx
+export function UserList() {
+  const [filters, setFilters] = useState<UserFilters>({});
+  const { data: users, isLoading, error } = useUsers(filters);
+  const updateUserMutation = useUserMutation();
+
+  const columns: Column<User>[] = [
+    {
+      key: 'name',
+      label: 'Name',
+      className: 'flex-1 px-4',
+      render: (user) => (
+        <div className="flex items-center">
+          <Avatar src={user.avatar} name={user.name} />
+          <span className="ml-3 font-medium">{user.name}</span>
+        </div>
+      ),
+    },
+    {
+      key: 'email',
+      label: 'Email',
+      className: 'flex-1 px-4',
+    },
+    {
+      key: 'status',
+      label: 'Status',
+      className: 'w-32 px-4',
+      render: (user) => (
+        <Badge variant={user.status === 'active' ? 'success' : 'warning'}>
+          {user.status}
+        </Badge>
+      ),
+    },
+    {
+      key: 'actions',
+      label: 'Actions',
+      className: 'w-32 px-4',
+      render: (user) => (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm">
+              Actions
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent>
+            <DropdownMenuItem onClick={() => handleEditUser(user)}>
+              Edit
+            </DropdownMenuItem>
+            <DropdownMenuItem 
+              onClick={() => handleToggleStatus(user)}
+              className="text-red-600"
+            >
+              {user.status === 'active' ? 'Deactivate' : 'Activate'}
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      ),
+    },
+  ];
+
+  const handleToggleStatus = async (user: User) => {
+    const newStatus = user.status === 'active' ? 'inactive' : 'active';
+    await updateUserMutation.mutateAsync({
+      id: user.id,
+      status: newStatus,
+    });
+  };
+
+  if (error) {
+    return <ErrorMessage message="Failed to load users" />;
+  }
+
+  return (
+    <div className="space-y-4">
+      <UserFilters filters={filters} onFiltersChange={setFilters} />
+      <DataTable
+        data={users || []}
+        columns={columns}
+        isLoading={isLoading}
+        height={600}
+      />
+    </div>
+  );
+}
+```
+
+## System Monitoring
+
+### Real-time System Metrics
+```typescript
+// components/monitoring/SystemMetrics.tsx
+export function SystemMetrics() {
+  const metrics = useRealtimeMetrics();
+  
+  const metricCards = [
+    {
+      title: 'Active Users',
+      value: metrics?.activeUsers || 0,
+      change: metrics?.activeUsersChange || 0,
+      changeType: metrics?.activeUsersChange >= 0 ? 'increase' : 'decrease',
+      icon: Users,
+    },
+    {
+      title: 'Server CPU',
+      value: `${metrics?.serverCpu || 0}%`,
+      change: metrics?.serverCpuChange || 0,
+      changeType: metrics?.serverCpuChange <= 0 ? 'increase' : 'decrease',
+      icon: Cpu,
+    },
+    {
+      title: 'Memory Usage',
+      value: `${metrics?.memoryUsage || 0}%`,
+      change: metrics?.memoryUsageChange || 0,
+      changeType: metrics?.memoryUsageChange <= 0 ? 'increase' : 'decrease',
+      icon: HardDrive,
+    },
+  ];
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      {metricCards.map((metric) => (
+        <KPICard key={metric.title} {...metric} />
+      ))}
+    </div>
+  );
+}
+```
+
+### Activity Feed
+```typescript
+// components/monitoring/ActivityFeed.tsx
+export function ActivityFeed() {
+  const { data: activities, isLoading } = useQuery({
+    queryKey: ['activities'],
+    queryFn: adminApi.getActivities,
+    refetchInterval: 10000, // Refetch every 10 seconds
   });
 
-  const hasPermission = (permission: AdminPermission) => {
-    return adminUser?.permissions.includes(permission) || adminUser?.role === 'super_admin';
-  };
+  if (isLoading) {
+    return <ActivityFeedSkeleton />;
+  }
 
-  const requirePermission = (permission: AdminPermission) => {
-    if (!hasPermission(permission)) {
-      throw new Error(`Insufficient permissions: ${permission}`);
-    }
-  };
-
-  return {
-    adminUser,
-    isLoading,
-    isAuthenticated: !!adminUser,
-    hasPermission,
-    requirePermission
-  };
+  return (
+    <div className="bg-white rounded-lg shadow border">
+      <div className="p-6 border-b">
+        <h3 className="text-lg font-semibold">Recent Activity</h3>
+      </div>
+      <div className="divide-y">
+        {activities?.map((activity) => (
+          <div key={activity.id} className="p-4 hover:bg-gray-50">
+            <div className="flex items-start space-x-3">
+              <ActivityIcon type={activity.type} />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm text-gray-900">
+                  <span className="font-medium">{activity.user}</span>
+                  {' '}{activity.action}
+                </p>
+                <p className="text-xs text-gray-500">
+                  {formatDistanceToNow(new Date(activity.createdAt), { addSuffix: true })}
+                </p>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 }
+```
+
+## Data Visualization
+
+### Multi-Chart Dashboard
+```typescript
+// components/analytics/AnalyticsDashboard.tsx
+export function AnalyticsDashboard() {
+  const { data: analytics } = useQuery({
+    queryKey: ['analytics'],
+    queryFn: adminApi.getAnalytics,
+  });
+
+  if (!analytics) {
+    return <AnalyticsSkeleton />;
+  }
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <RevenueChart data={analytics.revenue} />
+      <UserGrowthChart data={analytics.userGrowth} />
+      <TradeVolumeChart data={analytics.tradeVolume} />
+      <GeographicDistribution data={analytics.geography} />
+    </div>
+  );
+}
+```
+
+### Geographic Data Visualization
+```typescript
+// components/charts/GeographicMap.tsx
+import { MapContainer, TileLayer, CircleMarker, Popup } from 'react-leaflet';
+
+interface GeographicMapProps {
+  data: GeographicData[];
+}
+
+export function GeographicMap({ data }: GeographicMapProps) {
+  return (
+    <div className="bg-white p-6 rounded-lg shadow border">
+      <h3 className="text-lg font-semibold mb-4">User Distribution</h3>
+      <div className="h-96 rounded-lg overflow-hidden">
+        <MapContainer
+          center={[20, 0]}
+          zoom={2}
+          style={{ height: '100%', width: '100%' }}
+        >
+          <TileLayer
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            attribution='&copy; OpenStreetMap contributors'
+          />
+          {data.map((location) => (
+            <CircleMarker
+              key={location.country}
+              center={[location.lat, location.lng]}
+              radius={Math.sqrt(location.users) * 2}
+              fillColor="#3B82F6"
+              color="#1E40AF"
+              weight={2}
+              fillOpacity={0.6}
+            >
+              <Popup>
+                <div>
+                  <strong>{location.country}</strong>
+                  <br />
+                  Users: {location.users.toLocaleString()}
+                </div>
+              </Popup>
+            </CircleMarker>
+          ))}
+        </MapContainer>
+      </div>
+    </div>
+  );
+}
+```
+
+## Security & Permissions
+
+### Admin Authentication
+```typescript
+// hooks/useAdminAuth.ts
+export function useAdminAuth() {
+  const [admin, setAdmin] = useState<Admin | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const token = localStorage.getItem('adminToken');
+    if (token) {
+      adminApi.verifyToken(token)
+        .then(setAdmin)
+        .catch(() => {
+          localStorage.removeItem('adminToken');
+          window.location.href = '/login';
+        })
+        .finally(() => setIsLoading(false));
+    } else {
+      setIsLoading(false);
+    }
+  }, []);
+
+  const login = async (credentials: LoginCredentials) => {
+    const response = await adminApi.login(credentials);
+    localStorage.setItem('adminToken', response.token);
+    setAdmin(response.admin);
+  };
+
+  const logout = () => {
+    localStorage.removeItem('adminToken');
+    setAdmin(null);
+    window.location.href = '/login';
+  };
+
+  return { admin, isLoading, login, logout };
+}
+```
+
+### Permission-Based Components
+```typescript
+// components/auth/PermissionGate.tsx
+interface PermissionGateProps {
+  permission: string;
+  children: React.ReactNode;
+  fallback?: React.ReactNode;
+}
+
+export function PermissionGate({ permission, children, fallback }: PermissionGateProps) {
+  const { admin } = useAdminAuth();
+  
+  const hasPermission = admin?.permissions.includes(permission) || admin?.role === 'super_admin';
+  
+  if (!hasPermission) {
+    return fallback || null;
+  }
+  
+  return <>{children}</>;
+}
+
+// Usage
+<PermissionGate permission="users.delete">
+  <Button variant="destructive" onClick={handleDeleteUser}>
+    Delete User
+  </Button>
+</PermissionGate>
 ```
 
 ## Performance Optimization
 
-### Lazy Loading and Code Splitting
-- Lazy load heavy admin components
-- Implement progressive loading for large datasets
-- Use Suspense boundaries appropriately
-
+### Large Dataset Handling
 ```typescript
-import dynamic from 'next/dynamic';
+// components/tables/VirtualizedTable.tsx
+import { FixedSizeList as List } from 'react-window';
 
-const GeographicAnalytics = dynamic(() => import('./GeographicAnalytics'), {
-  loading: () => <div className="h-96 bg-gray-100 animate-pulse rounded" />,
-  ssr: false
-});
+export function VirtualizedTable<T>({ data, columns, height = 600 }: VirtualizedTableProps<T>) {
+  const Row = memo(({ index, style }: { index: number; style: React.CSSProperties }) => {
+    const item = data[index];
+    
+    return (
+      <div style={style} className="flex items-center border-b hover:bg-gray-50">
+        {columns.map((column) => (
+          <div key={column.key} className={column.className}>
+            {column.render ? column.render(item) : item[column.key]}
+          </div>
+        ))}
+      </div>
+    );
+  });
 
-const UserManagement = dynamic(() => import('./UserManagement'), {
-  loading: () => <AdminPageSkeleton />,
-});
+  return (
+    <List
+      height={height}
+      itemCount={data.length}
+      itemSize={50}
+      width="100%"
+    >
+      {Row}
+    </List>
+  );
+}
 ```
 
-### Data Caching Strategy
-- Cache admin queries for 5-10 minutes
-- Use background refetch for real-time feel
-- Implement selective cache invalidation
-
+### Query Optimization
 ```typescript
-export const adminQueryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 5 * 60 * 1000, // 5 minutes
-      refetchOnWindowFocus: false,
-      refetchInterval: 30 * 1000, // Auto-refresh every 30 seconds
-      retry: (failureCount, error) => {
-        // Don't retry authentication errors
-        if (error.status === 401) return false;
-        return failureCount < 3;
-      }
-    }
-  }
-});
+// Implement infinite queries for large datasets
+export function useInfiniteUsers(filters: UserFilters) {
+  return useInfiniteQuery({
+    queryKey: ['users', 'infinite', filters],
+    queryFn: ({ pageParam = 0 }) => 
+      adminApi.getUsers({ ...filters, page: pageParam, limit: 50 }),
+    getNextPageParam: (lastPage) => 
+      lastPage.hasNext ? lastPage.page + 1 : undefined,
+  });
+}
 ```
 
-## Admin-Specific Best Practices
+## Common Pitfalls to Avoid
 
-### Data Export Functionality
-- Implement CSV/Excel export for all major datasets
-- Add filtering options before export
-- Show export progress for large datasets
-- Email large exports instead of direct download
+- Don't show sensitive user data unnecessarily in admin views
+- Don't skip admin action confirmations for destructive operations
+- Don't ignore audit logging for admin actions
+- Don't forget admin-specific error handling and fallbacks
+- Don't skip admin permission checks on sensitive operations
+- Don't load all data at once - use pagination and virtualization
+- Don't forget to handle WebSocket disconnections in real-time features
+- Don't ignore accessibility in admin interfaces
+- Don't skip loading states for better UX
+- Don't forget to validate admin inputs and sanitize data
 
-### Activity Logging
-- Log all admin actions with timestamps
-- Include user context and IP addresses
-- Implement audit trail viewing
-- Export audit logs for compliance
+## Emergency Procedures
 
-### Keyboard Shortcuts
-- Implement admin-specific keyboard shortcuts
-- Add shortcut help modal (? key)
-- Support bulk selection with Shift+Click
-- Enable quick navigation between sections
+### Admin Dashboard Issues
+1. Check admin authentication status
+2. Verify admin-specific API endpoints
+3. Check real-time data connections
+4. Monitor admin action logs
+5. Verify database query performance
 
-## Error Prevention
+### Performance Issues
+1. Monitor large dataset rendering performance
+2. Check TanStack Query cache efficiency
+3. Verify WebSocket connection stability
+4. Monitor chart rendering performance
+5. Check for memory leaks in long-running admin sessions
 
-### Don't:
-- Show sensitive user data unnecessarily
-- Skip confirmation for destructive actions
-- Ignore admin permission checks
-- Forget to log admin activities
-- Use infinite scroll without virtual scrolling
-- Skip loading states for admin queries
-
-### Do:
-- Implement proper admin role validation
-- Add confirmation modals for all destructive actions
-- Use virtual scrolling for large datasets
-- Cache admin data appropriately
-- Implement proper error boundaries
-- Show clear loading and empty states
-- Add comprehensive audit logging
-
-## Common Admin Operations
-
-```bash
-# Development
-npm run dev
-
-# Type checking
-npx tsc --noEmit
-
-# Testing admin workflows
-npm run test:admin
-
-# Building for production
-npm run build
-```
-
-When working on this admin dashboard, prioritize data integrity, security, and performance. Always implement proper permission checks and audit logging for all admin actions. Design for scalability with large datasets and real-time updates.
+### Security Issues
+1. Review admin permission assignments
+2. Check audit logs for suspicious activity
+3. Verify admin token expiration and rotation
+4. Monitor failed admin login attempts
+5. Ensure sensitive data is properly masked 
