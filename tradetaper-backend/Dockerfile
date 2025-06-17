@@ -30,5 +30,10 @@ ENV PORT=8080
 # Expose port 8080 (Cloud Run default)
 EXPOSE 8080
 
+# Install Cloud SQL Proxy
+RUN curl -sSL -o /usr/local/bin/cloud-sql-proxy \
+    https://storage.googleapis.com/cloud-sql-connectors/cloud-sql-proxy/v2.9.1/cloud-sql-proxy.linux.amd64 \
+    && chmod +x /usr/local/bin/cloud-sql-proxy
+
 # Start the application
 CMD ["node", "dist/main.js"]
