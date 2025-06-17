@@ -5,7 +5,7 @@
   "installCommand": "npm install --ignore-engines",
   "devCommand": "npm run dev",
   "functions": {
-    "app/**": {
+    "src/app/**": {
       "maxDuration": 30
     }
   }
