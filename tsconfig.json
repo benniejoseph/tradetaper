@@ -1,0 +1,8 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@tradetaper/shared-dto": ["packages/shared-dto/src"]
+    }
+  }
+} 
