@@ -1,0 +1,322 @@
+# TradeTaper Backend - Cursor Rules
+
+You are an expert NestJS backend developer working on TradeTaper, a professional trading journal platform.
+
+## Tech Stack
+- **Framework**: NestJS with TypeScript
+- **Database**: PostgreSQL with TypeORM
+- **Authentication**: JWT with bcrypt
+- **WebSockets**: Socket.IO for real-time features
+- **Cloud**: Google Cloud Storage, Cloud Run
+- **Payment**: Stripe integration
+- **Trading**: MetaAPI for MT5 integration
+
+## Architecture Patterns
+
+### Module Organization
+- Follow feature-based modules (auth, users, trades, strategies, etc.)
+- Each module should have: controller, service, entity, dto folders
+- Keep shared utilities in `common/` directory
+- Use `@Module()` decorator with proper imports/exports
+
+### Code Structure
+```
+src/
+├── modules/
+│   ├── auth/          # Authentication module
+│   ├── users/         # User management
+│   ├── trades/        # Trading data
+│   ├── strategies/    # Trading strategies
+│   └── files/         # File upload handling
+├── common/            # Shared utilities
+├── database/          # DB config and migrations
+└── types/            # Global type definitions
+```
+
+## Coding Standards
+
+### TypeScript
+- Use strict typing, never use `any`
+- Prefer interfaces over types for object shapes
+- Use enums for fixed sets of values
+- Always type function parameters and return values
+
+### NestJS Patterns
+- **Controllers**: Handle HTTP, delegate to services
+- **Services**: Business logic, inject repositories
+- **DTOs**: Use class-validator for validation
+- **Entities**: TypeORM with proper decorators
+- **Guards**: For authentication/authorization
+- **Interceptors**: For logging, caching, transformation
+
+### Database & TypeORM
+- Always create migrations for schema changes: `npm run migration:generate`
+- Use repository pattern, avoid query builders in services
+- Define relationships clearly with decorators
+- Use transactions for multi-step operations
+- Add appropriate indexes for performance
+
+Example Entity:
+```typescript
+@Entity('trades')
+export class Trade {
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
+
+  @Column({ type: 'enum', enum: TradeSide })
+  side: TradeSide;
+
+  @Column({ type: 'decimal', precision: 10, scale: 5 })
+  entryPrice: number;
+
+  @ManyToOne(() => User, user => user.trades)
+  user: User;
+
+  @CreateDateColumn()
+  createdAt: Date;
+}
+```
+
+### API Design
+- Use `/api/v1/` prefix for all endpoints
+- Follow RESTful conventions
+- Use appropriate HTTP status codes
+- Implement pagination for list endpoints
+- Validate all inputs with DTOs
+
+Example Controller:
+```typescript
+@Controller('api/v1/trades')
+@UseGuards(JwtAuthGuard)
+export class TradesController {
+  constructor(private tradesService: TradesService) {}
+
+  @Post()
+  async create(@Body() createTradeDto: CreateTradeDto, @Request() req) {
+    return this.tradesService.create(createTradeDto, req.user.id);
+  }
+
+  @Get()
+  async findAll(@Query() query: GetTradesQueryDto, @Request() req) {
+    return this.tradesService.findAll(query, req.user.id);
+  }
+}
+```
+
+### DTOs and Validation
+- Use class-validator decorators
+- Transform data with class-transformer
+- Separate Create/Update/Query DTOs
+- Include proper error messages
+
+Example DTO:
+```typescript
+export class CreateTradeDto {
+  @IsEnum(TradeSide)
+  side: TradeSide;
+
+  @IsString()
+  @IsNotEmpty()
+  symbol: string;
+
+  @IsNumber({ maxDecimalPlaces: 5 })
+  @IsPositive()
+  entryPrice: number;
+
+  @IsOptional()
+  @IsUUID()
+  strategyId?: string;
+}
+```
+
+## WebSocket Implementation
+
+### Gateway Structure
+- Use `@WebSocketGateway()` decorator
+- Implement `OnGatewayConnection`, `OnGatewayDisconnect`
+- Use rooms for targeted messaging
+- Handle authentication in WebSocket context
+
+Example Gateway:
+```typescript
+@WebSocketGateway({ cors: true, namespace: 'trades' })
+export class TradesGateway implements OnGatewayConnection, OnGatewayDisconnect {
+  @WebSocketServer() server: Server;
+
+  async handleConnection(client: Socket) {
+    const user = await this.authService.validateSocketUser(client);
+    if (user) {
+      client.join(`user:${user.id}`);
+    }
+  }
+
+  @SubscribeMessage('trade:update')
+  handleTradeUpdate(client: Socket, data: any) {
+    this.server.to(`user:${data.userId}`).emit('trade:updated', data);
+  }
+}
+```
+
+## Security Best Practices
+
+### Authentication
+- Use JWT with proper expiration
+- Hash passwords with bcrypt (salt rounds: 12)
+- Implement refresh token rotation
+- Validate JWT in guards
+
+### Input Validation
+- Validate all inputs with DTOs
+- Sanitize file uploads
+- Check file types and sizes
+- Implement rate limiting
+
+### Environment Variables
+- Never commit `.env` files
+- Validate required env vars on startup
+- Use different configs per environment
+- Secure sensitive data (API keys, secrets)
+
+## File Upload Handling
+
+### Google Cloud Storage
+- Validate file types (images only for trade screenshots)
+- Implement file size limits
+- Generate unique filenames
+- Return signed URLs for secure access
+
+Example Service:
+```typescript
+@Injectable()
+export class FilesService {
+  async uploadTradeImage(file: Express.Multer.File, userId: string): Promise<string> {
+    // Validate file type
+    if (!file.mimetype.startsWith('image/')) {
+      throw new BadRequestException('Only image files allowed');
+    }
+
+    // Upload to GCS
+    const filename = `${userId}/${Date.now()}-${file.originalname}`;
+    const fileUpload = this.bucket.file(filename);
+    
+    await fileUpload.save(file.buffer, {
+      metadata: { contentType: file.mimetype }
+    });
+
+    return `gs://${this.bucketName}/${filename}`;
+  }
+}
+```
+
+## Error Handling
+
+### Exception Filters
+- Use built-in HTTP exceptions
+- Create custom exceptions when needed
+- Log errors appropriately
+- Return user-friendly messages
+
+### Logging
+- Use NestJS Logger
+- Log at appropriate levels
+- Include correlation IDs
+- Don't log sensitive data
+
+## Testing
+
+### Unit Tests
+- Test services with mocked dependencies
+- Use Jest for testing framework
+- Mock external services (Stripe, MetaAPI)
+- Test error scenarios
+
+### Integration Tests
+- Test controllers with supertest
+- Use test database
+- Test authentication flows
+- Verify database operations
+
+## Performance
+
+### Database Optimization
+- Use appropriate indexes
+- Implement connection pooling
+- Optimize queries with eager/lazy loading
+- Use database transactions wisely
+
+### Caching
+- Cache frequent queries
+- Use Redis for session storage
+- Implement cache invalidation
+- Cache external API responses
+
+## Deployment
+
+### Docker
+- Use multi-stage builds
+- Minimize image size
+- Set proper NODE_ENV
+- Set all environment variables
+- Handle graceful shutdown
+
+### Health Checks
+- Implement `/health` endpoint
+- Check database connectivity
+- Monitor external services
+- Return proper status codes
+
+## Common Commands
+
+```bash
+# Development
+npm run start:dev
+
+# Database
+npm run migration:generate -- src/migrations/MigrationName
+npm run migration:run
+npm run migration:revert
+
+# Testing
+npm run test
+npm run test:e2e
+
+# Building
+npm run build
+npm run start:prod
+```
+
+## Error Prevention
+
+### Don't:
+- Expose internal database IDs in APIs
+- Skip input validation on any endpoint
+- Forget to handle async errors
+- Hardcode configuration values
+- Ignore database connection pooling
+- Skip authentication on protected routes
+- Return sensitive data in error messages
+
+### Do:
+- Use UUIDs for public identifiers
+- Validate all inputs with DTOs
+- Implement proper error handling
+- Use all environment variables for config
+- Monitor database connections
+- Implement rate limiting
+- Log security events
+
+## Trading-Specific Features
+
+### MetaAPI Integration
+- Handle MT5 connection states
+- Sync trades automatically
+- Validate trading data
+- Handle API rate limits
+
+### Real-time Updates
+- Push trade updates via WebSocket
+- Notify on strategy performance changes
+- Update dashboard metrics live
+- Handle connection drops gracefully
+
+When working on this backend, prioritize security, data integrity, and real-time performance for trading operations. 
