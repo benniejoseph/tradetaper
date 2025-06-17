@@ -1,322 +1,332 @@
-# TradeTaper Backend - Cursor Rules
+# TradeTaper Backend Cursor Rules
 
-You are an expert NestJS backend developer working on TradeTaper, a professional trading journal platform.
+## Project Overview
+NestJS API server with TypeORM, PostgreSQL, WebSockets, Google Cloud Storage, Stripe integration, and MetaTrader 5 connectivity.
 
-## Tech Stack
-- **Framework**: NestJS with TypeScript
-- **Database**: PostgreSQL with TypeORM
-- **Authentication**: JWT with bcrypt
-- **WebSockets**: Socket.IO for real-time features
-- **Cloud**: Google Cloud Storage, Cloud Run
-- **Payment**: Stripe integration
-- **Trading**: MetaAPI for MT5 integration
+## Technology Stack
+- **Framework**: NestJS 11.x with TypeScript 5.7
+- **Database**: PostgreSQL with TypeORM 0.3.24
+- **Authentication**: JWT with Passport.js
+- **File Storage**: Google Cloud Storage
+- **WebSockets**: Socket.IO 4.8
+- **Payment Processing**: Stripe 18.x
+- **Trading Integration**: MetaAPI Cloud SDK
+- **Validation**: class-validator & class-transformer
+- **Testing**: Jest with Supertest
 
 ## Architecture Patterns
 
 ### Module Organization
-- Follow feature-based modules (auth, users, trades, strategies, etc.)
-- Each module should have: controller, service, entity, dto folders
-- Keep shared utilities in `common/` directory
-- Use `@Module()` decorator with proper imports/exports
-
-### Code Structure
 ```
 src/
-├── modules/
-│   ├── auth/          # Authentication module
-│   ├── users/         # User management
-│   ├── trades/        # Trading data
-│   ├── strategies/    # Trading strategies
-│   └── files/         # File upload handling
-├── common/            # Shared utilities
-├── database/          # DB config and migrations
-└── types/            # Global type definitions
+├── modules/           # Feature modules (auth, users, trades, strategies)
+├── common/           # Shared utilities, guards, interceptors
+├── database/         # Database configuration and migrations
+├── config/          # Configuration modules
+├── types/           # Global type definitions
+└── seed/            # Database seeding
 ```
 
-## Coding Standards
+### Core Principles
+- **Feature-based modules**: Each business domain gets its own module
+- **Dependency injection**: Use NestJS DI container for all services
+- **DTOs for validation**: All inputs/outputs must use DTOs with class-validator
+- **Repository pattern**: Use TypeORM repositories, avoid query builders in services
+- **Transaction management**: Use transactions for multi-step operations
+- **Proper error handling**: Custom exceptions with appropriate HTTP status codes
 
-### TypeScript
-- Use strict typing, never use `any`
-- Prefer interfaces over types for object shapes
-- Use enums for fixed sets of values
-- Always type function parameters and return values
+## Code Standards
 
-### NestJS Patterns
-- **Controllers**: Handle HTTP, delegate to services
-- **Services**: Business logic, inject repositories
-- **DTOs**: Use class-validator for validation
-- **Entities**: TypeORM with proper decorators
-- **Guards**: For authentication/authorization
-- **Interceptors**: For logging, caching, transformation
+### Controllers
+- Keep thin - delegate all business logic to services
+- Use DTOs for request/response validation
+- Implement proper HTTP status codes
+- Add Swagger documentation decorators
+- Use guards for authentication/authorization
 
-### Database & TypeORM
-- Always create migrations for schema changes: `npm run migration:generate`
-- Use repository pattern, avoid query builders in services
-- Define relationships clearly with decorators
-- Use transactions for multi-step operations
-- Add appropriate indexes for performance
+```typescript
+@Controller('api/v1/trades')
+@UseGuards(JwtAuthGuard)
+export class TradesController {
+  @Post()
+  @UsePipes(ValidationPipe)
+  async create(@Body() createTradeDto: CreateTradeDto) {
+    return this.tradesService.create(createTradeDto);
+  }
+}
+```
 
-Example Entity:
+### Services
+- Contain all business logic
+- Inject repositories and other services
+- Handle transactions properly
+- Throw meaningful exceptions
+- Return consistent response formats
+
+```typescript
+@Injectable()
+export class TradesService {
+  constructor(
+    @InjectRepository(Trade)
+    private tradesRepository: Repository<Trade>,
+  ) {}
+
+  async create(createTradeDto: CreateTradeDto): Promise<Trade> {
+    // Business logic here
+  }
+}
+```
+
+### DTOs
+- Use class-validator decorators
+- Include transformation rules
+- Separate create/update DTOs
+- Add Swagger API property decorators
+
+```typescript
+export class CreateTradeDto {
+  @IsString()
+  @IsNotEmpty()
+  @ApiProperty()
+  symbol: string;
+
+  @IsNumber()
+  @Min(0)
+  @Transform(({ value }) => parseFloat(value))
+  @ApiProperty()
+  entryPrice: number;
+}
+```
+
+### Entities
+- Use TypeORM decorators properly
+- Define relationships clearly
+- Add indexes for performance
+- Include audit fields (createdAt, updatedAt)
+
 ```typescript
 @Entity('trades')
 export class Trade {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ type: 'enum', enum: TradeSide })
-  side: TradeSide;
-
-  @Column({ type: 'decimal', precision: 10, scale: 5 })
-  entryPrice: number;
-
-  @ManyToOne(() => User, user => user.trades)
-  user: User;
+  @Column({ type: 'varchar', length: 20 })
+  @Index()
+  symbol: string;
 
   @CreateDateColumn()
   createdAt: Date;
+
+  @UpdateDateColumn()
+  updatedAt: Date;
 }
 ```
 
-### API Design
-- Use `/api/v1/` prefix for all endpoints
-- Follow RESTful conventions
-- Use appropriate HTTP status codes
+## Database & Migrations
+
+### Migration Guidelines
+- Generate migrations for all schema changes: `npm run migration:generate`
+- Review generated migrations before running
+- Use descriptive migration names
+- Test migrations in development first
+- Never edit existing migrations in production
+
+### Query Optimization
+- Use proper indexes on frequently queried columns
 - Implement pagination for list endpoints
-- Validate all inputs with DTOs
+- Use select queries to limit returned fields
+- Avoid N+1 queries with proper relations
 
-Example Controller:
+## API Design
+
+### REST Conventions
+- Use `/api/v1/` prefix for all endpoints
+- Follow RESTful resource naming
+- Implement proper HTTP methods (GET, POST, PUT, DELETE)
+- Use appropriate status codes (200, 201, 400, 401, 403, 404, 500)
+- Implement pagination with `page` and `limit` parameters
+
+### Request/Response Format
 ```typescript
-@Controller('api/v1/trades')
-@UseGuards(JwtAuthGuard)
-export class TradesController {
-  constructor(private tradesService: TradesService) {}
-
-  @Post()
-  async create(@Body() createTradeDto: CreateTradeDto, @Request() req) {
-    return this.tradesService.create(createTradeDto, req.user.id);
-  }
-
-  @Get()
-  async findAll(@Query() query: GetTradesQueryDto, @Request() req) {
-    return this.tradesService.findAll(query, req.user.id);
+// List Response
+{
+  data: T[],
+  pagination: {
+    page: number,
+    limit: number,
+    total: number,
+    totalPages: number
   }
 }
-```
 
-### DTOs and Validation
-- Use class-validator decorators
-- Transform data with class-transformer
-- Separate Create/Update/Query DTOs
-- Include proper error messages
-
-Example DTO:
-```typescript
-export class CreateTradeDto {
-  @IsEnum(TradeSide)
-  side: TradeSide;
-
-  @IsString()
-  @IsNotEmpty()
-  symbol: string;
-
-  @IsNumber({ maxDecimalPlaces: 5 })
-  @IsPositive()
-  entryPrice: number;
-
-  @IsOptional()
-  @IsUUID()
-  strategyId?: string;
-}
-```
-
-## WebSocket Implementation
-
-### Gateway Structure
-- Use `@WebSocketGateway()` decorator
-- Implement `OnGatewayConnection`, `OnGatewayDisconnect`
-- Use rooms for targeted messaging
-- Handle authentication in WebSocket context
-
-Example Gateway:
-```typescript
-@WebSocketGateway({ cors: true, namespace: 'trades' })
-export class TradesGateway implements OnGatewayConnection, OnGatewayDisconnect {
-  @WebSocketServer() server: Server;
-
-  async handleConnection(client: Socket) {
-    const user = await this.authService.validateSocketUser(client);
-    if (user) {
-      client.join(`user:${user.id}`);
-    }
-  }
-
-  @SubscribeMessage('trade:update')
-  handleTradeUpdate(client: Socket, data: any) {
-    this.server.to(`user:${data.userId}`).emit('trade:updated', data);
-  }
+// Error Response
+{
+  statusCode: number,
+  message: string | string[],
+  error: string,
+  timestamp: string,
+  path: string
 }
 ```
 
 ## Security Best Practices
 
-### Authentication
-- Use JWT with proper expiration
-- Hash passwords with bcrypt (salt rounds: 12)
+### Authentication & Authorization
+- Use JWT tokens with proper expiration
 - Implement refresh token rotation
-- Validate JWT in guards
+- Hash passwords with bcrypt (cost factor 12)
+- Validate user permissions for each endpoint
+- Rate limit authentication endpoints
 
 ### Input Validation
-- Validate all inputs with DTOs
-- Sanitize file uploads
-- Check file types and sizes
-- Implement rate limiting
+- Validate all inputs with class-validator
+- Sanitize string inputs to prevent XSS
+- Validate file uploads (type, size, content)
+- Use parameterized queries (TypeORM handles this)
 
 ### Environment Variables
 - Never commit `.env` files
-- Validate required env vars on startup
-- Use different configs per environment
-- Secure sensitive data (API keys, secrets)
+- Validate required environment variables on startup
+- Use different configs for dev/staging/production
+- Encrypt sensitive data in database
 
-## File Upload Handling
+## WebSocket Implementation
 
-### Google Cloud Storage
-- Validate file types (images only for trade screenshots)
-- Implement file size limits
-- Generate unique filenames
-- Return signed URLs for secure access
-
-Example Service:
+### Gateway Structure
 ```typescript
-@Injectable()
-export class FilesService {
-  async uploadTradeImage(file: Express.Multer.File, userId: string): Promise<string> {
-    // Validate file type
-    if (!file.mimetype.startsWith('image/')) {
-      throw new BadRequestException('Only image files allowed');
-    }
+@WebSocketGateway({
+  cors: { origin: process.env.FRONTEND_URL },
+  namespace: '/trades'
+})
+export class TradesGateway {
+  @WebSocketServer()
+  server: Server;
 
-    // Upload to GCS
-    const filename = `${userId}/${Date.now()}-${file.originalname}`;
-    const fileUpload = this.bucket.file(filename);
-    
-    await fileUpload.save(file.buffer, {
-      metadata: { contentType: file.mimetype }
-    });
-
-    return `gs://${this.bucketName}/${filename}`;
+  @SubscribeMessage('joinRoom')
+  handleJoinRoom(client: Socket, room: string) {
+    client.join(room);
   }
 }
 ```
 
-## Error Handling
+### Real-time Features
+- Authenticate WebSocket connections
+- Use rooms for targeted messaging
+- Handle connection/disconnection gracefully
+- Emit trade updates to relevant users only
 
-### Exception Filters
-- Use built-in HTTP exceptions
-- Create custom exceptions when needed
-- Log errors appropriately
-- Return user-friendly messages
+## File Upload & GCS Integration
 
-### Logging
-- Use NestJS Logger
-- Log at appropriate levels
-- Include correlation IDs
-- Don't log sensitive data
+### File Handling
+- Validate file types and sizes
+- Use multer for file uploads
+- Store files in Google Cloud Storage
+- Generate secure file URLs
+- Clean up temporary files
+
+```typescript
+@Post('upload')
+@UseInterceptors(FileInterceptor('file'))
+async uploadFile(@UploadedFile() file: Express.Multer.File) {
+  const fileUrl = await this.gcsService.uploadFile(file);
+  return { url: fileUrl };
+}
+```
+
+## Trading & MetaAPI Integration
+
+### MetaTrader 5 Connection
+- Handle MetaAPI authentication
+- Implement proper error handling for trading operations
+- Cache trading account data appropriately
+- Validate trading symbols and parameters
+
+### Data Synchronization
+- Sync MT5 trades with local database
+- Handle timezone conversions properly
+- Implement retry logic for failed API calls
+- Log all trading operations for audit
 
 ## Testing
 
 ### Unit Tests
-- Test services with mocked dependencies
-- Use Jest for testing framework
-- Mock external services (Stripe, MetaAPI)
-- Test error scenarios
+- Test all service methods
+- Mock external dependencies (database, APIs)
+- Test edge cases and error conditions
+- Aim for >80% code coverage
 
 ### Integration Tests
-- Test controllers with supertest
-- Use test database
+- Test complete API endpoints
+- Use test database for integration tests
 - Test authentication flows
-- Verify database operations
+- Test WebSocket connections
 
-## Performance
+## Performance Optimization
 
-### Database Optimization
-- Use appropriate indexes
-- Implement connection pooling
-- Optimize queries with eager/lazy loading
-- Use database transactions wisely
+### Database
+- Use connection pooling (configured in TypeORM)
+- Implement query optimization
+- Add appropriate indexes
+- Use caching for frequently accessed data
 
-### Caching
-- Cache frequent queries
-- Use Redis for session storage
-- Implement cache invalidation
-- Cache external API responses
+### API Response Times
+- Monitor endpoint performance
+- Implement response caching where appropriate
+- Use compression middleware
+- Optimize heavy computations
 
-## Deployment
+## Deployment (Google Cloud Run)
 
-### Docker
-- Use multi-stage builds
-- Minimize image size
-- Set proper NODE_ENV
-- Set all environment variables
-- Handle graceful shutdown
+### Docker Configuration
+- Use multi-stage builds for optimization
+- Configure proper health checks on `/health`
+- Set appropriate memory and CPU limits
+- Use Cloud SQL proxy for database connections
 
-### Health Checks
-- Implement `/health` endpoint
-- Check database connectivity
-- Monitor external services
-- Return proper status codes
+### Environment Configuration
+- Port 8080 (required for Cloud Run)
+- Configure DATABASE_URL for Cloud SQL
+- Set up Google Cloud Storage credentials
+- Configure CORS for frontend domains
 
-## Common Commands
+### Monitoring & Logging
+- Use structured logging with appropriate levels
+- Monitor application metrics
+- Set up error tracking (Sentry recommended)
+- Monitor database performance
 
-```bash
-# Development
-npm run start:dev
+## Common Pitfalls to Avoid
 
-# Database
-npm run migration:generate -- src/migrations/MigrationName
-npm run migration:run
-npm run migration:revert
+- Don't expose internal database IDs in APIs
+- Don't forget to validate file uploads properly
+- Don't skip transaction rollbacks on errors
+- Don't hardcode configuration values
+- Don't ignore database connection pooling
+- Don't forget to handle WebSocket disconnections
+- Don't expose sensitive data in error messages
+- Don't skip input sanitization
+- Don't use `any` type in TypeScript
+- Don't forget to add proper indexes for queries
 
-# Testing
-npm run test
-npm run test:e2e
+## Emergency Procedures
 
-# Building
-npm run build
-npm run start:prod
-```
+### Application Issues
+1. Check Cloud Run logs: `gcloud logging read`
+2. Verify database connectivity
+3. Check MetaAPI service status
+4. Monitor memory and CPU usage
+5. Rollback deployment if necessary
 
-## Error Prevention
+### Database Issues
+1. Check Cloud SQL instance status
+2. Verify connection pool settings
+3. Check for slow queries
+4. Monitor disk space usage
+5. Review recent migrations
 
-### Don't:
-- Expose internal database IDs in APIs
-- Skip input validation on any endpoint
-- Forget to handle async errors
-- Hardcode configuration values
-- Ignore database connection pooling
-- Skip authentication on protected routes
-- Return sensitive data in error messages
-
-### Do:
-- Use UUIDs for public identifiers
-- Validate all inputs with DTOs
-- Implement proper error handling
-- Use all environment variables for config
-- Monitor database connections
-- Implement rate limiting
-- Log security events
-
-## Trading-Specific Features
-
-### MetaAPI Integration
-- Handle MT5 connection states
-- Sync trades automatically
-- Validate trading data
-- Handle API rate limits
-
-### Real-time Updates
-- Push trade updates via WebSocket
-- Notify on strategy performance changes
-- Update dashboard metrics live
-- Handle connection drops gracefully
-
-When working on this backend, prioritize security, data integrity, and real-time performance for trading operations. 
+### External Service Issues
+1. Check Stripe dashboard for payment issues
+2. Verify MetaAPI connectivity
+3. Check Google Cloud Storage access
+4. Monitor third-party service status pages
+5. Implement fallback mechanisms where possible 
