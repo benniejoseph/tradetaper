@@ -1,6 +1,6 @@
 {
   "framework": "nextjs",
-  "buildCommand": "npm run build",
+  "buildCommand": "./build-isolated.sh",
   "outputDirectory": ".next",
   "installCommand": "./install-isolated.sh",
   "devCommand": "npm run dev",
