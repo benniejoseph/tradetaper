@@ -1,0 +1,9 @@
+{
+  "private": true,
+  "workspaces": [
+    "tradetaper-backend",
+    "tradetaper-frontend",
+    "tradetaper-admin",
+    "packages/*"
+  ]
+} 
