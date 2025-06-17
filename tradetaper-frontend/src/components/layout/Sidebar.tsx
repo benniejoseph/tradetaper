@@ -79,10 +79,10 @@ export default function Sidebar({ isOpen, toggleSidebar, isMobile, onExpandChang
 
       {/* Sidebar */}
       <aside 
-        className={`${isExpanded ? 'w-72' : 'w-20'} flex flex-col min-h-screen 
+        className={`${isExpanded ? 'w-72' : 'w-20'} flex flex-col h-screen 
                         bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl
                         border-r border-gray-200/50 dark:border-gray-700/50
-                        fixed top-0 left-0 z-50 h-screen 
+                        fixed top-0 left-0 z-50 
                         transition-all duration-500 ease-out md:translate-x-0
                         shadow-2xl dark:shadow-2xl
                         ${isOpen ? 'translate-x-0' : '-translate-x-full'}
@@ -267,10 +267,14 @@ export default function Sidebar({ isOpen, toggleSidebar, isMobile, onExpandChang
         {/* Footer Section */}
         <div className="p-4 border-t border-gray-200/50 dark:border-gray-700/50">
           <div className={`flex items-center ${isExpanded ? 'justify-between' : 'justify-center'}`}>
+            {/* User info - show account icon only on mobile */}
             <div className={`flex items-center ${isExpanded ? 'space-x-3' : 'justify-center'}`}>
-              <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-green-500 flex items-center justify-center text-white">
-                <FaUserCircle className="w-5 h-5" />
-              </div>
+              {/* Account icon - only show on mobile */}
+              {isMobile && (
+                <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-green-500 flex items-center justify-center text-white">
+                  <FaUserCircle className="w-5 h-5" />
+                </div>
+              )}
               <div className={`transition-all duration-500 overflow-hidden ${isExpanded ? 'opacity-100 w-auto' : 'opacity-0 w-0'}`}>
                 <p className="text-sm font-medium text-gray-900 dark:text-white whitespace-nowrap">
                   {user?.firstName || user?.email?.split('@')[0] || 'User'}

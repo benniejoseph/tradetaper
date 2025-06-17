@@ -68,10 +68,10 @@ function ContentHeader({ toggleSidebar, isMobile, isSidebarExpanded }: ContentHe
 
   return (
     <header className="sticky top-0 z-30 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-b border-gray-200/50 dark:border-gray-700/50">
-      <div className="px-4 sm:px-9 py-balance">
-        <div className="flex items-center justify-between">
+      <div className="px-4 sm:px-6 py-4">
+        <div className="flex items-center justify-between gap-2 max-w-full overflow-hidden">
           {/* Left side - Menu button, title, and account selector */}
-          <div className={`flex items-center ${isMobile || !isSidebarExpanded ? 'space-x-4' : 'space-x-6'}`}>
+          <div className={`flex items-center flex-shrink-0 ${isMobile ? 'space-x-2' : !isSidebarExpanded ? 'space-x-4' : 'space-x-6'} min-w-0`}>
             {/* Mobile hamburger menu - only show on mobile/tablet */}
             {isMobile && (
               <button 
@@ -81,90 +81,90 @@ function ContentHeader({ toggleSidebar, isMobile, isSidebarExpanded }: ContentHe
                 <FaBars className="w-5 h-5" />
               </button>
             )}
-            <h1 className={`font-semibold text-gray-900 dark:text-white ${isMobile ? 'text-lg' : isSidebarExpanded ? 'text-2xl' : 'text-xl'}`}>
+            <h1 className={`font-semibold text-gray-900 dark:text-white truncate ${isMobile ? 'text-base' : isSidebarExpanded ? 'text-2xl' : 'text-xl'}`}>
               {getPageTitle()}
             </h1>
             
             {/* Account Selector - Show on all pages */}
-            <div className="relative">
+            <div className="relative flex-shrink-0">
               <select
                 value={selectedAccount?.id || ''}
                 onChange={(e) => handleAccountChange(e.target.value || null)}
-                className={`appearance-none bg-white/80 dark:bg-gray-800/80 border border-gray-200/50 dark:border-gray-700/50 rounded-lg px-3 py-2 pr-8 text-sm font-medium text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 transition-all duration-200 ${isMobile ? 'w-32' : isSidebarExpanded ? 'w-48' : 'w-40'}`}
+                className={`appearance-none bg-white/80 dark:bg-gray-800/80 border border-gray-200/50 dark:border-gray-700/50 rounded-lg px-2 py-2 pr-6 text-xs font-medium text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 transition-all duration-200 ${isMobile ? 'w-20 text-xs' : isSidebarExpanded ? 'w-44 text-sm' : 'w-36 text-sm'}`}
               >
-                <option value="">All Accounts</option>
+                <option value="">{isMobile ? 'All' : 'All Accounts'}</option>
                 {allAccounts.map(account => (
                   <option key={account.id} value={account.id}>
-                    {isMobile ? `${account.name}` : `${account.name} (${account.type}) - $${Number(account.balance || 0).toFixed(2)}`}
+                    {isMobile ? account.name.substring(0, 8) + (account.name.length > 8 ? '...' : '') : `${account.name} (${account.type}) - $${Number(account.balance || 0).toFixed(2)}`}
                   </option>
                 ))}
               </select>
-              <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+              <ChevronDown className="absolute right-1 top-1/2 transform -translate-y-1/2 w-3 h-3 text-gray-400 pointer-events-none" />
             </div>
 
             {/* Currency Selector */}
-            <div className="relative">
+            <div className="relative flex-shrink-0">
               <select
                 value={selectedCurrency}
                 onChange={(e) => setSelectedCurrency(e.target.value as CurrencyCode)}
                 disabled={isLoading}
-                className={`appearance-none bg-white/80 dark:bg-gray-800/80 border border-gray-200/50 dark:border-gray-700/50 rounded-lg px-3 py-2 pr-8 text-sm font-medium text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 transition-all duration-200 disabled:opacity-50 ${isMobile ? 'w-20' : 'w-28'}`}
+                className={`appearance-none bg-white/80 dark:bg-gray-800/80 border border-gray-200/50 dark:border-gray-700/50 rounded-lg px-2 py-2 pr-6 text-xs font-medium text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 transition-all duration-200 disabled:opacity-50 ${isMobile ? 'w-16' : 'w-24'}`}
                 title="Select display currency"
               >
                 {Object.entries(CURRENCIES).map(([code, currency]) => (
                   <option key={code} value={code}>
-                    {isMobile ? code : `${currency.flag} ${code}`}
+                    {code}
                   </option>
                 ))}
               </select>
-              <div className="absolute right-2 top-1/2 transform -translate-y-1/2 flex items-center">
+              <div className="absolute right-1 top-1/2 transform -translate-y-1/2 flex items-center">
                 {isLoading ? (
-                  <div className="w-4 h-4 border-2 border-gray-300 border-t-blue-500 rounded-full animate-spin"></div>
+                  <div className="w-3 h-3 border-2 border-gray-300 border-t-blue-500 rounded-full animate-spin"></div>
                 ) : (
-                  <ChevronDown className="w-4 h-4 text-gray-400 pointer-events-none" />
+                  <ChevronDown className="w-3 h-3 text-gray-400 pointer-events-none" />
                 )}
               </div>
             </div>
               </div>
               
           {/* Right side - Search, notifications, and theme toggle */}
-          <div className={`flex items-center ${isMobile ? 'space-x-2' : 'space-x-3'}`}>
+          <div className={`flex items-center flex-shrink-0 ${isMobile ? 'space-x-1' : 'space-x-3'}`}>
             {/* Search - Only show on desktop */}
             {!isMobile && (
               <div className="relative hidden sm:block">
                 <input
                   type="text"
                   placeholder="Search..."
-                  className={`px-4 py-2 pl-10 text-sm bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 transition-all duration-200 ${isSidebarExpanded ? 'w-72' : 'w-64'}`}
+                  className={`px-4 py-2 pl-10 text-sm bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 transition-all duration-200 ${isSidebarExpanded ? 'w-64' : 'w-56'}`}
                 />
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
               </div>
             )}
 
             {/* Notifications */}
-              <button 
-              className="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-200 relative"
-                aria-label="Notifications">
-              <Bell className="w-5 h-5" />
-              <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-              </button>
+            <button 
+              className={`${isMobile ? 'p-1.5' : 'p-2'} rounded-lg text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-200 relative flex-shrink-0`}
+              aria-label="Notifications">
+              <Bell className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'}`} />
+              <span className="absolute top-0.5 right-0.5 w-2 h-2 bg-red-500 rounded-full"></span>
+            </button>
               
             {/* Theme Toggle */}
-            <div className="p-2 rounded-lg bg-gray-100 dark:bg-gray-800">
+            <div className={`${isMobile ? 'p-1.5' : 'p-2'} rounded-lg bg-gray-100 dark:bg-gray-800 flex-shrink-0`}>
               <ThemeToggleButton />
             </div>
 
             {/* User Avatar - Only show on desktop */}
             {!isMobile && user && (
-              <div className="hidden sm:flex items-center space-x-3">
+              <div className="hidden sm:flex items-center space-x-3 flex-shrink-0">
                 <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-green-500 flex items-center justify-center text-white font-semibold text-sm">
                   {(user.firstName?.[0] || user.email?.[0] || 'U').toUpperCase()}
                 </div>
-                <div className="hidden md:block">
-                  <p className="text-sm font-medium text-gray-900 dark:text-white">
+                <div className="hidden lg:block min-w-0">
+                  <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
                     {user.firstName || user.email?.split('@')[0]}
                   </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
                     {user.email}
                   </p>
                 </div>
