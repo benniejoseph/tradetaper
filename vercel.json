@@ -1,0 +1,21 @@
+{
+  "version": 2,
+  "name": "tradetaper-frontend",
+  "builds": [
+    {
+      "src": "tradetaper-frontend/package.json",
+      "use": "@vercel/next"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "tradetaper-frontend/$1"
+    }
+  ],
+  "functions": {
+    "tradetaper-frontend/src/app/**": {
+      "maxDuration": 30
+    }
+  }
+} 
