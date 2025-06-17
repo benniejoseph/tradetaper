@@ -110,4 +110,7 @@ delete-*.js
 run-*.js
 
 # Claude context files
-claudeContext.txt 
+claudeContext.txt
+
+# Ignore backend Cloud SQL proxy binary
+tradetaper-backend/cloud-sql-proxy 
