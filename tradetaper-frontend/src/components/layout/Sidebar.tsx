@@ -306,18 +306,20 @@ export default function Sidebar({ isOpen, toggleSidebar, isMobile, onExpandChang
             </div>
           </div>
           
-          {/* Theme Toggle - positioned at bottom for collapsed state */}
-          {/* {!isExpanded && (
-            <div className="absolute bottom-16 left-1/2 transform -translate-x-1/2">
+          {/* Theme Toggle - Show on mobile in sidebar */}
+          {isMobile && (
+            <div className="mt-2 flex justify-center">
               <div className="relative group/tooltip">
-                <ThemeToggleButton />
+                <div className="p-2 rounded-lg bg-gray-100 dark:bg-gray-800">
+                  <ThemeToggleButton />
+                </div>
                 <div className="absolute left-12 top-1/2 transform -translate-y-1/2 bg-gray-900 dark:bg-gray-700 text-white text-sm px-3 py-2 rounded-lg shadow-lg opacity-0 group-hover/tooltip:opacity-100 transition-opacity duration-200 pointer-events-none z-50 whitespace-nowrap">
                   Toggle Theme
                   <div className="absolute left-0 top-1/2 transform -translate-y-1/2 -translate-x-1 w-2 h-2 bg-gray-900 dark:bg-gray-700 rotate-45"></div>
                 </div>
               </div>
             </div>
-          )} */}
+          )}
         </div>
       </aside>
     </>
