@@ -1,14 +1,21 @@
 #!/usr/bin/env bash
-# Simple smoke tests for TradeTaper backend running at $BACKEND_URL (default http://localhost:8080)
+# Simple smoke tests for TradeTaper backend.
+# Set BACKEND_URL and optional HEALTH_PATH.
+
 set -euo pipefail
 
 BACKEND_URL="${BACKEND_URL:-http://localhost:8080}"
+HEALTH_PATH="${HEALTH_PATH:-/healthz}"
 
-echo "👉 Hitting $BACKEND_URL/healthz ..."
-if curl -sf "$BACKEND_URL/healthz" | grep -q 'OK'; then
-  echo "✅ Health endpoint responded OK"
+FULL_URL="${BACKEND_URL}${HEALTH_PATH}"
+
+echo "👉 Hitting $FULL_URL ..."
+RESPONSE=$(curl -sf "$FULL_URL" || true)
+
+if [[ "$RESPONSE" == *"OK"* ]] || [[ "$RESPONSE" == *"\"status\":\"healthy\""* ]]; then
+  echo "✅ Health endpoint healthy"
 else
-  echo "❌ Health check failed" >&2
+  echo "❌ Health check failed. Response: $RESPONSE" >&2
   exit 1
 fi
 
