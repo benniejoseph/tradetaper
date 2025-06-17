@@ -2,10 +2,10 @@
   "framework": "nextjs",
   "buildCommand": "npm run build",
   "outputDirectory": ".next",
-  "installCommand": "npm install",
+  "installCommand": "npm ci",
   "devCommand": "npm run dev",
   "functions": {
-    "app/**": {
+    "src/app/**": {
       "maxDuration": 30
     }
   }

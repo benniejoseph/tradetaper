@@ -1,0 +1,19 @@
+# Ignore workspace-related files
+../package-lock.json
+../node_modules
+../packages
+../tradetaper-backend
+../tradetaper-admin
+
+# Ignore local development files
+.env.local
+.env.development
+.env.test
+
+# Ignore IDE files
+.vscode/
+.idea/
+
+# Ignore system files
+.DS_Store
+Thumbs.db 
