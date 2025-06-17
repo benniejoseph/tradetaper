@@ -1,9 +1,19 @@
-# Ignore workspace-related files
+# Ignore workspace-related files and directories
 ../package-lock.json
+../package.json
 ../node_modules
 ../packages
 ../tradetaper-backend
 ../tradetaper-admin
+../.claude
+../scripts
+
+# Ignore any workspace configuration
+**/workspace*
+**/.workspace
+**/pnpm-workspace.yaml
+**/lerna.json
+**/rush.json
 
 # Ignore local development files
 .env.local
@@ -16,4 +26,9 @@
 
 # Ignore system files
 .DS_Store
-Thumbs.db 
+Thumbs.db
+
+# Ignore temporary files
+*.tmp
+*.temp
+.cache/ 
