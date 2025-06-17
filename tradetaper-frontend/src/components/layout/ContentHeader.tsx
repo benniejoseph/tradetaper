@@ -149,10 +149,12 @@ function ContentHeader({ toggleSidebar, isMobile, isSidebarExpanded }: ContentHe
               <span className="absolute top-0.5 right-0.5 w-2 h-2 bg-red-500 rounded-full"></span>
             </button>
               
-            {/* Theme Toggle */}
-            <div className={`${isMobile ? 'p-1.5' : 'p-2'} rounded-lg bg-gray-100 dark:bg-gray-800 flex-shrink-0`}>
-              <ThemeToggleButton />
-            </div>
+            {/* Theme Toggle - Hide on mobile */}
+            {!isMobile && (
+              <div className="p-2 rounded-lg bg-gray-100 dark:bg-gray-800 flex-shrink-0">
+                <ThemeToggleButton />
+              </div>
+            )}
 
             {/* User Avatar - Only show on desktop */}
             {!isMobile && user && (
