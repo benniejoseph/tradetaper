@@ -1,350 +1,217 @@
-# TradeTaper Frontend - Cursor Rules
+# TradeTaper Frontend Cursor Rules
 
-You are an expert React/Next.js frontend developer working on TradeTaper, a professional trading journal platform.
+## Project Overview
+Next.js 15 trading journal application with Redux Toolkit, real-time WebSocket features, chart visualizations, and Stripe payment integration.
 
-## Tech Stack
-- **Framework**: Next.js 15 with App Router
-- **Language**: TypeScript
-- **Styling**: Tailwind CSS
-- **State Management**: Redux Toolkit
-- **Charts**: Lightweight Charts (TradingView)
-- **Forms**: React Hook Form (when needed)
-- **Real-time**: Socket.IO client
-- **Payments**: Stripe React components
-- **Build**: Next.js with experimental optimizations
+## Technology Stack
+- **Framework**: Next.js 15.3 with App Router and React 19
+- **State Management**: Redux Toolkit 2.8 with React Redux 9.2
+- **Styling**: Tailwind CSS 3.4 with PostCSS
+- **Charts**: Lightweight Charts 5.0 for trading visualizations
+- **Forms**: React Hook Form with validation
+- **HTTP Client**: Axios 1.10
+- **WebSockets**: Socket.IO Client 4.8
+- **Payment**: Stripe React components
+- **Icons**: Lucide React + React Icons
+- **Date Handling**: date-fns 4.1
 
 ## Architecture Patterns
 
 ### App Router Structure
-- Use Next.js 15 App Router exclusively
-- Prefer Server Components when possible
-- Use 'use client' directive only when absolutely necessary
-- Implement proper loading.tsx and error.tsx boundaries
-
-### Code Organization
 ```
 src/
 ├── app/                    # Next.js App Router
-│   ├── (app)/             # Main authenticated app
-│   ├── (auth)/            # Authentication pages
+│   ├── (app)/             # Authenticated app routes
+│   ├── (auth)/            # Authentication routes
+│   ├── globals.css        # Global styles
 │   ├── layout.tsx         # Root layout
-│   └── page.tsx           # Landing page
+│   └── page.tsx           # Home page
 ├── components/            # Reusable UI components
 │   ├── ui/               # Base UI components
-│   ├── trading/          # Trading-specific components
-│   └── forms/            # Form components
-├── store/                # Redux Toolkit store
+│   ├── forms/            # Form components
+│   ├── charts/           # Trading chart components
+│   └── dashboard/        # Dashboard-specific components
+├── store/                # Redux store and slices
 ├── hooks/                # Custom React hooks
 ├── services/             # API service functions
 ├── utils/                # Utility functions
-├── types/                # TypeScript definitions
-└── config/               # Configuration files
+├── types/                # TypeScript type definitions
+└── lib/                  # Third-party configurations
 ```
+
+### Core Principles
+- **Server Components First**: Use Server Components by default, Client Components only when needed
+- **Progressive Enhancement**: Build with accessibility and performance in mind
+- **Type Safety**: Strict TypeScript usage throughout
+- **Component Composition**: Favor composition over inheritance
+- **State Management**: Global state in Redux, local state with useState
+- **Performance**: Optimize for Core Web Vitals
 
 ## Component Guidelines
 
-### Functional Components Only
-- Use only functional components with hooks
-- Define prop interfaces for all components
-- Use default parameters instead of defaultProps
-- Implement proper TypeScript typing
-
-Example Component:
+### Server vs Client Components
 ```typescript
-interface TradeCardProps {
-  trade: Trade;
-  onEdit?: (id: string) => void;
-  className?: string;
+// Server Component (default)
+async function TradingDashboard() {
+  const trades = await fetchTrades(); // Server-side data fetching
+  return <TradesList trades={trades} />;
 }
 
-export function TradeCard({ trade, onEdit, className = '' }: TradeCardProps) {
-  const formatPrice = useCallback((price: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 2
-    }).format(price);
-  }, []);
+// Client Component (when needed)
+'use client';
+function InteractiveChart() {
+  const [data, setData] = useState([]);
+  // Interactive logic here
+}
+```
 
+### Component Structure
+```typescript
+interface ComponentProps {
+  title: string;
+  data: TradeData[];
+  onAction?: (id: string) => void;
+}
+
+export function Component({ title, data, onAction }: ComponentProps) {
   return (
-    <div className={`bg-white rounded-lg shadow-md p-4 ${className}`}>
-      <div className="flex justify-between items-center">
-        <span className={`font-medium ${trade.side === 'BUY' ? 'text-green-600' : 'text-red-600'}`}>
-          {trade.side} {trade.symbol}
-        </span>
-        <span className="text-gray-600">{formatPrice(trade.entryPrice)}</span>
-      </div>
+    <div className="p-4 bg-white rounded-lg shadow">
+      <h2 className="text-xl font-semibold mb-4">{title}</h2>
+      {/* Component content */}
     </div>
   );
 }
 ```
 
-### Server vs Client Components
-- **Server Components** (default): Data fetching, static content, SEO-critical pages
-- **Client Components** ('use client'): Interactive elements, hooks, state management, event handlers
-
-```typescript
-// Server Component (default)
-export default async function TradePage({ params }: { params: { id: string } }) {
-  const trade = await fetchTrade(params.id);
-  return <TradeDetails trade={trade} />;
-}
-
-// Client Component
-'use client';
-export function TradeForm({ onSubmit }: { onSubmit: (data: TradeData) => void }) {
-  const [formData, setFormData] = useState<TradeData>({});
-  // ... interactive form logic
-}
-```
+### TypeScript Standards
+- Define interfaces for all props and data structures
+- Use union types for specific values
+- Avoid `any` type - use `unknown` instead
+- Export interfaces that might be reused
+- Use generic types for reusable components
 
 ## State Management
 
-### Redux Toolkit
-- Use createSlice for all reducers
-- Use createAsyncThunk for API calls
-- Implement proper loading and error states
-- Use createSelector for derived state
-
-Example Slice:
+### Redux Store Structure
 ```typescript
-import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+// store/index.ts
+export const store = configureStore({
+  reducer: {
+    auth: authSlice.reducer,
+    trades: tradesSlice.reducer,
+    strategies: strategiesSlice.reducer,
+    ui: uiSlice.reducer,
+  },
+});
 
+// store/slices/tradesSlice.ts
+const tradesSlice = createSlice({
+  name: 'trades',
+  initialState,
+  reducers: {
+    addTrade: (state, action) => {
+      state.trades.push(action.payload);
+    },
+  },
+  extraReducers: (builder) => {
+    builder.addCase(fetchTrades.fulfilled, (state, action) => {
+      state.trades = action.payload;
+    });
+  },
+});
+```
+
+### Async Actions
+```typescript
 export const fetchTrades = createAsyncThunk(
   'trades/fetchTrades',
   async (params: FetchTradesParams, { rejectWithValue }) => {
     try {
-      const response = await tradesApi.getTrades(params);
+      const response = await tradesService.getTrades(params);
       return response.data;
     } catch (error) {
-      return rejectWithValue(error.response.data);
+      return rejectWithValue(error.message);
     }
   }
 );
+```
 
-const tradesSlice = createSlice({
-  name: 'trades',
-  initialState: {
-    items: [],
-    loading: false,
-    error: null,
-    pagination: { page: 1, limit: 20, total: 0 }
+### Local State Guidelines
+- Use `useState` for component-local state
+- Use `useReducer` for complex local state logic
+- Prefer controlled components for forms
+- Lift state up when multiple components need it
+
+## API Integration
+
+### Service Layer
+```typescript
+// services/api.ts
+const API_BASE_URL = process.env.NODE_ENV === 'production' 
+  ? 'https://tradetaper-backend-481634875325.us-central1.run.app'
+  : 'http://localhost:8080';
+
+const api = axios.create({
+  baseURL: `${API_BASE_URL}/api/v1`,
+  timeout: 10000,
+});
+
+// services/tradesService.ts
+export const tradesService = {
+  async getTrades(params: GetTradesParams): Promise<ApiResponse<Trade[]>> {
+    const response = await api.get('/trades', { params });
+    return response.data;
   },
-  reducers: {
-    clearError: (state) => {
-      state.error = null;
-    },
-    updateTrade: (state, action) => {
-      const index = state.items.findIndex(trade => trade.id === action.payload.id);
-      if (index !== -1) {
-        state.items[index] = action.payload;
-      }
+  
+  async createTrade(trade: CreateTradeData): Promise<ApiResponse<Trade>> {
+    const response = await api.post('/trades', trade);
+    return response.data;
+  },
+};
+```
+
+### Error Handling
+```typescript
+// Global error interceptor
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      // Handle authentication errors
+      store.dispatch(logout());
     }
-  },
-  extraReducers: (builder) => {
-    builder
-      .addCase(fetchTrades.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
-      .addCase(fetchTrades.fulfilled, (state, action) => {
-        state.loading = false;
-        state.items = action.payload.trades;
-        state.pagination = action.payload.pagination;
-      })
-      .addCase(fetchTrades.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload as string;
-      });
+    return Promise.reject(error);
   }
-});
-```
-
-### Local State Management
-- Use useState for component-local state
-- Use useReducer for complex state logic
-- Prefer props and composition over global state when possible
-
-## Styling with Tailwind CSS
-
-### Design System
-- Use consistent spacing scale (4, 8, 12, 16, 24, 32, 48, 64)
-- Implement consistent color palette
-- Use semantic color names (primary, secondary, success, danger)
-- Follow mobile-first responsive design
-
-### Common Patterns
-```typescript
-// Color coding for trading
-const sideColors = {
-  BUY: 'text-green-600 bg-green-50 border-green-200',
-  SELL: 'text-red-600 bg-red-50 border-red-200'
-};
-
-// Consistent button styles
-const buttonVariants = {
-  primary: 'bg-blue-600 hover:bg-blue-700 text-white',
-  secondary: 'bg-gray-200 hover:bg-gray-300 text-gray-900',
-  danger: 'bg-red-600 hover:bg-red-700 text-white'
-};
-```
-
-### Responsive Design
-- Mobile-first approach: base styles for mobile, then `sm:`, `md:`, `lg:`, `xl:`
-- Test on actual devices, not just browser DevTools
-- Consider touch targets (minimum 44px)
-
-## Trading-Specific Components
-
-### Chart Integration
-- Use Lightweight Charts for price/performance visualization
-- Implement proper chart cleanup on unmount
-- Handle chart resizing responsively
-
-Example Chart Component:
-```typescript
-'use client';
-import { useEffect, useRef } from 'react';
-import { createChart, IChartApi } from 'lightweight-charts';
-
-export function TradingChart({ data }: { data: ChartData[] }) {
-  const chartContainerRef = useRef<HTMLDivElement>(null);
-  const chartRef = useRef<IChartApi | null>(null);
-
-  useEffect(() => {
-    if (!chartContainerRef.current) return;
-
-    chartRef.current = createChart(chartContainerRef.current, {
-      width: chartContainerRef.current.clientWidth,
-      height: 400,
-      layout: { background: { color: '#ffffff' } }
-    });
-
-    const lineSeries = chartRef.current.addLineSeries({
-      color: '#2563eb',
-      lineWidth: 2
-    });
-    
-    lineSeries.setData(data);
-
-    return () => {
-      if (chartRef.current) {
-        chartRef.current.remove();
-      }
-    };
-  }, [data]);
-
-  return <div ref={chartContainerRef} className="w-full h-96" />;
-}
-```
-
-### Real-time Updates
-- Use Socket.IO for live trade updates
-- Implement connection status indicators
-- Handle reconnection gracefully
-
-Example WebSocket Hook:
-```typescript
-export function useWebSocket() {
-  const dispatch = useAppDispatch();
-  const [isConnected, setIsConnected] = useState(false);
-
-  useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (!token) return;
-
-    const socket = io(process.env.NEXT_PUBLIC_WS_URL!, {
-      auth: { token }
-    });
-
-    socket.on('connect', () => setIsConnected(true));
-    socket.on('disconnect', () => setIsConnected(false));
-    
-    socket.on('trade:created', (trade) => {
-      dispatch(addTrade(trade));
-    });
-
-    socket.on('trade:updated', (trade) => {
-      dispatch(updateTrade(trade));
-    });
-
-    return () => socket.disconnect();
-  }, [dispatch]);
-
-  return { isConnected };
-}
-```
-
-## Performance Optimization
-
-### Code Splitting
-- Use dynamic imports for large components
-- Implement route-based code splitting
-- Lazy load below-the-fold content
-
-```typescript
-import dynamic from 'next/dynamic';
-
-const TradingChart = dynamic(() => import('./TradingChart'), {
-  loading: () => <div className="h-96 bg-gray-100 animate-pulse" />,
-  ssr: false
-});
-```
-
-### Image Optimization
-- Always use Next.js Image component
-- Provide appropriate sizes and priority
-- Use modern image formats (WebP, AVIF)
-
-```typescript
-import Image from 'next/image';
-
-<Image
-  src={trade.screenshot}
-  alt={`${trade.symbol} trade screenshot`}
-  width={400}
-  height={300}
-  className="rounded-lg"
-  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-/>
-```
-
-### Memoization
-- Use React.memo for expensive components
-- Use useMemo for expensive calculations
-- Use useCallback for event handlers passed to children
-
-```typescript
-const MemoizedTradeList = React.memo(function TradeList({ trades, onEdit }) {
-  return (
-    <div className="space-y-4">
-      {trades.map(trade => (
-        <TradeCard key={trade.id} trade={trade} onEdit={onEdit} />
-      ))}
-    </div>
-  );
-});
+);
 ```
 
 ## Form Handling
 
-### React Hook Form (when needed)
-- Use for complex forms with validation
-- Implement proper error handling
-- Use controlled components sparingly
-
+### React Hook Form Integration
 ```typescript
-import { useForm } from 'react-hook-form';
+interface TradeFormData {
+  symbol: string;
+  entryPrice: number;
+  exitPrice?: number;
+  quantity: number;
+  type: 'BUY' | 'SELL';
+}
 
-export function TradeForm() {
-  const { register, handleSubmit, formState: { errors } } = useForm<TradeFormData>();
+function TradeForm() {
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+    watch,
+    setValue,
+  } = useForm<TradeFormData>();
 
   const onSubmit = async (data: TradeFormData) => {
     try {
-      await dispatch(createTrade(data)).unwrap();
-      // Handle success
+      await tradesService.createTrade(data);
+      toast.success('Trade created successfully');
     } catch (error) {
-      // Handle error
+      toast.error('Failed to create trade');
     }
   };
 
@@ -352,160 +219,308 @@ export function TradeForm() {
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       <input
         {...register('symbol', { required: 'Symbol is required' })}
-        className="w-full p-2 border rounded-md"
-        placeholder="Symbol (e.g., EURUSD)"
+        placeholder="Symbol"
+        className="w-full p-2 border rounded"
       />
       {errors.symbol && (
-        <p className="text-red-600 text-sm">{errors.symbol.message}</p>
+        <span className="text-red-500 text-sm">{errors.symbol.message}</span>
       )}
     </form>
   );
 }
 ```
 
-## Error Handling
+### Date Handling
+```typescript
+// Always format dates as ISO 8601 for API
+const formatDateForAPI = (date: Date): string => {
+  return date.toISOString();
+};
 
-### Error Boundaries
-- Implement error boundaries for critical sections
-- Provide meaningful error messages
-- Include recovery actions
+// Transform frontend data to API format
+const transformFrontendToApiPayload = (data: FrontendTradeData): ApiTradeData => {
+  return {
+    ...data,
+    entryTime: formatDateForAPI(data.entryTime),
+    exitTime: data.exitTime ? formatDateForAPI(data.exitTime) : null,
+  };
+};
+```
 
+## Trading Chart Implementation
+
+### Lightweight Charts Setup
 ```typescript
 'use client';
-export default function GlobalError({
-  error,
-  reset,
-}: {
-  error: Error & { digest?: string };
-  reset: () => void;
-}) {
+import { createChart, IChartApi } from 'lightweight-charts';
+
+function TradingChart({ data }: { data: CandlestickData[] }) {
+  const chartRef = useRef<HTMLDivElement>(null);
+  const chart = useRef<IChartApi | null>(null);
+
+  useEffect(() => {
+    if (!chartRef.current) return;
+
+    chart.current = createChart(chartRef.current, {
+      width: chartRef.current.clientWidth,
+      height: 400,
+      layout: {
+        background: { color: '#ffffff' },
+        textColor: '#333333',
+      },
+    });
+
+    const candlestickSeries = chart.current.addCandlestickSeries();
+    candlestickSeries.setData(data);
+
+    return () => {
+      chart.current?.remove();
+    };
+  }, [data]);
+
+  return <div ref={chartRef} className="w-full h-96" />;
+}
+```
+
+## WebSocket Integration
+
+### Real-time Updates
+```typescript
+// hooks/useWebSocket.ts
+export function useWebSocket(enabled: boolean = false) {
+  const [socket, setSocket] = useState<Socket | null>(null);
+  const dispatch = useAppDispatch();
+
+  useEffect(() => {
+    if (!enabled) return;
+
+    const newSocket = io(`${API_BASE_URL}/trades`, {
+      auth: { token: localStorage.getItem('token') },
+    });
+
+    newSocket.on('tradeUpdate', (trade: Trade) => {
+      dispatch(updateTrade(trade));
+    });
+
+    setSocket(newSocket);
+
+    return () => {
+      newSocket.close();
+    };
+  }, [enabled, dispatch]);
+
+  return socket;
+}
+```
+
+## Styling Guidelines
+
+### Tailwind CSS Best Practices
+```typescript
+// Use consistent spacing scale
+const spacing = {
+  xs: 'p-2',
+  sm: 'p-4',
+  md: 'p-6',
+  lg: 'p-8',
+};
+
+// Component with Tailwind classes
+function Card({ children, variant = 'default' }: CardProps) {
+  const baseClasses = 'rounded-lg shadow-md transition-shadow';
+  const variantClasses = {
+    default: 'bg-white border border-gray-200',
+    primary: 'bg-blue-50 border border-blue-200',
+    success: 'bg-green-50 border border-green-200',
+  };
+
   return (
-    <html>
-      <body>
-        <div className="min-h-screen flex items-center justify-center">
-          <div className="text-center">
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">
-              Something went wrong!
-            </h2>
-            <button
-              onClick={reset}
-              className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
-            >
-              Try again
-            </button>
-          </div>
-        </div>
-      </body>
-    </html>
+    <div className={`${baseClasses} ${variantClasses[variant]}`}>
+      {children}
+    </div>
   );
 }
 ```
 
-## API Integration
-
-### Service Layer
-- Create dedicated API service functions
-- Use axios with proper configuration
-- Implement request/response interceptors
-
+### Responsive Design
 ```typescript
-import axios from 'axios';
+// Mobile-first responsive classes
+<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+  {/* Content */}
+</div>
 
-const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL,
-  timeout: 10000
+// Conditional rendering for mobile
+const isMobile = useMediaQuery('(max-width: 768px)');
+```
+
+## Performance Optimization
+
+### Code Splitting
+```typescript
+// Dynamic imports for large components
+const TradingChart = dynamic(() => import('./TradingChart'), {
+  loading: () => <ChartSkeleton />,
+  ssr: false, // Disable SSR for client-side only components
 });
+```
 
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
+### Memoization
+```typescript
+// Memoize expensive calculations
+const calculatedMetrics = useMemo(() => {
+  return calculateTradingMetrics(trades);
+}, [trades]);
 
-export const tradesApi = {
-  getTrades: (params: GetTradesParams) => api.get('/trades', { params }),
-  createTrade: (data: CreateTradeData) => api.post('/trades', data),
-  updateTrade: (id: string, data: UpdateTradeData) => api.put(`/trades/${id}`, data),
-  deleteTrade: (id: string) => api.delete(`/trades/${id}`)
+// Memoize callback functions
+const handleTradeUpdate = useCallback((tradeId: string, updates: Partial<Trade>) => {
+  dispatch(updateTrade({ id: tradeId, updates }));
+}, [dispatch]);
+```
+
+### Image Optimization
+```typescript
+import Image from 'next/image';
+
+function ProfileImage({ src, alt }: { src: string; alt: string }) {
+  return (
+    <Image
+      src={src}
+      alt={alt}
+      width={200}
+      height={200}
+      className="rounded-full"
+      priority // For above-the-fold images
+    />
+  );
+}
+```
+
+## Security Best Practices
+
+### Environment Variables
+```typescript
+// Use NEXT_PUBLIC_ prefix for client-side variables
+const publicConfig = {
+  apiUrl: process.env.NEXT_PUBLIC_API_URL,
+  stripeKey: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY,
+};
+
+// Server-side only variables (no prefix)
+const serverConfig = {
+  secretKey: process.env.SECRET_KEY, // Only available on server
 };
 ```
 
-## SEO and Meta Tags
-- Use Next.js metadata API
-- Implement proper OpenGraph tags
-- Include structured data for trading content
-
+### Input Sanitization
 ```typescript
-import { Metadata } from 'next';
+import DOMPurify from 'isomorphic-dompurify';
 
-export const metadata: Metadata = {
-  title: 'Trading Journal | TradeTaper',
-  description: 'Professional trading journal with MT5 integration',
-  openGraph: {
-    title: 'TradeTaper - Professional Trading Journal',
-    description: 'Track your trades with advanced analytics',
-    images: ['/og-image.jpg']
-  }
+// Sanitize HTML content
+const sanitizedContent = DOMPurify.sanitize(userInput);
+```
+
+### Token Management
+```typescript
+// Secure token storage and management
+const tokenManager = {
+  getToken: () => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('authToken');
+    }
+    return null;
+  },
+  
+  setToken: (token: string) => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('authToken', token);
+    }
+  },
+  
+  removeToken: () => {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('authToken');
+    }
+  },
 };
 ```
 
-## Common Commands
+## Testing Guidelines
 
-```bash
-# Development
-npm run dev
+### Component Testing
+```typescript
+import { render, screen, fireEvent } from '@testing-library/react';
+import { Provider } from 'react-redux';
+import { store } from '../store';
 
-# Building
-npm run build
-npm run start
+function renderWithProviders(component: React.ReactElement) {
+  return render(
+    <Provider store={store}>
+      {component}
+    </Provider>
+  );
+}
 
-# Type checking
-npx tsc --noEmit
-
-# Linting
-npm run lint
+test('should create trade when form is submitted', async () => {
+  renderWithProviders(<TradeForm />);
+  
+  fireEvent.change(screen.getByPlaceholderText('Symbol'), {
+    target: { value: 'EURUSD' },
+  });
+  
+  fireEvent.click(screen.getByText('Create Trade'));
+  
+  expect(await screen.findByText('Trade created successfully')).toBeInTheDocument();
+});
 ```
 
-## Error Prevention
+## Deployment (Vercel)
 
-### Don't:
-- Use useEffect for derived state
-- Forget to handle loading states
-- Skip error boundaries
-- Ignore accessibility (a11y)
-- Bundle server-only code in client
-- Forget to optimize images
-- Skip proper TypeScript typing
+### Build Configuration
+```typescript
+// next.config.ts
+const nextConfig = {
+  experimental: {
+    optimizePackageImports: ['lightweight-charts'],
+  },
+  images: {
+    domains: ['storage.googleapis.com'],
+  },
+  env: {
+    CUSTOM_KEY: process.env.CUSTOM_KEY,
+  },
+};
+```
 
-### Do:
-- Use Server Components by default
-- Implement proper loading states
-- Add error boundaries for critical sections
-- Include ARIA attributes and semantic HTML
-- Use dynamic imports for code splitting
-- Optimize images with Next.js Image
-- Type all props and state properly
+### Environment Variables
+- Set production API URL in Vercel dashboard
+- Configure Stripe publishable key
+- Set up any other client-side environment variables
 
-## Trading UI Best Practices
+## Common Pitfalls to Avoid
 
-### Color Coding
-- Green for profitable/buy trades
-- Red for losing/sell trades
-- Gray for pending/neutral states
-- Blue for informational elements
+- Don't use `useEffect` for derived state
+- Don't forget to handle loading states in async operations
+- Don't skip error boundaries for better error handling
+- Don't ignore accessibility (use semantic HTML and ARIA attributes)
+- Don't bundle server-only code in client components
+- Don't forget to validate and format dates properly for API calls
+- Don't use `any` type - prefer `unknown` and proper type guards
+- Don't skip prop validation with TypeScript interfaces
+- Don't ignore performance - monitor Core Web Vitals
+- Don't forget to handle WebSocket disconnections gracefully
 
-### Data Display
-- Show prices with appropriate decimal places
-- Format currencies consistently
-- Display percentages with + or - signs
-- Use tables for trade lists with sorting
+## Emergency Procedures
 
-### Real-time Indicators
-- Show connection status clearly
-- Use subtle animations for updates
-- Indicate when data is stale
-- Provide manual refresh options
+### Frontend Issues
+1. Check browser console for JavaScript errors
+2. Verify API connectivity and network requests
+3. Check Redux DevTools for state issues
+4. Verify environment variables are set correctly
+5. Check Vercel deployment logs
 
-When working on this frontend, prioritize user experience, performance, and real-time trading data accuracy. Always consider mobile users and implement responsive designs.
+### Performance Issues
+1. Use React DevTools Profiler to identify slow components
+2. Check bundle analyzer for large dependencies
+3. Monitor Core Web Vitals in production
+4. Verify image optimization is working
+5. Check for memory leaks in long-running components 
