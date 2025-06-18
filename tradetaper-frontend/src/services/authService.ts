@@ -17,6 +17,10 @@ interface LoginPayload {
   password: string;
 }
 
+interface ForgotPasswordPayload {
+  email: string;
+}
+
 interface AuthResponse {
   accessToken: string;
   user: UserResponseDto;
@@ -55,6 +59,18 @@ export const loginUser = (payload: LoginPayload) => async (dispatch: AppDispatch
       ? error.message 
       : (error as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Login failed';
     dispatch(authFailure(errorMessage));
+    throw new Error(errorMessage);
+  }
+};
+
+export const forgotPassword = async (payload: ForgotPasswordPayload) => {
+  try {
+    const response = await apiClient.post('/auth/forgot-password', payload);
+    return response.data;
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error 
+      ? error.message 
+      : (error as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Failed to send reset email';
     throw new Error(errorMessage);
   }
 };

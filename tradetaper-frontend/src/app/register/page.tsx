@@ -19,11 +19,12 @@ import {
   FaLock, 
   FaCheck,
   FaGoogle,
-  FaApple,
   FaShieldAlt,
   FaCrown,
   FaRocket,
-  FaArrowUp
+  FaTrendingUp,
+  FaSparkles,
+  FaUserFriends
 } from 'react-icons/fa';
 
 type FormStep = 'personal' | 'account' | 'preferences';
@@ -138,10 +139,10 @@ export default function RegisterPage() {
   const currentStepIndex = steps.findIndex(step => step.id === currentStep);
 
   const tradingExperiences = [
-    { value: 'beginner', label: 'Beginner (0-1 years)' },
-    { value: 'intermediate', label: 'Intermediate (1-3 years)' },
-    { value: 'advanced', label: 'Advanced (3-5 years)' },
-    { value: 'expert', label: 'Expert (5+ years)' }
+    { value: 'beginner', label: 'Beginner', subtitle: '0-1 years' },
+    { value: 'intermediate', label: 'Intermediate', subtitle: '1-3 years' },
+    { value: 'advanced', label: 'Advanced', subtitle: '3-5 years' },
+    { value: 'expert', label: 'Expert', subtitle: '5+ years' }
   ];
 
   const markets = [
@@ -154,85 +155,91 @@ export default function RegisterPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-blue-900 flex">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-indigo-900 flex relative overflow-hidden">
+      {/* Animated Background Elements */}
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute -top-1/2 -left-1/2 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute -bottom-1/2 -right-1/2 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }}></div>
+        <div className="absolute top-1/4 left-1/4 w-48 h-48 bg-cyan-500/5 rounded-full blur-2xl animate-pulse" style={{ animationDelay: '1s' }}></div>
+        <div className="absolute bottom-1/3 right-1/4 w-32 h-32 bg-pink-500/5 rounded-full blur-xl animate-pulse" style={{ animationDelay: '3s' }}></div>
+      </div>
+
       {/* Left Side - Branding & Benefits */}
-      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-purple-600/90 to-blue-600/90"></div>
-        <div className="relative z-10 flex flex-col justify-center px-12 text-white">
+      <div className="hidden lg:flex lg:w-1/2 relative z-10 p-12 flex-col justify-center">
+        <div className="max-w-lg">
           <div className="mb-12">
-            <div className="flex items-center mb-6">
-              <FaChartLine className="h-12 w-12 text-white mr-4" />
-              <h1 className="text-4xl font-bold">TradeTaper</h1>
+            <div className="flex items-center mb-8">
+              <div className="p-3 bg-gradient-to-r from-purple-500/20 to-indigo-500/20 rounded-2xl backdrop-blur-sm border border-white/10 mr-4">
+                <FaChartLine className="h-10 w-10 text-white" />
+              </div>
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-white to-purple-200 bg-clip-text text-transparent">
+                TradeTaper
+              </h1>
             </div>
-            <h2 className="text-3xl font-bold mb-4 leading-tight">
+            <h2 className="text-4xl font-bold text-white mb-4 leading-tight">
               Join 10,000+ Successful Traders
             </h2>
-            <p className="text-xl text-purple-100 mb-8">
-              Start your trading journal journey with the most advanced platform for serious traders.
+            <p className="text-xl text-slate-300 mb-8 leading-relaxed">
+              Start your trading journal journey with the most advanced platform designed for serious traders.
             </p>
           </div>
 
-          <div className="space-y-8">
-            <div className="flex items-start space-x-4">
-              <div className="flex-shrink-0 w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
-                <FaRocket className="text-xl text-white" />
+          <div className="space-y-6">
+            {[
+              {
+                icon: FaRocket,
+                title: "Quick Setup",
+                description: "Get started in under 2 minutes with our streamlined onboarding process"
+              },
+              {
+                icon: FaShieldAlt,
+                title: "Bank-Level Security",
+                description: "Your trading data is protected with enterprise-grade encryption"
+              },
+              {
+                icon: FaTrendingUp,
+                title: "Proven Results",
+                description: "Our users report an average 23% improvement in trading performance"
+              }
+            ].map((benefit, index) => (
+              <div key={index} className="flex items-start space-x-4 group">
+                <div className="flex-shrink-0 p-3 bg-white/[0.05] backdrop-blur-sm rounded-2xl border border-white/10 group-hover:bg-white/[0.1] transition-all duration-300">
+                  <benefit.icon className="text-xl text-purple-400" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-lg mb-2 text-white">{benefit.title}</h3>
+                  <p className="text-slate-300 text-sm leading-relaxed">{benefit.description}</p>
+                </div>
               </div>
-              <div>
-                <h3 className="font-semibold text-lg mb-2">Quick Setup</h3>
-                <p className="text-purple-100 text-sm">Get started in under 2 minutes with our streamlined onboarding process.</p>
-              </div>
-            </div>
-
-            <div className="flex items-start space-x-4">
-              <div className="flex-shrink-0 w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
-                <FaShieldAlt className="text-xl text-white" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-lg mb-2">Bank-Level Security</h3>
-                <p className="text-purple-100 text-sm">Your trading data is protected with enterprise-grade encryption.</p>
-              </div>
-            </div>
-
-            <div className="flex items-start space-x-4">
-              <div className="flex-shrink-0 w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
-                <FaArrowUp className="text-xl text-white" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-lg mb-2">Proven Results</h3>
-                <p className="text-purple-100 text-sm">Our users report an average 23% improvement in trading performance.</p>
-              </div>
-            </div>
+            ))}
           </div>
 
-          <div className="mt-12 p-6 bg-white/10 backdrop-blur-sm rounded-2xl border border-white/20">
+          <div className="mt-12 p-6 bg-white/[0.03] backdrop-blur-xl rounded-3xl border border-white/10">
             <div className="flex items-center mb-4">
               <FaCrown className="text-yellow-400 text-2xl mr-3" />
               <div>
-                <h4 className="font-semibold text-lg">Free Plan Includes:</h4>
-                <p className="text-purple-100 text-sm">Up to 100 trades/month • Basic analytics • Mobile access</p>
+                <h4 className="font-semibold text-lg text-white">Free Plan Includes:</h4>
+                <p className="text-slate-300 text-sm">Up to 100 trades/month • Basic analytics • Mobile access</p>
               </div>
             </div>
           </div>
         </div>
-
-        {/* Animated Background Elements */}
-        <div className="absolute top-20 left-20 w-32 h-32 bg-white/5 rounded-full animate-pulse"></div>
-        <div className="absolute bottom-32 right-16 w-24 h-24 bg-white/5 rounded-full animate-pulse" style={{ animationDelay: '1s' }}></div>
-        <div className="absolute top-1/2 right-32 w-16 h-16 bg-white/5 rounded-full animate-pulse" style={{ animationDelay: '2s' }}></div>
       </div>
 
       {/* Right Side - Registration Form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-8">
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 relative z-10">
         <div className="w-full max-w-md">
           {/* Mobile Logo */}
           <div className="lg:hidden text-center mb-8">
-            <div className="flex items-center justify-center mb-4">
-              <FaChartLine className="h-10 w-10 text-purple-500 mr-3" />
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-500 to-blue-500 bg-clip-text text-transparent">
+            <div className="flex items-center justify-center mb-6">
+              <div className="p-3 bg-gradient-to-r from-purple-500/20 to-indigo-500/20 rounded-2xl backdrop-blur-sm border border-white/10 mr-3">
+                <FaChartLine className="h-8 w-8 text-purple-400" />
+              </div>
+              <h1 className="text-3xl font-bold bg-gradient-to-r from-white to-purple-200 bg-clip-text text-transparent">
                 TradeTaper
               </h1>
             </div>
-            <p className="text-gray-400">Create your trading journal account</p>
+            <p className="text-slate-300">Create your trading journal account</p>
           </div>
 
           {/* Progress Steps */}
@@ -242,52 +249,57 @@ export default function RegisterPage() {
                 <div key={step.id} className="flex items-center">
                   <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold transition-all duration-300 ${
                     index <= currentStepIndex 
-                      ? 'bg-gradient-to-r from-purple-500 to-blue-500 text-white' 
-                      : 'bg-gray-700 text-gray-400'
+                      ? 'bg-gradient-to-r from-purple-500 to-indigo-500 text-white shadow-lg' 
+                      : 'bg-white/[0.05] border border-white/10 text-slate-400'
                   }`}>
                     {index < currentStepIndex ? <FaCheck /> : step.number}
                   </div>
                   {index < steps.length - 1 && (
-                    <div className={`w-16 h-1 mx-2 transition-all duration-300 ${
-                      index < currentStepIndex ? 'bg-gradient-to-r from-purple-500 to-blue-500' : 'bg-gray-700'
+                    <div className={`w-16 h-1 mx-2 rounded-full transition-all duration-300 ${
+                      index < currentStepIndex ? 'bg-gradient-to-r from-purple-500 to-indigo-500' : 'bg-white/10'
                     }`}></div>
                   )}
                 </div>
               ))}
             </div>
-            <div className="flex justify-between mt-2">
+            <div className="flex justify-between mt-3">
               {steps.map((step) => (
-                <span key={step.id} className="text-xs text-gray-400">{step.label}</span>
+                <span key={step.id} className="text-xs text-slate-400 font-medium">{step.label}</span>
               ))}
             </div>
           </div>
 
-          <div className={`bg-white/10 backdrop-blur-md rounded-2xl p-8 border border-white/20 transition-all duration-300 ${
-            isFormFocused ? 'shadow-2xl scale-105' : 'shadow-xl'
+          <div className={`bg-white/[0.02] backdrop-blur-xl rounded-3xl p-8 border border-white/10 shadow-2xl transition-all duration-500 ${
+            isFormFocused ? 'shadow-purple-500/20 border-purple-500/20' : ''
           }`}>
             <div className="text-center mb-8">
-              <h2 className="text-3xl font-bold text-white mb-2">Create Account</h2>
-              <p className="text-gray-300">Join the trading revolution</p>
+              <h2 className="text-3xl font-bold bg-gradient-to-r from-white to-purple-200 bg-clip-text text-transparent mb-2">
+                Create Account
+              </h2>
+              <p className="text-slate-300">Join the trading revolution</p>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-6">
               {(error || formError) && (
-                <div className="bg-red-500/20 border border-red-500 rounded-lg p-4 text-red-100 text-sm">
+                <div className="bg-red-500/10 border border-red-500/20 rounded-2xl p-4 text-red-300 text-sm">
                   {error || formError}
                 </div>
               )}
 
               {/* Step 1: Personal Information */}
               {currentStep === 'personal' && (
-                <div className="space-y-4">
+                <div className="space-y-6">
                   <div className="text-center mb-6">
+                    <div className="p-3 bg-gradient-to-r from-purple-500/20 to-indigo-500/20 rounded-2xl backdrop-blur-sm border border-white/10 inline-block mb-4">
+                      <FaUser className="h-6 w-6 text-purple-400" />
+                    </div>
                     <h3 className="text-xl font-semibold text-white mb-2">Personal Information</h3>
-                    <p className="text-gray-400 text-sm">Let&apos;s start with the basics</p>
+                    <p className="text-slate-400 text-sm">Let's start with the basics</p>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
                     <div className="relative">
-                      <FaUser className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                      <FaUser className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400" />
                       <input
                         type="text"
                         placeholder="First Name"
@@ -296,11 +308,11 @@ export default function RegisterPage() {
                         onFocus={() => setIsFormFocused(true)}
                         onBlur={() => setIsFormFocused(false)}
                         required
-                        className="w-full pl-12 pr-4 py-4 bg-white/10 border border-white/20 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-300"
+                        className="w-full pl-12 pr-4 py-4 bg-white/[0.03] border border-white/10 rounded-2xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-transparent transition-all duration-300 backdrop-blur-sm"
                       />
                     </div>
                     <div className="relative">
-                      <FaUser className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                      <FaUser className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400" />
                       <input
                         type="text"
                         placeholder="Last Name"
@@ -309,33 +321,58 @@ export default function RegisterPage() {
                         onFocus={() => setIsFormFocused(true)}
                         onBlur={() => setIsFormFocused(false)}
                         required
-                        className="w-full pl-12 pr-4 py-4 bg-white/10 border border-white/20 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-300"
+                        className="w-full pl-12 pr-4 py-4 bg-white/[0.03] border border-white/10 rounded-2xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-transparent transition-all duration-300 backdrop-blur-sm"
                       />
                     </div>
+                  </div>
+
+                  {/* Social Sign Up */}
+                  <div className="space-y-4">
+                    <div className="relative">
+                      <div className="absolute inset-0 flex items-center">
+                        <div className="w-full border-t border-white/10"></div>
+                      </div>
+                      <div className="relative flex justify-center text-sm">
+                        <span className="px-4 bg-gradient-to-r from-slate-900 via-purple-900 to-indigo-900 text-slate-400">
+                          Or sign up with
+                        </span>
+                      </div>
+                    </div>
+
+                    <button 
+                      type="button"
+                      className="w-full flex items-center justify-center space-x-3 bg-white/[0.03] hover:bg-white/[0.08] border border-white/10 rounded-2xl py-4 px-6 transition-all duration-300 text-white hover:border-white/20 group"
+                    >
+                      <FaGoogle className="text-lg group-hover:scale-110 transition-transform duration-300" />
+                      <span className="font-medium">Continue with Google</span>
+                    </button>
                   </div>
 
                   <button
                     type="button"
                     onClick={nextStep}
                     disabled={!validateStep('personal')}
-                    className="w-full bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 disabled:from-gray-500 disabled:to-gray-600 text-white font-semibold py-4 px-6 rounded-xl transition-all duration-300 transform hover:scale-105 disabled:scale-100 shadow-lg hover:shadow-xl flex items-center justify-center space-x-2"
+                    className="w-full bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 disabled:from-slate-500 disabled:to-slate-600 text-white font-semibold py-4 px-6 rounded-2xl transition-all duration-300 transform hover:scale-105 disabled:scale-100 shadow-lg hover:shadow-xl flex items-center justify-center space-x-2 group"
                   >
                     <span>Continue</span>
-                    <FaArrowRight />
+                    <FaArrowRight className="group-hover:translate-x-1 transition-transform duration-300" />
                   </button>
                 </div>
               )}
 
               {/* Step 2: Account Details */}
               {currentStep === 'account' && (
-                <div className="space-y-4">
+                <div className="space-y-6">
                   <div className="text-center mb-6">
+                    <div className="p-3 bg-gradient-to-r from-purple-500/20 to-indigo-500/20 rounded-2xl backdrop-blur-sm border border-white/10 inline-block mb-4">
+                      <FaLock className="h-6 w-6 text-purple-400" />
+                    </div>
                     <h3 className="text-xl font-semibold text-white mb-2">Account Details</h3>
-                    <p className="text-gray-400 text-sm">Secure your account</p>
+                    <p className="text-slate-400 text-sm">Secure your account</p>
                   </div>
 
                   <div className="relative">
-                    <FaEnvelope className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                    <FaEnvelope className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400" />
                     <input
                       type="email"
                       placeholder="Email Address"
@@ -344,12 +381,12 @@ export default function RegisterPage() {
                       onFocus={() => setIsFormFocused(true)}
                       onBlur={() => setIsFormFocused(false)}
                       required
-                      className="w-full pl-12 pr-4 py-4 bg-white/10 border border-white/20 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-300"
+                      className="w-full pl-12 pr-4 py-4 bg-white/[0.03] border border-white/10 rounded-2xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-transparent transition-all duration-300 backdrop-blur-sm"
                     />
                   </div>
 
                   <div className="relative">
-                    <FaLock className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                    <FaLock className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400" />
                     <input
                       type={showPassword ? "text" : "password"}
                       placeholder="Password (min. 8 characters)"
@@ -359,19 +396,19 @@ export default function RegisterPage() {
                       onBlur={() => setIsFormFocused(false)}
                       required
                       minLength={8}
-                      className="w-full pl-12 pr-12 py-4 bg-white/10 border border-white/20 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-300"
+                      className="w-full pl-12 pr-12 py-4 bg-white/[0.03] border border-white/10 rounded-2xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-transparent transition-all duration-300 backdrop-blur-sm"
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
+                      className="absolute right-4 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-white transition-colors"
                     >
                       {showPassword ? <FaEyeSlash /> : <FaEye />}
                     </button>
                   </div>
 
                   <div className="relative">
-                    <FaLock className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                    <FaLock className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400" />
                     <input
                       type={showConfirmPassword ? "text" : "password"}
                       placeholder="Confirm Password"
@@ -380,12 +417,12 @@ export default function RegisterPage() {
                       onFocus={() => setIsFormFocused(true)}
                       onBlur={() => setIsFormFocused(false)}
                       required
-                      className="w-full pl-12 pr-12 py-4 bg-white/10 border border-white/20 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-300"
+                      className="w-full pl-12 pr-12 py-4 bg-white/[0.03] border border-white/10 rounded-2xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-transparent transition-all duration-300 backdrop-blur-sm"
                     />
                     <button
                       type="button"
                       onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
+                      className="absolute right-4 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-white transition-colors"
                     >
                       {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
                     </button>
@@ -399,7 +436,7 @@ export default function RegisterPage() {
                     <button
                       type="button"
                       onClick={prevStep}
-                      className="flex-1 bg-white/10 hover:bg-white/20 text-white font-semibold py-4 px-6 rounded-xl transition-all duration-300 flex items-center justify-center space-x-2"
+                      className="flex-1 bg-white/[0.03] hover:bg-white/[0.08] border border-white/10 text-white font-semibold py-4 px-6 rounded-2xl transition-all duration-300 flex items-center justify-center space-x-2"
                     >
                       <FaArrowLeft />
                       <span>Back</span>
@@ -408,10 +445,10 @@ export default function RegisterPage() {
                       type="button"
                       onClick={nextStep}
                       disabled={!validateStep('account')}
-                      className="flex-1 bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 disabled:from-gray-500 disabled:to-gray-600 text-white font-semibold py-4 px-6 rounded-xl transition-all duration-300 transform hover:scale-105 disabled:scale-100 shadow-lg hover:shadow-xl flex items-center justify-center space-x-2"
+                      className="flex-1 bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 disabled:from-slate-500 disabled:to-slate-600 text-white font-semibold py-4 px-6 rounded-2xl transition-all duration-300 transform hover:scale-105 disabled:scale-100 shadow-lg hover:shadow-xl flex items-center justify-center space-x-2 group"
                     >
                       <span>Continue</span>
-                      <FaArrowRight />
+                      <FaArrowRight className="group-hover:translate-x-1 transition-transform duration-300" />
                     </button>
                   </div>
                 </div>
@@ -421,41 +458,58 @@ export default function RegisterPage() {
               {currentStep === 'preferences' && (
                 <div className="space-y-6">
                   <div className="text-center mb-6">
+                    <div className="p-3 bg-gradient-to-r from-purple-500/20 to-indigo-500/20 rounded-2xl backdrop-blur-sm border border-white/10 inline-block mb-4">
+                      <FaUserFriends className="h-6 w-6 text-purple-400" />
+                    </div>
                     <h3 className="text-xl font-semibold text-white mb-2">Trading Profile</h3>
-                    <p className="text-gray-400 text-sm">Help us personalize your experience</p>
+                    <p className="text-slate-400 text-sm">Help us personalize your experience</p>
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-3">Trading Experience</label>
-                    <div className="space-y-2">
+                    <label className="block text-sm font-medium text-slate-300 mb-4">Trading Experience</label>
+                    <div className="space-y-3">
                       {tradingExperiences.map((exp) => (
-                        <label key={exp.value} className="flex items-center cursor-pointer">
-                          <input
-                            type="radio"
-                            name="experience"
-                            value={exp.value}
-                            checked={formData.tradingExperience === exp.value}
-                            onChange={(e) => handleInputChange('tradingExperience', e.target.value)}
-                            className="mr-3 text-purple-500 focus:ring-purple-500"
-                          />
-                          <span className="text-gray-300">{exp.label}</span>
+                        <label key={exp.value} className="flex items-center cursor-pointer group">
+                          <div className="relative">
+                            <input
+                              type="radio"
+                              name="experience"
+                              value={exp.value}
+                              checked={formData.tradingExperience === exp.value}
+                              onChange={(e) => handleInputChange('tradingExperience', e.target.value)}
+                              className="sr-only"
+                            />
+                            <div className={`w-5 h-5 rounded-full border-2 transition-all duration-300 ${
+                              formData.tradingExperience === exp.value 
+                                ? 'border-purple-500 bg-purple-500' 
+                                : 'border-white/20 group-hover:border-purple-400'
+                            }`}>
+                              {formData.tradingExperience === exp.value && (
+                                <div className="w-full h-full rounded-full bg-white scale-50"></div>
+                              )}
+                            </div>
+                          </div>
+                          <div className="ml-3">
+                            <span className="text-white font-medium">{exp.label}</span>
+                            <span className="text-slate-400 text-sm ml-2">({exp.subtitle})</span>
+                          </div>
                         </label>
                       ))}
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-3">Primary Markets (optional)</label>
+                    <label className="block text-sm font-medium text-slate-300 mb-4">Primary Markets (optional)</label>
                     <div className="grid grid-cols-2 gap-3">
                       {markets.map((market) => (
                         <button
                           key={market.value}
                           type="button"
                           onClick={() => handleMarketToggle(market.value)}
-                          className={`p-3 rounded-xl border transition-all duration-300 flex items-center space-x-2 ${
+                          className={`p-4 rounded-2xl border transition-all duration-300 flex items-center space-x-3 group ${
                             formData.primaryMarkets.includes(market.value)
-                              ? 'bg-purple-500/20 border-purple-500 text-white'
-                              : 'bg-white/5 border-white/20 text-gray-300 hover:bg-white/10'
+                              ? 'bg-purple-500/20 border-purple-500/50 text-white shadow-lg'
+                              : 'bg-white/[0.03] border-white/10 text-slate-300 hover:bg-white/[0.08] hover:border-white/20'
                           }`}
                         >
                           <span className="text-lg">{market.icon}</span>
@@ -465,19 +519,30 @@ export default function RegisterPage() {
                     </div>
                   </div>
 
-                  <div>
-                    <label className="flex items-start cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={formData.agreeToTerms}
-                        onChange={(e) => handleInputChange('agreeToTerms', e.target.checked)}
-                        className="mt-1 mr-3 text-purple-500 focus:ring-purple-500"
-                      />
-                      <span className="text-gray-300 text-sm">
+                  <div className="bg-white/[0.03] border border-white/10 rounded-2xl p-4">
+                    <label className="flex items-start cursor-pointer group">
+                      <div className="relative mt-1">
+                        <input
+                          type="checkbox"
+                          checked={formData.agreeToTerms}
+                          onChange={(e) => handleInputChange('agreeToTerms', e.target.checked)}
+                          className="sr-only"
+                        />
+                        <div className={`w-5 h-5 rounded border-2 transition-all duration-300 ${
+                          formData.agreeToTerms 
+                            ? 'border-purple-500 bg-purple-500' 
+                            : 'border-white/20 group-hover:border-purple-400'
+                        }`}>
+                          {formData.agreeToTerms && (
+                            <FaCheck className="text-white text-xs p-0.5" />
+                          )}
+                        </div>
+                      </div>
+                      <span className="text-slate-300 text-sm ml-3 leading-relaxed">
                         I agree to the{' '}
-                        <a href="#" className="text-purple-400 hover:text-purple-300">Terms of Service</a>
+                        <a href="#" className="text-purple-400 hover:text-purple-300 font-medium">Terms of Service</a>
                         {' '}and{' '}
-                        <a href="#" className="text-purple-400 hover:text-purple-300">Privacy Policy</a>
+                        <a href="#" className="text-purple-400 hover:text-purple-300 font-medium">Privacy Policy</a>
                       </span>
                     </label>
                   </div>
@@ -486,7 +551,7 @@ export default function RegisterPage() {
                     <button
                       type="button"
                       onClick={prevStep}
-                      className="flex-1 bg-white/10 hover:bg-white/20 text-white font-semibold py-4 px-6 rounded-xl transition-all duration-300 flex items-center justify-center space-x-2"
+                      className="flex-1 bg-white/[0.03] hover:bg-white/[0.08] border border-white/10 text-white font-semibold py-4 px-6 rounded-2xl transition-all duration-300 flex items-center justify-center space-x-2"
                     >
                       <FaArrowLeft />
                       <span>Back</span>
@@ -494,54 +559,23 @@ export default function RegisterPage() {
                     <button
                       type="submit"
                       disabled={!validateStep('preferences') || isLoading}
-                      className="flex-1 bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 disabled:from-gray-500 disabled:to-gray-600 text-white font-semibold py-4 px-6 rounded-xl transition-all duration-300 transform hover:scale-105 disabled:scale-100 shadow-lg hover:shadow-xl flex items-center justify-center space-x-2"
+                      className="flex-1 bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 disabled:from-slate-500 disabled:to-slate-600 text-white font-semibold py-4 px-6 rounded-2xl transition-all duration-300 transform hover:scale-105 disabled:scale-100 shadow-lg hover:shadow-xl flex items-center justify-center space-x-2 group"
                     >
                       {isLoading ? (
                         <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
                       ) : (
                         <>
                           <span>Create Account</span>
-                          <FaRocket />
+                          <FaSparkles className="group-hover:scale-110 transition-transform duration-300" />
                         </>
                       )}
                     </button>
                   </div>
                 </div>
               )}
-
-              {/* Social Login Options (Step 1 only) */}
-              {currentStep === 'personal' && (
-                <div className="space-y-4">
-                  <div className="relative">
-                    <div className="absolute inset-0 flex items-center">
-                      <div className="w-full border-t border-white/20"></div>
-                    </div>
-                    <div className="relative flex justify-center text-sm">
-                      <span className="px-2 bg-transparent text-gray-300">Or sign up with</span>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <button 
-                      type="button"
-                      className="flex items-center justify-center space-x-2 bg-white/10 hover:bg-white/20 border border-white/20 rounded-xl py-3 px-4 transition-all duration-300 text-white hover:scale-105"
-                    >
-                      <FaGoogle className="text-lg" />
-                      <span className="text-sm font-medium">Google</span>
-                    </button>
-                    <button 
-                      type="button"
-                      className="flex items-center justify-center space-x-2 bg-white/10 hover:bg-white/20 border border-white/20 rounded-xl py-3 px-4 transition-all duration-300 text-white hover:scale-105"
-                    >
-                      <FaApple className="text-lg" />
-                      <span className="text-sm font-medium">Apple</span>
-                    </button>
-                  </div>
-                </div>
-              )}
             </form>
 
-            <p className="text-center mt-6 text-gray-300">
+            <p className="text-center mt-8 text-slate-300">
               Already have an account?{' '}
               <Link href="/login" className="text-purple-400 hover:text-purple-300 transition-colors font-medium">
                 Sign in here
@@ -552,13 +586,14 @@ export default function RegisterPage() {
           <div className="text-center mt-8">
             <Link 
               href="/" 
-              className="text-gray-400 hover:text-white transition-colors text-sm flex items-center justify-center space-x-1"
+              className="text-slate-400 hover:text-white transition-colors text-sm flex items-center justify-center space-x-1 group"
             >
-              <span>← Back to home</span>
+              <span className="group-hover:-translate-x-1 transition-transform duration-300">←</span>
+              <span>Back to home</span>
             </Link>
+          </div>
         </div>
-        </div>
-        </div>
+      </div>
     </div>
   );
 }
