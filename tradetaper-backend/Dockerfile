@@ -1,11 +1,12 @@
 # Production Dockerfile for TradeTaper Backend
 FROM node:20-slim
 
-# Install Python and build tools for native dependencies
+# Install Python, build tools, and curl for native dependencies
 RUN apt-get update && apt-get install -y \
     python3 \
     make \
     g++ \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Set working directory
