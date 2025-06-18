@@ -3,6 +3,7 @@
 import { authApiClient } from './api';
 import { CandlestickData, UTCTimestamp } from 'lightweight-charts';
 import { format as formatDateFns } from 'date-fns';
+import { classifySymbol, getApiEndpointForSymbol } from '@/utils/symbolClassification';
 
 interface ApiPriceDataPoint {
     time: number; // UNIX timestamp in seconds
@@ -41,34 +42,56 @@ export async function fetchRealPriceData(
             interval: interval,
         });
         
-        // Handle both forex symbol formats: NZD/USD (with slash) and NZDUSD (without slash)
-        let symbolParts: string[];
-        const upperSymbol = symbol.toUpperCase();
+        // Use symbol classification to determine correct API endpoint
+        const classification = classifySymbol(symbol);
+        let apiUrl: string;
         
-        if (upperSymbol.includes('/')) {
-            // Format: NZD/USD
-            symbolParts = upperSymbol.split('/');
+        // Temporary fix: if the symbol is a known commodity but backend doesn't have commodity endpoints yet,
+        // use forex endpoint with proper currency splitting for precious metals
+        if (classification.assetType === 'commodities' && symbol.toUpperCase().startsWith('XAU')) {
+            // Handle XAUUSD as XAU/USD in forex endpoint temporarily
+            const apiEndpoint = `/market-data/historical/forex/XAU/USD`;
+            apiUrl = `${apiEndpoint}?${params.toString()}`;
+            console.log('%c[FRONTEND - fetchRealPriceData] Using forex endpoint for commodity (temporary):', 'color: orange; font-weight: bold;', {
+                originalSymbol: symbol,
+                assetType: 'commodities (using forex endpoint)',
+                apiEndpoint,
+                apiUrl
+            });
         } else {
-            // Format: NZDUSD - split into 3-letter currency codes
-            if (upperSymbol.length === 6) {
-                symbolParts = [upperSymbol.slice(0, 3), upperSymbol.slice(3, 6)];
-            } else {
-                throw new Error(`Invalid forex symbol format: ${symbol}. Expected format: BASE/QUOTE (e.g., NZD/USD) or BASEQUOTE (e.g., NZDUSD)`);
+            try {
+                const apiEndpoint = getApiEndpointForSymbol(symbol);
+                apiUrl = `${apiEndpoint}?${params.toString()}`;
+                console.log('%c[FRONTEND - fetchRealPriceData] Symbol classification:', 'color: green; font-weight: bold;', {
+                    originalSymbol: symbol,
+                    assetType: classification.assetType,
+                    description: classification.description,
+                    apiEndpoint,
+                    apiUrl
+                });
+            } catch (error) {
+                // Fallback to old forex logic if classification fails
+                const upperSymbol = symbol.toUpperCase();
+                let symbolParts: string[];
+                
+                if (upperSymbol.includes('/')) {
+                    symbolParts = upperSymbol.split('/');
+                } else if (upperSymbol.length === 6) {
+                    symbolParts = [upperSymbol.slice(0, 3), upperSymbol.slice(3, 6)];
+                } else {
+                    throw new Error(`Unable to classify symbol: ${symbol}`);
+                }
+                
+                const [baseCurrency, quoteCurrency] = symbolParts;
+                apiUrl = `/market-data/historical/forex/${baseCurrency}/${quoteCurrency}?${params.toString()}`;
+                console.log('%c[FRONTEND - fetchRealPriceData] Fallback to forex format:', 'color: orange;', {
+                    originalSymbol: symbol,
+                    baseCurrency,
+                    quoteCurrency,
+                    apiUrl
+                });
             }
         }
-        
-        if (symbolParts.length !== 2 || symbolParts[0].length !== 3 || symbolParts[1].length !== 3) {
-            throw new Error(`Invalid forex symbol format: ${symbol}. Expected format: BASE/QUOTE (e.g., NZD/USD) or BASEQUOTE (e.g., NZDUSD)`);
-        }
-        
-        const [baseCurrency, quoteCurrency] = symbolParts;
-        const apiUrl = `/market-data/historical/forex/${baseCurrency}/${quoteCurrency}?${params.toString()}`;
-        console.log('%c[FRONTEND - fetchRealPriceData] Converted symbol format:', 'color: blue;', {
-            originalSymbol: symbol,
-            baseCurrency,
-            quoteCurrency,
-            apiUrl
-        });
 
         const response = await authApiClient.get<ApiPriceDataPoint[]>(apiUrl);
 
