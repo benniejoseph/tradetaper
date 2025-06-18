@@ -9,7 +9,7 @@ import {
   HttpStatus,
   Logger,
 } from '@nestjs/common'; // Added Logger
-import { MarketDataService, PriceDataPoint } from './market-data.service';
+import { PriceDataPoint } from './market-data.service';
 import { MultiProviderMarketDataService, HistoricalPrice } from './multi-provider.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
@@ -19,7 +19,6 @@ export class MarketDataController {
   private readonly logger = new Logger(MarketDataController.name); // Add logger instance
 
   constructor(
-    private readonly marketDataService: MarketDataService,
     private readonly multiProviderService: MultiProviderMarketDataService,
   ) {}
 
