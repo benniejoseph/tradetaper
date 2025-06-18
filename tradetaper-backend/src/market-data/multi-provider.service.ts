@@ -1,11 +1,11 @@
 // src/market-data/multi-provider.service.ts
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Inject } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import { Cache } from 'cache-manager';
-import { Inject } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { MarketDataService } from './market-data.service';
 
 export interface MarketDataProvider {
   name: string;
@@ -93,6 +93,7 @@ export class MultiProviderMarketDataService {
   constructor(
     private readonly configService: ConfigService,
     private readonly httpService: HttpService,
+    private readonly marketDataService: MarketDataService,
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
   ) {}
 
@@ -247,6 +248,14 @@ export class MultiProviderMarketDataService {
     toDate?: Date,
   ): Promise<MarketDataResponse> {
     switch (providerName) {
+      case 'tradermade':
+        return this.fetchHistoricalFromTraderMade(
+          symbol,
+          assetType,
+          interval,
+          fromDate,
+          toDate,
+        );
       case 'alphaVantage':
         return this.fetchHistoricalFromAlphaVantage(
           symbol,
@@ -791,6 +800,57 @@ export class MultiProviderMarketDataService {
         this.requestCounts.get(provider.name)?.resetTime || Date.now(),
       ),
     }));
+  }
+
+  private async fetchHistoricalFromTraderMade(
+    symbol: string,
+    assetType: string,
+    interval: string,
+    fromDate?: Date,
+    toDate?: Date,
+  ): Promise<MarketDataResponse> {
+    try {
+      if (assetType !== 'forex' && assetType !== 'commodities') {
+        throw new Error(`Asset type ${assetType} not supported by TraderMade for historical data`);
+      }
+
+      // Format dates for TraderMade API
+      const startDate = fromDate ? fromDate.toISOString().split('T')[0] : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+      const endDate = toDate ? toDate.toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
+
+      // Use the existing MarketDataService method
+      const priceDataPoints = await this.marketDataService.getTradermadeHistoricalData(
+        symbol,
+        startDate,
+        endDate,
+        interval,
+      );
+
+      // Convert PriceDataPoint[] to HistoricalPrice[]
+      const historicalData: HistoricalPrice[] = priceDataPoints.map(point => ({
+        timestamp: new Date(point.time * 1000), // Convert from Unix timestamp
+        open: point.open,
+        high: point.high,
+        low: point.low,
+        close: point.close,
+        volume: point.volume || 0,
+      }));
+
+      return {
+        success: true,
+        data: historicalData,
+        provider: 'tradermade',
+        cached: false,
+      };
+    } catch (error) {
+      this.logger.error(`TraderMade historical data error: ${error.message}`);
+      return {
+        success: false,
+        error: error.message,
+        provider: 'tradermade',
+        cached: false,
+      };
+    }
   }
 
   async testAllProviders(): Promise<any[]> {
