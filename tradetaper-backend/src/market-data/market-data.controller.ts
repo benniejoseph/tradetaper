@@ -31,31 +31,92 @@ export class MarketDataController {
     @Query('endDate') endDate: string,
     @Query('interval') interval: string,
   ): Promise<PriceDataPoint[]> {
-    const pair = `${baseCurrency}/${quoteCurrency}`;
-
-    // ADD DETAILED LOGGING HERE
+    const symbol = `${baseCurrency.toUpperCase()}${quoteCurrency.toUpperCase()}`;
+    
     this.logger.log(
-      `[MarketDataController] Received request for /historical/forex/${baseCurrency}/${quoteCurrency} with query:`,
-      {
-        baseCurrency,
-        quoteCurrency,
-        pair,
-        startDate,
-        endDate,
-        interval,
-      },
+      `[MarketDataController] Forex request: ${symbol}, interval=${interval}`,
     );
 
-    if (
-      !baseCurrency ||
-      !quoteCurrency ||
-      !startDate ||
-      !endDate ||
-      !interval
-    ) {
+    return this.getHistoricalDataForAssetType(
+      symbol,
+      'forex',
+      startDate,
+      endDate,
+      interval,
+    );
+  }
+
+  @Get('historical/commodities/:symbol')
+  async getCommoditiesHistoricalData(
+    @Param('symbol') symbol: string,
+    @Query('startDate') startDate: string,
+    @Query('endDate') endDate: string,
+    @Query('interval') interval: string,
+  ): Promise<PriceDataPoint[]> {
+    this.logger.log(
+      `[MarketDataController] Commodities request: ${symbol}, interval=${interval}`,
+    );
+
+    return this.getHistoricalDataForAssetType(
+      symbol.toUpperCase(),
+      'commodities',
+      startDate,
+      endDate,
+      interval,
+    );
+  }
+
+  @Get('historical/stocks/:symbol')
+  async getStocksHistoricalData(
+    @Param('symbol') symbol: string,
+    @Query('startDate') startDate: string,
+    @Query('endDate') endDate: string,
+    @Query('interval') interval: string,
+  ): Promise<PriceDataPoint[]> {
+    this.logger.log(
+      `[MarketDataController] Stocks request: ${symbol}, interval=${interval}`,
+    );
+
+    return this.getHistoricalDataForAssetType(
+      symbol.toUpperCase(),
+      'stocks',
+      startDate,
+      endDate,
+      interval,
+    );
+  }
+
+  @Get('historical/crypto/:symbol')
+  async getCryptoHistoricalData(
+    @Param('symbol') symbol: string,
+    @Query('startDate') startDate: string,
+    @Query('endDate') endDate: string,
+    @Query('interval') interval: string,
+  ): Promise<PriceDataPoint[]> {
+    this.logger.log(
+      `[MarketDataController] Crypto request: ${symbol}, interval=${interval}`,
+    );
+
+    return this.getHistoricalDataForAssetType(
+      symbol.toUpperCase(),
+      'crypto',
+      startDate,
+      endDate,
+      interval,
+    );
+  }
+
+  private async getHistoricalDataForAssetType(
+    symbol: string,
+    assetType: string,
+    startDate: string,
+    endDate: string,
+    interval: string,
+  ): Promise<PriceDataPoint[]> {
+    if (!symbol || !startDate || !endDate || !interval) {
       this.logger.warn('[MarketDataController] Missing required parameters.');
       throw new HttpException(
-        'Missing required parameters: baseCurrency, quoteCurrency, startDate, endDate, interval',
+        'Missing required parameters: symbol, startDate, endDate, interval',
         HttpStatus.BAD_REQUEST,
       );
     }
@@ -67,8 +128,8 @@ export class MarketDataController {
       '15minute',
       '5minute',
       '1minute',
-      '1day', // Add standard intervals for multi-provider
-    ]; // VERIFY with Tradermade
+      '1day',
+    ];
     if (!validIntervals.includes(interval.toLowerCase())) {
       this.logger.warn(
         `[MarketDataController] Invalid interval received: ${interval}`,
@@ -79,18 +140,14 @@ export class MarketDataController {
       );
     }
 
-    // Convert to the format expected by the multi-provider service (EURUSD)
-    const symbol = `${baseCurrency.toUpperCase()}${quoteCurrency.toUpperCase()}`;
-
-    // Log before calling the service
     this.logger.log(
-      `[MarketDataController] Calling MultiProviderMarketDataService.getHistoricalPrices with: symbol=${symbol}, assetType=forex, interval=${interval.toLowerCase()}`,
+      `[MarketDataController] Calling MultiProviderMarketDataService.getHistoricalPrices with: symbol=${symbol}, assetType=${assetType}, interval=${interval.toLowerCase()}`,
     );
 
     try {
       const result = await this.multiProviderService.getHistoricalPrices(
         symbol,
-        'forex',
+        assetType,
         interval.toLowerCase(),
         new Date(startDate),
         new Date(endDate),
