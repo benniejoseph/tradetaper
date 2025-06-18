@@ -65,8 +65,11 @@ export default function JournalPage() {
   const filteredTrades = useMemo(() => {
     // Use the currently selected account (MT5 or regular)
     const currentAccountId = selectedAccountId || selectedMT5AccountId;
+    
+    // When no account is selected ("All Accounts"), show all trades
+    // When a specific account is selected, only show trades for that account
     return applyAllFilters(allTrades, {
-      accountId: currentAccountId,
+      accountId: currentAccountId, // null means show all trades
       positionFilter: activePositionFilter,
       timeFilter: activeTimeFilter,
       customDateRange,
@@ -247,16 +250,24 @@ export default function JournalPage() {
           <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-pink-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl"></div>
           <div className="relative z-10">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Account Balance</h3>
+              <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Net Balance</h3>
               <div className="p-2 bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-xl">
                 <FaBookOpen className="w-4 h-4 text-purple-600 dark:text-purple-400" />
               </div>
             </div>
             <p className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-              {selectedAccount?.balance !== undefined ? <CurrencyAmount amount={selectedAccount.balance} className="inline" /> : 'N/A'}
+              {selectedAccount?.balance !== undefined ? 
+                <CurrencyAmount amount={selectedAccount.balance + footerStats.totalNetPnl} className="inline" /> : 
+                (selectedAccountId || selectedMT5AccountId ? 'N/A' : <CurrencyAmount amount={footerStats.totalNetPnl} className="inline" />)
+              }
             </p>
             <p className="text-sm text-gray-500 dark:text-gray-400">
               {selectedAccount?.name || 'All Accounts'}
+              {selectedAccount && (
+                <span className="block text-xs mt-1">
+                  Base: <CurrencyAmount amount={selectedAccount.balance} className="inline" /> + P&L: <CurrencyAmount amount={footerStats.totalNetPnl} className="inline" showSign />
+                </span>
+              )}
             </p>
           </div>
         </div>
@@ -420,14 +431,19 @@ export default function JournalPage() {
                 }
               </p>
             </div>
-            {filteredTrades.length === 0 && allTrades.filter(t => t.accountId === selectedAccountId).length === 0 && (
-              <Link 
-                href="/journal/new" 
-                className="inline-flex items-center space-x-2 bg-gradient-to-r from-blue-500 to-green-500 hover:from-blue-600 hover:to-green-600 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl">
-                <FaPlus className="w-4 h-4" />
-                <span>Log Your First Trade</span>
-              </Link>
-            )}
+            {/* Only show "Log Your First Trade" if no trades exist for the current context */}
+            {(() => {
+              const currentAccountId = selectedAccountId || selectedMT5AccountId;
+              const accountTrades = currentAccountId ? allTrades.filter(t => t.accountId === currentAccountId) : allTrades;
+              return filteredTrades.length === 0 && accountTrades.length === 0 && (
+                <Link 
+                  href="/journal/new" 
+                  className="inline-flex items-center space-x-2 bg-gradient-to-r from-blue-500 to-green-500 hover:from-blue-600 hover:to-green-600 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl">
+                  <FaPlus className="w-4 h-4" />
+                  <span>Log Your First Trade</span>
+                </Link>
+              );
+            })()}
           </div>
         </div>
       )}
