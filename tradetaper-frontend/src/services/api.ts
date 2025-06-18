@@ -4,7 +4,7 @@ import { RootState } from '@/store/store';
 
 // Use environment variable with fallback to GCP backend
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 
-  'https://tradetaper-backend-481634875325.us-central1.run.app/api/v1';
+  'https://tradetaper-backend-2geki2wncq-uc.a.run.app/api/v1';
 
 console.log('🔧 API Configuration:', { 
   env: process.env.NODE_ENV,
