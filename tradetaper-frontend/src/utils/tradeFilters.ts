@@ -2,7 +2,11 @@ import { Trade, TradeStatus } from '@/types/trade';
 import { parseISO, isAfter, isBefore, endOfDay, subMonths, subWeeks, subDays, isValid } from 'date-fns';
 
 export const filterByAccount = (trades: Trade[], accountId: string | null) => {
+  // If no accountId is specified (null), show all trades
   if (!accountId) return trades;
+  
+  // If a specific accountId is provided, filter trades for that account
+  // This includes trades that have this specific accountId
   return trades.filter(trade => trade.accountId === accountId);
 };
 
@@ -90,6 +94,7 @@ export const applyAllFilters = (
 ) => {
   let result = trades;
   
+  // Apply account filter first - this is the key change for account-based context
   result = filterByAccount(result, filters.accountId);
   result = filterByPosition(result, filters.positionFilter);
   result = filterByTimeRange(result, filters.timeFilter);
@@ -99,4 +104,11 @@ export const applyAllFilters = (
   
   // Sort by newest first
   return [...result].sort((a, b) => new Date(b.entryDate).getTime() - new Date(a.entryDate).getTime());
+};
+
+// Helper function to get trades for account context (for use in components)
+export const getTradesForAccountContext = (trades: Trade[], accountId: string | null) => {
+  // When accountId is null ("All Accounts"), return all trades
+  // When accountId is specified, return only trades for that account
+  return filterByAccount(trades, accountId);
 }; 
