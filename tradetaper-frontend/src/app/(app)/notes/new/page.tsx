@@ -11,12 +11,19 @@ import {
   FaUnderline, 
   FaCode,
   FaQuoteLeft,
-  FaHeading
+  FaHeading,
+  FaArrowLeft,
+  FaEye,
+  FaEyeSlash,
+  FaPlus,
+  FaInfoCircle,
+  FaExclamationTriangle,
+  FaCheckCircle
 } from 'react-icons/fa';
 import { AnimatedCard } from '@/components/ui/AnimatedCard';
 import { AnimatedButton } from '@/components/ui/AnimatedButton';
 import { notesService } from '@/services/notesService';
-import { Note, NoteBlock, BlockType } from '@/types/note';
+import { Note as NoteType, NoteBlock } from '@/types/note';
 import { format } from 'date-fns';
 import toast from 'react-hot-toast';
 import { useDebounce } from '@/hooks/useDebounce';
@@ -132,7 +139,6 @@ const NewNotePage: React.FC = () => {
       };
 
       // Import and use the notes service
-      const { notesService } = await import('@/services/notesService');
       const savedNote = await notesService.createNote(noteData);
       
       if (!isAutoSave) {
@@ -279,7 +285,7 @@ const NewNotePage: React.FC = () => {
           </div>
 
           <AnimatedButton
-            onClick={() => handleSave()}
+            onClick={() => handleSave(false)}
             variant="gradient"
             className="bg-gradient-to-r from-blue-500 to-purple-500"
             icon={saving ? <FaSpinner className="animate-spin" /> : <FaSave />}
