@@ -22,7 +22,7 @@ export class CalendarController {
     @Param('month', ParseIntPipe) month: number,
     @Request() req: any,
   ): Promise<CalendarMonth> {
-    return this.calendarService.getCalendarData(req.user.userId, year, month);
+    return this.calendarService.getCalendarData(req.user.id, year, month);
   }
 
   @Get('date/:date')
@@ -30,7 +30,7 @@ export class CalendarController {
     @Param('date') date: string,
     @Request() req: any,
   ): Promise<Note[]> {
-    return this.calendarService.getNotesForDate(req.user.userId, date);
+    return this.calendarService.getNotesForDate(req.user.id, date);
   }
 
   @Get(':year/:month/stats')
@@ -45,7 +45,7 @@ export class CalendarController {
     mostActiveDay: { date: string; noteCount: number } | null;
     notesByWeek: { week: number; noteCount: number }[];
   }> {
-    return this.calendarService.getCalendarStats(req.user.userId, year, month);
+    return this.calendarService.getCalendarStats(req.user.id, year, month);
   }
 
   @Get('reminders')
@@ -57,7 +57,7 @@ export class CalendarController {
     dueDate: string;
     priority: 'low' | 'medium' | 'high';
   }[]> {
-    return this.calendarService.getUpcomingReminders(req.user.userId);
+    return this.calendarService.getUpcomingReminders(req.user.id);
   }
 
   @Get('search')
@@ -68,7 +68,7 @@ export class CalendarController {
     @Request() req: any,
   ): Promise<Note[]> {
     return this.calendarService.searchNotesByDateRange(
-      req.user.userId,
+      req.user.id,
       startDate,
       endDate,
       searchTerm,
