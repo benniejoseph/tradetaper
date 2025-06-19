@@ -8,6 +8,9 @@ import { MT5Account } from '../users/entities/mt5-account.entity';
 import { Subscription } from '../subscriptions/entities/subscription.entity';
 import { Usage } from '../subscriptions/entities/usage.entity';
 import { Strategy } from '../strategies/entities/strategy.entity';
+import { Note } from '../notes/entities/note.entity';
+import { NoteBlock } from '../notes/entities/note-block.entity';
+import { NoteMedia } from '../notes/entities/note-media.entity';
 
 const isProduction = process.env.NODE_ENV === 'production';
 
@@ -62,7 +65,7 @@ console.log('FINAL DATABASE CONFIG (data-source.ts):', {
 
 export const AppDataSource = new DataSource({
   ...dbConfig,
-  entities: [User, Account, Trade, Tag, MT5Account, Subscription, Usage, Strategy],
+  entities: [User, Account, Trade, Tag, MT5Account, Subscription, Usage, Strategy, Note, NoteBlock, NoteMedia],
   migrations: [isProduction ? 'dist/migrations/*{.ts,.js}' : 'src/migrations/*{.ts,.js}'],
   synchronize: false, // Always false for production safety
   logging: process.env.NODE_ENV !== 'production',
