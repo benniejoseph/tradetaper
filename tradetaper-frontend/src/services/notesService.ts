@@ -259,33 +259,33 @@ export class NotesService {
   }
 
   // Calendar methods
-  async getNotesForDate(date: string): Promise<Note[]> {
+  static async getNotesForDate(date: string): Promise<Note[]> {
     const response = await authApiClient.get(`/notes/calendar/date/${date}`);
     return response.data;
   }
 
-  async getCalendarStats(year: number, month: number): Promise<any> {
+  static async getCalendarStats(year: number, month: number): Promise<any> {
     const response = await authApiClient.get(`/notes/calendar/${year}/${month}/stats`);
     return response.data;
   }
 
   // Media methods
-  async getMediaUrl(mediaId: string): Promise<string> {
+  static async getMediaUrl(mediaId: string): Promise<string> {
     const response = await authApiClient.get(`/notes/media/${mediaId}/url`);
     return response.data.url;
   }
 
-  async deleteMedia(mediaId: string): Promise<void> {
+  static async deleteMedia(mediaId: string): Promise<void> {
     await authApiClient.delete(`/notes/media/${mediaId}`);
   }
 
-  async generateEmbedData(url: string): Promise<any> {
+  static async generateEmbedData(url: string): Promise<any> {
     const response = await authApiClient.post('/notes/media/embed', { url });
     return response.data;
   }
 
   // AI methods
-  async enhanceText(text: string, task: 'grammar' | 'clarity' | 'summarize' | 'expand'): Promise<{
+  static async enhanceText(text: string, task: 'grammar' | 'clarity' | 'summarize' | 'expand'): Promise<{
     enhancedText: string;
     suggestions: string[];
   }> {
@@ -293,7 +293,7 @@ export class NotesService {
     return response.data;
   }
 
-  async generateNoteSuggestions(content: string): Promise<{
+  static async generateNoteSuggestions(content: string): Promise<{
     tags: string[];
     title: string;
     relatedTopics: string[];
@@ -303,7 +303,7 @@ export class NotesService {
   }
 
   // Additional utility methods
-  async exportNote(noteId: string, format: 'pdf' | 'markdown' | 'json'): Promise<Blob> {
+  static async exportNote(noteId: string, format: 'pdf' | 'markdown' | 'json'): Promise<Blob> {
     const response = await authApiClient.get(`/notes/${noteId}/export/${format}`, {
       responseType: 'blob',
     });
@@ -311,15 +311,15 @@ export class NotesService {
   }
 
   // Bulk operations
-  async bulkDelete(noteIds: string[]): Promise<void> {
+  static async bulkDelete(noteIds: string[]): Promise<void> {
     await authApiClient.post('/notes/bulk/delete', { noteIds });
   }
 
-  async bulkUpdateTags(noteIds: string[], tags: string[]): Promise<void> {
+  static async bulkUpdateTags(noteIds: string[], tags: string[]): Promise<void> {
     await authApiClient.post('/notes/bulk/tags', { noteIds, tags });
   }
 
-  async bulkUpdateVisibility(noteIds: string[], visibility: 'private' | 'shared'): Promise<void> {
+  static async bulkUpdateVisibility(noteIds: string[], visibility: 'private' | 'shared'): Promise<void> {
     await authApiClient.post('/notes/bulk/visibility', { noteIds, visibility });
   }
 }
