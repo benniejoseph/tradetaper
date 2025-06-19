@@ -19,6 +19,7 @@ import { notesService } from '@/services/notesService';
 import { Note, NoteBlock, BlockType } from '@/types/note';
 import { format } from 'date-fns';
 import toast from 'react-hot-toast';
+import { useDebounce } from '@/hooks/useDebounce';
 
 interface Block {
   id: string;

@@ -324,4 +324,5 @@ export class NotesService {
   }
 }
 
+// Export an instance for easy use
 export const notesService = NotesService; 
