@@ -126,7 +126,7 @@ const NotesPage: React.FC = () => {
 
   useEffect(() => {
     fetchNotes();
-  }, [debouncedSearch, selectedTags, sortBy, sortOrder, dateFilter.from, dateFilter.to, pinnedOnly, hasMediaOnly, currentPage]);
+  }, [fetchNotes]);
 
   useEffect(() => {
     fetchMetadata();
