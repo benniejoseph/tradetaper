@@ -13,7 +13,7 @@ import { useTheme } from '@/context/ThemeContext';
 import DashboardCard from '@/components/dashboard/DashboardCard';
 import { AnimatedCard, MetricCard } from '@/components/ui/AnimatedCard';
 import { AnimatedButton, FloatingActionButton } from '@/components/ui/AnimatedButton';
-import { TradeStatus } from '@/types/trade';
+import { TradeStatus, Trade } from '@/types/trade';
 import { format as formatDateFns, subDays, isAfter, parseISO } from 'date-fns';
 import { 
     FaDollarSign, FaChartLine as FaReturnIcon, FaPercentage, 
@@ -62,8 +62,8 @@ export default function DashboardPage() {
   
   // Trading Activity Modal State
   const [isTradingActivityModalOpen, setIsTradingActivityModalOpen] = useState(false);
-  const [selectedDateData, setSelectedDateData] = useState<any>(null);
-  const [selectedDateTrades, setSelectedDateTrades] = useState<any[]>([]);
+  const [selectedDateData, setSelectedDateData] = useState<{date: string; pnl: number; trades: number} | null>(null);
+  const [selectedDateTrades, setSelectedDateTrades] = useState<Trade[]>([]);
 
   // Target calculation moved after dashboardStats is computed
 
@@ -221,7 +221,7 @@ export default function DashboardPage() {
   }, [equityCurve, dashboardStats]);
 
   // Handler for heatmap date clicks
-  const handleHeatmapDateClick = (dateData: any, tradesForDate: any[]) => {
+  const handleHeatmapDateClick = (dateData: {date: string; pnl: number; trades: number}, tradesForDate: Trade[]) => {
     setSelectedDateData(dateData);
     setSelectedDateTrades(tradesForDate);
     setIsTradingActivityModalOpen(true);
