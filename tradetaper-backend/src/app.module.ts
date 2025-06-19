@@ -23,6 +23,10 @@ import { Tag } from './tags/entities/tag.entity';
 import { MT5Account } from './users/entities/mt5-account.entity';
 import { Strategy } from './strategies/entities/strategy.entity';
 import { SimpleWebSocketModule } from './websocket/simple-websocket.module';
+import { NotesModule } from './notes/notes.module';
+import { Note } from './notes/entities/note.entity';
+import { NoteBlock } from './notes/entities/note-block.entity';
+import { NoteMedia } from './notes/entities/note-media.entity';
 
 @Module({
   imports: [
@@ -50,7 +54,7 @@ import { SimpleWebSocketModule } from './websocket/simple-websocket.module';
             username: 'tradetaper',
             password: 'TradeTaper2024',
             database: 'tradetaper',
-            entities: [User, Account, Trade, Tag, MT5Account, Subscription, Usage, Strategy],
+            entities: [User, Account, Trade, Tag, MT5Account, Subscription, Usage, Strategy, Note, NoteBlock, NoteMedia],
             synchronize: false,
             ssl: false,
             retryAttempts: 5,
@@ -74,7 +78,7 @@ import { SimpleWebSocketModule } from './websocket/simple-websocket.module';
           username: 'postgres',
           password: 'postgres',
           database: 'tradetaper',
-          entities: [User, Account, Trade, Tag, MT5Account, Subscription, Usage, Strategy],
+          entities: [User, Account, Trade, Tag, MT5Account, Subscription, Usage, Strategy, Note, NoteBlock, NoteMedia],
           synchronize: true,
           autoLoadEntities: true,
           logging: true,
@@ -92,6 +96,7 @@ import { SimpleWebSocketModule } from './websocket/simple-websocket.module';
     FilesModule,
     MarketDataModule,
     SimpleWebSocketModule,
+    NotesModule,
   ],
   controllers: [AppController],
   providers: [AppService],
