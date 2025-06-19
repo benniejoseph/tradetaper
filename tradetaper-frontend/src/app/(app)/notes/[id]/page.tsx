@@ -9,10 +9,9 @@ import {
   FaSave, 
   FaTrash, 
   FaStar,
-  FaStarOutline,
+  FaRegStar,
   FaShare,
   FaCopy,
-  FaDownload,
   FaSpinner,
   FaTags,
   FaCalendarAlt,
@@ -36,12 +35,6 @@ const NoteViewPage: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [editedNote, setEditedNote] = useState<Partial<Note>>({});
 
-  useEffect(() => {
-    if (noteId) {
-      fetchNote();
-    }
-  }, [noteId]);
-
   const fetchNote = async () => {
     try {
       setLoading(true);
@@ -56,6 +49,12 @@ const NoteViewPage: React.FC = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (noteId) {
+      fetchNote();
+    }
+  }, [noteId, fetchNote]);
 
   const handleSave = async () => {
     if (!note || !editedNote.title) return;
@@ -274,7 +273,7 @@ const NoteViewPage: React.FC = () => {
           <AnimatedButton
             onClick={handleTogglePin}
             variant="outline"
-            icon={note.isPinned ? <FaStar /> : <FaStarOutline />}
+            icon={note.isPinned ? <FaStar /> : <FaRegStar />}
             className={note.isPinned ? 'text-yellow-500 border-yellow-500' : ''}
           >
             {note.isPinned ? 'Pinned' : 'Pin'}
