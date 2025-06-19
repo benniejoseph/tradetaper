@@ -7,7 +7,7 @@ import {
   JoinColumn,
   Index,
 } from 'typeorm';
-import { Note } from './note.entity';
+// import { Note } from './note.entity'; // Commented to avoid circular import
 
 @Entity('note_media')
 export class NoteMedia {
@@ -40,10 +40,10 @@ export class NoteMedia {
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 
-  // Relationships
-  @ManyToOne(() => Note, (note) => note.media, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'note_id' })
-  note: Note;
+  // Relationship commented to avoid circular import
+  // @ManyToOne(() => Note, (note) => note.media, { onDelete: 'CASCADE' })
+  // @JoinColumn({ name: 'note_id' })
+  // note: Note;
 
   // Computed properties
   get isImage(): boolean {
@@ -71,5 +71,16 @@ export class NoteMedia {
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  }
+
+  // Virtual properties for URL generation
+  get signedUrl(): string | null {
+    // This would be populated by the service when needed
+    return null;
+  }
+
+  get thumbnailSignedUrl(): string | null {
+    // This would be populated by the service when needed
+    return null;
   }
 } 

@@ -129,7 +129,7 @@ const NewNotePage: React.FC = () => {
     try {
       setSaving(true);
       
-      // Use the notes service instead of direct fetch
+      // Use the notes service
       const noteData = {
         title: note.title,
         content: note.content,
@@ -139,40 +139,13 @@ const NewNotePage: React.FC = () => {
         tradeId: note.tradeId,
       };
 
-      // Try using the service first
-      try {
-        const { notesService } = await import('@/services/notesService');
-        const savedNote = await notesService.createNote(noteData);
-        
-        if (!isAutoSave) {
-          toast.success('Note saved successfully!');
-          router.push(`/notes/${savedNote.id}`);
-        }
-      } catch (serviceError) {
-        console.error('Service error:', serviceError);
-        
-        // Fallback to direct API call
-        const response = await fetch('/api/v1/notes', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          },
-          body: JSON.stringify(noteData),
-        });
-
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error('API Response:', response.status, errorText);
-          throw new Error(`Failed to save note: ${response.status} ${errorText}`);
-        }
-
-        const savedNote = await response.json();
-        
-        if (!isAutoSave) {
-          toast.success('Note saved successfully!');
-          router.push(`/notes/${savedNote.id}`);
-        }
+      // Import and use the notes service
+      const { notesService } = await import('@/services/notesService');
+      const savedNote = await notesService.createNote(noteData);
+      
+      if (!isAutoSave) {
+        toast.success('Note saved successfully!');
+        router.push(`/notes/${savedNote.id}`);
       }
     } catch (error) {
       console.error('Error saving note:', error);
