@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   FaPlus, 
@@ -21,6 +21,7 @@ import { AnimatedButton } from '@/components/ui/AnimatedButton';
 import { useRouter } from 'next/navigation';
 import { useDebounce } from '@/hooks/useDebounce';
 import { format, parseISO, startOfMonth, endOfMonth } from 'date-fns';
+import { NotesService } from '@/services/notesService';
 
 interface Note {
   id: string;
@@ -81,32 +82,23 @@ const NotesPage: React.FC = () => {
   const debouncedSearch = useDebounce(searchTerm, 300);
 
   // Fetch notes
-  const fetchNotes = async () => {
+  const fetchNotes = useCallback(async () => {
     try {
       setLoading(true);
-      const params = new URLSearchParams({
-        limit: limit.toString(),
-        offset: ((currentPage - 1) * limit).toString(),
+      const params = {
+        limit,
+        offset: (currentPage - 1) * limit,
         sortBy,
         sortOrder,
-      });
+        ...(debouncedSearch && { search: debouncedSearch }),
+        ...(selectedTags.length > 0 && { tags: selectedTags }),
+        ...(dateFilter.from && { dateFrom: dateFilter.from }),
+        ...(dateFilter.to && { dateTo: dateFilter.to }),
+        ...(pinnedOnly && { pinnedOnly: true }),
+        ...(hasMediaOnly && { hasMedia: true }),
+      };
 
-      if (debouncedSearch) params.append('search', debouncedSearch);
-      if (selectedTags.length > 0) selectedTags.forEach(tag => params.append('tags', tag));
-      if (dateFilter.from) params.append('dateFrom', dateFilter.from);
-      if (dateFilter.to) params.append('dateTo', dateFilter.to);
-      if (pinnedOnly) params.append('pinnedOnly', 'true');
-      if (hasMediaOnly) params.append('hasMedia', 'true');
-
-      const response = await fetch(`/api/v1/notes?${params}`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        },
-      });
-
-      if (!response.ok) throw new Error('Failed to fetch notes');
-
-      const data: NotesResponse = await response.json();
+      const data = await NotesService.getNotes(params);
       setNotes(data.notes);
       setTotal(data.total);
     } catch (error) {
@@ -114,41 +106,30 @@ const NotesPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [debouncedSearch, selectedTags, sortBy, sortOrder, dateFilter.from, dateFilter.to, pinnedOnly, hasMediaOnly, currentPage]);
 
   // Fetch stats and tags
-  const fetchMetadata = async () => {
+  const fetchMetadata = useCallback(async () => {
     try {
-      const [statsResponse, tagsResponse] = await Promise.all([
-        fetch('/api/v1/notes/stats', {
-          headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
-        }),
-        fetch('/api/v1/notes/tags', {
-          headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
-        }),
+      const [statsData, tagsData] = await Promise.all([
+        NotesService.getStats(),
+        NotesService.getTags(),
       ]);
 
-      if (statsResponse.ok) {
-        const statsData = await statsResponse.json();
-        setStats(statsData);
-      }
-
-      if (tagsResponse.ok) {
-        const tagsData = await tagsResponse.json();
-        setAvailableTags(tagsData);
-      }
+      setStats(statsData);
+      setAvailableTags(tagsData);
     } catch (error) {
       console.error('Error fetching metadata:', error);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchNotes();
-  }, [debouncedSearch, selectedTags, sortBy, sortOrder, dateFilter, pinnedOnly, hasMediaOnly, currentPage]);
+  }, [debouncedSearch, selectedTags, sortBy, sortOrder, dateFilter.from, dateFilter.to, pinnedOnly, hasMediaOnly, currentPage]);
 
   useEffect(() => {
     fetchMetadata();
-  }, []);
+  }, [fetchMetadata]);
 
   // Toggle tag selection
   const toggleTag = (tag: string) => {
