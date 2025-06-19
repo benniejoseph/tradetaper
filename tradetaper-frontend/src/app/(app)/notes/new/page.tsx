@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { 
@@ -45,6 +45,63 @@ interface Note {
   tradeId?: string;
 }
 
+// Helper functions defined outside component to avoid initialization issues
+function getDefaultContent(type: Block['type']) {
+  switch (type) {
+    case 'text':
+    case 'heading':
+      return { text: '' };
+    case 'quote':
+      return { text: '', author: '' };
+    case 'list':
+      return { items: [''], ordered: false };
+    case 'code':
+      return { code: '', language: 'javascript' };
+    case 'image':
+      return { url: '', caption: '', alt: '' };
+    case 'video':
+      return { url: '', caption: '' };
+    case 'embed':
+      return { url: '', title: '', description: '' };
+    case 'callout':
+      return { text: '', type: 'info', icon: 'info' };
+    case 'table':
+      return { 
+        headers: ['Column 1', 'Column 2'],
+        rows: [['', ''], ['', '']]
+      };
+    case 'divider':
+      return {};
+    default:
+      return { text: '' };
+  }
+}
+
+function createEmptyBlock(type: Block['type'], position: number): Block {
+  return {
+    id: `block-${Date.now()}-${Math.random()}`,
+    type,
+    content: getDefaultContent(type),
+    position,
+  };
+}
+
+function getBlockText(block: Block): string {
+  switch (block.type) {
+    case 'text':
+    case 'heading':
+      return block.content.text || '';
+    case 'quote':
+      return block.content.text || '';
+    case 'code':
+      return block.content.code || '';
+    case 'callout':
+      return block.content.text || '';
+    default:
+      return '';
+  }
+}
+
 const NewNotePage: React.FC = () => {
   const router = useRouter();
   const [note, setNote] = useState<Note>({
@@ -63,71 +120,76 @@ const NewNotePage: React.FC = () => {
   const autoSaveTimer = useRef<NodeJS.Timeout>();
   const debouncedNote = useDebounce(note, 2000);
 
+  // Save note - wrapped in useCallback to prevent recreation on every render
+  const handleSave = useCallback(async (isAutoSave = false) => {
+    if (!note.title && !note.content.some(block => getBlockText(block))) {
+      return; // Don't save empty notes
+    }
+
+    try {
+      setSaving(true);
+      
+      // Use the notes service instead of direct fetch
+      const noteData = {
+        title: note.title,
+        content: note.content,
+        tags: note.tags,
+        visibility: note.visibility,
+        accountId: note.accountId,
+        tradeId: note.tradeId,
+      };
+
+      // Try using the service first
+      try {
+        const { notesService } = await import('@/services/notesService');
+        const savedNote = await notesService.createNote(noteData);
+        
+        if (!isAutoSave) {
+          toast.success('Note saved successfully!');
+          router.push(`/notes/${savedNote.id}`);
+        }
+      } catch (serviceError) {
+        console.error('Service error:', serviceError);
+        
+        // Fallback to direct API call
+        const response = await fetch('/api/v1/notes', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          },
+          body: JSON.stringify(noteData),
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('API Response:', response.status, errorText);
+          throw new Error(`Failed to save note: ${response.status} ${errorText}`);
+        }
+
+        const savedNote = await response.json();
+        
+        if (!isAutoSave) {
+          toast.success('Note saved successfully!');
+          router.push(`/notes/${savedNote.id}`);
+        }
+      }
+    } catch (error) {
+      console.error('Error saving note:', error);
+      if (!isAutoSave) {
+        toast.error('Failed to save note. Please try again.');
+      }
+    } finally {
+      setSaving(false);
+    }
+  }, [note.title, note.content, note.tags, note.visibility, note.accountId, note.tradeId, router]);
+
   // Auto-save functionality
   useEffect(() => {
     if (debouncedNote.title || debouncedNote.content.some(block => getBlockText(block))) {
       handleSave(true); // Auto-save
     }
   }, [debouncedNote, handleSave]);
-
-  // Create empty block
-  function createEmptyBlock(type: Block['type'], position: number): Block {
-    return {
-      id: `block-${Date.now()}-${Math.random()}`,
-      type,
-      content: getDefaultContent(type),
-      position,
-    };
-  }
-
-  // Get default content for block type
-  function getDefaultContent(type: Block['type']) {
-    switch (type) {
-      case 'text':
-      case 'heading':
-        return { text: '' };
-      case 'quote':
-        return { text: '', author: '' };
-      case 'list':
-        return { items: [''], ordered: false };
-      case 'code':
-        return { code: '', language: 'javascript' };
-      case 'image':
-        return { url: '', caption: '', alt: '' };
-      case 'video':
-        return { url: '', caption: '' };
-      case 'embed':
-        return { url: '', title: '', description: '' };
-      case 'callout':
-        return { text: '', type: 'info', icon: 'info' };
-      case 'table':
-        return { 
-          headers: ['Column 1', 'Column 2'],
-          rows: [['', ''], ['', '']]
-        };
-      case 'divider':
-        return {};
-      default:
-        return { text: '' };
-    }
-  }
-
-  // Get text content from block for auto-save detection
-  function getBlockText(block: Block): string {
-    switch (block.type) {
-      case 'text':
-      case 'heading':
-        return block.content.text || '';
-      case 'quote':
-        return block.content.text || '';
-      case 'code':
-        return block.content.code || '';
-      case 'callout':
-        return block.content.text || '';
-      default:
-        return '';
-    }
-  }
 
   // Handle block content change
   const updateBlock = (blockId: string, newContent: any) => {
@@ -202,71 +264,6 @@ const NewNotePage: React.FC = () => {
           y: rect.bottom + window.scrollY
         });
       }
-    }
-  };
-
-  // Save note
-  const handleSave = async (isAutoSave = false) => {
-    if (!note.title && !note.content.some(block => getBlockText(block))) {
-      return; // Don't save empty notes
-    }
-
-    try {
-      setSaving(true);
-      
-      // Use the notes service instead of direct fetch
-      const noteData = {
-        title: note.title,
-        content: note.content,
-        tags: note.tags,
-        visibility: note.visibility,
-        accountId: note.accountId,
-        tradeId: note.tradeId,
-      };
-
-      // Try using the service first
-      try {
-        const { notesService } = await import('@/services/notesService');
-        const savedNote = await notesService.createNote(noteData);
-        
-        if (!isAutoSave) {
-          toast.success('Note saved successfully!');
-          router.push(`/notes/${savedNote.id}`);
-        }
-      } catch (serviceError) {
-        console.error('Service error:', serviceError);
-        
-        // Fallback to direct API call
-        const response = await fetch('/api/v1/notes', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          },
-          body: JSON.stringify(noteData),
-        });
-
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error('API Response:', response.status, errorText);
-          throw new Error(`Failed to save note: ${response.status} ${errorText}`);
-        }
-
-        const savedNote = await response.json();
-        
-        if (!isAutoSave) {
-          toast.success('Note saved successfully!');
-          router.push(`/notes/${savedNote.id}`);
-        }
-      }
-    } catch (error) {
-      console.error('Error saving note:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      if (!isAutoSave) {
-        toast.error(`Failed to save note: ${errorMessage}`);
-      }
-    } finally {
-      setSaving(false);
     }
   };
 
@@ -486,100 +483,98 @@ const BlockEditor: React.FC<{
 
     case 'quote':
       return (
-        <div className="group relative">
-          <div className="border-l-4 border-gray-300 pl-4">
-            <textarea
-              id={`block-${block.id}`}
-              value={block.content.text || ''}
-              onChange={(e) => handleContentChange('text', e.target.value)}
-              onKeyDown={onKeyDown}
-              placeholder="Quote..."
-              className="w-full bg-transparent border-none outline-none resize-none min-h-[1.5rem] text-gray-700 dark:text-gray-300 italic placeholder-gray-400"
-              rows={1}
-            />
-            {block.content.author !== undefined && (
-              <input
-                type="text"
-                value={block.content.author || ''}
-                onChange={(e) => handleContentChange('author', e.target.value)}
-                placeholder="Author"
-                className="w-full bg-transparent border-none outline-none text-sm text-gray-500 placeholder-gray-400 mt-1"
-              />
-            )}
-          </div>
+        <div className="group relative border-l-4 border-gray-300 dark:border-gray-600 pl-4">
+          <textarea
+            id={`block-${block.id}`}
+            value={block.content.text || ''}
+            onChange={(e) => handleContentChange('text', e.target.value)}
+            onKeyDown={onKeyDown}
+            placeholder="Quote..."
+            className="w-full bg-transparent border-none outline-none resize-none italic text-gray-600 dark:text-gray-400 placeholder-gray-400"
+            rows={1}
+          />
+          <input
+            type="text"
+            value={block.content.author || ''}
+            onChange={(e) => handleContentChange('author', e.target.value)}
+            placeholder="Author (optional)"
+            className="w-full bg-transparent border-none outline-none text-sm text-gray-500 dark:text-gray-500 placeholder-gray-400 mt-1"
+          />
           <BlockControls onAddBlock={onAddBlock} onDelete={onDelete} />
         </div>
       );
 
     case 'code':
       return (
-        <div className="group relative">
-          <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-4">
-            <div className="flex items-center justify-between mb-2">
-              <select
-                value={block.content.language || 'javascript'}
-                onChange={(e) => handleContentChange('language', e.target.value)}
-                className="text-sm bg-transparent border-none outline-none text-gray-600 dark:text-gray-400"
-              >
-                <option value="javascript">JavaScript</option>
-                <option value="python">Python</option>
-                <option value="typescript">TypeScript</option>
-                <option value="html">HTML</option>
-                <option value="css">CSS</option>
-                <option value="sql">SQL</option>
-              </select>
-            </div>
-            <textarea
-              id={`block-${block.id}`}
-              value={block.content.code || ''}
-              onChange={(e) => handleContentChange('code', e.target.value)}
-              onKeyDown={onKeyDown}
-              placeholder="Enter code..."
-              className="w-full bg-transparent border-none outline-none resize-none min-h-[100px] font-mono text-sm text-gray-800 dark:text-gray-200 placeholder-gray-400"
-              rows={5}
-            />
-          </div>
+        <div className="group relative bg-gray-100 dark:bg-gray-800 rounded-lg p-4">
+          <select
+            value={block.content.language || 'javascript'}
+            onChange={(e) => handleContentChange('language', e.target.value)}
+            className="mb-2 text-xs bg-transparent border-none outline-none text-gray-500"
+          >
+            <option value="javascript">JavaScript</option>
+            <option value="typescript">TypeScript</option>
+            <option value="python">Python</option>
+            <option value="html">HTML</option>
+            <option value="css">CSS</option>
+            <option value="json">JSON</option>
+          </select>
+          <textarea
+            id={`block-${block.id}`}
+            value={block.content.code || ''}
+            onChange={(e) => handleContentChange('code', e.target.value)}
+            onKeyDown={onKeyDown}
+            placeholder="Enter code..."
+            className="w-full bg-transparent border-none outline-none resize-none font-mono text-sm text-gray-800 dark:text-gray-200 placeholder-gray-400"
+            rows={3}
+          />
           <BlockControls onAddBlock={onAddBlock} onDelete={onDelete} />
         </div>
       );
 
     case 'callout':
+      const calloutIcons = {
+        info: <FaInfoCircle className="text-blue-500" />,
+        warning: <FaExclamationTriangle className="text-yellow-500" />,
+        success: <FaCheckCircle className="text-green-500" />,
+      };
+
       return (
-        <div className="group relative">
-          <div className={`p-4 rounded-lg ${
-            block.content.type === 'info' ? 'bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500' :
-            block.content.type === 'warning' ? 'bg-yellow-50 dark:bg-yellow-900/20 border-l-4 border-yellow-500' :
-            block.content.type === 'success' ? 'bg-green-50 dark:bg-green-900/20 border-l-4 border-green-500' :
-            'bg-red-50 dark:bg-red-900/20 border-l-4 border-red-500'
-          }`}>
-            <div className="flex items-center gap-2 mb-2">
-              <select
-                value={block.content.type || 'info'}
-                onChange={(e) => handleContentChange('type', e.target.value)}
-                className="text-sm bg-transparent border-none outline-none"
-              >
-                <option value="info">Info</option>
-                <option value="warning">Warning</option>
-                <option value="success">Success</option>
-                <option value="error">Error</option>
-              </select>
-            </div>
-            <textarea
-              id={`block-${block.id}`}
-              value={block.content.text || ''}
-              onChange={(e) => handleContentChange('text', e.target.value)}
-              onKeyDown={onKeyDown}
-              placeholder="Add your note..."
-              className="w-full bg-transparent border-none outline-none resize-none min-h-[1.5rem] placeholder-gray-400"
-              rows={1}
-            />
+        <div className="group relative bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+          <div className="flex items-center gap-2 mb-2">
+            {calloutIcons[block.content.type as keyof typeof calloutIcons]}
+            <select
+              value={block.content.type || 'info'}
+              onChange={(e) => handleContentChange('type', e.target.value)}
+              className="text-sm bg-transparent border-none outline-none"
+            >
+              <option value="info">Info</option>
+              <option value="warning">Warning</option>
+              <option value="success">Success</option>
+            </select>
           </div>
+          <textarea
+            id={`block-${block.id}`}
+            value={block.content.text || ''}
+            onChange={(e) => handleContentChange('text', e.target.value)}
+            onKeyDown={onKeyDown}
+            placeholder="Callout text..."
+            className="w-full bg-transparent border-none outline-none resize-none text-gray-800 dark:text-gray-200 placeholder-gray-400"
+            rows={1}
+          />
           <BlockControls onAddBlock={onAddBlock} onDelete={onDelete} />
         </div>
       );
 
     default:
-      return null;
+      return (
+        <div className="group relative">
+          <div className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-500">
+            Unsupported block type: {block.type}
+          </div>
+          <BlockControls onAddBlock={onAddBlock} onDelete={onDelete} />
+        </div>
+      );
   }
 };
 
@@ -588,16 +583,18 @@ const BlockControls: React.FC<{
   onAddBlock: (type: Block['type']) => void;
   onDelete: () => void;
 }> = ({ onAddBlock, onDelete }) => (
-  <div className="absolute left-0 top-0 transform -translate-x-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 pr-2">
+  <div className="absolute right-0 top-0 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
     <button
       onClick={() => onAddBlock('text')}
-      className="w-6 h-6 flex items-center justify-center text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded"
+      className="p-1 text-gray-400 hover:text-blue-500 transition-colors"
+      title="Add block"
     >
-      <FaPlus className="w-3 h-3" />
+      <FaPlus size={12} />
     </button>
     <button
       onClick={onDelete}
-      className="w-6 h-6 flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded"
+      className="p-1 text-gray-400 hover:text-red-500 transition-colors"
+      title="Delete block"
     >
       ×
     </button>
@@ -611,11 +608,10 @@ const BlockMenu: React.FC<{
   onSelect: (type: Block['type']) => void;
   onClose: () => void;
 }> = ({ x, y, onSelect, onClose }) => {
-  const menuRef = useRef<HTMLDivElement>(null);
-
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+      const target = event.target as HTMLElement;
+      if (!target.closest('.block-menu')) {
         onClose();
       }
     };
@@ -624,37 +620,30 @@ const BlockMenu: React.FC<{
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [onClose]);
 
-  const blockTypes = [
-    { type: 'text' as const, icon: FaPlus, label: 'Text', description: 'Plain text block' },
-    { type: 'heading' as const, icon: FaPlus, label: 'Heading', description: 'Large heading text' },
-    { type: 'quote' as const, icon: FaQuoteLeft, label: 'Quote', description: 'Quote with attribution' },
-    { type: 'code' as const, icon: FaCode, label: 'Code', description: 'Code block with syntax highlighting' },
-    { type: 'callout' as const, icon: FaInfoCircle, label: 'Callout', description: 'Highlighted note or tip' },
+  const menuItems = [
+    { type: 'text' as const, icon: <FaCode />, label: 'Text' },
+    { type: 'heading' as const, icon: <FaCode />, label: 'Heading' },
+    { type: 'quote' as const, icon: <FaQuoteLeft />, label: 'Quote' },
+    { type: 'code' as const, icon: <FaCode />, label: 'Code' },
+    { type: 'callout' as const, icon: <FaInfoCircle />, label: 'Callout' },
   ];
 
   return (
-    <motion.div
-      ref={menuRef}
-      initial={{ opacity: 0, scale: 0.9 }}
-      animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.9 }}
-      className="fixed z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl p-2 min-w-[250px]"
+    <div
+      className="block-menu fixed z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg min-w-[200px]"
       style={{ left: x, top: y }}
     >
-      {blockTypes.map(({ type, icon: Icon, label, description }) => (
+      {menuItems.map((item) => (
         <button
-          key={type}
-          onClick={() => onSelect(type)}
-          className="w-full flex items-center gap-3 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-left"
+          key={item.type}
+          onClick={() => onSelect(item.type)}
+          className="w-full flex items-center gap-3 px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors first:rounded-t-lg last:rounded-b-lg"
         >
-          <Icon className="w-4 h-4 text-gray-500" />
-          <div>
-            <div className="font-medium text-sm">{label}</div>
-            <div className="text-xs text-gray-500">{description}</div>
-          </div>
+          {item.icon}
+          <span>{item.label}</span>
         </button>
       ))}
-    </motion.div>
+    </div>
   );
 };
 
