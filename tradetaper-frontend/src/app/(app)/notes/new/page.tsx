@@ -1,32 +1,23 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { motion } from 'framer-motion';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
   FaSave, 
-  FaArrowLeft, 
-  FaPlus, 
-  FaImage, 
-  FaVideo, 
-  FaLink, 
-  FaCode, 
+  FaSpinner, 
+  FaTags, 
+  FaBold, 
+  FaItalic, 
+  FaUnderline, 
+  FaCode,
   FaQuoteLeft,
-  FaListUl,
-  FaListOl,
-  FaTable,
-  FaExclamationTriangle,
-  FaInfoCircle,
-  FaCheckCircle,
-  FaMicrophone,
-  FaSpinner,
-  FaTags,
-  FaEye,
-  FaEyeSlash
+  FaHeading
 } from 'react-icons/fa';
 import { AnimatedCard } from '@/components/ui/AnimatedCard';
 import { AnimatedButton } from '@/components/ui/AnimatedButton';
-import { useDebounce } from '@/hooks/useDebounce';
+import { notesService } from '@/services/notesService';
+import { Note, NoteBlock, BlockType } from '@/types/note';
+import { format } from 'date-fns';
 import toast from 'react-hot-toast';
 
 interface Block {
