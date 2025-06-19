@@ -525,3 +525,5 @@ const NoteListItem: React.FC<{ note: Note; onClick: () => void; onDelete: (id: s
 );
 
 export default NotesPage; 
+
+// Deployment trigger - useCallback fix applied 
