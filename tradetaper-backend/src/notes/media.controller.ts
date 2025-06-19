@@ -41,7 +41,7 @@ export class MediaController {
       throw new BadRequestException('Note ID is required');
     }
 
-    return this.mediaService.uploadFile(file, noteId, req.user.userId);
+    return this.mediaService.uploadFile(file, noteId, req.user.id);
   }
 
   @Get(':mediaId/url')
@@ -49,7 +49,7 @@ export class MediaController {
     @Param('mediaId', ParseUUIDPipe) mediaId: string,
     @Request() req: any,
   ): Promise<{ url: string }> {
-    const url = await this.mediaService.getSignedUrl(mediaId, req.user.userId);
+    const url = await this.mediaService.getSignedUrl(mediaId, req.user.id);
     return { url };
   }
 
@@ -58,7 +58,7 @@ export class MediaController {
     @Param('mediaId', ParseUUIDPipe) mediaId: string,
     @Request() req: any,
   ): Promise<void> {
-    return this.mediaService.deleteFile(mediaId, req.user.userId);
+    return this.mediaService.deleteFile(mediaId, req.user.id);
   }
 
   @Get('note/:noteId')
@@ -66,7 +66,7 @@ export class MediaController {
     @Param('noteId', ParseUUIDPipe) noteId: string,
     @Request() req: any,
   ): Promise<NoteMedia[]> {
-    return this.mediaService.getMediaByNote(noteId, req.user.userId);
+    return this.mediaService.getMediaByNote(noteId, req.user.id);
   }
 
   @Post('embed')
