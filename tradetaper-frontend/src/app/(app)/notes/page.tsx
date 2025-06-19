@@ -1,0 +1,530 @@
+'use client';
+
+import React, { useState, useEffect, useMemo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  FaPlus, 
+  FaSearch, 
+  FaFilter, 
+  FaTh, 
+  FaList, 
+  FaCalendarAlt,
+  FaTags,
+  FaSort,
+  FaStar,
+  FaImage,
+  FaMicrophone,
+  FaSpinner
+} from 'react-icons/fa';
+import { AnimatedCard } from '@/components/ui/AnimatedCard';
+import { AnimatedButton } from '@/components/ui/AnimatedButton';
+import { useRouter } from 'next/navigation';
+import { useDebounce } from '@/hooks/useDebounce';
+import { format, parseISO, startOfMonth, endOfMonth } from 'date-fns';
+
+interface Note {
+  id: string;
+  title: string;
+  content: any[];
+  tags: string[];
+  createdAt: string;
+  updatedAt: string;
+  isPinned: boolean;
+  visibility: string;
+  wordCount: number;
+  readingTime: number;
+  accountId?: string;
+  tradeId?: string;
+  preview: string;
+  hasMedia: boolean;
+  blockCount: number;
+}
+
+interface NotesResponse {
+  notes: Note[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
+interface NotesStats {
+  totalNotes: number;
+  totalWords: number;
+  totalReadingTime: number;
+  pinnedNotes: number;
+  notesWithMedia: number;
+  averageWordsPerNote: number;
+  mostUsedTags: { tag: string; count: number }[];
+}
+
+const NotesPage: React.FC = () => {
+  const router = useRouter();
+  
+  // State management
+  const [notes, setNotes] = useState<Note[]>([]);
+  const [stats, setStats] = useState<NotesStats | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [availableTags, setAvailableTags] = useState<string[]>([]);
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [sortBy, setSortBy] = useState<'updatedAt' | 'createdAt' | 'title' | 'wordCount'>('updatedAt');
+  const [sortOrder, setSortOrder] = useState<'ASC' | 'DESC'>('DESC');
+  const [showFilters, setShowFilters] = useState(false);
+  const [dateFilter, setDateFilter] = useState<{ from?: string; to?: string }>({});
+  const [pinnedOnly, setPinnedOnly] = useState(false);
+  const [hasMediaOnly, setHasMediaOnly] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  
+  const limit = 20;
+  const debouncedSearch = useDebounce(searchTerm, 300);
+
+  // Fetch notes
+  const fetchNotes = async () => {
+    try {
+      setLoading(true);
+      const params = new URLSearchParams({
+        limit: limit.toString(),
+        offset: ((currentPage - 1) * limit).toString(),
+        sortBy,
+        sortOrder,
+      });
+
+      if (debouncedSearch) params.append('search', debouncedSearch);
+      if (selectedTags.length > 0) selectedTags.forEach(tag => params.append('tags', tag));
+      if (dateFilter.from) params.append('dateFrom', dateFilter.from);
+      if (dateFilter.to) params.append('dateTo', dateFilter.to);
+      if (pinnedOnly) params.append('pinnedOnly', 'true');
+      if (hasMediaOnly) params.append('hasMedia', 'true');
+
+      const response = await fetch(`/api/v1/notes?${params}`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        },
+      });
+
+      if (!response.ok) throw new Error('Failed to fetch notes');
+
+      const data: NotesResponse = await response.json();
+      setNotes(data.notes);
+      setTotal(data.total);
+    } catch (error) {
+      console.error('Error fetching notes:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch stats and tags
+  const fetchMetadata = async () => {
+    try {
+      const [statsResponse, tagsResponse] = await Promise.all([
+        fetch('/api/v1/notes/stats', {
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+        }),
+        fetch('/api/v1/notes/tags', {
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+        }),
+      ]);
+
+      if (statsResponse.ok) {
+        const statsData = await statsResponse.json();
+        setStats(statsData);
+      }
+
+      if (tagsResponse.ok) {
+        const tagsData = await tagsResponse.json();
+        setAvailableTags(tagsData);
+      }
+    } catch (error) {
+      console.error('Error fetching metadata:', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchNotes();
+  }, [debouncedSearch, selectedTags, sortBy, sortOrder, dateFilter, pinnedOnly, hasMediaOnly, currentPage]);
+
+  useEffect(() => {
+    fetchMetadata();
+  }, []);
+
+  // Toggle tag selection
+  const toggleTag = (tag: string) => {
+    setSelectedTags(prev => 
+      prev.includes(tag) 
+        ? prev.filter(t => t !== tag)
+        : [...prev, tag]
+    );
+    setCurrentPage(1);
+  };
+
+  // Clear all filters
+  const clearFilters = () => {
+    setSearchTerm('');
+    setSelectedTags([]);
+    setDateFilter({});
+    setPinnedOnly(false);
+    setHasMediaOnly(false);
+    setCurrentPage(1);
+  };
+
+  const hasActiveFilters = useMemo(() => {
+    return debouncedSearch || selectedTags.length > 0 || dateFilter.from || dateFilter.to || pinnedOnly || hasMediaOnly;
+  }, [debouncedSearch, selectedTags, dateFilter, pinnedOnly, hasMediaOnly]);
+
+  if (loading && notes.length === 0) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <AnimatedCard variant="glass" className="text-center">
+          <FaSpinner className="animate-spin text-4xl text-blue-500 mb-4 mx-auto" />
+          <p className="text-lg font-medium">Loading your notes...</p>
+        </AnimatedCard>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Header Section */}
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            My Notes
+          </h1>
+          {stats && (
+            <p className="text-gray-600 dark:text-gray-400 mt-1">
+              {stats.totalNotes} notes • {stats.totalWords.toLocaleString()} words • {stats.totalReadingTime} min read
+            </p>
+          )}
+        </div>
+        
+        <div className="flex flex-wrap gap-3">
+          <AnimatedButton
+            onClick={() => router.push('/notes/new')}
+            variant="gradient"
+            className="bg-gradient-to-r from-blue-500 to-purple-500"
+            icon={<FaPlus />}
+            iconPosition="left"
+          >
+            New Note
+          </AnimatedButton>
+          
+          <AnimatedButton
+            onClick={() => {/* TODO: Implement voice recording */}}
+            variant="outline"
+            icon={<FaMicrophone />}
+            iconPosition="left"
+          >
+            Voice Note
+          </AnimatedButton>
+        </div>
+      </div>
+
+      {/* Search and Filter Bar */}
+      <AnimatedCard variant="glass" className="p-4">
+        <div className="flex flex-col lg:flex-row gap-4">
+          {/* Search Input */}
+          <div className="flex-1 relative">
+            <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search notes..."
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+
+          {/* View Toggle */}
+          <div className="flex rounded-lg border border-gray-300 dark:border-gray-600 overflow-hidden">
+            <button
+              onClick={() => setViewMode('grid')}
+              className={`px-3 py-2 ${viewMode === 'grid' ? 'bg-blue-500 text-white' : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300'}`}
+            >
+              <FaTh />
+            </button>
+            <button
+              onClick={() => setViewMode('list')}
+              className={`px-3 py-2 ${viewMode === 'list' ? 'bg-blue-500 text-white' : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300'}`}
+            >
+              <FaList />
+            </button>
+          </div>
+
+          {/* Filter Toggle */}
+          <AnimatedButton
+            onClick={() => setShowFilters(!showFilters)}
+            variant={showFilters ? 'solid' : 'outline'}
+            icon={<FaFilter />}
+            className={hasActiveFilters ? 'ring-2 ring-blue-500' : ''}
+          >
+            Filters {hasActiveFilters && `(${selectedTags.length + (pinnedOnly ? 1 : 0) + (hasMediaOnly ? 1 : 0)})`}
+          </AnimatedButton>
+        </div>
+
+        {/* Expanded Filters */}
+        <AnimatePresence>
+          {showFilters && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700"
+            >
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {/* Tags Filter */}
+                <div>
+                  <label className="block text-sm font-medium mb-2">Tags</label>
+                  <div className="flex flex-wrap gap-1 max-h-24 overflow-y-auto">
+                    {availableTags.map(tag => (
+                      <button
+                        key={tag}
+                        onClick={() => toggleTag(tag)}
+                        className={`px-2 py-1 text-xs rounded-full ${
+                          selectedTags.includes(tag)
+                            ? 'bg-blue-500 text-white'
+                            : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+                        }`}
+                      >
+                        {tag}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Quick Filters */}
+                <div>
+                  <label className="block text-sm font-medium mb-2">Quick Filters</label>
+                  <div className="space-y-2">
+                    <label className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={pinnedOnly}
+                        onChange={(e) => setPinnedOnly(e.target.checked)}
+                        className="mr-2"
+                      />
+                      <FaStar className="mr-1" />
+                      Pinned only
+                    </label>
+                    <label className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={hasMediaOnly}
+                        onChange={(e) => setHasMediaOnly(e.target.checked)}
+                        className="mr-2"
+                      />
+                      <FaImage className="mr-1" />
+                      With media
+                    </label>
+                  </div>
+                </div>
+
+                {/* Sort Options */}
+                <div>
+                  <label className="block text-sm font-medium mb-2">Sort by</label>
+                  <select
+                    value={`${sortBy}-${sortOrder}`}
+                    onChange={(e) => {
+                      const [field, order] = e.target.value.split('-');
+                      setSortBy(field as any);
+                      setSortOrder(order as 'ASC' | 'DESC');
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800"
+                  >
+                    <option value="updatedAt-DESC">Last modified</option>
+                    <option value="createdAt-DESC">Date created (newest)</option>
+                    <option value="createdAt-ASC">Date created (oldest)</option>
+                    <option value="title-ASC">Title (A-Z)</option>
+                    <option value="title-DESC">Title (Z-A)</option>
+                    <option value="wordCount-DESC">Word count (high)</option>
+                    <option value="wordCount-ASC">Word count (low)</option>
+                  </select>
+                </div>
+
+                {/* Clear Filters */}
+                {hasActiveFilters && (
+                  <div className="flex items-end">
+                    <AnimatedButton
+                      onClick={clearFilters}
+                      variant="outline"
+                      className="w-full"
+                    >
+                      Clear All
+                    </AnimatedButton>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </AnimatedCard>
+
+      {/* Notes Grid/List */}
+      {notes.length === 0 ? (
+        <AnimatedCard variant="glass" className="text-center py-16">
+          <div className="max-w-md mx-auto space-y-4">
+            <div className="w-20 h-20 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center mx-auto">
+              <FaPlus className="w-10 h-10 text-white" />
+            </div>
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white">
+              {hasActiveFilters ? 'No notes match your filters' : 'No notes yet'}
+            </h3>
+            <p className="text-gray-600 dark:text-gray-400">
+              {hasActiveFilters 
+                ? 'Try adjusting your search criteria or clear the filters.'
+                : 'Start capturing your thoughts and ideas with your first note.'
+              }
+            </p>
+            <AnimatedButton
+              onClick={() => hasActiveFilters ? clearFilters() : router.push('/notes/new')}
+              variant="gradient"
+              className="bg-gradient-to-r from-blue-500 to-purple-500"
+              icon={hasActiveFilters ? <FaFilter /> : <FaPlus />}
+              iconPosition="left"
+            >
+              {hasActiveFilters ? 'Clear Filters' : 'Create First Note'}
+            </AnimatedButton>
+          </div>
+        </AnimatedCard>
+      ) : (
+        <div className={`${
+          viewMode === 'grid' 
+            ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6' 
+            : 'space-y-4'
+        }`}>
+          <AnimatePresence>
+            {notes.map((note, index) => (
+              <motion.div
+                key={note.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ delay: index * 0.05 }}
+              >
+                {viewMode === 'grid' ? (
+                  <NoteCard note={note} onClick={() => router.push(`/notes/${note.id}`)} />
+                ) : (
+                  <NoteListItem note={note} onClick={() => router.push(`/notes/${note.id}`)} />
+                )}
+              </motion.div>
+            ))}
+          </AnimatePresence>
+        </div>
+      )}
+
+      {/* Pagination */}
+      {total > limit && (
+        <div className="flex justify-center mt-8">
+          <div className="flex gap-2">
+            {Array.from({ length: Math.ceil(total / limit) }, (_, i) => i + 1).map(page => (
+              <button
+                key={page}
+                onClick={() => setCurrentPage(page)}
+                className={`px-3 py-2 rounded ${
+                  currentPage === page
+                    ? 'bg-blue-500 text-white'
+                    : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                }`}
+              >
+                {page}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Note Card Component for Grid View
+const NoteCard: React.FC<{ note: Note; onClick: () => void }> = ({ note, onClick }) => (
+  <AnimatedCard
+    variant="glass"
+    hoverEffect="lift"
+    className="cursor-pointer h-64 flex flex-col"
+    onClick={onClick}
+  >
+    <div className="flex items-start justify-between mb-3">
+      <h3 className="font-semibold text-lg truncate flex-1" title={note.title}>
+        {note.title}
+      </h3>
+      {note.isPinned && <FaStar className="text-yellow-500 ml-2 flex-shrink-0" />}
+    </div>
+    
+    <p className="text-gray-600 dark:text-gray-400 text-sm flex-1 line-clamp-4">
+      {note.preview}
+    </p>
+    
+    <div className="mt-auto pt-4 border-t border-gray-200 dark:border-gray-700">
+      <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+        <span>{format(parseISO(note.updatedAt), 'MMM d, yyyy')}</span>
+        <div className="flex items-center gap-2">
+          {note.hasMedia && <FaImage />}
+          <span>{note.wordCount} words</span>
+        </div>
+      </div>
+      
+      {note.tags.length > 0 && (
+        <div className="flex flex-wrap gap-1 mt-2">
+          {note.tags.slice(0, 3).map(tag => (
+            <span
+              key={tag}
+              className="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs rounded-full"
+            >
+              {tag}
+            </span>
+          ))}
+          {note.tags.length > 3 && (
+            <span className="text-xs text-gray-500">+{note.tags.length - 3}</span>
+          )}
+        </div>
+      )}
+    </div>
+  </AnimatedCard>
+);
+
+// Note List Item Component for List View
+const NoteListItem: React.FC<{ note: Note; onClick: () => void }> = ({ note, onClick }) => (
+  <AnimatedCard
+    variant="glass"
+    hoverEffect="glow"
+    className="cursor-pointer p-4"
+    onClick={onClick}
+  >
+    <div className="flex items-start gap-4">
+      <div className="flex-1">
+        <div className="flex items-center gap-2 mb-2">
+          <h3 className="font-semibold text-lg">{note.title}</h3>
+          {note.isPinned && <FaStar className="text-yellow-500" />}
+          {note.hasMedia && <FaImage className="text-gray-500" />}
+        </div>
+        
+        <p className="text-gray-600 dark:text-gray-400 text-sm mb-2 line-clamp-2">
+          {note.preview}
+        </p>
+        
+        {note.tags.length > 0 && (
+          <div className="flex flex-wrap gap-1 mb-2">
+            {note.tags.map(tag => (
+              <span
+                key={tag}
+                className="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs rounded-full"
+              >
+                {tag}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+      
+      <div className="text-right text-xs text-gray-500 dark:text-gray-400 min-w-[120px]">
+        <div>{format(parseISO(note.updatedAt), 'MMM d, yyyy')}</div>
+        <div className="mt-1">{note.wordCount} words • {note.readingTime} min</div>
+      </div>
+    </div>
+  </AnimatedCard>
+);
+
+export default NotesPage; 
