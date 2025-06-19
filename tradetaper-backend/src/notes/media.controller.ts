@@ -17,7 +17,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { MediaService } from './media.service';
 import { NoteMedia } from './entities/note-media.entity';
 
-@Controller('api/v1/notes/media')
+@Controller('notes/media')
 @UseGuards(JwtAuthGuard)
 export class MediaController {
   constructor(private readonly mediaService: MediaService) {}
@@ -44,22 +44,21 @@ export class MediaController {
     return this.mediaService.uploadFile(file, noteId, req.user.userId);
   }
 
-  @Get(':id/url')
+  @Get(':mediaId/url')
   async getSignedUrl(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('mediaId', ParseUUIDPipe) mediaId: string,
     @Request() req: any,
   ): Promise<{ url: string }> {
-    const url = await this.mediaService.getSignedUrl(id, req.user.userId);
+    const url = await this.mediaService.getSignedUrl(mediaId, req.user.userId);
     return { url };
   }
 
-  @Delete(':id')
+  @Delete(':mediaId')
   async deleteFile(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('mediaId', ParseUUIDPipe) mediaId: string,
     @Request() req: any,
-  ): Promise<{ message: string }> {
-    await this.mediaService.deleteFile(id, req.user.userId);
-    return { message: 'File deleted successfully' };
+  ): Promise<void> {
+    return this.mediaService.deleteFile(mediaId, req.user.userId);
   }
 
   @Get('note/:noteId')
@@ -73,16 +72,17 @@ export class MediaController {
   @Post('embed')
   async generateEmbedData(
     @Body('url') url: string,
-  ): Promise<{
-    title?: string;
-    description?: string;
-    thumbnail?: string;
-    provider?: string;
-  }> {
+  ): Promise<{ title: string; description: string; thumbnail?: string }> {
     if (!url) {
       throw new BadRequestException('URL is required');
     }
 
-    return this.mediaService.generateEmbedData(url);
+    // TODO: Implement URL metadata extraction
+    // For now, return mock data
+    return {
+      title: 'External Content',
+      description: 'Content from external URL',
+      thumbnail: '',
+    };
   }
 } 

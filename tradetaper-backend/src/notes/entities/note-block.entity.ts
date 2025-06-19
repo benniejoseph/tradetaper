@@ -8,7 +8,22 @@ import {
   JoinColumn,
   Index,
 } from 'typeorm';
-import { Note } from './note.entity';
+// import { Note } from './note.entity'; // Commented to avoid circular import
+
+export interface NoteBlockContent {
+  text?: string;
+  url?: string;
+  caption?: string;
+  language?: string;
+  type?: string;
+  items?: string[];
+  ordered?: boolean;
+  author?: string;
+  code?: string;
+  headers?: string[];
+  rows?: string[][];
+  [key: string]: any;
+}
 
 @Entity('note_blocks')
 @Index(['noteId', 'position'])
@@ -21,11 +36,10 @@ export class NoteBlock {
   noteId: string;
 
   @Column({ name: 'block_type', length: 50 })
-  @Index()
-  blockType: string;
+  blockType: 'text' | 'heading' | 'quote' | 'list' | 'code' | 'image' | 'video' | 'embed' | 'divider' | 'callout' | 'table';
 
   @Column({ type: 'jsonb', default: {} })
-  content: any;
+  content: NoteBlockContent;
 
   @Column()
   position: number;
@@ -36,8 +50,8 @@ export class NoteBlock {
   @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
 
-  // Relationships
-  @ManyToOne(() => Note, (note) => note.blocks, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'note_id' })
-  note: Note;
+  // Relationship commented to avoid circular import
+  // @ManyToOne(() => Note, (note) => note.blocks, { onDelete: 'CASCADE' })
+  // @JoinColumn({ name: 'note_id' })
+  // note: Note;
 } 

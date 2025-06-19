@@ -11,7 +11,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CalendarService, CalendarMonth } from './calendar.service';
 import { Note } from './entities/note.entity';
 
-@Controller('api/v1/notes/calendar')
+@Controller('notes/calendar')
 @UseGuards(JwtAuthGuard)
 export class CalendarController {
   constructor(private readonly calendarService: CalendarService) {}
