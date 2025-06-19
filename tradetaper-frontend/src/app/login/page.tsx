@@ -15,10 +15,10 @@ import {
   FaLock,
   FaEnvelope,
   FaGoogle,
-  FaSparkles,
-  FaTrendingUp,
-  FaShield,
-  FaRocket
+  FaRocket,
+  FaShieldAlt as FaShield,
+  FaChartBar as FaTrendingUp,
+  FaStar as FaSparkles
 } from 'react-icons/fa';
 
 export default function LoginPage() {
@@ -35,12 +35,23 @@ export default function LoginPage() {
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [forgotEmail, setForgotEmail] = useState('');
   const [forgotEmailSent, setForgotEmailSent] = useState(false);
+  const [showRegistrationSuccess, setShowRegistrationSuccess] = useState(false);
 
   useEffect(() => {
     if (isAuthenticated) {
       router.push('/dashboard');
     }
   }, [isAuthenticated, router]);
+
+  useEffect(() => {
+    // Check for registration success parameter
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('registered') === 'true') {
+      setShowRegistrationSuccess(true);
+      // Clear the URL parameter
+      router.replace('/login');
+    }
+  }, [router]);
 
   useEffect(() => {
     // Load remembered credentials
@@ -264,6 +275,12 @@ export default function LoginPage() {
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-6">
+              {showRegistrationSuccess && (
+                <div className="bg-green-500/10 border border-green-500/20 rounded-2xl p-4 text-green-300 text-sm">
+                  Account created successfully! Please sign in with your credentials.
+                </div>
+              )}
+              
               {(error || formError) && (
                 <div className="bg-red-500/10 border border-red-500/20 rounded-2xl p-4 text-red-300 text-sm">
                   {error || formError}
