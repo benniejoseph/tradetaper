@@ -9,7 +9,8 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ||
 console.log('🔧 API Configuration:', { 
   env: process.env.NODE_ENV,
   apiUrl: API_BASE_URL,
-  envVar: process.env.NEXT_PUBLIC_API_URL 
+  envVar: process.env.NEXT_PUBLIC_API_URL,
+  timestamp: new Date().toISOString()
 });
 
 // Default instance for public routes
@@ -35,6 +36,7 @@ export function setupAuthInterceptors(getState: () => RootState) { // removed un
             if (token) {
                 config.headers.Authorization = `Bearer ${token}`;
             }
+            console.log('🚀 Making authenticated API request to:', config.baseURL + config.url);
             return config;
         },
         (error: any) => Promise.reject(error)
@@ -43,6 +45,12 @@ export function setupAuthInterceptors(getState: () => RootState) { // removed un
     authApiClient.interceptors.response.use(
         (response: any) => response,
         (error: any) => {
+            console.error('❌ API Request failed:', {
+                url: error.config?.url,
+                baseURL: error.config?.baseURL,
+                status: error.response?.status,
+                message: error.message
+            });
             if (error.response && error.response.status === 401) {
                 console.log('Unauthorized from interceptor...');
                 // Handle token refresh failure (e.g., redirect to login)
