@@ -22,9 +22,9 @@ import {
   FaShieldAlt,
   FaCrown,
   FaRocket,
-  FaTrendingUp,
-  FaSparkles,
-  FaUserFriends
+  FaUserFriends,
+  FaChartBar as FaTrendingUp,
+  FaStar as FaSparkles
 } from 'react-icons/fa';
 
 type FormStep = 'personal' | 'account' | 'preferences';
@@ -124,7 +124,8 @@ export default function RegisterPage() {
         firstName: formData.firstName,
         lastName: formData.lastName
       }));
-      router.push('/dashboard');
+      // After successful registration, redirect to login page
+      router.push('/login?registered=true');
     } catch (err: any) {
       setFormError(err.message || "An unknown error occurred during registration.");
     }
@@ -294,7 +295,7 @@ export default function RegisterPage() {
                       <FaUser className="h-6 w-6 text-purple-400" />
                     </div>
                     <h3 className="text-xl font-semibold text-white mb-2">Personal Information</h3>
-                    <p className="text-slate-400 text-sm">Let's start with the basics</p>
+                    <p className="text-slate-400 text-sm">Let&apos;s start with the basics</p>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
@@ -479,13 +480,13 @@ export default function RegisterPage() {
                               onChange={(e) => handleInputChange('tradingExperience', e.target.value)}
                               className="sr-only"
                             />
-                            <div className={`w-5 h-5 rounded-full border-2 transition-all duration-300 ${
+                            <div className={`w-5 h-5 rounded-full border-2 transition-all duration-300 flex items-center justify-center ${
                               formData.tradingExperience === exp.value 
                                 ? 'border-purple-500 bg-purple-500' 
                                 : 'border-white/20 group-hover:border-purple-400'
                             }`}>
                               {formData.tradingExperience === exp.value && (
-                                <div className="w-full h-full rounded-full bg-white scale-50"></div>
+                                <div className="w-2 h-2 rounded-full bg-white"></div>
                               )}
                             </div>
                           </div>
@@ -528,13 +529,13 @@ export default function RegisterPage() {
                           onChange={(e) => handleInputChange('agreeToTerms', e.target.checked)}
                           className="sr-only"
                         />
-                        <div className={`w-5 h-5 rounded border-2 transition-all duration-300 ${
+                        <div className={`w-5 h-5 rounded border-2 transition-all duration-300 flex items-center justify-center ${
                           formData.agreeToTerms 
                             ? 'border-purple-500 bg-purple-500' 
                             : 'border-white/20 group-hover:border-purple-400'
                         }`}>
                           {formData.agreeToTerms && (
-                            <FaCheck className="text-white text-xs p-0.5" />
+                            <FaCheck className="text-white text-xs" />
                           )}
                         </div>
                       </div>
