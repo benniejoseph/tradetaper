@@ -1,6 +1,8 @@
 import { Controller, Get, Post, Body, Param, Query } from '@nestjs/common';
 import { AppService } from './app.service';
 import { AppDataSource } from './database/data-source';
+import { DataSource } from 'typeorm';
+import { InjectDataSource } from '@nestjs/typeorm';
 // import { InjectRepository } from '@nestjs/typeorm';
 // import { Repository } from 'typeorm';
 // import { Subscription } from './subscriptions/entities/subscription.entity';
@@ -9,6 +11,7 @@ import { AppDataSource } from './database/data-source';
 export class AppController {
   constructor(
     private readonly appService: AppService,
+    @InjectDataSource() private dataSource: DataSource,
     // TEMPORARY: Disable subscription repository for initial admin deployment
     // @InjectRepository(Subscription)
     // private subscriptionRepository: Repository<Subscription>,
@@ -43,10 +46,12 @@ export class AppController {
   }
 
   @Get('health')
-  getHealth() {
+  health() {
     return {
-      status: 'healthy',
+      status: 'ok',
       timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      memory: process.memoryUsage(),
     };
   }
 
@@ -85,34 +90,46 @@ export class AppController {
     };
   }
 
-  @Post('run-migrations')
-  async runMigrations() {
+  @Get('migrate')
+  async runMigrationsGet() {
     try {
-      console.log('🔄 Initializing database connection...');
-      
-      if (!AppDataSource.isInitialized) {
-        await AppDataSource.initialize();
-        console.log('✅ Database connection initialized');
-      }
-
-      console.log('🔄 Running migrations...');
-      const migrations = await AppDataSource.runMigrations();
-      
-      console.log(`✅ Successfully ran ${migrations.length} migrations`);
+      console.log('🔄 Running database migrations...');
+      const migrations = await this.dataSource.runMigrations();
       
       return {
         success: true,
         message: `Successfully ran ${migrations.length} migrations`,
         migrations: migrations.map(m => m.name),
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       };
     } catch (error) {
       console.error('❌ Migration failed:', error);
       return {
         success: false,
-        message: `Migration failed: ${error.message}`,
+        message: 'Migration failed',
         error: error.message,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+      };
+    }
+  }
+
+  @Post('run-migrations')
+  async runMigrations() {
+    try {
+      console.log('🔄 Running database migrations...');
+      const migrations = await this.dataSource.runMigrations();
+      
+      return {
+        success: true,
+        message: `Successfully ran ${migrations.length} migrations`,
+        migrations: migrations.map(m => m.name),
+      };
+    } catch (error) {
+      console.error('❌ Migration failed:', error);
+      return {
+        success: false,
+        message: 'Migration failed',
+        error: error.message,
       };
     }
   }

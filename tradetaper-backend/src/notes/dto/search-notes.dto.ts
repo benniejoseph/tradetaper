@@ -1,4 +1,4 @@
-import { IsOptional, IsString, IsArray, IsUUID, IsEnum, IsDateString, IsNumber, Min, Max } from 'class-validator';
+import { IsOptional, IsString, IsArray, IsUUID, IsEnum, IsDateString, IsNumber, Min, Max, IsBoolean } from 'class-validator';
 import { Type, Transform } from 'class-transformer';
 
 export class SearchNotesDto {
@@ -54,8 +54,19 @@ export class SearchNotesDto {
   offset?: number;
 
   @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(1)
+  page?: number;
+
+  @IsOptional()
   @Transform(({ value }) => value === 'true' || value === true)
   pinnedOnly?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  @Transform(({ value }) => value === 'true' || value === true)
+  isPinned?: boolean;
 
   @IsOptional()
   @Transform(({ value }) => value === 'true' || value === true)

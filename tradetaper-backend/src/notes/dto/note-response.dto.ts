@@ -44,6 +44,21 @@ export class NoteResponseDto {
   @Transform(({ obj }) => obj.trade_id || obj.tradeId)
   tradeId?: string;
 
+  @Expose()
+  account?: {
+    id: string;
+    name: string;
+    type?: string;
+  };
+
+  @Expose()
+  trade?: {
+    id: string;
+    symbol: string;
+    side?: string;
+    openTime: Date;
+  };
+
   // Computed properties
   @Expose()
   get preview(): string {

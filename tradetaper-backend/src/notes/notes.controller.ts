@@ -21,7 +21,7 @@ import { UpdateNoteDto } from './dto/update-note.dto';
 import { SearchNotesDto } from './dto/search-notes.dto';
 import { NoteResponseDto } from './dto/note-response.dto';
 
-@Controller('api/v1/notes')
+@Controller('notes')
 @UseGuards(JwtAuthGuard)
 export class NotesController {
   constructor(private readonly notesService: NotesService) {}
