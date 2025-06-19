@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   FaPlus, 
   FaSearch, 
@@ -83,7 +83,7 @@ const NotesPage: React.FC = () => {
   const debouncedSearch = useDebounce(searchTerm, 300);
 
   // Fetch notes
-  const fetchNotes = useCallback(async () => {
+  const fetchNotes = async () => {
     try {
       setLoading(true);
       const params = {
@@ -107,10 +107,10 @@ const NotesPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [debouncedSearch, selectedTags, sortBy, sortOrder, dateFilter.from, dateFilter.to, pinnedOnly, hasMediaOnly, currentPage]);
+  };
 
   // Fetch stats and tags
-  const fetchMetadata = useCallback(async () => {
+  const fetchMetadata = async () => {
     try {
       const [statsData, tagsData] = await Promise.all([
         NotesService.getStats(),
@@ -122,15 +122,16 @@ const NotesPage: React.FC = () => {
     } catch (error) {
       console.error('Error fetching metadata:', error);
     }
-  }, []);
+  };
 
   useEffect(() => {
     fetchNotes();
-  }, [fetchNotes]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedSearch, selectedTags, sortBy, sortOrder, dateFilter.from, dateFilter.to, pinnedOnly, hasMediaOnly, currentPage]);
 
   useEffect(() => {
     fetchMetadata();
-  }, [fetchMetadata]);
+  }, []);
 
   // Toggle tag selection
   const toggleTag = (tag: string) => {
