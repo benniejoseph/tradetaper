@@ -18,21 +18,16 @@ import {
   FaCalendarAlt,
   FaChartPie,
   FaBalanceScale,
-  FaEye,
   FaRocket,
   FaCrown,
   FaPlay,
   FaBolt,
   FaFire,
   FaGem,
-  FaMagic,
   FaShieldAlt,
-  FaTrendingUp,
   FaUsers,
   FaGlobe,
-  FaCog,
-  FaMoon,
-  FaSun
+  FaCog
 } from 'react-icons/fa';
 
 const FloatingParticle = ({ delay = 0, duration = 20 }: { delay?: number; duration?: number }) => (
@@ -234,6 +229,7 @@ const GlowingButton = ({ children, href, variant = "primary", className = "", ..
   href?: string;
   variant?: "primary" | "secondary";
   className?: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [key: string]: any;
 }) => {
   const baseClasses = "relative group px-8 py-4 rounded-2xl font-bold text-lg transition-all duration-300 transform hover:scale-105 active:scale-95";
@@ -271,8 +267,6 @@ const GlowingButton = ({ children, href, variant = "primary", className = "", ..
 export default function LandingPage() {
   const { isAuthenticated } = useSelector((state: RootState) => state.auth);
   const router = useRouter();
-  const [currentTestimonial, setCurrentTestimonial] = useState(0);
-  const [isDarkMode, setIsDarkMode] = useState(true);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -280,12 +274,6 @@ export default function LandingPage() {
     }
   }, [isAuthenticated, router]);
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentTestimonial(prev => (prev + 1) % testimonials.length);
-    }, 5000);
-    return () => clearInterval(interval);
-  }, []);
 
   if (isAuthenticated) {
     return (
@@ -542,7 +530,7 @@ export default function LandingPage() {
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 max-w-6xl mx-auto">
-            {PRICING_TIERS.map((tier, index) => (
+            {PRICING_TIERS.map((tier) => (
               <div 
                 key={tier.id}
                 className={`relative group bg-black/30 backdrop-blur-2xl rounded-3xl p-8 border transition-all duration-500 hover:scale-105 ${
