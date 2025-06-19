@@ -31,7 +31,7 @@ export class NotesController {
     @Body() createNoteDto: CreateNoteDto,
     @Request() req: any,
   ): Promise<NoteResponseDto> {
-    return this.notesService.create(createNoteDto, req.user.userId);
+    return this.notesService.create(createNoteDto, req.user.id);
   }
 
   @Get()
@@ -44,7 +44,7 @@ export class NotesController {
     limit: number;
     offset: number;
   }> {
-    return this.notesService.findAll(searchDto, req.user.userId);
+    return this.notesService.findAll(searchDto, req.user.id);
   }
 
   @Get('stats')
@@ -57,12 +57,12 @@ export class NotesController {
     averageWordsPerNote: number;
     mostUsedTags: { tag: string; count: number }[];
   }> {
-    return this.notesService.getStats(req.user.userId);
+    return this.notesService.getStats(req.user.id);
   }
 
   @Get('tags')
   async getAllTags(@Request() req: any): Promise<string[]> {
-    return this.notesService.getAllTags(req.user.userId);
+    return this.notesService.getAllTags(req.user.id);
   }
 
   @Get('calendar/:year/:month')
@@ -75,7 +75,7 @@ export class NotesController {
     count: number;
     notes: NoteResponseDto[];
   }[]> {
-    return this.notesService.getCalendarNotes(req.user.userId, year, month);
+    return this.notesService.getCalendarNotes(req.user.id, year, month);
   }
 
   @Get(':id')
@@ -83,7 +83,7 @@ export class NotesController {
     @Param('id', ParseUUIDPipe) id: string,
     @Request() req: any,
   ): Promise<NoteResponseDto> {
-    return this.notesService.findOne(id, req.user.userId);
+    return this.notesService.findOne(id, req.user.id);
   }
 
   @Patch(':id')
@@ -92,7 +92,7 @@ export class NotesController {
     @Body() updateNoteDto: UpdateNoteDto,
     @Request() req: any,
   ): Promise<NoteResponseDto> {
-    return this.notesService.update(id, updateNoteDto, req.user.userId);
+    return this.notesService.update(id, updateNoteDto, req.user.id);
   }
 
   @Patch(':id/toggle-pin')
@@ -100,7 +100,7 @@ export class NotesController {
     @Param('id', ParseUUIDPipe) id: string,
     @Request() req: any,
   ): Promise<NoteResponseDto> {
-    return this.notesService.togglePin(id, req.user.userId);
+    return this.notesService.togglePin(id, req.user.id);
   }
 
   @Delete(':id')
@@ -109,6 +109,6 @@ export class NotesController {
     @Param('id', ParseUUIDPipe) id: string,
     @Request() req: any,
   ): Promise<void> {
-    return this.notesService.remove(id, req.user.userId);
+    return this.notesService.remove(id, req.user.id);
   }
 } 
