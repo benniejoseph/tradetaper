@@ -68,7 +68,7 @@ const NewNotePage: React.FC = () => {
     if (debouncedNote.title || debouncedNote.content.some(block => getBlockText(block))) {
       handleSave(true); // Auto-save
     }
-  }, [debouncedNote]);
+  }, [debouncedNote, handleSave]);
 
   // Create empty block
   function createEmptyBlock(type: Block['type'], position: number): Block {
@@ -214,27 +214,56 @@ const NewNotePage: React.FC = () => {
     try {
       setSaving(true);
       
-      const response = await fetch('/api/v1/notes', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        },
-        body: JSON.stringify(note),
-      });
+      // Use the notes service instead of direct fetch
+      const noteData = {
+        title: note.title,
+        content: note.content,
+        tags: note.tags,
+        visibility: note.visibility,
+        accountId: note.accountId,
+        tradeId: note.tradeId,
+      };
 
-      if (!response.ok) throw new Error('Failed to save note');
+      // Try using the service first
+      try {
+        const { notesService } = await import('@/services/notesService');
+        const savedNote = await notesService.createNote(noteData);
+        
+        if (!isAutoSave) {
+          toast.success('Note saved successfully!');
+          router.push(`/notes/${savedNote.id}`);
+        }
+      } catch (serviceError) {
+        console.error('Service error:', serviceError);
+        
+        // Fallback to direct API call
+        const response = await fetch('/api/v1/notes', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          },
+          body: JSON.stringify(noteData),
+        });
 
-      const savedNote = await response.json();
-      
-      if (!isAutoSave) {
-        toast.success('Note saved successfully!');
-        router.push(`/notes/${savedNote.id}`);
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('API Response:', response.status, errorText);
+          throw new Error(`Failed to save note: ${response.status} ${errorText}`);
+        }
+
+        const savedNote = await response.json();
+        
+        if (!isAutoSave) {
+          toast.success('Note saved successfully!');
+          router.push(`/notes/${savedNote.id}`);
+        }
       }
     } catch (error) {
       console.error('Error saving note:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       if (!isAutoSave) {
-        toast.error('Failed to save note');
+        toast.error(`Failed to save note: ${errorMessage}`);
       }
     } finally {
       setSaving(false);
@@ -266,7 +295,7 @@ const NewNotePage: React.FC = () => {
       <div className="flex items-center justify-between">
         <AnimatedButton
           onClick={() => router.back()}
-          variant="outline"
+          variant="ghost"
           icon={<FaArrowLeft />}
           iconPosition="left"
         >
