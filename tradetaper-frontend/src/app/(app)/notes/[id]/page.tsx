@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
 import { useRouter, useParams } from 'next/navigation';
 import { 
   FaArrowLeft, 
@@ -17,8 +16,6 @@ import {
   FaCalendarAlt,
   FaClock
 } from 'react-icons/fa';
-import { AnimatedCard } from '@/components/ui/AnimatedCard';
-import { AnimatedButton } from '@/components/ui/AnimatedButton';
 import { notesService } from '@/services/notesService';
 import { Note, NoteBlock } from '@/types/note';
 import { format, parseISO } from 'date-fns';
@@ -35,7 +32,9 @@ const NoteViewPage: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [editedNote, setEditedNote] = useState<Partial<Note>>({});
 
-  const fetchNote = async () => {
+  const fetchNote = useCallback(async () => {
+    if (!noteId) return;
+    
     try {
       setLoading(true);
       const noteData = await notesService.getNote(noteId);
@@ -48,13 +47,13 @@ const NoteViewPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [noteId, router]);
 
   useEffect(() => {
     if (noteId) {
       fetchNote();
     }
-  }, [noteId, fetchNote]);
+  }, [noteId]);
 
   const handleSave = async () => {
     if (!note || !editedNote.title) return;
@@ -226,10 +225,10 @@ const NoteViewPage: React.FC = () => {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <AnimatedCard variant="glass" className="text-center">
+        <div className="text-center">
           <FaSpinner className="animate-spin text-4xl text-blue-500 mb-4 mx-auto" />
           <p className="text-lg font-medium">Loading note...</p>
-        </AnimatedCard>
+        </div>
       </div>
     );
   }
@@ -237,21 +236,20 @@ const NoteViewPage: React.FC = () => {
   if (!note) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <AnimatedCard variant="glass" className="text-center">
+        <div className="text-center">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
             Note not found
           </h2>
           <p className="text-gray-600 dark:text-gray-400 mb-4">
             The note you're looking for doesn't exist or has been deleted.
           </p>
-          <AnimatedButton
+          <button
             onClick={() => router.push('/notes')}
-            variant="gradient"
-            className="bg-gradient-to-r from-blue-500 to-purple-500"
+            className="bg-gradient-to-r from-blue-500 to-purple-500 text-white px-4 py-2 rounded-md"
           >
             Back to Notes
-          </AnimatedButton>
-        </AnimatedCard>
+          </button>
+        </div>
       </div>
     );
   }
@@ -260,77 +258,65 @@ const NoteViewPage: React.FC = () => {
     <div className="max-w-4xl mx-auto space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <AnimatedButton
+        <button
           onClick={() => router.back()}
-          variant="outline"
-          icon={<FaArrowLeft />}
-          iconPosition="left"
+          className="bg-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 px-2 py-2 rounded-md"
         >
-          Back
-        </AnimatedButton>
+          <FaArrowLeft />
+        </button>
 
         <div className="flex items-center gap-3">
-          <AnimatedButton
+          <button
             onClick={handleTogglePin}
-            variant="outline"
-            icon={note.isPinned ? <FaStar /> : <FaRegStar />}
-            className={note.isPinned ? 'text-yellow-500 border-yellow-500' : ''}
+            className={`bg-transparent text-gray-500 hover:text-yellow-500 ${
+              note.isPinned ? 'border-yellow-500' : ''
+            } px-2 py-2 rounded-md`}
           >
-            {note.isPinned ? 'Pinned' : 'Pin'}
-          </AnimatedButton>
+            {note.isPinned ? <FaStar /> : <FaRegStar />}
+          </button>
 
-          <AnimatedButton
+          <button
             onClick={handleShare}
-            variant="outline"
-            icon={<FaShare />}
+            className="bg-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 px-2 py-2 rounded-md"
           >
-            Share
-          </AnimatedButton>
+            <FaShare />
+          </button>
 
-          <AnimatedButton
+          <button
             onClick={handleCopyContent}
-            variant="outline"
-            icon={<FaCopy />}
+            className="bg-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 px-2 py-2 rounded-md"
           >
-            Copy
-          </AnimatedButton>
+            <FaCopy />
+          </button>
 
           {isEditing ? (
-            <AnimatedButton
+            <button
               onClick={handleSave}
-              variant="gradient"
-              className="bg-gradient-to-r from-green-500 to-green-600"
-              icon={saving ? <FaSpinner className="animate-spin" /> : <FaSave />}
-              iconPosition="left"
+              className="bg-gradient-to-r from-green-500 to-green-600 text-white px-4 py-2 rounded-md"
               disabled={saving}
             >
               {saving ? 'Saving...' : 'Save'}
-            </AnimatedButton>
+            </button>
           ) : (
-            <AnimatedButton
+            <button
               onClick={() => setIsEditing(true)}
-              variant="gradient"
-              className="bg-gradient-to-r from-blue-500 to-purple-500"
-              icon={<FaEdit />}
-              iconPosition="left"
+              className="bg-gradient-to-r from-blue-500 to-purple-500 text-white px-4 py-2 rounded-md"
             >
               Edit
-            </AnimatedButton>
+            </button>
           )}
 
-          <AnimatedButton
+          <button
             onClick={handleDelete}
-            variant="outline"
-            className="text-red-500 border-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
-            icon={<FaTrash />}
+            className="bg-transparent text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 px-2 py-2 rounded-md"
           >
-            Delete
-          </AnimatedButton>
+            <FaTrash />
+          </button>
         </div>
       </div>
 
       {/* Note Content */}
-      <AnimatedCard variant="glass" className="p-8">
+      <div className="p-8 bg-white dark:bg-gray-800 rounded-lg">
         {/* Title */}
         {isEditing ? (
           <input
@@ -395,26 +381,21 @@ const NoteViewPage: React.FC = () => {
               <p className="text-gray-600 dark:text-gray-400">
                 Editing mode - use the full editor for advanced editing
               </p>
-              <AnimatedButton
+              <button
                 onClick={() => router.push(`/notes/${note.id}/edit`)}
-                variant="outline"
-                icon={<FaEdit />}
-                iconPosition="left"
+                className="bg-transparent text-blue-500 hover:text-blue-700 dark:hover:text-blue-300 px-2 py-2 rounded-md"
               >
                 Open Full Editor
-              </AnimatedButton>
+              </button>
             </div>
           ) : (
             <div className="space-y-6">
               {note.content.map((block, index) => (
-                <motion.div
+                <div
                   key={`${block.id}-${index}`}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.1 }}
                 >
                   {renderBlock(block)}
-                </motion.div>
+                </div>
               ))}
             </div>
           )}
@@ -431,7 +412,7 @@ const NoteViewPage: React.FC = () => {
             </span>
           </div>
         </div>
-      </AnimatedCard>
+      </div>
     </div>
   );
 };

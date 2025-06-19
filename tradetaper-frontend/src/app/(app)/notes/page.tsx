@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { 
   FaPlus, 
   FaSearch, 
@@ -14,14 +13,16 @@ import {
   FaStar,
   FaImage,
   FaMicrophone,
-  FaSpinner
+  FaSpinner,
+  FaClock,
+  FaTrash,
+  FaInfoCircle
 } from 'react-icons/fa';
-import { AnimatedCard } from '@/components/ui/AnimatedCard';
-import { AnimatedButton } from '@/components/ui/AnimatedButton';
 import { useRouter } from 'next/navigation';
 import { useDebounce } from '@/hooks/useDebounce';
 import { format, parseISO, startOfMonth, endOfMonth } from 'date-fns';
 import { NotesService } from '@/services/notesService';
+import toast from 'react-hot-toast';
 
 interface Note {
   id: string;
@@ -151,6 +152,23 @@ const NotesPage: React.FC = () => {
     setCurrentPage(1);
   };
 
+  // Delete note
+  const handleDelete = async (noteId: string) => {
+    if (!confirm('Are you sure you want to delete this note? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      await NotesService.deleteNote(noteId);
+      toast.success('Note deleted successfully');
+      // Refresh the notes list
+      fetchNotes();
+    } catch (error) {
+      console.error('Error deleting note:', error);
+      toast.error('Failed to delete note');
+    }
+  };
+
   const hasActiveFilters = useMemo(() => {
     return debouncedSearch || selectedTags.length > 0 || dateFilter.from || dateFilter.to || pinnedOnly || hasMediaOnly;
   }, [debouncedSearch, selectedTags, dateFilter, pinnedOnly, hasMediaOnly]);
@@ -158,10 +176,10 @@ const NotesPage: React.FC = () => {
   if (loading && notes.length === 0) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <AnimatedCard variant="glass" className="text-center">
+        <div className="text-center">
           <FaSpinner className="animate-spin text-4xl text-blue-500 mb-4 mx-auto" />
           <p className="text-lg font-medium">Loading your notes...</p>
-        </AnimatedCard>
+        </div>
       </div>
     );
   }
@@ -182,29 +200,24 @@ const NotesPage: React.FC = () => {
         </div>
         
         <div className="flex flex-wrap gap-3">
-          <AnimatedButton
+          <button
             onClick={() => router.push('/notes/new')}
-            variant="gradient"
-            className="bg-gradient-to-r from-blue-500 to-purple-500"
-            icon={<FaPlus />}
-            iconPosition="left"
+            className="bg-gradient-to-r from-blue-500 to-purple-500 text-white px-4 py-2 rounded-lg"
           >
             New Note
-          </AnimatedButton>
+          </button>
           
-          <AnimatedButton
+          <button
             onClick={() => {/* TODO: Implement voice recording */}}
-            variant="outline"
-            icon={<FaMicrophone />}
-            iconPosition="left"
+            className="bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-lg"
           >
             Voice Note
-          </AnimatedButton>
+          </button>
         </div>
       </div>
 
       {/* Search and Filter Bar */}
-      <AnimatedCard variant="glass" className="p-4">
+      <div className="p-4 bg-white dark:bg-gray-800 rounded-lg">
         <div className="flex flex-col lg:flex-row gap-4">
           {/* Search Input */}
           <div className="flex-1 relative">
@@ -235,116 +248,106 @@ const NotesPage: React.FC = () => {
           </div>
 
           {/* Filter Toggle */}
-          <AnimatedButton
+          <button
             onClick={() => setShowFilters(!showFilters)}
-            variant={showFilters ? 'solid' : 'outline'}
-            icon={<FaFilter />}
-            className={hasActiveFilters ? 'ring-2 ring-blue-500' : ''}
+            className={`px-4 py-2 ${showFilters ? 'bg-blue-500 text-white' : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300'} rounded-lg ${hasActiveFilters ? 'ring-2 ring-blue-500' : ''}`}
           >
             Filters {hasActiveFilters && `(${selectedTags.length + (pinnedOnly ? 1 : 0) + (hasMediaOnly ? 1 : 0)})`}
-          </AnimatedButton>
+          </button>
         </div>
 
         {/* Expanded Filters */}
-        <AnimatePresence>
-          {showFilters && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700"
-            >
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                {/* Tags Filter */}
-                <div>
-                  <label className="block text-sm font-medium mb-2">Tags</label>
-                  <div className="flex flex-wrap gap-1 max-h-24 overflow-y-auto">
-                    {availableTags.map(tag => (
-                      <button
-                        key={tag}
-                        onClick={() => toggleTag(tag)}
-                        className={`px-2 py-1 text-xs rounded-full ${
-                          selectedTags.includes(tag)
-                            ? 'bg-blue-500 text-white'
-                            : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
-                        }`}
-                      >
-                        {tag}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Quick Filters */}
-                <div>
-                  <label className="block text-sm font-medium mb-2">Quick Filters</label>
-                  <div className="space-y-2">
-                    <label className="flex items-center">
-                      <input
-                        type="checkbox"
-                        checked={pinnedOnly}
-                        onChange={(e) => setPinnedOnly(e.target.checked)}
-                        className="mr-2"
-                      />
-                      <FaStar className="mr-1" />
-                      Pinned only
-                    </label>
-                    <label className="flex items-center">
-                      <input
-                        type="checkbox"
-                        checked={hasMediaOnly}
-                        onChange={(e) => setHasMediaOnly(e.target.checked)}
-                        className="mr-2"
-                      />
-                      <FaImage className="mr-1" />
-                      With media
-                    </label>
-                  </div>
-                </div>
-
-                {/* Sort Options */}
-                <div>
-                  <label className="block text-sm font-medium mb-2">Sort by</label>
-                  <select
-                    value={`${sortBy}-${sortOrder}`}
-                    onChange={(e) => {
-                      const [field, order] = e.target.value.split('-');
-                      setSortBy(field as any);
-                      setSortOrder(order as 'ASC' | 'DESC');
-                    }}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800"
-                  >
-                    <option value="updatedAt-DESC">Last modified</option>
-                    <option value="createdAt-DESC">Date created (newest)</option>
-                    <option value="createdAt-ASC">Date created (oldest)</option>
-                    <option value="title-ASC">Title (A-Z)</option>
-                    <option value="title-DESC">Title (Z-A)</option>
-                    <option value="wordCount-DESC">Word count (high)</option>
-                    <option value="wordCount-ASC">Word count (low)</option>
-                  </select>
-                </div>
-
-                {/* Clear Filters */}
-                {hasActiveFilters && (
-                  <div className="flex items-end">
-                    <AnimatedButton
-                      onClick={clearFilters}
-                      variant="outline"
-                      className="w-full"
+        {showFilters && (
+          <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* Tags Filter */}
+              <div>
+                <label className="block text-sm font-medium mb-2">Tags</label>
+                <div className="flex flex-wrap gap-1 max-h-24 overflow-y-auto">
+                  {availableTags.map(tag => (
+                    <button
+                      key={tag}
+                      onClick={() => toggleTag(tag)}
+                      className={`px-2 py-1 text-xs rounded-full ${
+                        selectedTags.includes(tag)
+                          ? 'bg-blue-500 text-white'
+                          : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+                      }`}
                     >
-                      Clear All
-                    </AnimatedButton>
-                  </div>
-                )}
+                      {tag}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </AnimatedCard>
+
+              {/* Quick Filters */}
+              <div>
+                <label className="block text-sm font-medium mb-2">Quick Filters</label>
+                <div className="space-y-2">
+                  <label className="flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={pinnedOnly}
+                      onChange={(e) => setPinnedOnly(e.target.checked)}
+                      className="mr-2"
+                    />
+                    <FaStar className="mr-1" />
+                    Pinned only
+                  </label>
+                  <label className="flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={hasMediaOnly}
+                      onChange={(e) => setHasMediaOnly(e.target.checked)}
+                      className="mr-2"
+                    />
+                    <FaImage className="mr-1" />
+                    With media
+                  </label>
+                </div>
+              </div>
+
+              {/* Sort Options */}
+              <div>
+                <label className="block text-sm font-medium mb-2">Sort by</label>
+                <select
+                  value={`${sortBy}-${sortOrder}`}
+                  onChange={(e) => {
+                    const [field, order] = e.target.value.split('-');
+                    setSortBy(field as any);
+                    setSortOrder(order as 'ASC' | 'DESC');
+                  }}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800"
+                >
+                  <option value="updatedAt-DESC">Last modified</option>
+                  <option value="createdAt-DESC">Date created (newest)</option>
+                  <option value="createdAt-ASC">Date created (oldest)</option>
+                  <option value="title-ASC">Title (A-Z)</option>
+                  <option value="title-DESC">Title (Z-A)</option>
+                  <option value="wordCount-DESC">Word count (high)</option>
+                  <option value="wordCount-ASC">Word count (low)</option>
+                </select>
+              </div>
+
+              {/* Clear Filters */}
+              {hasActiveFilters && (
+                <div className="flex items-end">
+                  <button
+                    onClick={clearFilters}
+                    className="bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-lg"
+                  >
+                    Clear All
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* Notes Grid/List */}
       {notes.length === 0 ? (
-        <AnimatedCard variant="glass" className="text-center py-16">
+        <div className="text-center py-16">
           <div className="max-w-md mx-auto space-y-4">
             <div className="w-20 h-20 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center mx-auto">
               <FaPlus className="w-10 h-10 text-white" />
@@ -358,40 +361,29 @@ const NotesPage: React.FC = () => {
                 : 'Start capturing your thoughts and ideas with your first note.'
               }
             </p>
-            <AnimatedButton
+            <button
               onClick={() => hasActiveFilters ? clearFilters() : router.push('/notes/new')}
-              variant="gradient"
-              className="bg-gradient-to-r from-blue-500 to-purple-500"
-              icon={hasActiveFilters ? <FaFilter /> : <FaPlus />}
-              iconPosition="left"
+              className="bg-gradient-to-r from-blue-500 to-purple-500 text-white px-4 py-2 rounded-lg"
             >
               {hasActiveFilters ? 'Clear Filters' : 'Create First Note'}
-            </AnimatedButton>
+            </button>
           </div>
-        </AnimatedCard>
+        </div>
       ) : (
         <div className={`${
           viewMode === 'grid' 
             ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6' 
             : 'space-y-4'
         }`}>
-          <AnimatePresence>
-            {notes.map((note, index) => (
-              <motion.div
-                key={note.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ delay: index * 0.05 }}
-              >
-                {viewMode === 'grid' ? (
-                  <NoteCard note={note} onClick={() => router.push(`/notes/${note.id}`)} />
-                ) : (
-                  <NoteListItem note={note} onClick={() => router.push(`/notes/${note.id}`)} />
-                )}
-              </motion.div>
-            ))}
-          </AnimatePresence>
+          {notes.map((note, index) => (
+            <div key={note.id}>
+              {viewMode === 'grid' ? (
+                <NoteCard note={note} onClick={() => router.push(`/notes/${note.id}`)} onDelete={handleDelete} />
+              ) : (
+                <NoteListItem note={note} onClick={() => router.push(`/notes/${note.id}`)} onDelete={handleDelete} />
+              )}
+            </div>
+          ))}
         </div>
       )}
 
@@ -418,94 +410,5 @@ const NotesPage: React.FC = () => {
     </div>
   );
 };
-
-// Note Card Component for Grid View
-const NoteCard: React.FC<{ note: Note; onClick: () => void }> = ({ note, onClick }) => (
-  <AnimatedCard
-    variant="glass"
-    hoverEffect="lift"
-    className="cursor-pointer h-64 flex flex-col"
-    onClick={onClick}
-  >
-    <div className="flex items-start justify-between mb-3">
-      <h3 className="font-semibold text-lg truncate flex-1" title={note.title}>
-        {note.title}
-      </h3>
-      {note.isPinned && <FaStar className="text-yellow-500 ml-2 flex-shrink-0" />}
-    </div>
-    
-    <p className="text-gray-600 dark:text-gray-400 text-sm flex-1 line-clamp-4">
-      {note.preview}
-    </p>
-    
-    <div className="mt-auto pt-4 border-t border-gray-200 dark:border-gray-700">
-      <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
-        <span>{format(parseISO(note.updatedAt), 'MMM d, yyyy')}</span>
-        <div className="flex items-center gap-2">
-          {note.hasMedia && <FaImage />}
-          <span>{note.wordCount} words</span>
-        </div>
-      </div>
-      
-      {note.tags.length > 0 && (
-        <div className="flex flex-wrap gap-1 mt-2">
-          {note.tags.slice(0, 3).map(tag => (
-            <span
-              key={tag}
-              className="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs rounded-full"
-            >
-              {tag}
-            </span>
-          ))}
-          {note.tags.length > 3 && (
-            <span className="text-xs text-gray-500">+{note.tags.length - 3}</span>
-          )}
-        </div>
-      )}
-    </div>
-  </AnimatedCard>
-);
-
-// Note List Item Component for List View
-const NoteListItem: React.FC<{ note: Note; onClick: () => void }> = ({ note, onClick }) => (
-  <AnimatedCard
-    variant="glass"
-    hoverEffect="glow"
-    className="cursor-pointer p-4"
-    onClick={onClick}
-  >
-    <div className="flex items-start gap-4">
-      <div className="flex-1">
-        <div className="flex items-center gap-2 mb-2">
-          <h3 className="font-semibold text-lg">{note.title}</h3>
-          {note.isPinned && <FaStar className="text-yellow-500" />}
-          {note.hasMedia && <FaImage className="text-gray-500" />}
-        </div>
-        
-        <p className="text-gray-600 dark:text-gray-400 text-sm mb-2 line-clamp-2">
-          {note.preview}
-        </p>
-        
-        {note.tags.length > 0 && (
-          <div className="flex flex-wrap gap-1 mb-2">
-            {note.tags.map(tag => (
-              <span
-                key={tag}
-                className="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs rounded-full"
-              >
-                {tag}
-              </span>
-            ))}
-          </div>
-        )}
-      </div>
-      
-      <div className="text-right text-xs text-gray-500 dark:text-gray-400 min-w-[120px]">
-        <div>{format(parseISO(note.updatedAt), 'MMM d, yyyy')}</div>
-        <div className="mt-1">{note.wordCount} words • {note.readingTime} min</div>
-      </div>
-    </div>
-  </AnimatedCard>
-);
 
 export default NotesPage; 
