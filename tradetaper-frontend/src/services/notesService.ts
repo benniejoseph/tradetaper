@@ -35,7 +35,24 @@ export class NotesService {
       }
     });
 
-    const response = await authApiClient.get(`/notes?${searchParams.toString()}`);
+    const fullUrl = `/notes?${searchParams.toString()}`;
+    console.log('🔍 NotesService.getNotes Debug:', {
+      params,
+      searchParams: searchParams.toString(),
+      fullUrl,
+      timestamp: new Date().toISOString()
+    });
+
+    const response = await authApiClient.get(fullUrl);
+    
+    console.log('📥 NotesService.getNotes Response:', {
+      status: response.status,
+      dataType: typeof response.data,
+      notesCount: response.data?.notes?.length || 0,
+      total: response.data?.total || 0,
+      url: fullUrl
+    });
+    
     return response.data;
   }
 
