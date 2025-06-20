@@ -22,6 +22,7 @@ import { useRouter } from 'next/navigation';
 import { useDebounce } from '@/hooks/useDebounce';
 import { format, parseISO, startOfMonth, endOfMonth } from 'date-fns';
 import { NotesService } from '@/services/notesService';
+import VoiceRecorder from '@/components/notes/VoiceRecorder';
 import toast from 'react-hot-toast';
 
 interface Note {
@@ -78,6 +79,7 @@ const NotesPage: React.FC = () => {
   const [hasMediaOnly, setHasMediaOnly] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [total, setTotal] = useState(0);
+  const [showVoiceRecorder, setShowVoiceRecorder] = useState(false);
   
   const limit = 20;
   const debouncedSearch = useDebounce(searchTerm, 300);
@@ -189,6 +191,38 @@ const NotesPage: React.FC = () => {
     return debouncedSearch || selectedTags.length > 0 || dateFilter.from || dateFilter.to || pinnedOnly || hasMediaOnly;
   }, [debouncedSearch, selectedTags, dateFilter, pinnedOnly, hasMediaOnly]);
 
+  // Handle voice transcription completion
+  const handleVoiceTranscription = async (transcript: string) => {
+    try {
+      // Create a new note with the transcribed text
+      const noteData = {
+        title: `Voice Note - ${format(new Date(), 'MMM d, yyyy HH:mm')}`,
+        content: [
+          {
+            id: '1',
+            type: 'text',
+            content: transcript,
+            position: 0
+          }
+        ],
+        tags: ['voice-note'],
+        visibility: 'private' as const,
+      };
+
+      const newNote = await NotesService.createNote(noteData);
+      toast.success('Voice note created successfully!');
+      
+      // Refresh notes list to show the new note
+      fetchNotes();
+      
+      // Navigate to the new note
+      router.push(`/notes/${newNote.id}`);
+    } catch (error) {
+      console.error('Error creating voice note:', error);
+      toast.error('Failed to create voice note');
+    }
+  };
+
   if (loading && notes.length === 0) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -224,9 +258,15 @@ const NotesPage: React.FC = () => {
           </button>
           
           <button
-            onClick={() => {/* TODO: Implement voice recording */}}
-            className="bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-lg"
+            onClick={() => {
+              console.log('🎤 Voice Note button clicked!');
+              console.log('🔧 Current showVoiceRecorder state:', showVoiceRecorder);
+              setShowVoiceRecorder(true);
+              console.log('✅ setShowVoiceRecorder(true) called');
+            }}
+            className="bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center gap-2"
           >
+            <FaMicrophone />
             Voice Note
           </button>
           
@@ -473,6 +513,13 @@ const NotesPage: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Voice Recorder Modal */}
+      <VoiceRecorder
+        isOpen={showVoiceRecorder}
+        onClose={() => setShowVoiceRecorder(false)}
+        onTranscriptionComplete={handleVoiceTranscription}
+      />
     </div>
   );
 };
