@@ -24,7 +24,10 @@ import {
   FaMinus,
   FaCode,
   FaQuoteLeft,
-  FaHeading
+  FaHeading,
+  FaTimes,
+  FaUpload,
+  FaPlay
 } from 'react-icons/fa';
 import { AnimatedCard } from '@/components/ui/AnimatedCard';
 import { AnimatedButton } from '@/components/ui/AnimatedButton';
@@ -40,6 +43,7 @@ const NoteEditPage: React.FC = () => {
   const [note, setNote] = useState<Note | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [title, setTitle] = useState('');
   const [content, setContent] = useState<NoteBlock[]>([]);
   const [tags, setTags] = useState<string[]>([]);
@@ -48,6 +52,7 @@ const NoteEditPage: React.FC = () => {
   const [visibility, setVisibility] = useState<'private' | 'shared'>('private');
   const [isPinned, setIsPinned] = useState(false);
   const [showBlockMenu, setShowBlockMenu] = useState(false);
+  const [blockMenuPosition, setBlockMenuPosition] = useState<{ top: number; left: number } | null>(null);
 
   const fetchNote = async () => {
     if (!noteId) return;
@@ -184,6 +189,57 @@ const NoteEditPage: React.FC = () => {
     setTags(tags.filter(tag => tag !== tagToRemove));
   };
 
+  const handleImageUpload = async (file: File, blockIndex: number) => {
+    try {
+      setUploading(true);
+      // Upload the image and get the URL
+      const { url } = await NotesService.uploadMedia(file, noteId);
+      
+      // Update the block with the uploaded image URL
+      updateBlock(blockIndex, { url });
+      
+      toast.success('Image uploaded successfully');
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      toast.error('Failed to upload image');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const convertVideoUrl = (url: string): string => {
+    // Convert YouTube watch URLs to embed URLs
+    if (url.includes('youtube.com/watch?v=')) {
+      const videoId = url.split('v=')[1]?.split('&')[0];
+      return `https://www.youtube.com/embed/${videoId}`;
+    }
+    
+    // Convert Vimeo URLs to embed URLs
+    if (url.includes('vimeo.com/') && !url.includes('/embed/')) {
+      const videoId = url.split('vimeo.com/')[1]?.split('/')[0];
+      return `https://player.vimeo.com/video/${videoId}`;
+    }
+    
+    return url;
+  };
+
+  const handleBlockMenuClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    const viewportHeight = window.innerHeight;
+    const menuHeight = 400; // Approximate menu height
+    
+    // Calculate position to prevent overflow
+    const top = rect.bottom + menuHeight > viewportHeight 
+      ? rect.top - menuHeight 
+      : rect.bottom;
+    
+    setBlockMenuPosition({
+      top: top + window.scrollY,
+      left: rect.left
+    });
+    setShowBlockMenu(true);
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -199,16 +255,10 @@ const NoteEditPage: React.FC = () => {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-            Note not found
-          </h2>
-          <p className="text-gray-600 dark:text-gray-400 mb-4">
-            The note you're trying to edit doesn't exist or has been deleted.
-          </p>
-          <AnimatedButton
-            onClick={() => router.push('/notes')}
-            variant="gradient"
-          >
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Note not found</h2>
+          <p className="text-gray-600 dark:text-gray-400 mb-6">The note you're looking for doesn't exist or has been deleted.</p>
+          <AnimatedButton onClick={() => router.push('/notes')}>
+            <FaArrowLeft className="mr-2" />
             Back to Notes
           </AnimatedButton>
         </div>
@@ -217,221 +267,281 @@ const NoteEditPage: React.FC = () => {
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <AnimatedButton
-          onClick={() => router.back()}
-          variant="ghost"
-          icon={<FaArrowLeft />}
-          iconPosition="left"
-        >
-          Back
-        </AnimatedButton>
-
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => setIsPinned(!isPinned)}
-            className={`flex items-center gap-2 px-3 py-1 rounded-lg border border-gray-300 dark:border-gray-600 ${
-              isPinned 
-                ? 'text-yellow-500 bg-yellow-50 dark:bg-yellow-900/20' 
-                : 'text-gray-500 hover:text-yellow-500'
-            }`}
-          >
-            {isPinned ? <FaStar /> : <FaRegStar />}
-            <span className="text-sm">{isPinned ? 'Pinned' : 'Pin'}</span>
-          </button>
-
-          <button
-            onClick={() => setVisibility(visibility === 'private' ? 'shared' : 'private')}
-            className="flex items-center gap-2 px-3 py-1 rounded-lg border border-gray-300 dark:border-gray-600"
-          >
-            {visibility === 'shared' ? <FaEye /> : <FaEyeSlash />}
-            <span className="text-sm capitalize">{visibility}</span>
-          </button>
-
-          <AnimatedButton
-            onClick={handleSave}
-            variant="gradient"
-            className="bg-gradient-to-r from-green-500 to-green-600"
-            icon={saving ? <FaSpinner className="animate-spin" /> : <FaSave />}
-            iconPosition="left"
-            disabled={saving}
-          >
-            {saving ? 'Saving...' : 'Save Note'}
-          </AnimatedButton>
-        </div>
-      </div>
-
-      {/* Main Editor */}
-      <AnimatedCard variant="glass" className="p-8">
-        {/* Title */}
-        <input
-          type="text"
-          placeholder="Untitled note"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          className="w-full text-4xl font-bold bg-transparent border-none outline-none placeholder-gray-400 dark:placeholder-gray-600 mb-8"
-        />
-
-        {/* Tags */}
-        <div className="mb-6">
-          <div className="flex flex-wrap items-center gap-2 mb-2">
-            {tags.map(tag => (
-              <span
-                key={tag}
-                className="flex items-center gap-1 px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full text-sm"
-              >
-                {tag}
-                <button
-                  onClick={() => removeTag(tag)}
-                  className="text-blue-500 hover:text-blue-700"
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50 dark:from-gray-900 dark:via-blue-900 dark:to-purple-900 p-4">
+      <div className="max-w-4xl mx-auto">
+        <AnimatedCard className="backdrop-blur-sm bg-white/70 dark:bg-gray-800/70 border border-white/20 shadow-xl">
+          <div className="p-8">
+            {/* Header */}
+            <div className="flex items-center justify-between mb-8">
+              <div className="flex items-center gap-4">
+                <AnimatedButton 
+                  onClick={() => router.push(`/notes/${noteId}`)}
+                  className="bg-gray-100/50 hover:bg-gray-200/50 text-gray-600 dark:bg-gray-700/50 dark:hover:bg-gray-600/50 dark:text-gray-300"
                 >
-                  ×
-                </button>
-              </span>
-            ))}
-            
-            {showTagInput ? (
-              <input
-                type="text"
-                value={tagInput}
-                onChange={(e) => setTagInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    addTag();
-                  } else if (e.key === 'Escape') {
-                    setShowTagInput(false);
-                    setTagInput('');
-                  }
-                }}
-                onBlur={() => {
-                  if (tagInput.trim()) addTag();
-                  setShowTagInput(false);
-                }}
-                placeholder="Add tag..."
-                className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-full text-sm outline-none focus:ring-2 focus:ring-blue-500"
-                autoFocus
-              />
-            ) : (
-              <button
-                onClick={() => setShowTagInput(true)}
-                className="flex items-center gap-1 px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-full text-sm text-gray-600 dark:text-gray-400 hover:text-blue-500"
-              >
-                <FaTags />
-                Add tag
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* Content Blocks */}
-        <div className="space-y-2">
-          {content.map((block, index) => (
-            <BlockEditor
-              key={block.id}
-              block={block}
-              index={index}
-              onUpdate={(updatedContent) => updateBlock(index, updatedContent)}
-              onAddBlock={(type) => addBlock(type, index)}
-              onDelete={() => deleteBlock(index)}
-            />
-          ))}
-        </div>
-
-        {/* Add Block Button */}
-        <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700 relative">
-          <button
-            onClick={() => setShowBlockMenu(!showBlockMenu)}
-            className="flex items-center gap-2 text-gray-500 hover:text-blue-500 transition-colors"
-          >
-            <FaPlus />
-            <span>Add a block</span>
-          </button>
-
-          {/* Block Menu */}
-          {showBlockMenu && (
-            <div className="absolute top-12 left-0 z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg min-w-[250px]">
-              <div className="p-2">
-                <BlockMenuItem 
-                  icon={<span className="text-lg">📝</span>} 
-                  label="Text" 
-                  description="Simple text block"
-                  onClick={() => addBlock('text')} 
-                />
-                <BlockMenuItem 
-                  icon={<FaHeading className="text-gray-600" />} 
-                  label="Heading" 
-                  description="Section heading"
-                  onClick={() => addBlock('heading')} 
-                />
-                <BlockMenuItem 
-                  icon={<FaQuoteLeft className="text-gray-600" />} 
-                  label="Quote" 
-                  description="Quote with attribution"
-                  onClick={() => addBlock('quote')} 
-                />
-                <BlockMenuItem 
-                  icon={<FaListUl className="text-gray-600" />} 
-                  label="List" 
-                  description="Bulleted or numbered list"
-                  onClick={() => addBlock('list')} 
-                />
-                <BlockMenuItem 
-                  icon={<FaCode className="text-gray-600" />} 
-                  label="Code" 
-                  description="Code block with syntax highlighting"
-                  onClick={() => addBlock('code')} 
-                />
-                <BlockMenuItem 
-                  icon={<FaImage className="text-blue-500" />} 
-                  label="Image" 
-                  description="Upload or embed an image"
-                  onClick={() => addBlock('image')} 
-                />
-                <BlockMenuItem 
-                  icon={<FaVideo className="text-purple-500" />} 
-                  label="Video" 
-                  description="Embed a video"
-                  onClick={() => addBlock('video')} 
-                />
-                <BlockMenuItem 
-                  icon={<FaLink className="text-green-500" />} 
-                  label="Embed" 
-                  description="Embed external content"
-                  onClick={() => addBlock('embed')} 
-                />
-                <BlockMenuItem 
-                  icon={<FaTable className="text-orange-500" />} 
-                  label="Table" 
-                  description="Structured data table"
-                  onClick={() => addBlock('table')} 
-                />
-                <BlockMenuItem 
-                  icon={<FaMinus className="text-gray-400" />} 
-                  label="Divider" 
-                  description="Visual separator"
-                  onClick={() => addBlock('divider')} 
-                />
-                <BlockMenuItem 
-                  icon={<FaInfoCircle className="text-blue-500" />} 
-                  label="Callout" 
-                  description="Important information box"
-                  onClick={() => addBlock('callout')} 
-                />
+                  <FaArrowLeft />
+                </AnimatedButton>
+                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Edit Note</h1>
+              </div>
+              
+              <div className="flex items-center gap-3">
+                <AnimatedButton
+                  onClick={() => setIsPinned(!isPinned)}
+                  className={`${
+                    isPinned 
+                      ? 'bg-yellow-100 text-yellow-600 hover:bg-yellow-200' 
+                      : 'bg-gray-100/50 text-gray-600 hover:bg-gray-200/50'
+                  } dark:bg-gray-700/50 dark:hover:bg-gray-600/50 dark:text-gray-300`}
+                >
+                  {isPinned ? <FaStar /> : <FaRegStar />}
+                </AnimatedButton>
+                
+                <AnimatedButton
+                  onClick={() => setVisibility(visibility === 'private' ? 'shared' : 'private')}
+                  className="bg-gray-100/50 hover:bg-gray-200/50 text-gray-600 dark:bg-gray-700/50 dark:hover:bg-gray-600/50 dark:text-gray-300"
+                >
+                  {visibility === 'private' ? <FaEyeSlash /> : <FaEye />}
+                </AnimatedButton>
+                
+                <AnimatedButton
+                  onClick={handleSave}
+                  disabled={saving}
+                  className="bg-gradient-to-r from-blue-500 to-purple-600 text-white hover:from-blue-600 hover:to-purple-700"
+                >
+                  {saving ? <FaSpinner className="animate-spin" /> : <FaSave />}
+                  {saving ? 'Saving...' : 'Save'}
+                </AnimatedButton>
               </div>
             </div>
-          )}
-        </div>
-      </AnimatedCard>
 
-      {/* Click outside to close menu */}
-      {showBlockMenu && (
-        <div 
-          className="fixed inset-0 z-40" 
-          onClick={() => setShowBlockMenu(false)}
-        />
+            {/* Title Input */}
+            <input
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Note title..."
+              className="w-full text-4xl font-bold bg-transparent border-none outline-none text-gray-900 dark:text-white placeholder-gray-400 mb-6"
+              autoFocus
+            />
+
+            {/* Tags */}
+            <div className="flex flex-wrap items-center gap-2 mb-8">
+              {tags.map((tag, index) => (
+                <span
+                  key={index}
+                  className="inline-flex items-center gap-1 px-3 py-1 text-sm bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 rounded-full"
+                >
+                  #{tag}
+                  <button
+                    onClick={() => removeTag(tag)}
+                    className="ml-1 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200"
+                  >
+                    <FaTimes className="w-3 h-3" />
+                  </button>
+                </span>
+              ))}
+              
+              {showTagInput ? (
+                <input
+                  type="text"
+                  value={tagInput}
+                  onChange={(e) => setTagInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      addTag();
+                    } else if (e.key === 'Escape') {
+                      setShowTagInput(false);
+                      setTagInput('');
+                    }
+                  }}
+                  onBlur={() => {
+                    if (tagInput.trim()) addTag();
+                    else setShowTagInput(false);
+                  }}
+                  placeholder="Add tag..."
+                  className="px-3 py-1 text-sm bg-transparent border border-gray-300 dark:border-gray-600 rounded-full outline-none focus:ring-2 focus:ring-blue-500"
+                  autoFocus
+                />
+              ) : (
+                <button
+                  onClick={() => setShowTagInput(true)}
+                  className="inline-flex items-center gap-1 px-3 py-1 text-sm text-gray-500 dark:text-gray-400 border border-dashed border-gray-300 dark:border-gray-600 rounded-full hover:border-gray-400 dark:hover:border-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+                >
+                  <FaTags className="w-3 h-3" />
+                  Add tag
+                </button>
+              )}
+            </div>
+
+            {/* Quick Action Buttons */}
+            <div className="flex flex-wrap gap-2 mb-6 p-4 bg-gray-50/50 dark:bg-gray-800/50 rounded-lg">
+              <button
+                onClick={() => addBlock('image')}
+                className="flex items-center gap-2 px-3 py-2 text-sm bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-lg hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors"
+              >
+                <FaImage className="w-4 h-4" />
+                Image
+              </button>
+              <button
+                onClick={() => addBlock('video')}
+                className="flex items-center gap-2 px-3 py-2 text-sm bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-lg hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors"
+              >
+                <FaVideo className="w-4 h-4" />
+                Video
+              </button>
+              <button
+                onClick={() => addBlock('table')}
+                className="flex items-center gap-2 px-3 py-2 text-sm bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-lg hover:bg-green-200 dark:hover:bg-green-900/50 transition-colors"
+              >
+                <FaTable className="w-4 h-4" />
+                Table
+              </button>
+              <button
+                onClick={() => addBlock('list')}
+                className="flex items-center gap-2 px-3 py-2 text-sm bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-lg hover:bg-purple-200 dark:hover:bg-purple-900/50 transition-colors"
+              >
+                <FaListUl className="w-4 h-4" />
+                List
+              </button>
+            </div>
+
+            {/* Content Blocks */}
+            <div className="space-y-4 min-h-[200px]">
+              {content.map((block, index) => (
+                <BlockEditor
+                  key={block.id}
+                  block={block}
+                  index={index}
+                  onUpdate={(updatedContent) => updateBlock(index, updatedContent)}
+                  onAddBlock={(type) => addBlock(type, index)}
+                  onDelete={() => deleteBlock(index)}
+                  onImageUpload={(file) => handleImageUpload(file, index)}
+                  convertVideoUrl={convertVideoUrl}
+                  uploading={uploading}
+                />
+              ))}
+            </div>
+
+            {/* Add Block Button */}
+            <div className="mt-8">
+              <button
+                onClick={handleBlockMenuClick}
+                className="w-full border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 text-gray-500 dark:text-gray-400 hover:border-gray-400 dark:hover:border-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-all duration-200 flex items-center justify-center gap-2 group"
+              >
+                <FaPlus className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                Add a block
+              </button>
+            </div>
+
+            {/* Debug Info */}
+            <div className="mt-6 p-3 bg-gray-100 dark:bg-gray-800 rounded-lg text-sm text-gray-600 dark:text-gray-400">
+              <strong>Debug:</strong> {content.length} blocks ({content.map(b => b.type).join(', ')})
+            </div>
+          </div>
+        </AnimatedCard>
+      </div>
+
+      {/* Block Type Menu */}
+      {showBlockMenu && blockMenuPosition && (
+        <>
+          <div 
+            className="fixed inset-0 z-40" 
+            onClick={() => setShowBlockMenu(false)}
+          />
+          <div 
+            className="fixed z-50 bg-white dark:bg-gray-800 rounded-lg shadow-2xl border border-gray-200 dark:border-gray-700 max-h-96 overflow-y-auto"
+            style={{
+              top: blockMenuPosition.top,
+              left: blockMenuPosition.left,
+              width: '280px'
+            }}
+          >
+            <div className="p-2">
+              <BlockMenuItem
+                icon={<FaHeading className="text-blue-500" />}
+                label="Heading"
+                description="Big section heading"
+                onClick={() => addBlock('heading')}
+              />
+              <BlockMenuItem
+                icon={<div className="w-4 h-4 bg-gray-400 rounded-sm" />}
+                label="Text"
+                description="Just start writing with plain text"
+                onClick={() => addBlock('text')}
+              />
+              <BlockMenuItem
+                icon={<FaQuoteLeft className="text-gray-500" />}
+                label="Quote"
+                description="Capture a quote with attribution"
+                onClick={() => addBlock('quote')}
+              />
+              <BlockMenuItem
+                icon={<FaListUl className="text-purple-500" />}
+                label="Bulleted List"
+                description="Create a simple bulleted list"
+                onClick={() => addBlock('list')}
+              />
+              <BlockMenuItem
+                icon={<FaListOl className="text-purple-500" />}
+                label="Numbered List"
+                description="Create a list with numbering"
+                onClick={() => {
+                  const insertIndex = content.length;
+                  const newBlock: NoteBlock = {
+                    id: `block-${Date.now()}-${Math.random()}`,
+                    type: 'list',
+                    content: { items: [''], ordered: true },
+                    position: insertIndex
+                  };
+                  setContent([...content, newBlock]);
+                  setShowBlockMenu(false);
+                }}
+              />
+              <BlockMenuItem
+                icon={<FaCode className="text-green-500" />}
+                label="Code"
+                description="Capture a code snippet"
+                onClick={() => addBlock('code')}
+              />
+              <BlockMenuItem
+                icon={<FaImage className="text-blue-500" />}
+                label="Image"
+                description="Upload or embed with a link"
+                onClick={() => addBlock('image')}
+              />
+              <BlockMenuItem
+                icon={<FaVideo className="text-red-500" />}
+                label="Video"
+                description="Embed from YouTube, Vimeo, etc."
+                onClick={() => addBlock('video')}
+              />
+              <BlockMenuItem
+                icon={<FaLink className="text-indigo-500" />}
+                label="Web Bookmark"
+                description="Save a link to any page on the web"
+                onClick={() => addBlock('embed')}
+              />
+              <BlockMenuItem
+                icon={<FaTable className="text-green-500" />}
+                label="Table"
+                description="Add a table with rows and columns"
+                onClick={() => addBlock('table')}
+              />
+              <BlockMenuItem
+                icon={<FaInfoCircle className="text-blue-500" />}
+                label="Callout"
+                description="Make writing stand out"
+                onClick={() => addBlock('callout')}
+              />
+              <BlockMenuItem
+                icon={<FaMinus className="text-gray-400" />}
+                label="Divider"
+                description="Visually divide blocks"
+                onClick={() => addBlock('divider')}
+              />
+            </div>
+          </div>
+        </>
       )}
     </div>
   );
@@ -465,7 +575,10 @@ const BlockEditor: React.FC<{
   onUpdate: (content: any) => void;
   onAddBlock: (type: 'text' | 'heading' | 'quote' | 'list' | 'code' | 'image' | 'video' | 'embed' | 'divider' | 'callout' | 'table') => void;
   onDelete: () => void;
-}> = ({ block, onUpdate, onAddBlock, onDelete }) => {
+  onImageUpload: (file: File) => void;
+  convertVideoUrl: (url: string) => string;
+  uploading: boolean;
+}> = ({ block, onUpdate, onAddBlock, onDelete, onImageUpload, convertVideoUrl, uploading }) => {
   const handleContentChange = (field: string, value: any) => {
     onUpdate({ [field]: value });
   };
@@ -607,14 +720,62 @@ const BlockEditor: React.FC<{
         <div className="group relative border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6">
           <div className="text-center">
             <FaImage className="mx-auto h-12 w-12 text-gray-400" />
-            <div className="mt-4 space-y-2">
-              <input
-                type="text"
-                value={block.content?.url || ''}
-                onChange={(e) => handleContentChange('url', e.target.value)}
-                placeholder="Image URL or paste image..."
-                className="w-full bg-transparent border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500"
-              />
+            <div className="mt-4 space-y-3">
+              {/* File Upload */}
+              <div className="relative">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      if (file.size > 10 * 1024 * 1024) { // 10MB limit
+                        toast.error('File size must be less than 10MB');
+                        return;
+                      }
+                      onImageUpload(file);
+                    }
+                  }}
+                  disabled={uploading}
+                  className="hidden"
+                  id={`file-upload-${block.id}`}
+                />
+                <label
+                  htmlFor={`file-upload-${block.id}`}
+                  className={`flex items-center justify-center gap-2 w-full px-4 py-3 border-2 border-dashed rounded-lg cursor-pointer transition-all ${
+                    uploading 
+                      ? 'border-blue-300 bg-blue-50 dark:bg-blue-900/20 cursor-not-allowed'
+                      : 'border-gray-300 dark:border-gray-600 hover:border-blue-400 dark:hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20'
+                  }`}
+                >
+                  {uploading ? (
+                    <>
+                      <FaSpinner className="animate-spin text-blue-500" />
+                      <span className="text-blue-600 dark:text-blue-400">Uploading...</span>
+                    </>
+                  ) : (
+                    <>
+                      <FaUpload className="text-gray-500" />
+                      <span className="text-gray-600 dark:text-gray-400">Click to upload image</span>
+                    </>
+                  )}
+                </label>
+              </div>
+
+              {/* URL Input */}
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <FaLink className="h-4 w-4 text-gray-400" />
+                </div>
+                <input
+                  type="text"
+                  value={block.content?.url || ''}
+                  onChange={(e) => handleContentChange('url', e.target.value)}
+                  placeholder="Or paste image URL..."
+                  className="w-full pl-10 bg-transparent border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
               <input
                 type="text"
                 value={block.content?.caption || ''}
@@ -674,10 +835,30 @@ const BlockEditor: React.FC<{
             </div>
             {block.content?.url && (
               <div className="mt-4">
-                <div className="aspect-video bg-gray-200 dark:bg-gray-700 rounded-lg flex items-center justify-center">
-                  <FaVideo className="h-8 w-8 text-gray-400" />
-                  <span className="ml-2 text-gray-500">Video: {block.content.url}</span>
-                </div>
+                {convertVideoUrl(block.content.url) !== block.content.url ? (
+                  <div className="aspect-video bg-black rounded-lg overflow-hidden">
+                    <iframe
+                      src={convertVideoUrl(block.content.url)}
+                      className="w-full h-full"
+                      frameBorder="0"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                      title="Embedded video"
+                    />
+                  </div>
+                ) : (
+                  <div className="aspect-video bg-gray-200 dark:bg-gray-700 rounded-lg flex items-center justify-center">
+                    <div className="text-center">
+                      <FaPlay className="mx-auto h-8 w-8 text-gray-400 mb-2" />
+                      <p className="text-sm text-gray-500">
+                        {block.content.url.includes('youtube.com') || block.content.url.includes('vimeo.com') 
+                          ? 'Unsupported video format' 
+                          : 'Enter a YouTube or Vimeo URL'
+                        }
+                      </p>
+                    </div>
+                  </div>
+                )}
                 {block.content.caption && (
                   <p className="text-sm text-gray-500 mt-2 italic">{block.content.caption}</p>
                 )}
