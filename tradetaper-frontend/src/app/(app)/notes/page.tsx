@@ -99,9 +99,24 @@ const NotesPage: React.FC = () => {
         ...(hasMediaOnly && { hasMedia: true }),
       };
 
+      console.log('🔍 Notes Page fetchNotes Debug:', {
+        searchTerm,
+        debouncedSearch,
+        selectedTags,
+        params,
+        timestamp: new Date().toISOString()
+      });
+
       const data = await NotesService.getNotes(params);
       setNotes(data.notes);
       setTotal(data.total);
+      
+      console.log('📊 Notes fetched successfully:', {
+        notesCount: data.notes.length,
+        total: data.total,
+        hasSearch: !!debouncedSearch,
+        searchTerm: debouncedSearch
+      });
     } catch (error) {
       console.error('Error fetching notes:', error);
     } finally {
@@ -214,6 +229,42 @@ const NotesPage: React.FC = () => {
           >
             Voice Note
           </button>
+          
+          {/* Debug Search Test Button */}
+          <button
+            onClick={async () => {
+              console.log('🧪 Testing direct search...');
+              try {
+                const testResult = await NotesService.getNotes({ search: 'test', limit: 5 });
+                console.log('🔍 Direct search test result:', testResult);
+                alert(`Found ${testResult.notes.length} notes with search "test"`);
+              } catch (error) {
+                console.error('❌ Direct search test failed:', error);
+                alert('Search test failed - check console');
+              }
+            }}
+            className="bg-red-500 text-white px-4 py-2 rounded-lg"
+          >
+            🧪 Test Search
+          </button>
+          
+          {/* Show All Notes Test Button */}
+          <button
+            onClick={async () => {
+              console.log('📋 Getting all notes...');
+              try {
+                const allNotes = await NotesService.getNotes({ limit: 100 });
+                console.log('📝 All notes:', allNotes.notes.map(n => ({ id: n.id, title: n.title })));
+                alert(`Total notes: ${allNotes.total}\nTitles: ${allNotes.notes.map(n => n.title).join(', ')}`);
+              } catch (error) {
+                console.error('❌ Failed to get all notes:', error);
+                alert('Failed to get notes - check console');
+              }
+            }}
+            className="bg-green-500 text-white px-4 py-2 rounded-lg text-sm"
+          >
+            📋 Show All
+          </button>
         </div>
       </div>
 
@@ -228,7 +279,21 @@ const NotesPage: React.FC = () => {
               placeholder="Search notes..."
               className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => {
+                const newValue = e.target.value;
+                console.log('🔍 Search input changed:', {
+                  oldValue: searchTerm,
+                  newValue,
+                  timestamp: new Date().toISOString()
+                });
+                setSearchTerm(newValue);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  console.log('🚀 Manual search triggered for:', searchTerm);
+                  fetchNotes();
+                }
+              }}
             />
           </div>
 
