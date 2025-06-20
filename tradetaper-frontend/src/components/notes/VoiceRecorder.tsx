@@ -15,7 +15,7 @@ import {
 } from 'react-icons/fa';
 import { AnimatedButton } from '@/components/ui/AnimatedButton';
 import { AnimatedCard } from '@/components/ui/AnimatedCard';
-import { notesService } from '@/services/notesService';
+import { NotesService } from '@/services/notesService';
 import toast from 'react-hot-toast';
 
 interface VoiceRecorderProps {
@@ -39,6 +39,8 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
   onClose,
   isOpen,
 }) => {
+  console.log('🎤 VoiceRecorder rendered with props:', { isOpen, onTranscriptionComplete: !!onTranscriptionComplete, onClose: !!onClose });
+
   const [isRecording, setIsRecording] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [recordings, setRecordings] = useState<VoiceRecording[]>([]);
@@ -255,7 +257,7 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
         )
       );
 
-      const response = await notesService.speechToText(recording.blob);
+      const response = await NotesService.speechToText(recording.blob);
       
       setRecordings(prev => 
         prev.map(r => 
