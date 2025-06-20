@@ -392,14 +392,56 @@ const NewNotePage: React.FC = () => {
 
           {/* Add Block Button */}
           <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
-            <div className="flex items-center justify-center">
+            <div className="flex items-center justify-center gap-4">
               <button
                 onClick={() => addBlock('text')}
-                className="flex items-center gap-2 px-4 py-2 text-gray-500 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                className="flex items-center gap-2 px-6 py-3 text-gray-600 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors border-2 border-dashed border-gray-300 dark:border-gray-600 hover:border-blue-300"
               >
                 <FaPlus />
-                <span>Add a block</span>
+                <span className="font-medium">Add a block</span>
               </button>
+              
+              {/* Quick Block Buttons */}
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => addBlock('image')}
+                  className="flex items-center gap-1 px-3 py-2 text-sm text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-md transition-colors"
+                  title="Add Image"
+                >
+                  <FaImage />
+                  <span className="hidden sm:inline">Image</span>
+                </button>
+                <button
+                  onClick={() => addBlock('video')}
+                  className="flex items-center gap-1 px-3 py-2 text-sm text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-md transition-colors"
+                  title="Add Video"
+                >
+                  <FaVideo />
+                  <span className="hidden sm:inline">Video</span>
+                </button>
+                <button
+                  onClick={() => addBlock('table')}
+                  className="flex items-center gap-1 px-3 py-2 text-sm text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-900/20 rounded-md transition-colors"
+                  title="Add Table"
+                >
+                  <FaTable />
+                  <span className="hidden sm:inline">Table</span>
+                </button>
+                <button
+                  onClick={() => addBlock('list')}
+                  className="flex items-center gap-1 px-3 py-2 text-sm text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-md transition-colors"
+                  title="Add List"
+                >
+                  <FaListUl />
+                  <span className="hidden sm:inline">List</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Debug Info */}
+            <div className="mt-4 text-center text-xs text-gray-500">
+              Current blocks: {note.content.length} | 
+              Block types: {note.content.map(block => block.type).join(', ')}
             </div>
           </div>
         </AnimatedCard>
@@ -586,24 +628,73 @@ const BlockEditor: React.FC<{
                   onChange={async (e) => {
                     const file = e.target.files?.[0];
                     if (file) {
+                      // Check file size (max 10MB)
+                      if (file.size > 10 * 1024 * 1024) {
+                        toast.error('File size must be less than 10MB');
+                        return;
+                      }
+                      
+                      // Show loading state
+                      handleContentChange('uploading', true);
+                      toast.loading('Uploading image...', { id: 'upload-' + block.id });
+                      
                       try {
-                        const uploadResult = await NotesService.uploadMedia(file);
+                        // Ensure note is saved first to get an ID for media upload
+                        let currentNoteId = savedNoteId;
+                        if (!currentNoteId && (note.title || note.content.some(block => getBlockText(block)))) {
+                          const savedNote = await NotesService.createNote({
+                            title: note.title || 'Untitled note',
+                            content: note.content,
+                            tags: note.tags,
+                            visibility: note.visibility,
+                            accountId: note.accountId,
+                            tradeId: note.tradeId,
+                          });
+                          currentNoteId = savedNote.id;
+                          setSavedNoteId(savedNote.id);
+                        }
+
+                        if (!currentNoteId) {
+                          throw new Error('Unable to save note for media upload');
+                        }
+
+                        const uploadResult = await NotesService.uploadMedia(file, currentNoteId);
                         handleContentChange('url', uploadResult.url);
                         handleContentChange('filename', uploadResult.filename);
-                      } catch (error) {
+                        handleContentChange('uploading', false);
+                        toast.success('Image uploaded successfully', { id: 'upload-' + block.id });
+                      } catch (error: any) {
                         console.error('Failed to upload image:', error);
-                        toast.error('Failed to upload image');
+                        handleContentChange('uploading', false);
+                        // Try simple URL approach as fallback
+                        if (error?.response?.status === 400) {
+                          toast.error('Please save your note first, then try uploading the image', { id: 'upload-' + block.id });
+                        } else {
+                          toast.error(error?.response?.data?.message || 'Failed to upload image. You can paste image URL instead.', { id: 'upload-' + block.id });
+                        }
                       }
                     }
                   }}
                   className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                   id={`file-upload-${block.id}`}
+                  disabled={block.content?.uploading}
                 />
                 <label
                   htmlFor={`file-upload-${block.id}`}
-                  className="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-lg cursor-pointer transition-colors inline-block text-center"
+                  className={`w-full py-2 px-4 rounded-lg cursor-pointer transition-colors inline-block text-center ${
+                    block.content?.uploading 
+                      ? 'bg-gray-400 text-gray-600 cursor-not-allowed' 
+                      : 'bg-blue-500 hover:bg-blue-600 text-white'
+                  }`}
                 >
-                  Upload Image
+                  {block.content?.uploading ? (
+                    <div className="flex items-center justify-center gap-2">
+                      <FaSpinner className="animate-spin" />
+                      Uploading...
+                    </div>
+                  ) : (
+                    'Upload Image'
+                  )}
                 </label>
               </div>
               
@@ -615,6 +706,7 @@ const BlockEditor: React.FC<{
                 onChange={(e) => handleContentChange('url', e.target.value)}
                 placeholder="Paste image URL..."
                 className="w-full bg-transparent border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                disabled={block.content?.uploading}
               />
               <input
                 type="text"
@@ -631,7 +723,7 @@ const BlockEditor: React.FC<{
                 className="w-full bg-transparent border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
-            {block.content?.url && (
+            {block.content?.url && !block.content?.uploading && (
               <div className="mt-4">
                 <img 
                   src={block.content.url} 
@@ -640,6 +732,7 @@ const BlockEditor: React.FC<{
                   onError={(e) => {
                     const target = e.target as HTMLImageElement;
                     target.style.display = 'none';
+                    toast.error('Failed to load image');
                   }}
                 />
                 {block.content.caption && (
