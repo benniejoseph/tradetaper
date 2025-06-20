@@ -14,7 +14,17 @@ import {
   FaExclamationTriangle,
   FaCheckCircle,
   FaStar,
-  FaRegStar
+  FaRegStar,
+  FaImage,
+  FaVideo,
+  FaLink,
+  FaListUl,
+  FaListOl,
+  FaTable,
+  FaMinus,
+  FaCode,
+  FaQuoteLeft,
+  FaHeading
 } from 'react-icons/fa';
 import { AnimatedCard } from '@/components/ui/AnimatedCard';
 import { AnimatedButton } from '@/components/ui/AnimatedButton';
@@ -37,6 +47,7 @@ const NoteEditPage: React.FC = () => {
   const [showTagInput, setShowTagInput] = useState(false);
   const [visibility, setVisibility] = useState<'private' | 'shared'>('private');
   const [isPinned, setIsPinned] = useState(false);
+  const [showBlockMenu, setShowBlockMenu] = useState(false);
 
   const fetchNote = async () => {
     if (!noteId) return;
@@ -112,20 +123,35 @@ const NoteEditPage: React.FC = () => {
     ];
     
     setContent(updatedContent);
+    setShowBlockMenu(false);
   };
 
   const getDefaultBlockContent = (type: string) => {
     switch (type) {
       case 'text':
-        return { text: '' };
       case 'heading':
-        return { text: '', level: 2 };
+        return { text: '' };
       case 'quote':
         return { text: '', author: '' };
+      case 'list':
+        return { items: [''], ordered: false };
       case 'code':
         return { code: '', language: 'javascript' };
+      case 'image':
+        return { url: '', caption: '', alt: '' };
+      case 'video':
+        return { url: '', caption: '' };
+      case 'embed':
+        return { url: '', title: '', description: '' };
       case 'callout':
         return { text: '', type: 'info' };
+      case 'table':
+        return { 
+          headers: ['Column 1', 'Column 2'],
+          rows: [['', ''], ['', '']]
+        };
+      case 'divider':
+        return {};
       default:
         return {};
     }
@@ -315,19 +341,122 @@ const NoteEditPage: React.FC = () => {
         </div>
 
         {/* Add Block Button */}
-        <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
+        <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700 relative">
           <button
-            onClick={() => addBlock('text')}
+            onClick={() => setShowBlockMenu(!showBlockMenu)}
             className="flex items-center gap-2 text-gray-500 hover:text-blue-500 transition-colors"
           >
             <FaPlus />
             <span>Add a block</span>
           </button>
+
+          {/* Block Menu */}
+          {showBlockMenu && (
+            <div className="absolute top-12 left-0 z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg min-w-[250px]">
+              <div className="p-2">
+                <BlockMenuItem 
+                  icon={<span className="text-lg">📝</span>} 
+                  label="Text" 
+                  description="Simple text block"
+                  onClick={() => addBlock('text')} 
+                />
+                <BlockMenuItem 
+                  icon={<FaHeading className="text-gray-600" />} 
+                  label="Heading" 
+                  description="Section heading"
+                  onClick={() => addBlock('heading')} 
+                />
+                <BlockMenuItem 
+                  icon={<FaQuoteLeft className="text-gray-600" />} 
+                  label="Quote" 
+                  description="Quote with attribution"
+                  onClick={() => addBlock('quote')} 
+                />
+                <BlockMenuItem 
+                  icon={<FaListUl className="text-gray-600" />} 
+                  label="List" 
+                  description="Bulleted or numbered list"
+                  onClick={() => addBlock('list')} 
+                />
+                <BlockMenuItem 
+                  icon={<FaCode className="text-gray-600" />} 
+                  label="Code" 
+                  description="Code block with syntax highlighting"
+                  onClick={() => addBlock('code')} 
+                />
+                <BlockMenuItem 
+                  icon={<FaImage className="text-blue-500" />} 
+                  label="Image" 
+                  description="Upload or embed an image"
+                  onClick={() => addBlock('image')} 
+                />
+                <BlockMenuItem 
+                  icon={<FaVideo className="text-purple-500" />} 
+                  label="Video" 
+                  description="Embed a video"
+                  onClick={() => addBlock('video')} 
+                />
+                <BlockMenuItem 
+                  icon={<FaLink className="text-green-500" />} 
+                  label="Embed" 
+                  description="Embed external content"
+                  onClick={() => addBlock('embed')} 
+                />
+                <BlockMenuItem 
+                  icon={<FaTable className="text-orange-500" />} 
+                  label="Table" 
+                  description="Structured data table"
+                  onClick={() => addBlock('table')} 
+                />
+                <BlockMenuItem 
+                  icon={<FaMinus className="text-gray-400" />} 
+                  label="Divider" 
+                  description="Visual separator"
+                  onClick={() => addBlock('divider')} 
+                />
+                <BlockMenuItem 
+                  icon={<FaInfoCircle className="text-blue-500" />} 
+                  label="Callout" 
+                  description="Important information box"
+                  onClick={() => addBlock('callout')} 
+                />
+              </div>
+            </div>
+          )}
         </div>
       </AnimatedCard>
+
+      {/* Click outside to close menu */}
+      {showBlockMenu && (
+        <div 
+          className="fixed inset-0 z-40" 
+          onClick={() => setShowBlockMenu(false)}
+        />
+      )}
     </div>
   );
 };
+
+// Block Menu Item Component
+const BlockMenuItem: React.FC<{
+  icon: React.ReactNode;
+  label: string;
+  description: string;
+  onClick: () => void;
+}> = ({ icon, label, description, onClick }) => (
+  <button
+    onClick={onClick}
+    className="w-full flex items-center gap-3 p-3 text-left hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+  >
+    <div className="flex-shrink-0 w-6 h-6 flex items-center justify-center">
+      {icon}
+    </div>
+    <div className="flex-1 min-w-0">
+      <div className="font-medium text-gray-900 dark:text-white">{label}</div>
+      <div className="text-sm text-gray-500 dark:text-gray-400 truncate">{description}</div>
+    </div>
+  </button>
+);
 
 // Block Editor Component
 const BlockEditor: React.FC<{
@@ -397,6 +526,54 @@ const BlockEditor: React.FC<{
         </div>
       );
 
+    case 'list':
+      return (
+        <div className="group relative">
+          <div className="flex items-center gap-2 mb-2">
+            <button
+              onClick={() => handleContentChange('ordered', !block.content?.ordered)}
+              className="text-sm px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded"
+            >
+              {block.content?.ordered ? 'Numbered' : 'Bulleted'}
+            </button>
+          </div>
+          <div className="space-y-1">
+            {(block.content?.items || ['']).map((item: string, i: number) => (
+              <div key={i} className="flex items-start gap-2">
+                <span className="text-gray-400 pt-1">
+                  {block.content?.ordered ? `${i + 1}.` : '•'}
+                </span>
+                <input
+                  type="text"
+                  value={item}
+                  onChange={(e) => {
+                    const newItems = [...(block.content?.items || [''])];
+                    newItems[i] = e.target.value;
+                    handleContentChange('items', newItems);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      const newItems = [...(block.content?.items || [''])];
+                      newItems.splice(i + 1, 0, '');
+                      handleContentChange('items', newItems);
+                    } else if (e.key === 'Backspace' && !item && (block.content?.items?.length || 0) > 1) {
+                      e.preventDefault();
+                      const newItems = [...(block.content?.items || [''])];
+                      newItems.splice(i, 1);
+                      handleContentChange('items', newItems);
+                    }
+                  }}
+                  placeholder="List item..."
+                  className="flex-1 bg-transparent border-none outline-none text-gray-800 dark:text-gray-200 placeholder-gray-400"
+                />
+              </div>
+            ))}
+          </div>
+          <BlockControls onAddBlock={onAddBlock} onDelete={onDelete} />
+        </div>
+      );
+
     case 'code':
       return (
         <div className="group relative bg-gray-100 dark:bg-gray-800 rounded-lg p-4">
@@ -411,6 +588,8 @@ const BlockEditor: React.FC<{
             <option value="html">HTML</option>
             <option value="css">CSS</option>
             <option value="json">JSON</option>
+            <option value="sql">SQL</option>
+            <option value="bash">Bash</option>
           </select>
           <textarea
             value={block.content?.code || ''}
@@ -419,6 +598,236 @@ const BlockEditor: React.FC<{
             className="w-full bg-transparent border-none outline-none resize-none font-mono text-sm text-gray-800 dark:text-gray-200 placeholder-gray-400"
             rows={3}
           />
+          <BlockControls onAddBlock={onAddBlock} onDelete={onDelete} />
+        </div>
+      );
+
+    case 'image':
+      return (
+        <div className="group relative border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6">
+          <div className="text-center">
+            <FaImage className="mx-auto h-12 w-12 text-gray-400" />
+            <div className="mt-4 space-y-2">
+              <input
+                type="text"
+                value={block.content?.url || ''}
+                onChange={(e) => handleContentChange('url', e.target.value)}
+                placeholder="Image URL or paste image..."
+                className="w-full bg-transparent border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <input
+                type="text"
+                value={block.content?.caption || ''}
+                onChange={(e) => handleContentChange('caption', e.target.value)}
+                placeholder="Caption (optional)"
+                className="w-full bg-transparent border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <input
+                type="text"
+                value={block.content?.alt || ''}
+                onChange={(e) => handleContentChange('alt', e.target.value)}
+                placeholder="Alt text (optional)"
+                className="w-full bg-transparent border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            {block.content?.url && (
+              <div className="mt-4">
+                <img 
+                  src={block.content.url} 
+                  alt={block.content.alt || 'Image'} 
+                  className="max-w-full h-auto rounded-lg"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.style.display = 'none';
+                  }}
+                />
+                {block.content.caption && (
+                  <p className="text-sm text-gray-500 mt-2 italic">{block.content.caption}</p>
+                )}
+              </div>
+            )}
+          </div>
+          <BlockControls onAddBlock={onAddBlock} onDelete={onDelete} />
+        </div>
+      );
+
+    case 'video':
+      return (
+        <div className="group relative border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6">
+          <div className="text-center">
+            <FaVideo className="mx-auto h-12 w-12 text-gray-400" />
+            <div className="mt-4 space-y-2">
+              <input
+                type="text"
+                value={block.content?.url || ''}
+                onChange={(e) => handleContentChange('url', e.target.value)}
+                placeholder="Video URL (YouTube, Vimeo, etc.)"
+                className="w-full bg-transparent border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <input
+                type="text"
+                value={block.content?.caption || ''}
+                onChange={(e) => handleContentChange('caption', e.target.value)}
+                placeholder="Caption (optional)"
+                className="w-full bg-transparent border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            {block.content?.url && (
+              <div className="mt-4">
+                <div className="aspect-video bg-gray-200 dark:bg-gray-700 rounded-lg flex items-center justify-center">
+                  <FaVideo className="h-8 w-8 text-gray-400" />
+                  <span className="ml-2 text-gray-500">Video: {block.content.url}</span>
+                </div>
+                {block.content.caption && (
+                  <p className="text-sm text-gray-500 mt-2 italic">{block.content.caption}</p>
+                )}
+              </div>
+            )}
+          </div>
+          <BlockControls onAddBlock={onAddBlock} onDelete={onDelete} />
+        </div>
+      );
+
+    case 'embed':
+      return (
+        <div className="group relative border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6">
+          <div className="text-center">
+            <FaLink className="mx-auto h-12 w-12 text-gray-400" />
+            <div className="mt-4 space-y-2">
+              <input
+                type="text"
+                value={block.content?.url || ''}
+                onChange={(e) => handleContentChange('url', e.target.value)}
+                placeholder="URL to embed"
+                className="w-full bg-transparent border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <input
+                type="text"
+                value={block.content?.title || ''}
+                onChange={(e) => handleContentChange('title', e.target.value)}
+                placeholder="Title (optional)"
+                className="w-full bg-transparent border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <textarea
+                value={block.content?.description || ''}
+                onChange={(e) => handleContentChange('description', e.target.value)}
+                placeholder="Description (optional)"
+                className="w-full bg-transparent border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                rows={2}
+              />
+            </div>
+            {block.content?.url && (
+              <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <div className="text-left">
+                  {block.content.title && (
+                    <h4 className="font-medium text-gray-900 dark:text-white">{block.content.title}</h4>
+                  )}
+                  <p className="text-sm text-blue-500 break-all">{block.content.url}</p>
+                  {block.content.description && (
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{block.content.description}</p>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+          <BlockControls onAddBlock={onAddBlock} onDelete={onDelete} />
+        </div>
+      );
+
+    case 'table':
+      return (
+        <div className="group relative">
+          <div className="overflow-x-auto">
+            <table className="min-w-full border-collapse border border-gray-300 dark:border-gray-600">
+              <thead>
+                <tr>
+                  {(block.content?.headers || []).map((header: string, i: number) => (
+                    <th key={i} className="border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 p-2">
+                      <input
+                        type="text"
+                        value={header}
+                        onChange={(e) => {
+                          const newHeaders = [...(block.content?.headers || [])];
+                          newHeaders[i] = e.target.value;
+                          handleContentChange('headers', newHeaders);
+                        }}
+                        className="w-full bg-transparent border-none outline-none text-sm font-medium"
+                        placeholder={`Header ${i + 1}`}
+                      />
+                    </th>
+                  ))}
+                  <th className="border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 p-2 w-10">
+                    <button
+                      onClick={() => {
+                        const newHeaders = [...(block.content?.headers || []), ''];
+                        const newRows = (block.content?.rows || []).map((row: string[]) => [...row, '']);
+                        handleContentChange('headers', newHeaders);
+                        handleContentChange('rows', newRows);
+                      }}
+                      className="text-blue-500 hover:text-blue-700"
+                    >
+                      <FaPlus size={12} />
+                    </button>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {(block.content?.rows || []).map((row: string[], rowIndex: number) => (
+                  <tr key={rowIndex}>
+                    {row.map((cell: string, cellIndex: number) => (
+                      <td key={cellIndex} className="border border-gray-300 dark:border-gray-600 p-2">
+                        <input
+                          type="text"
+                          value={cell}
+                          onChange={(e) => {
+                            const newRows = [...(block.content?.rows || [])];
+                            newRows[rowIndex][cellIndex] = e.target.value;
+                            handleContentChange('rows', newRows);
+                          }}
+                          className="w-full bg-transparent border-none outline-none text-sm"
+                          placeholder={`Cell ${rowIndex + 1}-${cellIndex + 1}`}
+                        />
+                      </td>
+                    ))}
+                    <td className="border border-gray-300 dark:border-gray-600 p-2 w-10">
+                      <button
+                        onClick={() => {
+                          const newRows = (block.content?.rows || []).filter((_: any, i: number) => i !== rowIndex);
+                          handleContentChange('rows', newRows);
+                        }}
+                        className="text-red-500 hover:text-red-700"
+                      >
+                        ×
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+                <tr>
+                  <td colSpan={(block.content?.headers?.length || 0) + 1} className="border border-gray-300 dark:border-gray-600 p-2 text-center">
+                    <button
+                      onClick={() => {
+                        const newRow = new Array(block.content?.headers?.length || 2).fill('');
+                        const newRows = [...(block.content?.rows || []), newRow];
+                        handleContentChange('rows', newRows);
+                      }}
+                      className="text-blue-500 hover:text-blue-700 text-sm"
+                    >
+                      <FaPlus className="inline mr-1" size={12} />
+                      Add Row
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <BlockControls onAddBlock={onAddBlock} onDelete={onDelete} />
+        </div>
+      );
+
+    case 'divider':
+      return (
+        <div className="group relative py-4">
+          <hr className="border-gray-300 dark:border-gray-600" />
           <BlockControls onAddBlock={onAddBlock} onDelete={onDelete} />
         </div>
       );
