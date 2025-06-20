@@ -13,7 +13,7 @@ import {
 } from 'react-icons/fa';
 import { AnimatedCard } from '@/components/ui/AnimatedCard';
 import { AnimatedButton } from '@/components/ui/AnimatedButton';
-import { notesService } from '@/services/notesService';
+import { NotesService } from '@/services/notesService';
 import { Note } from '@/types/note';
 import { useRouter } from 'next/navigation';
 import { format, parseISO, addMonths, subMonths, startOfMonth, isToday, isSameMonth } from 'date-fns';
@@ -63,11 +63,9 @@ const NotesCalendarPage: React.FC = () => {
       const year = date.getFullYear();
       const month = date.getMonth() + 1;
 
-      const [calendar, stats] = await Promise.all([
-        notesService.getCalendarNotes(year, month),
-        fetch(`/api/v1/notes/calendar/${year}/${month}/stats`, {
-          headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
-        }).then(res => res.json()),
+      const [notesData, statsData] = await Promise.all([
+        NotesService.getCalendarNotes(year, month),
+        NotesService.getStats()
       ]);
 
       // Transform the calendar data to match our interface
@@ -76,7 +74,7 @@ const NotesCalendarPage: React.FC = () => {
         month,
         monthName: format(date, 'MMMM'),
         days: [], // Will be populated from the calendar response
-        totalNotes: calendar.reduce((sum: number, day: any) => sum + day.count, 0),
+        totalNotes: notesData.reduce((sum: number, day: any) => sum + day.count, 0),
         weekdays: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
       };
 
@@ -91,7 +89,7 @@ const NotesCalendarPage: React.FC = () => {
         currentDay.setDate(currentDay.getDate() + i);
         
         const dateStr = format(currentDay, 'yyyy-MM-dd');
-        const dayData = calendar.find((d: any) => d.date === dateStr);
+        const dayData = notesData.find((d: any) => d.date === dateStr);
         
         days.push({
           date: dateStr,
@@ -106,7 +104,7 @@ const NotesCalendarPage: React.FC = () => {
 
       transformedCalendar.days = days;
       setCalendarData(transformedCalendar);
-      setCalendarStats(stats);
+      setCalendarStats(statsData);
     } catch (error) {
       console.error('Error fetching calendar data:', error);
       toast.error('Failed to load calendar data');
