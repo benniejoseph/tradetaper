@@ -111,6 +111,41 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
     }
   };
 
+  const requestMicrophonePermission = async () => {
+    try {
+      console.log('🎤 Requesting microphone permission...');
+      
+      // Actually request microphone access
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        } 
+      });
+      
+      console.log('✅ Microphone permission granted!');
+      setHasPermission(true);
+      
+      // Stop the stream immediately as we just needed permission
+      stream.getTracks().forEach(track => track.stop());
+      
+      toast.success('Microphone access granted! You can now start recording.');
+      
+    } catch (error: any) {
+      console.error('❌ Error requesting microphone permission:', error);
+      setHasPermission(false);
+      
+      if (error?.name === 'NotAllowedError') {
+        toast.error('Microphone access denied. Please allow microphone access in your browser settings.');
+      } else if (error?.name === 'NotFoundError') {
+        toast.error('No microphone found. Please connect a microphone and try again.');
+      } else {
+        toast.error('Failed to access microphone. Please check your browser settings.');
+      }
+    }
+  };
+
   const setupAudioContext = async (stream: MediaStream) => {
     try {
       const audioContext = new AudioContext();
@@ -330,7 +365,7 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
                 Microphone access is required for voice recording.
               </p>
               <AnimatedButton
-                onClick={checkMicrophonePermission}
+                onClick={requestMicrophonePermission}
                 variant="gradient"
                 className="bg-gradient-to-r from-blue-500 to-purple-500"
               >
@@ -349,7 +384,9 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
                     variant="gradient"
                     className="bg-gradient-to-r from-red-500 to-red-600 w-20 h-20 rounded-full"
                     icon={<FaMicrophone className="w-8 h-8" />}
-                  />
+                  >
+                    Record
+                  </AnimatedButton>
                 ) : (
                   <div className="space-y-4">
                     {/* Waveform Visualization */}
@@ -379,16 +416,20 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
                     <div className="flex items-center justify-center gap-4">
                       <AnimatedButton
                         onClick={pauseRecording}
-                        variant="outline"
+                        variant="ghost"
                         icon={isPaused ? <FaPlay /> : <FaPause />}
-                      />
+                      >
+                        {isPaused ? 'Resume' : 'Pause'}
+                      </AnimatedButton>
                       
                       <AnimatedButton
                         onClick={stopRecording}
-                        variant="solid"
+                        variant="danger"
                         className="bg-red-500 hover:bg-red-600 text-white"
                         icon={<FaStop />}
-                      />
+                      >
+                        Stop
+                      </AnimatedButton>
                     </div>
                   </div>
                 )}
@@ -432,7 +473,7 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
                           {!recording.transcript && !recording.isTranscribing && !recording.error && (
                             <AnimatedButton
                               onClick={() => transcribeRecording(recording)}
-                              variant="outline"
+                              variant="ghost"
                               size="sm"
                               icon={<FaWaveSquare />}
                             >
