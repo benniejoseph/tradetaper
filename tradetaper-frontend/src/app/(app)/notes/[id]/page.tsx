@@ -186,6 +186,20 @@ const NoteViewPage: React.FC = () => {
           </blockquote>
         );
 
+      case 'list':
+        return (
+          <div className="space-y-1">
+            {(block.content?.items || []).map((item: string, i: number) => (
+              <div key={i} className="flex items-start gap-2">
+                <span className="text-gray-400 pt-1">
+                  {block.content?.ordered ? `${i + 1}.` : '•'}
+                </span>
+                <span className="text-gray-800 dark:text-gray-200">{item}</span>
+              </div>
+            ))}
+          </div>
+        );
+
       case 'code':
         return (
           <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-4 overflow-x-auto">
@@ -197,6 +211,113 @@ const NoteViewPage: React.FC = () => {
             <pre className="text-sm text-gray-800 dark:text-gray-200 font-mono">
               <code>{block.content?.code || ''}</code>
             </pre>
+          </div>
+        );
+
+      case 'image':
+        return (
+          <div className="text-center">
+            {block.content?.url && (
+              <div>
+                <img 
+                  src={block.content.url} 
+                  alt={block.content.alt || 'Image'} 
+                  className="max-w-full h-auto rounded-lg mx-auto"
+                />
+                {block.content.caption && (
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-2 italic">{block.content.caption}</p>
+                )}
+              </div>
+            )}
+          </div>
+        );
+
+      case 'video':
+        const getVideoEmbedUrl = (url: string) => {
+          // Convert YouTube URLs to embed format
+          if (url.includes('youtube.com/watch?v=')) {
+            const videoId = url.split('v=')[1]?.split('&')[0];
+            return `https://www.youtube.com/embed/${videoId}`;
+          }
+          if (url.includes('youtu.be/')) {
+            const videoId = url.split('youtu.be/')[1]?.split('?')[0];
+            return `https://www.youtube.com/embed/${videoId}`;
+          }
+          // Convert Vimeo URLs to embed format
+          if (url.includes('vimeo.com/')) {
+            const videoId = url.split('vimeo.com/')[1]?.split('?')[0];
+            return `https://player.vimeo.com/video/${videoId}`;
+          }
+          return url;
+        };
+
+        return (
+          <div className="text-center">
+            {block.content?.url && (
+              <div>
+                <div className="aspect-video bg-gray-200 dark:bg-gray-700 rounded-lg overflow-hidden mx-auto max-w-4xl">
+                  <iframe
+                    src={getVideoEmbedUrl(block.content.url)}
+                    className="w-full h-full"
+                    frameBorder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                    title="Video embed"
+                  />
+                </div>
+                {block.content.caption && (
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-2 italic">{block.content.caption}</p>
+                )}
+              </div>
+            )}
+          </div>
+        );
+
+      case 'embed':
+        return (
+          <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-gray-50 dark:bg-gray-800">
+            {block.content?.title && (
+              <h4 className="font-medium text-gray-900 dark:text-white mb-2">{block.content.title}</h4>
+            )}
+            <a 
+              href={block.content?.url} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-blue-500 hover:text-blue-600 text-sm break-all"
+            >
+              {block.content?.url}
+            </a>
+            {block.content?.description && (
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">{block.content.description}</p>
+            )}
+          </div>
+        );
+
+      case 'table':
+        return (
+          <div className="overflow-x-auto">
+            <table className="min-w-full border-collapse border border-gray-300 dark:border-gray-600">
+              <thead>
+                <tr>
+                  {(block.content?.headers || []).map((header: string, i: number) => (
+                    <th key={i} className="border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 p-3 text-left font-medium text-gray-900 dark:text-white">
+                      {header}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {(block.content?.rows || []).map((row: string[], rowIndex: number) => (
+                  <tr key={rowIndex}>
+                    {row.map((cell: string, cellIndex: number) => (
+                      <td key={cellIndex} className="border border-gray-300 dark:border-gray-600 p-3 text-gray-800 dark:text-gray-200">
+                        {cell}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         );
 

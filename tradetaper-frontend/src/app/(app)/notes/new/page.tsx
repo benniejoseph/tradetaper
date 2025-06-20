@@ -273,143 +273,147 @@ const NewNotePage: React.FC = () => {
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <AnimatedButton
-          onClick={() => router.back()}
-          variant="ghost"
-          icon={<FaArrowLeft />}
-          iconPosition="left"
-        >
-          Back
-        </AnimatedButton>
-
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setNote(prev => ({ 
-                ...prev, 
-                visibility: prev.visibility === 'private' ? 'shared' : 'private' 
-              }))}
-              className="flex items-center gap-2 px-3 py-1 rounded-lg border border-gray-300 dark:border-gray-600"
-            >
-              {note.visibility === 'private' ? <FaEyeSlash /> : <FaEye />}
-              <span className="text-sm capitalize">{note.visibility}</span>
-            </button>
-          </div>
-
+    <div className="min-h-screen pb-20">
+      <div className="max-w-4xl mx-auto space-y-6 p-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
           <AnimatedButton
-            onClick={() => handleSave(false)}
-            variant="gradient"
-            className="bg-gradient-to-r from-blue-500 to-purple-500"
-            icon={saving ? <FaSpinner className="animate-spin" /> : <FaSave />}
+            onClick={() => router.back()}
+            variant="ghost"
+            icon={<FaArrowLeft />}
             iconPosition="left"
-            disabled={saving}
           >
-            {saving ? 'Saving...' : 'Save Note'}
+            Back
           </AnimatedButton>
-        </div>
-      </div>
 
-      {/* Main Editor */}
-      <AnimatedCard variant="glass" className="p-8">
-        {/* Title */}
-        <input
-          type="text"
-          placeholder="Untitled note"
-          value={note.title}
-          onChange={(e) => setNote(prev => ({ ...prev, title: e.target.value }))}
-          className="w-full text-4xl font-bold bg-transparent border-none outline-none placeholder-gray-400 dark:placeholder-gray-600 mb-8"
-        />
-
-        {/* Tags */}
-        <div className="mb-6">
-          <div className="flex flex-wrap items-center gap-2 mb-2">
-            {note.tags.map(tag => (
-              <span
-                key={tag}
-                className="flex items-center gap-1 px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full text-sm"
-              >
-                {tag}
-                <button
-                  onClick={() => removeTag(tag)}
-                  className="text-blue-500 hover:text-blue-700"
-                >
-                  ×
-                </button>
-              </span>
-            ))}
-            
-            {showTagInput ? (
-              <input
-                type="text"
-                value={tagInput}
-                onChange={(e) => setTagInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    addTag();
-                  } else if (e.key === 'Escape') {
-                    setShowTagInput(false);
-                    setTagInput('');
-                  }
-                }}
-                onBlur={() => {
-                  if (tagInput.trim()) addTag();
-                  setShowTagInput(false);
-                }}
-                placeholder="Add tag..."
-                className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-full text-sm outline-none focus:ring-2 focus:ring-blue-500"
-                autoFocus
-              />
-            ) : (
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
               <button
-                onClick={() => setShowTagInput(true)}
-                className="flex items-center gap-1 px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-full text-sm text-gray-600 dark:text-gray-400 hover:text-blue-500"
+                onClick={() => setNote(prev => ({ 
+                  ...prev, 
+                  visibility: prev.visibility === 'private' ? 'shared' : 'private' 
+                }))}
+                className="flex items-center gap-2 px-3 py-1 rounded-lg border border-gray-300 dark:border-gray-600"
               >
-                <FaTags />
-                Add tag
+                {note.visibility === 'private' ? <FaEyeSlash /> : <FaEye />}
+                <span className="text-sm capitalize">{note.visibility}</span>
               </button>
-            )}
+            </div>
+
+            <AnimatedButton
+              onClick={() => handleSave(false)}
+              variant="gradient"
+              className="bg-gradient-to-r from-blue-500 to-purple-500"
+              icon={saving ? <FaSpinner className="animate-spin" /> : <FaSave />}
+              iconPosition="left"
+              disabled={saving}
+            >
+              {saving ? 'Saving...' : 'Save Note'}
+            </AnimatedButton>
           </div>
         </div>
 
-        {/* Content Blocks */}
-        <div className="space-y-2">
-          {note.content.map((block) => (
-            <BlockEditor
-              key={block.id}
-              block={block}
-              onUpdate={(content) => updateBlock(block.id, content)}
-              onKeyDown={(e) => handleKeyDown(e, block.id)}
-              onAddBlock={(type) => addBlock(type, block.id)}
-              onDelete={() => deleteBlock(block.id)}
-            />
-          ))}
-        </div>
+        {/* Main Editor */}
+        <AnimatedCard variant="glass" className="p-8">
+          {/* Title */}
+          <input
+            type="text"
+            placeholder="Untitled note"
+            value={note.title}
+            onChange={(e) => setNote(prev => ({ ...prev, title: e.target.value }))}
+            className="w-full text-4xl font-bold bg-transparent border-none outline-none placeholder-gray-400 dark:placeholder-gray-600 mb-8"
+          />
 
-        {/* Add Block Button */}
-        <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
-          <button
-            onClick={() => addBlock('text')}
-            className="flex items-center gap-2 text-gray-500 hover:text-blue-500 transition-colors"
-          >
-            <FaPlus />
-            <span>Add a block</span>
-          </button>
-        </div>
-      </AnimatedCard>
+          {/* Tags */}
+          <div className="mb-6">
+            <div className="flex flex-wrap items-center gap-2 mb-2">
+              {note.tags.map(tag => (
+                <span
+                  key={tag}
+                  className="flex items-center gap-1 px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full text-sm"
+                >
+                  {tag}
+                  <button
+                    onClick={() => removeTag(tag)}
+                    className="text-blue-500 hover:text-blue-700"
+                  >
+                    ×
+                  </button>
+                </span>
+              ))}
+              
+              {showTagInput ? (
+                <input
+                  type="text"
+                  value={tagInput}
+                  onChange={(e) => setTagInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      addTag();
+                    } else if (e.key === 'Escape') {
+                      setShowTagInput(false);
+                      setTagInput('');
+                    }
+                  }}
+                  onBlur={() => {
+                    if (tagInput.trim()) addTag();
+                    setShowTagInput(false);
+                  }}
+                  placeholder="Add tag..."
+                  className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-full text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                  autoFocus
+                />
+              ) : (
+                <button
+                  onClick={() => setShowTagInput(true)}
+                  className="flex items-center gap-1 px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-full text-sm text-gray-600 dark:text-gray-400 hover:text-blue-500"
+                >
+                  <FaTags />
+                  Add tag
+                </button>
+              )}
+            </div>
+          </div>
 
-      {/* Block Menu */}
-      {showBlockMenu && (
-        <BlockMenu
-          x={showBlockMenu.x}
-          y={showBlockMenu.y}
-          onSelect={(type) => addBlock(type, showBlockMenu.blockId)}
-          onClose={() => setShowBlockMenu(null)}
-        />
-      )}
+          {/* Content Blocks */}
+          <div className="space-y-4 min-h-[200px]">
+            {note.content.map((block, index) => (
+              <BlockEditor
+                key={block.id}
+                block={block}
+                onUpdate={(content) => updateBlock(block.id, content)}
+                onKeyDown={(e) => handleKeyDown(e, block.id)}
+                onAddBlock={(type) => addBlock(type, block.id)}
+                onDelete={() => deleteBlock(block.id)}
+              />
+            ))}
+          </div>
+
+          {/* Add Block Button */}
+          <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
+            <div className="flex items-center justify-center">
+              <button
+                onClick={() => addBlock('text')}
+                className="flex items-center gap-2 px-4 py-2 text-gray-500 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+              >
+                <FaPlus />
+                <span>Add a block</span>
+              </button>
+            </div>
+          </div>
+        </AnimatedCard>
+
+        {/* Block Menu */}
+        {showBlockMenu && (
+          <BlockMenu
+            x={showBlockMenu.x}
+            y={showBlockMenu.y}
+            onSelect={(type) => addBlock(type, showBlockMenu.blockId)}
+            onClose={() => setShowBlockMenu(null)}
+          />
+        )}
+      </div>
     </div>
   );
 };
@@ -574,11 +578,42 @@ const BlockEditor: React.FC<{
           <div className="text-center">
             <FaImage className="mx-auto h-12 w-12 text-gray-400" />
             <div className="mt-4 space-y-2">
+              {/* File Upload */}
+              <div className="relative">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      try {
+                        const uploadResult = await NotesService.uploadMedia(file);
+                        handleContentChange('url', uploadResult.url);
+                        handleContentChange('filename', uploadResult.filename);
+                      } catch (error) {
+                        console.error('Failed to upload image:', error);
+                        toast.error('Failed to upload image');
+                      }
+                    }
+                  }}
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                  id={`file-upload-${block.id}`}
+                />
+                <label
+                  htmlFor={`file-upload-${block.id}`}
+                  className="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-lg cursor-pointer transition-colors inline-block text-center"
+                >
+                  Upload Image
+                </label>
+              </div>
+              
+              <div className="text-sm text-gray-500">or</div>
+              
               <input
                 type="text"
                 value={block.content?.url || ''}
                 onChange={(e) => handleContentChange('url', e.target.value)}
-                placeholder="Image URL or paste image..."
+                placeholder="Paste image URL..."
                 className="w-full bg-transparent border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500"
               />
               <input
@@ -618,6 +653,24 @@ const BlockEditor: React.FC<{
       );
 
     case 'video':
+      const getVideoEmbedUrl = (url: string) => {
+        // Convert YouTube URLs to embed format
+        if (url.includes('youtube.com/watch?v=')) {
+          const videoId = url.split('v=')[1]?.split('&')[0];
+          return `https://www.youtube.com/embed/${videoId}`;
+        }
+        if (url.includes('youtu.be/')) {
+          const videoId = url.split('youtu.be/')[1]?.split('?')[0];
+          return `https://www.youtube.com/embed/${videoId}`;
+        }
+        // Convert Vimeo URLs to embed format
+        if (url.includes('vimeo.com/')) {
+          const videoId = url.split('vimeo.com/')[1]?.split('?')[0];
+          return `https://player.vimeo.com/video/${videoId}`;
+        }
+        return url;
+      };
+
       return (
         <div className="group relative border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6">
           <div className="text-center">
@@ -640,9 +693,15 @@ const BlockEditor: React.FC<{
             </div>
             {block.content?.url && (
               <div className="mt-4">
-                <div className="aspect-video bg-gray-200 dark:bg-gray-700 rounded-lg flex items-center justify-center">
-                  <FaVideo className="h-8 w-8 text-gray-400" />
-                  <span className="ml-2 text-gray-500">Video: {block.content.url}</span>
+                <div className="aspect-video bg-gray-200 dark:bg-gray-700 rounded-lg overflow-hidden">
+                  <iframe
+                    src={getVideoEmbedUrl(block.content.url)}
+                    className="w-full h-full"
+                    frameBorder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                    title="Video embed"
+                  />
                 </div>
                 {block.content.caption && (
                   <p className="text-sm text-gray-500 mt-2 italic">{block.content.caption}</p>
@@ -900,12 +959,40 @@ const BlockMenu: React.FC<{
     { type: 'callout' as const, icon: <FaInfoCircle className="text-blue-500" />, label: 'Callout', description: 'Important information box' },
   ];
 
+  // Calculate proper positioning to prevent overflow
+  const menuRef = useRef<HTMLDivElement>(null);
+  const [adjustedPosition, setAdjustedPosition] = useState({ x, y });
+
+  useEffect(() => {
+    if (menuRef.current) {
+      const menuRect = menuRef.current.getBoundingClientRect();
+      const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
+      
+      let adjustedX = x;
+      let adjustedY = y;
+      
+      // Prevent horizontal overflow
+      if (x + menuRect.width > viewportWidth - 20) {
+        adjustedX = viewportWidth - menuRect.width - 20;
+      }
+      
+      // Prevent vertical overflow
+      if (y + menuRect.height > viewportHeight - 20) {
+        adjustedY = y - menuRect.height - 10;
+      }
+      
+      setAdjustedPosition({ x: adjustedX, y: adjustedY });
+    }
+  }, [x, y]);
+
   return (
     <div
-      className="block-menu fixed z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg min-w-[250px]"
-      style={{ left: x, top: y }}
+      ref={menuRef}
+      className="block-menu fixed z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg min-w-[250px] max-w-[280px]"
+      style={{ left: adjustedPosition.x, top: adjustedPosition.y }}
     >
-      <div className="p-2">
+      <div className="p-2 max-h-[400px] overflow-y-auto">
         {menuItems.map((item) => (
           <button
             key={item.type}
