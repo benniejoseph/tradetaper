@@ -5,6 +5,7 @@ import {
   IsString,
   MinLength,
   MaxLength,
+  IsOptional,
 } from 'class-validator';
 
 export class RegisterUserDto {
@@ -13,11 +14,11 @@ export class RegisterUserDto {
   @MaxLength(255)
   email: string;
 
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
   @MinLength(8, { message: 'Password must be at least 8 characters long.' })
   @MaxLength(100)
-  password: string;
+  password?: string;
 
   @IsString()
   @MaxLength(100)
