@@ -135,6 +135,9 @@ GET https://your-backend-domain.run.app/api/v1/auth/google/callback
    - Ensure the latest backend code with Google OAuth is deployed
    - Check that GoogleStrategy is properly registered in AuthModule
 
+5. **Next.js "useSearchParams should be wrapped in Suspense" error**:
+   - Fixed in our implementation with proper Suspense boundary
+
 ## Implementation Files
 
 ### Backend Files:
@@ -148,8 +151,13 @@ GET https://your-backend-domain.run.app/api/v1/auth/google/callback
 
 ### Frontend Files:
 - `src/services/googleAuthService.ts` - Google OAuth service
-- `src/app/auth/google/callback/page.tsx` - OAuth callback handler
+- `src/app/auth/google/callback/page.tsx` - OAuth callback handler (with Suspense boundary)
 - Login/register pages with Google OAuth buttons
+
+### Frontend Technical Notes:
+- OAuth callback page uses Suspense boundary to handle `useSearchParams()` in Next.js App Router
+- Proper error handling and loading states for OAuth flow
+- Redux integration for user state management
 
 ## Production Checklist
 
@@ -159,6 +167,7 @@ Before going live:
 - [ ] All production URLs are in authorized origins/redirects
 - [ ] Environment variables are set in production
 - [ ] Backend deployed with latest OAuth code
+- [ ] Frontend built without Suspense/SSR errors
 - [ ] Test the complete flow in production
 
 The Google OAuth integration is now ready for production use! 
