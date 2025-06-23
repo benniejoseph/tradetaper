@@ -6,6 +6,12 @@ import { User } from './entities/user.entity';
 import { RegisterUserDto } from '../auth/dto/register-user.dto';
 import { UserResponseDto } from './dto/user-response.dto'; // Import the DTO
 
+interface CreateGoogleUserDto {
+  email: string;
+  firstName: string;
+  lastName: string;
+}
+
 @Injectable()
 export class UsersService {
   constructor(
@@ -42,6 +48,25 @@ export class UsersService {
       updatedAt: user.updatedAt,
     };
     return response;
+  }
+
+  async createGoogleUser(googleUserDto: CreateGoogleUserDto): Promise<User> {
+    const { email, firstName, lastName } = googleUserDto;
+
+    const existingUser = await this.usersRepository.findOneBy({ email });
+    if (existingUser) {
+      throw new ConflictException('Email already exists');
+    }
+
+    let user = this.usersRepository.create({
+      email,
+      password: null, // Google OAuth users don't have passwords
+      firstName,
+      lastName,
+    });
+
+    user = await this.usersRepository.save(user);
+    return user;
   }
 
   async findOneByEmail(email: string): Promise<User | undefined> {

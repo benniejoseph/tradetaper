@@ -19,8 +19,8 @@ export class User {
   @Column({ unique: true, length: 255 })
   email: string;
 
-  @Column({ length: 255, select: false }) // select: false to not return password by default
-  password: string;
+  @Column({ length: 255, select: false, nullable: true }) // nullable for OAuth users
+  password?: string;
 
   @Column({ length: 100, nullable: true })
   firstName?: string;
@@ -53,6 +53,9 @@ export class User {
   }
 
   async validatePassword(password: string): Promise<boolean> {
+    if (!this.password) {
+      return false; // OAuth users don't have passwords
+    }
     return bcrypt.compare(password, this.password);
   }
 }
