@@ -7,6 +7,7 @@ import { AppDispatch, RootState } from '@/store/store';
 import { loginUser, forgotPassword } from '@/services/authService';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { GoogleAuthService } from '@/services/googleAuthService';
 import { 
   FaChartLine, 
   FaEye, 
@@ -291,6 +292,7 @@ export default function LoginPage() {
                 {/* Google Sign In */}
                 <button 
                   type="button"
+                  onClick={() => GoogleAuthService.initiateGoogleLogin()}
                   className="w-full flex items-center justify-center space-x-3 bg-white/[0.03] hover:bg-white/[0.08] border border-white/10 rounded-2xl py-4 px-6 transition-all duration-300 text-white hover:border-white/20 group"
                 >
                   <FaGoogle className="text-lg group-hover:scale-110 transition-transform duration-300" />
