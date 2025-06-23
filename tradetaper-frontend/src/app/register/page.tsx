@@ -8,6 +8,7 @@ import { AppDispatch, RootState } from '@/store/store';
 import { registerUser } from '@/services/authService';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { GoogleAuthService } from '@/services/googleAuthService';
 import { 
   FaChartLine, 
   FaEye, 
@@ -198,9 +199,9 @@ export default function RegisterPage() {
                 description: "Your trading data is protected with enterprise-grade encryption"
               },
               {
-                icon: FaTrendingUp,
-                title: "Proven Results",
-                description: "Our users report an average 23% improvement in trading performance"
+                icon: FaCrown,
+                title: "Premium Features",
+                description: "Access advanced analytics, AI insights, and professional-grade tools"
               }
             ].map((benefit, index) => (
               <div key={index} className="flex items-start space-x-4 group">
@@ -217,10 +218,10 @@ export default function RegisterPage() {
 
           <div className="mt-12 p-6 bg-white/[0.03] backdrop-blur-xl rounded-3xl border border-white/10">
             <div className="flex items-center mb-4">
-              <FaCrown className="text-yellow-400 text-2xl mr-3" />
+              <FaSparkles className="text-yellow-400 text-2xl mr-3" />
               <div>
-                <h4 className="font-semibold text-lg text-white">Free Plan Includes:</h4>
-                <p className="text-slate-300 text-sm">Up to 100 trades/month • Basic analytics • Mobile access</p>
+                <h4 className="font-semibold text-lg text-white">Free 30-Day Trial</h4>
+                <p className="text-slate-300 text-sm">No credit card required • Cancel anytime</p>
               </div>
             </div>
           </div>
@@ -240,44 +241,37 @@ export default function RegisterPage() {
                 TradeTaper
               </h1>
             </div>
-            <p className="text-slate-300">Create your trading journal account</p>
-          </div>
-
-          {/* Progress Steps */}
-          <div className="mb-8">
-            <div className="flex items-center justify-between">
-              {steps.map((step, index) => (
-                <div key={step.id} className="flex items-center">
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold transition-all duration-300 ${
-                    index <= currentStepIndex 
-                      ? 'bg-gradient-to-r from-purple-500 to-indigo-500 text-white shadow-lg' 
-                      : 'bg-white/[0.05] border border-white/10 text-slate-400'
-                  }`}>
-                    {index < currentStepIndex ? <FaCheck /> : step.number}
-                  </div>
-                  {index < steps.length - 1 && (
-                    <div className={`w-16 h-1 mx-2 rounded-full transition-all duration-300 ${
-                      index < currentStepIndex ? 'bg-gradient-to-r from-purple-500 to-indigo-500' : 'bg-white/10'
-                    }`}></div>
-                  )}
-                </div>
-              ))}
-            </div>
-            <div className="flex justify-between mt-3">
-              {steps.map((step) => (
-                <span key={step.id} className="text-xs text-slate-400 font-medium">{step.label}</span>
-              ))}
-            </div>
+            <p className="text-slate-300">Start your trading journey!</p>
           </div>
 
           <div className={`bg-white/[0.02] backdrop-blur-xl rounded-3xl p-8 border border-white/10 shadow-2xl transition-all duration-500 ${
             isFormFocused ? 'shadow-purple-500/20 border-purple-500/20' : ''
           }`}>
-            <div className="text-center mb-8">
+            <div className="hidden lg:block text-center mb-8">
               <h2 className="text-3xl font-bold bg-gradient-to-r from-white to-purple-200 bg-clip-text text-transparent mb-2">
                 Create Account
               </h2>
-              <p className="text-slate-300">Join the trading revolution</p>
+              <p className="text-slate-300">Join thousands of successful traders</p>
+            </div>
+
+            {/* Progress Indicators */}
+            <div className="flex items-center justify-between mb-8">
+              {steps.map((step, index) => (
+                <div key={step.id} className="flex items-center">
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold transition-all duration-300 ${
+                    index <= currentStepIndex 
+                      ? 'bg-gradient-to-r from-purple-500 to-indigo-500 text-white shadow-lg' 
+                      : 'bg-white/[0.05] text-slate-400 border border-white/10'
+                  }`}>
+                    {step.number}
+                  </div>
+                  {index < steps.length - 1 && (
+                    <div className={`w-8 h-0.5 mx-2 transition-all duration-300 ${
+                      index < currentStepIndex ? 'bg-purple-500' : 'bg-white/10'
+                    }`}></div>
+                  )}
+                </div>
+              ))}
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-6">
@@ -295,7 +289,7 @@ export default function RegisterPage() {
                       <FaUser className="h-6 w-6 text-purple-400" />
                     </div>
                     <h3 className="text-xl font-semibold text-white mb-2">Personal Information</h3>
-                    <p className="text-slate-400 text-sm">Let&apos;s start with the basics</p>
+                    <p className="text-slate-400 text-sm">Tell us about yourself</p>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
@@ -327,7 +321,6 @@ export default function RegisterPage() {
                     </div>
                   </div>
 
-                  {/* Social Sign Up */}
                   <div className="space-y-4">
                     <div className="relative">
                       <div className="absolute inset-0 flex items-center">
@@ -342,6 +335,7 @@ export default function RegisterPage() {
 
                     <button 
                       type="button"
+                      onClick={() => GoogleAuthService.initiateGoogleLogin()}
                       className="w-full flex items-center justify-center space-x-3 bg-white/[0.03] hover:bg-white/[0.08] border border-white/10 rounded-2xl py-4 px-6 transition-all duration-300 text-white hover:border-white/20 group"
                     >
                       <FaGoogle className="text-lg group-hover:scale-110 transition-transform duration-300" />
