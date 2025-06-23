@@ -7,6 +7,15 @@ import { RegisterUserDto } from './dto/register-user.dto';
 import { UserResponseDto } from '../users/dto/user-response.dto'; // Adjust path
 import { JwtPayload } from './strategies/jwt.strategy';
 
+interface GoogleUser {
+  email: string;
+  firstName: string;
+  lastName: string;
+  picture?: string;
+  accessToken: string;
+  refreshToken?: string;
+}
+
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
