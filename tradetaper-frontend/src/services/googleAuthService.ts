@@ -1,12 +1,15 @@
 import { store } from '../store/store';
 import { authSuccess } from '../store/features/authSlice';
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3000';
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://tradetaper-backend-481634875325.us-central1.run.app';
 
 export class GoogleAuthService {
   static initiateGoogleLogin(): void {
     // Redirect to backend Google OAuth endpoint
-    window.location.href = `${BACKEND_URL}/api/v1/auth/google`;
+    const redirectUrl = `${BACKEND_URL}/api/v1/auth/google`;
+    console.log('Initiating Google Login, redirecting to:', redirectUrl);
+    console.log('BACKEND_URL from env:', process.env.NEXT_PUBLIC_BACKEND_URL);
+    window.location.href = redirectUrl;
   }
 
   static async handleGoogleCallback(searchParams: URLSearchParams): Promise<boolean> {
