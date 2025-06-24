@@ -99,7 +99,7 @@ import { NoteMedia } from './notes/entities/note-media.entity';
     SimpleWebSocketModule,
     NotesModule,
   ],
-  controllers: [AppController, GoogleOAuthController],
+  controllers: [AppController],
   providers: [AppService],
 })
 export class AppModule {}
