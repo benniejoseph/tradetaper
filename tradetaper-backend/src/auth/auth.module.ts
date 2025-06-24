@@ -2,8 +2,6 @@
 import { Module } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
-import { ManualGoogleOAuthController } from './manual-google-oauth.controller';
-import { TestController } from './test.controller';
 import { UsersModule } from '../users/users.module'; // Import UsersModule
 import { PassportModule } from '@nestjs/passport';
 import { JwtModule } from '@nestjs/jwt';
@@ -41,7 +39,7 @@ import { JwtStrategy } from './strategies/jwt.strategy';
     }),
   ],
   providers: [AuthService, LocalStrategy, JwtStrategy],
-  controllers: [AuthController, ManualGoogleOAuthController, TestController],
+  controllers: [AuthController],
   exports: [AuthService], // If other modules need to inject AuthService
 })
 export class AuthModule {}
