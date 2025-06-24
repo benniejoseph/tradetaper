@@ -6,12 +6,24 @@ import { ConfigService } from '@nestjs/config';
 @Injectable()
 export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
   constructor(private configService: ConfigService) {
+    const clientId = configService.get<string>('GOOGLE_CLIENT_ID');
+    const clientSecret = configService.get<string>('GOOGLE_CLIENT_SECRET');
+    const callbackURL = configService.get<string>('GOOGLE_CALLBACK_URL');
+
+    console.log('GoogleStrategy Configuration:', {
+      hasClientId: !!clientId,
+      hasClientSecret: !!clientSecret,
+      hasCallbackURL: !!callbackURL,
+      callbackURL,
+    });
+
     const options: StrategyOptions = {
-      clientID: configService.get<string>('GOOGLE_CLIENT_ID') || '',
-      clientSecret: configService.get<string>('GOOGLE_CLIENT_SECRET') || '',
-      callbackURL: configService.get<string>('GOOGLE_CALLBACK_URL') || '',
+      clientID: clientId || '',
+      clientSecret: clientSecret || '',
+      callbackURL: callbackURL || '',
       scope: ['email', 'profile'],
     };
+    
     super(options);
   }
 

@@ -39,7 +39,7 @@ import { GoogleStrategy } from './strategies/google.strategy';
       },
     }),
   ],
-  providers: [AuthService, LocalStrategy, JwtStrategy, GoogleStrategy], // Add GoogleStrategy here
+  providers: [AuthService, LocalStrategy, JwtStrategy], // Temporarily remove GoogleStrategy to test
   controllers: [AuthController],
   exports: [AuthService], // If other modules need to inject AuthService
 })
