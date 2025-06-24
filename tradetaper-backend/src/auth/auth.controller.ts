@@ -85,6 +85,16 @@ export class AuthController {
     }
   }
 
+  @Get('debug/google-config')
+  async debugGoogleConfig() {
+    return {
+      hasClientId: !!this.configService.get<string>('GOOGLE_CLIENT_ID'),
+      hasClientSecret: !!this.configService.get<string>('GOOGLE_CLIENT_SECRET'),
+      hasCallbackUrl: !!this.configService.get<string>('GOOGLE_CALLBACK_URL'),
+      callbackUrl: this.configService.get<string>('GOOGLE_CALLBACK_URL'),
+    };
+  }
+
   @Post('admin/login')
   @HttpCode(HttpStatus.OK)
   async adminLogin(
@@ -132,6 +142,5 @@ export class AuthController {
   getProfile(@Request() req): UserResponseDto {
     return req.user;
   }
-
 
 }
