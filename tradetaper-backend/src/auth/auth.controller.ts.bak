@@ -13,6 +13,8 @@ import {
   UsePipes,
   Res,
   Req,
+  Query,
+  HttpException,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { LocalAuthGuard } from './guards/local-auth.guard';
@@ -62,13 +64,13 @@ export class AuthController {
   }
 
   // Google OAuth endpoints
-  @Get('google')
+  @Get('google-auth')
   // @UseGuards(AuthGuard('google')) - disabled
   async googleAuth(@Req() req) {
     // This will redirect to Google
   }
 
-  @Get('google/callback')
+  @Get('google-callback')
   // @UseGuards(AuthGuard('google')) - disabled
   async googleAuthRedirect(@Req() req, @Res() res) {
     try {
