@@ -10,6 +10,8 @@ import {
   Get,
   UnauthorizedException,
   UsePipes,
+  Res,
+  Req,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { LocalAuthGuard } from './guards/local-auth.guard';
@@ -24,12 +26,15 @@ import {
 } from '../common/guards/rate-limit.guard';
 import { EnhancedValidationPipe } from '../common/pipes/validation.pipe';
 import { JwtService } from '@nestjs/jwt';
+import { AuthGuard } from '@nestjs/passport';
+import { ConfigService } from '@nestjs/config';
 
 @Controller('auth') // Route prefix /api/v1/auth
 export class AuthController {
   constructor(
     private authService: AuthService,
     private jwtService: JwtService,
+    private configService: ConfigService,
   ) {}
 
   @Post('register')
@@ -53,6 +58,31 @@ export class AuthController {
       throw new UnauthorizedException('Invalid credentials');
     }
     return this.authService.login(user);
+  }
+
+  // Google OAuth endpoints
+  @Get('google')
+  @UseGuards(AuthGuard('google'))
+  async googleAuth(@Req() req) {
+    // This will redirect to Google
+  }
+
+  @Get('google/callback')
+  @UseGuards(AuthGuard('google'))
+  async googleAuthRedirect(@Req() req, @Res() res) {
+    try {
+      const result = await this.authService.validateOrCreateGoogleUser(req.user);
+      const frontendUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
+      
+      // Redirect to frontend with token and user data
+      const redirectUrl = `${frontendUrl}/auth/google/callback?token=${result.accessToken}&user=${encodeURIComponent(JSON.stringify(result.user))}`;
+      return res.redirect(redirectUrl);
+    } catch (error) {
+      console.error('Google OAuth error:', error);
+      const frontendUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
+      const errorUrl = `${frontendUrl}/auth/google/callback?error=${encodeURIComponent(error.message)}`;
+      return res.redirect(errorUrl);
+    }
   }
 
   @Post('admin/login')

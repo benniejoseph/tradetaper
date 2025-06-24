@@ -58,15 +58,15 @@ export class UsersService {
       throw new ConflictException('Email already exists');
     }
 
-    let user = this.usersRepository.create({
+    const user = this.usersRepository.create({
       email,
-      password: null, // Google OAuth users don't have passwords
+      // Don't set password field for Google OAuth users - leave it undefined
       firstName,
       lastName,
     });
 
-    user = await this.usersRepository.save(user);
-    return user;
+    const savedUser = await this.usersRepository.save(user);
+    return savedUser;
   }
 
   async findOneByEmail(email: string): Promise<User | undefined> {
