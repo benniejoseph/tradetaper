@@ -51,6 +51,60 @@ export class AuthService {
     }
   }
 
+  async validateOrCreateGoogleUser(googleUser: any): Promise<{ accessToken: string; user: UserResponseDto }> {
+    try {
+      this.logger.log(`Google OAuth login attempt for: ${googleUser.email}`);
+      
+      // Check if user already exists
+      let user = await this.usersService.findOneByEmail(googleUser.email);
+      
+      if (!user) {
+        // Create new user for Google OAuth
+        this.logger.log(`Creating new user from Google OAuth: ${googleUser.email}`);
+        user = await this.usersService.createGoogleUser({
+          email: googleUser.email,
+          firstName: googleUser.firstName,
+          lastName: googleUser.lastName,
+        });
+      } else {
+        this.logger.log(`Existing user found for Google OAuth: ${googleUser.email}`);
+      }
+
+      // Update last login
+      try {
+        await this.usersService.updateLastLogin(user.id);
+      } catch (error) {
+        this.logger.warn(`Failed to update lastLoginAt for Google user ${user.id}: ${error.message}`);
+      }
+
+      // Generate JWT token
+      const payload: JwtPayload = {
+        email: user.email,
+        sub: user.id,
+      };
+      
+      const accessToken = this.jwtService.sign(payload, { expiresIn: 86400 });
+
+      const userResponse: UserResponseDto = {
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
+      };
+
+      this.logger.log(`Google OAuth login successful for: ${user.email}`);
+      return {
+        accessToken,
+        user: userResponse,
+      };
+    } catch (error) {
+      this.logger.error(`Google OAuth login failed for ${googleUser.email}: ${error.message}`, error.stack);
+      throw new UnauthorizedException('Google authentication failed');
+    }
+  }
+
   async login(
     user: User,
   ): Promise<{ accessToken: string; user: UserResponseDto }> {
