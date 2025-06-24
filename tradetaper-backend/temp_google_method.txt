@@ -1,0 +1,24 @@
+  async googleAuth(@Req() req, @Res() res) {
+    try {
+      const clientId = this.configService.get<string>('GOOGLE_CLIENT_ID');
+      const callbackUrl = this.configService.get<string>('GOOGLE_CALLBACK_URL');
+      
+      if (!clientId || !callbackUrl) {
+        return res.status(500).json({ error: 'Missing Google OAuth configuration' });
+      }
+      
+      const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
+        `client_id=${clientId}&` +
+        `redirect_uri=${encodeURIComponent(callbackUrl)}&` +
+        `response_type=code&` +
+        `scope=email profile&` +
+        `access_type=offline&` +
+        `prompt=consent`;
+      
+      console.log('Redirecting to Google OAuth:', googleAuthUrl);
+      return res.redirect(googleAuthUrl);
+    } catch (error) {
+      console.error('Google OAuth redirect error:', error);
+      return res.status(500).json({ error: 'Failed to initiate Google OAuth' });
+    }
+  }
