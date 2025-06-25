@@ -8,10 +8,14 @@ function GoogleCallbackContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [status, setStatus] = useState<'processing' | 'success' | 'error'>('processing');
+  const [errorMessage, setErrorMessage] = useState<string>('');
 
   useEffect(() => {
     const handleCallback = async () => {
       try {
+        // Add a small delay to prevent flash
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
         const success = await GoogleAuthService.handleGoogleCallback(searchParams);
         
         if (success) {
@@ -21,18 +25,33 @@ function GoogleCallbackContent() {
             router.push('/dashboard');
           }, 1500);
         } else {
+          // Check if there's an error parameter
+          const error = searchParams.get('error');
+          const hasToken = searchParams.get('token');
+          const hasUser = searchParams.get('user');
+          
+          let errorMsg = 'Authentication failed';
+          if (error) {
+            errorMsg = `Authentication error: ${error}`;
+          } else if (!hasToken || !hasUser) {
+            errorMsg = 'Missing authentication data from callback';
+          }
+          
+          setErrorMessage(errorMsg);
           setStatus('error');
+          
           // Redirect to login page after error
           setTimeout(() => {
             router.push('/login');
-          }, 3000);
+          }, 4000); // Increased delay to give user time to read error
         }
       } catch (error) {
         console.error('Error in Google callback:', error);
+        setErrorMessage(`Callback processing error: ${error instanceof Error ? error.message : 'Unknown error'}`);
         setStatus('error');
         setTimeout(() => {
           router.push('/login');
-        }, 3000);
+        }, 4000);
       }
     };
 
@@ -82,7 +101,10 @@ function GoogleCallbackContent() {
                 Sign in failed
               </h2>
               <p className="mt-2 text-sm text-gray-600">
-                There was an error signing you in. Redirecting to login page...
+                {errorMessage || 'There was an error signing you in.'}
+              </p>
+              <p className="mt-1 text-xs text-gray-500">
+                Redirecting to login page...
               </p>
             </>
           )}

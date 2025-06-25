@@ -18,6 +18,13 @@ export class GoogleAuthService {
       const user = searchParams.get('user');
       const error = searchParams.get('error');
 
+      console.log('Google callback parameters:', { 
+        hasToken: !!token, 
+        hasUser: !!user, 
+        error: error,
+        allParams: Object.fromEntries(searchParams.entries())
+      });
+
       if (error) {
         console.error('OAuth error:', error);
         return false;
@@ -26,6 +33,7 @@ export class GoogleAuthService {
       if (token && user) {
         // Parse user data
         const userData = JSON.parse(decodeURIComponent(user));
+        console.log('Parsed user data:', userData);
         
         // Update Redux state using authSuccess action
         store.dispatch(authSuccess({
@@ -33,12 +41,20 @@ export class GoogleAuthService {
           user: userData
         }));
 
+        // Store in localStorage for persistence
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('token', token);
+          localStorage.setItem('user', JSON.stringify(userData));
+        }
+
         // Clean up URL parameters
         window.history.replaceState({}, document.title, window.location.pathname);
         
+        console.log('Google OAuth authentication successful');
         return true;
       }
 
+      console.log('Missing token or user in callback parameters');
       return false;
     } catch (error) {
       console.error('Error handling Google callback:', error);
