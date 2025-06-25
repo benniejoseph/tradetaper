@@ -1,7 +1,6 @@
 // tradetaper-backend/src/app.module.ts
 import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
-import { GoogleOAuthController } from './google-oauth.controller';
 import { AppService } from './app.service';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -99,7 +98,7 @@ import { NoteMedia } from './notes/entities/note-media.entity';
     SimpleWebSocketModule,
     NotesModule,
   ],
-  controllers: [AppController, GoogleOAuthController],
+  controllers: [AppController],
   providers: [AppService],
 })
 export class AppModule {}
