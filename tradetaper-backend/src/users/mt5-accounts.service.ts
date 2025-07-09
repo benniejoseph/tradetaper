@@ -10,7 +10,7 @@ import {
 } from './dto/mt5-account.dto';
 import { UserResponseDto } from './dto/user-response.dto';
 import { ConfigService } from '@nestjs/config';
-// import { MetaApiService } from './metaapi.service';
+import { MetaApiService } from './metaapi.service';
 import * as crypto from 'crypto';
 
 @Injectable()
@@ -23,7 +23,7 @@ export class MT5AccountsService {
     @InjectRepository(MT5Account)
     private readonly mt5AccountRepository: Repository<MT5Account>,
     private readonly configService: ConfigService,
-    // private readonly metaApiService: MetaApiService,
+    private readonly metaApiService: MetaApiService,
   ) {
     // Get encryption keys from environment variables or generate them
     const encryptionKeyString =

@@ -41,6 +41,7 @@ import {
 import { diskStorage } from 'multer';
 import { extname } from 'path';
 import { Trade } from '../trades/entities/trade.entity';
+import { MetaApiService } from './metaapi.service';
 
 @Controller('mt5-accounts')
 @UseGuards(JwtAuthGuard)
@@ -49,6 +50,7 @@ export class MT5AccountsController {
     private readonly mt5AccountsService: MT5AccountsService,
     private readonly tradeHistoryParserService: TradeHistoryParserService,
     private readonly tradesService: TradesService,
+    private readonly metaApiService: MetaApiService,
   ) {}
 
   @Post()
@@ -56,8 +58,14 @@ export class MT5AccountsController {
     @Request() req,
     @Body() createMT5AccountDto: CreateMT5AccountDto,
   ): Promise<MT5AccountResponseDto> {
-    // Create account without MetaApi integration (for file upload alternative)
-    return this.mt5AccountsService.create(createMT5AccountDto, req.user);
+    const credentials = {
+      accountName: createMT5AccountDto.accountName,
+      server: createMT5AccountDto.server,
+      login: createMT5AccountDto.login,
+      password: createMT5AccountDto.password,
+      isRealAccount: createMT5AccountDto.isRealAccount || false,
+    };
+    return this.metaApiService.addMT5Account(req.user.id, credentials);
   }
 
   @Post('manual')
@@ -97,13 +105,7 @@ export class MT5AccountsController {
 
   @Get('servers')
   async getAvailableServers() {
-    // Return mock servers for now
-    return [
-      { name: 'ICMarkets-Demo', region: 'new-york' },
-      { name: 'ICMarkets-Live', region: 'new-york' },
-      { name: 'Pepperstone-Demo', region: 'london' },
-      { name: 'Pepperstone-Live', region: 'london' },
-    ];
+    return this.metaApiService.getAvailableServers();
   }
 
   @Get(':id')
@@ -120,14 +122,7 @@ export class MT5AccountsController {
 
   @Get(':id/status')
   async getAccountStatus(@Param('id') id: string) {
-    // Return mock status for now
-    return {
-      id,
-      connectionStatus: 'DISCONNECTED',
-      deploymentState: 'NOT_DEPLOYED',
-      connectionState: 'DISCONNECTED',
-      lastSyncAt: null,
-    };
+    return this.metaApiService.getAccountStatus(id);
   }
 
   @Get(':id/trades')
@@ -137,8 +132,11 @@ export class MT5AccountsController {
     @Query('endDate') endDate?: string,
     @Query('limit') limit?: string,
   ) {
-    // Return empty array for now
-    return [];
+    return this.metaApiService.getHistoricalTrades(id, {
+      startDate,
+      endDate,
+      limit: limit ? parseInt(limit, 10) : undefined,
+    });
   }
 
   @Get(':id/trades/live')

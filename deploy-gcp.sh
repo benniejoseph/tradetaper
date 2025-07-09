@@ -66,13 +66,21 @@ gcloud sql databases create $DB_NAME --instance=$DB_INSTANCE_NAME --quiet 2>/dev
 
 # Generate random password for database user
 DB_PASSWORD=$(openssl rand -base64 32)
-gcloud sql users create $DB_USER --instance=$DB_INSTANCE_NAME --password=$DB_PASSWORD --quiet 2>/dev/null || {
-    echo "User already exists, setting new password..."
-    gcloud sql users set-password $DB_USER --instance=$DB_INSTANCE_NAME --password=$DB_PASSWORD
-}
+gcloud sql users set-password $DB_USER --instance=$DB_INSTANCE_NAME --password=$DB_PASSWORD
 
 # Get the connection name for Cloud SQL
 CONNECTION_NAME=$(gcloud sql instances describe $DB_INSTANCE_NAME --format="value(connectionName)")
+
+# Get the public IP address of the Cloud SQL instance
+DB_HOST=$(gcloud sql instances describe $DB_INSTANCE_NAME --format="value(ipAddresses[0].ipAddress)")
+
+# Grant Cloud SQL Client role to the service account
+gcloud projects add-iam-policy-binding $PROJECT_ID \
+    --member="serviceAccount:tradetaper-backend-sa@$PROJECT_ID.iam.gserviceaccount.com" \
+    --role="roles/cloudsql.client"
+
+# Configure Cloud SQL to accept all connections (for testing)
+gcloud sql instances patch $DB_INSTANCE_NAME --authorized-networks=0.0.0.0/0
 
 echo "🔑 Database credentials:"
 echo "  Connection Name: $CONNECTION_NAME"
@@ -89,17 +97,6 @@ gcloud builds submit --config=cloudbuild.yaml
 
 # Deploy to Cloud Run with Cloud SQL connection
 echo "🐛 Debug: About to run the following gcloud run deploy command:"
-echo "gcloud run deploy $SERVICE_NAME \
-    --image gcr.io/$PROJECT_ID/tradetaper-backend:latest \
-    --region $REGION \
-    --platform managed \
-    --allow-unauthenticated \
-    --memory 1Gi \
-    --cpu 1 \
-    --max-instances 10 \
-    --timeout 900 \
-    --add-cloudsql-instances $CONNECTION_NAME \
-    --env-vars-file .env.yaml
 gcloud run deploy $SERVICE_NAME \
     --image gcr.io/$PROJECT_ID/tradetaper-backend:latest \
     --region $REGION \
@@ -109,8 +106,8 @@ gcloud run deploy $SERVICE_NAME \
     --cpu 1 \
     --max-instances 10 \
     --timeout 900 \
-    --add-cloudsql-instances $CONNECTION_NAME \
-    --env-vars-file .env.yaml
+    --service-account="tradetaper-backend-sa@$PROJECT_ID.iam.gserviceaccount.com" \
+    --set-env-vars="NODE_ENV=production,DATABASE_HOST=$DB_HOST,DATABASE_PORT=5432,DATABASE_USERNAME=tradetaper,DATABASE_PASSWORD=$DB_PASSWORD,DATABASE_NAME=tradetaper,JWT_SECRET=<YOUR_JWT_SECRET>,FRONTEND_URL=<YOUR_FRONTEND_URL>,ADMIN_URL=<YOUR_ADMIN_URL>,GCS_BUCKET_NAME=<YOUR_GCS_BUCKET_NAME>,TRADERMADE_API_KEY=<YOUR_TRADERMADE_API_KEY>,GEMINI_API_KEY=<YOUR_GEMINI_API_KEY>,GOOGLE_CLOUD_PROJECT_ID=$PROJECT_ID,FORCE_SEED=false,DEBUG=false,GOOGLE_CLIENT_ID=<YOUR_GOOGLE_CLIENT_ID>,GOOGLE_CLIENT_SECRET=<YOUR_GOOGLE_CLIENT_SECRET>,GOOGLE_CALLBACK_URL=<YOUR_GOOGLE_CALLBACK_URL>"
 
 # Get the service URL
 SERVICE_URL=$(gcloud run services describe $SERVICE_NAME --region $REGION --format="value(status.url)")
