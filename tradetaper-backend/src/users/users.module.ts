@@ -14,6 +14,7 @@ import { MT5AccountsController } from './mt5-accounts.controller';
 import { TradeHistoryParserService } from './trade-history-parser.service';
 import { CacheModule } from '@nestjs/cache-manager';
 import { TradesModule } from '../trades/trades.module';
+import { MetaApiService } from './metaapi.service';
 // We might add UsersController later if we need direct user management endpoints
 
 @Module({
@@ -30,14 +31,14 @@ import { TradesModule } from '../trades/trades.module';
     UsersService,
     AccountsService,
     MT5AccountsService,
-    // MetaApiService, // TEMPORARY: Disabled for admin deployment
+    MetaApiService,
     TradeHistoryParserService,
   ],
   exports: [
     UsersService,
     AccountsService,
     MT5AccountsService,
-    // MetaApiService, // TEMPORARY: Disabled for admin deployment
+    MetaApiService,
     TradeHistoryParserService,
   ],
   controllers: [AccountsController, MT5AccountsController],

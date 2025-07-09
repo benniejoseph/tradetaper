@@ -155,7 +155,7 @@ export class MetaApiManagerService {
     try {
       // Test the token
       const testApi = new MetaApi(token);
-      await testApi.provisioningProfileApi.getProvisioningProfilesWithInfiniteScrollPagination();
+      await testApi.provisioningProfileApi.getProvisioningProfiles(5, 'active');
 
       const accountId = `account_${Date.now()}`;
       this.metaApiAccounts.push({
@@ -192,7 +192,7 @@ export class MetaApiManagerService {
               `MetaApi instance not found for account ${account.id}`,
             );
           }
-          await api.provisioningProfileApi.getProvisioningProfilesWithInfiniteScrollPagination();
+          await api.provisioningProfileApi.getProvisioningProfiles(5, 'active');
           return {
             accountId: account.id,
             status: 'healthy',

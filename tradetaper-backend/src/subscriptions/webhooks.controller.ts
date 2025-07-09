@@ -29,11 +29,11 @@ export class WebhooksController {
     }
 
     this.stripe = new Stripe(stripeSecretKey, {
-      apiVersion: '2025-05-28.basil',
+      apiVersion: '2025-06-30.basil',
     });
   }
 
-  @Post('stripe')
+  @Post('webhook')
   @HttpCode(HttpStatus.OK)
   async handleStripeWebhook(
     @Req() request: RawBodyRequest<Request>,
