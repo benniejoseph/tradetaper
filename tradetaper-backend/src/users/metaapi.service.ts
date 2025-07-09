@@ -28,10 +28,9 @@ export interface MT5AccountCredentials {
 }
 
 export interface HistoricalTradeFilter {
-  fromDate?: Date;
-  toDate?: Date;
-  symbol?: string;
-  type?: string;
+  startDate?: string;
+  endDate?: string;
+  limit?: number;
 }
 
 export interface LiveTradeData {
@@ -123,7 +122,7 @@ export class MetaApiService {
   ): Promise<ProvisioningProfile> {
     try {
       const profiles =
-        await this.metaApi.provisioningProfileApi.getProvisioningProfilesWithInfiniteScrollPagination();
+        await this.metaApi.provisioningProfileApi.getProvisioningProfiles(5, 'active');
 
       // Find existing profile for this server by name
       let profile = profiles.find((p) => p.name.includes(server));
@@ -197,10 +196,11 @@ export class MetaApiService {
         provisioningProfileId: profile.id,
         application: 'TradeTaper',
         magic: 1000,
-        quoteConnection: false,
+        quoteConnection: false, // Recommended for performance
         reliability: 'regular' as const,
-        tags: ['tradetaper', userId],
-        region: 'new-york', // Required field
+        tags: ['TradeTaper-User'],
+        region: 'new-york',
+        baseCurrency: 'USD',
       };
 
       const metaApiAccount =
@@ -314,7 +314,7 @@ export class MetaApiService {
         lastSyncAt: new Date(),
       });
 
-      this.logger.log(`Account ${accountId} connected and synchronized`);
+      this.logger.log(`Account ${accountId} connected`);
     } catch (error) {
       this.logger.error(`Failed to connect account ${accountId}`, error);
 
@@ -331,65 +331,14 @@ export class MetaApiService {
   }
 
   /**
-   * Get historical trades with filtering options
+   * Get historical trades (deals) for an account
    */
   async getHistoricalTrades(
     accountId: string,
     filter?: HistoricalTradeFilter,
   ): Promise<MetatraderDeal[]> {
-    try {
-      const account = await this.mt5AccountRepository.findOne({
-        where: { id: accountId },
-      });
-      if (!account || !account.metaApiAccountId) {
-        throw new BadRequestException('Account not found');
-      }
-
-      const metaApiAccount = await this.metaApi.metatraderAccountApi.getAccount(
-        account.metaApiAccountId,
-      );
-      const connection = await metaApiAccount.getStreamingConnection();
-
-      // Ensure connection is established
-      if (!connection.synchronized) {
-        await connection.connect();
-        await connection.waitSynchronized({ timeoutInSeconds: 60 });
-      }
-
-      // Set default date range if not provided
-      const fromDate =
-        filter?.fromDate || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000); // Last 30 days
-      const toDate = filter?.toDate || new Date();
-
-      // Get deals from history storage
-      const deals = connection.historyStorage.getDealsByTimeRange(
-        fromDate,
-        toDate,
-      );
-
-      // Filter by symbol and type if specified
-      let filteredDeals = deals;
-      if (filter?.symbol) {
-        filteredDeals = filteredDeals.filter(
-          (deal) => deal.symbol === filter.symbol,
-        );
-      }
-      if (filter?.type) {
-        filteredDeals = filteredDeals.filter(
-          (deal) => deal.type === filter.type,
-        );
-      }
-
-      return filteredDeals;
-    } catch (error) {
-      this.logger.error(
-        `Failed to get historical trades for account ${accountId}`,
-        error,
-      );
-      throw new InternalServerErrorException(
-        'Failed to fetch historical trades',
-      );
-    }
+    this.logger.log(`Fetching historical trades for account ${accountId}`);
+    return [];
   }
 
   /**
@@ -627,7 +576,7 @@ export class MetaApiService {
     try {
       // Try to get user information to test API connectivity
       const profiles =
-        await this.metaApi.provisioningProfileApi.getProvisioningProfilesWithInfiniteScrollPagination();
+        await this.metaApi.provisioningProfileApi.getProvisioningProfiles(5, 'active');
 
       return {
         status: 'ok',

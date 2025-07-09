@@ -1,120 +1,51 @@
-# TradeTaper - Professional Trading Journal Platform
+# TradeTaper
 
-A comprehensive trading journal application with MetaTrader 5 integration, real-time analytics, and subscription management.
+This is the main README file for the TradeTaper project.
 
 ## Project Structure
 
-```
-tradetaper/
-├── tradetaper-backend/     # NestJS backend API
-├── tradetaper-frontend/    # Next.js main application
-├── tradetaper-admin/       # Next.js admin dashboard
-├── deploy-gcp.sh          # GCP deployment script
-└── GCP_DEPLOYMENT_GUIDE.md # Deployment documentation
-```
+- `tradetaper-backend`: The NestJS backend application.
+- `tradetaper-frontend`: The Next.js frontend application.
+- `tradetaper-admin`: The Next.js admin application.
 
-## Features
+## Documentation
 
-- 📊 **Trading Journal**: Track trades with detailed analytics
-- 🤖 **MT5 Integration**: Automatic trade import from MetaTrader 5
-- 📈 **Real-time Analytics**: Performance metrics and insights
-- 💳 **Subscription Management**: Stripe integration for payments
-- 👥 **Admin Dashboard**: User and system management
-- 🔒 **Secure Authentication**: JWT-based auth system
-- ☁️ **Cloud Storage**: Google Cloud Storage for images
+This project uses a unified context tree for documentation. Each major directory has its own README.md file with specific instructions, conventions, and patterns.
 
-## Tech Stack
+### Backend Documentation
 
-- **Backend**: NestJS, TypeORM, PostgreSQL
-- **Frontend**: Next.js 15, React 19, TypeScript
-- **Admin**: Next.js 15, Recharts, React Query
-- **Infrastructure**: Google Cloud Run, Cloud SQL
-- **Payments**: Stripe
-- **Trading**: MetaAPI
+- @import [Backend Source](tradetaper-backend/src/README.md)
+- @import [Backend Admin](tradetaper-backend/src/admin/README.md)
+- @import [Backend Auth](tradetaper-backend/src/auth/README.md)
+- @import [Backend Common](tradetaper-backend/src/common/README.md)
+- @import [Backend Market Data](tradetaper-backend/src/market-data/README.md)
+- @import [Backend Migrations](tradetaper-backend/src/migrations/README.md)
+- @import [Backend Notes](tradetaper-backend/src/notes/README.md)
+- @import [Backend Seed](tradetaper-backend/src/seed/README.md)
+- @import [Backend Strategies](tradetaper-backend/src/strategies/README.md)
+- @import [Backend Subscriptions](tradetaper-backend/src/subscriptions/README.md)
+- @import [Backend Trades](tradetaper-backend/src/trades/README.md)
+- @import [Backend Users](tradetaper-backend/src/users/README.md)
+- @import [Backend Websocket](tradetaper-backend/src/websocket/README.md)
+- @import [Backend Tests](tradetaper-backend/test/README.md)
 
-## Quick Start
+### Frontend Documentation
 
-### Prerequisites
-- Node.js v20.x
-- Docker
-- Google Cloud SDK
-- PostgreSQL (for local development)
+- @import [Frontend Source](tradetaper-frontend/src/README.md)
+- @import [Frontend App](tradetaper-frontend/src/app/README.md)
+- @import [Frontend Components](tradetaper-frontend/src/components/README.md)
+- @import [Frontend Config](tradetaper-frontend/src/config/README.md)
+- @import [Frontend Context](tradetaper-frontend/src/context/README.md)
+- @import [Frontend Hooks](tradetaper-frontend/src/hooks/README.md)
+- @import [Frontend Services](tradetaper-frontend/src/services/README.md)
+- @import [Frontend Store](tradetaper-frontend/src/store/README.md)
+- @import [Frontend Utils](tradetaper-frontend/src/utils/README.md)
+- @import [Frontend Tests](tradetaper-frontend/tests/README.md)
 
-### Local Development
+### Admin Documentation
 
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/yourusername/tradetaper.git
-   cd tradetaper
-   ```
-
-2. **Install dependencies**
-   ```bash
-   npm install
-   cd tradetaper-backend && npm install
-   cd ../tradetaper-frontend && npm install
-   cd ../tradetaper-admin && npm install
-   ```
-
-3. **Set up environment variables**
-   - Copy `.env.example` to `.env` in each directory
-   - Fill in required values
-
-4. **Start development servers**
-   ```bash
-   # Backend (port 3000)
-   cd tradetaper-backend && npm run start:dev
-   
-   # Frontend (port 3001)
-   cd tradetaper-frontend && npm run dev
-   
-   # Admin (port 3002)
-   cd tradetaper-admin && npm run dev
-   ```
-
-## Deployment
-
-### Google Cloud Platform
-
-See [GCP_DEPLOYMENT_GUIDE.md](./GCP_DEPLOYMENT_GUIDE.md) for detailed deployment instructions.
-
-Quick deploy:
-```bash
-./deploy-gcp.sh your-project-id
-```
-
-## Environment Variables
-
-### Backend
-- `DATABASE_URL`: PostgreSQL connection string
-- `JWT_SECRET`: Secret for JWT tokens
-- `STRIPE_SECRET_KEY`: Stripe API key
-- `METAAPI_TOKEN`: MetaAPI authentication token
-- `GCS_BUCKET_NAME`: Google Cloud Storage bucket
-
-### Frontend
-- `NEXT_PUBLIC_API_URL`: Backend API URL
-- `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`: Stripe public key
-
-## API Documentation
-
-- Health Check: `GET /api/v1/health`
-- Authentication: `POST /api/v1/auth/login`
-- Trades: `GET /api/v1/trades`
-- Admin: `GET /api/v1/admin/*`
-
-## Contributing
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## Support
-
-For support, email support@tradetaper.com or join our Discord community.
+- @import [Admin Source](tradetaper-admin/src/README.md)
+- @import [Admin App](tradetaper-admin/src/app/README.md)
+- @import [Admin Components](tradetaper-admin/src/components/README.md)
+- @import [Admin Hooks](tradetaper-admin/src/hooks/README.md)
+- @import [Admin Lib](tradetaper-admin/src/lib/README.md)

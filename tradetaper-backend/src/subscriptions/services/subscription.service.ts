@@ -60,7 +60,7 @@ export class SubscriptionService {
     }
 
     this.stripe = new Stripe(stripeSecretKey, {
-      apiVersion: '2025-05-28.basil',
+      apiVersion: '2025-06-30.basil',
     });
 
     // Initialize pricing plans with environment variables

@@ -1,0 +1,316 @@
+{
+  "analysis_metadata": {
+    "agent": "L1A1_Codebase_Mapper",
+    "timestamp": "2025-01-02T00:00:00Z",
+    "total_files_analyzed": 200,
+    "total_directories": 45,
+    "analysis_duration_ms": 5000
+  },
+  "project_overview": {
+    "name": "TradeTaper",
+    "description": "Professional Trading Journal Platform with MetaTrader 5 integration",
+    "architecture": "Multi-module full-stack application",
+    "deployment": "Google Cloud Platform with Vercel frontends",
+    "primary_language": "TypeScript",
+    "total_modules": 3
+  },
+  "modules": {
+    "tradetaper-backend": {
+      "type": "API_SERVER",
+      "framework": "NestJS 11.x",
+      "language": "TypeScript 5.7",
+      "primary_port": 3000,
+      "deployment_target": "Google Cloud Run",
+      "architecture_pattern": "Feature-based modules with dependency injection",
+      "database": {
+        "type": "PostgreSQL",
+        "orm": "TypeORM 0.3.24",
+        "connection": "Cloud SQL (production) / Local (development)"
+      },
+      "key_features": [
+        "JWT Authentication with Passport.js",
+        "Real-time WebSocket communication (Socket.IO 4.8)",
+        "MetaTrader 5 integration (MetaAPI)",
+        "Stripe payment processing",
+        "Google Cloud Storage for file uploads",
+        "Database migrations and seeding",
+        "Admin dashboard API endpoints"
+      ],
+      "directory_structure": {
+        "src/": {
+          "purpose": "Main application source code",
+          "subdirectories": {
+            "admin/": "Admin dashboard endpoints and services",
+            "auth/": "Authentication module with JWT, Local, Google strategies",
+            "common/": "Shared utilities, guards, interceptors, filters",
+            "database/": "Database configuration and data source setup",
+            "files/": "File upload handling with Google Cloud Storage",
+            "market-data/": "Market data APIs and price feed services",
+            "migrations/": "Database schema migrations",
+            "notes/": "Trading notes and journal entries with AI features",
+            "seed/": "Database seeding for development and production",
+            "strategies/": "Trading strategies management",
+            "subscriptions/": "Stripe subscription and billing management",
+            "tags/": "Trade tagging system",
+            "trades/": "Core trading functionality and analytics",
+            "types/": "Global TypeScript type definitions",
+            "users/": "User management and MT5 account integration",
+            "websocket/": "WebSocket gateways for real-time features"
+          }
+        },
+        "mt5-bridge/": {
+          "purpose": "MetaTrader 5 integration bridge",
+          "files": ["TradeTaperBridge.mq5", "README.md"],
+          "description": "Expert Advisor for MT5 to TradeTaper communication"
+        },
+        "content/": {
+          "purpose": "Static content and legal documents",
+          "subdirectories": {
+            "legal/": "Terms of Service, Privacy Policy, Cancellation Policy",
+            "support/": "Support documentation and guides"
+          }
+        }
+      },
+      "dependencies": {
+        "core_framework": ["@nestjs/common", "@nestjs/core", "@nestjs/platform-express"],
+        "database": ["@nestjs/typeorm", "typeorm", "pg"],
+        "authentication": ["@nestjs/jwt", "@nestjs/passport", "passport", "bcrypt"],
+        "external_services": ["stripe", "metaapi.cloud-sdk", "@google-cloud/storage"],
+        "websockets": ["@nestjs/platform-socket.io", "socket.io"],
+        "validation": ["class-validator", "class-transformer"],
+        "utilities": ["axios", "date-fns", "uuid", "sharp", "xlsx"]
+      },
+      "api_endpoints": {
+        "health": "/health",
+        "base_api": "/api/v1",
+        "auth": "/api/v1/auth",
+        "admin": "/api/v1/admin",
+        "trades": "/api/v1/trades",
+        "users": "/api/v1/users",
+        "market_data": "/api/v1/market-data",
+        "subscriptions": "/api/v1/subscriptions",
+        "files": "/api/v1/files"
+      }
+    },
+    "tradetaper-frontend": {
+      "type": "WEB_APPLICATION",
+      "framework": "Next.js 15.3",
+      "language": "TypeScript",
+      "react_version": "19.0.0",
+      "primary_port": 3001,
+      "deployment_target": "Vercel",
+      "architecture_pattern": "App Router with Redux Toolkit state management",
+      "styling": "Tailwind CSS 3.4",
+      "key_features": [
+        "Trading journal interface",
+        "Real-time trade tracking with WebSockets",
+        "Advanced analytics and performance metrics",
+        "Chart visualizations (Lightweight Charts)",
+        "Stripe payment integration",
+        "Redux Toolkit for state management",
+        "Responsive design with mobile support"
+      ],
+      "directory_structure": {
+        "src/": {
+          "purpose": "Main application source code",
+          "subdirectories": {
+            "app/": "Next.js App Router structure with route groups",
+            "components/": "Reusable React components organized by feature",
+            "store/": "Redux Toolkit store and slices",
+            "services/": "API service functions and external integrations",
+            "hooks/": "Custom React hooks",
+            "types/": "TypeScript type definitions",
+            "utils/": "Utility functions and helpers",
+            "config/": "Configuration files and constants",
+            "context/": "React Context providers",
+            "lib/": "Third-party library configurations"
+          }
+        },
+        "tests/": {
+          "purpose": "Test files for API and frontend testing",
+          "files": ["notes-api.test.js", "notes-frontend.test.js", "notes-manual.md"]
+        }
+      },
+      "route_structure": {
+        "(app)/": "Authenticated application routes",
+        "(auth)/": "Authentication routes",
+        "legal/": "Legal pages (privacy, terms, etc.)",
+        "api/": "API routes (if any client-side APIs)"
+      },
+      "dependencies": {
+        "core_framework": ["next", "react", "react-dom"],
+        "state_management": ["@reduxjs/toolkit", "react-redux"],
+        "ui_styling": ["tailwindcss", "@tailwindcss/forms", "lucide-react", "react-icons"],
+        "charts_visualization": ["lightweight-charts", "recharts", "react-calendar-heatmap"],
+        "payments": ["@stripe/stripe-js", "@stripe/react-stripe-js"],
+        "utilities": ["axios", "date-fns", "framer-motion", "react-hot-toast"],
+        "websockets": ["socket.io-client"],
+        "forms": ["react-datepicker", "react-select"]
+      }
+    },
+    "tradetaper-admin": {
+      "type": "ADMIN_DASHBOARD",
+      "framework": "Next.js 15.3",
+      "language": "TypeScript",
+      "react_version": "19.0.0",
+      "primary_port": 3002,
+      "deployment_target": "Vercel",
+      "architecture_pattern": "App Router with TanStack Query for server state",
+      "styling": "Tailwind CSS 4.0",
+      "key_features": [
+        "Real-time analytics dashboard",
+        "User management interface",
+        "Trade monitoring and analytics",
+        "Geographic user distribution",
+        "System health monitoring",
+        "Revenue and subscription analytics",
+        "Live activity feed"
+      ],
+      "directory_structure": {
+        "src/": {
+          "purpose": "Admin dashboard source code",
+          "subdirectories": {
+            "app/": "Next.js App Router with dashboard routes",
+            "components/": "Admin-specific UI components",
+            "lib/": "Utilities and API configurations",
+            "hooks/": "Custom React hooks for admin functionality"
+          }
+        }
+      },
+      "dependencies": {
+        "core_framework": ["next", "react", "react-dom"],
+        "data_fetching": ["@tanstack/react-query", "axios"],
+        "ui_components": ["@headlessui/react", "lucide-react"],
+        "styling": ["tailwindcss", "class-variance-authority", "clsx", "tailwind-merge"],
+        "charts": ["recharts"],
+        "maps": ["leaflet", "react-leaflet", "@types/leaflet"],
+        "virtualization": ["react-window", "@types/react-window"],
+        "animations": ["framer-motion"],
+        "utilities": ["date-fns", "react-hot-toast", "socket.io-client"]
+      }
+    }
+  },
+  "inter_module_communication": {
+    "frontend_to_backend": {
+      "protocol": "HTTP REST API",
+      "base_url": "http://localhost:3000/api/v1 (dev) | GCP Cloud Run URL (prod)",
+      "authentication": "JWT Bearer tokens",
+      "real_time": "Socket.IO WebSocket connection"
+    },
+    "admin_to_backend": {
+      "protocol": "HTTP REST API",
+      "base_url": "Same as frontend",
+      "authentication": "JWT Bearer tokens (admin role)",
+      "real_time": "Socket.IO for live dashboard updates"
+    },
+    "shared_apis": [
+      "/api/v1/auth/*",
+      "/api/v1/admin/*",
+      "/api/v1/trades/*",
+      "/api/v1/users/*",
+      "/api/v1/market-data/*"
+    ]
+  },
+  "external_integrations": {
+    "metaapi": {
+      "purpose": "MetaTrader 5 integration",
+      "package": "metaapi.cloud-sdk",
+      "description": "Automated trade import from MT5 terminals"
+    },
+    "stripe": {
+      "purpose": "Payment processing",
+      "packages": ["stripe", "@stripe/stripe-js", "@stripe/react-stripe-js"],
+      "description": "Subscription billing and payment management"
+    },
+    "google_cloud": {
+      "purpose": "Infrastructure and storage",
+      "services": ["Cloud Run", "Cloud SQL", "Cloud Storage"],
+      "package": "@google-cloud/storage"
+    },
+    "tradermade": {
+      "purpose": "Market data",
+      "description": "Real-time and historical price feeds"
+    }
+  },
+  "development_tools": {
+    "testing": {
+      "backend": "Jest with Supertest for e2e testing",
+      "frontend": "Jest with React Testing Library",
+      "coverage_targets": "70% across all metrics"
+    },
+    "linting": {
+      "tool": "ESLint with TypeScript support",
+      "config": "Shared configuration across all modules"
+    },
+    "formatting": {
+      "tool": "Prettier",
+      "integration": "ESLint plugin"
+    },
+    "build_tools": {
+      "backend": "NestJS CLI with TypeScript compilation",
+      "frontend": "Next.js with Turbopack (dev)",
+      "admin": "Next.js with Turbopack (dev)"
+    }
+  },
+  "deployment_architecture": {
+    "backend": {
+      "platform": "Google Cloud Run",
+      "containerization": "Docker",
+      "database": "Google Cloud SQL (PostgreSQL)",
+      "environment": "Production with environment variables"
+    },
+    "frontend": {
+      "platform": "Vercel",
+      "build": "Static generation where possible",
+      "environment": "Production with API URL configuration"
+    },
+    "admin": {
+      "platform": "Vercel",
+      "build": "Server-side rendering",
+      "environment": "Production with admin API access"
+    }
+  },
+  "key_insights": {
+    "strengths": [
+      "Well-structured modular architecture",
+      "Consistent TypeScript usage across all modules",
+      "Modern framework choices (NestJS, Next.js 15, React 19)",
+      "Comprehensive external integrations",
+      "Clear separation of concerns",
+      "Production-ready deployment setup"
+    ],
+    "complexity_areas": [
+      "Multiple authentication strategies (JWT, Google, Local)",
+      "Real-time WebSocket coordination",
+      "MetaTrader 5 bridge integration",
+      "Stripe subscription management",
+      "Multi-environment deployment coordination"
+    ],
+    "technology_debt": [
+      "Some modules temporarily disabled in production (MetaAPI service)",
+      "Mixed import patterns in some files",
+      "Test coverage may be incomplete",
+      "Documentation could be more comprehensive"
+    ]
+  },
+  "recommendations": {
+    "immediate": [
+      "Complete test coverage assessment",
+      "Standardize import/export patterns",
+      "Enable all disabled modules for full functionality",
+      "Comprehensive API documentation generation"
+    ],
+    "medium_term": [
+      "Implement comprehensive monitoring and logging",
+      "Add performance benchmarking",
+      "Enhance error handling and retry mechanisms",
+      "Implement caching strategies"
+    ],
+    "long_term": [
+      "Consider microservices architecture if scaling needs arise",
+      "Implement comprehensive CI/CD pipeline",
+      "Add comprehensive security auditing",
+      "Performance optimization for large datasets"
+    ]
+  }
+} 

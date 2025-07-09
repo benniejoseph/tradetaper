@@ -27,10 +27,10 @@ if (isProduction) {
   
   dbConfig = {
     type: 'postgres' as const,
-    host: '/cloudsql/tradetaper:us-central1:tradetaper-postgres',
-    username: 'tradetaper',
-    password: 'TradeTaper2024',
-    database: 'tradetaper',
+    host: process.env.DATABASE_HOST || '/cloudsql/tradetaper:us-central1:tradetaper-postgres',
+    username: process.env.DATABASE_USERNAME,
+    password: process.env.DATABASE_PASSWORD,
+    database: process.env.DATABASE_NAME,
     ssl: false,
     retryAttempts: 5,
     retryDelay: 3000,
@@ -45,11 +45,11 @@ if (isProduction) {
   console.log('Using local database configuration for development');
   dbConfig = {
     type: 'postgres' as const,
-    host: 'localhost',
-    port: 5432,
-    username: 'postgres',
-    password: 'postgres',
-    database: 'tradetaper',
+    host: process.env.DB_HOST || 'localhost',
+    port: parseInt(process.env.DB_PORT || '5432', 10),
+    username: process.env.DB_USERNAME || 'postgres',
+    password: process.env.DB_PASSWORD || 'postgres',
+    database: process.env.DB_DATABASE || 'tradetaper',
     ssl: false,
   };
 }

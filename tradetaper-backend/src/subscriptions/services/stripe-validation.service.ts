@@ -41,7 +41,7 @@ export class StripeValidationService {
     }
 
     this.stripe = new Stripe(stripeSecretKey, {
-      apiVersion: '2025-05-28.basil',
+      apiVersion: '2025-06-30.basil',
     });
   }
 
@@ -252,30 +252,24 @@ export class StripeValidationService {
 
     // Check if payouts are enabled
     if (!accountInfo.payoutsEnabled) {
-      result.warnings.push('Stripe payouts not enabled - may affect payment processing');
-    }
-
-    // Validate that all required price IDs are present for production
-    const validPrices = Object.values(result.priceValidation).filter(p => p.valid).length;
-    if (validPrices < 2) {
-      result.warnings.push('Less than 2 valid price IDs configured - consider adding more subscription options');
+      result.warnings.push('Stripe payouts are not enabled - required for production payouts');
     }
   }
 
   /**
-   * Quick health check for Stripe connectivity
+   * Simple health check for the Stripe service
    */
   async healthCheck(): Promise<{ healthy: boolean; message: string }> {
     try {
-      await this.stripe.accounts.retrieve();
-      return { healthy: true, message: 'Stripe API accessible' };
+      await this.stripe.customers.list({ limit: 1 });
+      return { healthy: true, message: 'Stripe API connection is healthy' };
     } catch (error) {
       return { healthy: false, message: `Stripe API error: ${error.message}` };
     }
   }
 
   /**
-   * Get current Stripe configuration summary
+   * Get a summary of the current Stripe configuration
    */
   getConfigurationSummary(): {
     environment: string;
@@ -285,23 +279,23 @@ export class StripeValidationService {
   } {
     const stripeSecretKey = this.configService.get<string>('STRIPE_SECRET_KEY');
     const webhookSecret = this.configService.get<string>('STRIPE_WEBHOOK_SECRET');
-    
-    let keyType: 'test' | 'live' | 'unknown' = 'unknown';
-    if (stripeSecretKey?.startsWith('sk_test_')) keyType = 'test';
-    else if (stripeSecretKey?.startsWith('sk_live_')) keyType = 'live';
+
+    const keyType = stripeSecretKey?.startsWith('sk_live_') ? 'live'
+      : stripeSecretKey?.startsWith('sk_test_') ? 'test'
+      : 'unknown';
+
+    const priceIds = {
+      starter_monthly: this.configService.get<string>('STRIPE_PRICE_STARTER_MONTHLY') || null,
+      starter_yearly: this.configService.get<string>('STRIPE_PRICE_STARTER_YEARLY') || null,
+      professional_monthly: this.configService.get<string>('STRIPE_PRICE_PROFESSIONAL_MONTHLY') || null,
+      professional_yearly: this.configService.get<string>('STRIPE_PRICE_PROFESSIONAL_YEARLY') || null,
+    };
 
     return {
-      environment: this.configService.get<string>('NODE_ENV') || 'unknown',
+      environment: this.configService.get<string>('NODE_ENV') || 'development',
       keyType,
       webhookConfigured: !!webhookSecret,
-      priceIds: {
-        starterMonthly: this.configService.get<string>('STRIPE_PRICE_STARTER_MONTHLY') || null,
-        starterYearly: this.configService.get<string>('STRIPE_PRICE_STARTER_YEARLY') || null,
-        professionalMonthly: this.configService.get<string>('STRIPE_PRICE_PROFESSIONAL_MONTHLY') || null,
-        professionalYearly: this.configService.get<string>('STRIPE_PRICE_PROFESSIONAL_YEARLY') || null,
-        enterpriseMonthly: this.configService.get<string>('STRIPE_PRICE_ENTERPRISE_MONTHLY') || null,
-        enterpriseYearly: this.configService.get<string>('STRIPE_PRICE_ENTERPRISE_YEARLY') || null,
-      },
+      priceIds,
     };
   }
-}
+} 
