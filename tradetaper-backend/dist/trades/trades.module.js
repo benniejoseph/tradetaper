@@ -1,0 +1,36 @@
+"use strict";
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.TradesModule = void 0;
+const common_1 = require("@nestjs/common");
+const typeorm_1 = require("@nestjs/typeorm");
+const trade_entity_1 = require("./entities/trade.entity");
+const trades_service_1 = require("./trades.service");
+const trades_controller_1 = require("./trades.controller");
+const users_module_1 = require("../users/users.module");
+const tags_module_1 = require("../tags/tags.module");
+const cache_manager_1 = require("@nestjs/cache-manager");
+let TradesModule = class TradesModule {
+};
+exports.TradesModule = TradesModule;
+exports.TradesModule = TradesModule = __decorate([
+    (0, common_1.Module)({
+        imports: [
+            typeorm_1.TypeOrmModule.forFeature([trade_entity_1.Trade]),
+            (0, common_1.forwardRef)(() => users_module_1.UsersModule),
+            tags_module_1.TagsModule,
+            cache_manager_1.CacheModule.register({
+                ttl: 60 * 60 * 1000,
+            }),
+        ],
+        providers: [trades_service_1.TradesService],
+        controllers: [trades_controller_1.TradesController],
+        exports: [trades_service_1.TradesService],
+    })
+], TradesModule);
+//# sourceMappingURL=trades.module.js.map

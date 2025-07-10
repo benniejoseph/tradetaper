@@ -10,18 +10,19 @@ export class AdminGuard extends JwtAuthGuard implements CanActivate {
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
-    
+
     // TEMPORARY: Allow admin access for development/demo purposes
     // Check if this is an admin panel request (no user auth required for now)
     const authHeader = request.headers.authorization;
-    const isAdminPanelRequest = authHeader === 'Bearer mock-admin-token' || !authHeader;
-    
+    const isAdminPanelRequest =
+      authHeader === 'Bearer mock-admin-token' || !authHeader;
+
     if (isAdminPanelRequest) {
       console.log('🔓 Admin panel access granted for demo/development');
       return true;
     }
 
-    // Production: Check if user is authenticated  
+    // Production: Check if user is authenticated
     try {
       const isAuthenticated = await super.canActivate(context);
       if (!isAuthenticated) {
@@ -34,7 +35,7 @@ export class AdminGuard extends JwtAuthGuard implements CanActivate {
       // Check if user has admin role
       const adminEmails = [
         'tradetaper@gmail.com',
-        'benniejoseph.r@gmail.com', 
+        'benniejoseph.r@gmail.com',
         'admin@tradetaper.com',
       ];
 

@@ -1,4 +1,12 @@
-import { Controller, Get, Query, Param, Post, Delete, Body } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Query,
+  Param,
+  Post,
+  Delete,
+  Body,
+} from '@nestjs/common';
 import { AdminService } from './admin.service';
 import { TestUserSeedService } from '../seed/test-user-seed.service';
 
@@ -37,7 +45,7 @@ export class AdminController {
   @Get('users')
   async getUsers(
     @Query('page') page: string = '1',
-    @Query('limit') limit: string = '20'
+    @Query('limit') limit: string = '20',
   ) {
     return this.adminService.getUsers(parseInt(page), parseInt(limit));
   }
@@ -45,7 +53,7 @@ export class AdminController {
   @Get('trades')
   async getTrades(
     @Query('page') page: string = '1',
-    @Query('limit') limit: string = '50'
+    @Query('limit') limit: string = '50',
   ) {
     return this.adminService.getTrades(parseInt(page), parseInt(limit));
   }
@@ -53,7 +61,7 @@ export class AdminController {
   @Get('accounts')
   async getAccounts(
     @Query('page') page: string = '1',
-    @Query('limit') limit: string = '50'
+    @Query('limit') limit: string = '50',
   ) {
     return this.adminService.getAccounts(parseInt(page), parseInt(limit));
   }
@@ -77,9 +85,13 @@ export class AdminController {
   async getDatabaseRows(
     @Param('table') table: string,
     @Query('page') page: string = '1',
-    @Query('limit') limit: string = '20'
+    @Query('limit') limit: string = '20',
   ) {
-    return this.adminService.getDatabaseRows(table, parseInt(page), parseInt(limit));
+    return this.adminService.getDatabaseRows(
+      table,
+      parseInt(page),
+      parseInt(limit),
+    );
   }
 
   @Post('seed-sample-data')
@@ -134,10 +146,14 @@ export class AdminController {
     @Query('confirm') confirm: string,
     @Query('doubleConfirm') doubleConfirm: string,
   ) {
-    if (confirm !== 'DELETE_ALL_DATA' || doubleConfirm !== 'I_UNDERSTAND_THIS_WILL_DELETE_EVERYTHING') {
+    if (
+      confirm !== 'DELETE_ALL_DATA' ||
+      doubleConfirm !== 'I_UNDERSTAND_THIS_WILL_DELETE_EVERYTHING'
+    ) {
       return {
         error: 'Double safety confirmation required',
-        message: 'Add query parameters: ?confirm=DELETE_ALL_DATA&doubleConfirm=I_UNDERSTAND_THIS_WILL_DELETE_EVERYTHING',
+        message:
+          'Add query parameters: ?confirm=DELETE_ALL_DATA&doubleConfirm=I_UNDERSTAND_THIS_WILL_DELETE_EVERYTHING',
       };
     }
 
@@ -157,7 +173,7 @@ export class AdminController {
   @Post('database/run-sql')
   async runSql(
     @Query('confirm') confirm: string,
-    @Body() body: { sql: string }
+    @Body() body: { sql: string },
   ) {
     if (confirm !== 'ADMIN_SQL_EXECUTE') {
       return {

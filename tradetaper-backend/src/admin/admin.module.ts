@@ -13,7 +13,15 @@ import { SeedModule } from '../seed/seed.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User, Account, Trade, Tag, MT5Account, Subscription, Usage]),
+    TypeOrmModule.forFeature([
+      User,
+      Account,
+      Trade,
+      Tag,
+      MT5Account,
+      Subscription,
+      Usage,
+    ]),
     SeedModule,
   ],
   controllers: [AdminController],

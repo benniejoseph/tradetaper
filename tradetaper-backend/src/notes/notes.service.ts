@@ -1,4 +1,10 @@
-import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+  BadRequestException,
+  Logger, // Added Logger
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, SelectQueryBuilder, Brackets, IsNull } from 'typeorm';
 import { Note } from './entities/note.entity';
@@ -7,15 +13,23 @@ import { UpdateNoteDto } from './dto/update-note.dto';
 import { SearchNotesDto } from './dto/search-notes.dto';
 import { NoteResponseDto } from './dto/note-response.dto';
 import { plainToClass } from 'class-transformer';
+import { GeminiTextAnalysisService } from './gemini-text-analysis.service'; // Added import
+import { UserResponseDto } from '../users/dto/user-response.dto'; // Added import
 
 @Injectable()
 export class NotesService {
+  private readonly logger = new Logger(NotesService.name); // Instantiated Logger
+
   constructor(
     @InjectRepository(Note)
     private noteRepository: Repository<Note>,
+    private readonly geminiTextAnalysisService: GeminiTextAnalysisService, // Injected service
   ) {}
 
-  async create(createNoteDto: CreateNoteDto, userId: string): Promise<NoteResponseDto> {
+  async create(
+    createNoteDto: CreateNoteDto,
+    userId: string,
+  ): Promise<NoteResponseDto> {
     const note = this.noteRepository.create({
       ...createNoteDto,
       userId,
@@ -30,7 +44,10 @@ export class NotesService {
     return this.toResponseDto(savedNote);
   }
 
-  async findAll(searchDto: SearchNotesDto, userId: string): Promise<{
+  async findAll(
+    searchDto: SearchNotesDto,
+    userId: string,
+  ): Promise<{
     notes: NoteResponseDto[];
     total: number;
     limit: number;
@@ -60,9 +77,12 @@ export class NotesService {
     if (search) {
       queryBuilder.andWhere(
         new Brackets((qb) => {
-          qb.where('note.title ILIKE :search', { search: `%${search}%` })
-            .orWhere('notes_content_search(note.content) ILIKE :search', { search: `%${search}%` });
-        })
+          qb.where('note.title ILIKE :search', {
+            search: `%${search}%`,
+          }).orWhere('notes_content_search(note.content) ILIKE :search', {
+            search: `%${search}%`,
+          });
+        }),
       );
     }
 
@@ -92,7 +112,13 @@ export class NotesService {
     }
 
     // Sorting
-    const validSortFields = ['createdAt', 'updatedAt', 'title', 'wordCount', 'readingTime'];
+    const validSortFields = [
+      'createdAt',
+      'updatedAt',
+      'title',
+      'wordCount',
+      'readingTime',
+    ];
     const sortField = validSortFields.includes(sortBy) ? sortBy : 'updatedAt';
     queryBuilder.orderBy(`note.${sortField}`, sortOrder);
 
@@ -109,7 +135,7 @@ export class NotesService {
     const [notes, total] = await queryBuilder.getManyAndCount();
 
     return {
-      notes: notes.map(note => this.toResponseDto(note)),
+      notes: notes.map((note) => this.toResponseDto(note)),
       total,
       limit,
       offset: skip,
@@ -129,7 +155,11 @@ export class NotesService {
     return this.toResponseDto(note);
   }
 
-  async update(id: string, updateNoteDto: UpdateNoteDto, userId: string): Promise<NoteResponseDto> {
+  async update(
+    id: string,
+    updateNoteDto: UpdateNoteDto,
+    userId: string,
+  ): Promise<NoteResponseDto> {
     const note = await this.noteRepository.findOne({
       where: { id, userId, deletedAt: IsNull() },
     });
@@ -186,16 +216,26 @@ export class NotesService {
       .orderBy('tag', 'ASC')
       .getRawMany();
 
-    return result.map(r => r.tag).filter(tag => tag && tag.trim());
+    return result.map((r) => r.tag).filter((tag) => tag && tag.trim());
   }
 
-  async getCalendarNotes(userId: string, year: number, month: number): Promise<any[]> {
+  async getCalendarNotes(
+    userId: string,
+    year: number,
+    month: number,
+  ): Promise<any[]> {
     const startDate = new Date(year, month - 1, 1);
     const endDate = new Date(year, month, 0, 23, 59, 59, 999);
 
     const notes = await this.noteRepository
       .createQueryBuilder('note')
-      .select(['note.id', 'note.title', 'note.createdAt', 'note.tags', 'note.wordCount'])
+      .select([
+        'note.id',
+        'note.title',
+        'note.createdAt',
+        'note.tags',
+        'note.wordCount',
+      ])
       .where('note.userId = :userId', { userId })
       .andWhere('note.deletedAt IS NULL')
       .andWhere('note.createdAt >= :startDate', { startDate })
@@ -203,7 +243,7 @@ export class NotesService {
       .orderBy('note.createdAt', 'DESC')
       .getMany();
 
-    return notes.map(note => ({
+    return notes.map((note) => ({
       id: note.id,
       title: note.title,
       date: note.createdAt.toISOString().split('T')[0],
@@ -212,7 +252,11 @@ export class NotesService {
     }));
   }
 
-  async getNotesForCalendar(year: number, month: number, userId: string): Promise<any[]> {
+  async getNotesForCalendar(
+    year: number,
+    month: number,
+    userId: string,
+  ): Promise<any[]> {
     return this.getCalendarNotes(userId, year, month);
   }
 
@@ -248,7 +292,9 @@ export class NotesService {
     ]);
 
     const totalWords = parseInt(totalWordsResult?.totalWords || '0');
-    const totalReadingTime = parseInt(totalWordsResult?.totalReadingTime || '0');
+    const totalReadingTime = parseInt(
+      totalWordsResult?.totalReadingTime || '0',
+    );
 
     // Get most used tags
     const tagsResult = await this.noteRepository
@@ -262,7 +308,7 @@ export class NotesService {
       .limit(10)
       .getRawMany();
 
-    const mostUsedTags = tagsResult.map(result => ({
+    const mostUsedTags = tagsResult.map((result) => ({
       tag: result.tag,
       count: parseInt(result.count),
     }));
@@ -273,7 +319,8 @@ export class NotesService {
       totalReadingTime,
       pinnedNotes,
       notesWithMedia: 0, // TODO: Implement when media relationships are fixed
-      averageWordsPerNote: totalNotes > 0 ? Math.round(totalWords / totalNotes) : 0,
+      averageWordsPerNote:
+        totalNotes > 0 ? Math.round(totalWords / totalNotes) : 0,
       mostUsedTags,
     };
   }
@@ -318,7 +365,7 @@ export class NotesService {
     dto.readingTime = note.readingTime;
     dto.accountId = note.accountId;
     dto.tradeId = note.tradeId;
-    
+
     // Add account and trade details if loaded
     if (note.account) {
       dto.account = {
@@ -327,7 +374,7 @@ export class NotesService {
         type: note.account.currency, // Use currency as type since there's no type field
       };
     }
-    
+
     if (note.trade) {
       dto.trade = {
         id: note.trade.id,
@@ -339,4 +386,41 @@ export class NotesService {
 
     return dto;
   }
-} 
+
+  async analyzeNote(noteId: string, userContext: UserResponseDto): Promise<string[]> {
+    this.logger.log(`User ${userContext.id} analyzing note with ID ${noteId}`);
+    const note = await this.noteRepository.findOne({
+      where: { id: noteId, userId: userContext.id, deletedAt: IsNull() },
+    });
+
+    if (!note) {
+      throw new NotFoundException('Note not found or does not belong to user.');
+    }
+
+    if (!note.content || note.content.length === 0) {
+      return []; // No content to analyze
+    }
+
+    // Extract text from content blocks
+    const noteText = note.content
+      .filter(block => block.type === 'text' || block.type === 'heading' || block.type === 'quote')
+      .map(block => block.content?.text)
+      .filter(Boolean)
+      .join('\n');
+
+    if (!noteText) {
+      return []; // No text content to analyze
+    }
+
+    try {
+      const psychologicalTags = await this.geminiTextAnalysisService.analyzePsychologicalPatterns(noteText);
+      note.psychologicalTags = psychologicalTags; // Update the entity
+      await this.noteRepository.save(note); // Save the updated note
+      this.logger.log(`Note ${noteId} analyzed. Tags: ${psychologicalTags.join(', ')}`);
+      return psychologicalTags;
+    } catch (error) {
+      this.logger.error(`Failed to analyze note ${noteId}: ${error.message}`, error.stack);
+      throw new BadRequestException(`Failed to analyze note: ${error.message}`);
+    }
+  }
+}

@@ -6,13 +6,16 @@ export interface StripeValidationResult {
   isValid: boolean;
   errors: string[];
   warnings: string[];
-  priceValidation: Record<string, {
-    valid: boolean;
-    amount?: number;
-    currency?: string;
-    productId?: string;
-    error?: string;
-  }>;
+  priceValidation: Record<
+    string,
+    {
+      valid: boolean;
+      amount?: number;
+      currency?: string;
+      productId?: string;
+      error?: string;
+    }
+  >;
   webhookEndpointValidation?: {
     valid: boolean;
     url?: string;
@@ -74,7 +77,6 @@ export class StripeValidationService {
       this.checkProductionReadiness(result, accountInfo);
 
       result.isValid = result.errors.length === 0;
-
     } catch (error) {
       result.isValid = false;
       result.errors.push(`Stripe API error: ${error.message}`);
@@ -87,10 +89,12 @@ export class StripeValidationService {
   /**
    * Validates Stripe account access and retrieves account information
    */
-  private async validateAccount(): Promise<StripeValidationResult['accountInfo']> {
+  private async validateAccount(): Promise<
+    StripeValidationResult['accountInfo']
+  > {
     try {
       const account = await this.stripe.accounts.retrieve();
-      
+
       return {
         id: account.id,
         email: account.email || 'Not provided',
@@ -124,14 +128,20 @@ export class StripeValidationService {
     // Check if using test keys in production
     const nodeEnv = this.configService.get<string>('NODE_ENV');
     const stripeSecretKey = this.configService.get<string>('STRIPE_SECRET_KEY');
-    const stripePublishableKey = this.configService.get<string>('STRIPE_PUBLISHABLE_KEY');
+    const stripePublishableKey = this.configService.get<string>(
+      'STRIPE_PUBLISHABLE_KEY',
+    );
 
     if (nodeEnv === 'production') {
       if (stripeSecretKey?.startsWith('sk_test_')) {
-        result.errors.push('Using Stripe test secret key in production environment');
+        result.errors.push(
+          'Using Stripe test secret key in production environment',
+        );
       }
       if (stripePublishableKey?.startsWith('pk_test_')) {
-        result.errors.push('Using Stripe test publishable key in production environment');
+        result.errors.push(
+          'Using Stripe test publishable key in production environment',
+        );
       }
     }
   }
@@ -139,11 +149,16 @@ export class StripeValidationService {
   /**
    * Validates all configured price IDs
    */
-  private async validatePriceIds(result: StripeValidationResult): Promise<void> {
+  private async validatePriceIds(
+    result: StripeValidationResult,
+  ): Promise<void> {
     const priceIds = [
       { key: 'STRIPE_PRICE_STARTER_MONTHLY', name: 'Starter Monthly' },
       { key: 'STRIPE_PRICE_STARTER_YEARLY', name: 'Starter Yearly' },
-      { key: 'STRIPE_PRICE_PROFESSIONAL_MONTHLY', name: 'Professional Monthly' },
+      {
+        key: 'STRIPE_PRICE_PROFESSIONAL_MONTHLY',
+        name: 'Professional Monthly',
+      },
       { key: 'STRIPE_PRICE_PROFESSIONAL_YEARLY', name: 'Professional Yearly' },
       { key: 'STRIPE_PRICE_ENTERPRISE_MONTHLY', name: 'Enterprise Monthly' },
       { key: 'STRIPE_PRICE_ENTERPRISE_YEARLY', name: 'Enterprise Yearly' },
@@ -151,9 +166,11 @@ export class StripeValidationService {
 
     for (const priceConfig of priceIds) {
       const priceId = this.configService.get<string>(priceConfig.key);
-      
+
       if (!priceId) {
-        result.warnings.push(`Missing price ID for ${priceConfig.name} (${priceConfig.key})`);
+        result.warnings.push(
+          `Missing price ID for ${priceConfig.name} (${priceConfig.key})`,
+        );
         continue;
       }
 
@@ -171,7 +188,9 @@ export class StripeValidationService {
           valid: false,
           error: error.message,
         };
-        result.errors.push(`Invalid price ID for ${priceConfig.name}: ${error.message}`);
+        result.errors.push(
+          `Invalid price ID for ${priceConfig.name}: ${error.message}`,
+        );
       }
     }
   }
@@ -179,10 +198,14 @@ export class StripeValidationService {
   /**
    * Validates webhook endpoint configuration
    */
-  private async validateWebhookEndpoint(result: StripeValidationResult): Promise<void> {
-    const webhookSecret = this.configService.get<string>('STRIPE_WEBHOOK_SECRET');
+  private async validateWebhookEndpoint(
+    result: StripeValidationResult,
+  ): Promise<void> {
+    const webhookSecret = this.configService.get<string>(
+      'STRIPE_WEBHOOK_SECRET',
+    );
     const frontendUrl = this.configService.get<string>('FRONTEND_URL');
-    
+
     if (!webhookSecret) {
       result.warnings.push('Stripe webhook secret not configured');
       return;
@@ -190,17 +213,23 @@ export class StripeValidationService {
 
     try {
       // List webhook endpoints to check if any are configured
-      const webhookEndpoints = await this.stripe.webhookEndpoints.list({ limit: 10 });
-      
+      const webhookEndpoints = await this.stripe.webhookEndpoints.list({
+        limit: 10,
+      });
+
       if (webhookEndpoints.data.length === 0) {
-        result.warnings.push('No webhook endpoints configured in Stripe dashboard');
+        result.warnings.push(
+          'No webhook endpoints configured in Stripe dashboard',
+        );
         return;
       }
 
       // Find webhook endpoint that matches our expected URL pattern
-      const expectedWebhookUrl = frontendUrl ? `${frontendUrl}/api/v1/subscriptions/webhook` : null;
-      const matchingEndpoint = webhookEndpoints.data.find(endpoint => 
-        expectedWebhookUrl && endpoint.url.includes('webhook')
+      const expectedWebhookUrl = frontendUrl
+        ? `${frontendUrl}/api/v1/subscriptions/webhook`
+        : null;
+      const matchingEndpoint = webhookEndpoints.data.find(
+        (endpoint) => expectedWebhookUrl && endpoint.url.includes('webhook'),
       );
 
       if (matchingEndpoint) {
@@ -209,21 +238,26 @@ export class StripeValidationService {
           url: matchingEndpoint.url,
           events: matchingEndpoint.enabled_events,
         };
-        this.logger.log(`✅ Webhook endpoint validated: ${matchingEndpoint.url}`);
+        this.logger.log(
+          `✅ Webhook endpoint validated: ${matchingEndpoint.url}`,
+        );
       } else {
         result.webhookEndpointValidation = {
           valid: false,
           error: 'No matching webhook endpoint found for the application',
         };
-        result.warnings.push('Webhook endpoint URL does not match expected pattern');
+        result.warnings.push(
+          'Webhook endpoint URL does not match expected pattern',
+        );
       }
-
     } catch (error) {
       result.webhookEndpointValidation = {
         valid: false,
         error: error.message,
       };
-      result.warnings.push(`Could not validate webhook endpoints: ${error.message}`);
+      result.warnings.push(
+        `Could not validate webhook endpoints: ${error.message}`,
+      );
     }
   }
 
@@ -231,28 +265,34 @@ export class StripeValidationService {
    * Checks if Stripe configuration is ready for production
    */
   private checkProductionReadiness(
-    result: StripeValidationResult, 
-    accountInfo: StripeValidationResult['accountInfo']
+    result: StripeValidationResult,
+    accountInfo: StripeValidationResult['accountInfo'],
   ): void {
     const nodeEnv = this.configService.get<string>('NODE_ENV');
-    
+
     if (nodeEnv !== 'production') {
       return; // Skip production checks for non-production environments
     }
 
     if (!accountInfo) {
-      result.errors.push('Cannot verify production readiness without account information');
+      result.errors.push(
+        'Cannot verify production readiness without account information',
+      );
       return;
     }
 
     // Check if account details are submitted
     if (!accountInfo.detailsSubmitted) {
-      result.errors.push('Stripe account details not fully submitted - required for production');
+      result.errors.push(
+        'Stripe account details not fully submitted - required for production',
+      );
     }
 
     // Check if payouts are enabled
     if (!accountInfo.payoutsEnabled) {
-      result.warnings.push('Stripe payouts are not enabled - required for production payouts');
+      result.warnings.push(
+        'Stripe payouts are not enabled - required for production payouts',
+      );
     }
   }
 
@@ -278,17 +318,27 @@ export class StripeValidationService {
     priceIds: Record<string, string | null>;
   } {
     const stripeSecretKey = this.configService.get<string>('STRIPE_SECRET_KEY');
-    const webhookSecret = this.configService.get<string>('STRIPE_WEBHOOK_SECRET');
+    const webhookSecret = this.configService.get<string>(
+      'STRIPE_WEBHOOK_SECRET',
+    );
 
-    const keyType = stripeSecretKey?.startsWith('sk_live_') ? 'live'
-      : stripeSecretKey?.startsWith('sk_test_') ? 'test'
-      : 'unknown';
+    const keyType = stripeSecretKey?.startsWith('sk_live_')
+      ? 'live'
+      : stripeSecretKey?.startsWith('sk_test_')
+        ? 'test'
+        : 'unknown';
 
     const priceIds = {
-      starter_monthly: this.configService.get<string>('STRIPE_PRICE_STARTER_MONTHLY') || null,
-      starter_yearly: this.configService.get<string>('STRIPE_PRICE_STARTER_YEARLY') || null,
-      professional_monthly: this.configService.get<string>('STRIPE_PRICE_PROFESSIONAL_MONTHLY') || null,
-      professional_yearly: this.configService.get<string>('STRIPE_PRICE_PROFESSIONAL_YEARLY') || null,
+      starter_monthly:
+        this.configService.get<string>('STRIPE_PRICE_STARTER_MONTHLY') || null,
+      starter_yearly:
+        this.configService.get<string>('STRIPE_PRICE_STARTER_YEARLY') || null,
+      professional_monthly:
+        this.configService.get<string>('STRIPE_PRICE_PROFESSIONAL_MONTHLY') ||
+        null,
+      professional_yearly:
+        this.configService.get<string>('STRIPE_PRICE_PROFESSIONAL_YEARLY') ||
+        null,
     };
 
     return {
@@ -298,4 +348,4 @@ export class StripeValidationService {
       priceIds,
     };
   }
-} 
+}

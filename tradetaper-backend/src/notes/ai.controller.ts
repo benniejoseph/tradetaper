@@ -17,14 +17,14 @@ export class AIController {
   constructor(private readonly aiService: AIService) {}
 
   @Post('speech-to-text')
-  @UseInterceptors(FileInterceptor('audio', {
-    limits: {
-      fileSize: 25 * 1024 * 1024, // 25MB for audio
-    },
-  }))
-  async speechToText(
-    @UploadedFile() file: Express.Multer.File,
-  ): Promise<{
+  @UseInterceptors(
+    FileInterceptor('audio', {
+      limits: {
+        fileSize: 25 * 1024 * 1024, // 25MB for audio
+      },
+    }),
+  )
+  async speechToText(@UploadedFile() file: Express.Multer.File): Promise<{
     transcript: string;
     confidence: number;
     language?: string;
@@ -53,7 +53,8 @@ export class AIController {
 
   @Post('enhance-text')
   async enhanceText(
-    @Body() body: {
+    @Body()
+    body: {
       text: string;
       task: 'grammar' | 'clarity' | 'summarize' | 'expand';
     },
@@ -75,9 +76,7 @@ export class AIController {
   }
 
   @Post('generate-suggestions')
-  async generateNoteSuggestions(
-    @Body() body: { content: string },
-  ): Promise<{
+  async generateNoteSuggestions(@Body() body: { content: string }): Promise<{
     tags: string[];
     title: string;
     relatedTopics: string[];
@@ -90,4 +89,4 @@ export class AIController {
 
     return this.aiService.generateNoteSuggestions(content);
   }
-} 
+}

@@ -4,7 +4,11 @@ import { Repository, DataSource } from 'typeorm';
 import { User } from '../users/entities/user.entity';
 import { Account } from '../users/entities/account.entity';
 import { Trade } from '../trades/entities/trade.entity';
-import { Subscription, SubscriptionStatus, SubscriptionTier } from '../subscriptions/entities/subscription.entity';
+import {
+  Subscription,
+  SubscriptionStatus,
+  SubscriptionTier,
+} from '../subscriptions/entities/subscription.entity';
 import { TradeDirection, TradeStatus, AssetType } from '../types/enums';
 
 @Injectable()
@@ -33,7 +37,8 @@ export class AdminService {
       totalSubscriptions,
       activeUsers: 0, // Would need to calculate based on recent activity
       totalRevenue: 0, // Would need to calculate from subscriptions
-      avgTradesPerUser: totalUsers > 0 ? Math.round((totalTrades / totalUsers) * 100) / 100 : 0,
+      avgTradesPerUser:
+        totalUsers > 0 ? Math.round((totalTrades / totalUsers) * 100) / 100 : 0,
       successRate: 0, // Would need to calculate from trade outcomes
       monthlyGrowth: 0, // Would need historical data
     };
@@ -43,20 +48,20 @@ export class AdminService {
     // Generate sample data points for the chart
     const days = this.getDaysFromTimeRange(timeRange);
     const data: Array<{ date: string; users: number }> = [];
-    
+
     for (let i = days - 1; i >= 0; i--) {
       const date = new Date();
       date.setDate(date.getDate() - i);
       data.push({
         date: date.toISOString().split('T')[0],
-        users: 0 // Real data would come from database queries
+        users: 0, // Real data would come from database queries
       });
     }
 
     return {
-      labels: data.map(d => d.date),
-      values: data.map(d => d.users),
-      data
+      labels: data.map((d) => d.date),
+      values: data.map((d) => d.users),
+      data,
     };
   }
 
@@ -70,14 +75,14 @@ export class AdminService {
       date.setDate(date.getDate() - i);
       data.push({
         date: date.toISOString().split('T')[0],
-        revenue: 0 // Real data would come from database queries
+        revenue: 0, // Real data would come from database queries
       });
     }
-    
+
     return {
-      labels: data.map(d => d.date),
-      values: data.map(d => d.revenue),
-      data
+      labels: data.map((d) => d.date),
+      values: data.map((d) => d.revenue),
+      data,
     };
   }
 
@@ -89,7 +94,7 @@ export class AdminService {
       memoryUsage: 68,
       cpuUsage: 23,
       cacheHitRate: 94,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
   }
 
@@ -102,7 +107,7 @@ export class AdminService {
     const [users, total] = await this.userRepository.findAndCount({
       skip: (page - 1) * limit,
       take: limit,
-      order: { createdAt: 'DESC' }
+      order: { createdAt: 'DESC' },
     });
 
     return {
@@ -110,7 +115,7 @@ export class AdminService {
       total,
       page,
       limit,
-      totalPages: Math.ceil(total / limit)
+      totalPages: Math.ceil(total / limit),
     };
   }
 
@@ -119,7 +124,7 @@ export class AdminService {
       skip: (page - 1) * limit,
       take: limit,
       order: { createdAt: 'DESC' },
-      relations: ['user']
+      relations: ['user'],
     });
 
     return {
@@ -127,7 +132,7 @@ export class AdminService {
       total,
       page,
       limit,
-      totalPages: Math.ceil(total / limit)
+      totalPages: Math.ceil(total / limit),
     };
   }
 
@@ -136,7 +141,7 @@ export class AdminService {
       skip: (page - 1) * limit,
       take: limit,
       order: { createdAt: 'DESC' },
-      relations: ['user']
+      relations: ['user'],
     });
 
     return {
@@ -144,7 +149,7 @@ export class AdminService {
       total,
       page,
       limit,
-      totalPages: Math.ceil(total / limit)
+      totalPages: Math.ceil(total / limit),
     };
   }
 
@@ -191,44 +196,52 @@ export class AdminService {
     }
   }
 
-  async getDatabaseRows(tableName: string, page: number = 1, limit: number = 20) {
+  async getDatabaseRows(
+    tableName: string,
+    page: number = 1,
+    limit: number = 20,
+  ) {
     try {
       const offset = (page - 1) * limit;
-      
+
       // Get total count
       const countQuery = `SELECT COUNT(*) as count FROM "${tableName}";`;
       const countResult = await this.dataSource.query(countQuery);
       const total = parseInt(countResult[0].count);
-      
+
       // Get paginated data
       const dataQuery = `SELECT * FROM "${tableName}" LIMIT $1 OFFSET $2;`;
       const data = await this.dataSource.query(dataQuery, [limit, offset]);
-    
-    return {
+
+      return {
         data,
         total,
         page,
         limit,
-        totalPages: Math.ceil(total / limit)
+        totalPages: Math.ceil(total / limit),
       };
     } catch (error) {
       console.error(`Error fetching rows from ${tableName}:`, error);
       return {
         data: [],
         total: 0,
-      page,
-      limit,
-        totalPages: 0
+        page,
+        limit,
+        totalPages: 0,
       };
     }
   }
 
   private getDaysFromTimeRange(timeRange: string): number {
     switch (timeRange) {
-      case '7d': return 7;
-      case '30d': return 30;
-      case '90d': return 90;
-      default: return 30;
+      case '7d':
+        return 7;
+      case '30d':
+        return 30;
+      case '90d':
+        return 90;
+      default:
+        return 30;
     }
   }
 
@@ -275,13 +288,15 @@ export class AdminService {
           password: 'hashedpassword202',
           isEmailVerified: false,
           createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000), // 1 day ago
-        }
+        },
       ];
 
       // Insert users
       const createdUsers: User[] = [];
       for (const userData of sampleUsers) {
-        const existingUser = await this.userRepository.findOne({ where: { email: userData.email } });
+        const existingUser = await this.userRepository.findOne({
+          where: { email: userData.email },
+        });
         if (!existingUser) {
           const user = this.userRepository.create(userData);
           const savedUser = await this.userRepository.save(user);
@@ -298,8 +313,8 @@ export class AdminService {
           symbol: 'EURUSD',
           side: TradeDirection.LONG,
           quantity: 1.5,
-          openPrice: 1.0850,
-          closePrice: 1.0920,
+          openPrice: 1.085,
+          closePrice: 1.092,
           status: TradeStatus.CLOSED,
           profitOrLoss: 105.0,
           assetType: AssetType.FOREX,
@@ -312,8 +327,8 @@ export class AdminService {
           symbol: 'GBPUSD',
           side: TradeDirection.SHORT,
           quantity: 2.0,
-          openPrice: 1.2650,
-          closePrice: 1.2580,
+          openPrice: 1.265,
+          closePrice: 1.258,
           status: TradeStatus.CLOSED,
           profitOrLoss: 140.0,
           assetType: AssetType.FOREX,
@@ -326,8 +341,8 @@ export class AdminService {
           symbol: 'USDJPY',
           side: TradeDirection.LONG,
           quantity: 1.0,
-          openPrice: 149.50,
-          closePrice: 150.20,
+          openPrice: 149.5,
+          closePrice: 150.2,
           status: TradeStatus.CLOSED,
           profitOrLoss: 70.0,
           assetType: AssetType.FOREX,
@@ -340,7 +355,7 @@ export class AdminService {
           symbol: 'AUDUSD',
           side: TradeDirection.LONG,
           quantity: 1.8,
-          openPrice: 0.6750,
+          openPrice: 0.675,
           status: TradeStatus.OPEN,
           assetType: AssetType.FOREX,
           openTime: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
@@ -351,8 +366,8 @@ export class AdminService {
           symbol: 'USDCAD',
           side: TradeDirection.SHORT,
           quantity: 1.2,
-          openPrice: 1.3450,
-          closePrice: 1.3380,
+          openPrice: 1.345,
+          closePrice: 1.338,
           status: TradeStatus.CLOSED,
           profitOrLoss: 84.0,
           assetType: AssetType.FOREX,
@@ -365,23 +380,23 @@ export class AdminService {
           symbol: 'EURJPY',
           side: TradeDirection.LONG,
           quantity: 0.8,
-          openPrice: 162.30,
+          openPrice: 162.3,
           status: TradeStatus.OPEN,
           assetType: AssetType.FOREX,
           openTime: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
           createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
-        }
+        },
       ];
 
       // Insert trades
       let createdTrades = 0;
       for (const tradeData of sampleTrades) {
-        const existingTrade = await this.tradeRepository.findOne({ 
-          where: { 
-            symbol: tradeData.symbol, 
+        const existingTrade = await this.tradeRepository.findOne({
+          where: {
+            symbol: tradeData.symbol,
             user: { id: tradeData.user.id },
-            createdAt: tradeData.createdAt
-          } 
+            createdAt: tradeData.createdAt,
+          },
         });
         if (!existingTrade) {
           const trade = this.tradeRepository.create(tradeData);
@@ -409,29 +424,29 @@ export class AdminService {
           plan: 'premium',
           status: SubscriptionStatus.CANCELED,
           createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
-        }
+        },
       ];
 
       // Skip subscriptions for now due to schema mismatch
-      let createdSubscriptions = 0;
+      const createdSubscriptions = 0;
       // TODO: Fix subscription entity/database schema mismatch
       console.log('Skipping subscription seeding due to schema mismatch');
 
-    return {
-      success: true,
+      return {
+        success: true,
         message: 'Sample data seeded successfully',
         data: {
           users: createdUsers.length,
           trades: createdTrades,
-          subscriptions: createdSubscriptions
-        }
+          subscriptions: createdSubscriptions,
+        },
       };
     } catch (error) {
       console.error('Error seeding sample data:', error);
       return {
         success: false,
         message: 'Failed to seed sample data',
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -449,7 +464,9 @@ export class AdminService {
     ];
 
     if (!allowedTables.includes(tableName)) {
-      throw new Error(`Table ${tableName} is not allowed to be cleared for safety reasons`);
+      throw new Error(
+        `Table ${tableName} is not allowed to be cleared for safety reasons`,
+      );
     }
 
     try {
@@ -469,10 +486,13 @@ export class AdminService {
     }
   }
 
-  async clearAllTables(): Promise<{ tablesCleared: string[]; totalDeleted: number }> {
+  async clearAllTables(): Promise<{
+    tablesCleared: string[];
+    totalDeleted: number;
+  }> {
     const allowedTables = [
       'trades',
-      'tags', 
+      'tags',
       'trade_tags',
       'mt5_accounts',
       'strategies',
@@ -486,13 +506,13 @@ export class AdminService {
     try {
       // Clear tables in order to avoid foreign key constraints
       const clearOrder = [
-        'trade_tags',     // Junction table first
-        'trades',         // Then trades
-        'tags',           // Then tags
-        'mt5_accounts',   // MT5 accounts
-        'strategies',     // Strategies
+        'trade_tags', // Junction table first
+        'trades', // Then trades
+        'tags', // Then tags
+        'mt5_accounts', // MT5 accounts
+        'strategies', // Strategies
         'usage_tracking', // Usage tracking
-        'subscriptions',  // Finally subscriptions
+        'subscriptions', // Finally subscriptions
       ];
 
       for (const tableName of clearOrder) {
@@ -526,22 +546,22 @@ export class AdminService {
         AND NOT pa.attisdropped
         ORDER BY table_name, pa.attnum;
       `;
-      
+
       const result = await this.dataSource.query(tablesQuery);
-      
+
       // Group by table
       const tableStats: Record<string, any> = {};
       result.forEach((row: any) => {
         if (!tableStats[row.table_name]) {
           tableStats[row.table_name] = {
             name: row.table_name,
-            columns: []
+            columns: [],
           };
         }
         if (row.column_name) {
           tableStats[row.table_name].columns.push({
             name: row.column_name,
-            type: row.data_type
+            type: row.data_type,
           });
         }
       });
@@ -553,7 +573,9 @@ export class AdminService {
     }
   }
 
-  async runSql(sql: string): Promise<{ success: boolean; result?: any; error?: string }> {
+  async runSql(
+    sql: string,
+  ): Promise<{ success: boolean; result?: any; error?: string }> {
     try {
       console.log('Executing SQL:', sql);
       const result = await this.dataSource.query(sql);

@@ -33,11 +33,7 @@ import {
 import { TradeHistoryParserService } from './trade-history-parser.service';
 import { TradesService } from '../trades/trades.service';
 import { CreateTradeDto } from '../trades/dto/create-trade.dto';
-import {
-  AssetType,
-  TradeDirection,
-  TradeStatus,
-} from '../types/enums';
+import { AssetType, TradeDirection, TradeStatus } from '../types/enums';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
 import { Trade } from '../trades/entities/trade.entity';
@@ -148,27 +144,27 @@ export class MT5AccountsController {
   @Post(':id/connect')
   @HttpCode(HttpStatus.OK)
   async connectAccount(@Param('id') id: string) {
-    return { 
+    return {
       message: 'MetaApi connection is temporarily disabled',
-      status: 'disabled' 
+      status: 'disabled',
     };
   }
 
   @Post(':id/stream/start')
   @HttpCode(HttpStatus.OK)
   async startStreaming(@Param('id') id: string) {
-    return { 
+    return {
       message: 'MetaApi streaming is temporarily disabled',
-      status: 'disabled' 
+      status: 'disabled',
     };
   }
 
   @Post(':id/stream/stop')
   @HttpCode(HttpStatus.OK)
   async stopStreaming(@Param('id') id: string) {
-    return { 
+    return {
       message: 'MetaApi streaming is temporarily disabled',
-      status: 'disabled' 
+      status: 'disabled',
     };
   }
 
@@ -196,7 +192,9 @@ export class MT5AccountsController {
       account.metadata?.isManual || account.connectionStatus === 'manual';
 
     if (!isManualAccount) {
-      throw new BadRequestException('MetaApi account removal is temporarily disabled');
+      throw new BadRequestException(
+        'MetaApi account removal is temporarily disabled',
+      );
     } else {
       // For manual accounts, just remove from database
       await this.mt5AccountsService.remove(id);
@@ -228,9 +226,9 @@ export class MT5AccountsController {
       throw new BadRequestException('MT5 account not found');
     }
 
-    return { 
+    return {
       message: 'MetaApi reconnection is temporarily disabled',
-      status: 'disabled' 
+      status: 'disabled',
     };
   }
 

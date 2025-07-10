@@ -11,17 +11,19 @@ import { Logger } from '@nestjs/common';
   cors: {
     origin: [
       'http://localhost:3000',
-      'http://localhost:3001', 
+      'http://localhost:3001',
       'https://tradetaper-frontend-benniejosephs-projects.vercel.app',
       'https://tradetaper-admin.vercel.app',
-      process.env.FRONTEND_URL || 'http://localhost:3000'
+      process.env.FRONTEND_URL || 'http://localhost:3000',
     ],
     methods: ['GET', 'POST'],
     credentials: true,
   },
   namespace: '/trades',
 })
-export class SimpleTradesGateway implements OnGatewayConnection, OnGatewayDisconnect {
+export class SimpleTradesGateway
+  implements OnGatewayConnection, OnGatewayDisconnect
+{
   @WebSocketServer()
   server: Server;
 
@@ -70,11 +72,13 @@ export class SimpleTradesGateway implements OnGatewayConnection, OnGatewayDiscon
   notifyBulkOperation(operation: string, count: number, trades?: any[]) {
     if (this.server) {
       this.server.emit('trades:bulk', { operation, count, trades });
-      this.logger.debug(`Bulk operation notification sent: ${operation} (${count} trades)`);
+      this.logger.debug(
+        `Bulk operation notification sent: ${operation} (${count} trades)`,
+      );
     }
   }
 
   getConnectionCount(): number {
     return this.connectedClients.size;
   }
-} 
+}

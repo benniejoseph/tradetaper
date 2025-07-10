@@ -10,7 +10,10 @@ import {
   Logger,
 } from '@nestjs/common'; // Added Logger
 import { PriceDataPoint } from './market-data.service';
-import { MultiProviderMarketDataService, HistoricalPrice } from './multi-provider.service';
+import {
+  MultiProviderMarketDataService,
+  HistoricalPrice,
+} from './multi-provider.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @UseGuards(JwtAuthGuard)
@@ -31,7 +34,7 @@ export class MarketDataController {
     @Query('interval') interval: string,
   ): Promise<PriceDataPoint[]> {
     const symbol = `${baseCurrency.toUpperCase()}${quoteCurrency.toUpperCase()}`;
-    
+
     this.logger.log(
       `[MarketDataController] Forex request: ${symbol}, interval=${interval}`,
     );

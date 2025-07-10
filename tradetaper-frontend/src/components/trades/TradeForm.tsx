@@ -129,6 +129,18 @@ export default function TradeForm({ initialData, isEditMode = false, onFormSubmi
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [strategies, setStrategies] = useState<Strategy[]>([]);
 
+  // Remove handleFileChange as it's now handled by ChartUploadButton
+  // const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => { ... };
+
+  // Remove selectedFile, imagePreviewUrl, isUploading states as they are now handled by ChartUploadButton
+  // const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  // const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(initialData?.imageUrl || null);
+  // const [isUploading, setIsUploading] = useState(false);
+
+  const [formError, setFormError] = useState<string | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [strategies, setStrategies] = useState<Strategy[]>([]);
+
   // Calculate R:R and update formData.rMultiple
   useEffect(() => {
     const entry = parseFloat(formData.entryPrice as any);
@@ -377,7 +389,7 @@ export default function TradeForm({ initialData, isEditMode = false, onFormSubmi
     }),
     multiValue: (provided) => ({
       ...provided,
-      backgroundColor: theme === 'dark' ? 'var(--color-dark-tertiary)' : 'var(--color-light-tertiary)',
+      backgroundColor: theme === 'dark' ? 'var(--color-dark-tertiary)' : 'var(--color-light-tertiary)', // multivalue bg
       borderRadius: '0.25rem', // Slightly less rounded for tags
     }),
     multiValueLabel: (provided) => ({
@@ -514,7 +526,7 @@ export default function TradeForm({ initialData, isEditMode = false, onFormSubmi
                   <p className="text-sm text-yellow-800 dark:text-yellow-200 mb-2">
                     <strong>No accounts available.</strong> You need to create a trading account first.
                   </p>
-                  <p className="text-xs text-yellow-600 dark:text-yellow-300">
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
                     Go to <strong>Settings → Manage Accounts</strong> to add your first trading account.
                   </p>
                 </div>

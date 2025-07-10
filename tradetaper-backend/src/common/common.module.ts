@@ -12,10 +12,6 @@ import { LoggingInterceptor } from './interceptors/logging.interceptor';
     GlobalExceptionFilter,
     LoggingInterceptor,
   ],
-  exports: [
-    ProductionLoggerService,
-    GlobalExceptionFilter,
-    LoggingInterceptor,
-  ],
+  exports: [ProductionLoggerService, GlobalExceptionFilter, LoggingInterceptor],
 })
 export class CommonModule {}

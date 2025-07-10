@@ -1,4 +1,11 @@
-import { IsNotEmpty, IsString, IsOptional, IsNumber, IsBoolean, Min } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsString,
+  IsOptional,
+  IsNumber,
+  IsBoolean,
+  Min,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class CreateAccountDto {
@@ -70,4 +77,4 @@ export class AccountResponseDto {
   userId: string;
   createdAt: Date;
   updatedAt: Date;
-} 
+}

@@ -51,11 +51,7 @@ export class StrategiesController {
     @Body() updateStrategyDto: UpdateStrategyDto,
     @Request() req,
   ) {
-    return this.strategiesService.update(
-      id,
-      updateStrategyDto,
-      req.user.id,
-    );
+    return this.strategiesService.update(id, updateStrategyDto, req.user.id);
   }
 
   @Patch(':id/toggle-active')

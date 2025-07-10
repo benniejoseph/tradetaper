@@ -7,7 +7,10 @@ import {
   Logger,
 } from '@nestjs/common';
 import { Request, Response } from 'express';
-import { ProductionLoggerService, ErrorContext } from '../services/logger.service';
+import {
+  ProductionLoggerService,
+  ErrorContext,
+} from '../services/logger.service';
 import { ConfigService } from '@nestjs/config';
 
 export interface ErrorResponse {
@@ -87,7 +90,10 @@ export class GlobalExceptionFilter implements ExceptionFilter {
 
       return {
         statusCode: status,
-        message: typeof response === 'string' ? response : (response as any).message || exception.message,
+        message:
+          typeof response === 'string'
+            ? response
+            : (response as any).message || exception.message,
         error: exception.name,
       };
     }
@@ -95,7 +101,10 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     // Handle specific error types
     if (exception instanceof Error) {
       // Database connection errors
-      if (exception.message.includes('ECONNREFUSED') || exception.message.includes('ENOTFOUND')) {
+      if (
+        exception.message.includes('ECONNREFUSED') ||
+        exception.message.includes('ENOTFOUND')
+      ) {
         return {
           statusCode: HttpStatus.SERVICE_UNAVAILABLE,
           message: 'Database connection error',
@@ -104,7 +113,10 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       }
 
       // JWT errors
-      if (exception.message.includes('jwt') || exception.message.includes('token')) {
+      if (
+        exception.message.includes('jwt') ||
+        exception.message.includes('token')
+      ) {
         return {
           statusCode: HttpStatus.UNAUTHORIZED,
           message: 'Authentication failed',
@@ -113,7 +125,10 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       }
 
       // Validation errors
-      if (exception.message.includes('validation') || exception.message.includes('ValidationError')) {
+      if (
+        exception.message.includes('validation') ||
+        exception.message.includes('ValidationError')
+      ) {
         return {
           statusCode: HttpStatus.BAD_REQUEST,
           message: 'Invalid input data',
@@ -122,7 +137,10 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       }
 
       // Stripe errors
-      if (exception.message.includes('Stripe') || exception.message.includes('stripe')) {
+      if (
+        exception.message.includes('Stripe') ||
+        exception.message.includes('stripe')
+      ) {
         return {
           statusCode: HttpStatus.BAD_REQUEST,
           message: 'Payment processing error',
@@ -145,8 +163,13 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     };
   }
 
-  private logError(exception: unknown, errorContext: ErrorContext, statusCode: number): void {
-    const message = exception instanceof Error ? exception.message : 'Unknown error occurred';
+  private logError(
+    exception: unknown,
+    errorContext: ErrorContext,
+    statusCode: number,
+  ): void {
+    const message =
+      exception instanceof Error ? exception.message : 'Unknown error occurred';
     const stack = exception instanceof Error ? exception.stack : undefined;
 
     // Log different levels based on status code
@@ -167,15 +190,17 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       );
     } else {
       // Other errors - log as info
-      this.productionLogger.log(
-        `Error: ${message}`,
-        'GlobalExceptionFilter',
-        { errorContext, statusCode },
-      );
+      this.productionLogger.log(`Error: ${message}`, 'GlobalExceptionFilter', {
+        errorContext,
+        statusCode,
+      });
     }
 
     // Log security events for authentication/authorization failures
-    if (statusCode === HttpStatus.UNAUTHORIZED || statusCode === HttpStatus.FORBIDDEN) {
+    if (
+      statusCode === HttpStatus.UNAUTHORIZED ||
+      statusCode === HttpStatus.FORBIDDEN
+    ) {
       this.productionLogger.logSecurityEvent(
         `${statusCode} error on ${errorContext.endpoint}`,
         errorContext.userId,

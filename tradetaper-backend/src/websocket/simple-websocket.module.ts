@@ -6,4 +6,4 @@ import { SimpleTradesGateway } from './simple-trades.gateway';
   providers: [SimpleTradesGateway],
   exports: [SimpleTradesGateway],
 })
-export class SimpleWebSocketModule {} 
+export class SimpleWebSocketModule {}

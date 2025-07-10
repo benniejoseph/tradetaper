@@ -1,0 +1,26 @@
+import { AssetType, TradeDirection, TradeStatus, ICTConcept, TradingSession } from '../../types/enums';
+export declare class CreateTradeDto {
+    assetType: AssetType;
+    symbol: string;
+    side: TradeDirection;
+    status?: TradeStatus;
+    openTime: string;
+    openPrice: number;
+    closeTime?: string;
+    closePrice?: number;
+    quantity: number;
+    commission?: number;
+    notes?: string;
+    stopLoss?: number;
+    takeProfit?: number;
+    ictConcept?: ICTConcept;
+    session?: TradingSession;
+    setupDetails?: string;
+    mistakesMade?: string;
+    lessonsLearned?: string;
+    imageUrl?: string;
+    tagNames?: string[];
+    accountId?: string;
+    isStarred?: boolean;
+    strategyId?: string;
+}

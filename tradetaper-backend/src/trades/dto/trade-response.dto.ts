@@ -3,11 +3,7 @@
 // If you add methods to Trade entity that shouldn't be serialized, or want to transform data, use a DTO.
 // For simplicity, we might just return the `Trade` entity or a selection of its fields.
 // This DTO can be expanded later if needed.
-import {
-  AssetType,
-  TradeDirection,
-  TradeStatus,
-} from '../../types/enums';
+import { AssetType, TradeDirection, TradeStatus } from '../../types/enums';
 
 export class TradeResponseDto {
   id: string;

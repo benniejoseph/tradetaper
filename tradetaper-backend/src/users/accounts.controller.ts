@@ -13,7 +13,11 @@ import {
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { AccountsService } from './accounts.service';
-import { CreateAccountDto, UpdateAccountDto, AccountResponseDto } from './dto/account.dto';
+import {
+  CreateAccountDto,
+  UpdateAccountDto,
+  AccountResponseDto,
+} from './dto/account.dto';
 
 @Controller('accounts')
 @UseGuards(JwtAuthGuard)
@@ -66,4 +70,4 @@ export class AccountsController {
     }
     await this.accountsService.remove(id);
   }
-} 
+}

@@ -1,19 +1,17 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 // src/trades/trades.service.ts
-import { Injectable, NotFoundException, Logger, Inject } from '@nestjs/common';
+import { Injectable, NotFoundException, Logger, Inject, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, FindManyOptions, In } from 'typeorm';
 import { Trade } from './entities/trade.entity';
-import {
-  TradeStatus,
-  TradeDirection,
-  AssetType,
-} from '../types/enums';
+import { TradeStatus, TradeDirection, AssetType } from '../types/enums';
 import { Tag } from '../tags/entities/tag.entity';
 import { CreateTradeDto } from './dto/create-trade.dto';
 import { UpdateTradeDto } from './dto/update-trade.dto';
 import { UserResponseDto } from '../users/dto/user-response.dto';
 import { SimpleTradesGateway } from '../websocket/simple-trades.gateway';
+import { GeminiVisionService } from '../notes/gemini-vision.service'; // New import
+import { Express } from 'express'; // New import
 
 @Injectable()
 export class TradesService {
@@ -26,6 +24,8 @@ export class TradesService {
     private readonly tagRepository: Repository<Tag>,
     @Inject(SimpleTradesGateway)
     private readonly tradesGateway: SimpleTradesGateway,
+    @Inject(GeminiVisionService)
+    private readonly geminiVisionService: GeminiVisionService,
   ) {}
 
   private calculateAndSetPnl(trade: Trade): void {
@@ -133,7 +133,9 @@ export class TradesService {
     });
 
     if (!completeTradeData) {
-      throw new NotFoundException(`Trade with id ${savedTrade.id} not found after creation`);
+      throw new NotFoundException(
+        `Trade with id ${savedTrade.id} not found after creation`,
+      );
     }
 
     this.logger.log(`Trade created successfully: ${savedTrade.id}`);
@@ -321,7 +323,8 @@ export class TradesService {
           trade.openTime = new Date(openTime);
         }
         if (closeTime !== undefined) {
-          trade.closeTime = closeTime === null ? undefined : new Date(closeTime);
+          trade.closeTime =
+            closeTime === null ? undefined : new Date(closeTime);
         }
 
         if (tagNames !== undefined) {
@@ -358,7 +361,9 @@ export class TradesService {
       const trade = this.tradesRepository.create({
         ...tradeDetails,
         openTime: new Date(tradeDto.openTime),
-        closeTime: tradeDto.closeTime ? new Date(tradeDto.closeTime) : undefined,
+        closeTime: tradeDto.closeTime
+          ? new Date(tradeDto.closeTime)
+          : undefined,
         userId: userContext.id,
         tags: resolvedTags,
       });
@@ -370,5 +375,17 @@ export class TradesService {
     const savedTrades = await this.tradesRepository.save(createdTrades);
 
     return { importedCount: savedTrades.length, trades: savedTrades };
+  }
+
+  async analyzeChart(file: Express.Multer.File): Promise<any> {
+    this.logger.log(`Analyzing chart image: ${file.originalname}`);
+    try {
+      const analysisResult = await this.geminiVisionService.analyzeChartImage(file.buffer);
+      this.logger.log(`Chart analysis result: ${JSON.stringify(analysisResult)}`);
+      return analysisResult;
+    } catch (error) {
+      this.logger.error(`Failed to analyze chart image: ${error.message}`, error.stack);
+      throw new BadRequestException(`Failed to analyze chart image: ${error.message}`);
+    }
   }
 }

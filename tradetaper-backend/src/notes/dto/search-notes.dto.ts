@@ -1,4 +1,15 @@
-import { IsOptional, IsString, IsArray, IsUUID, IsEnum, IsDateString, IsNumber, Min, Max, IsBoolean } from 'class-validator';
+import {
+  IsOptional,
+  IsString,
+  IsArray,
+  IsUUID,
+  IsEnum,
+  IsDateString,
+  IsNumber,
+  Min,
+  Max,
+  IsBoolean,
+} from 'class-validator';
 import { Type, Transform } from 'class-transformer';
 
 export class SearchNotesDto {
@@ -9,7 +20,7 @@ export class SearchNotesDto {
   @IsOptional()
   @IsArray()
   @IsString({ each: true })
-  @Transform(({ value }) => Array.isArray(value) ? value : [value])
+  @Transform(({ value }) => (Array.isArray(value) ? value : [value]))
   tags?: string[];
 
   @IsOptional()
@@ -71,4 +82,4 @@ export class SearchNotesDto {
   @IsOptional()
   @Transform(({ value }) => value === 'true' || value === true)
   hasMedia?: boolean;
-} 
+}

@@ -223,6 +223,24 @@ export const deleteTrade = createAsyncThunk<string, string, { rejectValue: strin
   }
 );
 
+export const analyzeChart = createAsyncThunk<any, File, { rejectValue: string }>(
+  'trades/analyzeChart',
+  async (file, { rejectWithValue }) => {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await authApiClient.post<any>('/trades/analyze-chart', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      return response.data;
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.message || error.message || 'Failed to analyze chart');
+    }
+  }
+);
 
 const tradesSlice = createSlice({
   name: 'trades',
@@ -350,6 +368,20 @@ const tradesSlice = createSlice({
         }
       })
       .addCase(deleteTrade.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload as string;
+      })
+      // analyzeChart
+      .addCase(analyzeChart.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(analyzeChart.fulfilled, (state, action: PayloadAction<any>) => {
+        state.isLoading = false;
+        // Handle the analyzed chart data if needed, e.g., update a temporary state or log it
+        console.log('Chart analysis successful:', action.payload);
+      })
+      .addCase(analyzeChart.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload as string;
       });

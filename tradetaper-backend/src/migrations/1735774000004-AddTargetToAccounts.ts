@@ -14,11 +14,11 @@ export class AddTargetToAccounts1735774000004 implements MigrationInterface {
         scale: 2,
         default: '0',
         isNullable: false,
-      })
+      }),
     );
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.dropColumn('accounts', 'target');
   }
-} 
+}

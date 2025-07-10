@@ -5,11 +5,15 @@ export class MakePasswordNullable1735774000006 implements MigrationInterface {
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     // Make password column nullable to support OAuth users
-    await queryRunner.query(`ALTER TABLE "users" ALTER COLUMN "password" DROP NOT NULL`);
+    await queryRunner.query(
+      `ALTER TABLE "users" ALTER COLUMN "password" DROP NOT NULL`,
+    );
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
     // Note: This down migration might fail if there are users with null passwords
-    await queryRunner.query(`ALTER TABLE "users" ALTER COLUMN "password" SET NOT NULL`);
+    await queryRunner.query(
+      `ALTER TABLE "users" ALTER COLUMN "password" SET NOT NULL`,
+    );
   }
-} 
+}

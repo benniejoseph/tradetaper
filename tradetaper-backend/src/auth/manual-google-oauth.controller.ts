@@ -1,4 +1,11 @@
-import { Controller, Get, Query, Res, HttpException, HttpStatus } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Query,
+  Res,
+  HttpException,
+  HttpStatus,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AuthService } from './auth.service';
 import axios from 'axios';
@@ -15,31 +22,44 @@ export class ManualGoogleOAuthController {
     try {
       const clientId = this.configService.get<string>('GOOGLE_CLIENT_ID');
       const callbackUrl = this.configService.get<string>('GOOGLE_CALLBACK_URL');
-      
+
       if (!clientId || !callbackUrl) {
-        throw new HttpException('Google OAuth not configured', HttpStatus.INTERNAL_SERVER_ERROR);
+        throw new HttpException(
+          'Google OAuth not configured',
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
       }
-      
-      const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
+
+      const googleAuthUrl =
+        `https://accounts.google.com/o/oauth2/v2/auth?` +
         `client_id=${clientId}&` +
         `redirect_uri=${encodeURIComponent(callbackUrl)}&` +
         `response_type=code&` +
         `scope=email profile&` +
         `access_type=offline&` +
         `prompt=consent`;
-      
+
       console.log('Redirecting to Google OAuth:', googleAuthUrl);
       return res.redirect(googleAuthUrl);
     } catch (error) {
       console.error('Google OAuth redirect error:', error);
-      throw new HttpException('Failed to initiate Google OAuth', HttpStatus.INTERNAL_SERVER_ERROR);
+      throw new HttpException(
+        'Failed to initiate Google OAuth',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   }
 
   @Get('google/callback')
-  async googleCallback(@Query('code') code: string, @Query('error') error: string, @Res() res) {
+  async googleCallback(
+    @Query('code') code: string,
+    @Query('error') error: string,
+    @Res() res,
+  ) {
     try {
-      const frontendUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
+      const frontendUrl =
+        this.configService.get<string>('FRONTEND_URL') ||
+        'http://localhost:3000';
 
       if (error) {
         console.error('Google OAuth error:', error);
@@ -55,10 +75,10 @@ export class ManualGoogleOAuthController {
 
       // Exchange authorization code for tokens
       const tokens = await this.exchangeCodeForTokens(code);
-      
+
       // Get user info from Google
       const userInfo = await this.getUserInfo(tokens.access_token);
-      
+
       // Create or authenticate user
       const result = await this.authService.validateOrCreateGoogleUser({
         email: userInfo.email,
@@ -72,10 +92,11 @@ export class ManualGoogleOAuthController {
       // Redirect to frontend with token and user data
       const redirectUrl = `${frontendUrl}/auth/google/callback?token=${result.accessToken}&user=${encodeURIComponent(JSON.stringify(result.user))}`;
       return res.redirect(redirectUrl);
-
     } catch (error) {
       console.error('Google OAuth callback error:', error);
-      const frontendUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
+      const frontendUrl =
+        this.configService.get<string>('FRONTEND_URL') ||
+        'http://localhost:3000';
       const errorUrl = `${frontendUrl}/auth/google/callback?error=${encodeURIComponent(error.message || 'Authentication failed')}`;
       return res.redirect(errorUrl);
     }
@@ -98,11 +119,14 @@ export class ManualGoogleOAuthController {
   }
 
   private async getUserInfo(accessToken: string) {
-    const response = await axios.get('https://www.googleapis.com/oauth2/v2/userinfo', {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
+    const response = await axios.get(
+      'https://www.googleapis.com/oauth2/v2/userinfo',
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
       },
-    });
+    );
 
     return response.data;
   }

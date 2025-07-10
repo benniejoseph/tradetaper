@@ -7,12 +7,15 @@ import { ConfigModule } from '@nestjs/config';
 import { Note } from './entities/note.entity';
 import { NoteBlock } from './entities/note-block.entity';
 import { NoteMedia } from './entities/note-media.entity';
+import { PsychologicalInsight } from './entities/psychological-insight.entity';
 
 // Services
 import { NotesService } from './notes.service';
 import { MediaService } from './media.service';
 import { AIService } from './ai.service';
 import { CalendarService } from './calendar.service';
+import { PsychologicalInsightsService } from './psychological-insights.service';
+import { GeminiPsychologyService } from './gemini-psychology.service';
 
 // Controllers
 import { NotesController } from './notes.controller';
@@ -22,7 +25,7 @@ import { CalendarController } from './calendar.controller';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Note, NoteBlock, NoteMedia]),
+    TypeOrmModule.forFeature([Note, NoteBlock, NoteMedia, PsychologicalInsight]),
     MulterModule.register({
       dest: './temp',
       limits: {
@@ -37,18 +40,15 @@ import { CalendarController } from './calendar.controller';
     AIController,
     CalendarController,
   ],
-  providers: [
-    NotesService,
-    MediaService,
-    AIService,
-    CalendarService,
-  ],
+  providers: [NotesService, MediaService, AIService, CalendarService, PsychologicalInsightsService, GeminiPsychologyService],
   exports: [
     NotesService,
     MediaService,
     AIService,
     CalendarService,
+    PsychologicalInsightsService,
+    GeminiPsychologyService,
     TypeOrmModule,
   ],
 })
-export class NotesModule {} 
+export class NotesModule {}

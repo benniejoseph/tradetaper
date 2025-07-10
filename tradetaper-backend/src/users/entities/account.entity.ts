@@ -45,4 +45,4 @@ export class Account {
   @ManyToOne(() => User, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'userId' })
   user: User;
-} 
+}

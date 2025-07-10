@@ -14,7 +14,9 @@ export class WebSocketService {
   // Emit trade creation event
   notifyTradeCreated(trade: any) {
     if (!this.server) {
-      this.logger.warn('WebSocket server not initialized, skipping trade:created notification');
+      this.logger.warn(
+        'WebSocket server not initialized, skipping trade:created notification',
+      );
       return;
     }
     this.server.emit('trade:created', trade);
@@ -24,7 +26,9 @@ export class WebSocketService {
   // Emit trade update event
   notifyTradeUpdated(trade: any) {
     if (!this.server) {
-      this.logger.warn('WebSocket server not initialized, skipping trade:updated notification');
+      this.logger.warn(
+        'WebSocket server not initialized, skipping trade:updated notification',
+      );
       return;
     }
     this.server.emit('trade:updated', trade);
@@ -34,7 +38,9 @@ export class WebSocketService {
   // Emit trade deletion event
   notifyTradeDeleted(tradeId: string) {
     if (!this.server) {
-      this.logger.warn('WebSocket server not initialized, skipping trade:deleted notification');
+      this.logger.warn(
+        'WebSocket server not initialized, skipping trade:deleted notification',
+      );
       return;
     }
     this.server.emit('trade:deleted', { id: tradeId });
@@ -44,7 +50,9 @@ export class WebSocketService {
   // Emit bulk operation event
   notifyBulkOperation(operation: string, count: number, trades?: any[]) {
     if (!this.server) {
-      this.logger.warn('WebSocket server not initialized, skipping trades:bulk notification');
+      this.logger.warn(
+        'WebSocket server not initialized, skipping trades:bulk notification',
+      );
       return;
     }
     this.server.emit('trades:bulk', { operation, count, trades });
@@ -52,4 +60,4 @@ export class WebSocketService {
       `Bulk operation notification sent: ${operation} (${count} trades)`,
     );
   }
-} 
+}

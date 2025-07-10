@@ -16,11 +16,11 @@ export class LoggingInterceptor implements NestInterceptor {
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     const request = context.switchToHttp().getRequest<Request>();
     const response = context.switchToHttp().getResponse<Response>();
-    
+
     const { method, url, ip } = request;
     const userAgent = request.get('User-Agent') || '';
     const userId = (request as any).user?.id;
-    
+
     const startTime = Date.now();
 
     return next.handle().pipe(
@@ -30,27 +30,17 @@ export class LoggingInterceptor implements NestInterceptor {
           const { statusCode } = response;
 
           // Log API call
-          this.logger.logApiCall(
-            method,
-            url,
-            statusCode,
-            duration,
-            userId,
-          );
+          this.logger.logApiCall(method, url, statusCode, duration, userId);
 
           // Log performance metrics for slow requests
           if (duration > 1000) {
-            this.logger.logPerformanceMetric(
-              `${method} ${url}`,
-              duration,
-              {
-                userId,
-                statusCode,
-                ip,
-                userAgent,
-                responseSize: JSON.stringify(data).length,
-              },
-            );
+            this.logger.logPerformanceMetric(`${method} ${url}`, duration, {
+              userId,
+              statusCode,
+              ip,
+              userAgent,
+              responseSize: JSON.stringify(data).length,
+            });
           }
         },
         error: (error) => {

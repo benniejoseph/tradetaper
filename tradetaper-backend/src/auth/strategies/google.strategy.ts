@@ -1,6 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
-import { Strategy, VerifyCallback, StrategyOptions } from 'passport-google-oauth20';
+import {
+  Strategy,
+  VerifyCallback,
+  StrategyOptions,
+} from 'passport-google-oauth20';
 import { ConfigService } from '@nestjs/config';
 
 @Injectable()
@@ -23,7 +27,7 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
       callbackURL: callbackURL || '',
       scope: ['email', 'profile'],
     };
-    
+
     super(options);
   }
 
@@ -42,7 +46,7 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
       accessToken,
       refreshToken,
     };
-    
+
     done(null, user);
   }
-} 
+}

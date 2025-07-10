@@ -1,4 +1,13 @@
-import { IsString, IsOptional, IsArray, IsUUID, IsEnum, MinLength, MaxLength, IsBoolean } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsArray,
+  IsUUID,
+  IsEnum,
+  MinLength,
+  MaxLength,
+  IsBoolean,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class CreateNoteDto {
@@ -31,4 +40,4 @@ export class CreateNoteDto {
   @IsBoolean()
   @IsOptional()
   isPinned?: boolean;
-} 
+}

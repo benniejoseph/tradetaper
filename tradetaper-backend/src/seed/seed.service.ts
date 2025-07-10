@@ -41,13 +41,15 @@ export class SeedService implements OnApplicationBootstrap {
   async onApplicationBootstrap() {
     const nodeEnv = this.configService.get<string>('NODE_ENV');
     const forceSeed = this.configService.get<string>('FORCE_SEED');
-    
+
     // Only seed in development OR when explicitly forced
     if (nodeEnv === 'production' && forceSeed !== 'true') {
-      this.logger.log('Skipping seed data in production environment. Use FORCE_SEED=true to override.');
+      this.logger.log(
+        'Skipping seed data in production environment. Use FORCE_SEED=true to override.',
+      );
       return;
     }
-    
+
     if (nodeEnv !== 'development' && forceSeed !== 'true') {
       this.logger.log('Skipping seed data in non-development environment.');
       return;

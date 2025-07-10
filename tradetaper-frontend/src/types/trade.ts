@@ -57,6 +57,7 @@ export interface Trade {
   mistakesMade?: string;
   lessonsLearned?: string;
   imageUrl?: string;
+  chartAnalysisData?: any;
   tags?: Tag[];
   createdAt: string;
   updatedAt: string;
