@@ -1,4 +1,8 @@
-import { Injectable, Logger as NestLogger, LoggerService } from '@nestjs/common';
+import {
+  Injectable,
+  Logger as NestLogger,
+  LoggerService,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
 export interface ErrorContext {
@@ -34,7 +38,12 @@ export class ProductionLoggerService implements LoggerService {
   /**
    * Log error with enhanced context for production debugging
    */
-  error(message: string, stack?: string, context?: string, errorContext?: ErrorContext): void {
+  error(
+    message: string,
+    stack?: string,
+    context?: string,
+    errorContext?: ErrorContext,
+  ): void {
     const logEntry: LogEntry = {
       level: 'error',
       message,
@@ -102,7 +111,11 @@ export class ProductionLoggerService implements LoggerService {
   /**
    * Log debug message (only in development or when explicitly enabled)
    */
-  debug(message: string, context?: string, details?: Record<string, any>): void {
+  debug(
+    message: string,
+    context?: string,
+    details?: Record<string, any>,
+  ): void {
     if (!this.isProduction || this.enableDebugLogs) {
       const logEntry: LogEntry = {
         level: 'debug',
@@ -146,18 +159,25 @@ export class ProductionLoggerService implements LoggerService {
       statusCode,
       duration: `${duration}ms`,
       userId,
-      error: error ? {
-        message: error.message,
-        stack: error.stack,
-      } : undefined,
+      error: error
+        ? {
+            message: error.message,
+            stack: error.stack,
+          }
+        : undefined,
     };
 
-    const level = statusCode >= 400 ? 'error' : statusCode >= 300 ? 'warn' : 'info';
+    const level =
+      statusCode >= 400 ? 'error' : statusCode >= 300 ? 'warn' : 'info';
     const message = `${method} ${endpoint} - ${statusCode} (${duration}ms)`;
 
     switch (level) {
       case 'error':
-        this.error(message, error?.stack, 'ApiCall', { endpoint, method, userId });
+        this.error(message, error?.stack, 'ApiCall', {
+          endpoint,
+          method,
+          userId,
+        });
         break;
       case 'warn':
         this.warn(message, 'ApiCall', details);
@@ -182,10 +202,12 @@ export class ProductionLoggerService implements LoggerService {
       table,
       duration: `${duration}ms`,
       recordCount,
-      error: error ? {
-        message: error.message,
-        stack: error.stack,
-      } : undefined,
+      error: error
+        ? {
+            message: error.message,
+            stack: error.stack,
+          }
+        : undefined,
     };
 
     const message = `DB ${operation} on ${table} - ${recordCount || 0} records (${duration}ms)`;

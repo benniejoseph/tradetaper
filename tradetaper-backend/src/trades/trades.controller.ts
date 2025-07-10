@@ -12,7 +12,12 @@ import {
   HttpCode,
   HttpStatus,
   Query,
+  UseInterceptors, // New import
+  UploadedFile, // New import
+  Logger, // New import
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express'; // New import
+import { Express } from 'express'; // New import
 import { TradesService } from './trades.service';
 import { CreateTradeDto } from './dto/create-trade.dto';
 import { UpdateTradeDto } from './dto/update-trade.dto';
@@ -22,6 +27,7 @@ import { Trade } from './entities/trade.entity';
 @UseGuards(JwtAuthGuard)
 @Controller('trades')
 export class TradesController {
+  private readonly logger = new Logger(TradesController.name); // New logger
   constructor(private readonly tradesService: TradesService) {}
 
   @Post()
@@ -93,5 +99,15 @@ export class TradesController {
     @Request() req,
   ): Promise<{ importedCount: number; trades: Trade[] }> {
     return this.tradesService.bulkImport(body.trades, req.user);
+  }
+
+  @Post('analyze-chart')
+  @UseInterceptors(FileInterceptor('file'))
+  async analyzeChart(
+    @UploadedFile() file: Express.Multer.File,
+    @Request() req,
+  ): Promise<any> {
+    this.logger.log(`User ${req.user?.id || 'unknown'} requested chart analysis for file: ${file.originalname}`);
+    return this.tradesService.analyzeChart(file);
   }
 }

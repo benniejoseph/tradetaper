@@ -56,15 +56,20 @@ export class TestUserSeedService {
 
     // Create MT5 accounts
     const accounts = await this.createMT5Accounts(savedUser.id);
-    
+
     // Create trading strategies
     const strategies = await this.createStrategies(savedUser.id);
-    
+
     // Create tags
     const tags = await this.createTags(savedUser.id);
-    
+
     // Create comprehensive trades
-    const trades = await this.createTrades(savedUser.id, accounts, strategies, tags);
+    const trades = await this.createTrades(
+      savedUser.id,
+      accounts,
+      strategies,
+      tags,
+    );
 
     const stats = {
       trades: trades.length,
@@ -73,7 +78,9 @@ export class TestUserSeedService {
       tags: tags.length,
     };
 
-    this.logger.log(`Test user created successfully with ${JSON.stringify(stats)}`);
+    this.logger.log(
+      `Test user created successfully with ${JSON.stringify(stats)}`,
+    );
 
     return { user: savedUser, stats };
   }
@@ -124,7 +131,12 @@ export class TestUserSeedService {
         tags: 'ICT, London, MSS, OTE',
         checklist: [
           { id: '1', text: 'Check DXY bias', completed: false, order: 1 },
-          { id: '2', text: 'Identify previous day high/low', completed: false, order: 2 },
+          {
+            id: '2',
+            text: 'Identify previous day high/low',
+            completed: false,
+            order: 2,
+          },
         ],
       },
     ];
@@ -176,19 +188,25 @@ export class TestUserSeedService {
       const account = accounts[0];
       const strategy = strategies[0];
       const symbol = forexPairs[i % forexPairs.length];
-      
-      const openTime = new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000);
-      const direction = Math.random() > 0.5 ? TradeDirection.LONG : TradeDirection.SHORT;
+
+      const openTime = new Date(
+        Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000,
+      );
+      const direction =
+        Math.random() > 0.5 ? TradeDirection.LONG : TradeDirection.SHORT;
       const status = TradeStatus.CLOSED;
-      
-      const basePrice = 1.0850;
+
+      const basePrice = 1.085;
       const openPrice = basePrice + (Math.random() - 0.5) * basePrice * 0.01;
       const closePrice = openPrice + (Math.random() - 0.5) * basePrice * 0.005;
-      const closeTime = new Date(openTime.getTime() + Math.random() * 24 * 60 * 60 * 1000);
+      const closeTime = new Date(
+        openTime.getTime() + Math.random() * 24 * 60 * 60 * 1000,
+      );
 
       const quantity = 1.0;
       const commission = 5.0;
-      const profitOrLoss = Math.random() > 0.6 ? Math.random() * 100 : -Math.random() * 50;
+      const profitOrLoss =
+        Math.random() > 0.6 ? Math.random() * 100 : -Math.random() * 50;
 
       const trade = this.tradeRepository.create({
         userId,
@@ -222,7 +240,7 @@ export class TestUserSeedService {
 
   async deleteTestUser(): Promise<void> {
     const testUser = await this.userRepository.findOne({
-      where: { email: 'trader@tradetaper.com' }
+      where: { email: 'trader@tradetaper.com' },
     });
 
     if (testUser) {
@@ -230,4 +248,4 @@ export class TestUserSeedService {
       this.logger.log('Test user and all related data deleted');
     }
   }
-} 
+}

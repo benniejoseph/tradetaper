@@ -13,17 +13,19 @@ import { WebSocketService } from './websocket.service';
   cors: {
     origin: [
       'http://localhost:3000',
-      'http://localhost:3001', 
+      'http://localhost:3001',
       'https://tradetaper-frontend-benniejosephs-projects.vercel.app',
       'https://tradetaper-admin.vercel.app',
-      process.env.FRONTEND_URL || 'http://localhost:3000'
+      process.env.FRONTEND_URL || 'http://localhost:3000',
     ],
     methods: ['GET', 'POST'],
     credentials: true,
   },
   namespace: '/trades',
 })
-export class TradesGateway implements OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit {
+export class TradesGateway
+  implements OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit
+{
   @WebSocketServer()
   server: Server;
 

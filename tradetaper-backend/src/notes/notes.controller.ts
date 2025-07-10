@@ -13,9 +13,11 @@ import {
   ParseIntPipe,
   HttpCode,
   HttpStatus,
+  Logger, // Added Logger
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { NotesService } from './notes.service';
+import { PsychologicalInsightsService } from './psychological-insights.service';
 import { CreateNoteDto } from './dto/create-note.dto';
 import { UpdateNoteDto } from './dto/update-note.dto';
 import { SearchNotesDto } from './dto/search-notes.dto';
@@ -24,7 +26,9 @@ import { NoteResponseDto } from './dto/note-response.dto';
 @Controller('notes')
 @UseGuards(JwtAuthGuard)
 export class NotesController {
-  constructor(private readonly notesService: NotesService) {}
+  private readonly logger = new Logger(NotesController.name); // Instantiated Logger
+
+  constructor(private readonly notesService: NotesService, private readonly psychologicalInsightsService: PsychologicalInsightsService) {}
 
   @Post()
   async create(
@@ -70,11 +74,13 @@ export class NotesController {
     @Param('year', ParseIntPipe) year: number,
     @Param('month', ParseIntPipe) month: number,
     @Request() req: any,
-  ): Promise<{
-    date: string;
-    count: number;
-    notes: NoteResponseDto[];
-  }[]> {
+  ): Promise<
+    {
+      date: string;
+      count: number;
+      notes: NoteResponseDto[];
+    }[]
+  > {
     return this.notesService.getCalendarNotes(req.user.id, year, month);
   }
 
@@ -103,6 +109,37 @@ export class NotesController {
     return this.notesService.togglePin(id, req.user.id);
   }
 
+  @Post(':id/analyze')
+  @HttpCode(HttpStatus.OK)
+  async analyzeNote(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Request() req: any,
+  ): Promise<string[]> {
+    this.logger.log(`Received analyze request for note ${id} from user ${req.user?.id || 'unknown'}`);
+    return this.notesService.analyzeNote(id, req.user);
+  }
+
+  @Post(':id/analyze-psychology')
+  @HttpCode(HttpStatus.OK)
+  async analyzePsychology(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Request() req: any,
+  ): Promise<PsychologicalInsight[]> {
+    this.logger.log(`Received psychological analysis request for note ${id} from user ${req.user?.id || 'unknown'}`);
+    return this.psychologicalInsightsService.analyzeAndSavePsychologicalInsights(id, req.user.id);
+  }
+
+  @Get('psychological-profile')
+  async getPsychologicalProfile(
+    @Request() req: any,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ): Promise<any> {
+    const start = startDate ? new Date(startDate) : undefined;
+    const end = endDate ? new Date(endDate) : undefined;
+    return this.psychologicalInsightsService.getPsychologicalSummary(req.user.id);
+  }
+
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   async remove(
@@ -111,4 +148,4 @@ export class NotesController {
   ): Promise<void> {
     return this.notesService.remove(id, req.user.id);
   }
-} 
+}

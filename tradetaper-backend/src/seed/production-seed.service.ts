@@ -2,7 +2,10 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from '../users/entities/user.entity';
-import { Subscription, SubscriptionStatus } from '../subscriptions/entities/subscription.entity';
+import {
+  Subscription,
+  SubscriptionStatus,
+} from '../subscriptions/entities/subscription.entity';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
 
@@ -27,7 +30,9 @@ export class ProductionSeedService {
 
     try {
       await this.ensureDefaultSubscriptionPlans();
-      this.logger.log('Production essential data seeding completed successfully.');
+      this.logger.log(
+        'Production essential data seeding completed successfully.',
+      );
     } catch (error) {
       this.logger.error('Production seeding failed:', error);
       throw error;
@@ -38,7 +43,10 @@ export class ProductionSeedService {
    * Creates a demo user account for production testing (admin use only)
    * This should only be called manually by administrators
    */
-  async createDemoUser(): Promise<{ user: User; credentials: { email: string; password: string } }> {
+  async createDemoUser(): Promise<{
+    user: User;
+    credentials: { email: string; password: string };
+  }> {
     const existingDemo = await this.userRepository.findOne({
       where: { email: 'demo@tradetaper.com' },
     });
@@ -47,7 +55,10 @@ export class ProductionSeedService {
       this.logger.log('Demo user already exists');
       return {
         user: existingDemo,
-        credentials: { email: 'demo@tradetaper.com', password: 'Contact admin for password' },
+        credentials: {
+          email: 'demo@tradetaper.com',
+          password: 'Contact admin for password',
+        },
       };
     }
 
@@ -82,7 +93,10 @@ export class ProductionSeedService {
   /**
    * Validates that all required environment variables are present
    */
-  async validateProductionEnvironment(): Promise<{ valid: boolean; missingVars: string[] }> {
+  async validateProductionEnvironment(): Promise<{
+    valid: boolean;
+    missingVars: string[];
+  }> {
     const requiredVars = [
       'DATABASE_URL',
       'JWT_SECRET',
@@ -101,9 +115,11 @@ export class ProductionSeedService {
     }
 
     const valid = missingVars.length === 0;
-    
+
     if (!valid) {
-      this.logger.error(`Missing required environment variables: ${missingVars.join(', ')}`);
+      this.logger.error(
+        `Missing required environment variables: ${missingVars.join(', ')}`,
+      );
     } else {
       this.logger.log('All required environment variables are present');
     }
@@ -126,7 +142,8 @@ export class ProductionSeedService {
    * Generates a secure random password for demo accounts
    */
   private generateSecurePassword(): string {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*';
+    const chars =
+      'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*';
     let password = '';
     for (let i = 0; i < 16; i++) {
       password += chars.charAt(Math.floor(Math.random() * chars.length));

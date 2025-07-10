@@ -1,0 +1,36 @@
+import { User } from '../../users/entities/user.entity';
+import { Tag } from '../../tags/entities/tag.entity';
+import { AssetType, TradeDirection, TradeStatus, ICTConcept, TradingSession } from '../../types/enums';
+export declare class Trade {
+    id: string;
+    user: User;
+    userId: string;
+    strategyId?: string;
+    accountId?: string;
+    isStarred?: boolean;
+    assetType: AssetType;
+    symbol: string;
+    side: TradeDirection;
+    status: TradeStatus;
+    openTime: Date;
+    openPrice: number;
+    closeTime?: Date;
+    closePrice?: number;
+    quantity: number;
+    commission: number;
+    notes?: string;
+    profitOrLoss?: number;
+    rMultiple?: number;
+    stopLoss?: number;
+    takeProfit?: number;
+    ictConcept?: ICTConcept;
+    session?: TradingSession;
+    setupDetails?: string;
+    mistakesMade?: string;
+    lessonsLearned?: string;
+    imageUrl?: string;
+    tags: Tag[];
+    createdAt: Date;
+    updatedAt: Date;
+    calculatePnl(): void;
+}

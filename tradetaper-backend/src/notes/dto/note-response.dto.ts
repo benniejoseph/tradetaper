@@ -63,13 +63,13 @@ export class NoteResponseDto {
   @Expose()
   get preview(): string {
     if (!this.content || this.content.length === 0) return '';
-    
-    const textBlocks = this.content.filter(block => 
-      ['text', 'heading', 'quote'].includes(block.type)
+
+    const textBlocks = this.content.filter((block) =>
+      ['text', 'heading', 'quote'].includes(block.type),
     );
-    
+
     if (textBlocks.length === 0) return '';
-    
+
     const firstBlock = textBlocks[0];
     const text = firstBlock.content?.text || '';
     return text.length > 150 ? text.substring(0, 150) + '...' : text;
@@ -77,9 +77,11 @@ export class NoteResponseDto {
 
   @Expose()
   get hasMedia(): boolean {
-    return this.content?.some(block => 
-      ['image', 'video', 'embed'].includes(block.type)
-    ) || false;
+    return (
+      this.content?.some((block) =>
+        ['image', 'video', 'embed'].includes(block.type),
+      ) || false
+    );
   }
 
   @Expose()
@@ -93,4 +95,4 @@ export class NoteResponseDto {
 
   @Exclude()
   deletedAt?: Date;
-} 
+}

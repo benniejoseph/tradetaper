@@ -1,40 +1,26 @@
-# Production Dockerfile for TradeTaper Backend
-FROM node:20-slim
 
-# Install Python, build tools, and curl for native dependencies
-RUN apt-get update && apt-get install -y \
-    python3 \
-    make \
-    g++ \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
+# Dockerfile for tradetaper-backend
 
-# Set working directory
+# Use an official Node.js runtime as the base image
+FROM node:20-alpine
+
+# Set the working directory in the container
 WORKDIR /app
 
-# Copy package files
+# Copy package.json and package-lock.json to the working directory
 COPY package*.json ./
 
-# Install all dependencies for build
-RUN npm install --legacy-peer-deps && npm cache clean --force
+# Install application dependencies
+RUN npm install --production
 
-# Copy source code
+# Copy the rest of the application code
 COPY . .
 
-# Build application
+# Build the NestJS application
 RUN npm run build
 
-# Set environment variables
-ENV NODE_ENV=production
-ENV PORT=8080
+# Expose the port the app runs on
+EXPOSE 3000
 
-# Expose port 8080 (Cloud Run default)
-EXPOSE 8080
-
-# Install Cloud SQL Proxy
-RUN curl -sSL -o /usr/local/bin/cloud-sql-proxy \
-    https://storage.googleapis.com/cloud-sql-connectors/cloud-sql-proxy/v2.9.1/cloud-sql-proxy.linux.amd64 \
-    && chmod +x /usr/local/bin/cloud-sql-proxy
-
-# Start the application
-CMD ["node", "dist/main.js"]
+# Run the application
+CMD [ "node", "dist/main" ]

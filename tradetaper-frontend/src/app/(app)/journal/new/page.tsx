@@ -2,11 +2,15 @@
 "use client";
 
 import TradeForm from '@/components/trades/TradeForm';
+import { ChartUploadButton } from '@/components/trades/ChartUploadButton';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { FaPlus, FaArrowLeft } from 'react-icons/fa';
 
 export default function NewTradePage() {
   const router = useRouter();
+
+  const [analyzedChartData, setAnalyzedChartData] = useState<any>(null);
 
   const handleFormSubmitSuccess = (/* tradeId?: string */) => {
     // Navigate to the main journal page or the newly created/edited trade detail view
@@ -55,9 +59,15 @@ export default function NewTradePage() {
             </div>
           </div>
           
+          <div className="mb-8">
+            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Upload Chart for Analysis</h3>
+            <ChartUploadButton onChartAnalyzed={setAnalyzedChartData} />
+          </div>
+
           <TradeForm 
             onFormSubmitSuccess={handleFormSubmitSuccess} 
             onCancel={handleCancel} 
+            initialData={analyzedChartData}
           />
         </div>
       </div>

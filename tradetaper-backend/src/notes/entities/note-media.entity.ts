@@ -65,11 +65,11 @@ export class NoteMedia {
   get humanFileSize(): string {
     const bytes = Number(this.fileSize);
     if (bytes === 0) return '0 Bytes';
-    
+
     const k = 1024;
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    
+
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   }
 
@@ -83,4 +83,4 @@ export class NoteMedia {
     // This would be populated by the service when needed
     return null;
   }
-} 
+}

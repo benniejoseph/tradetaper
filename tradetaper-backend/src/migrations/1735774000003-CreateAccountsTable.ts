@@ -98,4 +98,4 @@ export class CreateAccountsTable1735774000003 implements MigrationInterface {
   public async down(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.dropTable('accounts');
   }
-} 
+}

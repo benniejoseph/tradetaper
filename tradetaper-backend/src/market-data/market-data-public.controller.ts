@@ -1,8 +1,4 @@
-import {
-  Controller,
-  Get,
-  Logger,
-} from '@nestjs/common';
+import { Controller, Get, Logger } from '@nestjs/common';
 import { MultiProviderMarketDataService } from './multi-provider.service';
 
 @Controller('market-data')
@@ -19,9 +15,9 @@ export class MarketDataPublicController {
     return this.multiProviderService.getProviderStatus();
   }
 
-  @Get('providers/test') 
+  @Get('providers/test')
   async testProviders() {
     this.logger.log('[MarketDataPublicController] Testing all providers');
     return this.multiProviderService.testAllProviders();
   }
-} 
+}

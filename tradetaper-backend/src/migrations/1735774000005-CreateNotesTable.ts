@@ -87,22 +87,50 @@ export class CreateNotesTable1735774000005 implements MigrationInterface {
     `);
 
     // Create indices for performance
-    await queryRunner.query(`CREATE INDEX "IDX_notes_user_id" ON "notes" ("user_id")`);
-    await queryRunner.query(`CREATE INDEX "IDX_notes_account_id" ON "notes" ("account_id")`);
-    await queryRunner.query(`CREATE INDEX "IDX_notes_trade_id" ON "notes" ("trade_id")`);
-    await queryRunner.query(`CREATE INDEX "IDX_notes_created_at" ON "notes" ("created_at")`);
-    await queryRunner.query(`CREATE INDEX "IDX_notes_updated_at" ON "notes" ("updated_at")`);
-    await queryRunner.query(`CREATE INDEX "IDX_notes_tags" ON "notes" USING gin ("tags")`);
-    await queryRunner.query(`CREATE INDEX "IDX_notes_title_search" ON "notes" USING gin (to_tsvector('english', "title"))`);
-    await queryRunner.query(`CREATE INDEX "IDX_notes_visibility" ON "notes" ("visibility")`);
-    await queryRunner.query(`CREATE INDEX "IDX_notes_is_pinned" ON "notes" ("is_pinned")`);
-    
-    await queryRunner.query(`CREATE INDEX "IDX_note_blocks_note_id" ON "note_blocks" ("note_id")`);
-    await queryRunner.query(`CREATE INDEX "IDX_note_blocks_position" ON "note_blocks" ("note_id", "position")`);
-    await queryRunner.query(`CREATE INDEX "IDX_note_blocks_type" ON "note_blocks" ("block_type")`);
-    
-    await queryRunner.query(`CREATE INDEX "IDX_note_media_note_id" ON "note_media" ("note_id")`);
-    await queryRunner.query(`CREATE INDEX "IDX_note_media_file_type" ON "note_media" ("file_type")`);
+    await queryRunner.query(
+      `CREATE INDEX "IDX_notes_user_id" ON "notes" ("user_id")`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_notes_account_id" ON "notes" ("account_id")`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_notes_trade_id" ON "notes" ("trade_id")`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_notes_created_at" ON "notes" ("created_at")`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_notes_updated_at" ON "notes" ("updated_at")`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_notes_tags" ON "notes" USING gin ("tags")`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_notes_title_search" ON "notes" USING gin (to_tsvector('english', "title"))`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_notes_visibility" ON "notes" ("visibility")`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_notes_is_pinned" ON "notes" ("is_pinned")`,
+    );
+
+    await queryRunner.query(
+      `CREATE INDEX "IDX_note_blocks_note_id" ON "note_blocks" ("note_id")`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_note_blocks_position" ON "note_blocks" ("note_id", "position")`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_note_blocks_type" ON "note_blocks" ("block_type")`,
+    );
+
+    await queryRunner.query(
+      `CREATE INDEX "IDX_note_media_note_id" ON "note_media" ("note_id")`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_note_media_file_type" ON "note_media" ("file_type")`,
+    );
 
     // Add full-text search index for content search
     await queryRunner.query(`
@@ -132,7 +160,9 @@ export class CreateNotesTable1735774000005 implements MigrationInterface {
 
   public async down(queryRunner: QueryRunner): Promise<void> {
     // Drop function and indices
-    await queryRunner.query(`DROP FUNCTION IF EXISTS notes_content_search(jsonb)`);
+    await queryRunner.query(
+      `DROP FUNCTION IF EXISTS notes_content_search(jsonb)`,
+    );
     await queryRunner.query(`DROP INDEX IF EXISTS "IDX_notes_content_search"`);
     await queryRunner.query(`DROP INDEX IF EXISTS "IDX_note_media_file_type"`);
     await queryRunner.query(`DROP INDEX IF EXISTS "IDX_note_media_note_id"`);
@@ -150,15 +180,25 @@ export class CreateNotesTable1735774000005 implements MigrationInterface {
     await queryRunner.query(`DROP INDEX IF EXISTS "IDX_notes_user_id"`);
 
     // Drop foreign key constraints
-    await queryRunner.query(`ALTER TABLE "note_media" DROP CONSTRAINT "FK_note_media_note_id"`);
-    await queryRunner.query(`ALTER TABLE "note_blocks" DROP CONSTRAINT "FK_note_blocks_note_id"`);
-    await queryRunner.query(`ALTER TABLE "notes" DROP CONSTRAINT "FK_notes_trade_id"`);
-    await queryRunner.query(`ALTER TABLE "notes" DROP CONSTRAINT "FK_notes_account_id"`);
-    await queryRunner.query(`ALTER TABLE "notes" DROP CONSTRAINT "FK_notes_user_id"`);
+    await queryRunner.query(
+      `ALTER TABLE "note_media" DROP CONSTRAINT "FK_note_media_note_id"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "note_blocks" DROP CONSTRAINT "FK_note_blocks_note_id"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "notes" DROP CONSTRAINT "FK_notes_trade_id"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "notes" DROP CONSTRAINT "FK_notes_account_id"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "notes" DROP CONSTRAINT "FK_notes_user_id"`,
+    );
 
     // Drop tables
     await queryRunner.query(`DROP TABLE "note_media"`);
     await queryRunner.query(`DROP TABLE "note_blocks"`);
     await queryRunner.query(`DROP TABLE "notes"`);
   }
-} 
+}

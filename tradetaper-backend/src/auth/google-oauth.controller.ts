@@ -21,19 +21,22 @@ export class GoogleOAuthController {
   async googleManual(@Res() res) {
     const clientId = this.configService.get<string>('GOOGLE_CLIENT_ID');
     const callbackUrl = this.configService.get<string>('GOOGLE_CALLBACK_URL');
-    
+
     if (!clientId || !callbackUrl) {
-      return res.status(500).json({ error: 'Missing Google OAuth configuration' });
+      return res
+        .status(500)
+        .json({ error: 'Missing Google OAuth configuration' });
     }
-    
-    const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
+
+    const googleAuthUrl =
+      `https://accounts.google.com/o/oauth2/v2/auth?` +
       `client_id=${clientId}&` +
       `redirect_uri=${encodeURIComponent(callbackUrl)}&` +
       `response_type=code&` +
       `scope=email profile&` +
       `access_type=offline&` +
       `prompt=consent`;
-    
+
     return res.redirect(googleAuthUrl);
   }
-} 
+}

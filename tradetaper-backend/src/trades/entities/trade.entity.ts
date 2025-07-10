@@ -165,7 +165,10 @@ export class Trade {
     joinColumn: { name: 'tradeId', referencedColumnName: 'id' },
     inverseJoinColumn: { name: 'tagId', referencedColumnName: 'id' },
   })
-  tags: Tag[]; // Array of Tag entities associated with this trade
+  tags: Tag[];
+
+  @Column({ type: 'varchar', length: 2048, nullable: true, name: 'chart_image_url' })
+  chartImageUrl?: string;
 
   @CreateDateColumn()
   createdAt: Date;

@@ -69,15 +69,19 @@ export class AuthController {
     try {
       const clientId = this.configService.get<string>('GOOGLE_CLIENT_ID');
       const callbackUrl = this.configService.get<string>('GOOGLE_CALLBACK_URL');
-      
+
       if (!clientId || !callbackUrl) {
-        throw new HttpException('Google OAuth not configured', HttpStatus.INTERNAL_SERVER_ERROR);
+        throw new HttpException(
+          'Google OAuth not configured',
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
       }
 
       const scope = 'email profile';
       const state = Math.random().toString(36).substring(7);
-      
-      const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
+
+      const googleAuthUrl =
+        `https://accounts.google.com/o/oauth2/v2/auth?` +
         `client_id=${encodeURIComponent(clientId)}&` +
         `redirect_uri=${encodeURIComponent(callbackUrl)}&` +
         `response_type=code&` +
@@ -90,7 +94,10 @@ export class AuthController {
       return res.redirect(googleAuthUrl);
     } catch (error) {
       console.error('Error initiating Google OAuth:', error);
-      throw new HttpException('Failed to initiate Google OAuth', HttpStatus.INTERNAL_SERVER_ERROR);
+      throw new HttpException(
+        'Failed to initiate Google OAuth',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   }
 
@@ -98,45 +105,52 @@ export class AuthController {
   async googleCallback(@Query() query: any, @Res() res) {
     try {
       const { code, error, state } = query;
-      
+
       if (error) {
         console.error('Google OAuth error:', error);
         throw new BadRequestException(`Google OAuth error: ${error}`);
       }
-      
+
       if (!code) {
         throw new BadRequestException('No authorization code received');
       }
 
       console.log('Received authorization code, exchanging for tokens...');
-      
+
       // Exchange code for tokens
       const tokens = await this.exchangeCodeForTokens(code);
       console.log('Successfully exchanged code for tokens');
-      
+
       // Get user info from Google
       const userInfo = await this.getUserInfo(tokens.access_token);
       console.log('Retrieved user info from Google:', userInfo.email);
-      
+
       // Create or authenticate user
       const result = await this.authService.validateOrCreateGoogleUser({
         email: userInfo.email,
         firstName: userInfo.given_name || userInfo.name?.split(' ')[0] || '',
-        lastName: userInfo.family_name || userInfo.name?.split(' ').slice(1).join(' ') || '',
+        lastName:
+          userInfo.family_name ||
+          userInfo.name?.split(' ').slice(1).join(' ') ||
+          '',
         googleId: userInfo.sub,
         picture: userInfo.picture,
       });
 
       console.log('User authenticated successfully:', result.user.email);
-      
+
       // Redirect to frontend with success
-      const frontendUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
+      const frontendUrl =
+        this.configService.get<string>('FRONTEND_URL') ||
+        'http://localhost:3000';
       const redirectUrl = `${frontendUrl}/auth/google/callback?token=${result.accessToken}&user=${encodeURIComponent(JSON.stringify(result.user))}`;
-      
+
       return res.redirect(redirectUrl);
     } catch (error) {
       console.error('Google OAuth callback error:', error);
-      const frontendUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
+      const frontendUrl =
+        this.configService.get<string>('FRONTEND_URL') ||
+        'http://localhost:3000';
       const errorUrl = `${frontendUrl}/auth/google/callback?error=${encodeURIComponent(error.message)}`;
       return res.redirect(errorUrl);
     }
@@ -148,37 +162,56 @@ export class AuthController {
     const callbackUrl = this.configService.get<string>('GOOGLE_CALLBACK_URL');
 
     try {
-      const response = await axios.post('https://oauth2.googleapis.com/token', {
-        code,
-        client_id: clientId,
-        client_secret: clientSecret,
-        redirect_uri: callbackUrl,
-        grant_type: 'authorization_code',
-      }, {
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
+      const response = await axios.post(
+        'https://oauth2.googleapis.com/token',
+        {
+          code,
+          client_id: clientId,
+          client_secret: clientSecret,
+          redirect_uri: callbackUrl,
+          grant_type: 'authorization_code',
         },
-      });
+        {
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+        },
+      );
 
       return response.data;
     } catch (error) {
-      console.error('Token exchange error:', error.response?.data || error.message);
-      throw new HttpException('Failed to exchange code for tokens', HttpStatus.INTERNAL_SERVER_ERROR);
+      console.error(
+        'Token exchange error:',
+        error.response?.data || error.message,
+      );
+      throw new HttpException(
+        'Failed to exchange code for tokens',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   }
 
   private async getUserInfo(accessToken: string) {
     try {
-      const response = await axios.get('https://www.googleapis.com/oauth2/v2/userinfo', {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
+      const response = await axios.get(
+        'https://www.googleapis.com/oauth2/v2/userinfo',
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
         },
-      });
+      );
 
       return response.data;
     } catch (error) {
-      console.error('User info fetch error:', error.response?.data || error.message);
-      throw new HttpException('Failed to fetch user info from Google', HttpStatus.INTERNAL_SERVER_ERROR);
+      console.error(
+        'User info fetch error:',
+        error.response?.data || error.message,
+      );
+      throw new HttpException(
+        'Failed to fetch user info from Google',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   }
 
@@ -194,7 +227,10 @@ export class AuthController {
 
   @Get('test-route')
   async testRoute() {
-    return { message: 'Test route working', timestamp: new Date().toISOString() };
+    return {
+      message: 'Test route working',
+      timestamp: new Date().toISOString(),
+    };
   }
 
   @Post('admin/login')
@@ -247,10 +283,10 @@ export class AuthController {
 
   @Get('test-oauth-routes')
   async testOauthRoutes() {
-    return { 
-      message: 'OAuth routes test', 
+    return {
+      message: 'OAuth routes test',
       routes: ['google', 'google-callback', 'debug/google-config'],
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
   }
-} 
+}

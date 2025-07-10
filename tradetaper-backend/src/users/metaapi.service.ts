@@ -122,7 +122,10 @@ export class MetaApiService {
   ): Promise<ProvisioningProfile> {
     try {
       const profiles =
-        await this.metaApi.provisioningProfileApi.getProvisioningProfiles(5, 'active');
+        await this.metaApi.provisioningProfileApi.getProvisioningProfiles(
+          5,
+          'active',
+        );
 
       // Find existing profile for this server by name
       let profile = profiles.find((p) => p.name.includes(server));
@@ -576,7 +579,10 @@ export class MetaApiService {
     try {
       // Try to get user information to test API connectivity
       const profiles =
-        await this.metaApi.provisioningProfileApi.getProvisioningProfiles(5, 'active');
+        await this.metaApi.provisioningProfileApi.getProvisioningProfiles(
+          5,
+          'active',
+        );
 
       return {
         status: 'ok',

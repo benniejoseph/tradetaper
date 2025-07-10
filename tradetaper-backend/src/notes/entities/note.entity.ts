@@ -10,6 +10,7 @@ import {
   JoinColumn,
   Index,
 } from 'typeorm';
+import { PsychologicalInsight } from './psychological-insight.entity';
 import { User } from '../../users/entities/user.entity';
 import { Account } from '../../users/entities/account.entity';
 import { Trade } from '../../trades/entities/trade.entity';
@@ -19,7 +20,18 @@ import { Trade } from '../../trades/entities/trade.entity';
 
 export interface NoteContentBlock {
   id: string;
-  type: 'text' | 'heading' | 'quote' | 'list' | 'code' | 'image' | 'video' | 'embed' | 'divider' | 'callout' | 'table';
+  type:
+    | 'text'
+    | 'heading'
+    | 'quote'
+    | 'list'
+    | 'code'
+    | 'image'
+    | 'video'
+    | 'embed'
+    | 'divider'
+    | 'callout'
+    | 'table';
   content: any;
   position: number;
 }
@@ -75,6 +87,9 @@ export class Note {
   @Column({ name: 'reading_time', default: 0 })
   readingTime: number;
 
+  @Column({ type: 'simple-array', nullable: true, name: 'psychological_tags' })
+  psychologicalTags?: string[];
+
   // Relationships
   @ManyToOne(() => User, { eager: false })
   @JoinColumn({ name: 'user_id' })
@@ -91,28 +106,33 @@ export class Note {
   // Note: Relationships to blocks and media are handled via separate queries
   // to avoid circular import issues
 
+  @OneToMany(() => PsychologicalInsight, psychologicalInsight => psychologicalInsight.note)
+  psychologicalInsights: PsychologicalInsight[];
+
   // Virtual computed properties
   get preview(): string {
     if (!this.content || this.content.length === 0) return '';
-    
-    const textBlocks = this.content.filter(block => 
-      ['text', 'heading', 'quote'].includes(block.type)
+
+    const textBlocks = this.content.filter((block) =>
+      ['text', 'heading', 'quote'].includes(block.type),
     );
-    
+
     if (textBlocks.length === 0) return '';
-    
+
     const firstBlock = textBlocks[0];
     const text = firstBlock.content?.text || '';
     return text.length > 150 ? text.substring(0, 150) + '...' : text;
   }
 
   get hasMedia(): boolean {
-    return this.content?.some(block => 
-      ['image', 'video', 'embed'].includes(block.type)
-    ) || false;
+    return (
+      this.content?.some((block) =>
+        ['image', 'video', 'embed'].includes(block.type),
+      ) || false
+    );
   }
 
   get blockCount(): number {
     return this.content?.length || 0;
   }
-} 
+}

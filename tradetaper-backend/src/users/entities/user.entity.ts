@@ -8,6 +8,7 @@ import {
   BeforeInsert,
   OneToMany,
 } from 'typeorm';
+import { PsychologicalInsight } from '../../notes/entities/psychological-insight.entity';
 import * as bcrypt from 'bcrypt';
 // Forward reference for Strategy to avoid circular imports
 
@@ -43,6 +44,9 @@ export class User {
   // strategies: any[];
 
   // We'll add other fields like subscription status, etc., later
+
+  @OneToMany(() => PsychologicalInsight, psychologicalInsight => psychologicalInsight.user)
+  psychologicalInsights: PsychologicalInsight[];
 
   @BeforeInsert()
   async hashPassword() {

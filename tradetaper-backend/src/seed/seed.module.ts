@@ -16,7 +16,14 @@ import { UsersModule } from '../users/users.module'; // Import UsersModule for U
 @Module({
   imports: [
     ConfigModule, // Make ConfigService available
-    TypeOrmModule.forFeature([User, Trade, Subscription, Tag, MT5Account, Strategy]),
+    TypeOrmModule.forFeature([
+      User,
+      Trade,
+      Subscription,
+      Tag,
+      MT5Account,
+      Strategy,
+    ]),
     UsersModule, // To inject UsersService into SeedService
   ],
   providers: [SeedService, ProductionSeedService, TestUserSeedService],

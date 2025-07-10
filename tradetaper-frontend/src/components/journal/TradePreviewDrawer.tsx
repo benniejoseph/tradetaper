@@ -1,7 +1,7 @@
 "use client";
 
 import { Trade, TradeStatus, UpdateTradePayload, TradeDirection } from '@/types/trade';
-import { FaTimes, FaEdit, FaTrashAlt, FaExternalLinkAlt, FaShareSquare, FaStar as FaStarSolid, FaRegStar as FaStarOutline, FaTwitter, FaLinkedin, FaCopy, FaDownload, FaChartLine, FaClock, FaDollarSign } from 'react-icons/fa';
+import { FaTimes, FaEdit, FaTrashAlt, FaExternalLinkAlt, FaShareSquare, FaStar as FaStarSolid, FaRegStar as FaStarOutline, FaTwitter, FaLinkedin, FaCopy, FaDownload, FaChartLine, FaClock, FaDollarSign, FaBrain } from 'react-icons/fa'; // Added FaBrain
 import { format, parseISO } from 'date-fns';
 import { getWeekday, getHoldTime, formatPrice } from './TradesTable';
 import React, { useState, useRef } from 'react';
@@ -10,6 +10,7 @@ import { AppDispatch } from '@/store/store';
 import { updateTrade } from '@/store/features/tradesSlice';
 import { useRouter } from 'next/navigation';
 import html2canvas from 'html2canvas';
+import { analyzeNote } from '@/services/notesApi'; // New import
 
 interface TradePreviewDrawerProps {
   trade: Trade | null;
@@ -136,7 +137,7 @@ const ShareModal: React.FC<ShareModalProps> = ({ trade, isOpen, onClose }) => {
               <div className={`text-3xl font-bold mb-1 ${
                 isWin ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
               }`}>
-                {profitOrLoss >= 0 ? '+' : ''}${Math.abs(profitOrLoss).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                {profitOrLoss >= 0 ? '+' : ''}${Math.abs(profitOrLoss).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
               </div>
               <div className={`text-sm font-medium ${
                 isWin ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
@@ -250,6 +251,7 @@ export default function TradePreviewDrawer({
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<'details' | 'manage'>('details');
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [isAnalyzingNote, setIsAnalyzingNote] = useState(false); // New state for analysis loading
 
   // Debug logging
   console.log('TradePreviewDrawer render:', { isOpen, trade: trade?.symbol || 'null', tradeId: trade?.id });
@@ -297,6 +299,22 @@ export default function TradePreviewDrawer({
       .catch((error) => {
         console.error("Failed to update star status:", error);
       });
+  };
+
+  const handleAnalyzeNote = async () => {
+    if (!trade || !trade.id) return;
+    setIsAnalyzingNote(true);
+    try {
+      const tags = await analyzeNote(trade.id);
+      // Assuming the updateTrade action can handle updating psychologicalTags
+      // You might need a specific action or direct state update if not.
+      dispatch(updateTrade({ id: trade.id, payload: { psychologicalTags: tags } as UpdateTradePayload }));
+    } catch (error) {
+      console.error("Failed to analyze note:", error);
+      // Handle error, e.g., show a toast notification
+    } finally {
+      setIsAnalyzingNote(false);
+    }
   };
 
   const isWin = trade.profitOrLoss !== undefined && trade.profitOrLoss !== null && trade.profitOrLoss > 0;
@@ -470,14 +488,48 @@ export default function TradePreviewDrawer({
               </div>
 
               {/* Notes Section in Details Tab */}
-              {(trade.notes || trade.setupDetails || trade.mistakesMade || trade.lessonsLearned) && (
+              {(trade.notes || trade.setupDetails || trade.mistakesMade || trade.lessonsLearned || (trade.psychologicalTags && trade.psychologicalTags.length > 0)) && (
                 <>
                   <SectionTitle title="Notes & Analysis" icon={<FaEdit className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />} />
                   <div className="space-y-3">
-                    {trade.notes && <DetailItem label="Notes" value={<div className="text-right max-w-xs whitespace-pre-wrap text-sm">{trade.notes}</div>} />}
+                    {trade.notes && (
+                      <DetailItem
+                        label="Notes"
+                        value={<div className="text-right max-w-xs whitespace-pre-wrap text-sm">{trade.notes}</div>}
+                        containerClass="flex-col items-start"
+                      />
+                    )}
                     {trade.setupDetails && <DetailItem label="Setup Details" value={<div className="text-right max-w-xs whitespace-pre-wrap text-sm">{trade.setupDetails}</div>} />}
                     {trade.mistakesMade && <DetailItem label="Mistakes Made" value={<div className="text-right max-w-xs whitespace-pre-wrap text-sm">{trade.mistakesMade}</div>} />}
                     {trade.lessonsLearned && <DetailItem label="Lessons Learned" value={<div className="text-right max-w-xs whitespace-pre-wrap text-sm">{trade.lessonsLearned}</div>} />}
+
+                    {trade.psychologicalTags && trade.psychologicalTags.length > 0 && (
+                      <DetailItem
+                        label="Psychological Tags"
+                        value={
+                          <div className="flex flex-wrap justify-end gap-2">
+                            {trade.psychologicalTags.map((tag, index) => (
+                              <span key={index} className="px-2 py-1 bg-purple-100/80 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-lg text-xs font-medium">
+                                {tag}
+                              </span>
+                            ))}
+                          </div>
+                        }
+                        containerClass="flex-col items-start"
+                      />
+                    )}
+
+                    {trade.notes && (!trade.psychologicalTags || trade.psychologicalTags.length === 0) && (
+                      <div className="flex justify-end mt-4">
+                        <button
+                          onClick={handleAnalyzeNote}
+                          disabled={isAnalyzingNote}
+                          className="px-4 py-2 bg-blue-500 text-white rounded-md text-sm font-medium hover:bg-blue-600 disabled:opacity-50"
+                        >
+                          {isAnalyzingNote ? 'Analyzing...' : 'Analyze Note'}
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </>
               )}
@@ -486,7 +538,7 @@ export default function TradePreviewDrawer({
               {trade.imageUrl && (
                 <>
                   <SectionTitle title="Chart Attachment" icon={<FaChartLine className="w-5 h-5 text-teal-600 dark:text-teal-400" />} />
-                  <div className="bg-white/60 dark:bg-gray-800/40 backdrop-blur-sm rounded-2xl border border-gray-200/30 dark:border-gray-700/30 p-4 hover:bg-white/80 dark:hover:bg-gray-800/60 transition-all duration-200">
+                  <div className="bg-white/60 dark:bg-gray-800/40 backdrop-blur-sm rounded-2xl border border-gray-200/50 dark:border-gray-700/50 p-4 hover:bg-white/80 dark:hover:bg-gray-800/60 transition-all duration-200">
                     <div className="relative w-full rounded-xl overflow-hidden cursor-pointer" onClick={() => window.open(trade.imageUrl, '_blank')}>
                       <img 
                         src={trade.imageUrl} 
@@ -518,7 +570,7 @@ export default function TradePreviewDrawer({
               {trade.imageUrl && (
                 <div className="mt-6">
                     <SectionTitle title="Chart Attachment" icon={<FaChartLine className="w-5 h-5 text-teal-600 dark:text-teal-400" />} />
-                    <div className="bg-white/60 dark:bg-gray-800/40 backdrop-blur-sm rounded-2xl border border-gray-200/30 dark:border-gray-700/30 p-4 hover:bg-white/80 dark:hover:bg-gray-800/60 transition-all duration-200">
+                    <div className="bg-white/60 dark:bg-gray-800/40 backdrop-blur-sm rounded-2xl border border-gray-200/50 dark:border-gray-700/50 p-4 hover:bg-white/80 dark:hover:bg-gray-800/60 transition-all duration-200">
                         <div className="relative w-full rounded-xl overflow-hidden cursor-pointer" onClick={() => window.open(trade.imageUrl, '_blank')}>
                             <img 
                                 src={trade.imageUrl} 
@@ -567,4 +619,4 @@ export default function TradePreviewDrawer({
       />
     </div>
   );
-} 
+}

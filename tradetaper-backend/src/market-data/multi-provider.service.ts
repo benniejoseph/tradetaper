@@ -811,30 +811,41 @@ export class MultiProviderMarketDataService {
   ): Promise<MarketDataResponse> {
     try {
       if (assetType !== 'forex' && assetType !== 'commodities') {
-        throw new Error(`Asset type ${assetType} not supported by TraderMade for historical data`);
+        throw new Error(
+          `Asset type ${assetType} not supported by TraderMade for historical data`,
+        );
       }
 
       // Format dates for TraderMade API
-      const startDate = fromDate ? fromDate.toISOString().split('T')[0] : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-      const endDate = toDate ? toDate.toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
+      const startDate = fromDate
+        ? fromDate.toISOString().split('T')[0]
+        : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+            .toISOString()
+            .split('T')[0];
+      const endDate = toDate
+        ? toDate.toISOString().split('T')[0]
+        : new Date().toISOString().split('T')[0];
 
       // Use the existing MarketDataService method
-      const priceDataPoints = await this.marketDataService.getTradermadeHistoricalData(
-        symbol,
-        startDate,
-        endDate,
-        interval,
-      );
+      const priceDataPoints =
+        await this.marketDataService.getTradermadeHistoricalData(
+          symbol,
+          startDate,
+          endDate,
+          interval,
+        );
 
       // Convert PriceDataPoint[] to HistoricalPrice[]
-      const historicalData: HistoricalPrice[] = priceDataPoints.map(point => ({
-        timestamp: new Date(point.time * 1000), // Convert from Unix timestamp
-        open: point.open,
-        high: point.high,
-        low: point.low,
-        close: point.close,
-        volume: point.volume || 0,
-      }));
+      const historicalData: HistoricalPrice[] = priceDataPoints.map(
+        (point) => ({
+          timestamp: new Date(point.time * 1000), // Convert from Unix timestamp
+          open: point.open,
+          high: point.high,
+          low: point.low,
+          close: point.close,
+          volume: point.volume || 0,
+        }),
+      );
 
       return {
         success: true,

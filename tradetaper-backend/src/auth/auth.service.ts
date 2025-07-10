@@ -29,52 +29,63 @@ export class AuthService {
     try {
       this.logger.debug(`Validating user: ${email}`);
       const user = await this.usersService.findOneByEmail(email);
-      
+
       if (!user) {
         this.logger.debug(`User not found: ${email}`);
         return null;
       }
-      
+
       this.logger.debug(`User found, validating password for: ${email}`);
       const isPasswordValid = await user.validatePassword(pass);
-      
+
       if (!isPasswordValid) {
         this.logger.debug(`Invalid password for user: ${email}`);
         return null;
       }
-      
+
       this.logger.debug(`Password validated successfully for user: ${email}`);
       return user;
     } catch (error) {
-      this.logger.error(`Error validating user ${email}: ${error.message}`, error.stack);
+      this.logger.error(
+        `Error validating user ${email}: ${error.message}`,
+        error.stack,
+      );
       return null;
     }
   }
 
-  async validateOrCreateGoogleUser(googleUser: any): Promise<{ accessToken: string; user: UserResponseDto }> {
+  async validateOrCreateGoogleUser(
+    googleUser: any,
+  ): Promise<{ accessToken: string; user: UserResponseDto }> {
     try {
       this.logger.log(`Google OAuth login attempt for: ${googleUser.email}`);
-      
+
       // Check if user already exists
       let user = await this.usersService.findOneByEmail(googleUser.email);
-      
+
       if (!user) {
         // Create new user for Google OAuth
-        this.logger.log(`Creating new user from Google OAuth: ${googleUser.email}`);
+        this.logger.log(
+          `Creating new user from Google OAuth: ${googleUser.email}`,
+        );
         user = await this.usersService.createGoogleUser({
           email: googleUser.email,
           firstName: googleUser.firstName,
           lastName: googleUser.lastName,
         });
       } else {
-        this.logger.log(`Existing user found for Google OAuth: ${googleUser.email}`);
+        this.logger.log(
+          `Existing user found for Google OAuth: ${googleUser.email}`,
+        );
       }
 
       // Update last login
       try {
         await this.usersService.updateLastLogin(user.id);
       } catch (error) {
-        this.logger.warn(`Failed to update lastLoginAt for Google user ${user.id}: ${error.message}`);
+        this.logger.warn(
+          `Failed to update lastLoginAt for Google user ${user.id}: ${error.message}`,
+        );
       }
 
       // Generate JWT token
@@ -82,7 +93,7 @@ export class AuthService {
         email: user.email,
         sub: user.id,
       };
-      
+
       const accessToken = this.jwtService.sign(payload, { expiresIn: 86400 });
 
       const userResponse: UserResponseDto = {
@@ -100,7 +111,10 @@ export class AuthService {
         user: userResponse,
       };
     } catch (error) {
-      this.logger.error(`Google OAuth login failed for ${googleUser.email}: ${error.message}`, error.stack);
+      this.logger.error(
+        `Google OAuth login failed for ${googleUser.email}: ${error.message}`,
+        error.stack,
+      );
       throw new UnauthorizedException('Google authentication failed');
     }
   }
@@ -110,14 +124,16 @@ export class AuthService {
   ): Promise<{ accessToken: string; user: UserResponseDto }> {
     try {
       this.logger.log(`Login attempt for user: ${user.email}`);
-      
+
       // Skip re-fetching user since we already have it from validation
       // Try to update lastLoginAt, but don't fail if this fails
       try {
         await this.usersService.updateLastLogin(user.id);
         this.logger.log(`Updated lastLoginAt for user: ${user.id}`);
       } catch (error) {
-        this.logger.warn(`Failed to update lastLoginAt for user ${user.id}: ${error.message}`);
+        this.logger.warn(
+          `Failed to update lastLoginAt for user ${user.id}: ${error.message}`,
+        );
         // Continue with login process even if lastLoginAt update fails
       }
 
@@ -125,7 +141,7 @@ export class AuthService {
         email: user.email,
         sub: user.id,
       };
-      
+
       this.logger.log(`Creating JWT token for user: ${user.id}`);
       let accessToken: string;
       try {
@@ -133,7 +149,10 @@ export class AuthService {
         accessToken = this.jwtService.sign(payload, { expiresIn: 86400 }); // 24 hours in seconds
         this.logger.log(`JWT token created successfully for user: ${user.id}`);
       } catch (error) {
-        this.logger.error(`Failed to sign JWT token for user ${user.id}: ${error.message}`, error.stack);
+        this.logger.error(
+          `Failed to sign JWT token for user ${user.id}: ${error.message}`,
+          error.stack,
+        );
         throw new UnauthorizedException('Error during token generation');
       }
 
@@ -152,7 +171,10 @@ export class AuthService {
         user: userResponse,
       };
     } catch (error) {
-      this.logger.error(`Login failed for user ${user.email}: ${error.message}`, error.stack);
+      this.logger.error(
+        `Login failed for user ${user.email}: ${error.message}`,
+        error.stack,
+      );
       if (error instanceof UnauthorizedException) {
         throw error;
       }

@@ -36,7 +36,18 @@ export class NoteBlock {
   noteId: string;
 
   @Column({ name: 'block_type', length: 50 })
-  blockType: 'text' | 'heading' | 'quote' | 'list' | 'code' | 'image' | 'video' | 'embed' | 'divider' | 'callout' | 'table';
+  blockType:
+    | 'text'
+    | 'heading'
+    | 'quote'
+    | 'list'
+    | 'code'
+    | 'image'
+    | 'video'
+    | 'embed'
+    | 'divider'
+    | 'callout'
+    | 'table';
 
   @Column({ type: 'jsonb', default: {} })
   content: NoteBlockContent;
@@ -54,4 +65,4 @@ export class NoteBlock {
   // @ManyToOne(() => Note, (note) => note.blocks, { onDelete: 'CASCADE' })
   // @JoinColumn({ name: 'note_id' })
   // note: Note;
-} 
+}

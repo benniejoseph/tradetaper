@@ -1,6 +1,7 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as fs from 'fs';
+import * as os from 'os';
 import * as path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -10,16 +11,27 @@ export class AIService {
   private tempDir: string;
 
   constructor(private configService: ConfigService) {
-    this.geminiApiKey = this.configService.get<string>('GEMINI_API_KEY') || 'AIzaSyBe259Ouem6qcI6SYOAzAcFE-A4ollIRqc';
-    this.tempDir = path.join(process.cwd(), 'temp');
-    
+    this.geminiApiKey =
+      this.configService.get<string>('GEMINI_API_KEY') ||
+      'AIzaSyBe259Ouem6qcI6SYOAzAcFE-A4ollIRqc';
+
+    // Use the OS-provided temp directory in production (serverless environment)
+    // and a local 'temp' directory for development.
+    const isProduction = process.env.NODE_ENV === 'production';
+    this.tempDir = isProduction
+      ? os.tmpdir()
+      : path.join(process.cwd(), 'temp');
+
     // Ensure temp directory exists
     if (!fs.existsSync(this.tempDir)) {
       fs.mkdirSync(this.tempDir, { recursive: true });
     }
   }
 
-  async speechToText(audioBuffer: Buffer, originalName: string): Promise<{
+  async speechToText(
+    audioBuffer: Buffer,
+    originalName: string,
+  ): Promise<{
     transcript: string;
     confidence: number;
     language?: string;
@@ -33,23 +45,23 @@ export class AIService {
       try {
         // Convert audio to base64
         const audioBase64 = audioBuffer.toString('base64');
-        
+
         // Prepare the request to Gemini API
         const requestBody = {
           contents: [
             {
               parts: [
                 {
-                  text: "Please transcribe the following audio to text. Provide only the transcribed text without any additional formatting or explanations."
+                  text: 'Please transcribe the following audio to text. Provide only the transcribed text without any additional formatting or explanations.',
                 },
                 {
                   inline_data: {
                     mime_type: this.getMimeType(originalName),
-                    data: audioBase64
-                  }
-                }
-              ]
-            }
+                    data: audioBase64,
+                  },
+                },
+              ],
+            },
           ],
           generationConfig: {
             temperature: 0.1,
@@ -59,22 +71,22 @@ export class AIService {
           },
           safetySettings: [
             {
-              category: "HARM_CATEGORY_HARASSMENT",
-              threshold: "BLOCK_MEDIUM_AND_ABOVE"
+              category: 'HARM_CATEGORY_HARASSMENT',
+              threshold: 'BLOCK_MEDIUM_AND_ABOVE',
             },
             {
-              category: "HARM_CATEGORY_HATE_SPEECH",
-              threshold: "BLOCK_MEDIUM_AND_ABOVE"
+              category: 'HARM_CATEGORY_HATE_SPEECH',
+              threshold: 'BLOCK_MEDIUM_AND_ABOVE',
             },
             {
-              category: "HARM_CATEGORY_SEXUALLY_EXPLICIT",
-              threshold: "BLOCK_MEDIUM_AND_ABOVE"
+              category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
+              threshold: 'BLOCK_MEDIUM_AND_ABOVE',
             },
             {
-              category: "HARM_CATEGORY_DANGEROUS_CONTENT",
-              threshold: "BLOCK_MEDIUM_AND_ABOVE"
-            }
-          ]
+              category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
+              threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+            },
+          ],
         };
 
         // Make request to Gemini API
@@ -86,7 +98,7 @@ export class AIService {
               'Content-Type': 'application/json',
             },
             body: JSON.stringify(requestBody),
-          }
+          },
         );
 
         if (!response.ok) {
@@ -96,13 +108,13 @@ export class AIService {
         }
 
         const result = await response.json();
-        
+
         if (!result.candidates || result.candidates.length === 0) {
           throw new Error('No transcription candidates received');
         }
 
         const transcript = result.candidates[0].content.parts[0].text.trim();
-        
+
         // Calculate confidence based on response quality
         const confidence = this.calculateConfidence(transcript, result);
 
@@ -111,27 +123,30 @@ export class AIService {
           confidence,
           language: 'en', // Gemini doesn't return language detection yet
         };
-
       } finally {
         // Clean up temp file
         if (fs.existsSync(tempFilePath)) {
           fs.unlinkSync(tempFilePath);
         }
       }
-
     } catch (error) {
       console.error('Speech-to-text error:', error);
-      throw new BadRequestException('Failed to transcribe audio: ' + error.message);
+      throw new BadRequestException(
+        'Failed to transcribe audio: ' + error.message,
+      );
     }
   }
 
-  async enhanceText(text: string, task: 'grammar' | 'clarity' | 'summarize' | 'expand'): Promise<{
+  async enhanceText(
+    text: string,
+    task: 'grammar' | 'clarity' | 'summarize' | 'expand',
+  ): Promise<{
     enhancedText: string;
     suggestions: string[];
   }> {
     try {
       let prompt = '';
-      
+
       switch (task) {
         case 'grammar':
           prompt = `Please correct any grammar, spelling, and punctuation errors in the following text. Return only the corrected text:\n\n${text}`;
@@ -152,17 +167,17 @@ export class AIService {
           {
             parts: [
               {
-                text: prompt
-              }
-            ]
-          }
+                text: prompt,
+              },
+            ],
+          },
         ],
         generationConfig: {
           temperature: 0.3,
           topK: 32,
           topP: 1,
           maxOutputTokens: 4096,
-        }
+        },
       };
 
       const response = await fetch(
@@ -173,7 +188,7 @@ export class AIService {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify(requestBody),
-        }
+        },
       );
 
       if (!response.ok) {
@@ -181,21 +196,20 @@ export class AIService {
       }
 
       const result = await response.json();
-      
+
       if (!result.candidates || result.candidates.length === 0) {
         throw new Error('No enhancement candidates received');
       }
 
       const enhancedText = result.candidates[0].content.parts[0].text.trim();
-      
+
       return {
         enhancedText,
         suggestions: [
           `Enhanced using ${task} optimization`,
-          'AI-powered text improvement'
-        ]
+          'AI-powered text improvement',
+        ],
       };
-
     } catch (error) {
       console.error('Text enhancement error:', error);
       throw new BadRequestException('Failed to enhance text: ' + error.message);
@@ -227,17 +241,17 @@ Please respond in JSON format:
           {
             parts: [
               {
-                text: prompt
-              }
-            ]
-          }
+                text: prompt,
+              },
+            ],
+          },
         ],
         generationConfig: {
           temperature: 0.4,
           topK: 32,
           topP: 1,
           maxOutputTokens: 1024,
-        }
+        },
       };
 
       const response = await fetch(
@@ -248,7 +262,7 @@ Please respond in JSON format:
             'Content-Type': 'application/json',
           },
           body: JSON.stringify(requestBody),
-        }
+        },
       );
 
       if (!response.ok) {
@@ -256,13 +270,13 @@ Please respond in JSON format:
       }
 
       const result = await response.json();
-      
+
       if (!result.candidates || result.candidates.length === 0) {
         throw new Error('No suggestions received');
       }
 
       const suggestionText = result.candidates[0].content.parts[0].text.trim();
-      
+
       try {
         // Try to parse as JSON
         const jsonMatch = suggestionText.match(/\{[\s\S]*\}/);
@@ -278,16 +292,19 @@ Please respond in JSON format:
       return {
         tags: ['general', 'note', 'important'],
         title: content.substring(0, 50) + (content.length > 50 ? '...' : ''),
-        relatedTopics: ['Related Research', 'Follow Up Tasks', 'Additional Reading']
+        relatedTopics: [
+          'Related Research',
+          'Follow Up Tasks',
+          'Additional Reading',
+        ],
       };
-
     } catch (error) {
       console.error('Note suggestions error:', error);
       // Return default suggestions on error
       return {
         tags: ['note'],
         title: 'Untitled Note',
-        relatedTopics: ['Research', 'Tasks']
+        relatedTopics: ['Research', 'Tasks'],
       };
     }
   }
@@ -303,26 +320,39 @@ Please respond in JSON format:
       '.flac': 'audio/flac',
       '.aac': 'audio/aac',
     };
-    
+
     return mimeTypes[ext] || 'audio/mpeg';
   }
 
   private calculateConfidence(transcript: string, geminiResponse: any): number {
     // Basic confidence calculation based on response characteristics
     let confidence = 0.8; // Base confidence
-    
+
     // Adjust based on transcript length
     if (transcript.length > 10) confidence += 0.1;
     if (transcript.length > 50) confidence += 0.05;
-    
+
     // Adjust based on presence of common words
-    const commonWords = ['the', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by'];
-    const hasCommonWords = commonWords.some(word => 
-      transcript.toLowerCase().includes(word)
+    const commonWords = [
+      'the',
+      'and',
+      'or',
+      'but',
+      'in',
+      'on',
+      'at',
+      'to',
+      'for',
+      'of',
+      'with',
+      'by',
+    ];
+    const hasCommonWords = commonWords.some((word) =>
+      transcript.toLowerCase().includes(word),
     );
     if (hasCommonWords) confidence += 0.05;
-    
+
     // Cap at 1.0
     return Math.min(confidence, 1.0);
   }
-} 
+}

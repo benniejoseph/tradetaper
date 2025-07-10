@@ -49,8 +49,8 @@ export class MediaService {
       // Generate unique filename
       const fileExtension = path.extname(file.originalname);
       const fileName = `notes/${noteId}/${uuidv4()}${fileExtension}`;
-      
-      let processedBuffer = file.buffer;
+
+      const processedBuffer = file.buffer;
       let thumbnailPath: string | undefined;
 
       // Process images - temporarily disabled
@@ -176,7 +176,9 @@ export class MediaService {
     ];
 
     if (!allowedTypes.includes(file.mimetype)) {
-      throw new BadRequestException(`File type ${file.mimetype} is not allowed`);
+      throw new BadRequestException(
+        `File type ${file.mimetype} is not allowed`,
+      );
     }
 
     const maxSize = 50 * 1024 * 1024; // 50MB
@@ -262,7 +264,7 @@ export class MediaService {
 
       return signedUrl;
       */
-      
+
       return `https://placeholder.example.com/${media.filename}`;
     } catch (error) {
       console.error('Error generating signed URL:', error);
@@ -284,4 +286,4 @@ export class MediaService {
       order: { createdAt: 'ASC' },
     });
   }
-} 
+}

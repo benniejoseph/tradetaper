@@ -2,7 +2,11 @@ import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Account } from './entities/account.entity';
-import { CreateAccountDto, UpdateAccountDto, AccountResponseDto } from './dto/account.dto';
+import {
+  CreateAccountDto,
+  UpdateAccountDto,
+  AccountResponseDto,
+} from './dto/account.dto';
 import { UserResponseDto } from './dto/user-response.dto';
 
 @Injectable()
@@ -14,7 +18,10 @@ export class AccountsService {
     private readonly accountRepository: Repository<Account>,
   ) {}
 
-  async create(createAccountDto: CreateAccountDto, user: UserResponseDto): Promise<AccountResponseDto> {
+  async create(
+    createAccountDto: CreateAccountDto,
+    user: UserResponseDto,
+  ): Promise<AccountResponseDto> {
     this.logger.log(`Creating account for user ${user.id}`);
 
     const account = this.accountRepository.create({
@@ -34,7 +41,7 @@ export class AccountsService {
       order: { createdAt: 'DESC' },
     });
 
-    return accounts.map(account => this.mapToResponseDto(account));
+    return accounts.map((account) => this.mapToResponseDto(account));
   }
 
   async findOne(id: string): Promise<Account | null> {
@@ -43,7 +50,10 @@ export class AccountsService {
     });
   }
 
-  async update(id: string, updateAccountDto: UpdateAccountDto): Promise<AccountResponseDto> {
+  async update(
+    id: string,
+    updateAccountDto: UpdateAccountDto,
+  ): Promise<AccountResponseDto> {
     const account = await this.accountRepository.findOne({
       where: { id },
     });
@@ -94,4 +104,4 @@ export class AccountsService {
       updatedAt: account.updatedAt,
     };
   }
-} 
+}

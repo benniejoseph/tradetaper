@@ -49,14 +49,14 @@ export class CalendarController {
   }
 
   @Get('reminders')
-  async getUpcomingReminders(
-    @Request() req: any,
-  ): Promise<{
-    id: string;
-    title: string;
-    dueDate: string;
-    priority: 'low' | 'medium' | 'high';
-  }[]> {
+  async getUpcomingReminders(@Request() req: any): Promise<
+    {
+      id: string;
+      title: string;
+      dueDate: string;
+      priority: 'low' | 'medium' | 'high';
+    }[]
+  > {
     return this.calendarService.getUpcomingReminders(req.user.id);
   }
 
@@ -74,4 +74,4 @@ export class CalendarController {
       searchTerm,
     );
   }
-} 
+}
