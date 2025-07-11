@@ -288,25 +288,7 @@ export default function TradeForm({ initialData, isEditMode = false, onFormSubmi
       return;
     }
 
-    let finalImageUrl = (formData as UpdateTradePayload).imageUrl || '';
-
-    if (selectedFile) {
-      setIsUploading(true);
-      const fileData = new FormData();
-      fileData.append('file', selectedFile);
-      try {
-        const response = await authApiClient.post<{ url: string; message: string }>(
-          '/files/upload/trade-image', fileData,
-          { headers: { 'Content-Type': 'multipart/form-data' } }
-        );
-        finalImageUrl = response.data.url;
-      } catch (err: any) {
-        setIsUploading(false);
-        setUploadError(err.response?.data?.message || err.message || "File upload failed.");
-        return;
-      }
-      setIsUploading(false);
-    }
+    
     const finalTagNames = selectedTags.map(tagOption => tagOption.value);
     const payload: CreateTradePayload | UpdateTradePayload = {
         ...formData,

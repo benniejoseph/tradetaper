@@ -1,105 +1,84 @@
-# L2A3: Deployment Plan
+# L2A3: Deployment & DevOps Strategy
 
-This document details the deployment strategy for the TradeTaper application, covering GCP Cloud Run for the backend and Vercel for the frontend and admin panels.
+## 1. Overview
+This document outlines the detailed deployment strategy for the TradeTaper application, covering GCP Cloud Run for the NestJS backend and Vercel for the Next.js frontend and admin applications.
 
-## 1. GCP Cloud Run Deployment (tradetaper-backend)
+## 2. GCP Cloud Run Deployment (tradetaper-backend)
 
-### 1.1. Dockerfile
+### 2.1. Dockerfile & Cloudbuild.yaml
+*   **Dockerfile:** Created in `tradetaper-backend/Dockerfile`.
+    *   Uses `node:20-slim` as base image.
+    *   Installs production dependencies.
+    *   Builds the NestJS application.
+    *   Exposes port 3000.
+    *   Starts the application using `node dist/main`.
+*   **cloudbuild.yaml:** Created in `tradetaper-backend/cloudbuild.yaml`.
+    *   Builds the Docker image and tags it with `gcr.io/$PROJECT_ID/tradetaper-backend:$COMMIT_SHA`.
+    *   Pushes the image to Google Container Registry.
+    *   Deploys the image to Cloud Run service named `tradetaper-backend`.
+    *   Configured for `us-central1` region (can be changed).
+    *   `--allow-unauthenticated` is set for initial testing; this should be reviewed for production and potentially secured with IAM or IAP.
+    *   Exposes port 3000.
 
-(See `tradetaper-backend/Dockerfile` for content)
+### 2.2. GCP Project Setup
 
-### 1.2. Cloud Build Configuration
+*   **Project Creation:** A new GCP project should be created (e.g., `tradetaper-prod`).
+*   **APIs to Enable:**
+    *   Cloud Run API
+    *   Cloud SQL Admin API
+    *   Cloud Build API
+    *   Artifact Registry API (if using Artifact Registry instead of Container Registry)
+*   **Cloud SQL Instance:**
+    *   Provision a PostgreSQL instance (e.g., `tradetaper-postgres`).
+    *   Configure database flags, backups, and high availability as needed.
+    *   Create a database for the application (e.g., `tradetaper_db`).
+*   **VPC Connector (Optional but Recommended):** If the Cloud Run service needs to connect to private GCP resources (like a private Cloud SQL instance), a Serverless VPC Access connector should be configured.
 
-(See `tradetaper-backend/cloudbuild.yaml` for content)
+### 2.3. IAM Roles and Service Accounts
 
-### 1.3. IAM Roles and Service Accounts
+*   **Cloud Build Service Account:** The default Cloud Build service account (`<PROJECT_NUMBER>@cloudbuild.gserviceaccount.com`) will need the following roles:
+    *   `Cloud Run Admin` (roles/run.admin): To deploy and manage Cloud Run services.
+    *   `Service Account User` (roles/iam.serviceAccountUser): To act as the Cloud Run runtime service account.
+    *   `Storage Admin` (roles/storage.admin): If storing build artifacts in Cloud Storage.
+    *   `Cloud SQL Client` (roles/cloudsql.client): If Cloud Build needs to run database migrations directly (less common, usually handled by Cloud Run service account).
+*   **Cloud Run Runtime Service Account:** A dedicated service account (ee.g., `tradetaper-backend-sa@<PROJECT_ID>.iam.gserviceaccount.com`) should be created and assigned to the Cloud Run service. This service account will need:
+    *   `Cloud SQL Client` (roles/cloudsql.client): To connect to the Cloud SQL PostgreSQL instance.
+    *   `Secret Manager Secret Accessor` (roles/secretmanager.secretAccessor): If using Secret Manager for database credentials or API keys.
+    *   `Storage Object Viewer/Creator` (roles/storage.objectViewer, roles/storage.objectCreator): If the backend interacts with Google Cloud Storage (e.g., for uploaded images).
 
-To ensure secure and functional deployment on GCP Cloud Run, the following IAM roles and service accounts are required:
+## 3. Vercel Deployment (tradetaper-frontend & tradetaper-admin)
 
--   **Cloud Run Service Account**: This service account will be associated with the Cloud Run service and will execute the backend application.
-    -   **Required Roles**:
-        -   `Cloud Run Invoker`: Allows the service to be invoked.
-        -   `Cloud SQL Client`: Allows connection to the PostgreSQL database hosted on Cloud SQL.
-        -   `Storage Object Viewer` and `Storage Object Creator`: If the backend interacts with Google Cloud Storage (e.g., for file uploads, chart images).
-        -   `Secret Manager Secret Accessor`: If secrets (e.g., API keys, database credentials) are stored in Google Secret Manager.
-        -   `Service Account User`: To allow other service accounts (e.g., Cloud Build) to impersonate this service account.
+### 3.1. Project Configuration
 
--   **Cloud Build Service Account**: This service account is used by Cloud Build to perform build and deployment operations.
-    -   **Required Roles**:
-        -   `Cloud Build Service Account`: Default role for Cloud Build.
-        -   `Cloud Run Admin`: Allows deployment and management of Cloud Run services.
-        -   `Service Account User`: Allows impersonation of the Cloud Run service account.
-        -   `Storage Object Admin`: To push Docker images to Google Container Registry (GCR).
+*   **New Vercel Projects:** Create two new Vercel projects, one for `tradetaper-frontend` and one for `tradetaper-admin`.
+*   **Git Integration:** Connect both Vercel projects to their respective GitHub repositories (or the monorepo if Vercel supports sub-directory deployments for Next.js).
+*   **Build Commands:** Vercel automatically detects Next.js projects, so default build commands (`next build`) should suffice.
+*   **Root Directory:** Ensure the root directory is correctly set for each project within the monorepo (e.g., `tradetaper-frontend/` and `tradetaper-admin/`).
 
--   **Cloud SQL Admin Service Account (Optional, for initial setup/migrations)**: A service account with administrative privileges for Cloud SQL, primarily for initial database setup, migrations, and schema changes.
-    -   **Required Roles**:
-        -   `Cloud SQL Admin`
+### 3.2. Environment Variables
 
-### 1.4. Cloud SQL Instance Configuration
+*   **Frontend (`tradetaper-frontend`):
+    *   `NEXT_PUBLIC_BACKEND_API_URL`: URL of the deployed `tradetaper-backend` Cloud Run service.
+    *   `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`
+    *   `NEXT_PUBLIC_GOOGLE_CLIENT_ID`
+    *   Other public API keys or configuration.
+*   **Admin (`tradetaper-admin`):
+    *   `NEXT_PUBLIC_BACKEND_API_URL`: URL of the deployed `tradetaper-backend` Cloud Run service.
+    *   Other public API keys or configuration.
 
--   **Database Type**: PostgreSQL
--   **Region**: `us-central1` (or chosen region)
--   **Connectivity**: Private IP preferred for secure connection from Cloud Run. Public IP with authorized networks if private IP is not feasible.
--   **Database User**: Create a dedicated database user for the `tradetaper-backend` with appropriate permissions.
+### 3.3. Custom Domains
 
-### 1.5. Environment Variables (Cloud Run)
+*   Configure custom domains for both frontend and admin applications (e.g., `app.tradetaper.com` and `admin.tradetaper.com`).
 
-Environment variables will be set in the Cloud Run service configuration. These should be managed securely, preferably via Google Secret Manager.
+## 4. Deployment Workflow
 
--   `DATABASE_URL`: Connection string for the PostgreSQL database.
--   `JWT_SECRET`: Secret key for JWT authentication.
--   `GOOGLE_CLIENT_ID`: Google OAuth Client ID.
--   `GOOGLE_CLIENT_SECRET`: Google OAuth Client Secret.
--   `STRIPE_SECRET_KEY`: Stripe API secret key.
--   `METAAPI_TOKEN`: MetaAPI Cloud SDK token.
--   `METAAPI_ACCOUNT_ID`: MetaAPI account ID.
--   `GCS_BUCKET_NAME`: Google Cloud Storage bucket name (for chart images, etc.).
--   `GEMINI_API_KEY`: API Key for Google Gemini API.
+1.  **Backend First:** Deploy `tradetaper-backend` to Cloud Run. This ensures the API is available for the frontends.
+2.  **Update Frontend ENV:** Once the backend URL is stable, update the `NEXT_PUBLIC_BACKEND_API_URL` environment variable in Vercel for both frontend and admin projects.
+3.  **Frontend Deployment:** Deploy `tradetaper-frontend` and `tradetaper-admin` to Vercel.
+4.  **Database Migrations:** Run TypeORM migrations on the Cloud SQL instance after the backend deployment (can be part of Cloud Build or a separate manual step).
 
-## 2. Vercel Deployment (tradetaper-frontend & tradetaper-admin)
+## 5. Monitoring & Logging
 
-### 2.1. Project Configuration
-
-Both `tradetaper-frontend` and `tradetaper-admin` will be deployed as separate projects on Vercel.
-
--   **Framework Preset**: Next.js
--   **Root Directory**: `tradetaper-frontend` for the frontend project, `tradetaper-admin` for the admin project.
--   **Build Command**: `npm run build`
--   **Output Directory**: `.next`
--   **Development Command**: `npm run dev`
-
-### 2.2. Environment Variables (Vercel)
-
-Environment variables for Vercel projects should be configured securely within the Vercel dashboard.
-
--   `NEXT_PUBLIC_API_URL`: URL of the deployed `tradetaper-backend` Cloud Run service.
--   `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`: Stripe publishable key.
--   `NEXT_PUBLIC_GOOGLE_CLIENT_ID`: Google OAuth Client ID (public-facing).
--   `NEXT_PUBLIC_GEMINI_API_KEY`: API Key for Google Gemini API (public-facing).
-
-### 2.3. Git Integration
-
--   Connect both Vercel projects to their respective subdirectories within the GitHub monorepo.
--   Configure automatic deployments on Git pushes to the `main` branch (or a designated production branch).
-
-## 3. Deployment Steps (High-Level)
-
-1.  **GCP Project Setup**: Create a new GCP project.
-2.  **Enable APIs**: Enable Cloud Run, Cloud Build, Cloud SQL Admin, Secret Manager, and Cloud Storage APIs.
-3.  **Cloud SQL Setup**: Create a PostgreSQL instance in Cloud SQL and configure private IP (recommended) or authorized networks.
-4.  **Database Initialization**: Run initial database migrations and seeding (if any) from a secure environment (e.g., Cloud Shell, a temporary VM).
-5.  **Secret Manager Setup**: Store sensitive environment variables in Google Secret Manager.
-6.  **Cloud Run Service Account**: Create and configure the Cloud Run service account with necessary permissions.
-7.  **Cloud Build Service Account**: Ensure the Cloud Build service account has the required permissions.
-8.  **Backend Deployment**: Configure Cloud Build to automatically build and deploy the `tradetaper-backend` Docker image to Cloud Run on Git pushes.
-9.  **Vercel Project Setup**: Create two new Vercel projects, one for `tradetaper-frontend` and one for `tradetaper-admin`.
-10. **Vercel Environment Variables**: Configure environment variables in Vercel for both frontend projects.
-11. **Vercel Git Integration**: Connect Vercel projects to the GitHub repository for automatic deployments.
-12. **DNS Configuration**: Update DNS records to point custom domains to Vercel and Cloud Run endpoints.
-
-## 4. Post-Deployment Verification
-
--   Verify that all services are running and accessible.
--   Check logs for any errors.
--   Perform end-to-end tests to ensure all features are functional.
--   Audit IAM policies and network configurations for security best practices.
+*   **GCP Cloud Logging:** Cloud Run logs will automatically be sent to Cloud Logging.
+*   **GCP Cloud Monitoring:** Set up alerts for Cloud Run service health, latency, and error rates.
+*   **Vercel Analytics:** Utilize Vercel's built-in analytics for frontend performance and usage.

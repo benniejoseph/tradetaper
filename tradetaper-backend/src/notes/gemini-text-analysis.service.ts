@@ -1,8 +1,7 @@
-
 // src/notes/gemini-text-analysis.service.ts
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from '@google/generative-ai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
 @Injectable()
 export class GeminiTextAnalysisService {
@@ -17,7 +16,7 @@ export class GeminiTextAnalysisService {
       throw new Error('GEMINI_API_KEY is not configured.');
     }
     this.genAI = new GoogleGenerativeAI(apiKey);
-    this.model = this.genAI.getGenerativeModel({ model: "gemini-pro" });
+    this.model = this.genAI.getGenerativeModel({ model: 'gemini-pro' });
   }
 
   async analyzePsychologicalPatterns(noteText: string): Promise<string[]> {
@@ -34,20 +33,29 @@ export class GeminiTextAnalysisService {
       // Attempt to parse JSON, handle cases where AI might not return perfect JSON
       try {
         const parsed = JSON.parse(text);
-        if (Array.isArray(parsed) && parsed.every(item => typeof item === 'string')) {
+        if (
+          Array.isArray(parsed) &&
+          parsed.every((item) => typeof item === 'string')
+        ) {
           return parsed;
         } else {
-          this.logger.warn(`Gemini Text response was JSON but not a string array. Raw text: ${text}`);
+          this.logger.warn(
+            `Gemini Text response was JSON but not a string array. Raw text: ${text}`,
+          );
           return [];
         }
       } catch (jsonError) {
-        this.logger.error(`Failed to parse Gemini Text response as JSON: ${jsonError.message}. Raw text: ${text}`);
+        this.logger.error(
+          `Failed to parse Gemini Text response as JSON: ${jsonError.message}. Raw text: ${text}`,
+        );
         // Fallback: if not perfect JSON, return empty array
         return [];
       }
-    }
-    catch (error) {
-      this.logger.error(`Error calling Gemini Text API: ${error.message}`, error.stack);
+    } catch (error) {
+      this.logger.error(
+        `Error calling Gemini Text API: ${error.message}`,
+        error.stack,
+      );
       throw new Error(`Failed to analyze note: ${error.message}`);
     }
   }

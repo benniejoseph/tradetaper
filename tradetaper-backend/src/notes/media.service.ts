@@ -50,7 +50,6 @@ export class MediaService {
       const fileExtension = path.extname(file.originalname);
       const fileName = `notes/${noteId}/${uuidv4()}${fileExtension}`;
 
-      const processedBuffer = file.buffer;
       let thumbnailPath: string | undefined;
 
       // Process images - temporarily disabled

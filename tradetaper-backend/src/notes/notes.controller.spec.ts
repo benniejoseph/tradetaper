@@ -8,6 +8,8 @@ import { NoteResponseDto } from './dto/note-response.dto';
 import { UserResponseDto } from '../users/dto/user-response.dto';
 import { Note } from './entities/note.entity';
 import { Logger } from '@nestjs/common'; // New import
+import { PsychologicalInsight } from '../notes/entities/psychological-insight.entity';
+import { PsychologicalInsightsService } from '../notes/psychological-insights.service';
 
 describe('NotesController', () => {
   let controller: NotesController;
@@ -67,6 +69,13 @@ describe('NotesController', () => {
             log: jest.fn(),
             error: jest.fn(),
             warn: jest.fn(),
+          },
+        },
+        {
+          provide: PsychologicalInsightsService,
+          useValue: {
+            analyzeAndSavePsychologicalInsights: jest.fn().mockResolvedValue([]),
+            getPsychologicalSummary: jest.fn().mockResolvedValue({}),
           },
         },
       ],

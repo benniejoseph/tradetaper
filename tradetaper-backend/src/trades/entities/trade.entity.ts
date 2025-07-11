@@ -167,7 +167,12 @@ export class Trade {
   })
   tags: Tag[];
 
-  @Column({ type: 'varchar', length: 2048, nullable: true, name: 'chart_image_url' })
+  @Column({
+    type: 'varchar',
+    length: 2048,
+    nullable: true,
+    name: 'chart_image_url',
+  })
   chartImageUrl?: string;
 
   @CreateDateColumn()

@@ -1,44 +1,48 @@
-
-import { Entity, PrimaryGeneratedColumn, Column, Index, ManyToOne, JoinColumn, CreateDateColumn } from 'typeorm';
-import { User } from '../users/entities/user.entity';
-import { Note } from '../notes/entities/note.entity';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  ManyToOne,
+  JoinColumn,
+} from 'typeorm';
+import { User } from '../../users/entities/user.entity';
+import { Note } from './note.entity';
 
 @Entity('psychological_insights')
-@Index(['userId'])
-@Index(['noteId'])
 export class PsychologicalInsight {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ type: 'uuid', name: 'user_id' })
+  @Column({ type: 'uuid' })
   userId: string;
 
-  @ManyToOne(() => User, user => user.psychologicalInsights)
-  @JoinColumn({ name: 'user_id' })
+  @ManyToOne(() => User)
+  @JoinColumn({ name: 'userId' })
   user: User;
 
-  @Column({ type: 'uuid', name: 'note_id', nullable: true })
-  noteId: string | null;
+  @Column({ type: 'uuid', nullable: true })
+  noteId: string;
 
-  @ManyToOne(() => Note, note => note.psychologicalInsights, { nullable: true, onDelete: 'SET NULL' })
-  @JoinColumn({ name: 'note_id' })
-  note: Note | null;
+  @ManyToOne(() => Note)
+  @JoinColumn({ name: 'noteId' })
+  note: Note;
 
-  @Column({ type: 'varchar', length: 255, name: 'insight_type' })
+  @Column()
   insightType: string;
 
-  @Column({ type: 'varchar', length: 255, nullable: true })
-  sentiment: string | null;
+  @Column()
+  sentiment: string;
 
-  @Column({ type: 'float', name: 'confidence_score', nullable: true })
-  confidenceScore: number | null;
+  @Column('float')
+  confidenceScore: number;
 
-  @Column({ type: 'text', name: 'extracted_text', nullable: true })
-  extractedText: string | null;
+  @Column('text')
+  extractedText: string;
 
-  @CreateDateColumn({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP', name: 'analysis_date' })
+  @CreateDateColumn()
   analysisDate: Date;
 
-  @Column({ type: 'jsonb', name: 'raw_gemini_response', nullable: true })
-  rawGeminiResponse: object | null;
+  @Column('jsonb', { nullable: true })
+  rawGeminiResponse: any;
 }

@@ -3,8 +3,6 @@ import {
   PrimaryGeneratedColumn,
   Column,
   CreateDateColumn,
-  ManyToOne,
-  JoinColumn,
   Index,
 } from 'typeorm';
 // import { Note } from './note.entity'; // Commented to avoid circular import

@@ -45,7 +45,10 @@ export class User {
 
   // We'll add other fields like subscription status, etc., later
 
-  @OneToMany(() => PsychologicalInsight, psychologicalInsight => psychologicalInsight.user)
+  @OneToMany(
+    () => PsychologicalInsight,
+    (psychologicalInsight) => psychologicalInsight.user,
+  )
   psychologicalInsights: PsychologicalInsight[];
 
   @BeforeInsert()

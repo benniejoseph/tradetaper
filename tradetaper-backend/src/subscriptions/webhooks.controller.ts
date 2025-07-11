@@ -1,7 +1,6 @@
 import {
   Controller,
   Post,
-  Body,
   Headers,
   HttpCode,
   HttpStatus,
@@ -10,28 +9,17 @@ import {
   Req,
 } from '@nestjs/common';
 import { Request } from 'express';
-import { ConfigService } from '@nestjs/config';
-import Stripe from 'stripe';
 import { SubscriptionService } from './services/subscription.service';
+import { StripeService } from './services/stripe.service';
 
 @Controller('webhooks')
 export class WebhooksController {
   private readonly logger = new Logger(WebhooksController.name);
-  private readonly stripe: Stripe;
 
   constructor(
     private readonly subscriptionService: SubscriptionService,
-    private readonly configService: ConfigService,
-  ) {
-    const stripeSecretKey = this.configService.get<string>('STRIPE_SECRET_KEY');
-    if (!stripeSecretKey) {
-      throw new Error('STRIPE_SECRET_KEY is required');
-    }
-
-    this.stripe = new Stripe(stripeSecretKey, {
-      apiVersion: '2025-06-30.basil',
-    });
-  }
+    private readonly stripeService: StripeService,
+  ) {}
 
   @Post('webhook')
   @HttpCode(HttpStatus.OK)
@@ -46,17 +34,9 @@ export class WebhooksController {
         throw new Error('No raw body found in request');
       }
 
-      const webhookSecret = this.configService.get<string>(
-        'STRIPE_WEBHOOK_SECRET',
-      );
-      if (!webhookSecret) {
-        throw new Error('STRIPE_WEBHOOK_SECRET is required');
-      }
-
-      event = this.stripe.webhooks.constructEvent(
+      event = this.stripeService.constructWebhookEvent(
         request.rawBody,
         signature,
-        webhookSecret,
       );
     } catch (error) {
       this.logger.error(

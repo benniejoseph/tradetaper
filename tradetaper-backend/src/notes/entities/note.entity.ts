@@ -66,6 +66,12 @@ export class Note {
   @Column({ type: 'text', array: true, default: [] })
   tags: string[];
 
+  @Column({ name: 'chart_image_url', nullable: true, type: 'text' })
+  chartImageUrl?: string;
+
+  @Column({ name: 'chart_analysis_data', type: 'jsonb', nullable: true })
+  chartAnalysisData?: Record<string, any>;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 
@@ -106,7 +112,10 @@ export class Note {
   // Note: Relationships to blocks and media are handled via separate queries
   // to avoid circular import issues
 
-  @OneToMany(() => PsychologicalInsight, psychologicalInsight => psychologicalInsight.note)
+  @OneToMany(
+    () => PsychologicalInsight,
+    (psychologicalInsight) => psychologicalInsight.note,
+  )
   psychologicalInsights: PsychologicalInsight[];
 
   // Virtual computed properties

@@ -17,6 +17,7 @@ import { MarketDataModule } from './market-data/market-data.module';
 import { SimpleWebSocketModule } from './websocket/simple-websocket.module';
 import { NotesModule } from './notes/notes.module';
 import { AppDataSource } from './data-source';
+import { PredictiveTradesModule } from './predictive-trades/predictive-trades.module';
 
 @Module({
   imports: [
@@ -51,6 +52,7 @@ import { AppDataSource } from './data-source';
     MarketDataModule,
     SimpleWebSocketModule,
     NotesModule,
+    PredictiveTradesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

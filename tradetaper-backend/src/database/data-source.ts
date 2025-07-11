@@ -11,6 +11,7 @@ import { Strategy } from '../strategies/entities/strategy.entity';
 import { Note } from '../notes/entities/note.entity';
 import { NoteBlock } from '../notes/entities/note-block.entity';
 import { NoteMedia } from '../notes/entities/note-media.entity';
+import { PsychologicalInsight } from '../notes/entities/psychological-insight.entity';
 import { Connector, AuthTypes } from '@google-cloud/cloud-sql-connector';
 
 const isProduction = process.env.NODE_ENV === 'production';
@@ -58,7 +59,7 @@ async function createDataSource() {
       host: process.env.DB_HOST || 'localhost',
       port: parseInt(process.env.DB_PORT || '5432', 10),
       username: process.env.DB_USERNAME || 'postgres',
-      password: process.env.DB_PASSWORD || 'postgres',
+      password: process.env.DB_PASSWORD_MIGRATIONS || process.env.DB_PASSWORD || 'postgres',
       database: process.env.DB_DATABASE || 'tradetaper',
       ssl: false,
     };
@@ -87,6 +88,7 @@ async function createDataSource() {
       Note,
       NoteBlock,
       NoteMedia,
+      PsychologicalInsight,
     ],
     migrations: [
       isProduction ? 'dist/migrations/*{.ts,.js}' : 'src/migrations/*{.ts,.js}',

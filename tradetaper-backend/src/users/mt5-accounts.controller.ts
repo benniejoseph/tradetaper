@@ -4,40 +4,26 @@ import {
   Get,
   Post,
   Body,
-  Patch,
   Param,
   Delete,
   UseGuards,
   Request,
-  ForbiddenException,
-  NotFoundException,
   Query,
-  UseInterceptors,
-  UploadedFile,
   BadRequestException,
   HttpCode,
   HttpStatus,
   Put,
 } from '@nestjs/common';
-import { FileInterceptor } from '@nestjs/platform-express';
-import { Express } from 'express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { MT5AccountsService } from './mt5-accounts.service';
 import {
   CreateMT5AccountDto,
   CreateManualMT5AccountDto,
   UpdateMT5AccountDto,
-  TradeHistoryUploadResponse,
   MT5AccountResponseDto,
 } from './dto/mt5-account.dto';
 import { TradeHistoryParserService } from './trade-history-parser.service';
 import { TradesService } from '../trades/trades.service';
-import { CreateTradeDto } from '../trades/dto/create-trade.dto';
-import { AssetType, TradeDirection, TradeStatus } from '../types/enums';
-import { diskStorage } from 'multer';
-import { extname } from 'path';
-import { Trade } from '../trades/entities/trade.entity';
-import { MetaApiService } from './metaapi.service';
 
 @Controller('mt5-accounts')
 @UseGuards(JwtAuthGuard)
@@ -46,23 +32,7 @@ export class MT5AccountsController {
     private readonly mt5AccountsService: MT5AccountsService,
     private readonly tradeHistoryParserService: TradeHistoryParserService,
     private readonly tradesService: TradesService,
-    private readonly metaApiService: MetaApiService,
   ) {}
-
-  @Post()
-  async create(
-    @Request() req,
-    @Body() createMT5AccountDto: CreateMT5AccountDto,
-  ): Promise<MT5AccountResponseDto> {
-    const credentials = {
-      accountName: createMT5AccountDto.accountName,
-      server: createMT5AccountDto.server,
-      login: createMT5AccountDto.login,
-      password: createMT5AccountDto.password,
-      isRealAccount: createMT5AccountDto.isRealAccount || false,
-    };
-    return this.metaApiService.addMT5Account(req.user.id, credentials);
-  }
 
   @Post('manual')
   async createManual(
@@ -99,11 +69,6 @@ export class MT5AccountsController {
     return this.mt5AccountsService.findAllByUser(req.user.id);
   }
 
-  @Get('servers')
-  async getAvailableServers() {
-    return this.metaApiService.getAvailableServers();
-  }
-
   @Get(':id')
   async findOne(
     @Request() req,
@@ -116,68 +81,16 @@ export class MT5AccountsController {
     return account as MT5AccountResponseDto;
   }
 
-  @Get(':id/status')
-  async getAccountStatus(@Param('id') id: string) {
-    return this.metaApiService.getAccountStatus(id);
-  }
-
-  @Get(':id/trades')
-  async getHistoricalTrades(
-    @Param('id') id: string,
-    @Query('startDate') startDate?: string,
-    @Query('endDate') endDate?: string,
-    @Query('limit') limit?: string,
-  ) {
-    return this.metaApiService.getHistoricalTrades(id, {
-      startDate,
-      endDate,
-      limit: limit ? parseInt(limit, 10) : undefined,
-    });
-  }
-
   @Get(':id/trades/live')
-  async getLiveTrades(@Param('id') id: string) {
+  getLiveTrades() {
     // Return empty array for now
     return [];
   }
 
-  @Post(':id/connect')
-  @HttpCode(HttpStatus.OK)
-  async connectAccount(@Param('id') id: string) {
-    return {
-      message: 'MetaApi connection is temporarily disabled',
-      status: 'disabled',
-    };
-  }
-
-  @Post(':id/stream/start')
-  @HttpCode(HttpStatus.OK)
-  async startStreaming(@Param('id') id: string) {
-    return {
-      message: 'MetaApi streaming is temporarily disabled',
-      status: 'disabled',
-    };
-  }
-
-  @Post(':id/stream/stop')
-  @HttpCode(HttpStatus.OK)
-  async stopStreaming(@Param('id') id: string) {
-    return {
-      message: 'MetaApi streaming is temporarily disabled',
-      status: 'disabled',
-    };
-  }
-
   @Post(':id/sync')
-  async syncAccount(
-    @Request() req,
-    @Param('id') id: string,
-  ): Promise<MT5AccountResponseDto> {
-    const account = await this.mt5AccountsService.findOne(id);
-    if (!account || account.userId !== req.user.id) {
-      throw new BadRequestException('MT5 account not found');
-    }
-    return this.mt5AccountsService.syncAccount(id);
+  @HttpCode(HttpStatus.OK)
+  async syncAccount(@Param('id') id: string): Promise<void> {
+    await this.mt5AccountsService.syncAccount(id);
   }
 
   @Delete(':id')
@@ -186,50 +99,29 @@ export class MT5AccountsController {
     if (!account || account.userId !== req.user.id) {
       throw new BadRequestException('MT5 account not found');
     }
-
-    // Check if this is a manual account or MetaApi account
-    const isManualAccount =
-      account.metadata?.isManual || account.connectionStatus === 'manual';
-
-    if (!isManualAccount) {
-      throw new BadRequestException(
-        'MetaApi account removal is temporarily disabled',
-      );
-    } else {
-      // For manual accounts, just remove from database
-      await this.mt5AccountsService.remove(id);
-    }
+    // For manual accounts, just remove from database
+    await this.mt5AccountsService.remove(id);
   }
 
   @Post(':id/import-trades')
   async importTrades(
     @Request() req,
     @Param('id') id: string,
-    @Query('fromDate') fromDate: string,
-    @Query('toDate') toDate: string,
+    @Body() body: { fromDate: string; toDate: string },
   ) {
     const account = await this.mt5AccountsService.findOne(id);
     if (!account || account.userId !== req.user.id) {
       throw new BadRequestException('MT5 account not found');
     }
 
-    // For manual accounts, return error
-    throw new BadRequestException(
-      'Trade import is not available for manual accounts. Please upload trade history file instead.',
+    const fromDate = body.fromDate ? new Date(body.fromDate) : new Date(0);
+    const toDate = body.toDate ? new Date(body.toDate) : new Date();
+
+    return this.mt5AccountsService.importTradesFromMT5(
+      id,
+      fromDate.toISOString(),
+      toDate.toISOString(),
     );
-  }
-
-  @Post(':id/reconnect')
-  async reconnectAccount(@Request() req, @Param('id') id: string) {
-    const account = await this.mt5AccountsService.findOne(id);
-    if (!account || account.userId !== req.user.id) {
-      throw new BadRequestException('MT5 account not found');
-    }
-
-    return {
-      message: 'MetaApi reconnection is temporarily disabled',
-      status: 'disabled',
-    };
   }
 
   // TEMPORARY: Comment out upload-history endpoint due to type issues
@@ -263,77 +155,48 @@ export class MT5AccountsController {
       },
     }),
   )
-  async uploadTradeHistory(
-    @Request() req,
+  async uploadHistory(
     @Param('id') id: string,
     @UploadedFile() file: Express.Multer.File,
+    @Request() req,
   ) {
-    if (!file) {
-      throw new BadRequestException('No file uploaded');
-    }
-
     const account = await this.mt5AccountsService.findOne(id);
     if (!account || account.userId !== req.user.id) {
       throw new BadRequestException('MT5 account not found');
     }
 
+    if (!file) {
+      throw new BadRequestException('Trade history file is required');
+    }
+
     try {
-      // Parse the trade history file
-      const parsedResult =
-        await this.tradeHistoryParserService.parseTradeHistory(
-          file.path,
-          file.mimetype,
-        );
-
-      // Convert parsed trades to our trade format and save them
-      const savedTrades: Trade[] = [];
-      for (const parsedTrade of parsedResult.trades) {
-        const createTradeDto: CreateTradeDto = {
-          symbol: parsedTrade.symbol,
-          side: parsedTrade.type.toLowerCase() === 'buy' ? TradeDirection.LONG : TradeDirection.SHORT,
-          quantity: parsedTrade.volume,
-          openPrice: parsedTrade.openPrice,
-          closePrice: parsedTrade.closePrice,
-          openTime: parsedTrade.openTime.toISOString(),
-          closeTime: parsedTrade.closeTime ? parsedTrade.closeTime.toISOString() : undefined,
-          profitOrLoss: parsedTrade.profit,
-          commission: parsedTrade.commission,
-          swap: parsedTrade.swap,
-          status: parsedTrade.closeTime ? TradeStatus.CLOSED : TradeStatus.OPEN,
-          accountId: id,
-          notes: `Imported from ${file.originalname}`,
-          metadata: {
-            originalOrderId: parsedTrade.positionId,
-            importedFrom: file.originalname,
-            importedAt: new Date().toISOString(),
-          },
-        };
-
-        const savedTrade = await this.tradesService.create(
-          createTradeDto,
-          req.user,
-        );
-        savedTrades.push(savedTrade);
-      }
-
+      const parsedTrades = await this.tradeHistoryParserService.parseTradeHistory(
+        file.path,
+      );
+      const importedCount = await this.tradesService.importParsedTrades(
+        account.id,
+        req.user.id,
+        parsedTrades,
+      );
       return {
-        message: `Successfully imported ${savedTrades.length} trades from ${file.originalname}`,
-        tradesImported: savedTrades.length,
-        trades: savedTrades,
+        message: 'Trade history uploaded and processed successfully',
+        importedCount,
+        fileName: file.filename,
       };
     } catch (error) {
+      // Clean up uploaded file on error
+      // fs.unlinkSync(file.path);
       throw new BadRequestException(
-        `Failed to parse trade history: ${error.message}`,
+        `Failed to process trade history: ${error.message}`,
       );
     }
   }
   */
 
-  @Get('health/check')
-  async healthCheck() {
+  @Get('health')
+  healthCheck() {
     return {
-      status: 'healthy',
-      message: 'MT5 Accounts service is running (MetaApi disabled)',
+      status: 'ok',
       timestamp: new Date().toISOString(),
     };
   }

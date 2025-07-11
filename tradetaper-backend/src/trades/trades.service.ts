@@ -1,6 +1,12 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 // src/trades/trades.service.ts
-import { Injectable, NotFoundException, Logger, Inject, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  Logger,
+  Inject,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, FindManyOptions, In } from 'typeorm';
 import { Trade } from './entities/trade.entity';
@@ -12,6 +18,7 @@ import { UserResponseDto } from '../users/dto/user-response.dto';
 import { SimpleTradesGateway } from '../websocket/simple-trades.gateway';
 import { GeminiVisionService } from '../notes/gemini-vision.service'; // New import
 import { Express } from 'express'; // New import
+import { PaginatedResponseDto } from '../common/dto/paginated-response.dto';
 
 @Injectable()
 export class TradesService {
@@ -147,32 +154,39 @@ export class TradesService {
     userContext: UserResponseDto,
     accountId?: string,
     options?: FindManyOptions<Trade>,
-  ): Promise<Trade[]> {
+    page = 1,
+    limit = 10,
+  ): Promise<PaginatedResponseDto<Trade>> {
     this.logger.log(
-      `User ${userContext.id} fetching all their trades, account: ${accountId || 'all'}`,
+      `User ${userContext.id} fetching trades, account: ${accountId || 'all'}, page: ${page}, limit: ${limit}`,
     );
     const whereClause: FindManyOptions<Trade>['where'] = {
       userId: userContext.id,
     };
 
     if (accountId) {
-      // Filter by specific account
       whereClause.accountId = accountId;
     }
-    // If no accountId specified, return all trades (including those with null accountId)
 
-    const trades = await this.tradesRepository.find({
+    const [trades, total] = await this.tradesRepository.findAndCount({
       where: whereClause,
       relations: ['tags'],
       order: { openTime: 'DESC' },
+      take: limit,
+      skip: (page - 1) * limit,
       ...options,
     });
 
     this.logger.log(
-      `Found ${trades.length} trades for user ${userContext.id}, account filter: ${accountId || 'all'}`,
+      `Found ${trades.length} of ${total} trades for user ${userContext.id}, account filter: ${accountId || 'all'}`,
     );
 
-    return trades;
+    return {
+      data: trades,
+      total,
+      page,
+      limit,
+    };
   }
 
   async findOne(id: string, userContext: UserResponseDto): Promise<Trade> {
@@ -377,15 +391,55 @@ export class TradesService {
     return { importedCount: savedTrades.length, trades: savedTrades };
   }
 
-  async analyzeChart(file: Express.Multer.File): Promise<any> {
-    this.logger.log(`Analyzing chart image: ${file.originalname}`);
-    try {
-      const analysisResult = await this.geminiVisionService.analyzeChartImage(file.buffer);
-      this.logger.log(`Chart analysis result: ${JSON.stringify(analysisResult)}`);
-      return analysisResult;
-    } catch (error) {
-      this.logger.error(`Failed to analyze chart image: ${error.message}`, error.stack);
-      throw new BadRequestException(`Failed to analyze chart image: ${error.message}`);
-    }
-  }
+  // This method is no longer used directly for chart analysis, as it's handled by ChartAnalysisService
+  // Keeping it here for now, but it can be removed if no other parts of the application use it.
+  // async analyzeChart(file: Express.Multer.File): Promise<any> {
+  //   this.logger.log(`Analyzing chart image: ${file.originalname}`);
+  //   try {
+  //     const analysisResult = await this.geminiVisionService.analyzeImage(
+  //       file.buffer,
+  //       `Analyze this trading chart image. Identify the following:
+  //       - Trading Instrument (e.g., EUR/USD, BTC/USD, Apple Stock)
+  //       - Timeframe (e.g., 1-hour, Daily, 5-minute)
+  //       - Entry Price (if visible)
+  //       - Exit Price (if visible)
+  //       - Stop Loss (if visible)
+  //       - Take Profit (if visible)
+  //       - Date and Time of the trade (if visible)
+  //       - Key chart patterns (e.g., Head and Shoulders, Double Top/Bottom, Trendlines)
+  //       - Relevant indicators and their values (e.g., RSI, MACD, Moving Averages)
+  //       - Overall market sentiment (bullish, bearish, neutral)
+
+  //       Format the output as a JSON object with clear keys for each piece of information. If a piece of information is not visible or applicable, use 'N/A'.
+  //       Example:
+  //       {
+  //         "instrument": "EUR/USD",
+  //         "timeframe": "1-hour",
+  //         "entryPrice": "1.0850",
+  //         "exitPrice": "1.0920",
+  //         "stopLoss": "1.0820",
+  //         "takeProfit": "1.0950",
+  //         "tradeDate": "2023-10-26",
+  //         "tradeTime": "14:30 UTC",
+  //         "chartPatterns": ["Ascending Triangle"],
+  //         "indicators": [{"name": "RSI", "value": "70"}],
+  //         "sentiment": "Bullish",
+  //         "observations": "Price broke above resistance after a period of consolidation."
+  //       }
+  //       `,
+  //     );
+  //     this.logger.log(
+  //       `Chart analysis result: ${JSON.stringify(analysisResult)}`,
+  //     );
+  //     return analysisResult;
+  //   } catch (error) {
+  //     this.logger.error(
+  //       `Failed to analyze chart image: ${error.message}`,
+  //       error.stack,
+  //     );
+  //     throw new BadRequestException(
+  //       `Failed to analyze chart image: ${error.message}`,
+  //     );
+  //   }
+  // }
 }
