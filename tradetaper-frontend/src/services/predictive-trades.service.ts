@@ -1,16 +1,8 @@
-import { apiClient } from './apiClient';
-
-export interface CreatePredictionDto {
-  instrument: string;
-  direction: 'buy' | 'sell';
-  entryPrice: number;
-  stopLoss: number;
-  takeProfit: number;
-  expectedDurationHours?: number;
-}
+import { CreatePredictionDto, PredictionResult } from '@/types/predictive-trades';
+import { apiClient } from './api';
 
 export const predictiveTradesService = {
-  predict: async (data: CreatePredictionDto) => {
+  predict: async (data: CreatePredictionDto): Promise<PredictionResult> => {
     const response = await apiClient.post('/predictive-trades/predict', data);
     return response.data;
   },

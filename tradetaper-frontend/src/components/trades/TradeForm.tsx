@@ -126,7 +126,6 @@ export default function TradeForm({ initialData, isEditMode = false, onFormSubmi
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(initialData?.imageUrl || null);
   const [isUploading, setIsUploading] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
-  const [uploadError, setUploadError] = useState<string | null>(null);
   const [strategies, setStrategies] = useState<Strategy[]>([]);
 
   // Remove handleFileChange as it's now handled by ChartUploadButton
@@ -136,10 +135,6 @@ export default function TradeForm({ initialData, isEditMode = false, onFormSubmi
   // const [selectedFile, setSelectedFile] = useState<File | null>(null);
   // const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(initialData?.imageUrl || null);
   // const [isUploading, setIsUploading] = useState(false);
-
-  const [formError, setFormError] = useState<string | null>(null);
-  const [uploadError, setUploadError] = useState<string | null>(null);
-  const [strategies, setStrategies] = useState<Strategy[]>([]);
 
   // Calculate R:R and update formData.rMultiple
   useEffect(() => {

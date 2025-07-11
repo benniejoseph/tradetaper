@@ -1,6 +1,6 @@
 
 // src/services/notesApi.ts
-import { api } from './api';
+import { authApiClient } from './api';
 
 /**
  * Requests AI analysis for a specific note.
@@ -9,6 +9,6 @@ import { api } from './api';
  */
 export const analyzeNote = async (noteId: string): Promise<string[]> => {
   // This endpoint does not exist yet and will fail until the L3A1 backend work is complete.
-  const response = await api.post<string[]>(`/notes/${noteId}/analyze`);
+  const response = await authApiClient.post<string[]>(`/notes/${noteId}/analyze`);
   return response.data;
 };

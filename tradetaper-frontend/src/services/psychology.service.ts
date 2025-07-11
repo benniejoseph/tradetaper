@@ -1,4 +1,4 @@
-import { apiClient } from './apiClient';
+import { apiClient } from './api';
 
 export const psychologyService = {
   getProfile: async (startDate?: string, endDate?: string) => {

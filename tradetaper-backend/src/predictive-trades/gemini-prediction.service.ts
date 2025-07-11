@@ -29,10 +29,32 @@ export class GeminiPredictionService {
 
     try {
       const result = await this.model.generateContent(prompt);
-      const response = result.response;
-      const text = response.text();
-      this.logger.log(`Gemini Raw Prediction Response: ${text}`);
-      return this.parsePredictionResponse(text);
+      const text = result.response.text();
+      this.logger.debug(`Raw response from Gemini: ${text}`);
+
+      if (text === null) {
+        this.logger.error('Gemini API returned null text');
+        throw new Error('Gemini API returned null text');
+      }
+
+      try {
+        // First, find the match
+        const match = text.match(/\{[\s\S]*\}/);
+
+        // Check if a match was found
+        if (match && match[0]) {
+          const parsed = JSON.parse(match[0]);
+          this.logger.log(`Parsed prediction: ${JSON.stringify(parsed)}`);
+          return parsed;
+        } else {
+          this.logger.error('Could not find a valid JSON object in the response.');
+          this.logger.error(`Response text: ${text}`);
+          throw new Error('Could not find a valid JSON object in the response.');
+        }
+      } catch (error) {
+        this.logger.error(`Error parsing JSON: ${error.message}`, error.stack);
+        throw new Error(`Failed to parse JSON: ${error.message}`);
+      }
     } catch (error) {
       this.logger.error(`Error calling Gemini API for prediction: ${error.message}`, error.stack);
       throw new Error(`Failed to generate prediction: ${error.message}`);
@@ -62,29 +84,5 @@ export class GeminiPredictionService {
         "confidence": <a number between 0 and 1 representing your confidence in the prediction>
       }
     `;
-  }
-
-  private parsePredictionResponse(text: string): PredictionResponse {
-    try {
-      const parsed = JSON.parse(text.match(/\{[\s\S]*\}/)[0]);
-      // Basic validation
-      if (
-        typeof parsed.probabilityOfProfit === 'number' &&
-        typeof parsed.confidence === 'number' &&
-        ['win', 'loss', 'neutral'].includes(parsed.predictedOutcome)
-      ) {
-        return parsed;
-      }
-      throw new Error('Parsed JSON does not match expected format.');
-    } catch (error) {
-      this.logger.error(`Failed to parse prediction response: ${error.message}. Raw text: ${text}`);
-      // Return a neutral/error response
-      return {
-        probabilityOfProfit: 0.5,
-        expectedPnL: { min: 0, max: 0 },
-        predictedOutcome: 'neutral',
-        confidence: 0,
-      };
-    }
   }
 } 

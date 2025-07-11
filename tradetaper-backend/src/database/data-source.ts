@@ -12,7 +12,7 @@ import { Note } from '../notes/entities/note.entity';
 import { NoteBlock } from '../notes/entities/note-block.entity';
 import { NoteMedia } from '../notes/entities/note-media.entity';
 import { PsychologicalInsight } from '../notes/entities/psychological-insight.entity';
-import { Connector, AuthTypes } from '@google-cloud/cloud-sql-connector';
+import { Connector } from '@google-cloud/cloud-sql-connector';
 
 const isProduction = process.env.NODE_ENV === 'production';
 
@@ -22,80 +22,76 @@ console.log('🔧 Database configuration (data-source.ts):', {
 });
 
 async function createDataSource() {
-  let dbConfig: any = {};
+  const configService = new ConfigService();
 
-  // For production, use Cloud SQL with Unix socket
   if (isProduction) {
-    console.log('Using Cloud SQL configuration for production');
     if (!process.env.INSTANCE_CONNECTION_NAME) {
-      throw new Error(
-        'INSTANCE_CONNECTION_NAME is not defined in the environment variables.',
-      );
+      throw new Error('INSTANCE_CONNECTION_NAME is not defined.');
     }
+    if (!process.env.DB_USER) {
+      throw new Error('DB_USER is not defined.');
+    }
+    if (!process.env.DB_PASSWORD) {
+      throw new Error('DB_PASSWORD is not defined.');
+    }
+
     const connector = new Connector();
     const clientOpts = await connector.getOptions({
       instanceConnectionName: process.env.INSTANCE_CONNECTION_NAME,
-      authType: AuthTypes.IAM,
     });
 
-    dbConfig = {
+    return new DataSource({
       ...clientOpts,
-      type: 'postgres' as const,
-      database: process.env.DATABASE_NAME || 'tradetaper',
-      ssl: false,
-      retryAttempts: 5,
-      retryDelay: 3000,
-      connectTimeoutMS: 60000,
-      extra: {
-        max: 10,
-        connectionTimeoutMillis: 60000,
-      },
-    };
+      type: 'postgres',
+      database: process.env.DB_NAME || 'tradetaper',
+      username: process.env.DB_USER,
+      password: process.env.DB_PASSWORD,
+      entities: [
+        User,
+        Account,
+        Trade,
+        Tag,
+        MT5Account,
+        Subscription,
+        Usage,
+        Strategy,
+        Note,
+        NoteBlock,
+        NoteMedia,
+        PsychologicalInsight,
+      ],
+      migrations: ['dist/migrations/*{.ts,.js}'],
+      synchronize: false,
+      logging: false,
+    });
   } else {
-    // For development
-    console.log('Using local database configuration for development');
-    dbConfig = {
-      type: 'postgres' as const,
-      host: process.env.DB_HOST || 'localhost',
-      port: parseInt(process.env.DB_PORT || '5432', 10),
-      username: process.env.DB_USERNAME || 'postgres',
-      password: process.env.DB_PASSWORD_MIGRATIONS || process.env.DB_PASSWORD || 'postgres',
-      database: process.env.DB_DATABASE || 'tradetaper',
-      ssl: false,
-    };
+    // Development configuration
+    return new DataSource({
+      type: 'postgres',
+      host: configService.get<string>('DB_HOST', 'localhost'),
+      port: configService.get<number>('DB_PORT', 5432),
+      username: configService.get<string>('DB_USERNAME', 'postgres'),
+      password: configService.get<string>('DB_PASSWORD', 'postgres'),
+      database: configService.get<string>('DB_DATABASE', 'tradetaper'),
+      entities: [
+        User,
+        Account,
+        Trade,
+        Tag,
+        MT5Account,
+        Subscription,
+        Usage,
+        Strategy,
+        Note,
+        NoteBlock,
+        NoteMedia,
+        PsychologicalInsight,
+      ],
+      migrations: ['src/migrations/*{.ts,.js}'],
+      synchronize: false,
+      logging: true,
+    });
   }
-
-  console.log('FINAL DATABASE CONFIG (data-source.ts):', {
-    isProduction,
-    host: dbConfig.host,
-    username: dbConfig.username,
-    database: dbConfig.database,
-    ssl: dbConfig.ssl,
-    nodeEnv: process.env.NODE_ENV,
-  });
-
-  return new DataSource({
-    ...dbConfig,
-    entities: [
-      User,
-      Account,
-      Trade,
-      Tag,
-      MT5Account,
-      Subscription,
-      Usage,
-      Strategy,
-      Note,
-      NoteBlock,
-      NoteMedia,
-      PsychologicalInsight,
-    ],
-    migrations: [
-      isProduction ? 'dist/migrations/*{.ts,.js}' : 'src/migrations/*{.ts,.js}',
-    ],
-    synchronize: false, // Always false for production safety
-    logging: process.env.NODE_ENV !== 'production',
-  });
 }
 
 export const AppDataSource = createDataSource();

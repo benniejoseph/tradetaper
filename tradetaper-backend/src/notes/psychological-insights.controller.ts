@@ -11,7 +11,7 @@ import {
 } from '@nestjs/common';
 import { PsychologicalInsightsService } from './psychological-insights.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { AuthenticatedRequest } from '../types/AuthenticatedRequest';
+import { AuthenticatedRequest } from '../types/authenticated-request.interface';
 
 @Controller('notes/:noteId/psychological-insights')
 @UseGuards(JwtAuthGuard)

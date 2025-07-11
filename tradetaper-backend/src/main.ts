@@ -49,6 +49,7 @@ async function bootstrap() {
     console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
     console.log(`❤️ Health: http://0.0.0.0:${port}/health`);
     console.log(`📊 API: http://0.0.0.0:${port}/api/v1`);
+    console.log(`Application is running on: ${await app.getUrl()}`);
   } catch (error) {
     console.error('❌ STARTUP FAILED:', error);
     console.error('Stack trace:', error.stack);
