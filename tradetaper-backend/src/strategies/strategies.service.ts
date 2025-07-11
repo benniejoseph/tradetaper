@@ -1,8 +1,4 @@
-import {
-  Injectable,
-  NotFoundException,
-  ForbiddenException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Strategy } from './entities/strategy.entity';
@@ -58,8 +54,11 @@ export class StrategiesService {
   }
 
   async remove(id: string, userId: string): Promise<void> {
-    const strategy = await this.findOne(id, userId);
-    await this.strategiesRepository.remove(strategy);
+    const result = await this.strategiesRepository.delete({ id, userId });
+
+    if (result.affected === 0) {
+      throw new NotFoundException(`Strategy with ID ${id} not found`);
+    }
   }
 
   async toggleActive(id: string, userId: string): Promise<Strategy> {
@@ -68,9 +67,7 @@ export class StrategiesService {
     return await this.strategiesRepository.save(strategy);
   }
 
-  async getStrategyStats(id: string, userId: string) {
-    const strategy = await this.findOne(id, userId);
-
+  getStrategyStats() {
     // For now, return default stats since we don't have the relationship set up
     // TODO: Implement proper trade querying when relationships are working
     return {
@@ -91,8 +88,8 @@ export class StrategiesService {
     const strategies = await this.findAll(userId);
 
     const strategiesWithStats = await Promise.all(
-      strategies.map(async (strategy) => {
-        const stats = await this.getStrategyStats(strategy.id, userId);
+      strategies.map((strategy) => {
+        const stats = this.getStrategyStats();
         return {
           ...strategy,
           stats,

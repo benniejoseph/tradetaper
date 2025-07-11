@@ -12,17 +12,14 @@ import {
   HttpCode,
   HttpStatus,
   Query,
-  UseInterceptors, // New import
-  UploadedFile, // New import
   Logger, // New import
 } from '@nestjs/common';
-import { FileInterceptor } from '@nestjs/platform-express'; // New import
-import { Express } from 'express'; // New import
 import { TradesService } from './trades.service';
 import { CreateTradeDto } from './dto/create-trade.dto';
 import { UpdateTradeDto } from './dto/update-trade.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { Trade } from './entities/trade.entity';
+import { PaginatedResponseDto } from '../common/dto/paginated-response.dto';
 
 @UseGuards(JwtAuthGuard)
 @Controller('trades')
@@ -43,8 +40,12 @@ export class TradesController {
   findAll(
     @Request() req,
     @Query('accountId') accountId?: string,
-  ): Promise<Trade[]> {
-    return this.tradesService.findAll(req.user, accountId);
+    @Query('page') page = 1,
+    @Query('limit') limit = 10,
+  ): Promise<PaginatedResponseDto<Trade>> {
+    // Ensure limit doesn't exceed a max value to prevent abuse
+    const safeLimit = Math.min(100, limit);
+    return this.tradesService.findAll(req.user, accountId, undefined, page, safeLimit);
   }
 
   @Get(':id')
@@ -99,15 +100,5 @@ export class TradesController {
     @Request() req,
   ): Promise<{ importedCount: number; trades: Trade[] }> {
     return this.tradesService.bulkImport(body.trades, req.user);
-  }
-
-  @Post('analyze-chart')
-  @UseInterceptors(FileInterceptor('file'))
-  async analyzeChart(
-    @UploadedFile() file: Express.Multer.File,
-    @Request() req,
-  ): Promise<any> {
-    this.logger.log(`User ${req.user?.id || 'unknown'} requested chart analysis for file: ${file.originalname}`);
-    return this.tradesService.analyzeChart(file);
   }
 }

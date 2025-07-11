@@ -7,7 +7,9 @@ import {
   Subscription,
   SubscriptionStatus,
 } from '../entities/subscription.entity';
+import { StripeService } from './stripe.service';
 // import { Usage } from '../entities/usage.entity';
+import { User } from '../../users/entities/user.entity';
 
 export interface PricingPlan {
   id: string;
@@ -46,23 +48,16 @@ export interface SubscriptionUsage {
 @Injectable()
 export class SubscriptionService {
   private readonly logger = new Logger(SubscriptionService.name);
-  private readonly stripe: Stripe;
   private readonly pricingPlans: PricingPlan[];
 
   constructor(
     @InjectRepository(Subscription)
     private subscriptionRepository: Repository<Subscription>,
+    @InjectRepository(User)
+    private userRepository: Repository<User>,
     private configService: ConfigService,
+    private stripeService: StripeService,
   ) {
-    const stripeSecretKey = this.configService.get<string>('STRIPE_SECRET_KEY');
-    if (!stripeSecretKey) {
-      throw new Error('STRIPE_SECRET_KEY is required');
-    }
-
-    this.stripe = new Stripe(stripeSecretKey, {
-      apiVersion: '2025-06-30.basil',
-    });
-
     // Initialize pricing plans with environment variables
     this.pricingPlans = [
       {
@@ -197,7 +192,7 @@ export class SubscriptionService {
   // Get current subscription with billing info
   async getCurrentSubscription(userId: string): Promise<BillingInfo> {
     const subscription = await this.getOrCreateSubscription(userId);
-    const usage = await this.getCurrentUsage(userId);
+    const usage = this.getCurrentUsage(userId);
 
     return {
       currentPlan: subscription.plan,
@@ -209,7 +204,10 @@ export class SubscriptionService {
   }
 
   // Get current usage for user
-  async getCurrentUsage(userId: string): Promise<SubscriptionUsage> {
+  getCurrentUsage(userId: string): SubscriptionUsage {
+    if (!userId) {
+      throw new Error('User ID is required to get usage');
+    }
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
@@ -244,10 +242,22 @@ export class SubscriptionService {
       if (!customerId) {
         this.logger.log(`🆕 Creating new Stripe customer for user ${userId}`);
         try {
-          // Create Stripe customer
-          const customer = await this.stripe.customers.create({
-            metadata: { userId },
+          // get user email from user id
+          const user = await this.userRepository.findOne({
+            where: { id: userId },
           });
+          if (!user) {
+            throw new Error(`User not found for id ${userId}`);
+          }
+          const name =
+            user.firstName && user.lastName
+              ? `${user.firstName} ${user.lastName}`
+              : undefined;
+          // Create Stripe customer
+          const customer = await this.stripeService.createCustomer(
+            user.email,
+            name,
+          );
           customerId = customer.id;
           this.logger.log(`✅ Created Stripe customer: ${customerId}`);
 
@@ -269,30 +279,14 @@ export class SubscriptionService {
       }
 
       this.logger.log(`🛒 Creating Stripe checkout session...`);
-      const sessionParams: Stripe.Checkout.SessionCreateParams = {
-        customer: customerId,
-        payment_method_types: ['card'],
-        line_items: [
-          {
-            price: priceId,
-            quantity: 1,
-          },
-        ],
-        mode: 'subscription',
-        success_url: successUrl,
-        cancel_url: cancelUrl,
-        allow_promotion_codes: true,
-        metadata: {
-          userId,
-        },
-      };
 
-      this.logger.log(
-        `📋 Session params:`,
-        JSON.stringify(sessionParams, null, 2),
+      const session = await this.stripeService.createCheckoutSession(
+        priceId,
+        customerId,
+        successUrl,
+        cancelUrl,
+        userId,
       );
-
-      const session = await this.stripe.checkout.sessions.create(sessionParams);
 
       this.logger.log(`✅ Checkout session created: ${session.id}`);
 
@@ -334,10 +328,10 @@ export class SubscriptionService {
         );
       }
 
-      const session = await this.stripe.billingPortal.sessions.create({
-        customer: subscription.stripeCustomerId,
-        return_url: returnUrl,
-      });
+      const session = await this.stripeService.createBillingPortalSession(
+        subscription.stripeCustomerId,
+        returnUrl,
+      );
 
       return { url: session.url };
     } catch (error) {
@@ -363,10 +357,10 @@ export class SubscriptionService {
           await this.handleSubscriptionCancellation(event.data.object);
           break;
         case 'invoice.payment_succeeded':
-          await this.handlePaymentSucceeded(event.data.object);
+          this.handlePaymentSucceeded(event.data.object);
           break;
         case 'invoice.payment_failed':
-          await this.handlePaymentFailed(event.data.object);
+          this.handlePaymentFailed(event.data.object);
           break;
         default:
           this.logger.log(`Unhandled webhook event type: ${event.type}`);
@@ -430,12 +424,12 @@ export class SubscriptionService {
     this.logger.log(`Canceled subscription for user ${userId}`);
   }
 
-  private async handlePaymentSucceeded(invoice: Stripe.Invoice): Promise<void> {
+  private handlePaymentSucceeded(invoice: Stripe.Invoice): void {
     this.logger.log(`Payment succeeded for invoice ${invoice.id}`);
     // Additional logic for successful payments if needed
   }
 
-  private async handlePaymentFailed(invoice: Stripe.Invoice): Promise<void> {
+  private handlePaymentFailed(invoice: Stripe.Invoice): void {
     this.logger.log(`Payment failed for invoice ${invoice.id}`);
     // Additional logic for failed payments if needed
   }
@@ -476,53 +470,69 @@ export class SubscriptionService {
     }
   }
 
-  // Check if user can perform an action based on usage limits
   async checkUsageLimit(
     userId: string,
     feature: 'trades' | 'accounts',
   ): Promise<boolean> {
-    const subscription = await this.getOrCreateSubscription(userId);
-    const plan = this.getPricingPlan(subscription.plan);
+    const subscription = await this.getCurrentSubscription(userId);
+    const plan = this.getPricingPlan(subscription.currentPlan);
 
-    if (!plan) return false;
+    if (!plan) {
+      // No plan found, deny access
+      return false;
+    }
 
-    // Check if the plan has unlimited access for this feature
-    if (feature === 'trades' && plan.limits.trades === 'unlimited') {
+    const limit = plan.limits[feature];
+    if (limit === 'unlimited') {
       return true;
     }
 
-    if (feature === 'accounts' && plan.limits.accounts === 'unlimited') {
-      return true;
-    }
-
-    // For now, return true during development/migration phase
-    // TODO: Implement proper usage tracking once usage_tracking table is stable
-    const usage = await this.getCurrentUsage(userId);
-
-    if (feature === 'trades') {
-      const limit =
-        typeof plan.limits.trades === 'number' ? plan.limits.trades : Infinity;
-      return usage.trades < limit;
-    }
-
-    if (feature === 'accounts') {
-      const limit =
-        typeof plan.limits.accounts === 'number'
-          ? plan.limits.accounts
-          : Infinity;
-      return usage.accounts < limit;
-    }
-
-    return true;
+    const usage = subscription.usage[feature];
+    return usage < limit;
   }
 
-  // Increment usage counter (simplified for now)
   async incrementUsage(
     userId: string,
-    type: 'trades' | 'accounts',
+    feature: 'AI_NOTES' | 'TRADES' | 'STRATEGIES',
   ): Promise<void> {
-    // TODO: Implement usage tracking after usage_tracking table is stable
-    this.logger.log(`Usage increment for user ${userId}, type: ${type}`);
+    if (!userId || !feature) {
+      return;
+    }
+
+    const user = await this.subscriptionRepository.findOne({
+      where: {
+        userId: userId,
+      },
+    });
+
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    const subscription = await this.getCurrentSubscription(userId);
+
+    if (!subscription) {
+      return;
+    }
+
+    if (subscription.currentPlan === 'free') {
+      // This part of the logic needs to be adapted to TypeORM or a different usage tracking mechanism
+      // For now, it's a placeholder to avoid breaking the existing structure
+      this.logger.log(
+        `Incrementing usage for user ${userId}, feature: ${feature}`,
+      );
+      // Example: If you had a usage entity, you'd update it here
+      // await this.prisma.usage.update({
+      //   where: {
+      //     id: subscription.usage.id,
+      //   },
+      //   data: {
+      //     [feature]: {
+      //       increment: 1,
+      //     },
+      //   },
+      // });
+    }
   }
 
   // Create Stripe payment link (alternative to checkout sessions)
@@ -542,9 +552,20 @@ export class SubscriptionService {
 
       if (!customerId) {
         this.logger.log(`🆕 Creating new Stripe customer for payment link`);
-        const customer = await this.stripe.customers.create({
-          metadata: { userId },
+        const user = await this.userRepository.findOne({
+          where: { id: userId },
         });
+        if (!user) {
+          throw new Error(`User not found for id ${userId}`);
+        }
+        const name =
+          user.firstName && user.lastName
+            ? `${user.firstName} ${user.lastName}`
+            : undefined;
+        const customer = await this.stripeService.createCustomer(
+          user.email,
+          name,
+        );
         customerId = customer.id;
 
         subscription.stripeCustomerId = customerId;
@@ -553,23 +574,16 @@ export class SubscriptionService {
       }
 
       // Create payment link
-      const paymentLink = await this.stripe.paymentLinks.create({
-        line_items: [
-          {
-            price: priceId,
-            quantity: 1,
-          },
-        ],
-        metadata: {
-          userId,
-          customerId,
-        },
-      });
+      const paymentLink = await this.stripeService.createPaymentLink(
+        userId,
+        priceId,
+        customerId,
+      );
 
-      this.logger.log(`✅ Payment link created: ${paymentLink.id}`);
+      this.logger.log(`✅ Payment link created: ${paymentLink.paymentLinkId}`);
 
       return {
-        paymentLinkId: paymentLink.id,
+        paymentLinkId: paymentLink.paymentLinkId,
         url: paymentLink.url,
       };
     } catch (error) {

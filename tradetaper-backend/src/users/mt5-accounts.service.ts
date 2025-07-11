@@ -10,8 +10,11 @@ import {
 } from './dto/mt5-account.dto';
 import { UserResponseDto } from './dto/user-response.dto';
 import { ConfigService } from '@nestjs/config';
-import { MetaApiService } from './metaapi.service';
 import * as crypto from 'crypto';
+import { TradesService } from '../trades/trades.service';
+import { TradeDirection, AssetType, TradeStatus } from '../types/enums';
+import { User } from './entities/user.entity';
+import { CreateTradeDto } from '../trades/dto/create-trade.dto';
 
 @Injectable()
 export class MT5AccountsService {
@@ -22,8 +25,10 @@ export class MT5AccountsService {
   constructor(
     @InjectRepository(MT5Account)
     private readonly mt5AccountRepository: Repository<MT5Account>,
+    @InjectRepository(User)
+    private readonly userRepository: Repository<User>,
     private readonly configService: ConfigService,
-    private readonly metaApiService: MetaApiService,
+    private readonly tradesService: TradesService,
   ) {
     // Get encryption keys from environment variables or generate them
     const encryptionKeyString =
@@ -188,9 +193,23 @@ export class MT5AccountsService {
   }
 
   async findOne(id: string): Promise<MT5Account | null> {
-    return this.mt5AccountRepository.findOne({
-      where: { id },
-    });
+    return this.mt5AccountRepository.findOne({ where: { id } });
+  }
+
+  async syncAccount(id: string): Promise<void> {
+    this.logger.log(`Syncing account ${id}...`);
+    // Placeholder for sync logic
+  }
+
+  async importTradesFromMT5(
+    id: string,
+    fromDate: string,
+    toDate: string,
+  ): Promise<void> {
+    this.logger.log(
+      `Importing trades for account ${id} from ${fromDate} to ${toDate}...`,
+    );
+    // Placeholder for import logic
   }
 
   async update(
@@ -279,83 +298,6 @@ export class MT5AccountsService {
 
     await this.mt5AccountRepository.delete(id);
     this.logger.log(`Successfully deleted MT5 account ${id}`);
-  }
-
-  async syncAccount(id: string): Promise<MT5AccountResponseDto> {
-    const account = await this.mt5AccountRepository.findOne({
-      where: { id },
-    });
-
-    if (!account) {
-      throw new NotFoundException(`MT5 account with id ${id} not found`);
-    }
-
-    try {
-      // For now, just update the sync timestamp
-      // Later this can be connected to MetaApi for real sync
-      account.lastSyncAt = new Date();
-      account.connectionStatus = 'CONNECTED';
-
-      const updatedAccount = await this.mt5AccountRepository.save(account);
-
-      this.logger.log(
-        `Successfully synced MT5 account ${account.accountName} (ID: ${account.id})`,
-      );
-
-      return this.mapToResponseDto(updatedAccount);
-    } catch (error) {
-      this.logger.error(
-        `Failed to sync MT5 account ${account.id}: ${error.message}`,
-      );
-      throw new Error(`Failed to sync MT5 account: ${error.message}`);
-    }
-  }
-
-  async validateMT5Connection(
-    login: string,
-    password: string,
-    server: string,
-  ): Promise<boolean> {
-    try {
-      // For now, return true for demo purposes
-      // Later this can be connected to MetaApi for real validation
-      this.logger.log(`Validating MT5 connection for ${login}@${server}`);
-      return true;
-    } catch (error) {
-      this.logger.error(`MT5 connection validation failed: ${error.message}`);
-      return false;
-    }
-  }
-
-  async importTradesFromMT5(
-    accountId: string,
-    fromDate: Date,
-    toDate: Date,
-  ): Promise<any[]> {
-    try {
-      const account = await this.mt5AccountRepository.findOne({
-        where: { id: accountId },
-      });
-
-      if (!account) {
-        throw new NotFoundException(
-          `MT5 account with id ${accountId} not found`,
-        );
-      }
-
-      // For now, return empty array
-      // Later this can be connected to MetaApi for real trade import
-      this.logger.log(
-        `Importing trades from MT5 account ${accountId} (${fromDate.toISOString()} to ${toDate.toISOString()})`,
-      );
-
-      return [];
-    } catch (error) {
-      this.logger.error(
-        `Failed to import trades from MT5 account ${accountId}: ${error.message}`,
-      );
-      throw error;
-    }
   }
 
   // Helper method to map entity to response DTO (omitting sensitive fields)

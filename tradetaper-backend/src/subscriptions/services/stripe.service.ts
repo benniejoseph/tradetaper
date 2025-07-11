@@ -41,6 +41,7 @@ export class StripeService {
     customerId: string,
     successUrl: string,
     cancelUrl: string,
+    userId: string,
   ): Promise<Stripe.Checkout.Session> {
     try {
       const session = await this.stripe.checkout.sessions.create({
@@ -60,6 +61,9 @@ export class StripeService {
         automatic_tax: {
           enabled: true,
         },
+        metadata: {
+          userId,
+        },
       });
 
       this.logger.log(`Created checkout session: ${session.id}`);
@@ -67,6 +71,49 @@ export class StripeService {
     } catch (error) {
       this.logger.error('Failed to create checkout session', error);
       throw error;
+    }
+  }
+
+  async createPaymentLink(
+    userId: string,
+    priceId: string,
+    customerId: string,
+  ): Promise<{ paymentLinkId: string; url: string }> {
+    try {
+      this.logger.log(
+        `🔗 Creating payment link for user ${userId}, price: ${priceId}`,
+      );
+
+      // Create payment link
+      const paymentLink = await this.stripe.paymentLinks.create({
+        line_items: [
+          {
+            price: priceId,
+            quantity: 1,
+          },
+        ],
+        metadata: {
+          userId,
+          customerId,
+        },
+      });
+
+      this.logger.log(`✅ Payment link created: ${paymentLink.id}`);
+
+      return {
+        paymentLinkId: paymentLink.id,
+        url: paymentLink.url,
+      };
+    } catch (error) {
+      this.logger.error(`❌ Payment link creation failed:`, {
+        error: error.message,
+        code: error.code,
+        type: error.type,
+        userId,
+        priceId,
+      });
+
+      throw new Error(`Failed to create payment link: ${error.message}`);
     }
   }
 
@@ -205,23 +252,18 @@ export class StripeService {
     }
   }
 
-  constructEvent(payload: Buffer, signature: string): Stripe.Event {
+  constructWebhookEvent(payload: Buffer, signature: string): Stripe.Event {
     const webhookSecret = this.configService.get<string>(
       'STRIPE_WEBHOOK_SECRET',
     );
     if (!webhookSecret) {
-      throw new Error('STRIPE_WEBHOOK_SECRET environment variable is required');
+      throw new Error('STRIPE_WEBHOOK_SECRET is required');
     }
 
-    try {
-      return this.stripe.webhooks.constructEvent(
-        payload,
-        signature,
-        webhookSecret,
-      );
-    } catch (error) {
-      this.logger.error('Failed to construct Stripe event', error);
-      throw error;
-    }
+    return this.stripe.webhooks.constructEvent(
+      payload,
+      signature,
+      webhookSecret,
+    );
   }
 }

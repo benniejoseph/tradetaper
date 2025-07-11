@@ -22,13 +22,17 @@ import { CreateNoteDto } from './dto/create-note.dto';
 import { UpdateNoteDto } from './dto/update-note.dto';
 import { SearchNotesDto } from './dto/search-notes.dto';
 import { NoteResponseDto } from './dto/note-response.dto';
+import { PsychologicalInsight } from './entities/psychological-insight.entity';
 
 @Controller('notes')
 @UseGuards(JwtAuthGuard)
 export class NotesController {
   private readonly logger = new Logger(NotesController.name); // Instantiated Logger
 
-  constructor(private readonly notesService: NotesService, private readonly psychologicalInsightsService: PsychologicalInsightsService) {}
+  constructor(
+    private readonly notesService: NotesService,
+    private readonly psychologicalInsightsService: PsychologicalInsightsService,
+  ) {}
 
   @Post()
   async create(
@@ -115,7 +119,9 @@ export class NotesController {
     @Param('id', ParseUUIDPipe) id: string,
     @Request() req: any,
   ): Promise<string[]> {
-    this.logger.log(`Received analyze request for note ${id} from user ${req.user?.id || 'unknown'}`);
+    this.logger.log(
+      `Received analyze request for note ${id} from user ${req.user?.id || 'unknown'}`,
+    );
     return this.notesService.analyzeNote(id, req.user);
   }
 
@@ -125,19 +131,20 @@ export class NotesController {
     @Param('id', ParseUUIDPipe) id: string,
     @Request() req: any,
   ): Promise<PsychologicalInsight[]> {
-    this.logger.log(`Received psychological analysis request for note ${id} from user ${req.user?.id || 'unknown'}`);
-    return this.psychologicalInsightsService.analyzeAndSavePsychologicalInsights(id, req.user.id);
+    this.logger.log(
+      `Received psychological analysis request for note ${id} from user ${req.user?.id || 'unknown'}`,
+    );
+    return this.psychologicalInsightsService.analyzeAndSavePsychologicalInsights(
+      id,
+      req.user.id,
+    );
   }
 
   @Get('psychological-profile')
-  async getPsychologicalProfile(
-    @Request() req: any,
-    @Query('startDate') startDate?: string,
-    @Query('endDate') endDate?: string,
-  ): Promise<any> {
-    const start = startDate ? new Date(startDate) : undefined;
-    const end = endDate ? new Date(endDate) : undefined;
-    return this.psychologicalInsightsService.getPsychologicalSummary(req.user.id);
+  async getPsychologicalProfile(@Request() req: any): Promise<any> {
+    return this.psychologicalInsightsService.getPsychologicalSummary(
+      req.user.id,
+    );
   }
 
   @Delete(':id')

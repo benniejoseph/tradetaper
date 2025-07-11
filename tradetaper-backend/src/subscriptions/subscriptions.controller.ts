@@ -113,7 +113,7 @@ export class SubscriptionsController {
 
   @Get('usage')
   @UseGuards(JwtAuthGuard)
-  async getUsage(@Req() req: AuthenticatedRequest): Promise<SubscriptionUsage> {
+  getUsage(@Req() req: AuthenticatedRequest): SubscriptionUsage {
     return this.subscriptionService.getCurrentUsage(req.user.id);
   }
 

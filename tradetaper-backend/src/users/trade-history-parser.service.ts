@@ -268,7 +268,7 @@ export class TradeHistoryParserService {
         const rowText = row.join(' ').toLowerCase();
         if (rowText.includes('balance') && !accountBalance) {
           // Look for balance pattern in the row
-          for (let j = 0; j < (row as any[]).length; j++) {
+          for (let j = 0; j < row.length; j++) {
             const cell = (row[j] || '').toString();
             if (
               cell &&
@@ -293,7 +293,7 @@ export class TradeHistoryParserService {
 
         // Look for currency in header rows
         if (rowText.includes('currency') && !accountCurrency) {
-          for (let j = 0; j < (row as any[]).length; j++) {
+          for (let j = 0; j < row.length; j++) {
             const cell = (row[j] || '').toString();
             if (
               cell &&
@@ -435,7 +435,11 @@ export class TradeHistoryParserService {
 
             if (cell === 'balance:') {
               // Look for value in adjacent cells (typically j+3 based on analysis)
-              for (let k = j + 1; k < Math.min(j + 5, (row as any[]).length); k++) {
+              for (
+                let k = j + 1;
+                k < Math.min(j + 5, (row as any[]).length);
+                k++
+              ) {
                 const value = parseFloat(
                   (row[k] || '').toString().replace(/,/g, ''),
                 );
@@ -451,7 +455,11 @@ export class TradeHistoryParserService {
 
             if (cell === 'total net profit:') {
               // Look for value in adjacent cells
-              for (let k = j + 1; k < Math.min(j + 5, (row as any[]).length); k++) {
+              for (
+                let k = j + 1;
+                k < Math.min(j + 5, (row as any[]).length);
+                k++
+              ) {
                 const value = parseFloat(
                   (row[k] || '').toString().replace(/,/g, ''),
                 );
@@ -467,7 +475,11 @@ export class TradeHistoryParserService {
 
             if (cell === 'equity:') {
               // Look for value in adjacent cells
-              for (let k = j + 1; k < Math.min(j + 5, (row as any[]).length); k++) {
+              for (
+                let k = j + 1;
+                k < Math.min(j + 5, (row as any[]).length);
+                k++
+              ) {
                 const value = parseFloat(
                   (row[k] || '').toString().replace(/,/g, ''),
                 );

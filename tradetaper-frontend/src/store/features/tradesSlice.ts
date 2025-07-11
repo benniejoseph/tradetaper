@@ -26,6 +26,9 @@ interface TradesState {
   currentTrade: Trade | null;
   filters: TradeFilters; // For the /trades page list
   analyticsFilters: AnalyticsDateRangeFilter; // For the /analytics page
+  total: number;
+  page: number;
+  limit: number;
 }
 
 const initialState: TradesState = {
@@ -38,6 +41,9 @@ const initialState: TradesState = {
     analyticsDateFrom: '', // Default to no filter
     analyticsDateTo: '',   // Default to no filter
   },
+  total: 0,
+  page: 1,
+  limit: 10,
 };
 
 // Helper function to transform API response to frontend Trade interface
@@ -121,25 +127,29 @@ function transformFrontendToApiPayload(frontendPayload: CreateTradePayload | Upd
 
 // Async Thunks for API calls
 export const fetchTrades = createAsyncThunk<
-  Trade[], 
-  string | undefined, // <-- Updated: accountId is optional string
+  { data: Trade[]; total: number; page: number; limit: number },
+  { accountId?: string; page?: number; limit?: number },
   { rejectValue: string }
 >(
   'trades/fetchTrades',
-  async (accountId, { rejectWithValue }) => { // <-- Updated: accountId parameter
+  async ({ accountId, page = 1, limit = 10 }, { rejectWithValue }) => {
     try {
-      let url = '/trades';
+      let url = `/trades?page=${page}&limit=${limit}`;
       if (accountId) {
-        url += `?accountId=${accountId}`; // Append accountId as query param if provided
+        url += `&accountId=${accountId}`;
       }
-      const response = await authApiClient.get<any[]>(url);
+      const response = await authApiClient.get<any>(url);
       console.log(`Raw fetchTrades from API (accountId: ${accountId || 'all'}):`, response.data);
-      
-      // Transform API response to frontend format
-      const transformedTrades = response.data.map(transformApiTradeToFrontend);
+
+      const transformedTrades = response.data.data.map(transformApiTradeToFrontend);
       console.log('Transformed trades for frontend:', transformedTrades);
-      
-      return transformedTrades;
+
+      return {
+        data: transformedTrades,
+        total: response.data.total,
+        page: response.data.page,
+        limit: response.data.limit,
+      };
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || error.message || 'Failed to fetch trades');
     }
@@ -302,9 +312,12 @@ const tradesSlice = createSlice({
         state.isLoading = true;
         state.error = null;
       })
-      .addCase(fetchTrades.fulfilled, (state, action: PayloadAction<Trade[]>) => {
+      .addCase(fetchTrades.fulfilled, (state, action) => {
         state.isLoading = false;
-        state.trades = action.payload;
+        state.trades = action.payload.data;
+        state.total = action.payload.total;
+        state.page = action.payload.page;
+        state.limit = action.payload.limit;
       })
       .addCase(fetchTrades.rejected, (state, action) => {
         state.isLoading = false;

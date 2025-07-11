@@ -135,25 +135,5 @@ describe('TradesController', () => {
     });
   });
 
-  describe('analyzeChart', () => {
-    it('should analyze a chart image', async () => {
-      const mockFile: Express.Multer.File = {
-        fieldname: 'file',
-        originalname: 'chart.png',
-        encoding: '7bit',
-        mimetype: 'image/png',
-        size: 12345,
-        buffer: Buffer.from('fake image data'),
-        destination: '',
-        filename: '',
-        path: '',
-        stream: null as any,
-      };
-      const req = { user: mockUser } as any;
-      // Corrected: Call service.analyzeChart directly
-      const result = await service.analyzeChart(mockFile);
-      expect(result).toEqual({ symbol: 'EURUSD', entryPrice: 1.1200 });
-      expect(service.analyzeChart).toHaveBeenCalledWith(mockFile);
-    });
-  });
+  
 });

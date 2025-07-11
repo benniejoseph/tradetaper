@@ -1,18 +1,16 @@
 import {
   Injectable,
   NotFoundException,
-  ForbiddenException,
   BadRequestException,
   Logger, // Added Logger
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, SelectQueryBuilder, Brackets, IsNull } from 'typeorm';
+import { Repository, Brackets, IsNull } from 'typeorm';
 import { Note } from './entities/note.entity';
 import { CreateNoteDto } from './dto/create-note.dto';
 import { UpdateNoteDto } from './dto/update-note.dto';
 import { SearchNotesDto } from './dto/search-notes.dto';
 import { NoteResponseDto } from './dto/note-response.dto';
-import { plainToClass } from 'class-transformer';
 import { GeminiTextAnalysisService } from './gemini-text-analysis.service'; // Added import
 import { UserResponseDto } from '../users/dto/user-response.dto'; // Added import
 
@@ -387,7 +385,10 @@ export class NotesService {
     return dto;
   }
 
-  async analyzeNote(noteId: string, userContext: UserResponseDto): Promise<string[]> {
+  async analyzeNote(
+    noteId: string,
+    userContext: UserResponseDto,
+  ): Promise<string[]> {
     this.logger.log(`User ${userContext.id} analyzing note with ID ${noteId}`);
     const note = await this.noteRepository.findOne({
       where: { id: noteId, userId: userContext.id, deletedAt: IsNull() },
@@ -403,8 +404,13 @@ export class NotesService {
 
     // Extract text from content blocks
     const noteText = note.content
-      .filter(block => block.type === 'text' || block.type === 'heading' || block.type === 'quote')
-      .map(block => block.content?.text)
+      .filter(
+        (block) =>
+          block.type === 'text' ||
+          block.type === 'heading' ||
+          block.type === 'quote',
+      )
+      .map((block) => block.content?.text)
       .filter(Boolean)
       .join('\n');
 
@@ -413,13 +419,21 @@ export class NotesService {
     }
 
     try {
-      const psychologicalTags = await this.geminiTextAnalysisService.analyzePsychologicalPatterns(noteText);
+      const psychologicalTags =
+        await this.geminiTextAnalysisService.analyzePsychologicalPatterns(
+          noteText,
+        );
       note.psychologicalTags = psychologicalTags; // Update the entity
       await this.noteRepository.save(note); // Save the updated note
-      this.logger.log(`Note ${noteId} analyzed. Tags: ${psychologicalTags.join(', ')}`);
+      this.logger.log(
+        `Note ${noteId} analyzed. Tags: ${psychologicalTags.join(', ')}`,
+      );
       return psychologicalTags;
     } catch (error) {
-      this.logger.error(`Failed to analyze note ${noteId}: ${error.message}`, error.stack);
+      this.logger.error(
+        `Failed to analyze note ${noteId}: ${error.message}`,
+        error.stack,
+      );
       throw new BadRequestException(`Failed to analyze note: ${error.message}`);
     }
   }

@@ -16,16 +16,29 @@ import { AIService } from './ai.service';
 import { CalendarService } from './calendar.service';
 import { PsychologicalInsightsService } from './psychological-insights.service';
 import { GeminiPsychologyService } from './gemini-psychology.service';
+import { GeminiVisionService } from './gemini-vision.service';
+import { GeminiTextAnalysisService } from './gemini-text-analysis.service';
+import { ChartAnalysisService } from './chart-analysis.service';
 
 // Controllers
 import { NotesController } from './notes.controller';
 import { MediaController } from './media.controller';
 import { AIController } from './ai.controller';
 import { CalendarController } from './calendar.controller';
+import { ChartAnalysisController } from './chart-analysis.controller';
+import {
+  PsychologicalInsightsController,
+  PsychologicalProfileController,
+} from './psychological-insights.controller';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Note, NoteBlock, NoteMedia, PsychologicalInsight]),
+    TypeOrmModule.forFeature([
+      Note,
+      NoteBlock,
+      NoteMedia,
+      PsychologicalInsight,
+    ]),
     MulterModule.register({
       dest: './temp',
       limits: {
@@ -39,8 +52,22 @@ import { CalendarController } from './calendar.controller';
     MediaController,
     AIController,
     CalendarController,
+    ChartAnalysisController,
+    PsychologicalInsightsController,
+    PsychologicalProfileController,
   ],
-  providers: [NotesService, MediaService, AIService, CalendarService, PsychologicalInsightsService, GeminiPsychologyService],
+  providers: [
+    NotesService,
+    MediaService,
+    AIService,
+    CalendarService,
+    PsychologicalInsightsService,
+    GeminiPsychologyService,
+    GeminiVisionService,
+    GeminiTextAnalysisService,
+    ChartAnalysisService,
+    TypeOrmModule,
+  ],
   exports: [
     NotesService,
     MediaService,
@@ -48,6 +75,9 @@ import { CalendarController } from './calendar.controller';
     CalendarService,
     PsychologicalInsightsService,
     GeminiPsychologyService,
+    GeminiVisionService,
+    GeminiTextAnalysisService,
+    ChartAnalysisService,
     TypeOrmModule,
   ],
 })

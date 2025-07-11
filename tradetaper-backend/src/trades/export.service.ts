@@ -13,11 +13,11 @@ export interface ExportOptions {
 export class ExportService {
   private readonly logger = new Logger(ExportService.name);
 
-  async exportTrades(
+  exportTrades(
     trades: Trade[],
     options: ExportOptions,
     userContext: UserResponseDto,
-  ): Promise<{ data: string | Buffer; filename: string; mimeType: string }> {
+  ): { data: string | Buffer; filename: string; mimeType: string } {
     this.logger.log(
       `User ${userContext.id} exporting ${trades.length} trades as ${options.format}`,
     );
@@ -41,13 +41,13 @@ export class ExportService {
         };
       case 'xlsx':
         return {
-          data: await this.generateXLSX(trades),
+          data: this.generateXLSX(trades),
           filename: `${filename}.xlsx`,
           mimeType:
             'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         };
       default:
-        throw new Error(`Unsupported export format: ${options.format}`);
+        throw new Error('Unsupported export format');
     }
   }
 
@@ -128,7 +128,7 @@ export class ExportService {
     return JSON.stringify(exportData, null, 2);
   }
 
-  private async generateXLSX(trades: Trade[]): Promise<Buffer> {
+  private generateXLSX(trades: Trade[]): Buffer {
     // For now, return CSV as buffer - in a real implementation you'd use a library like xlsx
     // This is a placeholder implementation
     const csvData = this.generateCSV(trades);

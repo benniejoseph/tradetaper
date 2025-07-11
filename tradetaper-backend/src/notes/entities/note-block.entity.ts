@@ -4,9 +4,7 @@ import {
   Column,
   CreateDateColumn,
   UpdateDateColumn,
-  ManyToOne,
-  JoinColumn,
-  Index,
+  DeleteDateColumn,
 } from 'typeorm';
 // import { Note } from './note.entity'; // Commented to avoid circular import
 
@@ -26,13 +24,11 @@ export interface NoteBlockContent {
 }
 
 @Entity('note_blocks')
-@Index(['noteId', 'position'])
 export class NoteBlock {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
   @Column({ name: 'note_id' })
-  @Index()
   noteId: string;
 
   @Column({ name: 'block_type', length: 50 })

@@ -25,11 +25,11 @@ export class ProductionSeedService {
    * Creates essential data required for production operation
    * This should only create minimal required data, not test/demo data
    */
-  async seedEssentialData(): Promise<void> {
+  seedEssentialData(): void {
     this.logger.log('Starting production essential data seeding...');
 
     try {
-      await this.ensureDefaultSubscriptionPlans();
+      this.ensureDefaultSubscriptionPlans();
       this.logger.log(
         'Production essential data seeding completed successfully.',
       );
@@ -62,7 +62,6 @@ export class ProductionSeedService {
       };
     }
 
-    const bcrypt = require('bcrypt');
     const tempPassword = this.generateSecurePassword();
     const hashedPassword = await bcrypt.hash(tempPassword, 10);
 
@@ -93,10 +92,10 @@ export class ProductionSeedService {
   /**
    * Validates that all required environment variables are present
    */
-  async validateProductionEnvironment(): Promise<{
+  validateProductionEnvironment(): {
     valid: boolean;
     missingVars: string[];
-  }> {
+  } {
     const requiredVars = [
       'DATABASE_URL',
       'JWT_SECRET',
@@ -131,7 +130,7 @@ export class ProductionSeedService {
    * Ensures default subscription plans exist in the database
    * This is essential for the subscription system to work
    */
-  private async ensureDefaultSubscriptionPlans(): Promise<void> {
+  private ensureDefaultSubscriptionPlans(): void {
     // This is mainly handled by the migration system now
     // We could add logic here to verify subscription plans exist
     // or create default entries if needed
@@ -175,7 +174,7 @@ export class ProductionSeedService {
 
     try {
       // Check environment variables
-      const envCheck = await this.validateProductionEnvironment();
+      const envCheck = this.validateProductionEnvironment();
       checks.environment = envCheck.valid;
     } catch (error) {
       this.logger.error('Environment health check failed:', error);

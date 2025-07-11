@@ -17,7 +17,9 @@ import Link from 'next/link';
 
 export default function TradesPage() {
   const dispatch = useDispatch<AppDispatch>();
-  const { trades, isLoading, error } = useSelector((state: RootState) => state.trades);
+  const { trades, isLoading, error, total, page, limit } = useSelector(
+    (state: RootState) => state.trades,
+  );
   const { isAuthenticated } = useSelector((state: RootState) => state.auth);
   const selectedAccountId = useSelector(selectSelectedAccountId);
   const selectedMT5AccountId = useSelector(selectSelectedMT5AccountId);
@@ -27,6 +29,7 @@ export default function TradesPage() {
   const [showExportModal, setShowExportModal] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState<FilterOptions>({});
+  const [currentPage, setCurrentPage] = useState(page);
 
   // Initialize WebSocket connection
   useWebSocket({
@@ -38,11 +41,23 @@ export default function TradesPage() {
 
   useEffect(() => {
     if (isAuthenticated) {
-      // Get the actual selected account ID (could be MT5 or regular account)
       const currentAccountId = selectedAccountId || selectedMT5AccountId;
-      dispatch(fetchTrades(currentAccountId || undefined));
+      dispatch(
+        fetchTrades({
+          accountId: currentAccountId || undefined,
+          page: currentPage,
+          limit,
+        }),
+      );
     }
-  }, [dispatch, isAuthenticated, selectedAccountId, selectedMT5AccountId]);
+  }, [
+    dispatch,
+    isAuthenticated,
+    selectedAccountId,
+    selectedMT5AccountId,
+    currentPage,
+    limit,
+  ]);
 
   // Apply filters and search
   const filteredTrades = useMemo(() => {
@@ -167,10 +182,16 @@ export default function TradesPage() {
           </div>
           <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Error Loading Trades</h3>
           <p className="text-red-600 dark:text-red-400 mb-4">{error}</p>
-          <button 
+          <button
             onClick={() => {
               const currentAccountId = selectedAccountId || selectedMT5AccountId;
-              dispatch(fetchTrades(currentAccountId || undefined));
+              dispatch(
+                fetchTrades({
+                  accountId: currentAccountId || undefined,
+                  page: currentPage,
+                  limit,
+                }),
+              );
             }}
             className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-semibold rounded-xl transition-all duration-200 hover:scale-105 shadow-lg"
           >
@@ -356,6 +377,31 @@ export default function TradesPage() {
         trades={filteredTrades}
         accountName={selectedAccountId ? 'Selected Account' : 'All Accounts'}
       />
+      <div className="flex justify-center mt-8">
+        <div className="flex items-center space-x-4">
+          <button
+            onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+            disabled={currentPage === 1}
+            className="px-4 py-2 bg-gray-200 rounded-md disabled:opacity-50"
+          >
+            Previous
+          </button>
+          <span>
+            Page {currentPage} of {Math.ceil(total / limit)}
+          </span>
+          <button
+            onClick={() =>
+              setCurrentPage((prev) =>
+                Math.min(prev + 1, Math.ceil(total / limit)),
+              )
+            }
+            disabled={currentPage >= Math.ceil(total / limit)}
+            className="px-4 py-2 bg-gray-200 rounded-md disabled:opacity-50"
+          >
+            Next
+          </button>
+        </div>
+      </div>
     </div>
   );
 } 

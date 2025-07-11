@@ -3,7 +3,6 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { PsychologicalInsight } from './entities/psychological-insight.entity';
 import { Note } from './entities/note.entity';
-import { User } from '../users/entities/user.entity';
 import { GeminiPsychologyService } from './gemini-psychology.service';
 
 @Injectable()
@@ -43,15 +42,18 @@ export class PsychologicalInsightsService {
       .join('\n');
 
     if (!noteText.trim()) {
-      this.logger.log(`Note ${noteId} has no text content for psychological analysis.`);
+      this.logger.log(
+        `Note ${noteId} has no text content for psychological analysis.`,
+      );
       return [];
     }
 
     try {
       this.logger.log(`Analyzing psychological insights for note ${noteId}...`);
-      const insights = await this.geminiPsychologyService.analyzePsychologicalPatterns(
-        noteText,
-      );
+      const insights =
+        await this.geminiPsychologyService.analyzePsychologicalPatterns(
+          noteText,
+        );
 
       const savedInsights: PsychologicalInsight[] = [];
       for (const insight of insights) {
@@ -64,10 +66,14 @@ export class PsychologicalInsightsService {
           extractedText: insight.extractedText || null,
           rawGeminiResponse: insight.rawGeminiResponse || null,
         });
-        savedInsights.push(await this.psychologicalInsightRepository.save(newInsight));
+        savedInsights.push(
+          await this.psychologicalInsightRepository.save(newInsight),
+        );
       }
 
-      this.logger.log(`Saved ${savedInsights.length} psychological insights for note ${noteId}.`);
+      this.logger.log(
+        `Saved ${savedInsights.length} psychological insights for note ${noteId}.`,
+      );
       return savedInsights;
     } catch (error) {
       this.logger.error(
@@ -78,8 +84,13 @@ export class PsychologicalInsightsService {
     }
   }
 
-  async getPsychologicalProfile(userId: string, startDate?: Date, endDate?: Date): Promise<PsychologicalInsight[]> {
-    const query = this.psychologicalInsightRepository.createQueryBuilder('insight')
+  async getPsychologicalProfile(
+    userId: string,
+    startDate?: Date,
+    endDate?: Date,
+  ): Promise<PsychologicalInsight[]> {
+    const query = this.psychologicalInsightRepository
+      .createQueryBuilder('insight')
       .where('insight.userId = :userId', { userId });
 
     if (startDate) {
@@ -103,17 +114,20 @@ export class PsychologicalInsightsService {
     };
 
     let totalConfidence = 0;
-    insights.forEach(insight => {
-      summary.insightTypeCounts[insight.insightType] = (summary.insightTypeCounts[insight.insightType] || 0) + 1;
+    insights.forEach((insight) => {
+      summary.insightTypeCounts[insight.insightType] =
+        (summary.insightTypeCounts[insight.insightType] || 0) + 1;
       if (insight.sentiment) {
-        summary.sentimentCounts[insight.sentiment] = (summary.sentimentCounts[insight.sentiment] || 0) + 1;
+        summary.sentimentCounts[insight.sentiment] =
+          (summary.sentimentCounts[insight.sentiment] || 0) + 1;
       }
       if (insight.confidenceScore !== null) {
         totalConfidence += insight.confidenceScore;
       }
     });
 
-    summary.averageConfidence = insights.length > 0 ? totalConfidence / insights.length : 0;
+    summary.averageConfidence =
+      insights.length > 0 ? totalConfidence / insights.length : 0;
 
     return summary;
   }

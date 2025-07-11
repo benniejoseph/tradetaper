@@ -1,4 +1,3 @@
-
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { GoogleGenerativeAI } from '@google/generative-ai';
@@ -48,18 +47,44 @@ Trade Journal Entry: ${text}
       // Attempt to parse the response as JSON
       try {
         const parsed = JSON.parse(geminiText);
-        if (Array.isArray(parsed) && parsed.every(item => typeof item === 'object' && item !== null)) {
+        if (
+          Array.isArray(parsed) &&
+          parsed.every((item) => typeof item === 'object' && item !== null)
+        ) {
           return parsed;
         } else {
-          this.logger.warn(`Gemini response was JSON but not an array of objects. Raw text: ${geminiText}`);
-          return [{ insightType: 'Parsing Error', sentiment: 'neutral', confidenceScore: 0.1, extractedText: geminiText, rawGeminiResponse: geminiText }];
+          this.logger.warn(
+            `Gemini response was JSON but not an array of objects. Raw text: ${geminiText}`,
+          );
+          return [
+            {
+              insightType: 'Parsing Error',
+              sentiment: 'neutral',
+              confidenceScore: 0.1,
+              extractedText: geminiText,
+              rawGeminiResponse: geminiText,
+            },
+          ];
         }
       } catch (jsonError) {
-        this.logger.error(`Failed to parse Gemini response as JSON: ${jsonError.message}. Raw text: ${geminiText}`);
-        return [{ insightType: 'Parsing Error', sentiment: 'neutral', confidenceScore: 0.1, extractedText: geminiText, rawGeminiResponse: geminiText }];
+        this.logger.error(
+          `Failed to parse Gemini response as JSON: ${jsonError.message}. Raw text: ${geminiText}`,
+        );
+        return [
+          {
+            insightType: 'Parsing Error',
+            sentiment: 'neutral',
+            confidenceScore: 0.1,
+            extractedText: geminiText,
+            rawGeminiResponse: geminiText,
+          },
+        ];
       }
     } catch (error) {
-      this.logger.error(`Error calling Gemini Psychology API: ${error.message}`, error.stack);
+      this.logger.error(
+        `Error calling Gemini Psychology API: ${error.message}`,
+        error.stack,
+      );
       throw new Error(`Failed to get psychological insights: ${error.message}`);
     }
   }

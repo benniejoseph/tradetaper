@@ -1,12 +1,9 @@
 {
-  "framework": "nextjs",
-  "buildCommand": "./build-isolated.sh",
-  "outputDirectory": ".next",
-  "installCommand": "./install-isolated.sh",
-  "devCommand": "npm run dev",
-  "functions": {
-    "src/app/**": {
-      "maxDuration": 30
+  "version": 2,
+  "builds": [
+    {
+      "src": "package.json",
+      "use": "@vercel/next"
     }
-  }
+  ]
 } 

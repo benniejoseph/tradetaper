@@ -41,8 +41,8 @@ export class StrategiesController {
   }
 
   @Get(':id/stats')
-  async getStats(@Param('id', ParseUUIDPipe) id: string, @Request() req) {
-    return this.strategiesService.getStrategyStats(id, req.user.id);
+  getStats() {
+    return this.strategiesService.getStrategyStats();
   }
 
   @Patch(':id')

@@ -175,4 +175,4 @@ afterEach(() => {
 });
 
 // Import jest-dom for additional matchers
-require('@testing-library/jest-dom'); 
+import '@testing-library/jest-dom'; 

@@ -4,9 +4,6 @@ import {
   Column,
   CreateDateColumn,
   UpdateDateColumn,
-  ManyToOne,
-  OneToMany,
-  JoinColumn,
 } from 'typeorm';
 // Forward references to avoid circular imports
 import { TradingSession } from '../../types/enums';

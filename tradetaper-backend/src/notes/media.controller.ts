@@ -72,9 +72,11 @@ export class MediaController {
   }
 
   @Post('embed')
-  async generateEmbedData(
-    @Body('url') url: string,
-  ): Promise<{ title: string; description: string; thumbnail?: string }> {
+  generateEmbedData(@Body('url') url: string): {
+    title: string;
+    description: string;
+    thumbnail?: string;
+  } {
     if (!url) {
       throw new BadRequestException('URL is required');
     }
