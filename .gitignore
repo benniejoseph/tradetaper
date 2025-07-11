@@ -1,1 +1,4 @@
 .vercel
+
+/traderaper-frontend/node_modules
+/traderaper-admin/node_modules
