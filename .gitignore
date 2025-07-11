@@ -1,4 +1,49 @@
+# Vercel
 .vercel
 
-/traderaper-frontend/node_modules
-/traderaper-admin/node_modules
+# Dependencies
+/node_modules
+/tradetaper-frontend/node_modules
+/tradetaper-admin/node_modules
+/tradetaper-backend/node_modules
+
+# Build outputs
+/dist
+/.next/
+/out/
+/build/
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+dev.log
+
+# Coverage reports
+/coverage
+/tradetaper-frontend/coverage
+/tradetaper-admin/coverage
+/tradetaper-backend/coverage
+/tradetaper-frontend/playwright-report/
+/tradetaper-frontend/test-results/
+
+# Temp directories
+/temp
+/tradetaper-backend/temp
+
+# Uploads
+/uploads
+/tradetaper-backend/uploads
+
+# OS-generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
