@@ -2,7 +2,7 @@
 "use client";
 
 import TradeForm from '@/components/trades/TradeForm';
-import { ChartUploadButton } from '@/components/trades/ChartUploadButton';
+import ChartUploadButton from '@/components/trades/ChartUploadButton';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { FaPlus, FaArrowLeft } from 'react-icons/fa';

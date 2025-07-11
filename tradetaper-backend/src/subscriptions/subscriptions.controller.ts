@@ -17,22 +17,8 @@ import {
   BillingInfo,
   SubscriptionUsage,
 } from './services/subscription.service';
-
-export class CreateCheckoutSessionDto {
-  @IsString()
-  @IsNotEmpty()
-  priceId: string;
-
-  @IsString()
-  @IsNotEmpty()
-  @IsUrl()
-  successUrl: string;
-
-  @IsString()
-  @IsNotEmpty()
-  @IsUrl()
-  cancelUrl: string;
-}
+import { CreateCheckoutSessionDto } from './dto/create-checkout-session.dto';
+import { AuthenticatedRequest } from '../types/authenticated-request.interface';
 
 export class CreatePortalSessionDto {
   @IsString()
@@ -45,12 +31,6 @@ export class CreatePaymentLinkDto {
   @IsString()
   @IsNotEmpty()
   priceId: string;
-}
-
-interface AuthenticatedRequest extends Request {
-  user: {
-    id: string;
-  };
 }
 
 @Controller('subscriptions')
@@ -69,8 +49,12 @@ export class SubscriptionsController {
     @Body() createCheckoutSessionDto: CreateCheckoutSessionDto,
     @Req() req: AuthenticatedRequest,
   ) {
+    const userId = req.user.userId;
+    if (!userId) {
+      throw new Error('User ID not found on request');
+    }
     return this.subscriptionService.createCheckoutSession(
-      req.user.id,
+      userId,
       createCheckoutSessionDto.priceId,
       createCheckoutSessionDto.successUrl,
       createCheckoutSessionDto.cancelUrl,
@@ -84,8 +68,12 @@ export class SubscriptionsController {
     @Body() createPortalSessionDto: CreatePortalSessionDto,
     @Req() req: AuthenticatedRequest,
   ) {
+    const userId = req.user.userId;
+    if (!userId) {
+      throw new Error('User ID not found on request');
+    }
     return this.subscriptionService.createPortalSession(
-      req.user.id,
+      userId,
       createPortalSessionDto.returnUrl,
     );
   }
@@ -97,8 +85,12 @@ export class SubscriptionsController {
     @Body() createPaymentLinkDto: CreatePaymentLinkDto,
     @Req() req: AuthenticatedRequest,
   ) {
+    const userId = req.user.userId;
+    if (!userId) {
+      throw new Error('User ID not found on request');
+    }
     return this.subscriptionService.createPaymentLink(
-      req.user.id,
+      userId,
       createPaymentLinkDto.priceId,
     );
   }
@@ -108,13 +100,21 @@ export class SubscriptionsController {
   async getCurrentSubscription(
     @Req() req: AuthenticatedRequest,
   ): Promise<BillingInfo> {
-    return this.subscriptionService.getCurrentSubscription(req.user.id);
+    const userId = req.user.userId;
+    if (!userId) {
+      throw new Error('User ID not found on request');
+    }
+    return this.subscriptionService.getCurrentSubscription(userId);
   }
 
   @Get('usage')
   @UseGuards(JwtAuthGuard)
   getUsage(@Req() req: AuthenticatedRequest): SubscriptionUsage {
-    return this.subscriptionService.getCurrentUsage(req.user.id);
+    const userId = req.user.userId;
+    if (!userId) {
+      throw new Error('User ID not found on request');
+    }
+    return this.subscriptionService.getCurrentUsage(userId);
   }
 
   @Get('feature-access/:feature')
@@ -123,9 +123,13 @@ export class SubscriptionsController {
     @Req() req: AuthenticatedRequest,
     @Param('feature') feature: string,
   ) {
+    const userId = req.user.userId;
+    if (!userId) {
+      throw new Error('User ID not found on request');
+    }
     return {
       hasAccess: await this.subscriptionService.hasFeatureAccess(
-        req.user.id,
+        userId,
         feature,
       ),
     };
