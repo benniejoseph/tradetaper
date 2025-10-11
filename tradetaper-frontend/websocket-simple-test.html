@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Simple WebSocket Test</title>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+</head>
+<body>
+    <h1>Simple WebSocket Connection Test</h1>
+    <div id="log" style="font-family: monospace; white-space: pre-wrap; border: 1px solid #ccc; padding: 10px; height: 400px; overflow-y: auto;"></div>
+    <br>
+    <button onclick="testConnection()">Test Connection</button>
+    <button onclick="clearLog()">Clear Log</button>
+
+    <script>
+        const logDiv = document.getElementById('log');
+        
+        function log(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            logDiv.textContent += `[${timestamp}] ${message}\n`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+        
+        function clearLog() {
+            logDiv.textContent = '';
+        }
+        
+        async function testConnection() {
+            log('🔄 Starting WebSocket connection test...');
+            
+            try {
+                // Get token first
+                log('📝 Getting authentication token...');
+                const response = await fetch('http://localhost:3001/api/v1/auth/login', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        email: 'demouser@tradetaper.com',
+                        password: 'demopassword'
+                    })
+                });
+                
+                if (!response.ok) {
+                    log('❌ Failed to get token: ' + response.status);
+                    return;
+                }
+                
+                const authData = await response.json();
+                const token = authData.accessToken;
+                log('✅ Got token: ' + token.substring(0, 20) + '...');
+                
+                // Test 1: Connect to main server (without namespace)
+                log('🔌 Testing connection to main server...');
+                let socket = io('http://localhost:3001', {
+                    transports: ['polling', 'websocket'],
+                    timeout: 10000
+                });
+                
+                socket.on('connect', () => {
+                    log('✅ Connected to main server! ID: ' + socket.id);
+                    socket.disconnect();
+                    
+                    // Test 2: Connect to trades namespace (correct way)
+                    log('🔌 Testing connection to /trades namespace...');
+                    socket = io('http://localhost:3001/trades', {
+                        transports: ['polling', 'websocket'],
+                        auth: { token: token },
+                        query: { token: token },
+                        extraHeaders: { 'Authorization': 'Bearer ' + token },
+                        timeout: 10000
+                    });
+                    
+                    socket.on('connect', () => {
+                        log('✅ Connected to /trades namespace! ID: ' + socket.id);
+                    });
+                    
+                    socket.on('authenticated', (data) => {
+                        log('🔐 Authenticated: ' + JSON.stringify(data));
+                    });
+                    
+                    socket.on('connection-status', (data) => {
+                        log('📡 Connection status: ' + JSON.stringify(data));
+                    });
+                    
+                    socket.on('connect_error', (error) => {
+                        log('❌ Trades namespace error: ' + error.message);
+                        log('🔍 Error details: ' + JSON.stringify(error));
+                    });
+                    
+                    socket.on('error', (error) => {
+                        log('❌ Socket error: ' + JSON.stringify(error));
+                    });
+                    
+                    socket.on('disconnect', (reason) => {
+                        log('🔌 Disconnected: ' + reason);
+                    });
+                });
+                
+                socket.on('connect_error', (error) => {
+                    log('❌ Main server error: ' + error.message);
+                    log('🔍 Will try direct namespace connection...');
+                    
+                    // Fallback: Try connecting directly to namespace with token
+                    socket = io('http://localhost:3001/trades', {
+                        transports: ['polling', 'websocket'],
+                        auth: { token: token },
+                        query: { token: token },
+                        extraHeaders: { 'Authorization': 'Bearer ' + token },
+                        timeout: 10000
+                    });
+                    
+                    socket.on('connect', () => {
+                        log('✅ Direct namespace connection successful! ID: ' + socket.id);
+                    });
+                    
+                    socket.on('authenticated', (data) => {
+                        log('🔐 Authenticated: ' + JSON.stringify(data));
+                    });
+                    
+                    socket.on('connect_error', (error) => {
+                        log('❌ Direct namespace connection failed: ' + error.message);
+                    });
+                });
+                
+            } catch (error) {
+                log('❌ Test failed: ' + error.message);
+            }
+        }
+        
+        log('🚀 Simple WebSocket test ready. Click "Test Connection" to start.');
+    </script>
+</body>
+</html> 

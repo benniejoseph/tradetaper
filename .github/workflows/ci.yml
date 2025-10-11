@@ -1,0 +1,68 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+      - name: Install root (no-op) and subprojects
+        run: |
+          npm --version
+          cd tradetaper-backend && npm ci
+          cd ../tradetaper-frontend && npm ci
+          cd ../tradetaper-admin && npm ci
+      - name: Lint backend
+        run: cd tradetaper-backend && npm run lint
+      - name: Typecheck backend
+        run: cd tradetaper-backend && npm run build:simple
+      - name: Build backend
+        run: cd tradetaper-backend && npm run build
+      - name: Lint frontend
+        run: cd tradetaper-frontend && npm run lint
+      - name: Typecheck+Build frontend
+        run: cd tradetaper-frontend && npm run build
+      - name: Lint admin
+        run: cd tradetaper-admin && npm run lint
+      - name: Typecheck+Build admin
+        run: cd tradetaper-admin && npm run build
+
+  deploy-cloudrun:
+    if: github.ref == 'refs/heads/main'
+    needs: build-and-check
+    runs-on: ubuntu-latest
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+    steps:
+      - uses: actions/checkout@v4
+      - id: 'auth'
+        name: 'Authenticate to Google Cloud'
+        uses: 'google-github-actions/auth@v2'
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT_EMAIL }}
+      - name: 'Set up Cloud SDK'
+        uses: 'google-github-actions/setup-gcloud@v2'
+      - name: 'Build and Push Container'
+        run: |
+          gcloud auth configure-docker us-central1-docker.pkg.dev -q
+          gcloud builds submit --tag us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/tradetaper/backend:latest tradetaper-backend
+      - name: 'Deploy to Cloud Run'
+        run: |
+          gcloud run deploy tradetaper-backend \
+            --project ${{ secrets.GCP_PROJECT_ID }} \
+            --region us-central1 \
+            --image us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/tradetaper/backend:latest \
+            --platform managed \
+            --allow-unauthenticated \
+            --set-env-vars NODE_ENV=production,GLOBAL_PREFIX=api/v1,ALLOWED_ORIGINS=${{ secrets.ALLOWED_ORIGINS }},JWT_SECRET=${{ secrets.JWT_SECRET }},DB_HOST=${{ secrets.DB_HOST }},DB_NAME=${{ secrets.DB_NAME }},DB_USER=${{ secrets.DB_USER }},DB_PASSWORD=${{ secrets.DB_PASSWORD }}

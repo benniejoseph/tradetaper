@@ -1,0 +1,26 @@
+.vercel
+hidden.yaml
+
+# Dependencies
+node_modules
+
+# Build output
+dist
+coverage
+
+# Local uploads and temp
+uploads
+temp
+
+# Env files
+.env
+.env.*
+.env.local
+env.local
+env.production
+env.yaml
+env.yaml.example
+
+# Logs
+*.log
+dev.log

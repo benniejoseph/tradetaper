@@ -1,0 +1,53 @@
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: tradetaper-backend
+  annotations:
+    run.googleapis.com/ingress: all
+    run.googleapis.com/cpu-throttling: "true"
+spec:
+  template:
+    metadata:
+      annotations:
+        # Cost optimization: Scale to zero when idle
+        autoscaling.knative.dev/minScale: "0"
+        autoscaling.knative.dev/maxScale: "3"
+        
+        # Use Cloud SQL Proxy sidecar
+        run.googleapis.com/cloudsql-instances: "trade-taper:us-central1:trade-taper-postgres"
+        
+        # Resource limits for cost control
+        run.googleapis.com/cpu: "1"
+        run.googleapis.com/memory: "1Gi"
+        run.googleapis.com/execution-environment: gen2
+    spec:
+      containerConcurrency: 80
+      timeoutSeconds: 300
+      containers:
+      - image: gcr.io/trade-taper/tradetaper-backend:latest
+        ports:
+        - containerPort: 8080
+        env:
+        # Database configuration
+        - name: NODE_ENV
+          value: "production"
+        - name: USE_CLOUD_SQL
+          value: "true"
+        - name: DB_USER
+          value: "postgres"
+        - name: DB_NAME
+          value: "tradetaper"
+        - name: INSTANCE_CONNECTION_NAME
+          value: "trade-taper:us-central1:trade-taper-postgres"
+        - name: PORT
+          value: "8080"
+        
+        # Add other environment variables from app.yaml here
+        
+        resources:
+          limits:
+            cpu: 1000m
+            memory: 1Gi
+          requests:
+            cpu: 100m
+            memory: 256Mi
