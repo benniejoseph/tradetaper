@@ -9,11 +9,12 @@ import { selectSelectedAccountId, selectSelectedAccount, selectAvailableAccounts
 import { selectSelectedMT5AccountId, selectSelectedMT5Account, selectMT5Accounts } from '@/store/features/mt5AccountsSlice';
 import Link from 'next/link';
 import { calculateDashboardStats, calculateEquityCurveData } from '@/utils/analytics';
-import { useTheme } from '@/context/ThemeContext';
+import { useTheme } from 'next-themes';
 import DashboardCard from '@/components/dashboard/DashboardCard';
 import { AnimatedCard, MetricCard } from '@/components/ui/AnimatedCard';
 import { AnimatedButton, FloatingActionButton } from '@/components/ui/AnimatedButton';
-import { TradeStatus, Trade } from '@/types/trade';
+import { Trade } from '@/types/enums';
+import { TradeStatus } from '@/types/enums';
 import { format as formatDateFns, subDays, isAfter, parseISO } from 'date-fns';
 import { 
     FaDollarSign, FaChartLine as FaReturnIcon, FaPercentage, 
@@ -33,6 +34,9 @@ import TradesCalendarHeatmap from '@/components/dashboard/TradesCalendarHeatmap'
 import TradingActivityModal from '@/components/dashboard/TradingActivityModal';
 import TopTradesByReturn from '@/components/dashboard/TopPairsTraded';
 import DashboardPnlCalendar from '@/components/dashboard/DashboardPnlCalendar';
+import KillZonesWidget from '@/components/dashboard/KillZonesWidget';
+import PremiumDiscountWidget from '@/components/dashboard/PremiumDiscountWidget';
+import PowerOfThreeWidget from '@/components/dashboard/PowerOfThreeWidget';
 
 // Define time range options and their corresponding days
 const timeRangeDaysMapping: { [key: string]: number } = {
@@ -62,7 +66,7 @@ export default function DashboardPage() {
   
   // Trading Activity Modal State
   const [isTradingActivityModalOpen, setIsTradingActivityModalOpen] = useState(false);
-  const [selectedDateData, setSelectedDateData] = useState<{date: string; pnl: number; trades: number} | null>(null);
+  const [selectedDateData, setSelectedDateData] = useState<{date: string; count: number; totalPnl: number} | null>(null);
   const [selectedDateTrades, setSelectedDateTrades] = useState<Trade[]>([]);
 
   // Target calculation moved after dashboardStats is computed
@@ -100,7 +104,7 @@ export default function DashboardPage() {
       // Get the actual selected account ID (could be MT5 or regular account)
       const currentAccountId = selectedAccountId || selectedMT5AccountId;
       console.log('Dashboard fetchTrades - accountId:', currentAccountId, 'authenticated:', isAuthenticated);
-      dispatch(fetchTrades(currentAccountId || undefined));
+      dispatch(fetchTrades({ accountId: currentAccountId || undefined }));
     }
   }, [dispatch, isAuthenticated, selectedAccountId, selectedMT5AccountId]);
 
@@ -123,7 +127,7 @@ export default function DashboardPage() {
         days, 
         tradesLength: trades?.length 
       });
-      return trades;
+      return trades || [];
     }
     const cutOffDate = subDays(new Date(), days);
     const filtered = trades.filter(trade => {
@@ -221,7 +225,7 @@ export default function DashboardPage() {
   }, [equityCurve, dashboardStats]);
 
   // Handler for heatmap date clicks
-  const handleHeatmapDateClick = (dateData: {date: string; pnl: number; trades: number}, tradesForDate: Trade[]) => {
+  const handleHeatmapDateClick = (dateData: {date: string; count: number; totalPnl: number}, tradesForDate: Trade[]) => {
     setSelectedDateData(dateData);
     setSelectedDateTrades(tradesForDate);
     setIsTradingActivityModalOpen(true);
@@ -361,6 +365,28 @@ export default function DashboardPage() {
             </div>
             <div className="absolute -top-4 -right-4 w-24 h-24 bg-white/10 rounded-full blur-xl"></div>
           </AnimatedCard>
+        </div>
+
+        {/* ICT Widgets Section */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center space-x-2">
+              <FaRocket className="text-blue-600" />
+              <span>ICT Market Intelligence</span>
+            </h2>
+            <Link href="/market-intelligence">
+              <AnimatedButton variant="secondary" size="sm">
+                <FaArrowUp className="mr-2" />
+                View Full Analysis
+              </AnimatedButton>
+            </Link>
+          </div>
+          
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <KillZonesWidget />
+            <PremiumDiscountWidget />
+            <PowerOfThreeWidget />
+          </div>
         </div>
 
         {/* Main Dashboard Grid */}
