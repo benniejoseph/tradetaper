@@ -1,0 +1,21 @@
+{
+  "extends": "./tsconfig.json",
+  "include": ["src/**/*"],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "test",
+    "**/*.spec.ts",
+    "**/*.spec.skip.ts",
+    "**/*.e2e-spec.ts",
+    "src/market-intelligence/free-data-sources/agents/**/*",
+    "src/market-intelligence/free-data-sources/ai-ml/**/*",
+    "src/market-intelligence/free-data-sources/backtesting/**/*",
+    "src/market-intelligence/free-data-sources/binance-websocket.service.ts",
+    "src/market-intelligence/free-data-sources/reddit-sentiment.service.ts",
+    "src/market-intelligence/free-data-sources/yahoo-finance.service.ts",
+    "src/market-intelligence/free-data-sources/pattern-recognition.service.ts",
+    "src/market-intelligence/free-data-sources/technical-indicators.service.ts"
+  ]
+}
+

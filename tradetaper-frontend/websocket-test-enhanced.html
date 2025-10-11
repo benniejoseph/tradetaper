@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enhanced WebSocket Test - TradeTaper</title>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 1200px; margin: 20px auto; padding: 20px; }
+        .container { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .panel { border: 1px solid #ddd; border-radius: 8px; padding: 15px; }
+        .log { background: #f8f9fa; padding: 15px; border-radius: 5px; height: 300px; overflow-y: auto; font-family: monospace; font-size: 12px; }
+        .success { color: #28a745; }
+        .error { color: #dc3545; }
+        .info { color: #17a2b8; }
+        .warning { color: #ffc107; }
+        button { background: #007bff; color: white; padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; margin: 2px; }
+        button:hover { background: #0056b3; }
+        button:disabled { background: #6c757d; cursor: not-allowed; }
+        input, select { padding: 6px; margin: 2px; border: 1px solid #ccc; border-radius: 4px; }
+        .status { padding: 10px; border-radius: 4px; margin: 10px 0; font-weight: bold; }
+        .connected { background: #d4edda; color: #155724; }
+        .disconnected { background: #f8d7da; color: #721c24; }
+        .trade-test { background: #e7f3ff; padding: 15px; border-radius: 5px; margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <h1>🔌 Enhanced WebSocket Test - TradeTaper Real-Time Features</h1>
+    
+    <div class="container">
+        <!-- Left Panel: Connection & Control -->
+        <div class="panel">
+            <h3>WebSocket Connection</h3>
+            
+            <div>
+                <label>Backend URL:</label><br>
+                <input type="text" id="backendUrl" value="http://localhost:3001" style="width: 250px;">
+            </div>
+            
+            <div style="margin: 10px 0;">
+                <label>JWT Token:</label><br>
+                <input type="text" id="jwtToken" placeholder="Paste token here" style="width: 400px;">
+                <button onclick="getTokenManual()">Get New Token</button>
+            </div>
+            
+            <div id="connectionStatus" class="status disconnected">
+                ❌ Disconnected
+            </div>
+            
+            <div>
+                <button onclick="connectWebSocket()" id="connectBtn">🔌 Connect WebSocket</button>
+                <button onclick="disconnectWebSocket()" id="disconnectBtn" disabled>🔌 Disconnect</button>
+                <button onclick="clearLog()">🗑️ Clear Log</button>
+            </div>
+            
+            <!-- Trade Testing Section -->
+            <div class="trade-test">
+                <h4>📊 Test Real-Time Trade Events</h4>
+                <button onclick="createTestTrade()" id="createTradeBtn" disabled>➕ Create Test Trade</button>
+                <button onclick="updateTestTrade()" id="updateTradeBtn" disabled>✏️ Update Test Trade</button>
+                <button onclick="subscribeToTrades()" id="subscribeBtn" disabled>🔔 Subscribe to Trades</button>
+                <div style="margin: 10px 0;">
+                    <label>Test Trade ID:</label>
+                    <input type="text" id="testTradeId" placeholder="Auto-generated" readonly style="width: 200px;">
+                </div>
+            </div>
+            
+            <!-- WebSocket Events -->
+            <div>
+                <h4>📡 WebSocket Events</h4>
+                <button onclick="sendPing()" id="pingBtn" disabled>🏓 Send Ping</button>
+                <button onclick="testAuthentication()" id="authTestBtn" disabled>🔐 Test Auth</button>
+                <button onclick="getConnectionInfo()" id="infoBtn" disabled>ℹ️ Connection Info</button>
+            </div>
+        </div>
+        
+        <!-- Right Panel: Logs -->
+        <div class="panel">
+            <h3>📜 Real-Time Event Log</h3>
+            <div class="log" id="log"></div>
+            
+            <!-- Stats -->
+            <div style="margin-top: 15px;">
+                <h4>📈 Connection Stats</h4>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 14px;">
+                    <div>Messages Sent: <span id="sentCount">0</span></div>
+                    <div>Messages Received: <span id="receivedCount">0</span></div>
+                    <div>Connection Time: <span id="connectionTime">-</span></div>
+                    <div>Last Activity: <span id="lastActivity">-</span></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let socket = null;
+        let logElement = document.getElementById('log');
+        let connectionStartTime = null;
+        let sentCount = 0;
+        let receivedCount = 0;
+        let lastTradeId = null;
+        
+        // Pre-fill token if available
+        const storedToken = localStorage.getItem('token');
+        if (storedToken) {
+            document.getElementById('jwtToken').value = storedToken;
+            log('🔑 Token loaded from localStorage', 'info');
+        }
+        
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const className = type;
+            logElement.innerHTML += `<div class="${className}">[${timestamp}] ${message}</div>`;
+            logElement.scrollTop = logElement.scrollHeight;
+            
+            // Update last activity
+            document.getElementById('lastActivity').textContent = timestamp;
+            
+            if (type !== 'info') {
+                receivedCount++;
+                document.getElementById('receivedCount').textContent = receivedCount;
+            }
+        }
+        
+        function updateConnectionTime() {
+            if (connectionStartTime) {
+                const elapsed = Math.floor((Date.now() - connectionStartTime) / 1000);
+                document.getElementById('connectionTime').textContent = `${elapsed}s`;
+            }
+        }
+        
+        function updateConnectionStatus(connected) {
+            const statusEl = document.getElementById('connectionStatus');
+            const buttons = ['connectBtn', 'disconnectBtn', 'createTradeBtn', 'updateTradeBtn', 'subscribeBtn', 'pingBtn', 'authTestBtn', 'infoBtn'];
+            
+            if (connected) {
+                statusEl.className = 'status connected';
+                statusEl.innerHTML = '✅ Connected to WebSocket';
+                connectionStartTime = Date.now();
+                
+                // Enable WebSocket buttons
+                ['disconnectBtn', 'createTradeBtn', 'updateTradeBtn', 'subscribeBtn', 'pingBtn', 'authTestBtn', 'infoBtn'].forEach(id => {
+                    document.getElementById(id).disabled = false;
+                });
+                document.getElementById('connectBtn').disabled = true;
+                
+                setInterval(updateConnectionTime, 1000);
+            } else {
+                statusEl.className = 'status disconnected';
+                statusEl.innerHTML = '❌ Disconnected';
+                connectionStartTime = null;
+                
+                // Disable WebSocket buttons
+                ['disconnectBtn', 'createTradeBtn', 'updateTradeBtn', 'subscribeBtn', 'pingBtn', 'authTestBtn', 'infoBtn'].forEach(id => {
+                    document.getElementById(id).disabled = true;
+                });
+                document.getElementById('connectBtn').disabled = false;
+            }
+        }
+        
+        async function getTokenManual() {
+            try {
+                log('🔐 Requesting new authentication token...', 'info');
+                
+                // Use a pre-generated token since direct fetch might have CORS issues
+                const testToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImRlbW91c2VyQHRyYWRldGFwZXIuY29tIiwic3ViIjoiYjNhZjY5N2UtOWJjYS00NDFlLWFkZjEtZWE1Mjc1YWNjMzBmIiwiaWF0IjoxNzUzMTA2NzY5LCJleHAiOjE3NTMxOTMxNjl9.H_2ov69-l4L6Z2ZvtQJn4gRI0boiw4GoYkKVMSl29uc';
+                
+                document.getElementById('jwtToken').value = testToken;
+                localStorage.setItem('token', testToken);
+                log('✅ Test token set (use curl to get fresh token if needed)', 'success');
+                log('💡 Run: curl -X POST http://localhost:3001/api/v1/auth/login -H "Content-Type: application/json" -d \'{"email":"demouser@tradetaper.com","password":"demopassword"}\'', 'info');
+                
+            } catch (error) {
+                log('❌ Token request failed: ' + error.message, 'error');
+            }
+        }
+        
+        function connectWebSocket() {
+            if (socket && socket.connected) {
+                log('⚠️ Already connected to WebSocket', 'warning');
+                return;
+            }
+            
+            const backendUrl = document.getElementById('backendUrl').value;
+            const token = document.getElementById('jwtToken').value.trim();
+            
+            if (!token) {
+                log('❌ Please provide a JWT token first', 'error');
+                return;
+            }
+            
+            log('🔌 Attempting WebSocket connection to: ' + backendUrl + '/trades namespace', 'info');
+            
+            // Connect to the root Socket.IO server, then join the /trades namespace
+            socket = io(backendUrl, {
+                path: '/socket.io',
+                transports: ['polling', 'websocket'],
+                auth: { token: token },
+                query: { token: token },
+                extraHeaders: { 'Authorization': 'Bearer ' + token },
+                timeout: 10000,
+                forceNew: true
+            });
+            
+            // After connecting to main server, connect to trades namespace
+            socket.on('connect', () => {
+                log('✅ Connected to main Socket.IO server! Socket ID: ' + socket.id, 'success');
+                
+                // Now connect to the trades namespace
+                socket.disconnect();
+                socket = io(backendUrl + '/trades', {
+                    path: '/socket.io',
+                    transports: ['polling', 'websocket'],
+                    auth: { token: token },
+                    query: { token: token },
+                    extraHeaders: { 'Authorization': 'Bearer ' + token },
+                    timeout: 10000,
+                    forceNew: true
+                });
+                
+                setupTradesNamespaceHandlers();
+            });
+            
+            socket.on('connect_error', (error) => {
+                log('❌ Main connection error: ' + error.message, 'error');
+                log('🔄 Trying direct trades namespace connection...', 'info');
+                
+                // Try direct connection to trades namespace
+                socket = io(backendUrl + '/trades', {
+                    path: '/socket.io',
+                    transports: ['polling', 'websocket'],
+                    auth: { token: token },
+                    query: { token: token },
+                    extraHeaders: { 'Authorization': 'Bearer ' + token },
+                    timeout: 10000,
+                    forceNew: true
+                });
+                
+                setupTradesNamespaceHandlers();
+            });
+        }
+        
+        function setupTradesNamespaceHandlers() {
+            // Connection events
+            socket.on('connect', () => {
+                log('✅ Connected to /trades namespace! Socket ID: ' + socket.id, 'success');
+                updateConnectionStatus(true);
+                sentCount++;
+                document.getElementById('sentCount').textContent = sentCount;
+            });
+            
+            socket.on('authenticated', (data) => {
+                log('✅ Authenticated: ' + JSON.stringify(data), 'success');
+                log('👤 User: ' + data.userEmail + ' (ID: ' + data.userId + ')', 'info');
+            });
+            
+            socket.on('connection-status', (data) => {
+                log('📡 Connection status: ' + JSON.stringify(data), 'info');
+            });
+            
+            socket.on('disconnect', (reason) => {
+                log('❌ Disconnected: ' + reason, 'error');
+                updateConnectionStatus(false);
+            });
+            
+            socket.on('connect_error', (error) => {
+                log('❌ Connection error: ' + error.message, 'error');
+                log('💡 Debugging info - URL: ' + socket.io.uri + ', Transport: ' + (socket.io.engine ? socket.io.engine.transport.name : 'unknown'), 'info');
+                updateConnectionStatus(false);
+            });
+            
+            socket.on('error', (error) => {
+                log('❌ WebSocket error: ' + JSON.stringify(error), 'error');
+            });
+            
+            // Trade events (the main feature we're testing!)
+            socket.on('trade:created', (data) => {
+                log('📈 🎉 TRADE CREATED: ' + JSON.stringify(data), 'success');
+                if (data.trade && data.trade.id) {
+                    lastTradeId = data.trade.id;
+                    document.getElementById('testTradeId').value = lastTradeId;
+                }
+            });
+            
+            socket.on('trade:updated', (data) => {
+                log('📊 ✏️ TRADE UPDATED: ' + JSON.stringify(data), 'info');
+            });
+            
+            socket.on('trade:deleted', (data) => {
+                log('🗑️ ❌ TRADE DELETED: ' + JSON.stringify(data), 'warning');
+            });
+            
+            socket.on('trades:bulk', (data) => {
+                log('📦 BULK OPERATION: ' + data.operation + ' (' + data.count + ' trades)', 'info');
+            });
+            
+            // Subscription confirmations
+            socket.on('subscribed', (data) => {
+                log('🔔 Subscribed to: ' + JSON.stringify(data), 'success');
+            });
+            
+            socket.on('unsubscribed', (data) => {
+                log('🔕 Unsubscribed from: ' + JSON.stringify(data), 'info');
+            });
+        }
+        
+        function disconnectWebSocket() {
+            if (socket) {
+                socket.disconnect();
+                log('🔌 WebSocket disconnected manually', 'info');
+                updateConnectionStatus(false);
+            }
+        }
+        
+        function subscribeToTrades() {
+            if (!socket || !socket.connected) {
+                log('❌ Not connected to WebSocket', 'error');
+                return;
+            }
+            
+            socket.emit('subscribe', { channel: 'user-activity' });
+            log('📤 Sent subscription to user-activity channel', 'info');
+            sentCount++;
+            document.getElementById('sentCount').textContent = sentCount;
+        }
+        
+        function sendPing() {
+            if (!socket || !socket.connected) {
+                log('❌ Not connected to WebSocket', 'error');
+                return;
+            }
+            
+            socket.emit('ping', { timestamp: Date.now() });
+            log('🏓 Sent ping message', 'info');
+            sentCount++;
+            document.getElementById('sentCount').textContent = sentCount;
+        }
+        
+        function testAuthentication() {
+            if (!socket || !socket.connected) {
+                log('❌ Not connected to WebSocket', 'error');
+                return;
+            }
+            
+            socket.emit('test-auth', { message: 'Testing authentication' });
+            log('🔐 Sent authentication test', 'info');
+            sentCount++;
+            document.getElementById('sentCount').textContent = sentCount;
+        }
+        
+        function getConnectionInfo() {
+            if (!socket || !socket.connected) {
+                log('❌ Not connected to WebSocket', 'error');
+                return;
+            }
+            
+            log('ℹ️ Connection Info:', 'info');
+            log('  - Socket ID: ' + socket.id, 'info');
+            log('  - Transport: ' + socket.io.engine.transport.name, 'info');
+            log('  - Connected: ' + socket.connected, 'info');
+            log('  - Backend URL: ' + document.getElementById('backendUrl').value, 'info');
+        }
+        
+        // Test trade creation via API (to trigger WebSocket events)
+        async function createTestTrade() {
+            const token = document.getElementById('jwtToken').value.trim();
+            if (!token) {
+                log('❌ No token available for API call', 'error');
+                return;
+            }
+            
+            log('📈 Creating test trade via API...', 'info');
+            
+            try {
+                const testTrade = {
+                    symbol: 'EURUSD',
+                    direction: 'BUY',
+                    entryPrice: 1.0850,
+                    exitPrice: 1.0920,
+                    quantity: 10000,
+                    status: 'CLOSED',
+                    openTime: new Date().toISOString(),
+                    closeTime: new Date().toISOString(),
+                    pnl: 70,
+                    notes: 'Test trade created via WebSocket test page'
+                };
+                
+                const response = await fetch('http://localhost:3001/api/v1/trades', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + token
+                    },
+                    body: JSON.stringify(testTrade)
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    log('✅ Test trade created successfully: ' + result.id, 'success');
+                    lastTradeId = result.id;
+                    document.getElementById('testTradeId').value = lastTradeId;
+                    log('⏳ Waiting for WebSocket notification...', 'info');
+                } else {
+                    const error = await response.text();
+                    log('❌ Failed to create test trade: ' + error, 'error');
+                }
+            } catch (error) {
+                log('❌ Error creating test trade: ' + error.message, 'error');
+            }
+        }
+        
+        async function updateTestTrade() {
+            const token = document.getElementById('jwtToken').value.trim();
+            const tradeId = document.getElementById('testTradeId').value.trim();
+            
+            if (!token || !tradeId) {
+                log('❌ Need token and trade ID for update', 'error');
+                return;
+            }
+            
+            log('✏️ Updating test trade via API...', 'info');
+            
+            try {
+                const update = {
+                    notes: 'Updated via WebSocket test at ' + new Date().toLocaleTimeString(),
+                    pnl: Math.floor(Math.random() * 200) - 100 // Random P&L
+                };
+                
+                const response = await fetch(`http://localhost:3001/api/v1/trades/${tradeId}`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + token
+                    },
+                    body: JSON.stringify(update)
+                });
+                
+                if (response.ok) {
+                    log('✅ Test trade updated successfully', 'success');
+                    log('⏳ Waiting for WebSocket notification...', 'info');
+                } else {
+                    const error = await response.text();
+                    log('❌ Failed to update test trade: ' + error, 'error');
+                }
+            } catch (error) {
+                log('❌ Error updating test trade: ' + error.message, 'error');
+            }
+        }
+        
+        function clearLog() {
+            logElement.innerHTML = '';
+            sentCount = 0;
+            receivedCount = 0;
+            document.getElementById('sentCount').textContent = '0';
+            document.getElementById('receivedCount').textContent = '0';
+            log('🗑️ Log cleared', 'info');
+        }
+        
+        // Initialize
+        updateConnectionStatus(false);
+        log('🚀 WebSocket Test Page Ready', 'info');
+        log('💡 Tip: Get a fresh token using the login API, then connect to test real-time features', 'info');
+    </script>
+</body>
+</html> 

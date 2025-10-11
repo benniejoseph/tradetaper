@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Console WebSocket Test</title>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+</head>
+<body>
+    <h1>WebSocket Console Test</h1>
+    <p>Open browser dev tools (F12) and use the console commands below:</p>
+    
+    <div style="background: #f5f5f5; padding: 15px; font-family: monospace; margin: 20px 0;">
+        <h3>Console Commands:</h3>
+        <p><strong>1. Test Basic Connection:</strong></p>
+        <code>testBasicConnection()</code>
+        
+        <p><strong>2. Test with Authentication:</strong></p>
+        <code>testWithAuth()</code>
+        
+        <p><strong>3. Check current status:</strong></p>
+        <code>getStatus()</code>
+    </div>
+
+    <div id="status" style="margin: 20px 0; padding: 10px; border: 1px solid #ccc;"></div>
+
+    <script>
+        let testSocket = null;
+        let lastError = null;
+        
+        function updateStatus(message) {
+            document.getElementById('status').innerHTML += '<div>' + new Date().toLocaleTimeString() + ': ' + message + '</div>';
+            console.log(message);
+        }
+        
+        function testBasicConnection() {
+            console.log('🔧 Testing basic Socket.IO connection...');
+            updateStatus('🔧 Testing basic Socket.IO connection...');
+            
+            if (testSocket) {
+                testSocket.disconnect();
+                testSocket = null;
+            }
+            
+            // Test with different configurations
+            const configs = [
+                {
+                    name: 'Standard Config',
+                    url: 'http://localhost:3001',
+                    options: {
+                        transports: ['polling', 'websocket'],
+                        timeout: 10000,
+                        forceNew: true
+                    }
+                },
+                {
+                    name: 'Polling Only',
+                    url: 'http://localhost:3001', 
+                    options: {
+                        transports: ['polling'],
+                        timeout: 10000,
+                        forceNew: true
+                    }
+                },
+                {
+                    name: 'With CORS Headers',
+                    url: 'http://localhost:3001',
+                    options: {
+                        transports: ['polling'],
+                        timeout: 10000,
+                        forceNew: true,
+                        extraHeaders: {
+                            'Access-Control-Allow-Origin': '*'
+                        }
+                    }
+                }
+            ];
+            
+            let configIndex = 0;
+            
+            function tryNextConfig() {
+                if (configIndex >= configs.length) {
+                    updateStatus('❌ All connection attempts failed');
+                    return;
+                }
+                
+                const config = configs[configIndex];
+                updateStatus(`🔄 Trying ${config.name}...`);
+                
+                testSocket = io(config.url, config.options);
+                
+                const timeout = setTimeout(() => {
+                    updateStatus(`⏰ ${config.name} timed out`);
+                    testSocket.disconnect();
+                    configIndex++;
+                    tryNextConfig();
+                }, 5000);
+                
+                testSocket.on('connect', () => {
+                    clearTimeout(timeout);
+                    updateStatus(`✅ ${config.name} connected! Socket ID: ${testSocket.id}`);
+                    updateStatus(`📡 Transport: ${testSocket.io.engine.transport.name}`);
+                    
+                    // Test a simple emit
+                    testSocket.emit('ping', 'test');
+                    updateStatus('📤 Sent ping message');
+                });
+                
+                testSocket.on('connect_error', (error) => {
+                    clearTimeout(timeout);
+                    lastError = error;
+                    updateStatus(`❌ ${config.name} failed: ${error.message}`);
+                    updateStatus(`   Type: ${error.type}, Description: ${error.description}`);
+                    configIndex++;
+                    tryNextConfig();
+                });
+                
+                testSocket.on('pong', (data) => {
+                    updateStatus(`📥 Received pong: ${data}`);
+                });
+                
+                testSocket.on('disconnect', (reason) => {
+                    updateStatus(`🔌 Disconnected: ${reason}`);
+                });
+            }
+            
+            tryNextConfig();
+        }
+        
+        async function testWithAuth() {
+            console.log('🔐 Testing with authentication...');
+            updateStatus('🔐 Testing with authentication...');
+            
+            try {
+                // Get token
+                const response = await fetch('http://localhost:3001/api/v1/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: 'demouser@tradetaper.com',
+                        password: 'demopassword'
+                    })
+                });
+                
+                if (!response.ok) {
+                    updateStatus(`❌ Auth failed: ${response.status}`);
+                    return;
+                }
+                
+                const authData = await response.json();
+                const token = authData.accessToken;
+                updateStatus(`✅ Got token: ${token.substring(0, 20)}...`);
+                
+                // Test namespace with token
+                if (testSocket) {
+                    testSocket.disconnect();
+                }
+                
+                testSocket = io('http://localhost:3001/trades', {
+                    transports: ['polling'],
+                    auth: { token: token },
+                    query: { token: token },
+                    timeout: 15000,
+                    forceNew: true
+                });
+                
+                testSocket.on('connect', () => {
+                    updateStatus(`✅ Authenticated namespace connected! ID: ${testSocket.id}`);
+                });
+                
+                testSocket.on('authenticated', (data) => {
+                    updateStatus(`🔐 Authentication confirmed: ${JSON.stringify(data)}`);
+                });
+                
+                testSocket.on('connect_error', (error) => {
+                    lastError = error;
+                    updateStatus(`❌ Namespace connection failed: ${error.message}`);
+                    updateStatus(`   Type: ${error.type}, Description: ${error.description}`);
+                });
+                
+            } catch (error) {
+                updateStatus(`❌ Test failed: ${error.message}`);
+            }
+        }
+        
+        function getStatus() {
+            const status = {
+                socketConnected: testSocket ? testSocket.connected : false,
+                socketId: testSocket ? testSocket.id : null,
+                transport: testSocket && testSocket.connected ? testSocket.io.engine.transport.name : null,
+                lastError: lastError,
+                userAgent: navigator.userAgent,
+                currentUrl: window.location.href
+            };
+            
+            console.log('Current Status:', status);
+            updateStatus(`📊 Status: ${JSON.stringify(status, null, 2)}`);
+            return status;
+        }
+        
+        // Auto-run basic test
+        window.addEventListener('load', () => {
+            updateStatus('🚀 Console WebSocket test ready');
+            updateStatus('💡 Run testBasicConnection() in console to start');
+            
+            // Make functions globally available
+            window.testBasicConnection = testBasicConnection;
+            window.testWithAuth = testWithAuth;
+            window.getStatus = getStatus;
+        });
+    </script>
+</body>
+</html> 
