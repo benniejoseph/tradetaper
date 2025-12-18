@@ -48,7 +48,7 @@ let StripeService = StripeService_1 = class StripeService {
             throw error;
         }
     }
-    async createCheckoutSession(priceId, customerId, successUrl, cancelUrl) {
+    async createCheckoutSession(priceId, customerId, successUrl, cancelUrl, userId) {
         try {
             const session = await this.stripe.checkout.sessions.create({
                 customer: customerId,
@@ -67,6 +67,9 @@ let StripeService = StripeService_1 = class StripeService {
                 automatic_tax: {
                     enabled: true,
                 },
+                metadata: {
+                    userId,
+                },
             });
             this.logger.log(`Created checkout session: ${session.id}`);
             return session;
@@ -74,6 +77,38 @@ let StripeService = StripeService_1 = class StripeService {
         catch (error) {
             this.logger.error('Failed to create checkout session', error);
             throw error;
+        }
+    }
+    async createPaymentLink(userId, priceId, customerId) {
+        try {
+            this.logger.log(`🔗 Creating payment link for user ${userId}, price: ${priceId}`);
+            const paymentLink = await this.stripe.paymentLinks.create({
+                line_items: [
+                    {
+                        price: priceId,
+                        quantity: 1,
+                    },
+                ],
+                metadata: {
+                    userId,
+                    customerId,
+                },
+            });
+            this.logger.log(`✅ Payment link created: ${paymentLink.id}`);
+            return {
+                paymentLinkId: paymentLink.id,
+                url: paymentLink.url,
+            };
+        }
+        catch (error) {
+            this.logger.error(`❌ Payment link creation failed:`, {
+                error: error.message,
+                code: error.code,
+                type: error.type,
+                userId,
+                priceId,
+            });
+            throw new Error(`Failed to create payment link: ${error.message}`);
         }
     }
     async createBillingPortalSession(customerId, returnUrl) {
@@ -172,18 +207,12 @@ let StripeService = StripeService_1 = class StripeService {
             throw error;
         }
     }
-    constructEvent(payload, signature) {
+    constructWebhookEvent(payload, signature) {
         const webhookSecret = this.configService.get('STRIPE_WEBHOOK_SECRET');
         if (!webhookSecret) {
-            throw new Error('STRIPE_WEBHOOK_SECRET environment variable is required');
+            throw new Error('STRIPE_WEBHOOK_SECRET is required');
         }
-        try {
-            return this.stripe.webhooks.constructEvent(payload, signature, webhookSecret);
-        }
-        catch (error) {
-            this.logger.error('Failed to construct Stripe event', error);
-            throw error;
-        }
+        return this.stripe.webhooks.constructEvent(payload, signature, webhookSecret);
     }
 };
 exports.StripeService = StripeService;

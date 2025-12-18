@@ -1,3 +1,4 @@
+import { PsychologicalInsight } from './psychological-insight.entity';
 import { User } from '../../users/entities/user.entity';
 import { Account } from '../../users/entities/account.entity';
 import { Trade } from '../../trades/entities/trade.entity';
@@ -15,6 +16,8 @@ export declare class Note {
     title: string;
     content: NoteContentBlock[];
     tags: string[];
+    chartImageUrl?: string;
+    chartAnalysisData?: Record<string, any>;
     createdAt: Date;
     updatedAt: Date;
     deletedAt?: Date;
@@ -22,9 +25,11 @@ export declare class Note {
     visibility: 'private' | 'shared';
     wordCount: number;
     readingTime: number;
+    psychologicalTags?: string[];
     user: User;
     account?: Account;
     trade?: Trade;
+    psychologicalInsights: PsychologicalInsight[];
     get preview(): string;
     get hasMedia(): boolean;
     get blockCount(): number;

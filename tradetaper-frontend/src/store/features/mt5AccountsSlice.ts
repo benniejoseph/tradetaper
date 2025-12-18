@@ -1,9 +1,36 @@
 // src/store/features/mt5AccountsSlice.ts
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
-import { MT5Account, CreateMT5AccountPayload, UpdateMT5AccountPayload } from '@/types/mt5Account';
-import { MT5AccountsService } from '@/services/mt5AccountsService';
 import { RootState } from '../store';
 import toast from 'react-hot-toast';
+
+// Mock types since services were removed
+export interface MT5Account {
+  id: string;
+  name: string;
+  server: string;
+  login: string;
+  password: string;
+  isActive: boolean;
+  lastSync?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateMT5AccountPayload {
+  name: string;
+  server: string;
+  login: string;
+  password: string;
+}
+
+export interface UpdateMT5AccountPayload {
+  id: string;
+  name?: string;
+  server?: string;
+  login?: string;
+  password?: string;
+  isActive?: boolean;
+}
 
 interface MT5AccountsState {
   accounts: MT5Account[];
@@ -19,13 +46,13 @@ const initialState: MT5AccountsState = {
   error: null,
 };
 
-// Async Thunks
+// Mock Async Thunks since services were removed
 export const fetchMT5Accounts = createAsyncThunk(
   'mt5Accounts/fetchAccounts',
   async (_, { rejectWithValue }) => {
     try {
-      const accounts = await MT5AccountsService.getAccounts();
-      return accounts;
+      // Mock implementation
+      return [] as MT5Account[];
     } catch (error) {
       return rejectWithValue((error as Error).message || 'Failed to fetch MT5 accounts');
     }
@@ -36,7 +63,14 @@ export const createMT5Account = createAsyncThunk(
   'mt5Accounts/createAccount',
   async (accountData: CreateMT5AccountPayload, { rejectWithValue }) => {
     try {
-      const newAccount = await MT5AccountsService.createAccount(accountData);
+      // Mock implementation
+      const newAccount: MT5Account = {
+        id: Date.now().toString(),
+        ...accountData,
+        isActive: true,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
       toast.success('MT5 account created successfully');
       return newAccount;
     } catch (error) {
@@ -50,7 +84,18 @@ export const updateMT5Account = createAsyncThunk(
   'mt5Accounts/updateAccount',
   async ({ id, data }: { id: string; data: UpdateMT5AccountPayload }, { rejectWithValue }) => {
     try {
-      const updatedAccount = await MT5AccountsService.updateAccount(id, data);
+      // Mock implementation
+      const updatedAccount: MT5Account = {
+        id,
+        name: 'Mock Account',
+        server: 'MockServer',
+        login: '12345',
+        password: '****',
+        isActive: true,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        ...data,
+      };
       toast.success('MT5 account updated successfully');
       return updatedAccount;
     } catch (error) {
@@ -64,7 +109,7 @@ export const deleteMT5Account = createAsyncThunk(
   'mt5Accounts/deleteAccount',
   async (id: string, { rejectWithValue }) => {
     try {
-      await MT5AccountsService.deleteAccount(id);
+      // Mock implementation
       toast.success('MT5 account deleted successfully');
       return id;
     } catch (error) {
@@ -78,7 +123,18 @@ export const syncMT5Account = createAsyncThunk(
   'mt5Accounts/syncAccount',
   async (id: string, { rejectWithValue }) => {
     try {
-      const updatedAccount = await MT5AccountsService.syncAccount(id);
+      // Mock implementation
+      const updatedAccount: MT5Account = {
+        id,
+        name: 'Mock Account',
+        server: 'MockServer',
+        login: '12345',
+        password: '****',
+        isActive: true,
+        lastSync: new Date().toISOString(),
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
       toast.success('MT5 account synced successfully');
       return updatedAccount;
     } catch (error) {

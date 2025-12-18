@@ -618,10 +618,16 @@ let MultiProviderMarketDataService = MultiProviderMarketDataService_1 = class Mu
             if (assetType !== 'forex' && assetType !== 'commodities') {
                 throw new Error(`Asset type ${assetType} not supported by TraderMade for historical data`);
             }
-            const startDate = fromDate ? fromDate.toISOString().split('T')[0] : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-            const endDate = toDate ? toDate.toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
+            const startDate = fromDate
+                ? fromDate.toISOString().split('T')[0]
+                : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+                    .toISOString()
+                    .split('T')[0];
+            const endDate = toDate
+                ? toDate.toISOString().split('T')[0]
+                : new Date().toISOString().split('T')[0];
             const priceDataPoints = await this.marketDataService.getTradermadeHistoricalData(symbol, startDate, endDate, interval);
-            const historicalData = priceDataPoints.map(point => ({
+            const historicalData = priceDataPoints.map((point) => ({
                 timestamp: new Date(point.time * 1000),
                 open: point.open,
                 high: point.high,

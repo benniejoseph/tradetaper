@@ -42,18 +42,18 @@ export default function SetTargetModal({
 
   return (
     <div 
-      className="fixed inset-0 bg-black bg-opacity-70 backdrop-blur-md flex items-center justify-center p-4 z-[100] transition-opacity duration-300 ease-in-out"
+      className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 z-[100] transition-opacity duration-300 ease-in-out"
       onClick={onClose} // Click on overlay closes modal
     >
       <div 
-        className="bg-[var(--color-light-primary)] dark:bg-dark-secondary rounded-xl shadow-2xl p-6 sm:p-8 w-full max-w-lg transform transition-all duration-300 ease-in-out scale-100 opacity-100 dark:shadow-card-modern"
+        className="bg-white dark:bg-black rounded-xl shadow-2xl p-6 sm:p-8 w-full max-w-lg transform transition-all duration-300 ease-in-out scale-100 opacity-100 border border-gray-200 dark:border-emerald-600/30"
         onClick={(e) => e.stopPropagation()} // Prevent click inside modal from closing it
       >
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl sm:text-2xl font-semibold text-[var(--color-text-dark-primary)] dark:text-text-light-primary">{title}</h2>
+          <h2 className="text-xl sm:text-2xl font-semibold text-gray-900 dark:text-white">{title}</h2>
           <button 
             onClick={onClose} 
-            className="text-[var(--color-text-dark-secondary)] dark:text-text-light-secondary hover:text-accent-red dark:hover:text-accent-red p-1 rounded-full transition-colors"
+            className="text-gray-600 dark:text-gray-400 hover:text-red-500 dark:hover:text-red-400 p-1 rounded-full transition-colors"
             aria-label="Close modal"
           >
             <FaTimes size={22} />
@@ -74,7 +74,7 @@ export default function SetTargetModal({
 
         <div className="space-y-4">
           <div>
-            <label htmlFor="goalAmount" className="block text-sm font-medium text-[var(--color-text-dark-secondary)] dark:text-text-light-secondary mb-1.5">
+            <label htmlFor="goalAmount" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
               Target Goal Amount ($)
             </label>
             <input 
@@ -84,7 +84,7 @@ export default function SetTargetModal({
               value={goalAmount}
               onChange={(e) => setGoalAmount(e.target.value)}
               placeholder="e.g., 1000"
-              className="w-full px-4 py-3 border border-[var(--color-light-border)] dark:border-dark-primary rounded-lg focus:ring-2 focus:ring-accent-green focus:border-transparent outline-none transition-colors bg-transparent text-[var(--color-text-dark-primary)] dark:text-text-light-primary placeholder:text-[var(--color-text-dark-placeholder)] dark:placeholder:text-[var(--color-text-light-placeholder)] shadow-sm text-base"
+              className="w-full px-4 py-3 border border-gray-300 dark:border-emerald-600/30 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none transition-colors bg-transparent text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 shadow-sm text-base"
               autoFocus
             />
           </div>
@@ -94,14 +94,14 @@ export default function SetTargetModal({
           <button 
             type="button"
             onClick={onClose}
-            className="w-full sm:w-auto px-6 py-3 text-sm font-semibold rounded-lg border border-[var(--color-light-border)] dark:border-dark-primary hover:bg-[var(--color-light-hover)] dark:hover:bg-dark-hover text-[var(--color-text-dark-primary)] dark:text-text-light-primary transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-accent-green dark:focus:ring-offset-dark-secondary shadow-sm"
+            className="w-full sm:w-auto px-6 py-3 text-sm font-semibold rounded-lg border border-gray-300 dark:border-emerald-600/30 hover:bg-gray-100 dark:hover:bg-[#0A0A0A] text-gray-900 dark:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 dark:focus:ring-offset-black shadow-sm"
           >
             Cancel
           </button>
           <button 
             type="button"
             onClick={handleSave}
-            className="w-full sm:w-auto px-6 py-3 text-sm font-semibold rounded-lg bg-accent-green text-dark-primary hover:bg-accent-green-darker transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-accent-green dark:focus:ring-offset-dark-secondary shadow-md hover:shadow-lg"
+            className="w-full sm:w-auto px-6 py-3 text-sm font-semibold rounded-lg bg-gradient-to-r from-emerald-500 to-emerald-600 text-white hover:from-emerald-600 hover:to-emerald-700 transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 dark:focus:ring-offset-black shadow-md hover:shadow-lg"
           >
             Save Target
           </button>

@@ -234,7 +234,7 @@ This project is part of the TradeTaper platform. All rights reserved.
 
 - **Live Demo**: [https://tradetaper-admin-mya0n91q3-benniejosephs-projects.vercel.app](https://tradetaper-admin-mya0n91q3-benniejosephs-projects.vercel.app)
 - **Main App**: [https://tradetaper-frontend-benniejosephs-projects.vercel.app](https://tradetaper-frontend-benniejosephs-projects.vercel.app)
-- **Backend API**: [https://tradetaper-backend-production.up.railway.app](https://tradetaper-backend-production.up.railway.app)
+- **Backend API**: [https://tradetaper-backend-326520250422.us-central1.run.app](https://tradetaper-backend-326520250422.us-central1.run.app)
 
 ## 📞 Support
 

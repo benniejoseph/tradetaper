@@ -1,7 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { contentService } from '@/services/contentService';
+import React from 'react';
 
 interface MarkdownContentProps {
   contentType: 'product-description' | 'terms' | 'privacy' | 'cancellation-refund' | 'support' | 'index';
@@ -14,67 +13,24 @@ const MarkdownContent: React.FC<MarkdownContentProps> = ({
   title,
   className = '' 
 }) => {
-  const [content, setContent] = useState<string>('');
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const contentTypeMap = {
-    'product-description': () => contentService.getProductDescription(),
-    'terms': () => contentService.getTermsOfService(),
-    'privacy': () => contentService.getPrivacyPolicy(),
-    'cancellation-refund': () => contentService.getCancellationRefundPolicy(),
-    'support': () => contentService.getSupportGuide(),
-    'index': () => contentService.getContentIndex()
+  const getContent = () => {
+    switch (contentType) {
+      case 'product-description':
+        return '<p>TradeTaper is your advanced trading journal and analysis platform.</p>';
+      case 'terms':
+        return '<p>Terms of Service content will be displayed here.</p>';
+      case 'privacy':
+        return '<p>Privacy Policy content will be displayed here.</p>';
+      case 'cancellation-refund':
+        return '<p>Cancellation and Refund Policy content will be displayed here.</p>';
+      case 'support':
+        return '<p>Support Guide content will be displayed here.</p>';
+      case 'index':
+        return '<p>Content Index will be displayed here.</p>';
+      default:
+        return '<p>Content not available.</p>';
+    }
   };
-
-  useEffect(() => {
-    const fetchContent = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        
-        const contentFetcher = contentTypeMap[contentType];
-        if (!contentFetcher) {
-          throw new Error(`Unknown content type: ${contentType}`);
-        }
-        
-        const fetchedContent = await contentFetcher();
-        setContent(fetchedContent);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load content');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchContent();
-  }, [contentType]);
-
-  if (loading) {
-    return (
-      <div className={`flex items-center justify-center p-8 ${className}`}>
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-        <span className="ml-3 text-gray-600">Loading content...</span>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className={`p-8 text-center ${className}`}>
-        <div className="bg-red-50 border border-red-200 rounded-lg p-6">
-          <h3 className="text-lg font-medium text-red-800 mb-2">Error Loading Content</h3>
-          <p className="text-red-600">{error}</p>
-          <button 
-            onClick={() => window.location.reload()}
-            className="mt-4 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
-          >
-            Try Again
-          </button>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className={`prose prose-lg max-w-none ${className}`}>
@@ -83,7 +39,7 @@ const MarkdownContent: React.FC<MarkdownContentProps> = ({
       )}
       <div 
         className="markdown-content"
-        dangerouslySetInnerHTML={{ __html: content }}
+        dangerouslySetInnerHTML={{ __html: getContent() }}
       />
     </div>
   );

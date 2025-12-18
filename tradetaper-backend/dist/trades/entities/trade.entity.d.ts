@@ -30,6 +30,7 @@ export declare class Trade {
     lessonsLearned?: string;
     imageUrl?: string;
     tags: Tag[];
+    chartImageUrl?: string;
     createdAt: Date;
     updatedAt: Date;
     calculatePnl(): void;

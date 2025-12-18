@@ -40,7 +40,7 @@ let AccountsService = AccountsService_1 = class AccountsService {
             where: { userId },
             order: { createdAt: 'DESC' },
         });
-        return accounts.map(account => this.mapToResponseDto(account));
+        return accounts.map((account) => this.mapToResponseDto(account));
     }
     async findOne(id) {
         return this.accountRepository.findOne({

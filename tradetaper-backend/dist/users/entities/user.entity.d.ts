@@ -1,3 +1,4 @@
+import { PsychologicalInsight } from '../../notes/entities/psychological-insight.entity';
 export declare class User {
     id: string;
     email: string;
@@ -7,6 +8,7 @@ export declare class User {
     lastLoginAt?: Date;
     createdAt: Date;
     updatedAt: Date;
+    psychologicalInsights: PsychologicalInsight[];
     hashPassword(): Promise<void>;
     validatePassword(password: string): Promise<boolean>;
 }

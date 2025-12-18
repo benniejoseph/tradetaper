@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 // src/config/navigation.ts
 import { IconType } from 'react-icons';
-import { FaTachometerAlt, FaListAlt, FaChartBar, FaPenSquare, FaCog, FaBook, FaCalendarAlt, FaChartPie, FaBalanceScale, FaInfoCircle, FaUsers, FaCreditCard, FaDollarSign, FaBullseye, FaStickyNote, FaBrain } from 'react-icons/fa';
+import { FaTachometerAlt, FaListAlt, FaChartBar, FaPenSquare, FaCog, FaBook, FaCalendarAlt, FaChartPie, FaBalanceScale, FaUsers, FaCreditCard, FaDollarSign, FaBullseye, FaStickyNote, FaBrain, FaChartLine } from 'react-icons/fa';
 
 export interface NavItem {
   label: string;
@@ -11,6 +11,7 @@ export interface NavItem {
 
 export const mainNavItems: NavItem[] = [
   { label: 'Dashboard', href: '/dashboard', icon: FaTachometerAlt },
+  { label: 'Market Intelligence', href: '/market-intelligence', icon: FaChartLine }, // ICT Analysis & Market Data
   { label: 'Journal', href: '/journal', icon: FaBook }, // Changed Trades to Journal, new icon
   { label: 'Notes', href: '/notes', icon: FaStickyNote }, // New notes feature
   { label: 'Psychology', href: '/psychology', icon: FaBrain },
@@ -18,7 +19,6 @@ export const mainNavItems: NavItem[] = [
   { label: 'Daily Stats', href: '/daily-stats', icon: FaChartBar }, // New item
   { label: 'Daily Balances', href: '/daily-balances', icon: FaBalanceScale }, // New item
   { label: 'Overview', href: '/overview', icon: FaChartPie }, // New item
-  { label: 'Guides', href: '/guides', icon: FaInfoCircle }, // New item
   // Removing old items like 'Add Trade' and 'Analytics' as they are not in the new design.
   // The Analytics functionality might be merged into 'Overview' or 'Daily Stats'.
   // 'Add Trade' is usually a button on the Journal/Trades page.

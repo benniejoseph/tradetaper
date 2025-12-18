@@ -316,7 +316,7 @@ export class TradingViewRealtimeService implements OnModuleInit, OnModuleDestroy
    */
   private getBasePrice(symbol: string): number {
     const prices: Record<string, number> = {
-      'XAUUSD': 2660.50,
+      'XAUUSD': 4107.00,  // Updated to current Gold price
       'XAGUSD': 31.50,
       'EURUSD': 1.0850,
       'GBPUSD': 1.2750,

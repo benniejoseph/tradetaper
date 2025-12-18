@@ -121,7 +121,7 @@ export default function EditStrategyPage() {
         <div className="text-red-600 dark:text-red-400 mb-4">{error || 'Strategy not found'}</div>
         <button 
           onClick={() => router.back()}
-          className="text-blue-600 dark:text-blue-400 hover:underline"
+          className="text-emerald-600 dark:text-emerald-400 hover:underline"
         >
           Go Back
         </button>
@@ -221,7 +221,7 @@ export default function EditStrategyPage() {
                 id="isActive"
                 checked={strategy.isActive}
                 onChange={(e) => setStrategy(prev => prev ? { ...prev, isActive: e.target.checked } : null)}
-                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                className="h-4 w-4 text-emerald-600 focus:ring-blue-500 border-gray-300 rounded"
               />
               <label htmlFor="isActive" className="ml-2 block text-sm text-gray-700 dark:text-gray-300">
                 Strategy is active
@@ -267,7 +267,7 @@ export default function EditStrategyPage() {
               <button
                 type="button"
                 onClick={addChecklistItem}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center"
+                className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors flex items-center"
               >
                 <FiPlus className="w-4 h-4" />
               </button>
@@ -286,7 +286,7 @@ export default function EditStrategyPage() {
           <button
             type="submit"
             disabled={saving || !strategy.name.trim()}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             {saving ? 'Saving...' : 'Save Changes'}
           </button>

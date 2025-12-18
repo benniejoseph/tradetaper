@@ -19,14 +19,14 @@ async function bootstrap() {
             origin: [
                 'https://tradetaper-admin.vercel.app',
                 'http://localhost:3000',
-                'http://localhost:3001'
+                'http://localhost:3001',
             ],
-            credentials: true
+            credentials: true,
         });
         app.setGlobalPrefix('api/v1');
         app.useGlobalPipes(new common_1.ValidationPipe({
             whitelist: true,
-            forbidNonWhitelisted: false
+            forbidNonWhitelisted: false,
         }));
         console.log(`🔧 Starting server on port ${port}...`);
         await app.listen(port, '0.0.0.0');

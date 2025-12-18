@@ -44,6 +44,7 @@ let Trade = class Trade {
     lessonsLearned;
     imageUrl;
     tags;
+    chartImageUrl;
     createdAt;
     updatedAt;
     calculatePnl() {
@@ -215,6 +216,15 @@ __decorate([
     }),
     __metadata("design:type", Array)
 ], Trade.prototype, "tags", void 0);
+__decorate([
+    (0, typeorm_1.Column)({
+        type: 'varchar',
+        length: 2048,
+        nullable: true,
+        name: 'chart_image_url',
+    }),
+    __metadata("design:type", String)
+], Trade.prototype, "chartImageUrl", void 0);
 __decorate([
     (0, typeorm_1.CreateDateColumn)(),
     __metadata("design:type", Date)

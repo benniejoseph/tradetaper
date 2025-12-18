@@ -13,10 +13,16 @@ exports.TestController = void 0;
 const common_1 = require("@nestjs/common");
 let TestController = class TestController {
     test() {
-        return { message: 'Test controller working', timestamp: new Date().toISOString() };
+        return {
+            message: 'Test controller working',
+            timestamp: new Date().toISOString(),
+        };
     }
     testGoogle() {
-        return { message: 'Test Google endpoint working', timestamp: new Date().toISOString() };
+        return {
+            message: 'Test Google endpoint working',
+            timestamp: new Date().toISOString(),
+        };
     }
 };
 exports.TestController = TestController;

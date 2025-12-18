@@ -9,9 +9,9 @@ export declare class MediaController {
     }>;
     deleteFile(mediaId: string, req: any): Promise<void>;
     getMediaByNote(noteId: string, req: any): Promise<NoteMedia[]>;
-    generateEmbedData(url: string): Promise<{
+    generateEmbedData(url: string): {
         title: string;
         description: string;
         thumbnail?: string;
-    }>;
+    };
 }

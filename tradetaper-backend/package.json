@@ -32,6 +32,7 @@
     "@google-cloud/cloud-sql-connector": "^1.2.1",
     "@google-cloud/storage": "^7.7.0",
     "@google/generative-ai": "^0.15.0",
+    "@mathieuc/tradingview": "^3.5.2",
     "@nestjs/axios": "^4.0.0",
     "@nestjs/cache-manager": "^3.0.1",
     "@nestjs/common": "^11.0.1",
@@ -49,6 +50,7 @@
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.2",
     "date-fns": "^4.1.0",
+    "exceljs": "^4.4.0",
     "form-data": "^4.0.3",
     "isomorphic-dompurify": "^2.26.0",
     "multer": "^2.0.1",
@@ -63,8 +65,7 @@
     "socket.io": "^4.8.1",
     "stripe": "^18.3.0",
     "typeorm": "^0.3.25",
-    "uuid": "^11.1.0",
-    "xlsx": "0.18.5"
+    "uuid": "^11.1.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.2.0",

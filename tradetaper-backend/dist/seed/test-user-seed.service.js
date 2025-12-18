@@ -103,7 +103,12 @@ let TestUserSeedService = TestUserSeedService_1 = class TestUserSeedService {
                 tags: 'ICT, London, MSS, OTE',
                 checklist: [
                     { id: '1', text: 'Check DXY bias', completed: false, order: 1 },
-                    { id: '2', text: 'Identify previous day high/low', completed: false, order: 2 },
+                    {
+                        id: '2',
+                        text: 'Identify previous day high/low',
+                        completed: false,
+                        order: 2,
+                    },
                 ],
             },
         ];
@@ -145,7 +150,7 @@ let TestUserSeedService = TestUserSeedService_1 = class TestUserSeedService {
             const openTime = new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000);
             const direction = Math.random() > 0.5 ? enums_1.TradeDirection.LONG : enums_1.TradeDirection.SHORT;
             const status = enums_1.TradeStatus.CLOSED;
-            const basePrice = 1.0850;
+            const basePrice = 1.085;
             const openPrice = basePrice + (Math.random() - 0.5) * basePrice * 0.01;
             const closePrice = openPrice + (Math.random() - 0.5) * basePrice * 0.005;
             const closeTime = new Date(openTime.getTime() + Math.random() * 24 * 60 * 60 * 1000);
@@ -181,7 +186,7 @@ let TestUserSeedService = TestUserSeedService_1 = class TestUserSeedService {
     }
     async deleteTestUser() {
         const testUser = await this.userRepository.findOne({
-            where: { email: 'trader@tradetaper.com' }
+            where: { email: 'trader@tradetaper.com' },
         });
         if (testUser) {
             await this.userRepository.remove(testUser);

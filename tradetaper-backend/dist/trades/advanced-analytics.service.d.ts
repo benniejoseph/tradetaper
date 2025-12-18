@@ -50,10 +50,6 @@ export declare class AdvancedAnalyticsService {
     private calculateCVaR;
     private calculateAnnualizedReturn;
     private calculateVolatility;
-    private calculateBeta;
-    private calculateAlpha;
-    private calculateInformationRatio;
-    private calculateTreynorRatio;
     private calculateWinLossRatio;
     private calculateProfitFactor;
     private calculateExpectancy;

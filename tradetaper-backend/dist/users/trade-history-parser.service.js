@@ -42,7 +42,7 @@ var TradeHistoryParserService_1;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.TradeHistoryParserService = void 0;
 const common_1 = require("@nestjs/common");
-const XLSX = __importStar(require("xlsx"));
+const ExcelJS = __importStar(require("exceljs"));
 let TradeHistoryParserService = TradeHistoryParserService_1 = class TradeHistoryParserService {
     logger = new common_1.Logger(TradeHistoryParserService_1.name);
     async parseTradeHistory(buffer, fileType, fileName) {
@@ -210,23 +210,38 @@ let TradeHistoryParserService = TradeHistoryParserService_1 = class TradeHistory
         this.logger.log(`Parsed ${trades.length} trades from HTML file`);
         return { trades, accountBalance, accountCurrency, totalNetProfit, equity };
     }
-    parseExcelTradeHistory(buffer) {
-        const workbook = XLSX.read(buffer, { type: 'buffer' });
+    async parseExcelTradeHistory(buffer) {
+        const workbook = new ExcelJS.Workbook();
+        await workbook.xlsx.load(buffer);
         const trades = [];
         let accountBalance;
         let accountCurrency;
         let totalNetProfit;
         let equity;
-        for (const sheetName of workbook.SheetNames) {
-            const worksheet = workbook.Sheets[sheetName];
-            const sheetData = XLSX.utils.sheet_to_json(worksheet, {
-                header: 1,
+        for (const worksheet of workbook.worksheets) {
+            const sheetName = worksheet.name;
+            const sheetData = [];
+            worksheet.eachRow({ includeEmpty: false }, (row, rowNumber) => {
+                const rowData = [];
+                row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+                    let value = cell.value;
+                    if (value && typeof value === 'object') {
+                        if ('result' in value)
+                            value = value.result;
+                        else if ('text' in value)
+                            value = value.text;
+                        else if ('richText' in value)
+                            value = value.richText.map((rt) => rt.text).join('');
+                    }
+                    rowData[colNumber - 1] = value;
+                });
+                sheetData.push(rowData);
             });
             for (let i = 0; i < Math.min(sheetData.length, 10); i++) {
                 const row = sheetData[i];
                 if (!row)
                     continue;
-                const rowText = row.join(' ').toLowerCase();
+                const rowText = row.filter(c => c != null).join(' ').toLowerCase();
                 if (rowText.includes('balance') && !accountBalance) {
                     for (let j = 0; j < row.length; j++) {
                         const cell = (row[j] || '').toString();
@@ -266,7 +281,7 @@ let TradeHistoryParserService = TradeHistoryParserService_1 = class TradeHistory
                 const row = sheetData[i];
                 if (!row)
                     continue;
-                const rowText = row.join(' ').toLowerCase();
+                const rowText = row.filter(c => c != null).join(' ').toLowerCase();
                 if (rowText.includes('position') &&
                     rowText.includes('symbol') &&
                     rowText.includes('type')) {

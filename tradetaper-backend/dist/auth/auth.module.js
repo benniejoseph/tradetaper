@@ -34,7 +34,8 @@ exports.AuthModule = AuthModule = __decorate([
                 imports: [config_1.ConfigModule],
                 inject: [config_1.ConfigService],
                 useFactory: async (configService) => {
-                    const jwtSecret = configService.get('JWT_SECRET') || 'temporary-fallback-jwt-secret-for-debugging-please-set-proper-secret-in-production-environment-12345';
+                    const jwtSecret = configService.get('JWT_SECRET') ||
+                        'temporary-fallback-jwt-secret-for-debugging-please-set-proper-secret-in-production-environment-12345';
                     console.log('JWT Configuration - No Expiration:', {
                         hasSecret: !!jwtSecret,
                         secretLength: jwtSecret.length,

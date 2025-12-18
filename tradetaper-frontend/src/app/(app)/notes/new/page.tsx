@@ -293,7 +293,7 @@ const NewNotePage: React.FC = () => {
                   ...prev, 
                   visibility: prev.visibility === 'private' ? 'shared' : 'private' 
                 }))}
-                className="flex items-center gap-2 px-3 py-1 rounded-lg border border-gray-300 dark:border-gray-600"
+                className="flex items-center gap-2 px-3 py-1 rounded-lg border border-emerald-300 dark:border-emerald-600/30 bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-950/20 dark:to-emerald-900/20 hover:from-emerald-100 hover:to-emerald-200 dark:hover:from-emerald-900/30 dark:hover:to-emerald-800/30 transition-all"
               >
                 {note.visibility === 'private' ? <FaEyeSlash /> : <FaEye />}
                 <span className="text-sm capitalize">{note.visibility}</span>
@@ -303,7 +303,7 @@ const NewNotePage: React.FC = () => {
             <AnimatedButton
               onClick={() => handleSave(false)}
               variant="gradient"
-              className="bg-gradient-to-r from-blue-500 to-purple-500"
+              className="bg-gradient-to-r from-emerald-500 to-emerald-600"
               icon={saving ? <FaSpinner className="animate-spin" /> : <FaSave />}
               iconPosition="left"
               disabled={saving}
@@ -330,12 +330,12 @@ const NewNotePage: React.FC = () => {
               {note.tags.map(tag => (
                 <span
                   key={tag}
-                  className="flex items-center gap-1 px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full text-sm"
+                  className="flex items-center gap-1 px-3 py-1 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 rounded-full text-sm"
                 >
                   {tag}
                   <button
                     onClick={() => removeTag(tag)}
-                    className="text-blue-500 hover:text-blue-700"
+                    className="text-emerald-500 hover:text-emerald-700"
                   >
                     ×
                   </button>
@@ -361,13 +361,13 @@ const NewNotePage: React.FC = () => {
                     setShowTagInput(false);
                   }}
                   placeholder="Add tag..."
-                  className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-full text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                  className="px-3 py-1 border border-emerald-300 dark:border-emerald-600/30 rounded-full text-sm outline-none focus:ring-2 focus:ring-emerald-500 bg-white dark:bg-black/50"
                   autoFocus
                 />
               ) : (
                 <button
                   onClick={() => setShowTagInput(true)}
-                  className="flex items-center gap-1 px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-full text-sm text-gray-600 dark:text-gray-400 hover:text-blue-500"
+                  className="flex items-center gap-1 px-3 py-1 border border-emerald-300 dark:border-emerald-600/30 rounded-full text-sm text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/20 transition-all bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-950/10 dark:to-emerald-900/10"
                 >
                   <FaTags />
                   Add tag
@@ -391,11 +391,11 @@ const NewNotePage: React.FC = () => {
           </div>
 
           {/* Add Block Button */}
-          <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
+          <div className="mt-8 pt-6 border-t border-emerald-200 dark:border-emerald-700/30">
             <div className="flex items-center justify-center gap-4">
               <button
                 onClick={() => addBlock('text')}
-                className="flex items-center gap-2 px-6 py-3 text-gray-600 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors border-2 border-dashed border-gray-300 dark:border-gray-600 hover:border-blue-300"
+                className="flex items-center gap-2 px-6 py-3 text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-lg transition-all border-2 border-dashed border-emerald-300 dark:border-emerald-600/30 hover:border-emerald-500"
               >
                 <FaPlus />
                 <span className="font-medium">Add a block</span>
@@ -405,7 +405,7 @@ const NewNotePage: React.FC = () => {
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => addBlock('image')}
-                  className="flex items-center gap-1 px-3 py-2 text-sm text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-md transition-colors"
+                  className="flex items-center gap-1 px-3 py-2 text-sm text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-md transition-colors"
                   title="Add Image"
                 >
                   <FaImage />
@@ -515,7 +515,7 @@ const BlockEditor: React.FC<{
 
     case 'quote':
       return (
-        <div className="group relative border-l-4 border-gray-300 dark:border-gray-600 pl-4">
+        <div className="group relative border-l-4 border-emerald-300 dark:border-emerald-600/30 pl-4">
           <textarea
             id={`block-${block.id}`}
             value={block.content.text || ''}
@@ -616,7 +616,7 @@ const BlockEditor: React.FC<{
 
     case 'image':
       return (
-        <div className="group relative border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6">
+        <div className="group relative border-2 border-dashed border-emerald-300 dark:border-emerald-600/30 rounded-lg p-6">
           <div className="text-center">
             <FaImage className="mx-auto h-12 w-12 text-gray-400" />
             <div className="mt-4 space-y-2">
@@ -684,7 +684,7 @@ const BlockEditor: React.FC<{
                   className={`w-full py-2 px-4 rounded-lg cursor-pointer transition-colors inline-block text-center ${
                     block.content?.uploading 
                       ? 'bg-gray-400 text-gray-600 cursor-not-allowed' 
-                      : 'bg-blue-500 hover:bg-blue-600 text-white'
+                      : 'bg-emerald-500 hover:bg-emerald-600 text-white'
                   }`}
                 >
                   {block.content?.uploading ? (
@@ -765,7 +765,7 @@ const BlockEditor: React.FC<{
       };
 
       return (
-        <div className="group relative border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6">
+        <div className="group relative border-2 border-dashed border-emerald-300 dark:border-emerald-600/30 rounded-lg p-6">
           <div className="text-center">
             <FaVideo className="mx-auto h-12 w-12 text-gray-400" />
             <div className="mt-4 space-y-2">
@@ -774,14 +774,14 @@ const BlockEditor: React.FC<{
                 value={block.content?.url || ''}
                 onChange={(e) => handleContentChange('url', e.target.value)}
                 placeholder="Video URL (YouTube, Vimeo, etc.)"
-                className="w-full bg-transparent border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full bg-transparent border border-emerald-300 dark:border-emerald-600/30 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500"
               />
               <input
                 type="text"
                 value={block.content?.caption || ''}
                 onChange={(e) => handleContentChange('caption', e.target.value)}
                 placeholder="Caption (optional)"
-                className="w-full bg-transparent border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full bg-transparent border border-emerald-300 dark:border-emerald-600/30 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500"
               />
             </div>
             {block.content?.url && (
@@ -808,7 +808,7 @@ const BlockEditor: React.FC<{
 
     case 'embed':
       return (
-        <div className="group relative border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6">
+        <div className="group relative border-2 border-dashed border-emerald-300 dark:border-emerald-600/30 rounded-lg p-6">
           <div className="text-center">
             <FaLink className="mx-auto h-12 w-12 text-gray-400" />
             <div className="mt-4 space-y-2">
@@ -817,20 +817,20 @@ const BlockEditor: React.FC<{
                 value={block.content?.url || ''}
                 onChange={(e) => handleContentChange('url', e.target.value)}
                 placeholder="URL to embed"
-                className="w-full bg-transparent border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full bg-transparent border border-emerald-300 dark:border-emerald-600/30 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500"
               />
               <input
                 type="text"
                 value={block.content?.title || ''}
                 onChange={(e) => handleContentChange('title', e.target.value)}
                 placeholder="Title (optional)"
-                className="w-full bg-transparent border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full bg-transparent border border-emerald-300 dark:border-emerald-600/30 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500"
               />
               <textarea
                 value={block.content?.description || ''}
                 onChange={(e) => handleContentChange('description', e.target.value)}
                 placeholder="Description (optional)"
-                className="w-full bg-transparent border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                className="w-full bg-transparent border border-emerald-300 dark:border-emerald-600/30 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500 resize-none"
                 rows={2}
               />
             </div>
@@ -840,7 +840,7 @@ const BlockEditor: React.FC<{
                   {block.content.title && (
                     <h4 className="font-medium text-gray-900 dark:text-white">{block.content.title}</h4>
                   )}
-                  <p className="text-sm text-blue-500 break-all">{block.content.url}</p>
+                  <p className="text-sm text-emerald-500 break-all">{block.content.url}</p>
                   {block.content.description && (
                     <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{block.content.description}</p>
                   )}
@@ -856,11 +856,11 @@ const BlockEditor: React.FC<{
       return (
         <div className="group relative">
           <div className="overflow-x-auto">
-            <table className="min-w-full border-collapse border border-gray-300 dark:border-gray-600">
+            <table className="min-w-full border-collapse border border-emerald-300 dark:border-emerald-600/30">
               <thead>
                 <tr>
                   {(block.content?.headers || []).map((header: string, i: number) => (
-                    <th key={i} className="border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 p-2">
+                    <th key={i} className="border border-emerald-300 dark:border-emerald-600/30 bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-950/20 dark:to-emerald-900/20 p-2">
                       <input
                         type="text"
                         value={header}
@@ -874,7 +874,7 @@ const BlockEditor: React.FC<{
                       />
                     </th>
                   ))}
-                  <th className="border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 p-2 w-10">
+                  <th className="border border-emerald-300 dark:border-emerald-600/30 bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-950/20 dark:to-emerald-900/20 p-2 w-10">
                     <button
                       onClick={() => {
                         const newHeaders = [...(block.content?.headers || []), ''];
@@ -882,7 +882,7 @@ const BlockEditor: React.FC<{
                         handleContentChange('headers', newHeaders);
                         handleContentChange('rows', newRows);
                       }}
-                      className="text-blue-500 hover:text-blue-700"
+                      className="text-emerald-500 hover:text-emerald-700"
                     >
                       <FaPlus size={12} />
                     </button>
@@ -893,7 +893,7 @@ const BlockEditor: React.FC<{
                 {(block.content?.rows || []).map((row: string[], rowIndex: number) => (
                   <tr key={rowIndex}>
                     {row.map((cell: string, cellIndex: number) => (
-                      <td key={cellIndex} className="border border-gray-300 dark:border-gray-600 p-2">
+                      <td key={cellIndex} className="border border-emerald-300 dark:border-emerald-600/30 p-2">
                         <input
                           type="text"
                           value={cell}
@@ -907,7 +907,7 @@ const BlockEditor: React.FC<{
                         />
                       </td>
                     ))}
-                    <td className="border border-gray-300 dark:border-gray-600 p-2 w-10">
+                    <td className="border border-emerald-300 dark:border-emerald-600/30 p-2 w-10">
                       <button
                         onClick={() => {
                           const newRows = (block.content?.rows || []).filter((_: any, i: number) => i !== rowIndex);
@@ -921,14 +921,14 @@ const BlockEditor: React.FC<{
                   </tr>
                 ))}
                 <tr>
-                  <td colSpan={(block.content?.headers?.length || 0) + 1} className="border border-gray-300 dark:border-gray-600 p-2 text-center">
+                  <td colSpan={(block.content?.headers?.length || 0) + 1} className="border border-emerald-300 dark:border-emerald-600/30 p-2 text-center">
                     <button
                       onClick={() => {
                         const newRow = new Array(block.content?.headers?.length || 2).fill('');
                         const newRows = [...(block.content?.rows || []), newRow];
                         handleContentChange('rows', newRows);
                       }}
-                      className="text-blue-500 hover:text-blue-700 text-sm"
+                      className="text-emerald-500 hover:text-emerald-700 text-sm"
                     >
                       <FaPlus className="inline mr-1" size={12} />
                       Add Row
@@ -952,13 +952,13 @@ const BlockEditor: React.FC<{
 
     case 'callout':
       const calloutIcons = {
-        info: <FaInfoCircle className="text-blue-500" />,
+        info: <FaInfoCircle className="text-emerald-500" />,
         warning: <FaExclamationTriangle className="text-yellow-500" />,
         success: <FaCheckCircle className="text-green-500" />,
       };
 
       return (
-        <div className="group relative bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+        <div className="group relative bg-emerald-50 dark:bg-emerald-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
           <div className="flex items-center gap-2 mb-2">
             {calloutIcons[block.content.type as keyof typeof calloutIcons]}
             <select
@@ -1004,7 +1004,7 @@ const BlockControls: React.FC<{
   <div className="absolute right-0 top-0 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
     <button
       onClick={() => onAddBlock('text')}
-      className="p-1 text-gray-400 hover:text-blue-500 transition-colors"
+      className="p-1 text-gray-400 hover:text-emerald-500 transition-colors"
       title="Add block"
     >
       <FaPlus size={12} />
@@ -1044,12 +1044,12 @@ const BlockMenu: React.FC<{
     { type: 'quote' as const, icon: <FaQuoteLeft className="text-gray-600" />, label: 'Quote', description: 'Quote with attribution' },
     { type: 'list' as const, icon: <FaListUl className="text-gray-600" />, label: 'List', description: 'Bulleted or numbered list' },
     { type: 'code' as const, icon: <FaCode className="text-gray-600" />, label: 'Code', description: 'Code block with syntax highlighting' },
-    { type: 'image' as const, icon: <FaImage className="text-blue-500" />, label: 'Image', description: 'Upload or embed an image' },
-    { type: 'video' as const, icon: <FaVideo className="text-purple-500" />, label: 'Video', description: 'Embed a video' },
-    { type: 'embed' as const, icon: <FaLink className="text-green-500" />, label: 'Embed', description: 'Embed external content' },
+    { type: 'image' as const, icon: <FaImage className="text-emerald-500" />, label: 'Image', description: 'Upload or embed an image' },
+    { type: 'video' as const, icon: <FaVideo className="text-emerald-500" />, label: 'Video', description: 'Embed a video' },
+    { type: 'embed' as const, icon: <FaLink className="text-emerald-500" />, label: 'Embed', description: 'Embed external content' },
     { type: 'table' as const, icon: <FaTable className="text-orange-500" />, label: 'Table', description: 'Structured data table' },
     { type: 'divider' as const, icon: <FaMinus className="text-gray-400" />, label: 'Divider', description: 'Visual separator' },
-    { type: 'callout' as const, icon: <FaInfoCircle className="text-blue-500" />, label: 'Callout', description: 'Important information box' },
+    { type: 'callout' as const, icon: <FaInfoCircle className="text-emerald-500" />, label: 'Callout', description: 'Important information box' },
   ];
 
   // Calculate proper positioning to prevent overflow

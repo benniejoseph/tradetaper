@@ -24,11 +24,7 @@ exports.CommonModule = CommonModule = __decorate([
             global_exception_filter_1.GlobalExceptionFilter,
             logging_interceptor_1.LoggingInterceptor,
         ],
-        exports: [
-            logger_service_1.ProductionLoggerService,
-            global_exception_filter_1.GlobalExceptionFilter,
-            logging_interceptor_1.LoggingInterceptor,
-        ],
+        exports: [logger_service_1.ProductionLoggerService, global_exception_filter_1.GlobalExceptionFilter, logging_interceptor_1.LoggingInterceptor],
     })
 ], CommonModule);
 //# sourceMappingURL=common.module.js.map

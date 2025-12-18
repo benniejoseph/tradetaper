@@ -1,7 +1,7 @@
 "use client";
 import React from 'react';
 import { FaBars, FaTimes } from 'react-icons/fa'; // Icons for menu toggle
-import { ThemeToggleButton } from '@/components/common/ThemeToggleButton'; // Added
+// import { ThemeToggleButton } from '@/components/common/ThemeToggleButton'; // Removed - component no longer exists
 
 interface HeaderProps {
   isSidebarOpen: boolean;
@@ -21,7 +21,7 @@ export default function Header({ isSidebarOpen, toggleSidebar }: HeaderProps) {
           Tradetaper
         </div>
         <div className="flex items-center space-x-2"> {/* Wrapper for buttons */}
-          <ThemeToggleButton />
+          {/* Theme toggle removed - component no longer exists */}
           <button 
             onClick={toggleSidebar}
             className="text-2xl p-1 text-[var(--color-text-dark-secondary)] hover:text-accent-green dark:text-text-light-secondary dark:hover:text-accent-green rounded-md transition-colors duration-150 ease-in-out focus:outline-none focus:ring-2 focus:ring-accent-green"

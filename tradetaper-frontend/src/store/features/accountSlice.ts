@@ -1,36 +1,70 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { RootState } from '../store';
-import { accountsService, Account, CreateAccountPayload, UpdateAccountPayload } from '@/services/accountsService';
+import { authApiClient } from '@/services/api';
 
-// Async thunks for API calls
+export interface Account {
+  id: string;
+  name: string;
+  balance: number;
+  currency: string;
+  description?: string;
+  target?: number;
+  isActive?: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateAccountPayload {
+  name: string;
+  balance: number;
+  currency?: string;
+  description?: string;
+  target?: number;
+  isActive?: boolean;
+}
+
+export interface UpdateAccountPayload {
+  id: string;
+  name?: string;
+  balance?: number;
+  currency?: string;
+  description?: string;
+  target?: number;
+  isActive?: boolean;
+}
+
+// Fetch all accounts for the authenticated user
 export const fetchAccounts = createAsyncThunk(
   'accounts/fetchAccounts',
   async () => {
-    const accounts = await accountsService.getAccounts();
-    return accounts;
+    const response = await authApiClient.get('/users/accounts');
+    return response.data as Account[];
   }
 );
 
+// Create a new account
 export const createAccount = createAsyncThunk(
   'accounts/createAccount',
   async (accountData: CreateAccountPayload) => {
-    const account = await accountsService.createAccount(accountData);
-    return account;
+    const response = await authApiClient.post('/users/accounts', accountData);
+    return response.data as Account;
   }
 );
 
+// Update an existing account
 export const updateAccountThunk = createAsyncThunk(
   'accounts/updateAccount',
   async ({ id, ...updateData }: UpdateAccountPayload & { id: string }) => {
-    const account = await accountsService.updateAccount(id, updateData);
-    return account;
+    const response = await authApiClient.put(`/users/accounts/${id}`, updateData);
+    return response.data as Account;
   }
 );
 
+// Delete an account
 export const deleteAccountThunk = createAsyncThunk(
   'accounts/deleteAccount',
   async (id: string) => {
-    await accountsService.deleteAccount(id);
+    await authApiClient.delete(`/users/accounts/${id}`);
     return id;
   }
 );

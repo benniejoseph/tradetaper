@@ -73,6 +73,9 @@ export class MarketDataProviderService {
     // Determine asset type and route to appropriate provider
     if (this.isCrypto(symbol)) {
       data = await this.getCryptoData(symbol, timeframe, limit);
+    } else if (this.isCommodity(symbol)) {
+      // Commodities (Gold, Silver, Oil) use Yahoo Finance
+      data = await this.getStockData(symbol, timeframe, limit);
     } else if (this.isForex(symbol)) {
       data = await this.getForexData(symbol, timeframe, limit);
     } else {
@@ -185,11 +188,14 @@ export class MarketDataProviderService {
     limit: number,
   ): Promise<Candle[]> {
     try {
-      // For now, use Yahoo Finance API directly
+      // Convert symbol to Yahoo Finance format
+      const yahooSymbol = this.toYahooSymbol(symbol);
       const interval = this.toYahooInterval(timeframe);
       const period = this.calculatePeriod(timeframe, limit);
 
-      const url = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}`;
+      this.logger.log(`Fetching from Yahoo Finance: ${yahooSymbol} (original: ${symbol})`);
+
+      const url = `https://query1.finance.yahoo.com/v8/finance/chart/${yahooSymbol}`;
       const response = await firstValueFrom(
         this.httpService.get(url, {
           params: {
@@ -216,6 +222,19 @@ export class MarketDataProviderService {
       this.logger.error(`Failed to fetch stock data from Yahoo Finance: ${error.message}`);
       return this.generateFallbackData(symbol, limit);
     }
+  }
+
+  /**
+   * Convert symbol to Yahoo Finance format
+   */
+  private toYahooSymbol(symbol: string): string {
+    const yahooMapping: Record<string, string> = {
+      'XAUUSD': 'GC=F',     // Gold Futures
+      'XAGUSD': 'SI=F',     // Silver Futures
+      'BTCUSD': 'BTC-USD',  // Bitcoin
+      'ETHUSD': 'ETH-USD',  // Ethereum
+    };
+    return yahooMapping[symbol] || symbol;
   }
 
   /**
@@ -267,10 +286,16 @@ export class MarketDataProviderService {
     );
   }
 
+  private isCommodity(symbol: string): boolean {
+    const commodities = ['XAUUSD', 'XAGUSD', 'XTIUSD', 'XBRUSD', 'XPTUSD', 'XPDUSD'];
+    return commodities.some(comm => symbol.includes(comm));
+  }
+
   private isForex(symbol: string): boolean {
+    // Forex pairs (excluding commodities)
     const forexPairs = [
       'EURUSD', 'GBPUSD', 'USDJPY', 'AUDUSD', 'USDCAD', 'USDCHF', 
-      'NZDUSD', 'EURGBP', 'EURJPY', 'GBPJPY', 'XAUUSD', 'XAGUSD'
+      'NZDUSD', 'EURGBP', 'EURJPY', 'GBPJPY'
     ];
     return forexPairs.some(pair => symbol.includes(pair));
   }
@@ -342,7 +367,8 @@ export class MarketDataProviderService {
       'EURUSD': 1.0850,
       'GBPUSD': 1.2750,
       'USDJPY': 149.50,
-      'XAUUSD': 2030.50,
+      'XAUUSD': 4107.00,  // Updated to current Gold price
+      'XAGUSD': 31.50,    // Silver
       'BTCUSD': 43500.00,
       'ETHUSD': 2300.00,
       'SPX500': 4750.00,

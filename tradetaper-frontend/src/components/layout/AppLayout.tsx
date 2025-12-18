@@ -9,7 +9,7 @@ import Sidebar from './Sidebar';
 // import Header from './Header'; // This is the existing mobile-only header, currently commented out
 import ContentHeader from './ContentHeader'; // Import the new ContentHeader
 import ProtectedRoute from '../auth/ProtectedRoute';
-import { useWebSocket } from '@/hooks/useWebSocket';
+// import { useWebSocket } from '@/hooks/useWebSocket'; // Removed - hook no longer exists
 import { Toaster } from 'react-hot-toast';
 
 interface AppLayoutProps {
@@ -23,13 +23,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
   const [isMobile, setIsMobile] = useState(false);
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
 
-  // Initialize WebSocket connection for the entire app
-  useWebSocket({
-    enabled: true,
-    onConnect: () => console.log('WebSocket connected'),
-    onDisconnect: () => console.log('WebSocket disconnected'),
-    onError: (error) => console.error('WebSocket error:', error),
-  });
+  // WebSocket connection removed - hook no longer exists
 
   // Fetch MT5 accounts and regular accounts when authenticated
   useEffect(() => {
@@ -59,7 +53,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
 
   return (
     <ProtectedRoute>
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-green-50 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800">
+      <div className="h-screen flex flex-col bg-white dark:bg-black">
         {/* Sidebar */}
         <Sidebar 
           isOpen={isSidebarOpen} 
@@ -69,7 +63,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
         />
         
         {/* Main Content Area */}
-        <div className={`transition-all duration-500 ${
+        <div className={`flex-1 flex flex-col transition-all duration-500 overflow-hidden ${
           isMobile 
             ? 'ml-0' 
             : isSidebarExpanded 
@@ -84,8 +78,8 @@ export default function AppLayout({ children }: AppLayoutProps) {
           />
           
           {/* Page Content */}
-          <main className="p-4 md:p-6 lg:p-8 max-w-full">
-            <div className="max-w-7xl mx-auto">
+          <main className="flex-1 p-4 md:p-6 lg:p-8 max-w-full h-full overflow-auto">
+            <div className="w-full h-full">
               {children}
             </div>
           </main>

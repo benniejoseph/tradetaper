@@ -122,7 +122,7 @@ export const AnimatedChart: React.FC<AnimatedChartProps> = ({
               stroke={theme === 'dark' ? '#9CA3AF' : '#6B7280'}
             />
             {interactive && <Tooltip content={<CustomTooltip theme={theme} />} />}
-            {Object.keys(data[0] || {}).filter(key => key !== 'name').map((key, index) => (
+            {data && data.length > 0 ? Object.keys(data[0] || {}).filter(key => key !== 'name').map((key, index) => (
               <Line
                 key={key}
                 type="monotone"
@@ -134,7 +134,7 @@ export const AnimatedChart: React.FC<AnimatedChartProps> = ({
                 animationDuration={animate ? 1500 : 0}
                 animationBegin={index * 200}
               />
-            ))}
+            )) : null}
           </LineChart>
         );
 
@@ -160,7 +160,7 @@ export const AnimatedChart: React.FC<AnimatedChartProps> = ({
               stroke={theme === 'dark' ? '#9CA3AF' : '#6B7280'}
             />
             {interactive && <Tooltip content={<CustomTooltip theme={theme} />} />}
-            {Object.keys(data[0] || {}).filter(key => key !== 'name').map((key, index) => (
+            {data && data.length > 0 ? Object.keys(data[0] || {}).filter(key => key !== 'name').map((key, index) => (
               <Area
                 key={key}
                 type="monotone"
@@ -171,7 +171,7 @@ export const AnimatedChart: React.FC<AnimatedChartProps> = ({
                 animationDuration={animate ? 1500 : 0}
                 animationBegin={index * 200}
               />
-            ))}
+            )) : null}
           </AreaChart>
         );
 
@@ -189,7 +189,7 @@ export const AnimatedChart: React.FC<AnimatedChartProps> = ({
               stroke={theme === 'dark' ? '#9CA3AF' : '#6B7280'}
             />
             {interactive && <Tooltip content={<CustomTooltip theme={theme} />} />}
-            {Object.keys(data[0] || {}).filter(key => key !== 'name').map((key, index) => (
+            {data && data.length > 0 ? Object.keys(data[0] || {}).filter(key => key !== 'name').map((key, index) => (
               <Bar
                 key={key}
                 dataKey={key}
@@ -198,7 +198,7 @@ export const AnimatedChart: React.FC<AnimatedChartProps> = ({
                 animationDuration={animate ? 1000 : 0}
                 animationBegin={index * 100}
               />
-            ))}
+            )) : null}
           </BarChart>
         );
 
@@ -207,7 +207,7 @@ export const AnimatedChart: React.FC<AnimatedChartProps> = ({
           <PieChart width={400} height={height}>
             {interactive && <Tooltip content={<CustomTooltip theme={theme} />} />}
             <Pie
-              data={data}
+              data={data || []}
               cx={200}
               cy={height / 2}
               outerRadius={height / 3}
@@ -216,7 +216,7 @@ export const AnimatedChart: React.FC<AnimatedChartProps> = ({
               animationDuration={animate ? 1000 : 0}
               label={({ name, value }) => `${name}: ${value}`}
             >
-              {data.map((entry, index) => (
+              {(data || []).map((entry, index) => (
                 <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />
               ))}
             </Pie>
@@ -226,7 +226,7 @@ export const AnimatedChart: React.FC<AnimatedChartProps> = ({
 
       case 'radial':
         return (
-          <RadialBarChart width={400} height={height} cx={200} cy={height / 2} innerRadius="10%" outerRadius="80%" data={data}>
+          <RadialBarChart width={400} height={height} cx={200} cy={height / 2} innerRadius="10%" outerRadius="80%" data={data || []}>
             <RadialBar
               dataKey="value"
               cornerRadius={10}
@@ -409,7 +409,7 @@ export const RealTimeChart: React.FC<{
             animate={{ opacity: 1 }}
           >
             <motion.div
-              className="w-2 h-2 bg-green-500 rounded-full"
+              className="w-2 h-2 bg-emerald-500 rounded-full"
               animate={{ scale: [1, 1.5, 1] }}
               transition={{ duration: 1, repeat: Infinity }}
             />

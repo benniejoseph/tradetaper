@@ -11,6 +11,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
+var TradesController_1;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.TradesController = void 0;
 const common_1 = require("@nestjs/common");
@@ -18,16 +19,20 @@ const trades_service_1 = require("./trades.service");
 const create_trade_dto_1 = require("./dto/create-trade.dto");
 const update_trade_dto_1 = require("./dto/update-trade.dto");
 const jwt_auth_guard_1 = require("../auth/guards/jwt-auth.guard");
-let TradesController = class TradesController {
+let TradesController = TradesController_1 = class TradesController {
     tradesService;
+    logger = new common_1.Logger(TradesController_1.name);
     constructor(tradesService) {
         this.tradesService = tradesService;
     }
     create(createTradeDto, req) {
+        this.logger.debug(`📥 Received create trade request: ${JSON.stringify(createTradeDto)}`);
+        this.logger.debug(`👤 User: ${req.user?.email || req.user?.id}`);
         return this.tradesService.create(createTradeDto, req.user);
     }
-    findAll(req, accountId) {
-        return this.tradesService.findAll(req.user, accountId);
+    findAll(req, accountId, page = 1, limit = 10) {
+        const safeLimit = Math.min(100, limit);
+        return this.tradesService.findAll(req.user, accountId, undefined, page, safeLimit);
     }
     findOne(id, req) {
         return this.tradesService.findOne(id, req.user);
@@ -62,8 +67,10 @@ __decorate([
     (0, common_1.Get)(),
     __param(0, (0, common_1.Request)()),
     __param(1, (0, common_1.Query)('accountId')),
+    __param(2, (0, common_1.Query)('page')),
+    __param(3, (0, common_1.Query)('limit')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, String]),
+    __metadata("design:paramtypes", [Object, String, Object, Object]),
     __metadata("design:returntype", Promise)
 ], TradesController.prototype, "findAll", null);
 __decorate([
@@ -119,7 +126,7 @@ __decorate([
     __metadata("design:paramtypes", [Object, Object]),
     __metadata("design:returntype", Promise)
 ], TradesController.prototype, "bulkImport", null);
-exports.TradesController = TradesController = __decorate([
+exports.TradesController = TradesController = TradesController_1 = __decorate([
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     (0, common_1.Controller)('trades'),
     __metadata("design:paramtypes", [trades_service_1.TradesService])

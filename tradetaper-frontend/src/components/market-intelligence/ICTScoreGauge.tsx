@@ -36,7 +36,7 @@ export default function ICTScoreGauge({ score, confidence, bias, alignment }: Pr
   const alignmentOffset = circumference - (alignment / 100) * circumference;
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
+    <div className="bg-gradient-to-br from-white to-emerald-50 dark:from-black dark:to-emerald-950/20 rounded-lg shadow-sm p-6">
       <div className="flex items-center space-x-2 mb-6">
         <FaTrophy className="text-yellow-500 text-xl" />
         <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
@@ -52,7 +52,7 @@ export default function ICTScoreGauge({ score, confidence, bias, alignment }: Pr
             <circle
               cx="96"
               cy="96"
-              r="45"
+              r="65"
               stroke="currentColor"
               strokeWidth="12"
               fill="transparent"
@@ -62,7 +62,7 @@ export default function ICTScoreGauge({ score, confidence, bias, alignment }: Pr
             <circle
               cx="96"
               cy="96"
-              r="45"
+              r="65"
               stroke="currentColor"
               strokeWidth="12"
               fill="transparent"

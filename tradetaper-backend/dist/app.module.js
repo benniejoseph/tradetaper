@@ -11,7 +11,6 @@ const common_1 = require("@nestjs/common");
 const app_controller_1 = require("./app.controller");
 const app_service_1 = require("./app.service");
 const config_1 = require("@nestjs/config");
-const typeorm_1 = require("@nestjs/typeorm");
 const users_module_1 = require("./users/users.module");
 const auth_module_1 = require("./auth/auth.module");
 const trades_module_1 = require("./trades/trades.module");
@@ -21,19 +20,13 @@ const common_module_1 = require("./common/common.module");
 const strategies_module_1 = require("./strategies/strategies.module");
 const files_module_1 = require("./files/files.module");
 const market_data_module_1 = require("./market-data/market-data.module");
-const subscription_entity_1 = require("./subscriptions/entities/subscription.entity");
-const usage_entity_1 = require("./subscriptions/entities/usage.entity");
-const user_entity_1 = require("./users/entities/user.entity");
-const account_entity_1 = require("./users/entities/account.entity");
-const trade_entity_1 = require("./trades/entities/trade.entity");
-const tag_entity_1 = require("./tags/entities/tag.entity");
-const mt5_account_entity_1 = require("./users/entities/mt5-account.entity");
-const strategy_entity_1 = require("./strategies/entities/strategy.entity");
 const simple_websocket_module_1 = require("./websocket/simple-websocket.module");
 const notes_module_1 = require("./notes/notes.module");
-const note_entity_1 = require("./notes/entities/note.entity");
-const note_block_entity_1 = require("./notes/entities/note-block.entity");
-const note_media_entity_1 = require("./notes/entities/note-media.entity");
+const database_module_1 = require("./database/database.module");
+const predictive_trades_module_1 = require("./predictive-trades/predictive-trades.module");
+const market_intelligence_module_1 = require("./market-intelligence/market-intelligence.module");
+const agent_orchestrator_module_1 = require("./agents/agent-orchestrator.module");
+const agents_implementation_module_1 = require("./agents/implementations/agents-implementation.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -43,52 +36,8 @@ exports.AppModule = AppModule = __decorate([
             config_1.ConfigModule.forRoot({
                 isGlobal: true,
             }),
-            typeorm_1.TypeOrmModule.forRootAsync({
-                imports: [config_1.ConfigModule],
-                inject: [config_1.ConfigService],
-                useFactory: (configService) => {
-                    const isProduction = configService.get('NODE_ENV') === 'production';
-                    console.log('🔧 Database configuration:', {
-                        isProduction,
-                        nodeEnv: process.env.NODE_ENV
-                    });
-                    if (isProduction) {
-                        console.log('Using Cloud SQL configuration for production');
-                        return {
-                            type: 'postgres',
-                            host: '/cloudsql/tradetaper:us-central1:tradetaper-postgres',
-                            username: 'tradetaper',
-                            password: 'TradeTaper2024',
-                            database: 'tradetaper',
-                            entities: [user_entity_1.User, account_entity_1.Account, trade_entity_1.Trade, tag_entity_1.Tag, mt5_account_entity_1.MT5Account, subscription_entity_1.Subscription, usage_entity_1.Usage, strategy_entity_1.Strategy, note_entity_1.Note, note_block_entity_1.NoteBlock, note_media_entity_1.NoteMedia],
-                            synchronize: false,
-                            ssl: false,
-                            retryAttempts: 5,
-                            retryDelay: 3000,
-                            autoLoadEntities: true,
-                            logging: ['error', 'warn'],
-                            connectTimeoutMS: 60000,
-                            extra: {
-                                max: 10,
-                                connectionTimeoutMillis: 60000,
-                            }
-                        };
-                    }
-                    console.log('Using local database configuration for development');
-                    return {
-                        type: 'postgres',
-                        host: process.env.DB_HOST || 'localhost',
-                        port: parseInt(process.env.DB_PORT || '5432', 10),
-                        username: process.env.DB_USERNAME || 'postgres',
-                        password: process.env.DB_PASSWORD || 'postgres',
-                        database: process.env.DB_DATABASE || 'tradetaper',
-                        entities: [user_entity_1.User, account_entity_1.Account, trade_entity_1.Trade, tag_entity_1.Tag, mt5_account_entity_1.MT5Account, subscription_entity_1.Subscription, usage_entity_1.Usage, strategy_entity_1.Strategy, note_entity_1.Note, note_block_entity_1.NoteBlock, note_media_entity_1.NoteMedia],
-                        synchronize: true,
-                        autoLoadEntities: true,
-                        logging: true,
-                    };
-                },
-            }),
+            agent_orchestrator_module_1.AgentOrchestratorModule,
+            database_module_1.DatabaseModule,
             users_module_1.UsersModule,
             auth_module_1.AuthModule,
             trades_module_1.TradesModule,
@@ -100,6 +49,9 @@ exports.AppModule = AppModule = __decorate([
             market_data_module_1.MarketDataModule,
             simple_websocket_module_1.SimpleWebSocketModule,
             notes_module_1.NotesModule,
+            predictive_trades_module_1.PredictiveTradesModule,
+            market_intelligence_module_1.MarketIntelligenceModule,
+            agents_implementation_module_1.AgentsImplementationModule,
         ],
         controllers: [app_controller_1.AppController],
         providers: [app_service_1.AppService],

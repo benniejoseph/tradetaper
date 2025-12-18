@@ -14,7 +14,7 @@ export class GeminiPsychologyService {
       throw new Error('GEMINI_API_KEY is not configured.');
     }
     const genAI = new GoogleGenerativeAI(apiKey);
-    this.geminiPro = genAI.getGenerativeModel({ model: 'gemini-pro' });
+    this.geminiPro = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
   }
 
   async analyzePsychologicalPatterns(text: string): Promise<any[]> {

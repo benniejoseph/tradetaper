@@ -122,6 +122,7 @@ export class MultiModelOrchestratorService {
    */
   async complete(request: LLMRequest): Promise<LLMResponse> {
     const startTime = Date.now();
+    let lastError: Error | undefined;
     
     // 1. Check semantic cache first
     const taskComplexity = request.taskComplexity || 'medium';
@@ -165,8 +166,6 @@ export class MultiModelOrchestratorService {
     
     // 3. Try models with fallback
     const sortedModels = this.getSortedModels(request);
-    
-    let lastError: Error;
     
     for (const modelConfig of sortedModels) {
       if (!modelConfig.enabled) {
@@ -282,13 +281,13 @@ export class MultiModelOrchestratorService {
     request: LLMRequest,
     modelConfig: ModelConfig,
   ): Promise<LLMResponse> {
-    let lastError: Error;
+    let lastError: Error | undefined;
     
     for (let attempt = 1; attempt <= modelConfig.maxRetries; attempt++) {
       try {
         return await this.executeRequest(request, modelConfig);
       } catch (error) {
-        lastError = error;
+        lastError = error as Error;
         
         if (attempt < modelConfig.maxRetries) {
           const backoffMs = Math.min(1000 * Math.pow(2, attempt - 1), 5000);
@@ -300,7 +299,7 @@ export class MultiModelOrchestratorService {
       }
     }
     
-    throw lastError;
+    throw lastError || new Error('All retry attempts failed');
   }
 
   /**
@@ -343,7 +342,7 @@ export class MultiModelOrchestratorService {
       generationConfig.responseMimeType = 'application/json';
     }
     
-    const parts = [];
+    const parts: Array<{ text: string }> = [];
     
     if (request.system) {
       parts.push({ text: request.system });

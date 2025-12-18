@@ -12,34 +12,12 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.SubscriptionsController = exports.CreatePaymentLinkDto = exports.CreatePortalSessionDto = exports.CreateCheckoutSessionDto = void 0;
+exports.SubscriptionsController = exports.CreatePaymentLinkDto = exports.CreatePortalSessionDto = void 0;
 const common_1 = require("@nestjs/common");
 const class_validator_1 = require("class-validator");
 const jwt_auth_guard_1 = require("../auth/guards/jwt-auth.guard");
 const subscription_service_1 = require("./services/subscription.service");
-class CreateCheckoutSessionDto {
-    priceId;
-    successUrl;
-    cancelUrl;
-}
-exports.CreateCheckoutSessionDto = CreateCheckoutSessionDto;
-__decorate([
-    (0, class_validator_1.IsString)(),
-    (0, class_validator_1.IsNotEmpty)(),
-    __metadata("design:type", String)
-], CreateCheckoutSessionDto.prototype, "priceId", void 0);
-__decorate([
-    (0, class_validator_1.IsString)(),
-    (0, class_validator_1.IsNotEmpty)(),
-    (0, class_validator_1.IsUrl)(),
-    __metadata("design:type", String)
-], CreateCheckoutSessionDto.prototype, "successUrl", void 0);
-__decorate([
-    (0, class_validator_1.IsString)(),
-    (0, class_validator_1.IsNotEmpty)(),
-    (0, class_validator_1.IsUrl)(),
-    __metadata("design:type", String)
-], CreateCheckoutSessionDto.prototype, "cancelUrl", void 0);
+const create_checkout_session_dto_1 = require("./dto/create-checkout-session.dto");
 class CreatePortalSessionDto {
     returnUrl;
 }
@@ -68,23 +46,47 @@ let SubscriptionsController = class SubscriptionsController {
         return this.subscriptionService.getPricingPlans();
     }
     async createCheckoutSession(createCheckoutSessionDto, req) {
-        return this.subscriptionService.createCheckoutSession(req.user.id, createCheckoutSessionDto.priceId, createCheckoutSessionDto.successUrl, createCheckoutSessionDto.cancelUrl);
+        const userId = req.user.userId;
+        if (!userId) {
+            throw new Error('User ID not found on request');
+        }
+        return this.subscriptionService.createCheckoutSession(userId, createCheckoutSessionDto.priceId, createCheckoutSessionDto.successUrl, createCheckoutSessionDto.cancelUrl);
     }
     async createPortalSession(createPortalSessionDto, req) {
-        return this.subscriptionService.createPortalSession(req.user.id, createPortalSessionDto.returnUrl);
+        const userId = req.user.userId;
+        if (!userId) {
+            throw new Error('User ID not found on request');
+        }
+        return this.subscriptionService.createPortalSession(userId, createPortalSessionDto.returnUrl);
     }
     async createPaymentLink(createPaymentLinkDto, req) {
-        return this.subscriptionService.createPaymentLink(req.user.id, createPaymentLinkDto.priceId);
+        const userId = req.user.userId;
+        if (!userId) {
+            throw new Error('User ID not found on request');
+        }
+        return this.subscriptionService.createPaymentLink(userId, createPaymentLinkDto.priceId);
     }
     async getCurrentSubscription(req) {
-        return this.subscriptionService.getCurrentSubscription(req.user.id);
+        const userId = req.user.userId;
+        if (!userId) {
+            throw new Error('User ID not found on request');
+        }
+        return this.subscriptionService.getCurrentSubscription(userId);
     }
-    async getUsage(req) {
-        return this.subscriptionService.getCurrentUsage(req.user.id);
+    getUsage(req) {
+        const userId = req.user.userId;
+        if (!userId) {
+            throw new Error('User ID not found on request');
+        }
+        return this.subscriptionService.getCurrentUsage(userId);
     }
     async checkFeatureAccess(req, feature) {
+        const userId = req.user.userId;
+        if (!userId) {
+            throw new Error('User ID not found on request');
+        }
         return {
-            hasAccess: await this.subscriptionService.hasFeatureAccess(req.user.id, feature),
+            hasAccess: await this.subscriptionService.hasFeatureAccess(userId, feature),
         };
     }
 };
@@ -102,7 +104,7 @@ __decorate([
     __param(0, (0, common_1.Body)()),
     __param(1, (0, common_1.Req)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [CreateCheckoutSessionDto, Object]),
+    __metadata("design:paramtypes", [create_checkout_session_dto_1.CreateCheckoutSessionDto, Object]),
     __metadata("design:returntype", Promise)
 ], SubscriptionsController.prototype, "createCheckoutSession", null);
 __decorate([
@@ -139,7 +141,7 @@ __decorate([
     __param(0, (0, common_1.Req)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object]),
-    __metadata("design:returntype", Promise)
+    __metadata("design:returntype", Object)
 ], SubscriptionsController.prototype, "getUsage", null);
 __decorate([
     (0, common_1.Get)('feature-access/:feature'),

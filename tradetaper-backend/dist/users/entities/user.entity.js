@@ -44,6 +44,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.User = void 0;
 const typeorm_1 = require("typeorm");
+const psychological_insight_entity_1 = require("../../notes/entities/psychological-insight.entity");
 const bcrypt = __importStar(require("bcrypt"));
 let User = class User {
     id;
@@ -54,6 +55,7 @@ let User = class User {
     lastLoginAt;
     createdAt;
     updatedAt;
+    psychologicalInsights;
     async hashPassword() {
         if (this.password) {
             const saltRounds = 10;
@@ -100,6 +102,10 @@ __decorate([
     (0, typeorm_1.UpdateDateColumn)(),
     __metadata("design:type", Date)
 ], User.prototype, "updatedAt", void 0);
+__decorate([
+    (0, typeorm_1.OneToMany)(() => psychological_insight_entity_1.PsychologicalInsight, (psychologicalInsight) => psychologicalInsight.user),
+    __metadata("design:type", Array)
+], User.prototype, "psychologicalInsights", void 0);
 __decorate([
     (0, typeorm_1.BeforeInsert)(),
     __metadata("design:type", Function),

@@ -24,6 +24,7 @@ async function bootstrap() {
         'http://localhost:3002',
         'https://tradetaper-frontend-benniejosephs-projects.vercel.app',
         'https://tradetaper-admin.vercel.app',
+        'https://tradetaper-backend-326520250422.us-central1.run.app',
         process.env.FRONTEND_URL || 'https://tradetaper.com', // Provide a sensible default
       ],
       methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
@@ -33,12 +34,23 @@ async function bootstrap() {
 
     app.enableCors(corsOptions);
 
-    // Global validation pipe
+    // Set global prefix
+    app.setGlobalPrefix('api/v1');
+
+    // Global validation pipe with detailed error messages
     app.useGlobalPipes(
       new ValidationPipe({
         whitelist: true,
         forbidNonWhitelisted: true,
         transform: true,
+        exceptionFactory: (errors) => {
+          const messages = errors.map(error => ({
+            field: error.property,
+            errors: Object.values(error.constraints || {}),
+          }));
+          console.error('🚨 Validation failed:', JSON.stringify(messages, null, 2));
+          return new Error(`Validation failed: ${JSON.stringify(messages)}`);
+        },
       }),
     );
 

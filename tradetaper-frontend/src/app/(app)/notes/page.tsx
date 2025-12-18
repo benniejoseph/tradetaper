@@ -227,7 +227,7 @@ const NotesPage: React.FC = () => {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <FaSpinner className="animate-spin text-4xl text-blue-500 mb-4 mx-auto" />
+          <FaSpinner className="animate-spin text-4xl text-emerald-500 mb-4 mx-auto" />
           <p className="text-lg font-medium">Loading your notes...</p>
         </div>
       </div>
@@ -252,7 +252,7 @@ const NotesPage: React.FC = () => {
         <div className="flex flex-wrap gap-3">
           <button
             onClick={() => router.push('/notes/new')}
-            className="bg-gradient-to-r from-blue-500 to-purple-500 text-white px-4 py-2 rounded-lg"
+            className="bg-gradient-to-r from-emerald-500 to-emerald-600 text-white px-4 py-2 rounded-lg hover:from-emerald-600 hover:to-emerald-700 transition-all"
           >
             New Note
           </button>
@@ -264,7 +264,7 @@ const NotesPage: React.FC = () => {
               setShowVoiceRecorder(true);
               console.log('✅ setShowVoiceRecorder(true) called');
             }}
-            className="bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center gap-2"
+            className="bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-950/20 dark:to-emerald-900/20 text-emerald-700 dark:text-emerald-300 px-4 py-2 rounded-lg hover:from-emerald-100 hover:to-emerald-200 dark:hover:from-emerald-900/30 dark:hover:to-emerald-800/30 transition-all flex items-center gap-2 border border-emerald-200 dark:border-emerald-700/30"
           >
             <FaMicrophone />
             Voice Note
@@ -301,7 +301,7 @@ const NotesPage: React.FC = () => {
                 alert('Failed to get notes - check console');
               }
             }}
-            className="bg-green-500 text-white px-4 py-2 rounded-lg text-sm"
+            className="bg-emerald-500 text-white px-4 py-2 rounded-lg text-sm"
           >
             📋 Show All
           </button>
@@ -309,15 +309,15 @@ const NotesPage: React.FC = () => {
       </div>
 
       {/* Search and Filter Bar */}
-      <div className="p-4 bg-white dark:bg-gray-800 rounded-lg">
+      <div className="p-4 bg-gradient-to-br from-white to-emerald-50 dark:from-black dark:to-emerald-950/20 rounded-lg border border-emerald-200/50 dark:border-emerald-700/30 backdrop-blur-xl">
         <div className="flex flex-col lg:flex-row gap-4">
           {/* Search Input */}
           <div className="flex-1 relative">
-            <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+            <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-emerald-400" />
             <input
               type="text"
               placeholder="Search notes..."
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full pl-10 pr-4 py-2 border border-emerald-300 dark:border-emerald-600/30 rounded-lg bg-white dark:bg-black/50 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
               value={searchTerm}
               onChange={(e) => {
                 const newValue = e.target.value;
@@ -338,16 +338,16 @@ const NotesPage: React.FC = () => {
           </div>
 
           {/* View Toggle */}
-          <div className="flex rounded-lg border border-gray-300 dark:border-gray-600 overflow-hidden">
+          <div className="flex rounded-lg border border-emerald-300 dark:border-emerald-600/30 overflow-hidden">
             <button
               onClick={() => setViewMode('grid')}
-              className={`px-3 py-2 ${viewMode === 'grid' ? 'bg-blue-500 text-white' : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300'}`}
+              className={`px-3 py-2 transition-all ${viewMode === 'grid' ? 'bg-gradient-to-r from-emerald-500 to-emerald-600 text-white' : 'bg-white dark:bg-black/50 text-gray-700 dark:text-gray-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/20'}`}
             >
               <FaTh />
             </button>
             <button
               onClick={() => setViewMode('list')}
-              className={`px-3 py-2 ${viewMode === 'list' ? 'bg-blue-500 text-white' : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300'}`}
+              className={`px-3 py-2 transition-all ${viewMode === 'list' ? 'bg-gradient-to-r from-emerald-500 to-emerald-600 text-white' : 'bg-white dark:bg-black/50 text-gray-700 dark:text-gray-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/20'}`}
             >
               <FaList />
             </button>
@@ -356,7 +356,7 @@ const NotesPage: React.FC = () => {
           {/* Filter Toggle */}
           <button
             onClick={() => setShowFilters(!showFilters)}
-            className={`px-4 py-2 ${showFilters ? 'bg-blue-500 text-white' : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300'} rounded-lg ${hasActiveFilters ? 'ring-2 ring-blue-500' : ''}`}
+            className={`px-4 py-2 rounded-lg transition-all ${showFilters ? 'bg-gradient-to-r from-emerald-500 to-emerald-600 text-white' : 'bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-950/20 dark:to-emerald-900/20 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-700/30'} ${hasActiveFilters ? 'ring-2 ring-emerald-500' : ''}`}
           >
             Filters {hasActiveFilters && `(${selectedTags.length + (pinnedOnly ? 1 : 0) + (hasMediaOnly ? 1 : 0)})`}
           </button>
@@ -364,7 +364,7 @@ const NotesPage: React.FC = () => {
 
         {/* Expanded Filters */}
         {showFilters && (
-          <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+          <div className="mt-4 pt-4 border-t border-emerald-200 dark:border-emerald-700/30">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               {/* Tags Filter */}
               <div>
@@ -376,7 +376,7 @@ const NotesPage: React.FC = () => {
                       onClick={() => toggleTag(tag)}
                       className={`px-2 py-1 text-xs rounded-full ${
                         selectedTags.includes(tag)
-                          ? 'bg-blue-500 text-white'
+                          ? 'bg-emerald-500 text-white'
                           : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
                       }`}
                     >
@@ -423,7 +423,7 @@ const NotesPage: React.FC = () => {
                     setSortBy(field as any);
                     setSortOrder(order as 'ASC' | 'DESC');
                   }}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800"
+                  className="w-full px-3 py-2 border border-emerald-300 dark:border-emerald-600/30 rounded-lg bg-white dark:bg-black/50 focus:ring-2 focus:ring-emerald-500"
                 >
                   <option value="updatedAt-DESC">Last modified</option>
                   <option value="createdAt-DESC">Date created (newest)</option>
@@ -440,7 +440,7 @@ const NotesPage: React.FC = () => {
                 <div className="flex items-end">
                   <button
                     onClick={clearFilters}
-                    className="bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-lg"
+                    className="bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-950/20 dark:to-emerald-900/20 text-emerald-700 dark:text-emerald-300 px-4 py-2 rounded-lg border border-emerald-200 dark:border-emerald-700/30 hover:from-emerald-100 hover:to-emerald-200 dark:hover:from-emerald-900/30 dark:hover:to-emerald-800/30 transition-all"
                   >
                     Clear All
                   </button>
@@ -455,7 +455,7 @@ const NotesPage: React.FC = () => {
       {notes.length === 0 ? (
         <div className="text-center py-16">
           <div className="max-w-md mx-auto space-y-4">
-            <div className="w-20 h-20 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center mx-auto">
+            <div className="w-20 h-20 bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-full flex items-center justify-center mx-auto">
               <FaPlus className="w-10 h-10 text-white" />
             </div>
             <h3 className="text-xl font-bold text-gray-900 dark:text-white">
@@ -469,7 +469,7 @@ const NotesPage: React.FC = () => {
             </p>
             <button
               onClick={() => hasActiveFilters ? clearFilters() : router.push('/notes/new')}
-              className="bg-gradient-to-r from-blue-500 to-purple-500 text-white px-4 py-2 rounded-lg"
+              className="bg-gradient-to-r from-emerald-500 to-emerald-600 text-white px-4 py-2 rounded-lg hover:from-emerald-600 hover:to-emerald-700 transition-all"
             >
               {hasActiveFilters ? 'Clear Filters' : 'Create First Note'}
             </button>
@@ -503,7 +503,7 @@ const NotesPage: React.FC = () => {
                 onClick={() => setCurrentPage(page)}
                 className={`px-3 py-2 rounded ${
                   currentPage === page
-                    ? 'bg-blue-500 text-white'
+                    ? 'bg-emerald-500 text-white'
                     : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
                 }`}
               >
@@ -527,7 +527,7 @@ const NotesPage: React.FC = () => {
 // Note Card Component for Grid View
 const NoteCard: React.FC<{ note: Note; onClick: () => void; onDelete: (id: string) => void }> = ({ note, onClick, onDelete }) => (
   <div
-    className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-shadow cursor-pointer relative group"
+    className="bg-gradient-to-br from-white to-emerald-50 dark:from-black dark:to-emerald-950/20 rounded-lg p-6 border border-emerald-200/50 dark:border-emerald-700/30 hover:shadow-lg hover:shadow-emerald-500/10 transition-all cursor-pointer relative group backdrop-blur-xl"
   >
     <div onClick={onClick} className="flex-1">
       <div className="flex items-start justify-between mb-3">
@@ -554,14 +554,14 @@ const NoteCard: React.FC<{ note: Note; onClick: () => void; onDelete: (id: strin
             <span>{note.wordCount} words</span>
           )}
           {note.hasMedia && (
-            <FaImage className="text-blue-500" />
+            <FaImage className="text-emerald-500" />
           )}
         </div>
         <div className="flex items-center gap-2">
           {note.tags.slice(0, 2).map(tag => (
             <span
               key={tag}
-              className="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full text-xs"
+              className="px-2 py-1 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 rounded-full text-xs"
             >
               {tag}
             </span>
@@ -589,7 +589,7 @@ const NoteCard: React.FC<{ note: Note; onClick: () => void; onDelete: (id: strin
 
 // Note List Item Component for List View
 const NoteListItem: React.FC<{ note: Note; onClick: () => void; onDelete: (id: string) => void }> = ({ note, onClick, onDelete }) => (
-  <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-shadow cursor-pointer relative group">
+  <div className="bg-gradient-to-r from-white to-emerald-50 dark:from-black dark:to-emerald-950/20 rounded-lg p-4 border border-emerald-200/50 dark:border-emerald-700/30 hover:shadow-lg hover:shadow-emerald-500/10 transition-all cursor-pointer relative group backdrop-blur-xl">
     <div onClick={onClick} className="flex items-start gap-4">
       <div className="flex-1">
         <div className="flex items-center gap-2 mb-2">
@@ -607,7 +607,7 @@ const NoteListItem: React.FC<{ note: Note; onClick: () => void; onDelete: (id: s
             {note.tags.map(tag => (
               <span
                 key={tag}
-                className="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs rounded-full"
+                className="px-2 py-1 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 text-xs rounded-full"
               >
                 {tag}
               </span>

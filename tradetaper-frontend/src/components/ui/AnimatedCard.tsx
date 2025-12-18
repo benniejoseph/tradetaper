@@ -19,7 +19,7 @@ const cardVariants = {
   default: 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-lg',
   glass: 'bg-white/10 dark:bg-gray-800/10 backdrop-blur-xl border border-white/20 dark:border-gray-700/20',
   neon: 'bg-gray-900 border-2 border-cyan-400 shadow-lg shadow-cyan-400/25',
-  gradient: 'bg-gradient-to-br from-purple-500 via-pink-500 to-red-500 text-white',
+  gradient: 'bg-gradient-to-br from-emerald-500 via-emerald-600 to-emerald-700 text-white',
   floating: 'bg-white dark:bg-gray-800 border-0 shadow-2xl shadow-black/10 dark:shadow-black/30',
 };
 
@@ -142,7 +142,7 @@ export const MetricCard: React.FC<{
   loading?: boolean;
 }> = ({ title, value, change, icon, trend = 'neutral', loading = false }) => {
   const trendColors = {
-    up: 'text-green-500',
+    up: 'text-emerald-500',
     down: 'text-red-500',
     neutral: 'text-gray-500',
   };
@@ -205,7 +205,7 @@ export const ProgressCard: React.FC<{
   target?: number;
   color?: string;
   showPercentage?: boolean;
-}> = ({ title, progress, target, color = 'bg-blue-500', showPercentage = true }) => {
+}> = ({ title, progress, target, color = 'bg-emerald-500', showPercentage = true }) => {
   const percentage = target ? (progress / target) * 100 : progress;
   const clampedPercentage = Math.min(Math.max(percentage, 0), 100);
 
@@ -250,10 +250,10 @@ export const InteractiveCard: React.FC<{
   variant?: 'success' | 'warning' | 'error' | 'info';
 }> = ({ children, onAction, actionLabel = 'Action', variant = 'info' }) => {
   const variantStyles = {
-    success: 'border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20',
-    warning: 'border-yellow-200 bg-yellow-50 dark:border-yellow-800 dark:bg-yellow-900/20',
-    error: 'border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20',
-    info: 'border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-900/20',
+    success: 'border-emerald-200 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-950/30',
+    warning: 'border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30',
+    error: 'border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-950/30',
+    info: 'border-emerald-200 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-950/30',
   };
 
   return (
@@ -267,7 +267,7 @@ export const InteractiveCard: React.FC<{
         {onAction && (
           <motion.button
             onClick={onAction}
-            className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+            className="w-full px-4 py-2 bg-emerald-600 text-white rounded-lg font-medium hover:bg-emerald-700 transition-colors"
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
           >

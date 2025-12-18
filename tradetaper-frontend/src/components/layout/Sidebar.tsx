@@ -14,7 +14,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '@/store/store';
 import { logout } from '@/store/features/authSlice';
 import { useRouter } from 'next/navigation';
-import { ThemeToggleButton } from '@/components/common/ThemeToggleButton';
+// import { ThemeToggleButton } from '@/components/common/ThemeToggleButton'; // Removed - component no longer exists
 
 // Define props for Sidebar
 interface SidebarProps {
@@ -80,7 +80,7 @@ export default function Sidebar({ isOpen, toggleSidebar, isMobile, onExpandChang
       {/* Sidebar */}
       <aside 
         className={`${isExpanded ? 'w-72' : 'w-20'} flex flex-col h-screen 
-                        bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl
+                        bg-white/90 dark:bg-black/90 backdrop-blur-xls
                         border-r border-gray-200/50 dark:border-gray-700/50
                         fixed top-0 left-0 z-50 
                         transition-all duration-500 ease-out md:translate-x-0
@@ -89,19 +89,19 @@ export default function Sidebar({ isOpen, toggleSidebar, isMobile, onExpandChang
                         ${isMobile ? 'w-72' : ''}`}>
         
         {/* Header with Logo */}
-        <div className="p-4 sm:p-6 border-b border-gray-200/50 dark:border-gray-700/50">
+        <div className="p-4 sm:p-6">
           <div className="flex items-center justify-between">
             <Link href="/dashboard" 
                   className="flex items-center space-x-3 group focus:outline-none"
                   onClick={handleLinkClick}>
               <div className="relative -ml-2">
-                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-r from-blue-500 to-green-500 rounded-xl flex items-center justify-center text-white font-bold text-xl shadow-lg group-hover:shadow-xl group-hover:scale-105 transition-all duration-300">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-xl flex items-center justify-center text-white font-bold text-xl shadow-lg dark:shadow-emerald-md group-hover:shadow-xl group-hover:scale-105 transition-all duration-300">
                   <FaChartLine className="w-5 h-5 sm:w-6 sm:h-6" />
                 </div>
-                <div className="absolute -inset-1 bg-gradient-to-r from-blue-500 to-green-500 rounded-xl opacity-20 group-hover:opacity-40 transition-opacity duration-300 -z-10"></div>
+                <div className="absolute -inset-1 bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-xl opacity-20 group-hover:opacity-40 transition-opacity duration-300 -z-10"></div>
               </div>
               <div className={`transition-all duration-500 overflow-hidden ${isExpanded ? 'opacity-100 w-auto' : 'opacity-0 w-0'}`}>
-                <h1 className="text-lg sm:text-xl font-bold bg-gradient-to-r from-blue-600 to-green-600 bg-clip-text text-transparent whitespace-nowrap">
+                <h1 className="text-lg sm:text-xl font-bold bg-gradient-to-r from-emerald-600 to-emerald-500 bg-clip-text text-transparent whitespace-nowrap">
                   TradeTaper
                 </h1>
                 <p className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">Trading Journal</p>
@@ -112,7 +112,7 @@ export default function Sidebar({ isOpen, toggleSidebar, isMobile, onExpandChang
               {!isMobile && (
                 <button 
                   onClick={toggleExpanded}
-                  className="p-2 ml-2 rounded-lg bg-gray-100/80 dark:bg-gray-800/80 hover:bg-blue-500 dark:hover:bg-blue-500 text-gray-600 dark:text-gray-400 hover:text-white transition-all duration-200 hover:scale-105"
+                  className="p-2 ml-2 rounded-lg bg-gray-100/80 dark:bg-[#141414] hover:bg-emerald-500 dark:hover:bg-emerald-600 text-gray-600 dark:text-gray-400 hover:text-white transition-all duration-200 hover:scale-105"
                   aria-label={isExpanded ? "Collapse sidebar" : "Expand sidebar"}>
                   {isExpanded ? <FaChevronLeft className="h-4 w-4" /> : <FaChevronRight className="h-4 w-4" />}
                 </button>
@@ -121,7 +121,7 @@ export default function Sidebar({ isOpen, toggleSidebar, isMobile, onExpandChang
               {isMobile && (
                 <button 
                   onClick={toggleSidebar} 
-                  className="p-2 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 transition-colors duration-200"
+                  className="p-2 rounded-lg bg-gray-100 dark:bg-[#141414] hover:bg-gray-200 dark:hover:bg-[#0A0A0A] text-gray-600 dark:text-gray-400 transition-colors duration-200"
                   aria-label="Close sidebar">
                   <FaTimes className="h-4 w-4" />
                 </button>
@@ -146,24 +146,24 @@ export default function Sidebar({ isOpen, toggleSidebar, isMobile, onExpandChang
                       onClick={handleLinkClick}
                       className={`group flex items-center ${isExpanded ? 'space-x-3 px-4' : 'justify-center px-2'} py-3 rounded-xl text-sm font-medium transition-all duration-200 relative overflow-hidden
                         ${isActive 
-                          ? 'bg-gradient-to-r from-blue-500 to-green-500 text-white shadow-lg shadow-blue-500/25' 
-                          : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100/80 dark:hover:bg-gray-800/80'
+                          ? 'bg-gradient-to-r from-emerald-500 to-emerald-600 text-white shadow-lg dark:shadow-emerald-md' 
+                          : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100/80 dark:hover:bg-[#0A0A0A]'
                         }`}>
                       
                       {/* Background gradient for active state */}
                       {isActive && (
-                        <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-green-500 opacity-100"></div>
+                        <div className="absolute inset-0 bg-gradient-to-r from-emerald-500 to-emerald-600 opacity-100"></div>
                       )}
                       
                       {/* Hover background */}
                       {!isActive && (
-                        <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-green-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-200"></div>
+                        <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/10 to-emerald-600/10 opacity-0 group-hover:opacity-100 transition-opacity duration-200"></div>
                       )}
                       
                       <div className={`relative z-10 flex items-center ${isExpanded ? 'space-x-3' : 'justify-center'}`}>
                         {item.icon && (
-                          <item.icon className={`h-5 w-5 transition-transform duration-200 group-hover:scale-110
-                            ${isActive ? 'text-white' : 'text-gray-500 dark:text-gray-400 group-hover:text-blue-500'}`} />
+                            <item.icon className={`h-5 w-5 transition-transform duration-200 group-hover:scale-110
+                            ${isActive ? 'text-white' : 'text-gray-500 dark:text-gray-400 group-hover:text-emerald-500'}`} />
                         )}
                         <span className={`relative transition-all duration-500 overflow-hidden ${isExpanded ? 'opacity-100 w-auto' : 'opacity-0 w-0'} whitespace-nowrap`}>
                           {item.label}
@@ -205,18 +205,18 @@ export default function Sidebar({ isOpen, toggleSidebar, isMobile, onExpandChang
                         onClick={handleLinkClick}
                         className={`group flex items-center ${isExpanded ? 'space-x-3 px-4' : 'justify-center px-2'} py-3 rounded-xl text-sm font-medium transition-all duration-200 relative overflow-hidden
                           ${isActive 
-                            ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg shadow-purple-500/25' 
-                            : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100/80 dark:hover:bg-gray-800/80'
+                            ? 'bg-gradient-to-r from-emerald-500 to-emerald-600 text-white shadow-lg dark:shadow-emerald-md' 
+                            : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100/80 dark:hover:bg-[#0A0A0A]'
                           }`}>
                         
                         {!isActive && (
-                          <div className="absolute inset-0 bg-gradient-to-r from-purple-500/10 to-pink-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-200"></div>
+                          <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/10 to-emerald-600/10 opacity-0 group-hover:opacity-100 transition-opacity duration-200"></div>
                         )}
                         
                         <div className={`relative z-10 flex items-center ${isExpanded ? 'space-x-3' : 'justify-center'}`}>
                           {item.icon && (
                             <item.icon className={`h-5 w-5 transition-transform duration-200 group-hover:scale-110
-                              ${isActive ? 'text-white' : 'text-gray-500 dark:text-gray-400 group-hover:text-purple-500'}`} />
+                              ${isActive ? 'text-white' : 'text-gray-500 dark:text-gray-400 group-hover:text-emerald-500'}`} />
                           )}
                           <span className={`transition-all duration-500 overflow-hidden ${isExpanded ? 'opacity-100 w-auto' : 'opacity-0 w-0'} whitespace-nowrap`}>
                             {item.label}
@@ -245,8 +245,8 @@ export default function Sidebar({ isOpen, toggleSidebar, isMobile, onExpandChang
                               onClick={handleLinkClick}
                               className={`group flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200
                                 ${isSubActive 
-                                  ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300' 
-                                  : 'text-gray-500 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 hover:bg-gray-50 dark:hover:bg-gray-800/50'
+                                  ? 'bg-emerald-100 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300' 
+                                  : 'text-gray-500 dark:text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-gray-50 dark:hover:bg-[#0A0A0A]/50'
                                 }`}>
                               {subItem.icon && (
                                 <subItem.icon className="h-4 w-4" />
@@ -271,7 +271,7 @@ export default function Sidebar({ isOpen, toggleSidebar, isMobile, onExpandChang
             <div className={`flex items-center ${isExpanded ? 'space-x-3' : 'justify-center'}`}>
               {/* Account icon - only show on mobile */}
               {isMobile && (
-                <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-green-500 flex items-center justify-center text-white">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-r from-emerald-500 to-emerald-600 flex items-center justify-center text-white">
                   <FaUserCircle className="w-5 h-5" />
                 </div>
               )}
@@ -290,7 +290,7 @@ export default function Sidebar({ isOpen, toggleSidebar, isMobile, onExpandChang
               <div className="relative group/tooltip">
                 <button
                   onClick={handleLogout}
-                  className="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:text-red-500 dark:hover:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-200"
+                  className="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:text-red-500 dark:hover:text-red-400 hover:bg-gray-100 dark:hover:bg-[#0A0A0A] transition-colors duration-200"
                   aria-label="Logout">
                   <FaSignOutAlt className="w-5 h-5" />
                 </button>
@@ -307,19 +307,7 @@ export default function Sidebar({ isOpen, toggleSidebar, isMobile, onExpandChang
           </div>
           
           {/* Theme Toggle - Show on mobile in sidebar */}
-          {isMobile && (
-            <div className="mt-2 flex justify-center">
-              <div className="relative group/tooltip">
-                <div className="p-2 rounded-lg bg-gray-100 dark:bg-gray-800">
-                  <ThemeToggleButton />
-                </div>
-                <div className="absolute left-12 top-1/2 transform -translate-y-1/2 bg-gray-900 dark:bg-gray-700 text-white text-sm px-3 py-2 rounded-lg shadow-lg opacity-0 group-hover/tooltip:opacity-100 transition-opacity duration-200 pointer-events-none z-50 whitespace-nowrap">
-                  Toggle Theme
-                  <div className="absolute left-0 top-1/2 transform -translate-y-1/2 -translate-x-1 w-2 h-2 bg-gray-900 dark:bg-gray-700 rotate-45"></div>
-                </div>
-              </div>
-            </div>
-          )}
+          {/* Theme toggle removed - component no longer exists */}
         </div>
       </aside>
     </>

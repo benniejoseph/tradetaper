@@ -32,7 +32,7 @@ export default function ICTConceptsDetail({ symbol, concept }: Props) {
       </div>
 
       {/* Buy-Side Liquidity */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm">
+      <div className="bg-gradient-to-br from-white to-emerald-50 dark:from-black dark:to-emerald-950/20 rounded-lg p-6 shadow-sm">
         <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center">
           <FaWater className="mr-2 text-green-500" />
           Buy-Side Liquidity
@@ -54,7 +54,7 @@ export default function ICTConceptsDetail({ symbol, concept }: Props) {
                   ? 'bg-green-50 dark:bg-green-900/20 border-green-500'
                   : level.strength === 'MEDIUM'
                   ? 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-500'
-                  : 'bg-gray-50 dark:bg-gray-900/20 border-gray-500'
+                  : 'bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-950/20 dark:to-emerald-900/20 border-emerald-500'
               }`}
             >
               <div className="flex items-center justify-between mb-2">
@@ -66,7 +66,7 @@ export default function ICTConceptsDetail({ symbol, concept }: Props) {
                     ? 'bg-green-500 text-white'
                     : level.strength === 'MEDIUM'
                     ? 'bg-yellow-500 text-white'
-                    : 'bg-gray-500 text-white'
+                    : 'bg-emerald-500 text-white'
                 }`}>
                   {level.strength}
                 </span>
@@ -83,7 +83,7 @@ export default function ICTConceptsDetail({ symbol, concept }: Props) {
       </div>
 
       {/* Sell-Side Liquidity */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm">
+      <div className="bg-gradient-to-br from-white to-emerald-50 dark:from-black dark:to-emerald-950/20 rounded-lg p-6 shadow-sm">
         <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center">
           <FaWater className="mr-2 text-red-500" />
           Sell-Side Liquidity
@@ -138,7 +138,7 @@ export default function ICTConceptsDetail({ symbol, concept }: Props) {
       </div>
 
       {/* Liquidity Voids */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm">
+      <div className="bg-gradient-to-br from-white to-emerald-50 dark:from-black dark:to-emerald-950/20 rounded-lg p-6 shadow-sm">
         <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center">
           <FaExclamationCircle className="mr-2 text-yellow-500" />
           Liquidity Voids
@@ -174,7 +174,7 @@ export default function ICTConceptsDetail({ symbol, concept }: Props) {
       </div>
 
       {/* Current Trend */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm">
+      <div className="bg-gradient-to-br from-white to-emerald-50 dark:from-black dark:to-emerald-950/20 rounded-lg p-6 shadow-sm">
         <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
           Current Market Trend
         </h3>
@@ -191,7 +191,7 @@ export default function ICTConceptsDetail({ symbol, concept }: Props) {
       </div>
 
       {/* Break of Structure (BOS) */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm">
+      <div className="bg-gradient-to-br from-white to-emerald-50 dark:from-black dark:to-emerald-950/20 rounded-lg p-6 shadow-sm">
         <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
           Break of Structure (BOS)
         </h3>
@@ -215,14 +215,14 @@ export default function ICTConceptsDetail({ symbol, concept }: Props) {
       </div>
 
       {/* Change of Character (CHoCH) */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm">
+      <div className="bg-gradient-to-br from-white to-emerald-50 dark:from-black dark:to-emerald-950/20 rounded-lg p-6 shadow-sm">
         <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
           Change of Character (CHoCH)
         </h3>
         <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
           Potential trend reversal when price fails to make new high/low and breaks opposite structure.
         </p>
-        <div className="p-4 bg-gray-50 dark:bg-gray-900/20 rounded-lg border-2 border-gray-300">
+        <div className="p-4 bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-950/20 dark:to-emerald-900/20 rounded-lg border-2 border-emerald-300 dark:border-emerald-600/30">
           <p className="text-sm text-gray-600 dark:text-gray-400">
             No CHoCH detected. Trend remains intact.
           </p>
@@ -230,7 +230,7 @@ export default function ICTConceptsDetail({ symbol, concept }: Props) {
       </div>
 
       {/* Swing Points */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm">
+      <div className="bg-gradient-to-br from-white to-emerald-50 dark:from-black dark:to-emerald-950/20 rounded-lg p-6 shadow-sm">
         <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
           Key Swing Points
         </h3>
@@ -274,7 +274,7 @@ export default function ICTConceptsDetail({ symbol, concept }: Props) {
       </div>
 
       {/* Bullish FVGs */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm">
+      <div className="bg-gradient-to-br from-white to-emerald-50 dark:from-black dark:to-emerald-950/20 rounded-lg p-6 shadow-sm">
         <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center">
           <FaCrosshairs className="mr-2 text-green-500" />
           Bullish Fair Value Gaps
@@ -309,12 +309,12 @@ export default function ICTConceptsDetail({ symbol, concept }: Props) {
       </div>
 
       {/* Bearish FVGs */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm">
+      <div className="bg-gradient-to-br from-white to-emerald-50 dark:from-black dark:to-emerald-950/20 rounded-lg p-6 shadow-sm">
         <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center">
           <FaCrosshairs className="mr-2 text-red-500" />
           Bearish Fair Value Gaps
         </h3>
-        <div className="p-4 bg-gray-50 dark:bg-gray-900/20 rounded-lg border-2 border-gray-300">
+        <div className="p-4 bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-950/20 dark:to-emerald-900/20 rounded-lg border-2 border-emerald-300 dark:border-emerald-600/30">
           <p className="text-sm text-gray-600 dark:text-gray-400">
             No bearish FVGs detected. Market structure is bullish.
           </p>
@@ -349,7 +349,7 @@ export default function ICTConceptsDetail({ symbol, concept }: Props) {
       </div>
 
       {/* Bullish Order Blocks */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm">
+      <div className="bg-gradient-to-br from-white to-emerald-50 dark:from-black dark:to-emerald-950/20 rounded-lg p-6 shadow-sm">
         <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center">
           <FaCube className="mr-2 text-green-500" />
           Bullish Order Blocks (Demand Zones)
@@ -388,7 +388,7 @@ export default function ICTConceptsDetail({ symbol, concept }: Props) {
       </div>
 
       {/* Breaker Blocks */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm">
+      <div className="bg-gradient-to-br from-white to-emerald-50 dark:from-black dark:to-emerald-950/20 rounded-lg p-6 shadow-sm">
         <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center">
           <FaCube className="mr-2 text-purple-500" />
           Breaker Blocks
@@ -396,7 +396,7 @@ export default function ICTConceptsDetail({ symbol, concept }: Props) {
         <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
           Former Order Blocks that failed and now act as opposite zones (support becomes resistance or vice versa).
         </p>
-        <div className="p-4 bg-gray-50 dark:bg-gray-900/20 rounded-lg border-2 border-gray-300">
+        <div className="p-4 bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-950/20 dark:to-emerald-900/20 rounded-lg border-2 border-emerald-300 dark:border-emerald-600/30">
           <p className="text-sm text-gray-600 dark:text-gray-400">
             No Breaker Blocks detected. All Order Blocks remain valid.
           </p>

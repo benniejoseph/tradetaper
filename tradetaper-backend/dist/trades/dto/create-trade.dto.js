@@ -137,7 +137,7 @@ __decorate([
 ], CreateTradeDto.prototype, "lessonsLearned", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
-    (0, class_validator_1.IsUrl)({}, { message: 'Please enter a valid URL for the image' }),
+    (0, class_validator_1.IsString)(),
     (0, class_validator_1.MaxLength)(1024),
     __metadata("design:type", String)
 ], CreateTradeDto.prototype, "imageUrl", void 0);

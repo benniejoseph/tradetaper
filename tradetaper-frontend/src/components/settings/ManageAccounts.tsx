@@ -167,7 +167,7 @@ export default function ManageAccounts() {
         <div className="bg-gradient-to-br from-blue-50/50 to-green-50/50 dark:from-blue-900/20 dark:to-green-900/20 backdrop-blur-xl rounded-2xl border border-blue-200/50 dark:border-blue-700/50 p-6 shadow-lg">
           <div className="flex items-center space-x-3 mb-6">
             <div className="p-2 bg-gradient-to-r from-blue-500/20 to-green-500/20 rounded-xl">
-              {isEditing ? <FaEdit className="w-5 h-5 text-blue-600 dark:text-blue-400" /> : <FaPlus className="w-5 h-5 text-green-600 dark:text-green-400" />}
+              {isEditing ? <FaEdit className="w-5 h-5 text-emerald-600 dark:text-emerald-400" /> : <FaPlus className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />}
             </div>
             <div>
               <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
@@ -292,7 +292,7 @@ export default function ManageAccounts() {
         <div className="flex justify-between items-center">
           <div className="flex items-center space-x-3">
             <div className="p-2 bg-gradient-to-r from-purple-500/20 to-blue-500/20 rounded-xl">
-              <FaUsers className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+              <FaUsers className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
             </div>
             <div>
               <h3 className="text-xl font-semibold text-gray-900 dark:text-white">Your Accounts</h3>
@@ -370,7 +370,7 @@ export default function ManageAccounts() {
                     }`}>
                       <FaBuilding className={`w-6 h-6 ${
                         account.id === selectedAccountId 
-                          ? 'text-green-600 dark:text-green-400' 
+                          ? 'text-emerald-600 dark:text-emerald-400' 
                           : 'text-gray-600 dark:text-gray-400'
                       }`} />
                     </div>
@@ -379,15 +379,15 @@ export default function ManageAccounts() {
                       <div className="flex items-center space-x-2">
                         <h4 className={`text-xl font-semibold ${
                           account.id === selectedAccountId 
-                            ? 'text-green-600 dark:text-green-400' 
+                            ? 'text-emerald-600 dark:text-emerald-400' 
                             : 'text-gray-900 dark:text-white'
                         }`}>
                           {account.name}
                         </h4>
                         {account.id === selectedAccountId && (
-                          <div className="flex items-center space-x-1 bg-green-100 dark:bg-green-900/30 px-2 py-1 rounded-lg">
-                            <FaCheck className="w-3 h-3 text-green-600 dark:text-green-400" />
-                            <span className="text-xs font-medium text-green-600 dark:text-green-400">Active</span>
+                          <div className="flex items-center space-x-1 bg-emerald-100 dark:bg-emerald-950/30 px-2 py-1 rounded-lg">
+                            <FaCheck className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+                            <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400">Active</span>
                           </div>
                         )}
                       </div>
@@ -406,7 +406,7 @@ export default function ManageAccounts() {
                     <button 
                       onClick={() => handleEditAccount(account)}
                       disabled={isLoading}
-                      className="p-2 text-blue-600 dark:text-blue-400 hover:bg-blue-500/20 rounded-xl transition-all duration-200 hover:scale-110 disabled:opacity-50 disabled:cursor-not-allowed">
+                      className="p-2 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 rounded-xl transition-all duration-200 hover:scale-110 disabled:opacity-50 disabled:cursor-not-allowed">
                       <FaEdit className="w-4 h-4" />
                     </button>
                     <button 

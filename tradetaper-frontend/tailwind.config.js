@@ -1,7 +1,6 @@
 import formsPlugin from '@tailwindcss/forms';
 
 /** @type {import('tailwindcss').Config} */
-// Forcing a re-read by adding this comment
 export default {
   darkMode: 'class',
   content: [
@@ -12,30 +11,68 @@ export default {
   theme: {
     extend: {
       colors: {
-        'dark-primary': '#0D0F10',
-        'dark-secondary': '#1A1D1F',
-        'accent-green': '#05F2AF',
-        'accent-red': '#FF4D4D',
-        'text-light-primary': '#E0E0E0',
-        'text-light-secondary': '#A0A4A8',
-        'accent-green-darker': '#04D99B',
+        // Emerald Green Theme Colors
+        emerald: {
+          50: '#ECFDF5',
+          100: '#D1FAE5',
+          200: '#A7F3D0',
+          300: '#6EE7B7',
+          400: '#34D399',
+          500: '#10B981',  // Primary accent
+          600: '#059669',
+          700: '#047857',
+          800: '#065F46',
+          900: '#064E3B',
+          950: '#022C22',
+        },
       },
       fontFamily: {
         sans: ['Poppins', 'sans-serif'],
+        mono: ['JetBrains Mono', 'Courier New', 'monospace'],
       },
       backgroundImage: {
         'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
-        'gradient-conic':
-          'conic-gradient(from 180deg at 50% 50%, var(--tw-gradient-stops))',
+        'gradient-conic': 'conic-gradient(from 180deg at 50% 50%, var(--tw-gradient-stops))',
+        'emerald-glow': 'radial-gradient(circle at 50% 0%, rgba(16, 185, 129, 0.15) 0%, transparent 50%)',
       },
       boxShadow: {
-        'glow-green-sm': '0 0 8px 0px rgba(5, 242, 175, 0.5)',
-        'glow-green-md': '0 0 15px 2px rgba(5, 242, 175, 0.5)',
-        'card-modern': '0px 5px 15px rgba(0, 0, 0, 0.2), 0px 2px 5px rgba(0, 0, 0, 0.1)',
-      }
+        'emerald-sm': '0 1px 2px 0 rgba(16, 185, 129, 0.05)',
+        'emerald-md': '0 4px 6px -1px rgba(16, 185, 129, 0.1), 0 2px 4px -1px rgba(16, 185, 129, 0.06)',
+        'emerald-lg': '0 10px 15px -3px rgba(16, 185, 129, 0.1), 0 4px 6px -2px rgba(16, 185, 129, 0.05)',
+        'emerald-xl': '0 20px 25px -5px rgba(16, 185, 129, 0.1), 0 10px 10px -5px rgba(16, 185, 129, 0.04)',
+        'emerald-glow': '0 0 20px rgba(16, 185, 129, 0.3)',
+      },
+      animation: {
+        'spin-slow': 'spin 3s linear infinite',
+        'pulse-subtle': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+      },
+      backdropBlur: {
+        xs: '2px',
+      },
     },
   },
   plugins: [
     formsPlugin,
+    // Custom scrollbar plugin
+    function({ addUtilities }) {
+      const newUtilities = {
+        '.scrollbar-thin': {
+          scrollbarWidth: 'thin',
+        },
+        '.scrollbar-track-gray-100': {
+          scrollbarColor: '#f3f4f6 transparent',
+        },
+        '.scrollbar-thumb-gray-300': {
+          scrollbarColor: '#d1d5db transparent',
+        },
+        '.dark .scrollbar-track-[\\#0A0A0A]': {
+          scrollbarColor: '#0A0A0A transparent',
+        },
+        '.dark .scrollbar-thumb-[\\#2A2A2A]': {
+          scrollbarColor: '#2A2A2A transparent',
+        },
+      };
+      addUtilities(newUtilities);
+    },
   ],
 }; 

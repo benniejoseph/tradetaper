@@ -51,7 +51,8 @@ let ManualGoogleOAuthController = class ManualGoogleOAuthController {
     }
     async googleCallback(code, error, res) {
         try {
-            const frontendUrl = this.configService.get('FRONTEND_URL') || 'http://localhost:3000';
+            const frontendUrl = this.configService.get('FRONTEND_URL') ||
+                'http://localhost:3000';
             if (error) {
                 console.error('Google OAuth error:', error);
                 const errorUrl = `${frontendUrl}/auth/google/callback?error=${encodeURIComponent(error)}`;
@@ -77,7 +78,8 @@ let ManualGoogleOAuthController = class ManualGoogleOAuthController {
         }
         catch (error) {
             console.error('Google OAuth callback error:', error);
-            const frontendUrl = this.configService.get('FRONTEND_URL') || 'http://localhost:3000';
+            const frontendUrl = this.configService.get('FRONTEND_URL') ||
+                'http://localhost:3000';
             const errorUrl = `${frontendUrl}/auth/google/callback?error=${encodeURIComponent(error.message || 'Authentication failed')}`;
             return res.redirect(errorUrl);
         }

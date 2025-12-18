@@ -7,6 +7,10 @@
     "**/*spec.ts",
     "**/*test.ts",
     "**/*.spec.ts",
-    "**/*.test.ts"
+    "**/*.test.ts",
+    "src/migrations/**/*",
+    "src/market-intelligence/free-data-sources/coingecko.service.ts",
+    "src/market-intelligence/free-data-sources/rss-news.service.ts",
+    "src/market-intelligence/free-data-sources/social-onchain/**/*"
   ]
 }

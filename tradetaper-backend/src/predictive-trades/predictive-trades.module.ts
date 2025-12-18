@@ -11,5 +11,6 @@ import { ConfigModule } from '@nestjs/config';
   imports: [TypeOrmModule.forFeature([Trade]), ConfigModule],
   controllers: [PredictiveTradesController],
   providers: [PredictiveTradesService, GeminiPredictionService],
+  exports: [GeminiPredictionService], // Export for agent usage
 })
 export class PredictiveTradesModule {} 

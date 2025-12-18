@@ -2,11 +2,13 @@ import { TradesService } from './trades.service';
 import { CreateTradeDto } from './dto/create-trade.dto';
 import { UpdateTradeDto } from './dto/update-trade.dto';
 import { Trade } from './entities/trade.entity';
+import { PaginatedResponseDto } from '../common/dto/paginated-response.dto';
 export declare class TradesController {
     private readonly tradesService;
+    private readonly logger;
     constructor(tradesService: TradesService);
     create(createTradeDto: CreateTradeDto, req: any): Promise<Trade>;
-    findAll(req: any, accountId?: string): Promise<Trade[]>;
+    findAll(req: any, accountId?: string, page?: number, limit?: number): Promise<PaginatedResponseDto<Trade>>;
     findOne(id: string, req: any): Promise<Trade>;
     update(id: string, updateTradeDto: UpdateTradeDto, req: any): Promise<Trade>;
     remove(id: string, req: any): Promise<void>;

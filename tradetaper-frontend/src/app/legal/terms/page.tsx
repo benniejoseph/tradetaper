@@ -18,13 +18,13 @@ export default function TermsOfServicePage() {
             <div className="flex items-center justify-between">
               {/* Logo and Breadcrumb */}
               <div className="flex items-center space-x-4">
-                <Link href="/" className="flex items-center space-x-2 text-gray-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
-                  <FaChartLine className="w-6 h-6 text-blue-600" />
+                <Link href="/" className="flex items-center space-x-2 text-gray-900 dark:text-white hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors">
+                  <FaChartLine className="w-6 h-6 text-emerald-600" />
                   <span className="text-xl font-bold">TradeTaper</span>
                 </Link>
                 <div className="flex items-center space-x-2 text-sm text-gray-500 dark:text-gray-400">
                   <span>/</span>
-                  <Link href="/legal" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Legal</Link>
+                  <Link href="/legal" className="hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors">Legal</Link>
                   <span>/</span>
                   <span className="text-gray-900 dark:text-white font-medium">Terms of Service</span>
                 </div>
@@ -47,7 +47,7 @@ export default function TermsOfServicePage() {
       <div className="relative py-16">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           {/* Status Badge */}
-          <div className="inline-flex items-center space-x-2 bg-gradient-to-r from-blue-500/10 to-indigo-500/10 backdrop-blur-sm px-6 py-3 rounded-full text-blue-700 dark:text-blue-300 text-sm font-medium mb-8 border border-blue-200/30 dark:border-blue-800/30">
+          <div className="inline-flex items-center space-x-2 bg-gradient-to-r from-blue-500/10 to-indigo-500/10 backdrop-blur-sm px-6 py-3 rounded-full text-emerald-700 dark:text-emerald-300 text-sm font-medium mb-8 border border-blue-200/30 dark:border-blue-800/30">
             <FaFileContract className="w-4 h-4" />
             <span>Legal Agreement</span>
             <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
@@ -103,15 +103,15 @@ export default function TermsOfServicePage() {
                 prose-headings:text-gray-900 dark:prose-headings:text-white
                 prose-headings:font-bold prose-headings:tracking-tight
                 prose-h1:text-4xl prose-h1:mb-8 prose-h1:pb-4 prose-h1:border-b prose-h1:border-gray-200 dark:prose-h1:border-gray-700
-                prose-h2:text-3xl prose-h2:mt-16 prose-h2:mb-8 prose-h2:text-blue-900 dark:prose-h2:text-blue-100
+                prose-h2:text-3xl prose-h2:mt-16 prose-h2:mb-8 prose-h2:text-emerald-900 dark:prose-h2:text-emerald-100
                 prose-h3:text-2xl prose-h3:mt-12 prose-h3:mb-6 prose-h3:text-indigo-800 dark:prose-h3:text-indigo-200
                 prose-p:text-gray-700 dark:prose-p:text-gray-300 prose-p:leading-relaxed prose-p:mb-8 prose-p:text-lg
-                prose-a:text-blue-600 dark:prose-a:text-blue-400 prose-a:no-underline hover:prose-a:underline prose-a:font-medium
+                prose-a:text-emerald-600 dark:prose-a:text-emerald-400 prose-a:no-underline hover:prose-a:underline prose-a:font-medium
                 prose-strong:text-gray-900 dark:prose-strong:text-white prose-strong:font-semibold
                 prose-ul:my-8 prose-li:my-3 prose-li:text-gray-700 dark:prose-li:text-gray-300 prose-li:text-lg
                 prose-ol:my-8 prose-ol:text-lg
-                prose-blockquote:border-l-4 prose-blockquote:border-blue-500 prose-blockquote:bg-blue-50/50 dark:prose-blockquote:bg-blue-900/20 prose-blockquote:pl-8 prose-blockquote:py-6 prose-blockquote:my-8 prose-blockquote:rounded-r-lg
-                prose-code:text-blue-600 dark:prose-code:text-blue-400 prose-code:bg-blue-50 dark:prose-code:bg-blue-900/20 prose-code:px-2 prose-code:py-1 prose-code:rounded prose-code:font-medium"
+                prose-blockquote:border-l-4 prose-blockquote:border-blue-500 prose-blockquote:bg-emerald-50/50 dark:prose-blockquote:bg-emerald-900/20 prose-blockquote:pl-8 prose-blockquote:py-6 prose-blockquote:my-8 prose-blockquote:rounded-r-lg
+                prose-code:text-emerald-600 dark:prose-code:text-emerald-400 prose-code:bg-emerald-50 dark:prose-code:bg-emerald-900/20 prose-code:px-2 prose-code:py-1 prose-code:rounded prose-code:font-medium"
             />
           </div>
         </div>
@@ -134,7 +134,7 @@ export default function TermsOfServicePage() {
                 </p>
                 <div className="space-y-3">
                   <div className="flex items-center space-x-3 text-sm">
-                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                    <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
                     <span className="text-gray-700 dark:text-gray-300">
                       <strong>Legal Team:</strong> legal@tradetaper.com
                     </span>
@@ -172,24 +172,24 @@ export default function TermsOfServicePage() {
                 <div className="space-y-4">
                   <Link 
                     href="/legal/privacy" 
-                    className="flex items-center justify-between p-3 bg-gray-50/80 dark:bg-gray-800/80 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors group"
+                    className="flex items-center justify-between p-3 bg-gray-50/80 dark:bg-gray-800/80 rounded-lg hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors group"
                   >
                     <span className="text-gray-900 dark:text-white font-medium">Privacy Policy</span>
-                    <span className="text-blue-600 dark:text-blue-400 group-hover:translate-x-1 transition-transform">→</span>
+                    <span className="text-emerald-600 dark:text-emerald-400 group-hover:translate-x-1 transition-transform">→</span>
                   </Link>
                   <Link 
                     href="/legal/cancellation-refund" 
-                    className="flex items-center justify-between p-3 bg-gray-50/80 dark:bg-gray-800/80 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors group"
+                    className="flex items-center justify-between p-3 bg-gray-50/80 dark:bg-gray-800/80 rounded-lg hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors group"
                   >
                     <span className="text-gray-900 dark:text-white font-medium">Cancellation & Refund Policy</span>
-                    <span className="text-blue-600 dark:text-blue-400 group-hover:translate-x-1 transition-transform">→</span>
+                    <span className="text-emerald-600 dark:text-emerald-400 group-hover:translate-x-1 transition-transform">→</span>
                   </Link>
                   <Link 
                     href="/support" 
-                    className="flex items-center justify-between p-3 bg-gray-50/80 dark:bg-gray-800/80 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors group"
+                    className="flex items-center justify-between p-3 bg-gray-50/80 dark:bg-gray-800/80 rounded-lg hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors group"
                   >
                     <span className="text-gray-900 dark:text-white font-medium">Support Center</span>
-                    <span className="text-blue-600 dark:text-blue-400 group-hover:translate-x-1 transition-transform">→</span>
+                    <span className="text-emerald-600 dark:text-emerald-400 group-hover:translate-x-1 transition-transform">→</span>
                   </Link>
                 </div>
               </div>

@@ -341,7 +341,7 @@ export default function OverviewPage() {
       {/* Header Section */}
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
         <div className="space-y-2">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-green-600 bg-clip-text text-transparent">
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-emerald-500 to-emerald-600 bg-clip-text text-transparent">
             Performance Overview
           </h1>
           <p className="text-gray-600 dark:text-gray-300">
@@ -350,29 +350,29 @@ export default function OverviewPage() {
         </div>
         
         <div className="flex items-center space-x-3">
-          <button className="p-3 rounded-xl bg-gray-100/80 dark:bg-gray-800/80 hover:bg-blue-500 dark:hover:bg-blue-500 text-gray-600 dark:text-gray-400 hover:text-white transition-all duration-200 hover:scale-105">
+          <button className="p-3 rounded-xl bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-950/20 dark:to-emerald-900/20 hover:bg-emerald-500 dark:hover:bg-emerald-500 text-gray-600 dark:text-gray-400 hover:text-white transition-all duration-200 hover:scale-105">
             <FaFilter className="w-4 h-4" />
           </button>
           
-          <button className="p-3 rounded-xl bg-gray-100/80 dark:bg-gray-800/80 hover:bg-green-500 dark:hover:bg-green-500 text-gray-600 dark:text-gray-400 hover:text-white transition-all duration-200 hover:scale-105">
+          <button className="p-3 rounded-xl bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-950/20 dark:to-emerald-900/20 hover:bg-emerald-500 dark:hover:bg-emerald-500 text-gray-600 dark:text-gray-400 hover:text-white transition-all duration-200 hover:scale-105">
             <FaDownload className="w-4 h-4" />
           </button>
           
-          <button className="p-3 rounded-xl bg-gray-100/80 dark:bg-gray-800/80 hover:bg-purple-500 dark:hover:bg-purple-500 text-gray-600 dark:text-gray-400 hover:text-white transition-all duration-200 hover:scale-105">
+          <button className="p-3 rounded-xl bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-950/20 dark:to-emerald-900/20 hover:bg-emerald-500 dark:hover:bg-emerald-500 text-gray-600 dark:text-gray-400 hover:text-white transition-all duration-200 hover:scale-105">
             <FaChartLine className="w-4 h-4" />
           </button>
         </div>
       </div>
 
       {/* Controls */}
-      <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 p-6 shadow-lg">
+      <div className="bg-gradient-to-br from-white to-emerald-50 dark:from-black dark:to-emerald-950/20 backdrop-blur-xl rounded-2xl border border-emerald-200/50 dark:border-emerald-700/30 p-6 shadow-lg">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
           {/* Metrics Selection */}
           <div className="flex items-center gap-4">
             <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Metrics:</span>
             <div className="flex flex-wrap items-center gap-2">
               {selectedMetrics.map(metric => (
-                <div key={metric} className="flex items-center gap-2 px-3 py-1.5 bg-gray-100/80 dark:bg-gray-800/80 rounded-lg">
+                <div key={metric} className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-950/20 dark:to-emerald-900/20 rounded-lg">
                   <div 
                     className="w-3 h-3 rounded-full" 
                     style={{ backgroundColor: getMetricColor(metric) }}
@@ -388,21 +388,21 @@ export default function OverviewPage() {
                   </button>
                 </div>
               ))}
-              <button className="p-1.5 rounded-lg bg-gray-100/80 dark:bg-gray-800/80 hover:bg-blue-500 dark:hover:bg-blue-500 text-gray-600 dark:text-gray-400 hover:text-white transition-all duration-200">
+              <button className="p-1.5 rounded-lg bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-950/20 dark:to-emerald-900/20 hover:bg-emerald-500 dark:hover:bg-emerald-500 text-gray-600 dark:text-gray-400 hover:text-white transition-all duration-200">
                 <FaPlus className="w-3 h-3" />
               </button>
             </div>
           </div>
 
           {/* Time Range Buttons */}
-          <div className="flex bg-gray-100/80 dark:bg-gray-800/80 p-1 rounded-xl">
+          <div className="flex bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-950/20 dark:to-emerald-900/20 p-1 rounded-xl">
             {(['7D', '1M', 'All', 'Custom'] as TimeRange[]).map((range) => (
               <button
                 key={range}
                 onClick={() => setTimeRange(range)}
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
                   timeRange === range
-                    ? 'bg-gradient-to-r from-blue-500 to-green-500 text-white shadow-md'
+                    ? 'bg-gradient-to-r from-emerald-500 to-emerald-600 text-white shadow-md'
                     : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-200/50 dark:hover:bg-gray-700/50'
                 }`}
               >
@@ -428,7 +428,7 @@ export default function OverviewPage() {
         </div>
 
         {/* Win Rate Card */}
-        <div className="bg-gradient-to-br from-blue-500 to-cyan-600 rounded-2xl p-6 text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
+        <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-2xl p-6 text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
           <div className="flex items-center justify-between mb-4">
             <FaBullseye className="w-8 h-8 opacity-80" />
             <span className="text-blue-100 text-sm font-medium">Win Rate</span>
@@ -440,14 +440,14 @@ export default function OverviewPage() {
         </div>
 
         {/* Profit Factor Card */}
-        <div className="bg-gradient-to-br from-purple-500 to-indigo-600 rounded-2xl p-6 text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
+        <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-2xl p-6 text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
           <div className="flex items-center justify-between mb-4">
             <FaBalanceScale className="w-8 h-8 opacity-80" />
-            <span className="text-purple-100 text-sm font-medium">Profit Factor</span>
+            <span className="text-emerald-100 text-sm font-medium">Profit Factor</span>
           </div>
           <div className="space-y-1">
             <p className="text-3xl font-bold">{statistics.profitFactor === 999 ? '∞' : statistics.profitFactor.toFixed(2)}</p>
-            <p className="text-purple-100 text-sm">R:R {statistics.riskRewardRatio.toFixed(2)}</p>
+            <p className="text-emerald-100 text-sm">R:R {statistics.riskRewardRatio.toFixed(2)}</p>
           </div>
         </div>
 
@@ -467,7 +467,7 @@ export default function OverviewPage() {
       {/* Advanced Statistics */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Performance Metrics */}
-        <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 p-6 shadow-lg">
+        <div className="bg-gradient-to-br from-white to-emerald-50 dark:from-black dark:to-emerald-950/20 backdrop-blur-xl rounded-2xl border border-emerald-200/50 dark:border-emerald-700/30 p-6 shadow-lg">
           <div className="flex items-center gap-3 mb-6">
             <div className="p-2 bg-gradient-to-r from-green-500/20 to-emerald-500/20 rounded-xl">
               <FaChartBar className="w-5 h-5 text-green-600 dark:text-green-400" />
@@ -476,7 +476,7 @@ export default function OverviewPage() {
           </div>
           
           <div className="space-y-4">
-            <div className="flex justify-between items-center p-3 rounded-lg bg-gray-50/80 dark:bg-gray-800/80">
+            <div className="flex justify-between items-center p-3 rounded-lg bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-950/20 dark:to-emerald-900/20">
               <div className="flex items-center gap-3">
                 <FaArrowUp className="w-4 h-4 text-green-500" />
                 <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Average Win</span>
@@ -484,7 +484,7 @@ export default function OverviewPage() {
               <span className="font-bold text-green-600 dark:text-green-400">${statistics.avgWin.toFixed(2)}</span>
             </div>
             
-            <div className="flex justify-between items-center p-3 rounded-lg bg-gray-50/80 dark:bg-gray-800/80">
+            <div className="flex justify-between items-center p-3 rounded-lg bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-950/20 dark:to-emerald-900/20">
               <div className="flex items-center gap-3">
                 <FaArrowDown className="w-4 h-4 text-red-500" />
                 <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Average Loss</span>
@@ -492,7 +492,7 @@ export default function OverviewPage() {
               <span className="font-bold text-red-600 dark:text-red-400">${statistics.avgLoss.toFixed(2)}</span>
             </div>
             
-            <div className="flex justify-between items-center p-3 rounded-lg bg-gray-50/80 dark:bg-gray-800/80">
+            <div className="flex justify-between items-center p-3 rounded-lg bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-950/20 dark:to-emerald-900/20">
               <div className="flex items-center gap-3">
                 <FaTrophy className="w-4 h-4 text-yellow-500" />
                 <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Largest Win</span>
@@ -500,7 +500,7 @@ export default function OverviewPage() {
               <span className="font-bold text-green-600 dark:text-green-400">${statistics.largestWin.toFixed(2)}</span>
             </div>
             
-            <div className="flex justify-between items-center p-3 rounded-lg bg-gray-50/80 dark:bg-gray-800/80">
+            <div className="flex justify-between items-center p-3 rounded-lg bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-950/20 dark:to-emerald-900/20">
               <div className="flex items-center gap-3">
                 <FaExclamationTriangle className="w-4 h-4 text-red-500" />
                 <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Largest Loss</span>
@@ -508,7 +508,7 @@ export default function OverviewPage() {
               <span className="font-bold text-red-600 dark:text-red-400">${Math.abs(statistics.largestLoss).toFixed(2)}</span>
             </div>
             
-            <div className="flex justify-between items-center p-3 rounded-lg bg-gray-50/80 dark:bg-gray-800/80">
+            <div className="flex justify-between items-center p-3 rounded-lg bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-950/20 dark:to-emerald-900/20">
               <div className="flex items-center gap-3">
                 <FaBolt className="w-4 h-4 text-blue-500" />
                 <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Expectancy</span>
@@ -521,16 +521,16 @@ export default function OverviewPage() {
         </div>
 
         {/* Risk & Time Metrics */}
-        <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 p-6 shadow-lg">
+        <div className="bg-gradient-to-br from-white to-emerald-50 dark:from-black dark:to-emerald-950/20 backdrop-blur-xl rounded-2xl border border-emerald-200/50 dark:border-emerald-700/30 p-6 shadow-lg">
           <div className="flex items-center gap-3 mb-6">
-            <div className="p-2 bg-gradient-to-r from-purple-500/20 to-indigo-500/20 rounded-xl">
-              <FaShieldAlt className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+            <div className="p-2 bg-gradient-to-r from-emerald-500/20 to-emerald-600/20 rounded-xl">
+              <FaShieldAlt className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
             </div>
             <h3 className="text-xl font-bold text-gray-900 dark:text-white">Risk & Time Analysis</h3>
           </div>
           
           <div className="space-y-4">
-            <div className="flex justify-between items-center p-3 rounded-lg bg-gray-50/80 dark:bg-gray-800/80">
+            <div className="flex justify-between items-center p-3 rounded-lg bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-950/20 dark:to-emerald-900/20">
               <div className="flex items-center gap-3">
                 <FaClock className="w-4 h-4 text-blue-500" />
                 <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Avg Hold Time</span>
@@ -540,15 +540,15 @@ export default function OverviewPage() {
               </span>
             </div>
             
-            <div className="flex justify-between items-center p-3 rounded-lg bg-gray-50/80 dark:bg-gray-800/80">
+            <div className="flex justify-between items-center p-3 rounded-lg bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-950/20 dark:to-emerald-900/20">
               <div className="flex items-center gap-3">
                 <FaEye className="w-4 h-4 text-green-500" />
                 <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Open Positions</span>
               </div>
-              <span className="font-bold text-blue-600 dark:text-blue-400">{statistics.openTrades}</span>
+              <span className="font-bold text-emerald-600 dark:text-emerald-400">{statistics.openTrades}</span>
             </div>
             
-            <div className="flex justify-between items-center p-3 rounded-lg bg-gray-50/80 dark:bg-gray-800/80">
+            <div className="flex justify-between items-center p-3 rounded-lg bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-950/20 dark:to-emerald-900/20">
               <div className="flex items-center gap-3">
                 <FaFire className="w-4 h-4 text-orange-500" />
                 <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Longest Win Streak</span>
@@ -556,7 +556,7 @@ export default function OverviewPage() {
               <span className="font-bold text-green-600 dark:text-green-400">{statistics.longestWinStreak}</span>
             </div>
             
-            <div className="flex justify-between items-center p-3 rounded-lg bg-gray-50/80 dark:bg-gray-800/80">
+            <div className="flex justify-between items-center p-3 rounded-lg bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-950/20 dark:to-emerald-900/20">
               <div className="flex items-center gap-3">
                 <FaExclamationTriangle className="w-4 h-4 text-red-500" />
                 <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Longest Loss Streak</span>
@@ -564,7 +564,7 @@ export default function OverviewPage() {
               <span className="font-bold text-red-600 dark:text-red-400">{statistics.longestLossStreak}</span>
             </div>
             
-            <div className="flex justify-between items-center p-3 rounded-lg bg-gray-50/80 dark:bg-gray-800/80">
+            <div className="flex justify-between items-center p-3 rounded-lg bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-950/20 dark:to-emerald-900/20">
               <div className="flex items-center gap-3">
                 <FaPercentage className="w-4 h-4 text-yellow-500" />
                 <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Total Commissions</span>
@@ -576,10 +576,10 @@ export default function OverviewPage() {
       </div>
 
       {/* Performance Chart */}
-      <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 p-6 shadow-lg">
+      <div className="bg-gradient-to-br from-white to-emerald-50 dark:from-black dark:to-emerald-950/20 backdrop-blur-xl rounded-2xl border border-emerald-200/50 dark:border-emerald-700/30 p-6 shadow-lg">
         <div className="flex items-center gap-3 mb-6">
           <div className="p-2 bg-gradient-to-r from-blue-500/20 to-green-500/20 rounded-xl">
-            <FaChartLine className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+            <FaChartLine className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
           </div>
           <h2 className="text-xl font-bold text-gray-900 dark:text-white">
             Performance Chart
@@ -659,11 +659,11 @@ export default function OverviewPage() {
       </div>
 
       {/* Pairs Performance Table */}
-      <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 shadow-lg overflow-hidden">
-        <div className="p-6 border-b border-gray-200/30 dark:border-gray-700/30">
+      <div className="bg-gradient-to-br from-white to-emerald-50 dark:from-black dark:to-emerald-950/20 backdrop-blur-xl rounded-2xl border border-emerald-200/50 dark:border-emerald-700/30 shadow-lg overflow-hidden">
+        <div className="p-6 border-b border-emerald-200/30 dark:border-emerald-700/30">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-xl">
-              <FaCalendarAlt className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+            <div className="p-2 bg-gradient-to-r from-emerald-500/20 to-emerald-600/20 rounded-xl">
+              <FaCalendarAlt className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
             </div>
             <h2 className="text-xl font-bold text-gray-900 dark:text-white">
               Top Performing Pairs
@@ -674,8 +674,8 @@ export default function OverviewPage() {
         {pairsPerformance.length > 0 ? (
           <div className="overflow-x-auto">
             <table className="min-w-full">
-              <thead className="bg-gray-50/80 dark:bg-gray-800/80 backdrop-blur-sm">
-                <tr className="border-b border-gray-200/30 dark:border-gray-700/30">
+              <thead className="bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-950/20 dark:to-emerald-900/20 backdrop-blur-sm">
+                <tr className="border-b border-emerald-200/30 dark:border-emerald-700/30">
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Pairs
                   </th>
@@ -696,12 +696,12 @@ export default function OverviewPage() {
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200/30 dark:divide-gray-700/30">
+              <tbody className="divide-y divide-emerald-200/30 dark:divide-emerald-700/30">
                 {pairsPerformance.map((pair) => (
-                  <tr key={pair.symbol} className="group hover:bg-white/90 dark:hover:bg-gray-800/60 transition-all duration-200">
+                  <tr key={pair.symbol} className="group hover:bg-gradient-to-r hover:from-emerald-50 hover:to-emerald-100 dark:hover:from-emerald-950/20 dark:hover:to-emerald-900/20 transition-all duration-200">
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                       <div className="flex items-center gap-3">
-                        <span className="font-semibold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                        <span className="font-semibold text-gray-900 dark:text-white group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
                           {pair.symbol}
                         </span>
                       </div>
@@ -736,7 +736,7 @@ export default function OverviewPage() {
           </div>
         ) : (
           <div className="text-center py-16">
-            <div className="w-20 h-20 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center mx-auto mb-6">
+            <div className="w-20 h-20 bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6">
               <FaCalendarAlt className="w-10 h-10 text-white" />
             </div>
             <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">No Pairs Data Available</h3>

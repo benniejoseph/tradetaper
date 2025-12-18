@@ -25,7 +25,15 @@ exports.AdminModule = AdminModule;
 exports.AdminModule = AdminModule = __decorate([
     (0, common_1.Module)({
         imports: [
-            typeorm_1.TypeOrmModule.forFeature([user_entity_1.User, account_entity_1.Account, trade_entity_1.Trade, tag_entity_1.Tag, mt5_account_entity_1.MT5Account, subscription_entity_1.Subscription, usage_entity_1.Usage]),
+            typeorm_1.TypeOrmModule.forFeature([
+                user_entity_1.User,
+                account_entity_1.Account,
+                trade_entity_1.Trade,
+                tag_entity_1.Tag,
+                mt5_account_entity_1.MT5Account,
+                subscription_entity_1.Subscription,
+                usage_entity_1.Usage,
+            ]),
             seed_module_1.SeedModule,
         ],
         controllers: [admin_controller_1.AdminController],

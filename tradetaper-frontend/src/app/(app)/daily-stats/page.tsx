@@ -155,7 +155,7 @@ export default function DailyStatsPage() {
       {/* Header Section */}
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
         <div className="space-y-2">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-green-600 bg-clip-text text-transparent">
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-emerald-500 to-emerald-600 bg-clip-text text-transparent">
             Daily Statistics
           </h1>
           <p className="text-gray-600 dark:text-gray-300">
@@ -164,22 +164,22 @@ export default function DailyStatsPage() {
         </div>
         
         <div className="flex items-center space-x-3">
-          <button className="p-3 rounded-xl bg-gray-100/80 dark:bg-gray-800/80 hover:bg-green-500 dark:hover:bg-green-500 text-gray-600 dark:text-gray-400 hover:text-white transition-all duration-200 hover:scale-105">
+          <button className="p-3 rounded-xl bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-950/20 dark:to-emerald-900/20 hover:bg-emerald-500 dark:hover:bg-emerald-500 text-gray-600 dark:text-gray-400 hover:text-white transition-all duration-200 hover:scale-105">
             <FaDownload className="w-4 h-4" />
           </button>
           
-          <button className="p-3 rounded-xl bg-gray-100/80 dark:bg-gray-800/80 hover:bg-purple-500 dark:hover:bg-purple-500 text-gray-600 dark:text-gray-400 hover:text-white transition-all duration-200 hover:scale-105">
+          <button className="p-3 rounded-xl bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-950/20 dark:to-emerald-900/20 hover:bg-emerald-500 dark:hover:bg-emerald-500 text-gray-600 dark:text-gray-400 hover:text-white transition-all duration-200 hover:scale-105">
             <FaFilter className="w-4 h-4" />
           </button>
           
-          <button className="p-3 rounded-xl bg-gray-100/80 dark:bg-gray-800/80 hover:bg-orange-500 dark:hover:bg-orange-500 text-gray-600 dark:text-gray-400 hover:text-white transition-all duration-200 hover:scale-105">
+          <button className="p-3 rounded-xl bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-950/20 dark:to-emerald-900/20 hover:bg-emerald-500 dark:hover:bg-emerald-500 text-gray-600 dark:text-gray-400 hover:text-white transition-all duration-200 hover:scale-105">
             <FaCog className="w-4 h-4" />
           </button>
         </div>
       </div>
 
       {/* Controls Section */}
-      <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 p-6 shadow-lg">
+      <div className="bg-gradient-to-br from-white to-emerald-50 dark:from-black dark:to-emerald-950/20 backdrop-blur-xl rounded-2xl border border-emerald-200/50 dark:border-emerald-700/30 p-6 shadow-lg">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="flex items-center space-x-3">
             <div className="p-2 bg-gradient-to-r from-blue-500/20 to-green-500/20 rounded-xl">
@@ -197,7 +197,7 @@ export default function DailyStatsPage() {
               <select 
                 value={selectedRange}
                 onChange={(e) => setSelectedRange(e.target.value)}
-                className="appearance-none bg-white/50 dark:bg-gray-800/50 border border-gray-200/50 dark:border-gray-700/50 rounded-xl px-4 py-2.5 pr-10 text-sm font-medium text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 backdrop-blur-sm hover:bg-white/70 dark:hover:bg-gray-800/70">
+                className="appearance-none bg-gradient-to-r from-emerald-50/50 to-white/50 dark:from-emerald-950/10 dark:to-emerald-900/10 border border-emerald-200/50 dark:border-emerald-700/30 rounded-xl px-4 py-2.5 pr-10 text-sm font-medium text-black dark:text-white focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all duration-200 backdrop-blur-sm hover:from-emerald-100/60 hover:to-emerald-50/60 dark:hover:from-emerald-900/20 dark:hover:to-emerald-800/20">
                 <option value="all">All Time</option>
                 <option value="7days">Last 7 days</option>
                 <option value="30days">Last 30 days</option>
@@ -211,7 +211,7 @@ export default function DailyStatsPage() {
               <select 
                 value={sortOrder === 'asc' ? 'time_asc' : 'time_desc'}
                 onChange={(e) => setSortOrder(e.target.value === 'time_asc' ? 'asc' : 'desc')}
-                className="appearance-none bg-white/50 dark:bg-gray-800/50 border border-gray-200/50 dark:border-gray-700/50 rounded-xl px-4 py-2.5 pr-10 text-sm font-medium text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 backdrop-blur-sm hover:bg-white/70 dark:hover:bg-gray-800/70">
+                className="appearance-none bg-gradient-to-r from-emerald-50/50 to-white/50 dark:from-emerald-950/10 dark:to-emerald-900/10 border border-emerald-200/50 dark:border-emerald-700/30 rounded-xl px-4 py-2.5 pr-10 text-sm font-medium text-black dark:text-white focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all duration-200 backdrop-blur-sm hover:from-emerald-100/60 hover:to-emerald-50/60 dark:hover:from-emerald-900/20 dark:hover:to-emerald-800/20">
                 <option value="time_desc">Newest First</option>
                 <option value="time_asc">Oldest First</option>
               </select>
@@ -228,9 +228,9 @@ export default function DailyStatsPage() {
 
       {/* Daily Stats Cards */}
       {sortedDailyStats.length === 0 ? (
-        <div className="text-center py-16 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 shadow-lg">
+        <div className="text-center py-16 bg-gradient-to-br from-white to-emerald-50 dark:from-black dark:to-emerald-950/20 backdrop-blur-xl rounded-2xl border border-emerald-200/50 dark:border-emerald-700/30 shadow-lg">
           <div className="max-w-md mx-auto space-y-6">
-            <div className="w-20 h-20 bg-gradient-to-r from-blue-500 to-green-500 rounded-full flex items-center justify-center mx-auto">
+            <div className="w-20 h-20 bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-full flex items-center justify-center mx-auto">
               <FaCalendarDay className="w-10 h-10 text-white" />
             </div>
             <div>
@@ -253,8 +253,8 @@ export default function DailyStatsPage() {
             const shortPercentage = dayStats.totalTrades > 0 ? Math.round((dayStats.shortTrades / dayStats.totalTrades) * 100) : 0;
 
             return (
-              <div key={dayStats.date} className="group bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 p-6 shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
-                <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-green-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl"></div>
+              <div key={dayStats.date} className="group bg-gradient-to-br from-white to-emerald-50 dark:from-black dark:to-emerald-950/20 backdrop-blur-xl rounded-2xl border border-emerald-200/50 dark:border-emerald-700/30 p-6 shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
+                <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-emerald-600/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl"></div>
                 
                 <div className="relative z-10">
                   {/* Header */}
@@ -277,7 +277,7 @@ export default function DailyStatsPage() {
                     <div className={`px-4 py-2 rounded-xl font-semibold text-lg ${
                       isPositive ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' : 
                       isNegative ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400' : 
-                      'bg-gray-100 dark:bg-gray-800/50 text-gray-700 dark:text-gray-400'
+                      'bg-gradient-to-r from-emerald-100 to-emerald-200 dark:from-emerald-900/30 dark:to-emerald-800/30 text-gray-700 dark:text-gray-400'
                     }`}>
                       {isPositive ? '+' : ''}${dayStats.totalNetPnl.toLocaleString(undefined, { 
                         minimumFractionDigits: 2, 
@@ -294,7 +294,7 @@ export default function DailyStatsPage() {
                   {/* Stats Grid */}
                   <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
                     {/* Total Trades */}
-                    <div className="text-center p-4 bg-gray-50/80 dark:bg-gray-800/50 rounded-xl">
+                    <div className="text-center p-4 bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-950/20 dark:to-emerald-900/20 rounded-xl">
                       <div className="flex items-center justify-center space-x-1 mb-2">
                         <FaExchangeAlt className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                         <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Trades</span>
@@ -321,7 +321,7 @@ export default function DailyStatsPage() {
                     </div>
 
                     {/* Win Rate */}
-                    <div className="text-center p-4 bg-gray-50/80 dark:bg-gray-800/50 rounded-xl">
+                    <div className="text-center p-4 bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-950/20 dark:to-emerald-900/20 rounded-xl">
                       <div className="flex items-center justify-center space-x-1 mb-2">
                         <FaPercentage className="w-4 h-4 text-green-600 dark:text-green-400" />
                         <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Win Rate</span>
@@ -332,7 +332,7 @@ export default function DailyStatsPage() {
                     </div>
 
                     {/* Long vs Short */}
-                    <div className="text-center p-4 bg-gray-50/80 dark:bg-gray-800/50 rounded-xl">
+                    <div className="text-center p-4 bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-950/20 dark:to-emerald-900/20 rounded-xl">
                       <div className="flex items-center justify-center space-x-1 mb-2">
                         <FaArrowUp className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                         <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Long/Short</span>
@@ -345,7 +345,7 @@ export default function DailyStatsPage() {
                     </div>
 
                     {/* Commission */}
-                    <div className="text-center p-4 bg-gray-50/80 dark:bg-gray-800/50 rounded-xl">
+                    <div className="text-center p-4 bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-950/20 dark:to-emerald-900/20 rounded-xl">
                       <div className="flex items-center justify-center space-x-1 mb-2">
                         <FaDollarSign className="w-4 h-4 text-orange-600 dark:text-orange-400" />
                         <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Fees</span>
@@ -356,7 +356,7 @@ export default function DailyStatsPage() {
                     </div>
 
                     {/* Performance Indicator */}
-                    <div className="text-center p-4 bg-gray-50/80 dark:bg-gray-800/50 rounded-xl">
+                    <div className="text-center p-4 bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-950/20 dark:to-emerald-900/20 rounded-xl">
                       <div className="flex items-center justify-center space-x-1 mb-2">
                         <FaChartLine className="w-4 h-4 text-purple-600 dark:text-purple-400" />
                         <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Status</span>

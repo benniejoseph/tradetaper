@@ -56,7 +56,7 @@ export class SecretsService {
   /**
    * Get a secret value with optional caching
    */
-  getSecret(key: string, options: { cache?: boolean; ttl?: number } = {}): string {
+  getSecret(key: string, options: { cache?: boolean; ttl?: number } = {}): string | null {
     // Check cache first
     if (options.cache) {
       const cached = this.secretsCache.get(key);
@@ -88,28 +88,28 @@ export class SecretsService {
   /**
    * Get Gemini API Key
    */
-  getGeminiApiKey(): string {
+  getGeminiApiKey(): string | null {
     return this.getSecret('GEMINI_API_KEY', { cache: true, ttl: 3600 });
   }
 
   /**
    * Get JWT Secret
    */
-  getJwtSecret(): string {
+  getJwtSecret(): string | null {
     return this.getSecret('JWT_SECRET', { cache: true, ttl: 3600 });
   }
 
   /**
    * Get database password
    */
-  getDatabasePassword(): string {
+  getDatabasePassword(): string | null {
     return this.getSecret('DB_PASSWORD');
   }
 
   /**
    * Get Stripe secret key
    */
-  getStripeSecretKey(): string {
+  getStripeSecretKey(): string | null {
     return this.getSecret('STRIPE_SECRET_KEY', { cache: true, ttl: 3600 });
   }
 

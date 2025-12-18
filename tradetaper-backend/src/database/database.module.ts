@@ -11,37 +11,40 @@ import { TypeOrmModule } from '@nestjs/typeorm';
           configService.get<string>('NODE_ENV') === 'production';
 
         if (isProduction) {
-          // Cloud Run production configuration using TCP connection
-          const dbHost = configService.get<string>('DB_HOST') || '34.46.123.71';
-
-          console.log('🔧 Using Cloud SQL TCP connection for Cloud Run');
-          console.log(`📍 Database Host: ${dbHost}`);
-
-          return {
-            type: 'postgres',
-            host: dbHost,
+          // Cloud Run production configuration using Unix socket
+          console.log('🔧 Using Unix socket for Cloud Run');
+          
+          const config = {
+            type: 'postgres' as const,
+            host: '/cloudsql/trade-taper:us-central1:trade-taper-postgres',
             port: 5432,
+            database:
+              configService.get<string>('DB_NAME') ||
+              configService.get<string>('DATABASE_NAME'),
             username:
               configService.get<string>('DB_USER') ||
               configService.get<string>('DATABASE_USERNAME'),
             password:
               configService.get<string>('DB_PASSWORD') ||
               configService.get<string>('DATABASE_PASSWORD'),
-            database:
-              configService.get<string>('DB_NAME') ||
-              configService.get<string>('DATABASE_NAME'),
             autoLoadEntities: true,
-            synchronize: false, // Disabled after schema sync - use migrations for production
-            logging: ['error', 'warn'],
+            synchronize: false,
+            logging: ['error', 'warn'] as any,
             retryAttempts: 10,
             retryDelay: 5000,
             connectTimeoutMS: 60000,
-            ssl: false,
-            extra: {
-              connectionTimeoutMillis: 60000,
-              idle_in_transaction_session_timeout: 60000,
-            },
           };
+
+          console.log('🔧 Final database config:', {
+            type: config.type,
+            host: config.host,
+            port: config.port,
+            database: config.database,
+            username: config.username,
+            hasPassword: !!config.password,
+          });
+
+          return config;
         } else {
           // Local development configuration
           console.log('🔧 Using local database connection');

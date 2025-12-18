@@ -29,7 +29,7 @@ class NoteResponseDto {
     get preview() {
         if (!this.content || this.content.length === 0)
             return '';
-        const textBlocks = this.content.filter(block => ['text', 'heading', 'quote'].includes(block.type));
+        const textBlocks = this.content.filter((block) => ['text', 'heading', 'quote'].includes(block.type));
         if (textBlocks.length === 0)
             return '';
         const firstBlock = textBlocks[0];
@@ -37,7 +37,7 @@ class NoteResponseDto {
         return text.length > 150 ? text.substring(0, 150) + '...' : text;
     }
     get hasMedia() {
-        return this.content?.some(block => ['image', 'video', 'embed'].includes(block.type)) || false;
+        return (this.content?.some((block) => ['image', 'video', 'embed'].includes(block.type)) || false);
     }
     get blockCount() {
         return this.content?.length || 0;

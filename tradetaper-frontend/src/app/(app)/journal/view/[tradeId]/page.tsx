@@ -5,9 +5,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '@/store/store';
 import { fetchTradeById } from '@/store/features/tradesSlice';
 import Link from 'next/link';
-import TradeChart from '@/components/charts/TradeChart';
-import { fetchRealPriceData } from '@/services/priceDataService';
-import { CandlestickData } from 'lightweight-charts';
+import TradingViewChart from '@/components/market-intelligence/TradingViewChart';
 import { format as formatDateFns, differenceInMinutes, differenceInHours, differenceInDays } from 'date-fns';
 import { TradeDirection, TradeStatus } from '@/types/trade';
 import { addDays, subDays } from 'date-fns';
@@ -24,12 +22,14 @@ import {
   FaChartLine
 } from 'react-icons/fa';
 
+// TradingView interval mapping
 const TIME_INTERVALS = [
-  { value: '1minute', label: '1m' },
-  { value: '5minute', label: '5m' },
-  { value: '15minute', label: '15m' },
-  { value: 'hourly', label: '1h' },
-  { value: 'daily', label: '1D' },
+  { value: '1', label: '1m' },
+  { value: '5', label: '5m' },
+  { value: '15', label: '15m' },
+  { value: '60', label: '1h' },
+  { value: '240', label: '4h' },
+  { value: 'D', label: '1D' },
 ];
 
 export default function ViewTradePage() {
@@ -38,84 +38,13 @@ export default function ViewTradePage() {
   const tradeId = params.tradeId as string;
 
   const { currentTrade, isLoading: tradeIsLoading, error: tradeError } = useSelector((state: RootState) => state.trades);
-  const [priceData, setPriceData] = useState<CandlestickData[]>([]);
-  const [priceDataLoading, setPriceDataLoading] = useState(false);
-  const [selectedInterval, setSelectedInterval] = useState('15minute');
-  const [dataFallbackMessage, setDataFallbackMessage] = useState<string | null>(null);
+  const [selectedInterval, setSelectedInterval] = useState('15');
 
   useEffect(() => {
     if (tradeId) {
         dispatch(fetchTradeById(tradeId));
     }
   }, [dispatch, tradeId]);
-
-  useEffect(() => {
-    if (currentTrade && currentTrade.id === tradeId && selectedInterval) {
-      setPriceDataLoading(true);
-      setDataFallbackMessage(null); // Clear any previous fallback messages
-
-      const entryDate = new Date(currentTrade.entryDate);
-      let fromDate: Date;
-      let toDate: Date;
-      
-      // Adjust date range based on interval and Tradermade API limits
-      if (selectedInterval === '1minute' || selectedInterval === '5minute') {
-        // Tradermade allows max 2 working days for 1m and 5m data
-        fromDate = subDays(entryDate, 2);
-        toDate = addDays(currentTrade.exitDate ? new Date(currentTrade.exitDate) : entryDate, 1);
-      } else if (selectedInterval === '15minute' || selectedInterval === '30minute') {
-        // Tradermade allows max 5 working days for 15m and 30m data
-        fromDate = subDays(entryDate, 5);
-        toDate = addDays(currentTrade.exitDate ? new Date(currentTrade.exitDate) : entryDate, 1);
-      } else if (selectedInterval === 'hourly') {
-        // For hourly data, use moderate range
-        fromDate = subDays(entryDate, 14);
-        toDate = addDays(currentTrade.exitDate ? new Date(currentTrade.exitDate) : entryDate, 3);
-      } else {
-        // For daily data, use longer range
-        fromDate = subDays(entryDate, 30);
-        toDate = addDays(currentTrade.exitDate ? new Date(currentTrade.exitDate) : entryDate, 7);
-      }
-
-      const today = new Date();
-      if (toDate > today) toDate = today;
-
-      fetchRealPriceData(currentTrade.symbol, fromDate, toDate, selectedInterval)
-        .then(data => {
-          setPriceData(data);
-          setDataFallbackMessage(null); // Clear fallback message on success
-        })
-        .catch(err => {
-          console.error('Failed to fetch price data:', err);
-          
-          // Check if this is an API limitation error and try daily fallback
-          if (err.response?.status === 403 || err.response?.status === 400) {
-            console.log('Attempting fallback to daily data due to API limitations...');
-            
-            // Set a fallback message to inform the user
-            setDataFallbackMessage(`${selectedInterval} data is not available with current API plan. Showing daily data instead.`);
-            
-            // Fallback to daily data if minute/hourly data is not available
-            return fetchRealPriceData(currentTrade.symbol, fromDate, toDate, 'daily')
-              .then(fallbackData => {
-                console.log('Fallback to daily data successful:', fallbackData.length, 'data points');
-                setPriceData(fallbackData);
-              })
-              .catch(fallbackErr => {
-                console.error('Fallback to daily data also failed:', fallbackErr);
-                setPriceData([]);
-                setDataFallbackMessage('Unable to load price data. Please try again later.');
-              });
-          } else {
-            setPriceData([]);
-            setDataFallbackMessage('Unable to load price data. Please check your connection and try again.');
-          }
-        })
-        .finally(() => {
-            setPriceDataLoading(false);
-        });
-    }
-  }, [currentTrade, tradeId, selectedInterval]);
 
   // Calculate additional metrics
   const tradeDuration = useMemo(() => {
@@ -157,7 +86,7 @@ export default function ViewTradePage() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-emerald-500 mx-auto mb-4"></div>
           <div className="text-xl font-semibold text-gray-900 dark:text-white">Loading trade details...</div>
         </div>
       </div>
@@ -173,7 +102,7 @@ export default function ViewTradePage() {
           </div>
           <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Error Loading Trade</h3>
           <p className="text-red-600 dark:text-red-400 mb-4">{tradeError}</p>
-          <Link href="/journal" className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-semibold rounded-xl transition-all duration-200 hover:scale-105 shadow-lg">
+          <Link href="/journal" className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-semibold rounded-xl transition-all duration-200 hover:scale-105 shadow-lg">
             <FaArrowLeft className="mr-2" />
             Back to Journal
           </Link>
@@ -191,7 +120,7 @@ export default function ViewTradePage() {
           </div>
           <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Trade Not Found</h3>
           <p className="text-gray-600 dark:text-gray-400 mb-4">The trade you&apos;re looking for doesn&apos;t exist.</p>
-          <Link href="/journal" className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-semibold rounded-xl transition-all duration-200 hover:scale-105 shadow-lg">
+          <Link href="/journal" className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-semibold rounded-xl transition-all duration-200 hover:scale-105 shadow-lg">
             <FaArrowLeft className="mr-2" />
             Back to Journal
           </Link>
@@ -215,7 +144,7 @@ export default function ViewTradePage() {
         <div className="flex items-center space-x-6">
           <Link
             href="/journal"
-            className="flex items-center space-x-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors p-2 rounded-xl hover:bg-gray-100/80 dark:hover:bg-gray-800/80"
+            className="flex items-center space-x-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors p-2 rounded-xl hover:bg-gradient-to-r hover:from-emerald-50 hover:to-emerald-100 dark:hover:from-emerald-950/20 dark:hover:to-emerald-900/20"
           >
             <FaArrowLeft className="h-4 w-4" />
             <span>Back to Journal</span>
@@ -226,7 +155,7 @@ export default function ViewTradePage() {
               {React.createElement(directionIcon, { className: `h-6 w-6 text-white` })}
             </div>
             <div>
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-green-600 bg-clip-text text-transparent">
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-emerald-500 to-emerald-600 bg-clip-text text-transparent">
                 {currentTrade.symbol}
               </h1>
               <p className="text-gray-600 dark:text-gray-300">
@@ -250,7 +179,7 @@ export default function ViewTradePage() {
           <div className="flex items-center space-x-3">
             <button
               onClick={() => navigator.clipboard.writeText(window.location.href)}
-              className="p-3 rounded-xl bg-gray-100/80 dark:bg-gray-800/80 hover:bg-blue-500 dark:hover:bg-blue-500 text-gray-600 dark:text-gray-400 hover:text-white transition-all duration-200 hover:scale-105"
+              className="p-3 rounded-xl bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-950/20 dark:to-emerald-900/20 hover:bg-emerald-500 dark:hover:bg-emerald-500 text-gray-600 dark:text-gray-400 hover:text-white transition-all duration-200 hover:scale-105"
               title="Copy link"
             >
               <FaCopy className="h-4 w-4" />
@@ -258,7 +187,7 @@ export default function ViewTradePage() {
             
             <button
               onClick={() => window.print()}
-              className="p-3 rounded-xl bg-gray-100/80 dark:bg-gray-800/80 hover:bg-green-500 dark:hover:bg-green-500 text-gray-600 dark:text-gray-400 hover:text-white transition-all duration-200 hover:scale-105"
+              className="p-3 rounded-xl bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-950/20 dark:to-emerald-900/20 hover:bg-emerald-500 dark:hover:bg-emerald-500 text-gray-600 dark:text-gray-400 hover:text-white transition-all duration-200 hover:scale-105"
               title="Export"
             >
               <FaDownload className="h-4 w-4" />
@@ -266,7 +195,7 @@ export default function ViewTradePage() {
             
             <Link
               href={`/journal/edit/${tradeId}`}
-              className="flex items-center space-x-2 px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-semibold rounded-xl transition-all duration-200 hover:scale-105 shadow-lg hover:shadow-xl"
+              className="flex items-center space-x-2 px-6 py-3 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-semibold rounded-xl transition-all duration-200 hover:scale-105 shadow-lg hover:shadow-xl"
             >
               <FaEdit className="h-4 w-4" />
               <span>Edit Trade</span>
@@ -280,10 +209,10 @@ export default function ViewTradePage() {
         <div className="flex items-center space-x-4">
           <div className={`px-4 py-2 rounded-xl text-sm font-semibold shadow-lg ${
             currentTrade.status === TradeStatus.CLOSED 
-              ? 'bg-gradient-to-r from-green-500 to-green-600 text-white'
+              ? 'bg-gradient-to-r from-emerald-500 to-emerald-600 text-white'
               : currentTrade.status === TradeStatus.OPEN
-              ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white'
-              : 'bg-gradient-to-r from-gray-500 to-gray-600 text-white'
+              ? 'bg-gradient-to-r from-emerald-400 to-emerald-500 text-white'
+              : 'bg-gradient-to-r from-emerald-600 to-emerald-700 text-white'
           }`}>
             {currentTrade.status}
           </div>
@@ -298,13 +227,13 @@ export default function ViewTradePage() {
       </div>
 
       {/* Main Chart Section */}
-      <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 shadow-lg">
+      <div className="bg-gradient-to-br from-white to-emerald-50 dark:from-black dark:to-emerald-950/20 backdrop-blur-xl rounded-2xl border border-emerald-200/50 dark:border-emerald-700/30 shadow-lg">
         {/* Chart Header */}
-        <div className="p-6 border-b border-gray-200/30 dark:border-gray-700/30">
+        <div className="p-6 border-b border-emerald-200/30 dark:border-emerald-700/30">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <div className="p-2 bg-gradient-to-r from-blue-500/20 to-green-500/20 rounded-xl">
-                <FaChartLine className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+              <div className="p-2 bg-gradient-to-r from-emerald-500/20 to-emerald-600/20 rounded-xl">
+                <FaChartLine className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
               </div>
               <div>
                 <h2 className="text-xl font-bold text-gray-900 dark:text-white">
@@ -323,8 +252,8 @@ export default function ViewTradePage() {
                   onClick={() => setSelectedInterval(interval.value)}
                   className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${
                     selectedInterval === interval.value
-                      ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg'
-                      : 'bg-gray-100/80 dark:bg-gray-800/80 text-gray-600 dark:text-gray-400 hover:bg-gray-200/80 dark:hover:bg-gray-700/80 hover:text-gray-900 dark:hover:text-white'
+                      ? 'bg-gradient-to-r from-emerald-500 to-emerald-600 text-white shadow-lg'
+                      : 'bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-950/20 dark:to-emerald-900/20 text-gray-600 dark:text-gray-400 hover:from-emerald-100 hover:to-emerald-200 dark:hover:from-emerald-900/30 dark:hover:to-emerald-800/30 hover:text-gray-900 dark:hover:text-white'
                   }`}
                 >
                   {interval.label}
@@ -336,33 +265,23 @@ export default function ViewTradePage() {
 
         {/* Chart */}
         <div className="p-6">
-          {/* Fallback Message */}
-          {dataFallbackMessage && (
-            <div className="mb-4 p-4 bg-amber-50/80 dark:bg-amber-900/20 backdrop-blur-sm border border-amber-200/50 dark:border-amber-700/50 rounded-xl">
-              <div className="flex items-center space-x-3">
-                <div className="w-5 h-5 text-amber-600 dark:text-amber-400">
-                  ⚠️
-                </div>
-                <div className="text-sm text-amber-800 dark:text-amber-200 font-medium">
-                  {dataFallbackMessage}
-                </div>
-              </div>
-            </div>
-          )}
-          
-          <div className="h-[600px] w-full rounded-xl overflow-hidden bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm">
-            {priceDataLoading ? (
-              <div className="flex items-center justify-center h-full w-full">
-                <div className="text-center">
-                  <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-500 mx-auto mb-4"></div>
-                  <div className="text-gray-600 dark:text-gray-400">Loading chart data...</div>
-                </div>
-              </div>
-            ) : (
-              <div className="w-full h-full">
-                <TradeChart trade={currentTrade} priceData={priceData} />
-              </div>
-            )}
+          <div className="h-[700px] w-full rounded-xl overflow-hidden border-2 border-gray-700">
+            <TradingViewChart 
+              symbol={currentTrade.symbol}
+              interval={selectedInterval}
+              theme="dark"
+              height={700}
+              tradeMarker={{
+                entryDate: currentTrade.entryDate,
+                exitDate: currentTrade.exitDate || undefined,
+                entryPrice: currentTrade.entryPrice || 0,
+                exitPrice: currentTrade.exitPrice || undefined,
+                stopLoss: currentTrade.stopLoss || undefined,
+                takeProfit: currentTrade.takeProfit || undefined,
+                direction: currentTrade.direction as 'LONG' | 'SHORT',
+                profitLoss: currentTrade.profitLoss || undefined,
+              }}
+            />
           </div>
         </div>
       </div>
@@ -371,10 +290,10 @@ export default function ViewTradePage() {
       <div className="grid grid-cols-1 xl:grid-cols-6 lg:grid-cols-4 gap-6">
         {/* Trade Execution Details */}
         <div className="xl:col-span-2 lg:col-span-2">
-          <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 shadow-lg p-6">
+          <div className="bg-gradient-to-br from-white to-emerald-50 dark:from-black dark:to-emerald-950/20 backdrop-blur-xl rounded-2xl border border-emerald-200/50 dark:border-emerald-700/30 shadow-lg p-6">
             <div className="flex items-center space-x-3 mb-6">
-              <div className="p-3 bg-gradient-to-r from-blue-500/20 to-green-500/20 rounded-xl">
-                <FaExchangeAlt className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+              <div className="p-3 bg-gradient-to-r from-emerald-500/20 to-emerald-600/20 rounded-xl">
+                <FaExchangeAlt className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
               </div>
               <div>
                 <h3 className="text-xl font-bold text-gray-900 dark:text-white">
@@ -387,7 +306,7 @@ export default function ViewTradePage() {
             </div>
             
             <div className="grid grid-cols-2 gap-4">
-              <div className="bg-white/60 dark:bg-gray-800/40 backdrop-blur-sm rounded-xl p-4 border border-gray-200/30 dark:border-gray-700/30 hover:bg-white/80 dark:hover:bg-gray-800/60 transition-all duration-200">
+              <div className="bg-gradient-to-br from-emerald-50/50 to-white/50 dark:from-emerald-950/10 dark:to-emerald-900/10 backdrop-blur-sm rounded-xl p-4 border border-emerald-200/30 dark:border-emerald-700/30 hover:from-emerald-100/60 hover:to-emerald-50/60 dark:hover:from-emerald-900/20 dark:hover:to-emerald-800/20 transition-all duration-200">
                 <div className="text-xs font-semibold text-green-600 dark:text-green-400 mb-1">ENTRY PRICE</div>
                 <div className="text-xl font-bold text-gray-900 dark:text-white">
                   ${currentTrade.entryPrice?.toLocaleString() || 'N/A'}
@@ -398,8 +317,8 @@ export default function ViewTradePage() {
               </div>
               
               {currentTrade.exitPrice && (
-                <div className="bg-white/60 dark:bg-gray-800/40 backdrop-blur-sm rounded-xl p-4 border border-gray-200/30 dark:border-gray-700/30 hover:bg-white/80 dark:hover:bg-gray-800/60 transition-all duration-200">
-                  <div className="text-xs font-semibold text-purple-600 dark:text-purple-400 mb-1">EXIT PRICE</div>
+                <div className="bg-gradient-to-br from-emerald-50/50 to-white/50 dark:from-emerald-950/10 dark:to-emerald-900/10 backdrop-blur-sm rounded-xl p-4 border border-emerald-200/30 dark:border-emerald-700/30 hover:from-emerald-100/60 hover:to-emerald-50/60 dark:hover:from-emerald-900/20 dark:hover:to-emerald-800/20 transition-all duration-200">
+                  <div className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 mb-1">EXIT PRICE</div>
                   <div className="text-xl font-bold text-gray-900 dark:text-white">
                     ${currentTrade.exitPrice.toLocaleString()}
                   </div>
@@ -409,8 +328,8 @@ export default function ViewTradePage() {
                 </div>
               )}
               
-              <div className="bg-white/60 dark:bg-gray-800/40 backdrop-blur-sm rounded-xl p-4 border border-gray-200/30 dark:border-gray-700/30 hover:bg-white/80 dark:hover:bg-gray-800/60 transition-all duration-200">
-                <div className="text-xs font-semibold text-blue-600 dark:text-blue-400 mb-1">QUANTITY</div>
+              <div className="bg-gradient-to-br from-emerald-50/50 to-white/50 dark:from-emerald-950/10 dark:to-emerald-900/10 backdrop-blur-sm rounded-xl p-4 border border-emerald-200/30 dark:border-emerald-700/30 hover:from-emerald-100/60 hover:to-emerald-50/60 dark:hover:from-emerald-900/20 dark:hover:to-emerald-800/20 transition-all duration-200">
+                <div className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 mb-1">QUANTITY</div>
                 <div className="text-xl font-bold text-gray-900 dark:text-white">
                   {currentTrade.quantity?.toLocaleString() || 'N/A'}
                 </div>
@@ -419,7 +338,7 @@ export default function ViewTradePage() {
                 </div>
               </div>
               
-              <div className="bg-white/60 dark:bg-gray-800/40 backdrop-blur-sm rounded-xl p-4 border border-gray-200/30 dark:border-gray-700/30 hover:bg-white/80 dark:hover:bg-gray-800/60 transition-all duration-200">
+              <div className="bg-gradient-to-br from-emerald-50/50 to-white/50 dark:from-emerald-950/10 dark:to-emerald-900/10 backdrop-blur-sm rounded-xl p-4 border border-emerald-200/30 dark:border-emerald-700/30 hover:from-emerald-100/60 hover:to-emerald-50/60 dark:hover:from-emerald-900/20 dark:hover:to-emerald-800/20 transition-all duration-200">
                 <div className="text-xs font-semibold text-orange-600 dark:text-orange-400 mb-1">DURATION</div>
                 <div className="text-xl font-bold text-gray-900 dark:text-white">
                   {tradeDuration || 'N/A'}
@@ -434,7 +353,7 @@ export default function ViewTradePage() {
 
         {/* Risk Management */}
         <div className="xl:col-span-2 lg:col-span-2">
-          <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 shadow-lg p-6">
+          <div className="bg-gradient-to-br from-white to-emerald-50 dark:from-black dark:to-emerald-950/20 backdrop-blur-xl rounded-2xl border border-emerald-200/50 dark:border-emerald-700/30 shadow-lg p-6">
             <div className="flex items-center space-x-3 mb-6">
               <div className="p-3 bg-gradient-to-r from-red-500/20 to-orange-500/20 rounded-xl">
                 <FaCalculator className="h-6 w-6 text-red-600 dark:text-red-400" />
@@ -451,7 +370,7 @@ export default function ViewTradePage() {
             
             <div className="space-y-4">
               {currentTrade.stopLoss && (
-                <div className="bg-white/60 dark:bg-gray-800/40 backdrop-blur-sm rounded-xl p-4 border border-gray-200/30 dark:border-gray-700/30 hover:bg-white/80 dark:hover:bg-gray-800/60 transition-all duration-200">
+                <div className="bg-gradient-to-br from-emerald-50/50 to-white/50 dark:from-emerald-950/10 dark:to-emerald-900/10 backdrop-blur-sm rounded-xl p-4 border border-emerald-200/30 dark:border-emerald-700/30 hover:from-emerald-100/60 hover:to-emerald-50/60 dark:hover:from-emerald-900/20 dark:hover:to-emerald-800/20 transition-all duration-200">
                   <div className="flex justify-between items-center">
                     <div>
                       <div className="text-xs font-semibold text-red-600 dark:text-red-400 mb-1">STOP LOSS</div>
@@ -472,7 +391,7 @@ export default function ViewTradePage() {
               )}
               
               {currentTrade.takeProfit && (
-                <div className="bg-white/60 dark:bg-gray-800/40 backdrop-blur-sm rounded-xl p-4 border border-gray-200/30 dark:border-gray-700/30 hover:bg-white/80 dark:hover:bg-gray-800/60 transition-all duration-200">
+                <div className="bg-gradient-to-br from-emerald-50/50 to-white/50 dark:from-emerald-950/10 dark:to-emerald-900/10 backdrop-blur-sm rounded-xl p-4 border border-emerald-200/30 dark:border-emerald-700/30 hover:from-emerald-100/60 hover:to-emerald-50/60 dark:hover:from-emerald-900/20 dark:hover:to-emerald-800/20 transition-all duration-200">
                   <div className="flex justify-between items-center">
                     <div>
                       <div className="text-xs font-semibold text-green-600 dark:text-green-400 mb-1">TAKE PROFIT</div>
@@ -493,10 +412,10 @@ export default function ViewTradePage() {
               )}
               
               {riskRewardRatio && (
-                <div className="bg-white/60 dark:bg-gray-800/40 backdrop-blur-sm rounded-xl p-4 border border-gray-200/30 dark:border-gray-700/30 hover:bg-white/80 dark:hover:bg-gray-800/60 transition-all duration-200">
+                <div className="bg-gradient-to-br from-emerald-50/50 to-white/50 dark:from-emerald-950/10 dark:to-emerald-900/10 backdrop-blur-sm rounded-xl p-4 border border-emerald-200/30 dark:border-emerald-700/30 hover:from-emerald-100/60 hover:to-emerald-50/60 dark:hover:from-emerald-900/20 dark:hover:to-emerald-800/20 transition-all duration-200">
                   <div className="flex justify-between items-center">
                     <div>
-                      <div className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 mb-1">RISK:REWARD</div>
+                      <div className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 mb-1">RISK:REWARD</div>
                       <div className="text-lg font-bold text-gray-900 dark:text-white">
                         1:{riskRewardRatio.toFixed(2)}
                       </div>
@@ -521,10 +440,10 @@ export default function ViewTradePage() {
 
         {/* Performance Metrics */}
         <div className="xl:col-span-2">
-          <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 shadow-lg p-6">
+          <div className="bg-gradient-to-br from-white to-emerald-50 dark:from-black dark:to-emerald-950/20 backdrop-blur-xl rounded-2xl border border-emerald-200/50 dark:border-emerald-700/30 shadow-lg p-6">
             <div className="flex items-center space-x-3 mb-6">
-              <div className="p-3 bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-xl">
-                <FaPercentage className="h-6 w-6 text-purple-600 dark:text-purple-400" />
+              <div className="p-3 bg-gradient-to-r from-emerald-600/20 to-emerald-700/20 rounded-xl">
+                <FaPercentage className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
               </div>
               <div>
                 <h3 className="text-xl font-bold text-gray-900 dark:text-white">
@@ -537,12 +456,12 @@ export default function ViewTradePage() {
             </div>
             
             <div className="space-y-4">
-              <div className="bg-white/60 dark:bg-gray-800/40 backdrop-blur-sm rounded-xl p-4 border border-gray-200/30 dark:border-gray-700/30 hover:bg-white/80 dark:hover:bg-gray-800/60 transition-all duration-200">
+              <div className="bg-gradient-to-br from-emerald-50/50 to-white/50 dark:from-emerald-950/10 dark:to-emerald-900/10 backdrop-blur-sm rounded-xl p-4 border border-emerald-200/30 dark:border-emerald-700/30 hover:from-emerald-100/60 hover:to-emerald-50/60 dark:hover:from-emerald-900/20 dark:hover:to-emerald-800/20 transition-all duration-200">
                 <div className="text-xs font-semibold text-green-600 dark:text-green-400 mb-1">MFE (MAX FAVORABLE)</div>
                 <div className="text-xl font-bold text-green-600 dark:text-green-400">
                   +${mfeMae.mfe.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </div>
-                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mt-2">
+                <div className="w-full bg-gradient-to-r from-emerald-100 to-emerald-200 dark:from-emerald-950/30 dark:to-emerald-900/30 rounded-full h-2 mt-2">
                   <div 
                     className="bg-green-500 h-2 rounded-full transition-all duration-500"
                     style={{ width: `${Math.min((mfeMae.mfe / Math.abs(profitOrLoss || 1)) * 50, 100)}%` }}
@@ -550,12 +469,12 @@ export default function ViewTradePage() {
                 </div>
               </div>
               
-              <div className="bg-white/60 dark:bg-gray-800/40 backdrop-blur-sm rounded-xl p-4 border border-gray-200/30 dark:border-gray-700/30 hover:bg-white/80 dark:hover:bg-gray-800/60 transition-all duration-200">
+              <div className="bg-gradient-to-br from-emerald-50/50 to-white/50 dark:from-emerald-950/10 dark:to-emerald-900/10 backdrop-blur-sm rounded-xl p-4 border border-emerald-200/30 dark:border-emerald-700/30 hover:from-emerald-100/60 hover:to-emerald-50/60 dark:hover:from-emerald-900/20 dark:hover:to-emerald-800/20 transition-all duration-200">
                 <div className="text-xs font-semibold text-red-600 dark:text-red-400 mb-1">MAE (MAX ADVERSE)</div>
                 <div className="text-xl font-bold text-red-600 dark:text-red-400">
                   -${mfeMae.mae.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </div>
-                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mt-2">
+                <div className="w-full bg-gradient-to-r from-emerald-100 to-emerald-200 dark:from-emerald-950/30 dark:to-emerald-900/30 rounded-full h-2 mt-2">
                   <div 
                     className="bg-red-500 h-2 rounded-full transition-all duration-500"
                     style={{ width: `${Math.min((mfeMae.mae / Math.abs(profitOrLoss || 1)) * 50, 100)}%` }}
@@ -564,8 +483,8 @@ export default function ViewTradePage() {
               </div>
               
               {currentTrade.rMultiple && (
-                <div className="bg-white/60 dark:bg-gray-800/40 backdrop-blur-sm rounded-xl p-4 border border-gray-200/30 dark:border-gray-700/30 hover:bg-white/80 dark:hover:bg-gray-800/60 transition-all duration-200">
-                  <div className="text-xs font-semibold text-purple-600 dark:text-purple-400 mb-1">R-MULTIPLE</div>
+                <div className="bg-gradient-to-br from-emerald-50/50 to-white/50 dark:from-emerald-950/10 dark:to-emerald-900/10 backdrop-blur-sm rounded-xl p-4 border border-emerald-200/30 dark:border-emerald-700/30 hover:from-emerald-100/60 hover:to-emerald-50/60 dark:hover:from-emerald-900/20 dark:hover:to-emerald-800/20 transition-all duration-200">
+                  <div className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 mb-1">R-MULTIPLE</div>
                   <div className={`text-xl font-bold ${currentTrade.rMultiple >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
                     {currentTrade.rMultiple.toFixed(2)}R
                   </div>
@@ -583,7 +502,7 @@ export default function ViewTradePage() {
       
       {/* Chart Image */}
       {currentTrade.imageUrl && (
-        <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 shadow-lg p-6">
+        <div className="bg-gradient-to-br from-white to-emerald-50 dark:from-black dark:to-emerald-950/20 backdrop-blur-xl rounded-2xl border border-emerald-200/50 dark:border-emerald-700/30 shadow-lg p-6">
           <div className="flex items-center space-x-3 mb-6">
             <div className="p-3 bg-gradient-to-r from-teal-500/20 to-cyan-500/20 rounded-xl">
               <FaChartLine className="h-6 w-6 text-teal-600 dark:text-teal-400" />
@@ -597,7 +516,7 @@ export default function ViewTradePage() {
               </p>
             </div>
           </div>
-          <div className="bg-white/60 dark:bg-gray-800/40 backdrop-blur-sm rounded-xl p-4 border border-gray-200/30 dark:border-gray-700/30">
+          <div className="bg-gradient-to-br from-emerald-50/50 to-white/50 dark:from-emerald-950/10 dark:to-emerald-900/10 backdrop-blur-sm rounded-xl p-4 border border-emerald-200/30 dark:border-emerald-700/30">
             <div className="relative w-full rounded-xl overflow-hidden shadow-lg">
               <img
                 src={currentTrade.imageUrl}
@@ -625,7 +544,7 @@ export default function ViewTradePage() {
 
       {/* Trading Notes */}
       {currentTrade.notes && (
-        <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 shadow-lg p-6">
+        <div className="bg-gradient-to-br from-white to-emerald-50 dark:from-black dark:to-emerald-950/20 backdrop-blur-xl rounded-2xl border border-emerald-200/50 dark:border-emerald-700/30 shadow-lg p-6">
           <div className="flex items-center space-x-3 mb-6">
             <div className="p-3 bg-gradient-to-r from-slate-500/20 to-gray-500/20 rounded-xl">
               <FaEdit className="h-6 w-6 text-slate-600 dark:text-slate-400" />
@@ -639,7 +558,7 @@ export default function ViewTradePage() {
               </p>
             </div>
           </div>
-          <div className="bg-white/60 dark:bg-gray-800/40 backdrop-blur-sm rounded-xl p-6 border border-gray-200/30 dark:border-gray-700/30">
+          <div className="bg-gradient-to-br from-emerald-50/50 to-white/50 dark:from-emerald-950/10 dark:to-emerald-900/10 backdrop-blur-sm rounded-xl p-6 border border-emerald-200/30 dark:border-emerald-700/30">
             <div className="prose prose-sm dark:prose-invert max-w-none">
               <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">
                 {currentTrade.notes}
@@ -651,10 +570,10 @@ export default function ViewTradePage() {
 
       {/* Setup Details */}
       {currentTrade.setupDetails && (
-        <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 shadow-lg p-6">
+        <div className="bg-gradient-to-br from-white to-emerald-50 dark:from-black dark:to-emerald-950/20 backdrop-blur-xl rounded-2xl border border-emerald-200/50 dark:border-emerald-700/30 shadow-lg p-6">
           <div className="flex items-center space-x-3 mb-6">
-            <div className="p-3 bg-gradient-to-r from-indigo-500/20 to-purple-500/20 rounded-xl">
-              <FaChartLine className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
+            <div className="p-3 bg-gradient-to-r from-emerald-700/20 to-emerald-800/20 rounded-xl">
+              <FaChartLine className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
             </div>
             <div>
               <h3 className="text-xl font-bold text-gray-900 dark:text-white">
@@ -665,7 +584,7 @@ export default function ViewTradePage() {
               </p>
             </div>
           </div>
-          <div className="bg-white/60 dark:bg-gray-800/40 backdrop-blur-sm rounded-xl p-6 border border-gray-200/30 dark:border-gray-700/30">
+          <div className="bg-gradient-to-br from-emerald-50/50 to-white/50 dark:from-emerald-950/10 dark:to-emerald-900/10 backdrop-blur-sm rounded-xl p-6 border border-emerald-200/30 dark:border-emerald-700/30">
             <div className="prose prose-sm dark:prose-invert max-w-none">
               <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">
                 {currentTrade.setupDetails}
@@ -677,7 +596,7 @@ export default function ViewTradePage() {
 
       {/* Mistakes Made */}
       {currentTrade.mistakesMade && (
-        <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 shadow-lg p-6">
+        <div className="bg-gradient-to-br from-white to-emerald-50 dark:from-black dark:to-emerald-950/20 backdrop-blur-xl rounded-2xl border border-emerald-200/50 dark:border-emerald-700/30 shadow-lg p-6">
           <div className="flex items-center space-x-3 mb-6">
             <div className="p-3 bg-gradient-to-r from-red-500/20 to-orange-500/20 rounded-xl">
               <FaEdit className="h-6 w-6 text-red-600 dark:text-red-400" />
@@ -691,7 +610,7 @@ export default function ViewTradePage() {
               </p>
             </div>
           </div>
-          <div className="bg-white/60 dark:bg-gray-800/40 backdrop-blur-sm rounded-xl p-6 border border-gray-200/30 dark:border-gray-700/30">
+          <div className="bg-gradient-to-br from-emerald-50/50 to-white/50 dark:from-emerald-950/10 dark:to-emerald-900/10 backdrop-blur-sm rounded-xl p-6 border border-emerald-200/30 dark:border-emerald-700/30">
             <div className="prose prose-sm dark:prose-invert max-w-none">
               <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">
                 {currentTrade.mistakesMade}
@@ -703,7 +622,7 @@ export default function ViewTradePage() {
 
       {/* Lessons Learned */}
       {currentTrade.lessonsLearned && (
-        <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 shadow-lg p-6">
+        <div className="bg-gradient-to-br from-white to-emerald-50 dark:from-black dark:to-emerald-950/20 backdrop-blur-xl rounded-2xl border border-emerald-200/50 dark:border-emerald-700/30 shadow-lg p-6">
           <div className="flex items-center space-x-3 mb-6">
             <div className="p-3 bg-gradient-to-r from-green-500/20 to-teal-500/20 rounded-xl">
               <FaEdit className="h-6 w-6 text-green-600 dark:text-green-400" />
@@ -717,7 +636,7 @@ export default function ViewTradePage() {
               </p>
             </div>
           </div>
-          <div className="bg-white/60 dark:bg-gray-800/40 backdrop-blur-sm rounded-xl p-6 border border-gray-200/30 dark:border-gray-700/30">
+          <div className="bg-gradient-to-br from-emerald-50/50 to-white/50 dark:from-emerald-950/10 dark:to-emerald-900/10 backdrop-blur-sm rounded-xl p-6 border border-emerald-200/30 dark:border-emerald-700/30">
             <div className="prose prose-sm dark:prose-invert max-w-none">
               <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">
                 {currentTrade.lessonsLearned}

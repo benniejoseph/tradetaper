@@ -139,13 +139,13 @@ export class MarketIntelligenceService {
 
           // Calculate sentiment score based on multiple factors
           let sentimentScore = 0;
-          const sentimentReasons = [];
+          const sentimentReasons: string[] = [];
 
           // Price change factor
-          if (quote.changePercent > 1) {
+          if (quote && quote.changePercent > 1) {
             sentimentScore += 0.3;
             sentimentReasons.push('Strong positive price movement');
-          } else if (quote.changePercent < -1) {
+          } else if (quote && quote.changePercent < -1) {
             sentimentScore -= 0.3;
             sentimentReasons.push('Strong negative price movement');
           }
@@ -155,13 +155,13 @@ export class MarketIntelligenceService {
           sentimentScore += newsSentiment * 0.4;
 
           // Volume factor
-          if (quote.volume > quote.averageVolume * 1.5) {
+          if (quote && quote.volume && quote.averageVolume && quote.volume > quote.averageVolume * 1.5) {
             sentimentScore += 0.2;
             sentimentReasons.push('Above average volume');
           }
 
           // Technical factor (RSI-like calculation)
-          const technicalSentiment = this.calculateTechnicalSentiment(quote);
+          const technicalSentiment = quote ? this.calculateTechnicalSentiment(quote) : 0;
           sentimentScore += technicalSentiment * 0.3;
 
           const sentiment =
@@ -175,7 +175,7 @@ export class MarketIntelligenceService {
             symbol,
             sentiment,
             score: Math.round(sentimentScore * 100) / 100,
-            volume: quote.volume,
+            volume: quote?.volume || 0,
             reasons: sentimentReasons,
           };
         }),

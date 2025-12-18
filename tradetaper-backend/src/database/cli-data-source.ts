@@ -10,7 +10,7 @@ const getDataSource = async (): Promise<DataSource> => {
   if (useCloudSql) {
     const connector = new Connector();
     const clientOpts = await connector.getOptions({
-      instanceConnectionName: process.env.INSTANCE_CONNECTION_NAME,
+      instanceConnectionName: process.env.INSTANCE_CONNECTION_NAME || '',
       ipType: IpAddressTypes.PRIVATE,
     });
 
@@ -29,7 +29,7 @@ const getDataSource = async (): Promise<DataSource> => {
     return new DataSource({
       type: 'postgres',
       host: process.env.DB_HOST || 'localhost',
-      port: parseInt(process.env.DB_PORT, 10) || 5432,
+      port: parseInt(process.env.DB_PORT || '5432', 10) || 5432,
       username: process.env.DB_USERNAME || 'postgres',
       password: process.env.DB_PASSWORD || 'Tradetaper2025',
       database: process.env.DB_DATABASE || 'tradetaper',

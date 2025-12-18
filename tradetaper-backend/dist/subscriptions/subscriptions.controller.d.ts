@@ -1,20 +1,11 @@
-import { Request } from 'express';
 import { SubscriptionService, BillingInfo, SubscriptionUsage } from './services/subscription.service';
-export declare class CreateCheckoutSessionDto {
-    priceId: string;
-    successUrl: string;
-    cancelUrl: string;
-}
+import { CreateCheckoutSessionDto } from './dto/create-checkout-session.dto';
+import { AuthenticatedRequest } from '../types/authenticated-request.interface';
 export declare class CreatePortalSessionDto {
     returnUrl: string;
 }
 export declare class CreatePaymentLinkDto {
     priceId: string;
-}
-interface AuthenticatedRequest extends Request {
-    user: {
-        id: string;
-    };
 }
 export declare class SubscriptionsController {
     private readonly subscriptionService;
@@ -32,9 +23,8 @@ export declare class SubscriptionsController {
         url: string;
     }>;
     getCurrentSubscription(req: AuthenticatedRequest): Promise<BillingInfo>;
-    getUsage(req: AuthenticatedRequest): Promise<SubscriptionUsage>;
+    getUsage(req: AuthenticatedRequest): SubscriptionUsage;
     checkFeatureAccess(req: AuthenticatedRequest, feature: string): Promise<{
         hasAccess: boolean;
     }>;
 }
-export {};

@@ -117,7 +117,7 @@ const MT5AccountsList: React.FC = () => {
         <div className="flex justify-between items-center">
           <div className="flex items-center space-x-3">
             <div className="p-2 bg-gradient-to-r from-blue-500/20 to-green-500/20 rounded-xl">
-              <FaServer className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+              <FaServer className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
             </div>
             <div>
               <h3 className="text-xl font-semibold text-gray-900 dark:text-white">MetaTrader 5 Accounts</h3>
@@ -224,7 +224,7 @@ const MT5AccountsList: React.FC = () => {
                     
                     <div className="flex flex-wrap items-center gap-x-6 gap-y-2 mt-2">
                       <div className="flex items-center space-x-2">
-                        <FaMoneyBill className="w-4 h-4 text-green-500" />
+                        <FaMoneyBill className="w-4 h-4 text-emerald-500" />
                         <span className="text-lg font-semibold text-gray-900 dark:text-white">
                           {(account.balance ?? 0).toLocaleString(undefined, { 
                             style: 'currency', 
@@ -234,7 +234,7 @@ const MT5AccountsList: React.FC = () => {
                       </div>
                       
                       <div className="flex items-center space-x-2">
-                        <FaCalendarAlt className="w-4 h-4 text-blue-500" />
+                        <FaCalendarAlt className="w-4 h-4 text-emerald-500" />
                         <span className="text-sm text-gray-500 dark:text-gray-400">
                           Last sync: {formatDate(account.lastSyncAt)}
                         </span>
@@ -243,8 +243,8 @@ const MT5AccountsList: React.FC = () => {
                       <div className="flex items-center space-x-2">
                         {account.isActive ? (
                           <>
-                            <FaCheck className="w-4 h-4 text-green-500" />
-                            <span className="text-sm text-green-600 dark:text-green-400">Active</span>
+                            <FaCheck className="w-4 h-4 text-emerald-500" />
+                            <span className="text-sm text-emerald-600 dark:text-emerald-400">Active</span>
                           </>
                         ) : (
                           <>
@@ -262,8 +262,8 @@ const MT5AccountsList: React.FC = () => {
                       disabled={syncingAccount === account.id}
                       className={`p-3 rounded-xl ${
                         syncingAccount === account.id 
-                          ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-400'
-                          : 'bg-blue-50 dark:bg-blue-900/20 text-blue-500 hover:bg-blue-100 dark:hover:bg-blue-800/30'
+                          ? 'bg-emerald-100 dark:bg-emerald-950/30 text-emerald-400'
+                          : 'bg-emerald-50 dark:bg-emerald-950/20 text-emerald-500 hover:bg-emerald-100 dark:hover:bg-emerald-900/30'
                       } transition-colors`}
                     >
                       <FaSync className={`w-5 h-5 ${syncingAccount === account.id ? 'animate-spin' : ''}`} />

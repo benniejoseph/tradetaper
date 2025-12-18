@@ -92,11 +92,11 @@ export default function ChartUploadButton({ onChartAnalyzed, initialImageUrl }: 
       <div className="flex flex-col items-center space-y-6">
         <label htmlFor="file-upload" 
           className={`w-full max-w-md flex flex-col items-center px-6 py-8 rounded-xl shadow-lg tracking-wide uppercase border-2 border-dashed cursor-pointer transition-all duration-200 backdrop-blur-sm
-                      ${selectedFile || imagePreviewUrl ? 'border-blue-500 bg-blue-50/80 dark:bg-blue-900/20' : 'border-gray-300 dark:border-gray-600 bg-gray-50/80 dark:bg-gray-800/40'} 
+                      ${selectedFile || imagePreviewUrl ? 'border-blue-500 bg-emerald-50/80 dark:bg-emerald-900/20' : 'border-gray-300 dark:border-gray-600 bg-gray-50/80 dark:bg-gray-800/40'} 
                       text-gray-700 dark:text-gray-300 
                       hover:bg-gray-100/80 dark:hover:bg-gray-700/40 
                       hover:border-blue-400 dark:hover:border-blue-500`}>
-          <FaUpload className={`text-4xl mb-3 ${selectedFile || imagePreviewUrl ? 'text-blue-600 dark:text-blue-400' : 'text-gray-500 dark:text-gray-400'}`} />
+          <FaUpload className={`text-4xl mb-3 ${selectedFile || imagePreviewUrl ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-500 dark:text-gray-400'}`} />
           <span className="text-sm font-medium leading-normal">{selectedFile ? selectedFile.name : (imagePreviewUrl ? "Change Chart" : "Upload Chart")}</span>
           <span className="text-xs text-gray-500 dark:text-gray-400 mt-1">PNG, JPG, GIF up to 5MB</span>
           <input id="file-upload" name="chartImage" type="file" className="hidden" onChange={handleFileChange} accept="image/png, image/jpeg, image/jpg, image/gif, image/webp"/>

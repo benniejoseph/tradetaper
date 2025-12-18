@@ -11,7 +11,7 @@ export declare class StrategiesService {
     update(id: string, updateStrategyDto: UpdateStrategyDto, userId: string): Promise<Strategy>;
     remove(id: string, userId: string): Promise<void>;
     toggleActive(id: string, userId: string): Promise<Strategy>;
-    getStrategyStats(id: string, userId: string): Promise<{
+    getStrategyStats(): {
         totalTrades: number;
         closedTrades: number;
         winningTrades: number;
@@ -22,7 +22,7 @@ export declare class StrategiesService {
         averageWin: number;
         averageLoss: number;
         profitFactor: number;
-    }>;
+    };
     getAllStrategiesWithStats(userId: string): Promise<{
         stats: {
             totalTrades: number;

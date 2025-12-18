@@ -14,7 +14,9 @@ import {
   ArrayNotEmpty,
   ArrayMinSize,
   IsBoolean,
+  ValidateIf,
 } from 'class-validator';
+import { Transform } from 'class-transformer';
 import {
   AssetType,
   TradeDirection,
@@ -104,7 +106,7 @@ export class CreateTradeDto {
   lessonsLearned?: string;
 
   @IsOptional()
-  @IsUrl({}, { message: 'Please enter a valid URL for the image' }) // Validates if it's a URL format
+  @IsString()
   @MaxLength(1024)
   imageUrl?: string;
 

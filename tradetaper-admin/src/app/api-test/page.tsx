@@ -8,7 +8,7 @@ export default function ApiTestPage() {
 
   useEffect(() => {
     const testApis = async () => {
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://tradetaper-backend-481634875325.us-central1.run.app/api/v1';
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://tradetaper-backend-326520250422.us-central1.run.app/api/v1';
       
       const endpoints = [
         '/admin/dashboard/stats',

@@ -4,9 +4,13 @@ import { CreateNoteDto } from './dto/create-note.dto';
 import { UpdateNoteDto } from './dto/update-note.dto';
 import { SearchNotesDto } from './dto/search-notes.dto';
 import { NoteResponseDto } from './dto/note-response.dto';
+import { GeminiTextAnalysisService } from './gemini-text-analysis.service';
+import { UserResponseDto } from '../users/dto/user-response.dto';
 export declare class NotesService {
     private noteRepository;
-    constructor(noteRepository: Repository<Note>);
+    private readonly geminiTextAnalysisService;
+    private readonly logger;
+    constructor(noteRepository: Repository<Note>, geminiTextAnalysisService: GeminiTextAnalysisService);
     create(createNoteDto: CreateNoteDto, userId: string): Promise<NoteResponseDto>;
     findAll(searchDto: SearchNotesDto, userId: string): Promise<{
         notes: NoteResponseDto[];
@@ -35,4 +39,5 @@ export declare class NotesService {
     }>;
     private calculateWordCountAndReadingTime;
     private toResponseDto;
+    analyzeNote(noteId: string, userContext: UserResponseDto): Promise<string[]>;
 }

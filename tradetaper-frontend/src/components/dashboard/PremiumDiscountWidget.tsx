@@ -2,37 +2,20 @@
 
 import React, { useState, useEffect } from 'react';
 import { FaChartBar, FaArrowUp, FaArrowDown, FaEquals, FaInfoCircle } from 'react-icons/fa';
+import { getPremiumDiscount, type PremiumDiscountData } from '@/services/ictService';
 
-interface PremiumDiscountData {
-  symbol: string;
-  position: 'PREMIUM' | 'DISCOUNT' | 'EQUILIBRIUM';
-  percentage: number; // 0-100
-  currentPrice: number;
-  swingHigh: number;
-  swingLow: number;
-  fibonacci: {
-    level: number;
-    price: number;
-    label: string;
-  }[];
-  optimalTradeEntry: {
-    min: number;
-    max: number;
-  };
-  bias: 'BULLISH' | 'BEARISH' | 'NEUTRAL';
-  recommendation: string;
-}
+// Remove local interface - use imported type instead
 
 interface Props {
   symbol?: string;
 }
 
-export default function PremiumDiscountWidget({ symbol = 'EURUSD' }: Props) {
+export default function PremiumDiscountWidget({ symbol = 'XAUUSD' }: Props) {
   const [data, setData] = useState<PremiumDiscountData | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedSymbol, setSelectedSymbol] = useState(symbol);
 
-  const symbols = ['EURUSD', 'XAUUSD', 'GBPUSD', 'USDJPY', 'BTCUSD'];
+  const symbols = ['XAUUSD', 'EURUSD', 'GBPUSD', 'USDJPY', 'BTCUSD'];
 
   useEffect(() => {
     fetchPremiumDiscountData(selectedSymbol);
@@ -41,18 +24,11 @@ export default function PremiumDiscountWidget({ symbol = 'EURUSD' }: Props) {
   const fetchPremiumDiscountData = async (sym: string) => {
     setLoading(true);
     try {
-      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1';
-      const response = await fetch(`${API_BASE_URL}/ict/premium-discount/${sym}?timeframe=1H`);
-      
-      if (response.ok) {
-        const result = await response.json();
-        setData(result.data);
-      } else {
-        // Fallback to demo data
-        setData(generateDemoData(sym));
-      }
+      const result = await getPremiumDiscount(sym, '1H');
+      setData(result);
     } catch (error) {
-      console.error('Error fetching Premium/Discount data:', error);
+      console.error('Error fetching premium/discount data from API, using fallback:', error);
+      // Fallback to demo data if API fails
       setData(generateDemoData(sym));
     } finally {
       setLoading(false);
@@ -120,9 +96,9 @@ export default function PremiumDiscountWidget({ symbol = 'EURUSD' }: Props) {
       case 'PREMIUM':
         return 'text-red-600 dark:text-red-400';
       case 'DISCOUNT':
-        return 'text-green-600 dark:text-green-400';
+        return 'text-emerald-600 dark:text-emerald-400';
       default:
-        return 'text-blue-600 dark:text-blue-400';
+        return 'text-emerald-600 dark:text-emerald-400';
     }
   };
 
@@ -131,9 +107,9 @@ export default function PremiumDiscountWidget({ symbol = 'EURUSD' }: Props) {
       case 'PREMIUM':
         return 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-700';
       case 'DISCOUNT':
-        return 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-700';
+        return 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-700';
       default:
-        return 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-700';
+        return 'bg-emerald-50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-600';
     }
   };
 
@@ -142,15 +118,15 @@ export default function PremiumDiscountWidget({ symbol = 'EURUSD' }: Props) {
       case 'PREMIUM':
         return <FaArrowUp className="text-red-600" />;
       case 'DISCOUNT':
-        return <FaArrowDown className="text-green-600" />;
+        return <FaArrowDown className="text-emerald-600" />;
       default:
-        return <FaEquals className="text-blue-600" />;
+        return <FaEquals className="text-emerald-600" />;
     }
   };
 
   if (loading) {
     return (
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
+      <div className="bg-white dark:bg-black rounded-lg shadow-sm p-6">
         <div className="animate-pulse space-y-4">
           <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-1/2"></div>
           <div className="h-32 bg-gray-200 dark:bg-gray-700 rounded"></div>
@@ -162,11 +138,11 @@ export default function PremiumDiscountWidget({ symbol = 'EURUSD' }: Props) {
   if (!data) return null;
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
+    <div className="bg-white dark:bg-black rounded-lg shadow-sm p-6">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center space-x-2">
-          <FaChartBar className="text-purple-600 text-xl" />
+          <FaChartBar className="text-emerald-600 dark:text-emerald-400 text-xl" />
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
             Premium/Discount Arrays
           </h3>
@@ -176,7 +152,7 @@ export default function PremiumDiscountWidget({ symbol = 'EURUSD' }: Props) {
         <select
           value={selectedSymbol}
           onChange={(e) => setSelectedSymbol(e.target.value)}
-          className="px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500"
+          className="px-3 py-1 text-sm border border-emerald-300 dark:border-emerald-600/30 rounded-lg bg-gradient-to-r from-emerald-50 to-white dark:from-emerald-950/20 dark:to-black text-gray-900 dark:text-white focus:ring-2 focus:ring-emerald-500"
         >
           {symbols.map((sym) => (
             <option key={sym} value={sym}>{sym}</option>
@@ -208,14 +184,14 @@ export default function PremiumDiscountWidget({ symbol = 'EURUSD' }: Props) {
           
           {/* Current Position Marker */}
           <div
-            className="absolute top-1/2 transform -translate-y-1/2 -translate-x-1/2 w-4 h-4 bg-yellow-500 border-2 border-white dark:border-gray-900 rounded-full shadow-lg z-20 animate-pulse"
+            className="absolute top-1/2 transform -translate-y-1/2 -translate-x-1/2 w-4 h-4 bg-amber-500 border-2 border-white dark:border-gray-900 rounded-full shadow-lg z-20 animate-pulse"
             style={{ left: `${data.percentage}%` }}
           ></div>
           
           {/* Labels */}
           <div className="absolute top-0 left-0 w-full h-full flex items-center justify-between px-2 text-xs font-medium">
-            <span className="text-green-800 dark:text-green-200">DISCOUNT</span>
-            <span className="text-blue-800 dark:text-blue-200">EQ</span>
+            <span className="text-emerald-800 dark:text-emerald-200">DISCOUNT</span>
+            <span className="text-gray-800 dark:text-gray-200">EQ</span>
             <span className="text-red-800 dark:text-red-200">PREMIUM</span>
           </div>
         </div>
@@ -224,7 +200,7 @@ export default function PremiumDiscountWidget({ symbol = 'EURUSD' }: Props) {
         <div className="flex items-center justify-between text-sm">
           <span className="text-gray-600 dark:text-gray-400">Current Price:</span>
           <span className="font-mono font-semibold text-gray-900 dark:text-white">
-            {data.currentPrice.toFixed(data.symbol.includes('USD') && !data.symbol.includes('JPY') ? 4 : 2)}
+            {data.currentPrice?.toFixed(data.symbol.includes('USD') && !data.symbol.includes('JPY') ? 4 : 2) || 'N/A'}
           </span>
         </div>
       </div>
@@ -232,16 +208,16 @@ export default function PremiumDiscountWidget({ symbol = 'EURUSD' }: Props) {
       {/* Trading Bias */}
       <div className={`p-4 rounded-lg mb-6 ${
         data.bias === 'BULLISH' 
-          ? 'bg-green-50 dark:bg-green-900/20' 
+          ? 'bg-emerald-50 dark:bg-emerald-950/30' 
           : data.bias === 'BEARISH' 
           ? 'bg-red-50 dark:bg-red-900/20' 
-          : 'bg-gray-50 dark:bg-gray-900/20'
+          : 'bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-950/10 dark:to-emerald-900/10'
       }`}>
         <div className="flex items-center space-x-2 mb-2">
           <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Trading Bias:</span>
           <span className={`font-bold ${
             data.bias === 'BULLISH' 
-              ? 'text-green-600 dark:text-green-400' 
+              ? 'text-emerald-600 dark:text-emerald-400' 
               : data.bias === 'BEARISH' 
               ? 'text-red-600 dark:text-red-400' 
               : 'text-gray-600 dark:text-gray-400'
@@ -263,7 +239,7 @@ export default function PremiumDiscountWidget({ symbol = 'EURUSD' }: Props) {
           </p>
         </div>
         
-        {data.fibonacci.map((fib) => {
+        {data.fibonacci?.map((fib) => {
           const isOTE = fib.level === 61.8 || fib.level === 78.6;
           const isEQ = fib.level === 50;
           const isCurrentLevel = Math.abs(data.currentPrice - fib.price) / data.currentPrice < 0.005;
@@ -273,21 +249,21 @@ export default function PremiumDiscountWidget({ symbol = 'EURUSD' }: Props) {
               key={fib.level}
               className={`flex items-center justify-between p-2 rounded ${
                 isCurrentLevel 
-                  ? 'bg-yellow-100 dark:bg-yellow-900/30 border-2 border-yellow-500' 
+                  ? 'bg-amber-100 dark:bg-amber-950/40 border-2 border-amber-500' 
                   : isOTE 
-                  ? 'bg-purple-50 dark:bg-purple-900/20' 
+                  ? 'bg-emerald-50 dark:bg-emerald-950/30' 
                   : isEQ 
-                  ? 'bg-blue-50 dark:bg-blue-900/20' 
-                  : 'bg-gray-50 dark:bg-gray-900/20'
+                  ? 'bg-emerald-50 dark:bg-emerald-950/20' 
+                  : 'bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-950/10 dark:to-emerald-900/10'
               }`}
             >
               <div className="flex items-center space-x-2">
-                {isCurrentLevel && <span className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse"></span>}
+                {isCurrentLevel && <span className="w-2 h-2 bg-amber-500 rounded-full animate-pulse"></span>}
                 <span className={`text-sm ${
                   isOTE 
-                    ? 'font-bold text-purple-700 dark:text-purple-300' 
+                    ? 'font-bold text-emerald-700 dark:text-emerald-300' 
                     : isEQ 
-                    ? 'font-bold text-blue-700 dark:text-blue-300' 
+                    ? 'font-bold text-emerald-700 dark:text-emerald-300' 
                     : 'text-gray-700 dark:text-gray-300'
                 }`}>
                   {fib.label}
@@ -295,7 +271,7 @@ export default function PremiumDiscountWidget({ symbol = 'EURUSD' }: Props) {
                 </span>
               </div>
               <span className="font-mono text-sm text-gray-900 dark:text-white">
-                {fib.price.toFixed(data.symbol.includes('USD') && !data.symbol.includes('JPY') ? 4 : 2)}
+                {fib.price?.toFixed(data.symbol.includes('USD') && !data.symbol.includes('JPY') ? 4 : 2) || 'N/A'}
               </span>
             </div>
           );
@@ -303,12 +279,12 @@ export default function PremiumDiscountWidget({ symbol = 'EURUSD' }: Props) {
       </div>
 
       {/* OTE Zone Highlight */}
-      <div className="mt-4 p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-700">
+      <div className="mt-4 p-3 bg-emerald-50 dark:bg-emerald-950/30 rounded-lg border border-emerald-200 dark:border-emerald-700">
         <div className="flex items-center space-x-2 mb-1">
-          <span className="text-purple-600 dark:text-purple-400 font-bold">⭐ OTE Zone</span>
+          <span className="text-emerald-600 dark:text-emerald-400 font-bold">⭐ OTE Zone</span>
         </div>
         <p className="text-xs text-gray-600 dark:text-gray-400">
-          Optimal Trade Entry: {data.optimalTradeEntry.min.toFixed(4)} - {data.optimalTradeEntry.max.toFixed(4)}
+          Optimal Trade Entry: {data.optimalTradeEntry?.min?.toFixed(4) || 'N/A'} - {data.optimalTradeEntry?.max?.toFixed(4) || 'N/A'}
         </p>
       </div>
     </div>

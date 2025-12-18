@@ -50,16 +50,17 @@ let StrategiesService = class StrategiesService {
         return await this.strategiesRepository.save(strategy);
     }
     async remove(id, userId) {
-        const strategy = await this.findOne(id, userId);
-        await this.strategiesRepository.remove(strategy);
+        const result = await this.strategiesRepository.delete({ id, userId });
+        if (result.affected === 0) {
+            throw new common_1.NotFoundException(`Strategy with ID ${id} not found`);
+        }
     }
     async toggleActive(id, userId) {
         const strategy = await this.findOne(id, userId);
         strategy.isActive = !strategy.isActive;
         return await this.strategiesRepository.save(strategy);
     }
-    async getStrategyStats(id, userId) {
-        const strategy = await this.findOne(id, userId);
+    getStrategyStats() {
         return {
             totalTrades: 0,
             closedTrades: 0,
@@ -75,8 +76,8 @@ let StrategiesService = class StrategiesService {
     }
     async getAllStrategiesWithStats(userId) {
         const strategies = await this.findAll(userId);
-        const strategiesWithStats = await Promise.all(strategies.map(async (strategy) => {
-            const stats = await this.getStrategyStats(strategy.id, userId);
+        const strategiesWithStats = await Promise.all(strategies.map((strategy) => {
+            const stats = this.getStrategyStats();
             return {
                 ...strategy,
                 stats,

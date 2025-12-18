@@ -40,14 +40,14 @@ export class AgentRegistry implements OnModuleDestroy {
     if (!this.agentsByType.has(type)) {
       this.agentsByType.set(type, []);
     }
-    this.agentsByType.get(type).push(agent);
+    this.agentsByType.get(type)?.push(agent);
     
     // Index by capabilities
     for (const capability of agent.getCapabilities()) {
       if (!this.agentsByCapability.has(capability.name)) {
         this.agentsByCapability.set(capability.name, []);
       }
-      this.agentsByCapability.get(capability.name).push(agent);
+      this.agentsByCapability.get(capability.name)?.push(agent);
     }
     
     this.logger.log(

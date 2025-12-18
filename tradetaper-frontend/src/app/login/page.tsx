@@ -93,11 +93,11 @@ export default function LoginPage() {
 
   if (showForgotPassword) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900 flex items-center justify-center p-4 relative overflow-hidden">
+      <div className="min-h-screen bg-gradient-to-br from-black via-emerald-950 to-emerald-900 flex items-center justify-center p-4 relative overflow-hidden">
         {/* Animated Background Elements */}
         <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute -top-1/2 -left-1/2 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl animate-pulse"></div>
-          <div className="absolute -bottom-1/2 -right-1/2 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }}></div>
+          <div className="absolute -top-1/2 -left-1/2 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl animate-pulse"></div>
+          <div className="absolute -bottom-1/2 -right-1/2 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }}></div>
           <div className="absolute top-1/4 left-1/4 w-48 h-48 bg-cyan-500/5 rounded-full blur-2xl animate-pulse" style={{ animationDelay: '1s' }}></div>
         </div>
 
@@ -105,11 +105,11 @@ export default function LoginPage() {
           <div className="bg-white/[0.02] backdrop-blur-xl rounded-3xl p-8 border border-white/10 shadow-2xl">
             <div className="text-center mb-8">
               <div className="flex items-center justify-center mb-6">
-                <div className="p-3 bg-gradient-to-r from-blue-500/20 to-indigo-500/20 rounded-2xl backdrop-blur-sm border border-white/10">
-                  <FaLock className="h-8 w-8 text-blue-400" />
+                <div className="p-3 bg-gradient-to-r from-emerald-500/20 to-emerald-600/20 rounded-2xl backdrop-blur-sm border border-white/10">
+                  <FaLock className="h-8 w-8 text-emerald-400" />
                 </div>
               </div>
-              <h2 className="text-3xl font-bold bg-gradient-to-r from-white to-blue-200 bg-clip-text text-transparent mb-2">
+              <h2 className="text-3xl font-bold bg-gradient-to-r from-white to-emerald-200 bg-clip-text text-transparent mb-2">
                 Reset Password
               </h2>
               <p className="text-slate-300">Enter your email to receive reset instructions</p>
@@ -117,8 +117,8 @@ export default function LoginPage() {
 
             {forgotEmailSent ? (
               <div className="text-center space-y-6">
-                <div className="p-4 bg-green-500/10 border border-green-500/20 rounded-2xl">
-                  <p className="text-green-400">Reset instructions sent! Check your email.</p>
+                <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl">
+                  <p className="text-emerald-400">Reset instructions sent! Check your email.</p>
                 </div>
                 <button
                   onClick={() => {
@@ -126,7 +126,7 @@ export default function LoginPage() {
                     setForgotEmailSent(false);
                     setForgotEmail('');
                   }}
-                  className="w-full bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white font-semibold py-4 px-6 rounded-2xl transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl"
+                  className="w-full bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-semibold py-4 px-6 rounded-2xl transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl"
                 >
                   Back to Login
                 </button>
@@ -178,13 +178,13 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900 flex relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-black via-emerald-950 to-emerald-900 flex relative overflow-hidden">
       {/* Animated Background Elements */}
       <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute -top-1/2 -left-1/2 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute -bottom-1/2 -right-1/2 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }}></div>
-        <div className="absolute top-1/4 left-1/4 w-48 h-48 bg-cyan-500/5 rounded-full blur-2xl animate-pulse" style={{ animationDelay: '1s' }}></div>
-        <div className="absolute bottom-1/3 left-1/3 w-32 h-32 bg-purple-500/5 rounded-full blur-xl animate-pulse" style={{ animationDelay: '3s' }}></div>
+        <div className="absolute -top-1/2 -left-1/2 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute -bottom-1/2 -right-1/2 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }}></div>
+        <div className="absolute top-1/4 left-1/4 w-48 h-48 bg-emerald-500/5 rounded-full blur-2xl animate-pulse" style={{ animationDelay: '1s' }}></div>
+        <div className="absolute bottom-1/3 left-1/3 w-32 h-32 bg-emerald-500/5 rounded-full blur-xl animate-pulse" style={{ animationDelay: '3s' }}></div>
       </div>
 
       {/* Left Side - Benefits */}
@@ -195,7 +195,7 @@ export default function LoginPage() {
               <div className="p-3 bg-gradient-to-r from-blue-500/20 to-indigo-500/20 rounded-2xl backdrop-blur-sm border border-white/10 mr-4">
                 <FaChartLine className="h-10 w-10 text-white" />
               </div>
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-white to-blue-200 bg-clip-text text-transparent">
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-white to-emerald-200 bg-clip-text text-transparent">
                 TradeTaper
               </h1>
             </div>
@@ -227,7 +227,7 @@ export default function LoginPage() {
             ].map((benefit, index) => (
               <div key={index} className="flex items-start space-x-4 group">
                 <div className="flex-shrink-0 p-3 bg-white/[0.05] backdrop-blur-sm rounded-2xl border border-white/10 group-hover:bg-white/[0.1] transition-all duration-300">
-                  <benefit.icon className="text-xl text-blue-400" />
+                  <benefit.icon className="text-xl text-emerald-400" />
                 </div>
                 <div>
                   <h3 className="font-semibold text-lg mb-2 text-white">{benefit.title}</h3>
@@ -255,10 +255,10 @@ export default function LoginPage() {
           {/* Mobile Logo */}
           <div className="lg:hidden text-center mb-8">
             <div className="flex items-center justify-center mb-6">
-              <div className="p-3 bg-gradient-to-r from-blue-500/20 to-indigo-500/20 rounded-2xl backdrop-blur-sm border border-white/10 mr-3">
-                <FaChartLine className="h-8 w-8 text-blue-400" />
+              <div className="p-3 bg-gradient-to-r from-emerald-500/20 to-emerald-600/20 rounded-2xl backdrop-blur-sm border border-white/10 mr-3">
+                <FaChartLine className="h-8 w-8 text-emerald-400" />
               </div>
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-white to-blue-200 bg-clip-text text-transparent">
+              <h1 className="text-3xl font-bold bg-gradient-to-r from-white to-emerald-200 bg-clip-text text-transparent">
                 TradeTaper
               </h1>
             </div>
@@ -269,7 +269,7 @@ export default function LoginPage() {
             isFormFocused ? 'shadow-blue-500/20 border-blue-500/20' : ''
           }`}>
             <div className="hidden lg:block text-center mb-8">
-              <h2 className="text-3xl font-bold bg-gradient-to-r from-white to-blue-200 bg-clip-text text-transparent mb-2">
+              <h2 className="text-3xl font-bold bg-gradient-to-r from-white to-emerald-200 bg-clip-text text-transparent mb-2">
                 Welcome Back
               </h2>
               <p className="text-slate-300">Sign in to your trading dashboard</p>
@@ -277,7 +277,7 @@ export default function LoginPage() {
 
             <form onSubmit={handleSubmit} className="space-y-6">
               {showRegistrationSuccess && (
-                <div className="bg-green-500/10 border border-green-500/20 rounded-2xl p-4 text-green-300 text-sm">
+                <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-2xl p-4 text-emerald-300 text-sm">
                   Account created successfully! Please sign in with your credentials.
                 </div>
               )}
@@ -358,14 +358,14 @@ export default function LoginPage() {
                     type="checkbox" 
                     checked={rememberMe}
                     onChange={(e) => setRememberMe(e.target.checked)}
-                    className="rounded border-white/20 text-blue-500 bg-white/5 focus:ring-blue-500/50 focus:ring-2 focus:ring-offset-0 mr-2" 
+                    className="rounded border-white/20 text-emerald-500 bg-white/5 focus:ring-emerald-500/50 focus:ring-2 focus:ring-offset-0 mr-2" 
                   />
                   <span className="group-hover:text-white transition-colors">Remember me</span>
                 </label>
                 <button
                   type="button"
                   onClick={() => setShowForgotPassword(true)}
-                  className="text-blue-400 hover:text-blue-300 transition-colors font-medium"
+                  className="text-emerald-400 hover:text-emerald-300 transition-colors font-medium"
                 >
                   Forgot password?
                 </button>
@@ -374,7 +374,7 @@ export default function LoginPage() {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 disabled:from-slate-500 disabled:to-slate-600 text-white font-semibold py-4 px-6 rounded-2xl transition-all duration-300 transform hover:scale-105 disabled:scale-100 shadow-lg hover:shadow-xl flex items-center justify-center space-x-2 group"
+                className="w-full bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 disabled:from-slate-500 disabled:to-slate-600 text-white font-semibold py-4 px-6 rounded-2xl transition-all duration-300 transform hover:scale-105 disabled:scale-100 shadow-lg hover:shadow-xl flex items-center justify-center space-x-2 group"
               >
                 {isLoading ? (
                   <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>

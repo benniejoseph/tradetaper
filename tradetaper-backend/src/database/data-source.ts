@@ -19,6 +19,8 @@ const isProduction = process.env.NODE_ENV === 'production';
 console.log('🔧 Database configuration (data-source.ts):', {
   isProduction,
   nodeEnv: process.env.NODE_ENV,
+  instanceConnectionName: process.env.INSTANCE_CONNECTION_NAME,
+  dbHost: process.env.DB_HOST,
 });
 
 async function createDataSource() {

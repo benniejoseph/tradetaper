@@ -27,7 +27,6 @@ __decorate([
 ], NoteBlock.prototype, "id", void 0);
 __decorate([
     (0, typeorm_1.Column)({ name: 'note_id' }),
-    (0, typeorm_1.Index)(),
     __metadata("design:type", String)
 ], NoteBlock.prototype, "noteId", void 0);
 __decorate([
@@ -51,7 +50,6 @@ __decorate([
     __metadata("design:type", Date)
 ], NoteBlock.prototype, "updatedAt", void 0);
 exports.NoteBlock = NoteBlock = __decorate([
-    (0, typeorm_1.Entity)('note_blocks'),
-    (0, typeorm_1.Index)(['noteId', 'position'])
+    (0, typeorm_1.Entity)('note_blocks')
 ], NoteBlock);
 //# sourceMappingURL=note-block.entity.js.map
