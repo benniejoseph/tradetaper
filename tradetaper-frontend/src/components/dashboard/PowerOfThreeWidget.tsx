@@ -2,28 +2,31 @@
 
 import React, { useState, useEffect } from 'react';
 import { FaBolt, FaInfoCircle, FaChartLine } from 'react-icons/fa';
+import { getPowerOfThree, type PowerOfThreeData as APIPowerOfThreeData } from '@/services/ictService';
 
 interface PowerOfThreeData {
   symbol: string;
-  currentPhase: 'ACCUMULATION' | 'MANIPULATION' | 'DISTRIBUTION';
-  phaseProgress: number; // 0-100
+  currentPhase: 'ACCUMULATION' | 'MANIPULATION' | 'DISTRIBUTION' | 'UNKNOWN';
+  phaseProgress?: number; // 0-100
+  confidence?: number;
   description: string;
   characteristics: string[];
   tradingGuidance: string;
-  nextPhase: string;
-  timeInPhase: string;
+  supportingEvidence?: string[];
+  nextPhase?: string;
+  timeInPhase?: string;
 }
 
 interface Props {
   symbol?: string;
 }
 
-export default function PowerOfThreeWidget({ symbol = 'EURUSD' }: Props) {
+export default function PowerOfThreeWidget({ symbol = 'XAUUSD' }: Props) {
   const [data, setData] = useState<PowerOfThreeData | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedSymbol, setSelectedSymbol] = useState(symbol);
 
-  const symbols = ['EURUSD', 'XAUUSD', 'GBPUSD', 'USDJPY', 'BTCUSD'];
+  const symbols = ['XAUUSD', 'EURUSD', 'GBPUSD', 'USDJPY', 'BTCUSD'];
 
   useEffect(() => {
     fetchPowerOfThreeData(selectedSymbol);
@@ -32,18 +35,11 @@ export default function PowerOfThreeWidget({ symbol = 'EURUSD' }: Props) {
   const fetchPowerOfThreeData = async (sym: string) => {
     setLoading(true);
     try {
-      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1';
-      const response = await fetch(`${API_BASE_URL}/ict/power-of-three/${sym}?timeframe=1H`);
-      
-      if (response.ok) {
-        const result = await response.json();
-        setData(result.data);
-      } else {
-        // Fallback to demo data
-        setData(generateDemoData(sym));
-      }
+      const result = await getPowerOfThree(sym, '1H');
+      setData(result as PowerOfThreeData);
     } catch (error) {
-      console.error('Error fetching Power of Three data:', error);
+      console.error('Error fetching Power of Three data from API, using fallback:', error);
+      // Fallback to demo data if API fails
       setData(generateDemoData(sym));
     } finally {
       setLoading(false);
@@ -111,29 +107,29 @@ export default function PowerOfThreeWidget({ symbol = 'EURUSD' }: Props) {
     switch (phase) {
       case 'ACCUMULATION':
         return {
-          text: 'text-blue-600 dark:text-blue-400',
-          bg: 'bg-blue-50 dark:bg-blue-900/20',
-          border: 'border-blue-500',
-          gradient: 'from-blue-500 to-blue-600',
+          text: 'text-emerald-600 dark:text-emerald-400',
+          bg: 'bg-emerald-50 dark:bg-emerald-950/30',
+          border: 'border-emerald-500',
+          gradient: 'from-emerald-500 to-emerald-600',
         };
       case 'MANIPULATION':
         return {
-          text: 'text-yellow-600 dark:text-yellow-400',
-          bg: 'bg-yellow-50 dark:bg-yellow-900/20',
-          border: 'border-yellow-500',
-          gradient: 'from-yellow-500 to-yellow-600',
+          text: 'text-amber-600 dark:text-amber-400',
+          bg: 'bg-amber-50 dark:bg-amber-950/30',
+          border: 'border-amber-500',
+          gradient: 'from-amber-500 to-amber-600',
         };
       case 'DISTRIBUTION':
         return {
-          text: 'text-green-600 dark:text-green-400',
-          bg: 'bg-green-50 dark:bg-green-900/20',
-          border: 'border-green-500',
-          gradient: 'from-green-500 to-green-600',
+          text: 'text-emerald-600 dark:text-emerald-400',
+          bg: 'bg-emerald-50 dark:bg-emerald-950/30',
+          border: 'border-emerald-500',
+          gradient: 'from-emerald-600 to-emerald-700',
         };
       default:
         return {
           text: 'text-gray-600 dark:text-gray-400',
-          bg: 'bg-gray-50 dark:bg-gray-900/20',
+          bg: 'bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-950/10 dark:to-emerald-900/10',
           border: 'border-gray-500',
           gradient: 'from-gray-500 to-gray-600',
         };
@@ -155,7 +151,7 @@ export default function PowerOfThreeWidget({ symbol = 'EURUSD' }: Props) {
 
   if (loading) {
     return (
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
+      <div className="bg-white dark:bg-black rounded-lg shadow-sm p-6">
         <div className="animate-pulse space-y-4">
           <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-1/2"></div>
           <div className="h-32 bg-gray-200 dark:bg-gray-700 rounded"></div>
@@ -169,7 +165,7 @@ export default function PowerOfThreeWidget({ symbol = 'EURUSD' }: Props) {
   const colors = getPhaseColor(data.currentPhase);
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
+    <div className="bg-white dark:bg-black rounded-lg shadow-sm p-6">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center space-x-2">
@@ -183,7 +179,7 @@ export default function PowerOfThreeWidget({ symbol = 'EURUSD' }: Props) {
         <select
           value={selectedSymbol}
           onChange={(e) => setSelectedSymbol(e.target.value)}
-          className="px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-yellow-500"
+          className="px-3 py-1 text-sm border border-emerald-300 dark:border-emerald-600/30 rounded-lg bg-gradient-to-r from-emerald-50 to-white dark:from-emerald-950/20 dark:to-black text-gray-900 dark:text-white focus:ring-2 focus:ring-emerald-500"
         >
           {symbols.map((sym) => (
             <option key={sym} value={sym}>{sym}</option>
@@ -239,15 +235,15 @@ export default function PowerOfThreeWidget({ symbol = 'EURUSD' }: Props) {
           </p>
         </div>
         <div className="space-y-2">
-          {data.characteristics.map((char, index) => (
+          {data.characteristics?.map((char, index) => (
             <div
               key={index}
-              className="flex items-start space-x-2 p-2 bg-gray-50 dark:bg-gray-900/20 rounded"
+              className="flex items-start space-x-2 p-2 bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-950/10 dark:to-emerald-900/10 rounded"
             >
               <span className={`mt-0.5 ${colors.text}`}>•</span>
               <span className="text-sm text-gray-700 dark:text-gray-300">{char}</span>
             </div>
-          ))}
+          )) || []}
         </div>
       </div>
 
@@ -267,13 +263,13 @@ export default function PowerOfThreeWidget({ symbol = 'EURUSD' }: Props) {
       </div>
 
       {/* Phase Cycle */}
-      <div className="bg-gradient-to-r from-blue-50 via-yellow-50 to-green-50 dark:from-blue-900/10 dark:via-yellow-900/10 dark:to-green-900/10 p-4 rounded-lg">
+      <div className="bg-gradient-to-r from-emerald-50 via-amber-50 to-emerald-100 dark:from-emerald-950/20 dark:via-amber-950/20 dark:to-emerald-950/30 p-4 rounded-lg">
         <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-3 text-center">
           ICT Power of Three Cycle
         </p>
         <div className="flex items-center justify-between">
           <div className={`text-center ${data.currentPhase === 'ACCUMULATION' ? 'scale-110' : 'opacity-50'} transition-all`}>
-            <div className="w-12 h-12 mx-auto bg-blue-500 rounded-full flex items-center justify-center text-white font-bold text-xl mb-1">
+            <div className="w-12 h-12 mx-auto bg-emerald-500 rounded-full flex items-center justify-center text-white font-bold text-xl mb-1">
               A
             </div>
             <p className="text-xs text-gray-700 dark:text-gray-300">Accumulation</p>
@@ -284,7 +280,7 @@ export default function PowerOfThreeWidget({ symbol = 'EURUSD' }: Props) {
           </div>
           
           <div className={`text-center ${data.currentPhase === 'MANIPULATION' ? 'scale-110' : 'opacity-50'} transition-all`}>
-            <div className="w-12 h-12 mx-auto bg-yellow-500 rounded-full flex items-center justify-center text-white font-bold text-xl mb-1">
+            <div className="w-12 h-12 mx-auto bg-amber-500 rounded-full flex items-center justify-center text-white font-bold text-xl mb-1">
               M
             </div>
             <p className="text-xs text-gray-700 dark:text-gray-300">Manipulation</p>
@@ -295,7 +291,7 @@ export default function PowerOfThreeWidget({ symbol = 'EURUSD' }: Props) {
           </div>
           
           <div className={`text-center ${data.currentPhase === 'DISTRIBUTION' ? 'scale-110' : 'opacity-50'} transition-all`}>
-            <div className="w-12 h-12 mx-auto bg-green-500 rounded-full flex items-center justify-center text-white font-bold text-xl mb-1">
+            <div className="w-12 h-12 mx-auto bg-emerald-600 rounded-full flex items-center justify-center text-white font-bold text-xl mb-1">
               D
             </div>
             <p className="text-xs text-gray-700 dark:text-gray-300">Distribution</p>

@@ -11,6 +11,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
+var NotesService_1;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.NotesService = void 0;
 const common_1 = require("@nestjs/common");
@@ -18,10 +19,14 @@ const typeorm_1 = require("@nestjs/typeorm");
 const typeorm_2 = require("typeorm");
 const note_entity_1 = require("./entities/note.entity");
 const note_response_dto_1 = require("./dto/note-response.dto");
-let NotesService = class NotesService {
+const gemini_text_analysis_service_1 = require("./gemini-text-analysis.service");
+let NotesService = NotesService_1 = class NotesService {
     noteRepository;
-    constructor(noteRepository) {
+    geminiTextAnalysisService;
+    logger = new common_1.Logger(NotesService_1.name);
+    constructor(noteRepository, geminiTextAnalysisService) {
         this.noteRepository = noteRepository;
+        this.geminiTextAnalysisService = geminiTextAnalysisService;
     }
     async create(createNoteDto, userId) {
         const note = this.noteRepository.create({
@@ -41,8 +46,11 @@ let NotesService = class NotesService {
         queryBuilder.andWhere('note.deletedAt IS NULL');
         if (search) {
             queryBuilder.andWhere(new typeorm_2.Brackets((qb) => {
-                qb.where('note.title ILIKE :search', { search: `%${search}%` })
-                    .orWhere('notes_content_search(note.content) ILIKE :search', { search: `%${search}%` });
+                qb.where('note.title ILIKE :search', {
+                    search: `%${search}%`,
+                }).orWhere('notes_content_search(note.content) ILIKE :search', {
+                    search: `%${search}%`,
+                });
             }));
         }
         if (tags && tags.length > 0) {
@@ -60,7 +68,13 @@ let NotesService = class NotesService {
         if (isPinned !== undefined) {
             queryBuilder.andWhere('note.isPinned = :isPinned', { isPinned });
         }
-        const validSortFields = ['createdAt', 'updatedAt', 'title', 'wordCount', 'readingTime'];
+        const validSortFields = [
+            'createdAt',
+            'updatedAt',
+            'title',
+            'wordCount',
+            'readingTime',
+        ];
         const sortField = validSortFields.includes(sortBy) ? sortBy : 'updatedAt';
         queryBuilder.orderBy(`note.${sortField}`, sortOrder);
         if (sortField !== 'createdAt') {
@@ -70,7 +84,7 @@ let NotesService = class NotesService {
         queryBuilder.skip(skip).take(limit);
         const [notes, total] = await queryBuilder.getManyAndCount();
         return {
-            notes: notes.map(note => this.toResponseDto(note)),
+            notes: notes.map((note) => this.toResponseDto(note)),
             total,
             limit,
             offset: skip,
@@ -128,21 +142,27 @@ let NotesService = class NotesService {
             .andWhere('note.deletedAt IS NULL')
             .orderBy('tag', 'ASC')
             .getRawMany();
-        return result.map(r => r.tag).filter(tag => tag && tag.trim());
+        return result.map((r) => r.tag).filter((tag) => tag && tag.trim());
     }
     async getCalendarNotes(userId, year, month) {
         const startDate = new Date(year, month - 1, 1);
         const endDate = new Date(year, month, 0, 23, 59, 59, 999);
         const notes = await this.noteRepository
             .createQueryBuilder('note')
-            .select(['note.id', 'note.title', 'note.createdAt', 'note.tags', 'note.wordCount'])
+            .select([
+            'note.id',
+            'note.title',
+            'note.createdAt',
+            'note.tags',
+            'note.wordCount',
+        ])
             .where('note.userId = :userId', { userId })
             .andWhere('note.deletedAt IS NULL')
             .andWhere('note.createdAt >= :startDate', { startDate })
             .andWhere('note.createdAt <= :endDate', { endDate })
             .orderBy('note.createdAt', 'DESC')
             .getMany();
-        return notes.map(note => ({
+        return notes.map((note) => ({
             id: note.id,
             title: note.title,
             date: note.createdAt.toISOString().split('T')[0],
@@ -181,7 +201,7 @@ let NotesService = class NotesService {
             .orderBy('count', 'DESC')
             .limit(10)
             .getRawMany();
-        const mostUsedTags = tagsResult.map(result => ({
+        const mostUsedTags = tagsResult.map((result) => ({
             tag: result.tag,
             count: parseInt(result.count),
         }));
@@ -246,11 +266,45 @@ let NotesService = class NotesService {
         }
         return dto;
     }
+    async analyzeNote(noteId, userContext) {
+        this.logger.log(`User ${userContext.id} analyzing note with ID ${noteId}`);
+        const note = await this.noteRepository.findOne({
+            where: { id: noteId, userId: userContext.id, deletedAt: (0, typeorm_2.IsNull)() },
+        });
+        if (!note) {
+            throw new common_1.NotFoundException('Note not found or does not belong to user.');
+        }
+        if (!note.content || note.content.length === 0) {
+            return [];
+        }
+        const noteText = note.content
+            .filter((block) => block.type === 'text' ||
+            block.type === 'heading' ||
+            block.type === 'quote')
+            .map((block) => block.content?.text)
+            .filter(Boolean)
+            .join('\n');
+        if (!noteText) {
+            return [];
+        }
+        try {
+            const psychologicalTags = await this.geminiTextAnalysisService.analyzePsychologicalPatterns(noteText);
+            note.psychologicalTags = psychologicalTags;
+            await this.noteRepository.save(note);
+            this.logger.log(`Note ${noteId} analyzed. Tags: ${psychologicalTags.join(', ')}`);
+            return psychologicalTags;
+        }
+        catch (error) {
+            this.logger.error(`Failed to analyze note ${noteId}: ${error.message}`, error.stack);
+            throw new common_1.BadRequestException(`Failed to analyze note: ${error.message}`);
+        }
+    }
 };
 exports.NotesService = NotesService;
-exports.NotesService = NotesService = __decorate([
+exports.NotesService = NotesService = NotesService_1 = __decorate([
     (0, common_1.Injectable)(),
     __param(0, (0, typeorm_1.InjectRepository)(note_entity_1.Note)),
-    __metadata("design:paramtypes", [typeorm_2.Repository])
+    __metadata("design:paramtypes", [typeorm_2.Repository,
+        gemini_text_analysis_service_1.GeminiTextAnalysisService])
 ], NotesService);
 //# sourceMappingURL=notes.service.js.map

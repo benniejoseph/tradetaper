@@ -85,7 +85,7 @@ export default function StrategyDetailsPage() {
         <div className="text-red-600 dark:text-red-400 mb-4">{error || 'Strategy not found'}</div>
         <Link 
           href="/strategies"
-          className="text-blue-600 dark:text-blue-400 hover:underline"
+          className="text-emerald-600 dark:text-emerald-400 hover:underline"
         >
           Back to Strategies
         </Link>
@@ -116,7 +116,7 @@ export default function StrategyDetailsPage() {
             {strategy.isActive ? 'Active' : 'Inactive'}
           </span>
           {strategy.tradingSession && (
-            <span className="px-3 py-1 text-sm bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400 rounded-full capitalize">
+            <span className="px-3 py-1 text-sm bg-emerald-100 text-emerald-800 dark:bg-emerald-900/20 dark:text-emerald-400 rounded-full capitalize">
               {strategy.tradingSession} Session
             </span>
           )}

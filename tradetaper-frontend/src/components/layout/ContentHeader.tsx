@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { FaBars } from 'react-icons/fa';
-import { ThemeToggleButton } from '@/components/common/ThemeToggleButton';
+// import { ThemeToggleButton } from '@/components/common/ThemeToggleButton'; // Removed - component no longer exists
 import { useSelector, useDispatch } from 'react-redux';
 import { AppDispatch, RootState } from '@/store/store';
 import { Bell, Search, ChevronDown, DollarSign } from 'lucide-react';
@@ -67,7 +67,7 @@ function ContentHeader({ toggleSidebar, isMobile, isSidebarExpanded }: ContentHe
   };
 
   return (
-    <header className="sticky top-0 z-30 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-b border-gray-200/50 dark:border-gray-700/50">
+    <header className="sticky top-0 z-30 bg-white/80 dark:bg-black/80 backdrop-blur-xl border-b border-gray-200/50 dark:border-gray-700/50">
       <div className="px-4 sm:px-6 py-4">
         <div className="flex items-center justify-between gap-2 max-w-full overflow-hidden">
           {/* Left side - Menu button, title, and account selector */}
@@ -76,7 +76,7 @@ function ContentHeader({ toggleSidebar, isMobile, isSidebarExpanded }: ContentHe
             {isMobile && (
               <button 
                 onClick={toggleSidebar}
-                className="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-200"
+                className="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-[#0A0A0A] transition-colors duration-200"
                 aria-label="Toggle sidebar">
                 <FaBars className="w-5 h-5" />
               </button>
@@ -90,7 +90,7 @@ function ContentHeader({ toggleSidebar, isMobile, isSidebarExpanded }: ContentHe
               <select
                 value={selectedAccount?.id || ''}
                 onChange={(e) => handleAccountChange(e.target.value || null)}
-                className={`appearance-none bg-white/80 dark:bg-gray-800/80 border border-gray-200/50 dark:border-gray-700/50 rounded-lg px-2 py-2 pr-6 text-xs font-medium text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 transition-all duration-200 ${isMobile ? 'w-20 text-xs' : isSidebarExpanded ? 'w-44 text-sm' : 'w-36 text-sm'}`}
+                className={`content-header-input appearance-none bg-white/80 dark:bg-[#0A0A0A]/80 border border-gray-200/50 dark:border-gray-700/50 rounded-lg px-2 py-2 pr-6 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:focus:ring-emerald-400 transition-all duration-200 ${isMobile ? 'w-20 text-xs' : isSidebarExpanded ? 'w-44 text-sm' : 'w-36 text-sm'}`}
               >
                 <option value="">{isMobile ? 'All' : 'All Accounts'}</option>
                 {allAccounts.map(account => (
@@ -108,7 +108,7 @@ function ContentHeader({ toggleSidebar, isMobile, isSidebarExpanded }: ContentHe
                 value={selectedCurrency}
                 onChange={(e) => setSelectedCurrency(e.target.value as CurrencyCode)}
                 disabled={isLoading}
-                className={`appearance-none bg-white/80 dark:bg-gray-800/80 border border-gray-200/50 dark:border-gray-700/50 rounded-lg px-2 py-2 pr-6 text-xs font-medium text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 transition-all duration-200 disabled:opacity-50 ${isMobile ? 'w-16' : 'w-24'}`}
+                className={`content-header-input appearance-none bg-white/80 dark:bg-[#0A0A0A]/80 border border-gray-200/50 dark:border-gray-700/50 rounded-lg px-2 py-2 pr-6 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:focus:ring-emerald-400 transition-all duration-200 disabled:opacity-50 ${isMobile ? 'w-16' : 'w-24'}`}
                 title="Select display currency"
               >
                 {Object.entries(CURRENCIES).map(([code, currency]) => (
@@ -119,7 +119,7 @@ function ContentHeader({ toggleSidebar, isMobile, isSidebarExpanded }: ContentHe
               </select>
               <div className="absolute right-1 top-1/2 transform -translate-y-1/2 flex items-center">
                 {isLoading ? (
-                  <div className="w-3 h-3 border-2 border-gray-300 border-t-blue-500 rounded-full animate-spin"></div>
+                  <div className="w-3 h-3 border-2 border-gray-300 border-t-emerald-500 rounded-full animate-spin"></div>
                 ) : (
                   <ChevronDown className="w-3 h-3 text-gray-400 pointer-events-none" />
                 )}
@@ -135,7 +135,7 @@ function ContentHeader({ toggleSidebar, isMobile, isSidebarExpanded }: ContentHe
                 <input
                   type="text"
                   placeholder="Search..."
-                  className={`px-4 py-2 pl-10 text-sm bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 transition-all duration-200 ${isSidebarExpanded ? 'w-64' : 'w-56'}`}
+                  className={`content-header-input px-4 py-2 pl-10 text-sm bg-gray-100 dark:bg-[#0A0A0A] border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:focus:ring-emerald-400 transition-all duration-200 ${isSidebarExpanded ? 'w-64' : 'w-56'}`}
                 />
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
               </div>
@@ -143,23 +143,18 @@ function ContentHeader({ toggleSidebar, isMobile, isSidebarExpanded }: ContentHe
 
             {/* Notifications */}
             <button 
-              className={`${isMobile ? 'p-1.5' : 'p-2'} rounded-lg text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-200 relative flex-shrink-0`}
+              className={`${isMobile ? 'p-1.5' : 'p-2'} rounded-lg text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-[#0A0A0A] transition-colors duration-200 relative flex-shrink-0`}
               aria-label="Notifications">
               <Bell className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'}`} />
               <span className="absolute top-0.5 right-0.5 w-2 h-2 bg-red-500 rounded-full"></span>
             </button>
               
-            {/* Theme Toggle - Hide on mobile */}
-            {!isMobile && (
-              <div className="p-2 rounded-lg bg-gray-100 dark:bg-gray-800 flex-shrink-0">
-                <ThemeToggleButton />
-              </div>
-            )}
+            {/* Theme toggle removed - component no longer exists */}
 
             {/* User Avatar - Only show on desktop */}
             {!isMobile && user && (
               <div className="hidden sm:flex items-center space-x-3 flex-shrink-0">
-                <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-green-500 flex items-center justify-center text-white font-semibold text-sm">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-r from-emerald-500 to-emerald-600 flex items-center justify-center text-white font-semibold text-sm">
                   {(user.firstName?.[0] || user.email?.[0] || 'U').toUpperCase()}
                 </div>
                 <div className="hidden lg:block min-w-0">

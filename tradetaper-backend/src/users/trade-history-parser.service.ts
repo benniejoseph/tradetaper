@@ -1,6 +1,6 @@
 import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { ParsedTradeData } from './dto/mt5-account.dto';
-import * as XLSX from 'xlsx';
+import * as ExcelJS from 'exceljs';
 
 @Injectable()
 export class TradeHistoryParserService {
@@ -237,16 +237,18 @@ export class TradeHistoryParserService {
   }
 
   /**
-   * Parse MT5 Excel trade history report
+   * Parse MT5 Excel trade history report using exceljs
    */
-  private parseExcelTradeHistory(buffer: Buffer): {
+  private async parseExcelTradeHistory(buffer: Buffer): Promise<{
     trades: ParsedTradeData[];
     accountBalance?: number;
     accountCurrency?: string;
     totalNetProfit?: number;
     equity?: number;
-  } {
-    const workbook = XLSX.read(buffer, { type: 'buffer' });
+  }> {
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.load(buffer);
+    
     const trades: ParsedTradeData[] = [];
     let accountBalance: number | undefined;
     let accountCurrency: string | undefined;
@@ -254,10 +256,25 @@ export class TradeHistoryParserService {
     let equity: number | undefined;
 
     // Try to find the sheet with trade data
-    for (const sheetName of workbook.SheetNames) {
-      const worksheet = workbook.Sheets[sheetName];
-      const sheetData = XLSX.utils.sheet_to_json(worksheet, {
-        header: 1,
+    for (const worksheet of workbook.worksheets) {
+      const sheetName = worksheet.name;
+      const sheetData: any[][] = [];
+      
+      // Convert worksheet to 2D array format (similar to xlsx sheet_to_json with header: 1)
+      worksheet.eachRow({ includeEmpty: false }, (row, rowNumber) => {
+        const rowData: any[] = [];
+        row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+          // Get cell value, handling different types
+          let value = cell.value;
+          if (value && typeof value === 'object') {
+            // Handle rich text, formulas, etc.
+            if ('result' in value) value = value.result;
+            else if ('text' in value) value = value.text;
+            else if ('richText' in value) value = (value as any).richText.map((rt: any) => rt.text).join('');
+          }
+          rowData[colNumber - 1] = value;
+        });
+        sheetData.push(rowData);
       });
 
       // Extract account balance and currency from header rows (first 10 rows)
@@ -265,7 +282,7 @@ export class TradeHistoryParserService {
         const row = sheetData[i] as any[];
         if (!row) continue;
 
-        const rowText = row.join(' ').toLowerCase();
+        const rowText = row.filter(c => c != null).join(' ').toLowerCase();
         if (rowText.includes('balance') && !accountBalance) {
           // Look for balance pattern in the row
           for (let j = 0; j < row.length; j++) {
@@ -323,7 +340,7 @@ export class TradeHistoryParserService {
         const row = sheetData[i] as any[];
         if (!row) continue;
 
-        const rowText = row.join(' ').toLowerCase();
+        const rowText = row.filter(c => c != null).join(' ').toLowerCase();
         if (
           rowText.includes('position') &&
           rowText.includes('symbol') &&

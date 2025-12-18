@@ -52,19 +52,22 @@ const typeorm_1 = require("@nestjs/typeorm");
 const typeorm_2 = require("typeorm");
 const mt5_account_entity_1 = require("./entities/mt5-account.entity");
 const config_1 = require("@nestjs/config");
-const metaapi_service_1 = require("./metaapi.service");
 const crypto = __importStar(require("crypto"));
+const trades_service_1 = require("../trades/trades.service");
+const user_entity_1 = require("./entities/user.entity");
 let MT5AccountsService = MT5AccountsService_1 = class MT5AccountsService {
     mt5AccountRepository;
+    userRepository;
     configService;
-    metaApiService;
+    tradesService;
     logger = new common_1.Logger(MT5AccountsService_1.name);
     encryptionKey;
     encryptionIV;
-    constructor(mt5AccountRepository, configService, metaApiService) {
+    constructor(mt5AccountRepository, userRepository, configService, tradesService) {
         this.mt5AccountRepository = mt5AccountRepository;
+        this.userRepository = userRepository;
         this.configService = configService;
-        this.metaApiService = metaApiService;
+        this.tradesService = tradesService;
         const encryptionKeyString = this.configService.get('MT5_ENCRYPTION_KEY') ||
             crypto.randomBytes(32).toString('hex');
         const encryptionIVString = this.configService.get('MT5_ENCRYPTION_IV') ||
@@ -178,9 +181,13 @@ let MT5AccountsService = MT5AccountsService_1 = class MT5AccountsService {
         return validAccounts;
     }
     async findOne(id) {
-        return this.mt5AccountRepository.findOne({
-            where: { id },
-        });
+        return this.mt5AccountRepository.findOne({ where: { id } });
+    }
+    async syncAccount(id) {
+        this.logger.log(`Syncing account ${id}...`);
+    }
+    async importTradesFromMT5(id, fromDate, toDate) {
+        this.logger.log(`Importing trades for account ${id} from ${fromDate} to ${toDate}...`);
     }
     async update(id, updateMT5AccountDto) {
         const account = await this.mt5AccountRepository.findOne({
@@ -237,51 +244,6 @@ let MT5AccountsService = MT5AccountsService_1 = class MT5AccountsService {
         await this.mt5AccountRepository.delete(id);
         this.logger.log(`Successfully deleted MT5 account ${id}`);
     }
-    async syncAccount(id) {
-        const account = await this.mt5AccountRepository.findOne({
-            where: { id },
-        });
-        if (!account) {
-            throw new common_1.NotFoundException(`MT5 account with id ${id} not found`);
-        }
-        try {
-            account.lastSyncAt = new Date();
-            account.connectionStatus = 'CONNECTED';
-            const updatedAccount = await this.mt5AccountRepository.save(account);
-            this.logger.log(`Successfully synced MT5 account ${account.accountName} (ID: ${account.id})`);
-            return this.mapToResponseDto(updatedAccount);
-        }
-        catch (error) {
-            this.logger.error(`Failed to sync MT5 account ${account.id}: ${error.message}`);
-            throw new Error(`Failed to sync MT5 account: ${error.message}`);
-        }
-    }
-    async validateMT5Connection(login, password, server) {
-        try {
-            this.logger.log(`Validating MT5 connection for ${login}@${server}`);
-            return true;
-        }
-        catch (error) {
-            this.logger.error(`MT5 connection validation failed: ${error.message}`);
-            return false;
-        }
-    }
-    async importTradesFromMT5(accountId, fromDate, toDate) {
-        try {
-            const account = await this.mt5AccountRepository.findOne({
-                where: { id: accountId },
-            });
-            if (!account) {
-                throw new common_1.NotFoundException(`MT5 account with id ${accountId} not found`);
-            }
-            this.logger.log(`Importing trades from MT5 account ${accountId} (${fromDate.toISOString()} to ${toDate.toISOString()})`);
-            return [];
-        }
-        catch (error) {
-            this.logger.error(`Failed to import trades from MT5 account ${accountId}: ${error.message}`);
-            throw error;
-        }
-    }
     mapToResponseDto(account) {
         const isManual = account.metadata?.isManual || account.connectionStatus === 'manual';
         const { password, login, server, ...rest } = account;
@@ -306,8 +268,10 @@ exports.MT5AccountsService = MT5AccountsService;
 exports.MT5AccountsService = MT5AccountsService = MT5AccountsService_1 = __decorate([
     (0, common_1.Injectable)(),
     __param(0, (0, typeorm_1.InjectRepository)(mt5_account_entity_1.MT5Account)),
+    __param(1, (0, typeorm_1.InjectRepository)(user_entity_1.User)),
     __metadata("design:paramtypes", [typeorm_2.Repository,
+        typeorm_2.Repository,
         config_1.ConfigService,
-        metaapi_service_1.MetaApiService])
+        trades_service_1.TradesService])
 ], MT5AccountsService);
 //# sourceMappingURL=mt5-accounts.service.js.map

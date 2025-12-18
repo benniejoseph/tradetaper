@@ -82,7 +82,7 @@ export default function StatusPage() {
     // Check Backend API
     try {
       const startTime = Date.now();
-      const response = await fetch('https://tradetaper-backend-production.up.railway.app/api/v1/health');
+      const response = await fetch('https://tradetaper-backend-326520250422.us-central1.run.app/api/v1/health');
       const responseTime = Date.now() - startTime;
       
       if (response.ok) {
@@ -92,7 +92,7 @@ export default function StatusPage() {
           status: 'online',
           responseTime,
           lastChecked: new Date().toISOString(),
-          url: 'https://tradetaper-backend-production.up.railway.app',
+          url: 'https://tradetaper-backend-326520250422.us-central1.run.app',
           details: data
         });
       } else {
@@ -100,7 +100,7 @@ export default function StatusPage() {
           name: 'Backend API',
           status: 'degraded',
           lastChecked: new Date().toISOString(),
-          url: 'https://tradetaper-backend-production.up.railway.app',
+          url: 'https://tradetaper-backend-326520250422.us-central1.run.app',
           error: `HTTP ${response.status}`
         });
       }
@@ -109,7 +109,7 @@ export default function StatusPage() {
         name: 'Backend API',
         status: 'offline',
         lastChecked: new Date().toISOString(),
-        url: 'https://tradetaper-backend-production.up.railway.app',
+        url: 'https://tradetaper-backend-326520250422.us-central1.run.app',
         error: error.message
       });
     }
@@ -117,7 +117,7 @@ export default function StatusPage() {
     // Check Backend Ping Endpoint
     try {
       const startTime = Date.now();
-      const response = await fetch('https://tradetaper-backend-production.up.railway.app/api/v1/ping');
+      const response = await fetch('https://tradetaper-backend-326520250422.us-central1.run.app/api/v1/ping');
       const responseTime = Date.now() - startTime;
       
       if (response.ok) {
@@ -127,7 +127,7 @@ export default function StatusPage() {
           status: 'online',
           responseTime,
           lastChecked: new Date().toISOString(),
-          url: 'https://tradetaper-backend-production.up.railway.app/api/v1/ping',
+          url: 'https://tradetaper-backend-326520250422.us-central1.run.app/api/v1/ping',
           details: data
         });
       } else {
@@ -135,7 +135,7 @@ export default function StatusPage() {
           name: 'Backend Ping',
           status: 'offline',
           lastChecked: new Date().toISOString(),
-          url: 'https://tradetaper-backend-production.up.railway.app/api/v1/ping',
+          url: 'https://tradetaper-backend-326520250422.us-central1.run.app/api/v1/ping',
           error: `HTTP ${response.status}`
         });
       }
@@ -144,7 +144,7 @@ export default function StatusPage() {
         name: 'Backend Ping',
         status: 'offline',
         lastChecked: new Date().toISOString(),
-        url: 'https://tradetaper-backend-production.up.railway.app/api/v1/ping',
+        url: 'https://tradetaper-backend-326520250422.us-central1.run.app/api/v1/ping',
         error: error.message
       });
     }
@@ -152,7 +152,7 @@ export default function StatusPage() {
     // Check Admin Login Endpoint
     try {
       const startTime = Date.now();
-      const response = await fetch('https://tradetaper-backend-production.up.railway.app/api/v1/auth/admin/login', {
+      const response = await fetch('https://tradetaper-backend-326520250422.us-central1.run.app/api/v1/auth/admin/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: 'test', password: 'test' })
@@ -166,7 +166,7 @@ export default function StatusPage() {
           status: 'online',
           responseTime,
           lastChecked: new Date().toISOString(),
-          url: 'https://tradetaper-backend-production.up.railway.app/api/v1/auth/admin/login',
+          url: 'https://tradetaper-backend-326520250422.us-central1.run.app/api/v1/auth/admin/login',
           details: { note: 'Endpoint accessible (401 expected)' }
         });
       } else if (response.status === 404) {
@@ -174,7 +174,7 @@ export default function StatusPage() {
           name: 'Admin Login',
           status: 'offline',
           lastChecked: new Date().toISOString(),
-          url: 'https://tradetaper-backend-production.up.railway.app/api/v1/auth/admin/login',
+          url: 'https://tradetaper-backend-326520250422.us-central1.run.app/api/v1/auth/admin/login',
           error: 'Endpoint not found (404)'
         });
       } else {
@@ -182,7 +182,7 @@ export default function StatusPage() {
           name: 'Admin Login',
           status: 'degraded',
           lastChecked: new Date().toISOString(),
-          url: 'https://tradetaper-backend-production.up.railway.app/api/v1/auth/admin/login',
+          url: 'https://tradetaper-backend-326520250422.us-central1.run.app/api/v1/auth/admin/login',
           error: `HTTP ${response.status}`
         });
       }
@@ -191,7 +191,7 @@ export default function StatusPage() {
         name: 'Admin Login',
         status: 'offline',
         lastChecked: new Date().toISOString(),
-        url: 'https://tradetaper-backend-production.up.railway.app/api/v1/auth/admin/login',
+        url: 'https://tradetaper-backend-326520250422.us-central1.run.app/api/v1/auth/admin/login',
         error: error.message
       });
     }
@@ -199,7 +199,7 @@ export default function StatusPage() {
     // Check Database Access
     try {
       const startTime = Date.now();
-      const response = await fetch('https://tradetaper-backend-production.up.railway.app/api/v1/admin/database/tables', {
+      const response = await fetch('https://tradetaper-backend-326520250422.us-central1.run.app/api/v1/admin/database/tables', {
         headers: { 'Authorization': 'Bearer mock-token' }
       });
       const responseTime = Date.now() - startTime;
@@ -296,7 +296,7 @@ export default function StatusPage() {
     setSystemInfo({
       deployment: {
         backend: {
-          url: 'https://tradetaper-backend-production.up.railway.app',
+          url: 'https://tradetaper-backend-326520250422.us-central1.run.app',
           version: backendService?.details?.version || 'Unknown',
           uptime: backendService?.details?.uptime || 0,
           status: backendService?.status || 'unknown'

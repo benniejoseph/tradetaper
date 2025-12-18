@@ -31,7 +31,10 @@ let CalendarService = class CalendarService {
         calendarStart.setDate(calendarStart.getDate() - calendarStart.getDay());
         const calendarEnd = (0, date_fns_1.endOfDay)(new Date(monthEnd));
         calendarEnd.setDate(calendarEnd.getDate() + (6 - calendarEnd.getDay()));
-        const allDays = (0, date_fns_1.eachDayOfInterval)({ start: calendarStart, end: calendarEnd });
+        const allDays = (0, date_fns_1.eachDayOfInterval)({
+            start: calendarStart,
+            end: calendarEnd,
+        });
         const notes = await this.noteRepository.find({
             where: {
                 userId,
@@ -41,7 +44,7 @@ let CalendarService = class CalendarService {
             order: { createdAt: 'ASC' },
         });
         const notesByDate = new Map();
-        notes.forEach(note => {
+        notes.forEach((note) => {
             const dateKey = (0, date_fns_1.format)(note.createdAt, 'yyyy-MM-dd');
             if (!notesByDate.has(dateKey)) {
                 notesByDate.set(dateKey, []);
@@ -50,7 +53,7 @@ let CalendarService = class CalendarService {
         });
         const today = (0, date_fns_1.format)(new Date(), 'yyyy-MM-dd');
         const currentMonth = month;
-        const days = allDays.map(day => {
+        const days = allDays.map((day) => {
             const dayStr = (0, date_fns_1.format)(day, 'yyyy-MM-dd');
             const dayNotes = notesByDate.get(dayStr) || [];
             const isCurrentMonth = day.getMonth() + 1 === currentMonth;
@@ -65,7 +68,7 @@ let CalendarService = class CalendarService {
             };
         });
         const totalNotes = days
-            .filter(day => day.isCurrentMonth)
+            .filter((day) => day.isCurrentMonth)
             .reduce((sum, day) => sum + day.noteCount, 0);
         return {
             year,
@@ -91,9 +94,9 @@ let CalendarService = class CalendarService {
     }
     async getCalendarStats(userId, year, month) {
         const calendarData = await this.getCalendarData(userId, year, month);
-        const currentMonthDays = calendarData.days.filter(day => day.isCurrentMonth);
+        const currentMonthDays = calendarData.days.filter((day) => day.isCurrentMonth);
         const totalNotes = currentMonthDays.reduce((sum, day) => sum + day.noteCount, 0);
-        const allNotes = currentMonthDays.flatMap(day => day.notes);
+        const allNotes = currentMonthDays.flatMap((day) => day.notes);
         const totalWords = allNotes.reduce((sum, note) => sum + (note.wordCount || 0), 0);
         const mostActiveDay = currentMonthDays.reduce((most, day) => {
             if (!most || day.noteCount > most.noteCount) {
@@ -136,11 +139,15 @@ let CalendarService = class CalendarService {
             order: { createdAt: 'DESC' },
             take: 5,
         });
-        return recentNotes.map(note => ({
+        return recentNotes.map((note) => ({
             id: note.id,
             title: note.title || 'Untitled Note',
             dueDate: (0, date_fns_1.format)(new Date(note.createdAt.getTime() + 7 * 24 * 60 * 60 * 1000), 'yyyy-MM-dd'),
-            priority: note.isPinned ? 'high' : note.wordCount > 500 ? 'medium' : 'low',
+            priority: note.isPinned
+                ? 'high'
+                : note.wordCount > 500
+                    ? 'medium'
+                    : 'low',
         }));
     }
     async searchNotesByDateRange(userId, startDate, endDate, searchTerm) {
@@ -152,11 +159,9 @@ let CalendarService = class CalendarService {
             .andWhere('note.deletedAt IS NULL')
             .andWhere('note.createdAt BETWEEN :start AND :end', { start, end });
         if (searchTerm) {
-            query = query.andWhere('(note.title ILIKE :search OR to_tsvector(\'english\', notes_content_search(note.content)) @@ plainto_tsquery(\'english\', :search))', { search: `%${searchTerm}%` });
+            query = query.andWhere("(note.title ILIKE :search OR to_tsvector('english', notes_content_search(note.content)) @@ plainto_tsquery('english', :search))", { search: `%${searchTerm}%` });
         }
-        return query
-            .orderBy('note.createdAt', 'ASC')
-            .getMany();
+        return query.orderBy('note.createdAt', 'ASC').getMany();
     }
 };
 exports.CalendarService = CalendarService;

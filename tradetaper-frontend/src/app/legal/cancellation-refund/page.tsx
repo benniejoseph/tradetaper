@@ -163,13 +163,13 @@ export default function CancellationRefundPage() {
                 <div className="space-y-4">
                   <Link 
                     href="/billing" 
-                    className="flex items-center justify-between p-4 bg-blue-50/80 dark:bg-blue-900/20 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors group"
+                    className="flex items-center justify-between p-4 bg-emerald-50/80 dark:bg-emerald-900/20 rounded-lg hover:bg-emerald-100 dark:hover:bg-emerald-900/30 transition-colors group"
                   >
                     <div className="flex items-center space-x-3">
-                      <FaUndo className="text-blue-600 dark:text-blue-400 text-sm" />
+                      <FaUndo className="text-emerald-600 dark:text-emerald-400 text-sm" />
                       <span className="text-gray-900 dark:text-white font-medium">Cancel Subscription</span>
                     </div>
-                    <span className="text-blue-600 dark:text-blue-400 group-hover:translate-x-1 transition-transform">→</span>
+                    <span className="text-emerald-600 dark:text-emerald-400 group-hover:translate-x-1 transition-transform">→</span>
                   </Link>
                   <a 
                     href="mailto:billing@tradetaper.com"
@@ -221,7 +221,7 @@ export default function CancellationRefundPage() {
                   </div>
                   <div className="flex items-center justify-between p-3 bg-gray-50/80 dark:bg-gray-800/80 rounded-lg">
                     <span className="text-gray-700 dark:text-gray-300 font-medium">Live Chat</span>
-                    <span className="text-blue-600 dark:text-blue-400 font-semibold">9 AM - 6 PM EST</span>
+                    <span className="text-emerald-600 dark:text-emerald-400 font-semibold">9 AM - 6 PM EST</span>
                   </div>
                 </div>
                 <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700 space-y-2">

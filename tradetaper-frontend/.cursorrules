@@ -148,7 +148,7 @@ export const fetchTrades = createAsyncThunk(
 ```typescript
 // services/api.ts
 const API_BASE_URL = process.env.NODE_ENV === 'production' 
-  ? 'https://tradetaper-backend-481634875325.us-central1.run.app'
+  ? 'https://tradetaper-backend-326520250422.us-central1.run.app'
   : 'http://localhost:8080';
 
 const api = axios.create({

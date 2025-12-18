@@ -60,7 +60,7 @@ export default function TopTradesByReturn({ trades, topN = 3 }: TopTradesByRetur
     // Assuming here it's a decimal for percentage like in the image (e.g. 0.2055 for 20.55%)
     // The image shows "20.55%", so we multiply by 100.
     // If your rMultiple is already e.g. 20.55 for 20.55%, then just .toFixed(2)
-    return `${(rMultiple * 100).toFixed(2)}%`; 
+    return `${((rMultiple || 0) * 100).toFixed(2)}%`; 
   };
 
   return (
@@ -79,14 +79,14 @@ export default function TopTradesByReturn({ trades, topN = 3 }: TopTradesByRetur
         </div>
       ) : (
         <div className="space-y-3 overflow-y-auto flex-grow pr-1">
-          {topTrades.map((trade) => (
+          {topTrades?.map((trade) => (
             <div 
               key={trade.id}
               className="flex items-center justify-between p-2 rounded-md bg-[var(--color-light-secondary)] dark:bg-dark-primary"
             >
               <div className="flex items-center">
                  {/* Placeholder for asset icon if desired - not in image, but common */}
-                <div className={`w-1.5 h-6 rounded-full mr-2.5 ${trade.profitOrLoss >= 0 ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                <div className={`w-1.5 h-6 rounded-full mr-2.5 ${trade.profitOrLoss >= 0 ? 'bg-emerald-500' : 'bg-red-500'}`}></div>
                 <div>
                   <p className="text-sm font-medium text-[var(--color-text-dark-primary)] dark:text-text-light-primary truncate">
                     {trade.symbol}
@@ -100,11 +100,11 @@ export default function TopTradesByReturn({ trades, topN = 3 }: TopTradesByRetur
                 </div>
               </div>
               <div className="text-right flex flex-col items-end">
-                <p className={`text-sm font-semibold ${trade.profitOrLoss >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                <p className={`text-sm font-semibold ${trade.profitOrLoss >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
                   {formatPnl(trade.profitOrLoss)}
                 </p>
                 {trade.rMultiple !== undefined && (
-                  <div className={`text-xs flex items-center ${trade.profitOrLoss >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                  <div className={`text-xs flex items-center ${trade.profitOrLoss >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
                     {trade.profitOrLoss >= 0 ? <FaArrowUp className="mr-0.5 h-2.5 w-2.5"/> : <FaArrowDown className="mr-0.5 h-2.5 w-2.5"/>}
                     {/* The image shows a percentage. If rMultiple is e.g. 2.5 (for R), this calculation might be different */} 
                     {/* Assuming rMultiple is a decimal representation of percentage like 0.2055 for 20.55% */}

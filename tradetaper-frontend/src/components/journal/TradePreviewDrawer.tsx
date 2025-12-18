@@ -10,7 +10,7 @@ import { AppDispatch } from '@/store/store';
 import { updateTrade } from '@/store/features/tradesSlice';
 import { useRouter } from 'next/navigation';
 import html2canvas from 'html2canvas';
-import { analyzeNote } from '@/services/notesApi'; // New import
+// import { analyzeNote } from '@/services/notesApi'; // Removed - service no longer exists
 
 interface TradePreviewDrawerProps {
   trade: Trade | null;
@@ -83,7 +83,7 @@ const ShareModal: React.FC<ShareModalProps> = ({ trade, isOpen, onClose }) => {
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-md flex items-center justify-center z-50 p-4">
-      <div className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 shadow-2xl max-w-md w-full max-h-[90vh] overflow-hidden">
+      <div className="bg-gradient-to-br from-white to-emerald-50 dark:from-black dark:to-emerald-950/20 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 shadow-2xl max-w-md w-full max-h-[90vh] overflow-hidden">
         {/* Modal Header */}
         <div className="p-6 border-b border-gray-200/30 dark:border-gray-700/30">
           <div className="flex items-center justify-between">
@@ -103,7 +103,7 @@ const ShareModal: React.FC<ShareModalProps> = ({ trade, isOpen, onClose }) => {
         <div className="p-6">
           <div 
             ref={shareCardRef}
-            className="bg-gradient-to-br from-blue-50/80 to-green-50/80 dark:from-blue-900/20 dark:to-green-900/20 backdrop-blur-xl p-6 rounded-2xl border border-blue-200/50 dark:border-blue-800/50 shadow-lg"
+            className="bg-gradient-to-br from-emerald-50/80 to-emerald-100/80 dark:from-emerald-950/20 dark:to-emerald-900/20 backdrop-blur-xl p-6 rounded-2xl border border-emerald-200/50 dark:border-emerald-800/50 shadow-lg"
           >
             {/* Card Header */}
             <div className="flex items-center justify-between mb-4">
@@ -125,7 +125,7 @@ const ShareModal: React.FC<ShareModalProps> = ({ trade, isOpen, onClose }) => {
               
               <div className={`px-3 py-1.5 rounded-xl text-sm font-medium shadow-sm ${
                 isWin 
-                  ? 'bg-green-100/80 text-green-800 dark:bg-green-900/30 dark:text-green-300'
+                  ? 'bg-emerald-100/80 text-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-300'
                   : 'bg-red-100/80 text-red-800 dark:bg-red-900/30 dark:text-red-300'
               }`}>
                 {isWin ? 'WIN' : 'LOSS'}
@@ -135,12 +135,12 @@ const ShareModal: React.FC<ShareModalProps> = ({ trade, isOpen, onClose }) => {
             {/* P&L Display */}
             <div className="text-center mb-6">
               <div className={`text-3xl font-bold mb-1 ${
-                isWin ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
+                isWin ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'
               }`}>
                 {profitOrLoss >= 0 ? '+' : ''}${Math.abs(profitOrLoss).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
               </div>
               <div className={`text-sm font-medium ${
-                isWin ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
+                isWin ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'
               }`}>
                 {pnlPercentage >= 0 ? '+' : ''}{pnlPercentage.toFixed(2)}%
               </div>
@@ -148,25 +148,25 @@ const ShareModal: React.FC<ShareModalProps> = ({ trade, isOpen, onClose }) => {
 
             {/* Trade Details */}
             <div className="grid grid-cols-2 gap-4 text-sm">
-              <div className="bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm rounded-xl p-3">
+              <div className="bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-950/20 dark:to-emerald-900/20 backdrop-blur-sm rounded-xl p-3">
                 <div className="text-gray-500 dark:text-gray-400 text-xs">Entry</div>
                 <div className="font-semibold text-gray-900 dark:text-white">
                   ${trade.entryPrice?.toFixed(4) || 'N/A'}
                 </div>
               </div>
-              <div className="bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm rounded-xl p-3">
+              <div className="bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-950/20 dark:to-emerald-900/20 backdrop-blur-sm rounded-xl p-3">
                 <div className="text-gray-500 dark:text-gray-400 text-xs">Exit</div>
                 <div className="font-semibold text-gray-900 dark:text-white">
                   ${trade.exitPrice?.toFixed(4) || 'N/A'}
                 </div>
               </div>
-              <div className="bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm rounded-xl p-3">
+              <div className="bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-950/20 dark:to-emerald-900/20 backdrop-blur-sm rounded-xl p-3">
                 <div className="text-gray-500 dark:text-gray-400 text-xs">Quantity</div>
                 <div className="font-semibold text-gray-900 dark:text-white">
                   {trade.quantity?.toLocaleString() || 'N/A'}
                 </div>
               </div>
-              <div className="bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm rounded-xl p-3">
+              <div className="bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-950/20 dark:to-emerald-900/20 backdrop-blur-sm rounded-xl p-3">
                 <div className="text-gray-500 dark:text-gray-400 text-xs">R-Multiple</div>
                 <div className="font-semibold text-gray-900 dark:text-white">
                   {trade.rMultiple?.toFixed(2) || 'N/A'}R
@@ -191,7 +191,7 @@ const ShareModal: React.FC<ShareModalProps> = ({ trade, isOpen, onClose }) => {
           <div className="grid grid-cols-2 gap-3">
             <button
               onClick={handleCopyLink}
-              className="flex items-center justify-center space-x-2 px-4 py-3 bg-gray-100/80 dark:bg-gray-800/80 hover:bg-blue-500 dark:hover:bg-blue-500 text-gray-700 dark:text-gray-300 hover:text-white rounded-xl transition-all duration-200 hover:scale-105 backdrop-blur-sm"
+              className="flex items-center justify-center space-x-2 px-4 py-3 bg-gray-100/80 dark:bg-[#141414] hover:bg-emerald-500 dark:hover:bg-emerald-600 text-gray-700 dark:text-gray-300 hover:text-white rounded-xl transition-all duration-200 hover:scale-105 backdrop-blur-sm"
             >
               <FaCopy className="h-4 w-4" />
               <span className="text-sm font-medium">Copy Link</span>
@@ -200,7 +200,7 @@ const ShareModal: React.FC<ShareModalProps> = ({ trade, isOpen, onClose }) => {
             <button
               onClick={handleDownloadCard}
               disabled={isGenerating}
-              className="flex items-center justify-center space-x-2 px-4 py-3 bg-blue-100/80 dark:bg-blue-800/80 hover:bg-blue-500 dark:hover:bg-blue-500 text-blue-700 dark:text-blue-300 hover:text-white rounded-xl transition-all duration-200 hover:scale-105 backdrop-blur-sm disabled:opacity-50"
+              className="flex items-center justify-center space-x-2 px-4 py-3 bg-emerald-100/80 dark:bg-emerald-950/30 hover:bg-emerald-500 dark:hover:bg-emerald-600 text-emerald-700 dark:text-emerald-300 hover:text-white rounded-xl transition-all duration-200 hover:scale-105 backdrop-blur-sm disabled:opacity-50"
             >
               <FaDownload className="h-4 w-4" />
               <span className="text-sm font-medium">
@@ -210,7 +210,7 @@ const ShareModal: React.FC<ShareModalProps> = ({ trade, isOpen, onClose }) => {
             
             <button
               onClick={handleShareToTwitter}
-              className="flex items-center justify-center space-x-2 px-4 py-3 bg-blue-100/80 dark:bg-blue-800/80 hover:bg-blue-500 dark:hover:bg-blue-500 text-blue-700 dark:text-blue-300 hover:text-white rounded-xl transition-all duration-200 hover:scale-105 backdrop-blur-sm"
+              className="flex items-center justify-center space-x-2 px-4 py-3 bg-emerald-100/80 dark:bg-emerald-950/30 hover:bg-emerald-500 dark:hover:bg-emerald-600 text-emerald-700 dark:text-emerald-300 hover:text-white rounded-xl transition-all duration-200 hover:scale-105 backdrop-blur-sm"
             >
               <FaTwitter className="h-4 w-4" />
               <span className="text-sm font-medium">Twitter</span>
@@ -218,7 +218,7 @@ const ShareModal: React.FC<ShareModalProps> = ({ trade, isOpen, onClose }) => {
             
             <button
               onClick={handleShareToLinkedIn}
-              className="flex items-center justify-center space-x-2 px-4 py-3 bg-blue-100/80 dark:bg-blue-800/80 hover:bg-blue-500 dark:hover:bg-blue-500 text-blue-700 dark:text-blue-300 hover:text-white rounded-xl transition-all duration-200 hover:scale-105 backdrop-blur-sm"
+              className="flex items-center justify-center space-x-2 px-4 py-3 bg-emerald-100/80 dark:bg-emerald-950/30 hover:bg-emerald-500 dark:hover:bg-emerald-600 text-emerald-700 dark:text-emerald-300 hover:text-white rounded-xl transition-all duration-200 hover:scale-105 backdrop-blur-sm"
             >
               <FaLinkedin className="h-4 w-4" />
               <span className="text-sm font-medium">LinkedIn</span>
@@ -330,7 +330,7 @@ export default function TradePreviewDrawer({
 
   const DetailItem: React.FC<{ label: string; value: string | number | React.ReactNode | null | undefined; valueClass?: string; containerClass?: string }> = 
     ({ label, value, valueClass, containerClass }) => (
-    <div className={`flex justify-between items-center py-3 px-4 bg-white/60 dark:bg-gray-800/40 backdrop-blur-sm rounded-xl border border-gray-200/30 dark:border-gray-700/30 hover:bg-white/80 dark:hover:bg-gray-800/60 transition-all duration-200 ${containerClass || ''}`}>
+    <div className={`flex justify-between items-center py-3 px-4 bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-950/10 dark:to-emerald-900/10 backdrop-blur-sm rounded-xl border border-gray-200/30 dark:border-gray-700/30 hover:from-emerald-100 hover:to-emerald-200 dark:hover:from-emerald-900/20 dark:hover:to-emerald-800/20 transition-all duration-200 ${containerClass || ''}`}>
       <span className="text-sm font-medium text-gray-600 dark:text-gray-400">{label}</span>
       <span className={`text-sm text-right font-semibold ${valueClass || 'text-gray-900 dark:text-white'}`}>{value ?? '-'}</span>
     </div>
@@ -339,7 +339,7 @@ export default function TradePreviewDrawer({
   const SectionTitle: React.FC<{ title: string; icon?: React.ReactNode }> = ({ title, icon }) => (
     <div className="flex items-center gap-3 mb-4 mt-6">
       {icon && (
-        <div className="p-2 bg-gradient-to-r from-blue-500/20 to-green-500/20 rounded-xl">
+        <div className="p-2 bg-gradient-to-r from-emerald-500/20 to-emerald-600/20 rounded-xl">
           {icon}
         </div>
       )}
@@ -358,14 +358,14 @@ export default function TradePreviewDrawer({
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-md flex justify-end z-40 transition-opacity duration-300 ease-in-out" onClick={onClose}>
       <div 
-        className="w-full max-w-lg h-full bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border-l border-gray-200/50 dark:border-gray-700/50 shadow-2xl flex flex-col transform transition-transform duration-300 ease-in-out translate-x-0" 
+        className="w-full max-w-lg h-full bg-gradient-to-br from-white to-emerald-50 dark:from-black dark:to-emerald-950/20 backdrop-blur-xl border-l border-gray-200/50 dark:border-gray-700/50 shadow-2xl flex flex-col transform transition-transform duration-300 ease-in-out translate-x-0" 
         onClick={(e) => e.stopPropagation()} 
       >
         {/* Header */}
-        <div className="p-6 border-b border-gray-200/30 dark:border-gray-700/30 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl">
+        <div className="p-6 border-b border-gray-200/30 dark:border-gray-700/30 bg-gradient-to-r from-emerald-50 to-white dark:from-emerald-950/20 dark:to-black backdrop-blur-xl">
           <div className="flex justify-between items-start mb-4">
             <div className="flex flex-col">
-                <h2 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-green-600 bg-clip-text text-transparent">{trade.symbol}</h2>
+                <h2 className="text-3xl font-bold bg-gradient-to-r from-emerald-500 to-emerald-600 bg-clip-text text-transparent">{trade.symbol}</h2>
                 <div className="flex items-center space-x-3 mt-2">
                     <span className={`px-3 py-1.5 rounded-xl text-white text-sm font-semibold shadow-lg ${statusColor}`}>{statusText}</span>
                     <span className="px-3 py-1.5 rounded-xl bg-gray-100/80 dark:bg-gray-800/80 text-gray-700 dark:text-gray-300 text-sm font-semibold backdrop-blur-sm">{trade.direction}</span>
@@ -378,10 +378,10 @@ export default function TradePreviewDrawer({
                         <FaStarOutline className="h-5 w-5" />
                     }
                 </button>
-                <button onClick={handleShare} className="p-2.5 rounded-xl bg-gray-100/80 dark:bg-gray-800/80 hover:bg-purple-500 dark:hover:bg-purple-500 text-gray-600 dark:text-gray-400 hover:text-white transition-all duration-200 hover:scale-105 backdrop-blur-sm">
+                <button onClick={handleShare} className="p-2.5 rounded-xl bg-gray-100/80 dark:bg-[#141414] hover:bg-emerald-500 dark:hover:bg-emerald-600 text-gray-600 dark:text-gray-400 hover:text-white transition-all duration-200 hover:scale-105 backdrop-blur-sm">
                     <FaShareSquare className="h-5 w-5" />
                 </button>
-                <button onClick={handleExternalLink} className="p-2.5 rounded-xl bg-gray-100/80 dark:bg-gray-800/80 hover:bg-blue-500 dark:hover:bg-blue-500 text-gray-600 dark:text-gray-400 hover:text-white transition-all duration-200 hover:scale-105 backdrop-blur-sm">
+                <button onClick={handleExternalLink} className="p-2.5 rounded-xl bg-gray-100/80 dark:bg-[#141414] hover:bg-emerald-500 dark:hover:bg-emerald-600 text-gray-600 dark:text-gray-400 hover:text-white transition-all duration-200 hover:scale-105 backdrop-blur-sm">
                     <FaExternalLinkAlt className="h-5 w-5" />
                 </button>
                 <button onClick={onClose} className="p-2.5 rounded-xl bg-gray-100/80 dark:bg-gray-800/80 hover:bg-red-500 dark:hover:bg-red-500 text-gray-600 dark:text-gray-400 hover:text-white transition-all duration-200 hover:scale-105 backdrop-blur-sm">
@@ -400,14 +400,14 @@ export default function TradePreviewDrawer({
         </div>
 
         {/* Tabs */}
-        <div className="px-6 border-b border-gray-200/30 dark:border-gray-700/30 bg-white/60 dark:bg-gray-900/60 backdrop-blur-xl">
+        <div className="px-6 border-b border-gray-200/30 dark:border-gray-700/30 bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-950/10 dark:to-emerald-900/10 backdrop-blur-xl">
           <div className="flex space-x-1">
               <button 
                   onClick={() => setActiveTab('details')}
                   className={`py-4 px-4 text-sm font-semibold rounded-t-xl transition-all duration-200 ${
                     activeTab === 'details' 
-                      ? 'text-blue-600 dark:text-blue-400 bg-gradient-to-t from-blue-50/80 to-transparent dark:from-blue-900/20 border-b-2 border-blue-500' 
-                      : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50/50 dark:hover:bg-gray-800/30'
+                      ? 'text-emerald-600 dark:text-emerald-400 bg-gradient-to-t from-emerald-50/80 to-transparent dark:from-emerald-950/30 border-b-2 border-emerald-500' 
+                      : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-emerald-100 dark:hover:bg-emerald-900/30'
                   }`}
               >
                   Details
@@ -416,8 +416,8 @@ export default function TradePreviewDrawer({
                   onClick={() => setActiveTab('manage')}
                   className={`py-4 px-4 text-sm font-semibold rounded-t-xl transition-all duration-200 ${
                     activeTab === 'manage' 
-                      ? 'text-blue-600 dark:text-blue-400 bg-gradient-to-t from-blue-50/80 to-transparent dark:from-blue-900/20 border-b-2 border-blue-500' 
-                      : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50/50 dark:hover:bg-gray-800/30'
+                      ? 'text-emerald-600 dark:text-emerald-400 bg-gradient-to-t from-emerald-50/80 to-transparent dark:from-emerald-950/30 border-b-2 border-emerald-500' 
+                      : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-emerald-100 dark:hover:bg-emerald-900/30'
                   }`}
               >
                   Manage
@@ -430,23 +430,23 @@ export default function TradePreviewDrawer({
           {activeTab === 'details' && (
             <>
               {/* P&L Highlight Card */}
-              <div className="bg-gradient-to-br from-blue-50/80 to-green-50/80 dark:from-blue-900/20 dark:to-green-900/20 backdrop-blur-xl p-6 rounded-2xl border border-gray-200/50 dark:border-gray-700/50 shadow-lg">
+              <div className="bg-gradient-to-br from-emerald-50/80 to-emerald-100/80 dark:from-emerald-950/20 dark:to-emerald-900/20 backdrop-blur-xl p-6 rounded-2xl border border-gray-200/50 dark:border-gray-700/50 shadow-lg">
                 <div className="flex justify-between items-center mb-2">
                     <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Net P&L</p>
                     {pnlPercentage !== null && (
                         <span className={`text-sm font-bold px-3 py-1 rounded-lg ${
                           pnlPercentage > 0 
-                            ? 'bg-green-100/80 text-green-700 dark:bg-green-900/30 dark:text-green-300' 
+                            ? 'bg-emerald-100/80 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-300' 
                             : pnlPercentage < 0 
                             ? 'bg-red-100/80 text-red-700 dark:bg-red-900/30 dark:text-red-300' 
-                            : 'bg-gray-100/80 text-gray-700 dark:bg-gray-800/80 dark:text-gray-300'
+                            : 'bg-gradient-to-r from-emerald-100 to-emerald-200 dark:from-emerald-900/30 dark:to-emerald-800/30 text-gray-700 dark:text-gray-300'
                         }`}>
                             {pnlPercentage > 0 ? '+' : ''}{pnlPercentage.toFixed(1)}%
                         </span>
                     )}
                 </div>
                 <span className={`text-3xl font-bold ${
-                  isWin ? 'text-green-600 dark:text-green-400' : 
+                  isWin ? 'text-emerald-600 dark:text-emerald-400' : 
                   isLoss ? 'text-red-600 dark:text-red-400' : 
                   'text-gray-900 dark:text-white'
                 }`}>
@@ -457,8 +457,7 @@ export default function TradePreviewDrawer({
                 </span>
               </div>
 
-              <SectionTitle title="Performance" icon={<FaChartLine className="w-5 h-5 text-blue-600 dark:text-blue-400" />} />
-              <div className="space-y-3">
+              <SectionTitle title="Performance" icon={<FaChartLine className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />} />              <div className="space-y-3">
                 <DetailItem label="P&L (Gross)" value={trade.profitOrLoss !== undefined && trade.profitOrLoss !== null && trade.commission !== undefined && trade.commission !== null ? `$${(trade.profitOrLoss + trade.commission).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}` : '-'} />
                 <DetailItem label="Fees" value={trade.commission !== undefined && trade.commission !== null ? `-$${Math.abs(trade.commission).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}` : '-'} valueClass="text-red-600 dark:text-red-400" />
                 <DetailItem label="Funding" value="$0.00" />
@@ -467,13 +466,13 @@ export default function TradePreviewDrawer({
                 <DetailItem label="Leverage Used" value={<span className="text-gray-400 dark:text-gray-500">- (Future Feature)</span>} />
               </div>
 
-              <SectionTitle title="Entry / Exit" icon={<FaDollarSign className="w-5 h-5 text-green-600 dark:text-green-400" />} />
+              <SectionTitle title="Entry / Exit" icon={<FaDollarSign className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />} />
               <div className="space-y-3">
                 <DetailItem label="Entry Price" value={formatPrice(trade.entryPrice)} valueClass="font-mono" />
                 <DetailItem label="Exit Price" value={formatPrice(trade.exitPrice)} valueClass="font-mono" />
               </div>
 
-              <SectionTitle title="Time" icon={<FaClock className="w-5 h-5 text-purple-600 dark:text-purple-400" />} />
+              <SectionTitle title="Time" icon={<FaClock className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />} />
               <div className="space-y-3">
                 <DetailItem label="Weekday" value={getWeekday(trade.entryDate)} />
                 <DetailItem label="Session" value={trade.session || '-'} />
@@ -490,7 +489,7 @@ export default function TradePreviewDrawer({
               {/* Notes Section in Details Tab */}
               {(trade.notes || trade.setupDetails || trade.mistakesMade || trade.lessonsLearned || (trade.psychologicalTags && trade.psychologicalTags.length > 0)) && (
                 <>
-                  <SectionTitle title="Notes & Analysis" icon={<FaEdit className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />} />
+                  <SectionTitle title="Notes & Analysis" icon={<FaEdit className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />} />
                   <div className="space-y-3">
                     {trade.notes && (
                       <DetailItem
@@ -509,7 +508,7 @@ export default function TradePreviewDrawer({
                         value={
                           <div className="flex flex-wrap justify-end gap-2">
                             {trade.psychologicalTags.map((tag, index) => (
-                              <span key={index} className="px-2 py-1 bg-purple-100/80 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-lg text-xs font-medium">
+                              <span key={index} className="px-2 py-1 bg-emerald-100/80 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 rounded-lg text-xs font-medium">
                                 {tag}
                               </span>
                             ))}
@@ -524,7 +523,7 @@ export default function TradePreviewDrawer({
                         <button
                           onClick={handleAnalyzeNote}
                           disabled={isAnalyzingNote}
-                          className="px-4 py-2 bg-blue-500 text-white rounded-md text-sm font-medium hover:bg-blue-600 disabled:opacity-50"
+                          className="px-4 py-2 bg-emerald-500 text-white rounded-md text-sm font-medium hover:bg-emerald-600 disabled:opacity-50"
                         >
                           {isAnalyzingNote ? 'Analyzing...' : 'Analyze Note'}
                         </button>
@@ -538,7 +537,7 @@ export default function TradePreviewDrawer({
               {trade.imageUrl && (
                 <>
                   <SectionTitle title="Chart Attachment" icon={<FaChartLine className="w-5 h-5 text-teal-600 dark:text-teal-400" />} />
-                  <div className="bg-white/60 dark:bg-gray-800/40 backdrop-blur-sm rounded-2xl border border-gray-200/50 dark:border-gray-700/50 p-4 hover:bg-white/80 dark:hover:bg-gray-800/60 transition-all duration-200">
+                  <div className="bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-950/10 dark:to-emerald-900/10 backdrop-blur-sm rounded-2xl border border-gray-200/50 dark:border-gray-700/50 p-4 hover:from-emerald-100 hover:to-emerald-200 dark:hover:from-emerald-900/20 dark:hover:to-emerald-800/20 transition-all duration-200">
                     <div className="relative w-full rounded-xl overflow-hidden cursor-pointer" onClick={() => window.open(trade.imageUrl, '_blank')}>
                       <img 
                         src={trade.imageUrl} 
@@ -559,7 +558,7 @@ export default function TradePreviewDrawer({
 
           {activeTab === 'manage' && (
             <>
-              <SectionTitle title="Notes & Analysis" icon={<FaEdit className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />} />
+              <SectionTitle title="Notes & Analysis" icon={<FaEdit className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />} />
               <div className="space-y-3">
                 {trade.notes && <DetailItem label="Notes" value={<div className="text-right max-w-xs whitespace-pre-wrap">{trade.notes}</div>} />}
                 {trade.setupDetails && <DetailItem label="Setup Details" value={<div className="text-right max-w-xs whitespace-pre-wrap">{trade.setupDetails}</div>} />}
@@ -570,7 +569,7 @@ export default function TradePreviewDrawer({
               {trade.imageUrl && (
                 <div className="mt-6">
                     <SectionTitle title="Chart Attachment" icon={<FaChartLine className="w-5 h-5 text-teal-600 dark:text-teal-400" />} />
-                    <div className="bg-white/60 dark:bg-gray-800/40 backdrop-blur-sm rounded-2xl border border-gray-200/50 dark:border-gray-700/50 p-4 hover:bg-white/80 dark:hover:bg-gray-800/60 transition-all duration-200">
+                    <div className="bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-950/10 dark:to-emerald-900/10 backdrop-blur-sm rounded-2xl border border-gray-200/50 dark:border-gray-700/50 p-4 hover:from-emerald-100 hover:to-emerald-200 dark:hover:from-emerald-900/20 dark:hover:to-emerald-800/20 transition-all duration-200">
                         <div className="relative w-full rounded-xl overflow-hidden cursor-pointer" onClick={() => window.open(trade.imageUrl, '_blank')}>
                             <img 
                                 src={trade.imageUrl} 
@@ -591,11 +590,11 @@ export default function TradePreviewDrawer({
         </div>
 
         {/* Footer Actions */}
-        <div className="p-6 border-t border-gray-200/30 dark:border-gray-700/30 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl">
+        <div className="p-6 border-t border-gray-200/30 dark:border-gray-700/30 bg-gradient-to-r from-emerald-50 to-white dark:from-emerald-950/20 dark:to-black backdrop-blur-xl">
           <div className="flex space-x-4">
             <button 
               onClick={() => onEdit(trade.id)} 
-              className="flex-1 py-3 px-6 rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-semibold transition-all duration-200 text-sm flex items-center justify-center space-x-2 shadow-lg hover:shadow-xl hover:scale-105"
+              className="flex-1 py-3 px-6 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-semibold transition-all duration-200 text-sm flex items-center justify-center space-x-2 shadow-lg hover:shadow-xl hover:scale-105"
             >
               <FaEdit className="w-4 h-4" />
               <span>Edit Trade</span>

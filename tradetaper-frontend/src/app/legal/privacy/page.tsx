@@ -173,8 +173,8 @@ export default function PrivacyPolicyPage() {
                     <FaDatabase className="text-green-600 dark:text-green-400 text-sm shrink-0" />
                     <span className="text-gray-700 dark:text-gray-300 font-medium">Request complete data export</span>
                   </div>
-                  <div className="flex items-center space-x-3 p-3 bg-blue-50/80 dark:bg-blue-900/20 rounded-lg">
-                    <FaEye className="text-blue-600 dark:text-blue-400 text-sm shrink-0" />
+                  <div className="flex items-center space-x-3 p-3 bg-emerald-50/80 dark:bg-emerald-900/20 rounded-lg">
+                    <FaEye className="text-emerald-600 dark:text-emerald-400 text-sm shrink-0" />
                     <span className="text-gray-700 dark:text-gray-300 font-medium">Access and review your information</span>
                   </div>
                   <div className="flex items-center space-x-3 p-3 bg-red-50/80 dark:bg-red-900/20 rounded-lg">

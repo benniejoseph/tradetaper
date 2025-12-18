@@ -12,6 +12,8 @@ import { ForexFactoryService } from './forex-factory.service';
 import { MarketDataAggregatorService } from './market-data-aggregator.service';
 import { FreeDataSourcesModule } from './free-data-sources/free-data-sources.module';
 import { ICTModule } from './ict/ict.module'; // NEW ICT MODULE
+import { TradingViewAdvancedService } from './tradingview/tradingview-advanced.service';
+import { TradingViewAdvancedController } from './tradingview/tradingview-advanced.controller';
 
 @Module({
   imports: [
@@ -24,7 +26,10 @@ import { ICTModule } from './ict/ict.module'; // NEW ICT MODULE
     FreeDataSourcesModule, // FREE data sources (Yahoo Finance, Binance, CoinGecko, RSS, Reddit)
     ICTModule, // NEW ICT (Inner Circle Trader) strategies
   ],
-  controllers: [MarketIntelligenceController],
+  controllers: [
+    MarketIntelligenceController,
+    TradingViewAdvancedController, // NEW: TradingView Advanced API
+  ],
   providers: [
     MarketIntelligenceService,
     NewsAnalysisService,
@@ -33,7 +38,14 @@ import { ICTModule } from './ict/ict.module'; // NEW ICT MODULE
     AIMarketPredictionService,
     ForexFactoryService,
     MarketDataAggregatorService,
+    TradingViewAdvancedService, // NEW: TradingView Advanced API Service
   ],
-  exports: [MarketIntelligenceService, FreeDataSourcesModule, ICTModule],
+  exports: [
+    MarketIntelligenceService,
+    AIMarketPredictionService, // Export for agent usage
+    FreeDataSourcesModule,
+    ICTModule,
+    TradingViewAdvancedService, // Export for use in other modules
+  ],
 })
 export class MarketIntelligenceModule {}

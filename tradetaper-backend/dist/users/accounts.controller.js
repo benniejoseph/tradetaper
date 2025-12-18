@@ -92,7 +92,7 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], AccountsController.prototype, "remove", null);
 exports.AccountsController = AccountsController = __decorate([
-    (0, common_1.Controller)('accounts'),
+    (0, common_1.Controller)('users/accounts'),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     __metadata("design:paramtypes", [accounts_service_1.AccountsService])
 ], AccountsController);

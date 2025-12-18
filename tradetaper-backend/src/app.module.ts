@@ -16,30 +16,19 @@ import { FilesModule } from './files/files.module';
 import { MarketDataModule } from './market-data/market-data.module';
 import { SimpleWebSocketModule } from './websocket/simple-websocket.module';
 import { NotesModule } from './notes/notes.module';
-import { AppDataSource } from './data-source';
+import { DatabaseModule } from './database/database.module';
 import { PredictiveTradesModule } from './predictive-trades/predictive-trades.module';
+import { MarketIntelligenceModule } from './market-intelligence/market-intelligence.module';
+import { AgentOrchestratorModule } from './agents/agent-orchestrator.module';
+import { AgentsImplementationModule } from './agents/implementations/agents-implementation.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
     }),
-    TypeOrmModule.forRootAsync({
-      useFactory: async () => {
-        try {
-          console.log('🔧 Initializing TypeORM module...');
-          const dataSource = await AppDataSource;
-          console.log('✅ TypeORM module received data source.');
-          return dataSource.options;
-        } catch (error) {
-          console.error(
-            '❌ FATAL: Failed to initialize TypeORM module:',
-            error,
-          );
-          process.exit(1);
-        }
-      },
-    }),
+    AgentOrchestratorModule, // Multi-agent coordination layer
+    DatabaseModule,
     UsersModule,
     AuthModule,
     TradesModule,
@@ -53,8 +42,12 @@ import { PredictiveTradesModule } from './predictive-trades/predictive-trades.mo
     SimpleWebSocketModule,
     NotesModule,
     PredictiveTradesModule,
+    MarketIntelligenceModule,
+    AgentsImplementationModule, // AI Agents (Psychology, Market Analyst, Risk Manager)
   ],
   controllers: [AppController],
   providers: [AppService],
 })
 export class AppModule {}
+
+

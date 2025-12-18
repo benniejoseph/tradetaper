@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Trade } from './entities/trade.entity';
 import { UserResponseDto } from '../users/dto/user-response.dto';
+import * as ExcelJS from 'exceljs';
 
 export interface ExportOptions {
   format: 'csv' | 'json' | 'xlsx';
@@ -13,11 +14,11 @@ export interface ExportOptions {
 export class ExportService {
   private readonly logger = new Logger(ExportService.name);
 
-  exportTrades(
+  async exportTrades(
     trades: Trade[],
     options: ExportOptions,
     userContext: UserResponseDto,
-  ): { data: string | Buffer; filename: string; mimeType: string } {
+  ): Promise<{ data: string | Buffer; filename: string; mimeType: string }> {
     this.logger.log(
       `User ${userContext.id} exporting ${trades.length} trades as ${options.format}`,
     );
@@ -41,7 +42,7 @@ export class ExportService {
         };
       case 'xlsx':
         return {
-          data: this.generateXLSX(trades),
+          data: await this.generateXLSX(trades),
           filename: `${filename}.xlsx`,
           mimeType:
             'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -128,10 +129,67 @@ export class ExportService {
     return JSON.stringify(exportData, null, 2);
   }
 
-  private generateXLSX(trades: Trade[]): Buffer {
-    // For now, return CSV as buffer - in a real implementation you'd use a library like xlsx
-    // This is a placeholder implementation
-    const csvData = this.generateCSV(trades);
-    return Buffer.from(csvData, 'utf-8');
+  private async generateXLSX(trades: Trade[]): Promise<Buffer> {
+    const workbook = new ExcelJS.Workbook();
+    workbook.creator = 'TradeTaper';
+    workbook.created = new Date();
+
+    const worksheet = workbook.addWorksheet('Trades');
+
+    // Define columns with headers and widths
+    worksheet.columns = [
+      { header: 'ID', key: 'id', width: 36 },
+      { header: 'Symbol', key: 'symbol', width: 12 },
+      { header: 'Side', key: 'side', width: 8 },
+      { header: 'Open Time', key: 'openTime', width: 20 },
+      { header: 'Close Time', key: 'closeTime', width: 20 },
+      { header: 'Open Price', key: 'openPrice', width: 12 },
+      { header: 'Close Price', key: 'closePrice', width: 12 },
+      { header: 'Quantity', key: 'quantity', width: 10 },
+      { header: 'Status', key: 'status', width: 10 },
+      { header: 'Profit/Loss', key: 'profitOrLoss', width: 12 },
+      { header: 'Commission', key: 'commission', width: 12 },
+      { header: 'R Multiple', key: 'rMultiple', width: 10 },
+      { header: 'Notes', key: 'notes', width: 30 },
+      { header: 'Tags', key: 'tags', width: 20 },
+      { header: 'Account ID', key: 'accountId', width: 36 },
+      { header: 'Asset Type', key: 'assetType', width: 12 },
+    ];
+
+    // Style header row
+    const headerRow = worksheet.getRow(1);
+    headerRow.font = { bold: true };
+    headerRow.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FF4472C4' },
+    };
+    headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+
+    // Add trade data
+    trades.forEach((trade) => {
+      worksheet.addRow({
+        id: trade.id,
+        symbol: trade.symbol,
+        side: trade.side,
+        openTime: trade.openTime,
+        closeTime: trade.closeTime || '',
+        openPrice: trade.openPrice || '',
+        closePrice: trade.closePrice || '',
+        quantity: trade.quantity || '',
+        status: trade.status,
+        profitOrLoss: trade.profitOrLoss || '',
+        commission: trade.commission || '',
+        rMultiple: trade.rMultiple || '',
+        notes: trade.notes || '',
+        tags: trade.tags?.map((tag) => tag.name).join('; ') || '',
+        accountId: trade.accountId || '',
+        assetType: trade.assetType || '',
+      });
+    });
+
+    // Generate buffer
+    const buffer = await workbook.xlsx.writeBuffer();
+    return Buffer.from(buffer);
   }
 }

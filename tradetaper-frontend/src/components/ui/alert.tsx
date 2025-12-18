@@ -10,8 +10,8 @@ interface AlertProps {
 export const Alert: React.FC<PropsWithChildren<AlertProps>> = ({ variant = 'default', className = '', children }) => {
   const base = 'rounded-md border p-3 flex items-start gap-2';
   const styles: Record<AlertVariant, string> = {
-    default: 'border-blue-200 bg-blue-50 text-blue-800 dark:border-blue-800 dark:bg-blue-900/20 dark:text-blue-200',
-    destructive: 'border-red-200 bg-red-50 text-red-800 dark:border-red-800 dark:bg-red-900/20 dark:text-red-200',
+    default: 'border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-300',
+    destructive: 'border-red-200 bg-red-50 text-red-800 dark:border-red-800 dark:bg-red-950/30 dark:text-red-300',
   };
   return <div className={`${base} ${styles[variant]} ${className}`}>{children}</div>;
 };

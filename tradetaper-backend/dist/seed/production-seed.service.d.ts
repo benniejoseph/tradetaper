@@ -8,7 +8,7 @@ export declare class ProductionSeedService {
     private readonly configService;
     private readonly logger;
     constructor(userRepository: Repository<User>, subscriptionRepository: Repository<Subscription>, configService: ConfigService);
-    seedEssentialData(): Promise<void>;
+    seedEssentialData(): void;
     createDemoUser(): Promise<{
         user: User;
         credentials: {
@@ -16,10 +16,10 @@ export declare class ProductionSeedService {
             password: string;
         };
     }>;
-    validateProductionEnvironment(): Promise<{
+    validateProductionEnvironment(): {
         valid: boolean;
         missingVars: string[];
-    }>;
+    };
     private ensureDefaultSubscriptionPlans;
     private generateSecurePassword;
     performHealthChecks(): Promise<{

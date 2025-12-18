@@ -25,7 +25,7 @@ export default function DebugPage() {
 
     // Test 2: Direct fetch to backend
     try {
-      const response = await fetch('https://tradetaper-backend-481634875325.us-central1.run.app/api/v1/admin/system-health', {
+      const response = await fetch('https://tradetaper-backend-326520250422.us-central1.run.app/api/v1/admin/system-health', {
         headers: {
           'Authorization': 'Bearer mock-admin-token',
           'Content-Type': 'application/json'

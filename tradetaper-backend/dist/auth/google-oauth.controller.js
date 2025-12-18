@@ -34,7 +34,9 @@ let GoogleOAuthController = class GoogleOAuthController {
         const clientId = this.configService.get('GOOGLE_CLIENT_ID');
         const callbackUrl = this.configService.get('GOOGLE_CALLBACK_URL');
         if (!clientId || !callbackUrl) {
-            return res.status(500).json({ error: 'Missing Google OAuth configuration' });
+            return res
+                .status(500)
+                .json({ error: 'Missing Google OAuth configuration' });
         }
         const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
             `client_id=${clientId}&` +

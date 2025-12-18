@@ -95,7 +95,8 @@ let AdminController = class AdminController {
         };
     }
     async clearAllTables(confirm, doubleConfirm) {
-        if (confirm !== 'DELETE_ALL_DATA' || doubleConfirm !== 'I_UNDERSTAND_THIS_WILL_DELETE_EVERYTHING') {
+        if (confirm !== 'DELETE_ALL_DATA' ||
+            doubleConfirm !== 'I_UNDERSTAND_THIS_WILL_DELETE_EVERYTHING') {
             return {
                 error: 'Double safety confirmation required',
                 message: 'Add query parameters: ?confirm=DELETE_ALL_DATA&doubleConfirm=I_UNDERSTAND_THIS_WILL_DELETE_EVERYTHING',

@@ -14,8 +14,8 @@ RUN npm install
 # Copy the rest of the application code
 COPY . .
 
-# Build the NestJS application
-RUN npm run build
+# Build the NestJS application (with skipLibCheck to avoid dependency type errors)
+RUN npx tsc -p tsconfig.build.json --skipLibCheck
 
 # --- Production Stage ---
 FROM node:20-slim AS production

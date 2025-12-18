@@ -13,8 +13,7 @@ import { useTheme } from 'next-themes';
 import DashboardCard from '@/components/dashboard/DashboardCard';
 import { AnimatedCard, MetricCard } from '@/components/ui/AnimatedCard';
 import { AnimatedButton, FloatingActionButton } from '@/components/ui/AnimatedButton';
-import { Trade } from '@/types/enums';
-import { TradeStatus } from '@/types/enums';
+import { Trade, TradeStatus } from '@/types/trade';
 import { format as formatDateFns, subDays, isAfter, parseISO } from 'date-fns';
 import { 
     FaDollarSign, FaChartLine as FaReturnIcon, FaPercentage, 
@@ -37,6 +36,7 @@ import DashboardPnlCalendar from '@/components/dashboard/DashboardPnlCalendar';
 import KillZonesWidget from '@/components/dashboard/KillZonesWidget';
 import PremiumDiscountWidget from '@/components/dashboard/PremiumDiscountWidget';
 import PowerOfThreeWidget from '@/components/dashboard/PowerOfThreeWidget';
+import React from 'react';
 
 // Define time range options and their corresponding days
 const timeRangeDaysMapping: { [key: string]: number } = {
@@ -190,7 +190,7 @@ export default function DashboardPage() {
   const equityCurve = useMemo(() => {
     if (filteredTrades && filteredTrades.length > 0) {
       const curveData = calculateEquityCurveData(filteredTrades);
-      if (curveData.length > 0) {
+      if (curveData && Array.isArray(curveData) && curveData.length > 0) {
         return curveData.map(point => ({...point, date: formatDateFns(new Date(point.date), 'MMM dd')}));
       }
     }
@@ -240,7 +240,7 @@ export default function DashboardPage() {
   const averageRRDisplay = dashboardStats?.averageRR?.toFixed(2) || '0.00';
 
   const winrateChartData = useMemo(() => [
-    { name: 'Winrate', value: parseFloat((dashboardStats?.winRate || 0).toFixed(1)), fill: '#3B82F6' }
+    { name: 'Winrate', value: parseFloat((dashboardStats?.winRate || 0).toFixed(1)), fill: '#10B981' }
   ], [dashboardStats?.winRate]);
 
   const numberOfTradingDays = useMemo(() => {
@@ -264,17 +264,17 @@ export default function DashboardPage() {
 
   if (tradesLoading && trades.length === 0 && !dashboardStats) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-green-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
-        <AnimatedCard variant="glass" hoverEffect="pulse" className="text-center backdrop-blur-xl bg-white/10 dark:bg-gray-800/10">
+      <div className="min-h-screen flex items-center justify-center bg-white dark:bg-black">
+        <AnimatedCard variant="glass" hoverEffect="pulse" className="text-center backdrop-blur-xl bg-white/10 dark:bg-black/10">
           <div className="relative">
-            <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-500/30 border-t-blue-500 mx-auto mb-4"></div>
-            <div className="absolute inset-0 rounded-full bg-blue-500/20 animate-ping"></div>
+            <div className="animate-spin rounded-full h-16 w-16 border-4 border-emerald-500/30 border-t-emerald-500 mx-auto mb-4"></div>
+            <div className="absolute inset-0 rounded-full bg-emerald-500/20 animate-ping"></div>
           </div>
           <p className="text-gray-600 dark:text-gray-300 text-lg font-medium">Loading your trading dashboard...</p>
           <div className="mt-4 flex justify-center space-x-1">
-            <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"></div>
-            <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
-            <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
+            <div className="w-2 h-2 bg-emerald-500 rounded-full animate-bounce"></div>
+            <div className="w-2 h-2 bg-emerald-500 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
+            <div className="w-2 h-2 bg-emerald-500 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
           </div>
         </AnimatedCard>
       </div>
@@ -282,15 +282,15 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50/50 via-white to-green-50/50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+    <div className="min-h-screen bg-white dark:bg-black">
       <div className="space-y-8 relative z-10">
         {/* Welcome Header with Animation */}
         <AnimatedCard 
           variant="glass" 
           hoverEffect="glow" 
-          className="text-center space-y-4 bg-white/5 dark:bg-gray-800/5 backdrop-blur-xl border border-white/10 dark:border-gray-700/10"
+          className="text-center space-y-4 bg-white/5 dark:bg-black/5 backdrop-blur-xl border border-gray-200/10 dark:border-emerald-600/10"
         >
-          <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-blue-600 to-green-600 bg-clip-text text-transparent">
+          <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-emerald-500 to-emerald-600 bg-clip-text text-transparent">
             Welcome back, {user?.firstName || user?.email?.split('@')[0] || 'Trader'}!
           </h1>
           <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
@@ -304,7 +304,7 @@ export default function DashboardPage() {
             variant="gradient" 
             hoverEffect="lift" 
             delay={0.1}
-            className="bg-gradient-to-br from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white overflow-hidden"
+            className="bg-gradient-to-br from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white overflow-hidden"
             onClick={() => { window.location.href = '/journal/new'; }}
           >
             <div className="relative z-10">
@@ -317,7 +317,7 @@ export default function DashboardPage() {
                   <div className="text-lg font-semibold">Log Trade</div>
                 </div>
               </div>
-              <p className="text-blue-100">Record a new trade with all the details</p>
+              <p className="text-emerald-100">Record a new trade with all the details</p>
             </div>
             <div className="absolute -top-4 -right-4 w-24 h-24 bg-white/10 rounded-full blur-xl"></div>
           </AnimatedCard>
@@ -326,7 +326,7 @@ export default function DashboardPage() {
             variant="gradient" 
             hoverEffect="lift" 
             delay={0.2}
-            className="bg-gradient-to-br from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white overflow-hidden"
+            className="bg-gradient-to-br from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white overflow-hidden"
             onClick={() => window.location.href = '/trades'}
           >
             <div className="relative z-10">
@@ -339,7 +339,7 @@ export default function DashboardPage() {
                   <div className="text-lg font-semibold">Journal</div>
                 </div>
               </div>
-              <p className="text-green-100">Review your complete trading journal</p>
+              <p className="text-emerald-100">Review your complete trading journal</p>
             </div>
             <div className="absolute -top-4 -right-4 w-24 h-24 bg-white/10 rounded-full blur-xl"></div>
           </AnimatedCard>
@@ -348,7 +348,7 @@ export default function DashboardPage() {
             variant="gradient" 
             hoverEffect="lift" 
             delay={0.3}
-            className="bg-gradient-to-br from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white overflow-hidden"
+            className="bg-gradient-to-br from-emerald-700 to-emerald-800 hover:from-emerald-800 hover:to-emerald-900 text-white overflow-hidden"
             onClick={() => window.location.href = '/analytics'}
           >
             <div className="relative z-10">
@@ -361,7 +361,7 @@ export default function DashboardPage() {
                   <div className="text-lg font-semibold">Analytics</div>
                 </div>
               </div>
-              <p className="text-purple-100">Advanced performance insights</p>
+              <p className="text-emerald-100">Advanced performance insights</p>
             </div>
             <div className="absolute -top-4 -right-4 w-24 h-24 bg-white/10 rounded-full blur-xl"></div>
           </AnimatedCard>
@@ -369,19 +369,6 @@ export default function DashboardPage() {
 
         {/* ICT Widgets Section */}
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center space-x-2">
-              <FaRocket className="text-blue-600" />
-              <span>ICT Market Intelligence</span>
-            </h2>
-            <Link href="/market-intelligence">
-              <AnimatedButton variant="secondary" size="sm">
-                <FaArrowUp className="mr-2" />
-                View Full Analysis
-              </AnimatedButton>
-            </Link>
-          </div>
-          
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <KillZonesWidget />
             <PremiumDiscountWidget />
@@ -412,7 +399,7 @@ export default function DashboardPage() {
                     ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' 
                     : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
                 }`}>
-                  {periodMetrics.balancePercentageChange === Infinity ? '∞' : periodMetrics.balancePercentageChange.toFixed(2)}%
+                  {periodMetrics.balancePercentageChange === Infinity ? '∞' : (periodMetrics.balancePercentageChange || 0).toFixed(2)}%
                 </span>
               </div>
               <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
@@ -438,10 +425,10 @@ export default function DashboardPage() {
                       backdropFilter: 'blur(12px)'
                     }} 
                     labelStyle={{color: rechartsTextFill, fontWeight: 'bold'}}
-                    itemStyle={{color: '#3B82F6'}}
+                    itemStyle={{color: '#10B981'}}
                     formatter={(value: number, name: string) => [`$${value.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}`, name]}
                   />
-                  <Line type="monotone" dataKey="value" stroke="#3B82F6" strokeWidth={3} dot={false} />
+                  <Line type="monotone" dataKey="value" stroke="#10B981" strokeWidth={3} dot={false} />
                   <Area type="monotone" dataKey="value" stroke="none" fillOpacity={1} fill="url(#balanceGradient)" />
                     </LineChart>
                     </ResponsiveContainer>
@@ -467,9 +454,9 @@ export default function DashboardPage() {
             </div>
             
             <div className="space-y-2">
-              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 overflow-hidden">
+              <div className="w-full bg-gradient-to-r from-emerald-100 to-emerald-200 dark:bg-gradient-to-r dark:from-emerald-950/30 dark:to-emerald-900/30 rounded-full h-3 overflow-hidden">
                 <div 
-                  className="bg-gradient-to-r from-blue-500 to-green-500 h-3 rounded-full transition-all duration-500 ease-out"
+                  className="bg-gradient-to-r from-emerald-500 to-emerald-600 h-3 rounded-full transition-all duration-500 ease-out"
                   style={{ width: `${Math.min(personalTargetProgress, 100)}%` }}
                 ></div>
               </div>
@@ -487,7 +474,7 @@ export default function DashboardPage() {
               variant="gradient"
               size="lg"
               fullWidth
-              className="bg-gradient-to-r from-blue-500 to-green-500 hover:from-blue-600 hover:to-green-600"
+              className="bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700"
               ripple
               glow
             >
@@ -520,7 +507,7 @@ export default function DashboardPage() {
                   ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' 
                   : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
               }`}>
-                {periodMetrics.roiPercentage === Infinity ? '∞' : periodMetrics.roiPercentage.toFixed(2)}%
+                {periodMetrics.roiPercentage === Infinity ? '∞' : (periodMetrics.roiPercentage || 0).toFixed(2)}%
               </span>
             </div>
             
@@ -545,8 +532,8 @@ export default function DashboardPage() {
               ))}
             </div>
             
-            <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-3">
-              <p className="text-sm text-blue-700 dark:text-blue-300 flex items-center">
+            <div className="bg-emerald-50 dark:bg-emerald-900/20 rounded-xl p-3">
+              <p className="text-sm text-emerald-700 dark:text-emerald-300 flex items-center">
                 <FaInfoCircle className="mr-2 flex-shrink-0" />
                 Profit factor: {dashboardStats?.profitFactor?.toFixed(2) || 'N/A'}
                 {dashboardStats?.profitFactor && (
@@ -609,7 +596,7 @@ export default function DashboardPage() {
                 <Area 
                   type="monotone" 
                   dataKey="value" 
-                  stroke="#3B82F6" 
+                  stroke="#10B981" 
                   fill="url(#accountBalanceFillChart)" 
                   strokeWidth={3} 
                   activeDot={{ r: 6, strokeWidth: 2, stroke: '#3B82F6', fill: '#3B82F6' }} 
@@ -672,9 +659,9 @@ export default function DashboardPage() {
                 <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Risk-Reward Ratio</span>
                 <span className="text-sm font-bold text-gray-900 dark:text-white">{averageRRDisplay}</span>
               </div>
-              <div className="relative h-3 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+              <div className="relative h-3 bg-gradient-to-r from-emerald-100 to-emerald-200 dark:bg-gradient-to-r dark:from-emerald-950/30 dark:to-emerald-900/30 rounded-full overflow-hidden">
                 <div 
-                  className="absolute top-0 left-0 h-3 bg-gradient-to-r from-blue-500 to-green-500 rounded-full transition-all duration-500"
+                  className="absolute top-0 left-0 h-3 bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-full transition-all duration-500"
                   style={{ width: `${Math.min(( (dashboardStats?.averageRR || 0) / 5) * 100, 100)}%`}}
                 ></div>
               </div>
@@ -704,7 +691,7 @@ export default function DashboardPage() {
               { label: 'P&L to Fees Ratio', value: (dashboardStats?.totalNetPnl && dashboardStats?.totalCommissions && dashboardStats.totalCommissions !== 0 ? (dashboardStats.totalNetPnl / dashboardStats.totalCommissions) : 0), color: (dashboardStats?.totalNetPnl && dashboardStats?.totalCommissions && (dashboardStats.totalNetPnl / dashboardStats.totalCommissions) < 1 && dashboardStats.totalCommissions !==0) ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400', isRatio: true },
               { label: 'Avg Fees per Day', value: avgFeesPerDay, color: 'text-gray-900 dark:text-white', isRatio: false },
             ].map((item, index) => (
-              <div key={index} className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-800/50 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+              <div key={index} className="flex justify-between items-center p-3 bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-950/20 dark:to-emerald-900/20 rounded-xl hover:from-emerald-100 hover:to-emerald-200 dark:hover:from-emerald-900/30 dark:hover:to-emerald-800/30 transition-colors">
                 <span className="text-sm font-medium text-gray-600 dark:text-gray-400">{item.label}</span>
                 <span className={`text-sm font-bold ${item.color}`}>
                   {item.isRatio ? (typeof item.value === 'number' ? item.value.toFixed(2) : '0.00') : <CurrencyAmount amount={item.value} className="inline" />}
@@ -730,9 +717,9 @@ export default function DashboardPage() {
               { label: 'Winning Trades', value: dashboardStats?.winningTrades || 0, color: 'text-green-600 dark:text-green-400' },
               { label: 'Losing Trades', value: dashboardStats?.losingTrades || 0, color: 'text-red-600 dark:text-red-400' },
               { label: 'Breakeven Trades', value: dashboardStats?.breakevenTrades || 0, color: 'text-gray-900 dark:text-white' },
-              { label: 'Avg Trades per Day', value: avgTradesPerDay.toFixed(2), color: 'text-gray-900 dark:text-white' },
+              { label: 'Avg Trades per Day', value: (avgTradesPerDay || 0).toFixed(2), color: 'text-gray-900 dark:text-white' },
             ].map((item, index) => (
-              <div key={index} className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-800/50 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+              <div key={index} className="flex justify-between items-center p-3 bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-950/20 dark:to-emerald-900/20 rounded-xl hover:from-emerald-100 hover:to-emerald-200 dark:hover:from-emerald-900/30 dark:hover:to-emerald-800/30 transition-colors">
                 <span className="text-sm font-medium text-gray-600 dark:text-gray-400">{item.label}</span>
                 <span className={`text-sm font-bold ${item.color}`}>{item.value}</span>
               </div>
@@ -750,7 +737,7 @@ export default function DashboardPage() {
           onTimeRangeChange={setTimeRange}
           showInfoIcon={true}
         >
-          <TopTradesByReturn trades={filteredTrades} topN={5} />
+          <TopTradesByReturn trades={filteredTrades || []} topN={5} />
         </DashboardCard>
 
         {/* Calendar */}
@@ -761,7 +748,7 @@ export default function DashboardPage() {
           showTimeRangeSelector={false}
           showInfoIcon={true}
         >
-          <DashboardPnlCalendar trades={filteredTrades} />
+          <DashboardPnlCalendar trades={filteredTrades || []} />
         </DashboardCard>
         
         {/* Trading Activity Heatmap */}
@@ -774,7 +761,7 @@ export default function DashboardPage() {
           onTimeRangeChange={setTimeRange}
         >
           <TradesCalendarHeatmap 
-            trades={filteredTrades} 
+            trades={filteredTrades || []} 
             onDateClick={handleHeatmapDateClick}
           />
         </DashboardCard>
@@ -782,9 +769,9 @@ export default function DashboardPage() {
 
       {/* No Trades Message */}
       {(!filteredTrades || filteredTrades.length === 0) && !tradesLoading && (
-        <div className="text-center py-16 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 shadow-lg">
+        <div className="text-center py-16 bg-gradient-to-br from-emerald-50/80 to-white/80 dark:from-emerald-950/20 dark:to-black/80 backdrop-blur-xl rounded-2xl border border-emerald-200/50 dark:border-emerald-700/50 shadow-lg">
           <div className="max-w-md mx-auto space-y-4">
-            <div className="w-20 h-20 bg-gradient-to-r from-blue-500 to-green-500 rounded-full flex items-center justify-center mx-auto">
+            <div className="w-20 h-20 bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-full flex items-center justify-center mx-auto">
               <FaChartLine className="w-10 h-10 text-white" />
             </div>
             <h3 className="text-xl font-bold text-gray-900 dark:text-white">
@@ -799,7 +786,7 @@ export default function DashboardPage() {
               size="lg"
               icon={<FaPlus className="w-4 h-4" />}
               iconPosition="left"
-              className="bg-gradient-to-r from-blue-500 to-green-500 hover:from-blue-600 hover:to-green-600"
+              className="bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700"
               ripple
               glow
             >

@@ -11,31 +11,19 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 var WebhooksController_1;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.WebhooksController = void 0;
 const common_1 = require("@nestjs/common");
-const config_1 = require("@nestjs/config");
-const stripe_1 = __importDefault(require("stripe"));
 const subscription_service_1 = require("./services/subscription.service");
+const stripe_service_1 = require("./services/stripe.service");
 let WebhooksController = WebhooksController_1 = class WebhooksController {
     subscriptionService;
-    configService;
+    stripeService;
     logger = new common_1.Logger(WebhooksController_1.name);
-    stripe;
-    constructor(subscriptionService, configService) {
+    constructor(subscriptionService, stripeService) {
         this.subscriptionService = subscriptionService;
-        this.configService = configService;
-        const stripeSecretKey = this.configService.get('STRIPE_SECRET_KEY');
-        if (!stripeSecretKey) {
-            throw new Error('STRIPE_SECRET_KEY is required');
-        }
-        this.stripe = new stripe_1.default(stripeSecretKey, {
-            apiVersion: '2025-06-30.basil',
-        });
+        this.stripeService = stripeService;
     }
     async handleStripeWebhook(request, signature) {
         let event;
@@ -43,11 +31,7 @@ let WebhooksController = WebhooksController_1 = class WebhooksController {
             if (!request.rawBody) {
                 throw new Error('No raw body found in request');
             }
-            const webhookSecret = this.configService.get('STRIPE_WEBHOOK_SECRET');
-            if (!webhookSecret) {
-                throw new Error('STRIPE_WEBHOOK_SECRET is required');
-            }
-            event = this.stripe.webhooks.constructEvent(request.rawBody, signature, webhookSecret);
+            event = this.stripeService.constructWebhookEvent(request.rawBody, signature);
         }
         catch (error) {
             this.logger.error(`Webhook signature verification failed: ${error.message}`);
@@ -77,6 +61,6 @@ __decorate([
 exports.WebhooksController = WebhooksController = WebhooksController_1 = __decorate([
     (0, common_1.Controller)('webhooks'),
     __metadata("design:paramtypes", [subscription_service_1.SubscriptionService,
-        config_1.ConfigService])
+        stripe_service_1.StripeService])
 ], WebhooksController);
 //# sourceMappingURL=webhooks.controller.js.map

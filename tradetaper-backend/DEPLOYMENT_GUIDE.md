@@ -211,13 +211,13 @@ rm env-vars.yaml
 
 ```bash
 # Test health endpoint
-curl https://tradetaper-backend-481634875325.us-central1.run.app/health
+curl https://tradetaper-backend-326520250422.us-central1.run.app/health
 
 # Expected response:
 # {"status":"ok","timestamp":"...","uptime":...,"memory":{...}}
 
 # Test deployment endpoint
-curl https://tradetaper-backend-481634875325.us-central1.run.app/api/v1/test-deployment
+curl https://tradetaper-backend-326520250422.us-central1.run.app/api/v1/test-deployment
 
 # Expected response:
 # {"message":"TradeTaper Backend deployed successfully!","timestamp":"...","version":"1.0.0","environment":"production","features":["User Management","Trade Tracking","Admin Dashboard","Database Integration"]}
@@ -254,7 +254,7 @@ gcloud run services describe tradetaper-backend \
 
 After successful deployment, the service should have:
 
-- **URL**: `https://tradetaper-backend-481634875325.us-central1.run.app`
+- **URL**: `https://tradetaper-backend-326520250422.us-central1.run.app`
 - **Memory**: 2Gi
 - **CPU**: 2 cores
 - **Timeout**: 900 seconds

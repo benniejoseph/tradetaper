@@ -17,7 +17,7 @@ gcloud run deploy tradetaper-backend --source . --platform managed --region us-c
 gcloud run services replace env-vars.yaml --region us-central1
 
 # 5. Verify deployment
-curl https://tradetaper-backend-481634875325.us-central1.run.app/health
+curl https://tradetaper-backend-326520250422.us-central1.run.app/health
 ```
 
 ## 🔑 Critical Environment Variables (Must Have All 12)
@@ -45,7 +45,7 @@ curl https://tradetaper-backend-481634875325.us-central1.run.app/health
 
 ## 🎯 Expected Results
 
-- **Service URL**: `https://tradetaper-backend-481634875325.us-central1.run.app`
+- **Service URL**: `https://tradetaper-backend-326520250422.us-central1.run.app`
 - **Health Check**: `{"status":"ok",...}`
 - **Test Endpoint**: `/api/v1/test-deployment` should return success message
 - **All Environment Variables**: Must show all 12 when verified

@@ -46,6 +46,7 @@ exports.AIService = void 0;
 const common_1 = require("@nestjs/common");
 const config_1 = require("@nestjs/config");
 const fs = __importStar(require("fs"));
+const os = __importStar(require("os"));
 const path = __importStar(require("path"));
 const uuid_1 = require("uuid");
 let AIService = class AIService {
@@ -54,8 +55,13 @@ let AIService = class AIService {
     tempDir;
     constructor(configService) {
         this.configService = configService;
-        this.geminiApiKey = this.configService.get('GEMINI_API_KEY') || 'AIzaSyBe259Ouem6qcI6SYOAzAcFE-A4ollIRqc';
-        this.tempDir = path.join(process.cwd(), 'temp');
+        this.geminiApiKey =
+            this.configService.get('GEMINI_API_KEY') ||
+                'AIzaSyBe259Ouem6qcI6SYOAzAcFE-A4ollIRqc';
+        const isProduction = process.env.NODE_ENV === 'production';
+        this.tempDir = isProduction
+            ? os.tmpdir()
+            : path.join(process.cwd(), 'temp');
         if (!fs.existsSync(this.tempDir)) {
             fs.mkdirSync(this.tempDir, { recursive: true });
         }
@@ -72,16 +78,16 @@ let AIService = class AIService {
                         {
                             parts: [
                                 {
-                                    text: "Please transcribe the following audio to text. Provide only the transcribed text without any additional formatting or explanations."
+                                    text: 'Please transcribe the following audio to text. Provide only the transcribed text without any additional formatting or explanations.',
                                 },
                                 {
                                     inline_data: {
                                         mime_type: this.getMimeType(originalName),
-                                        data: audioBase64
-                                    }
-                                }
-                            ]
-                        }
+                                        data: audioBase64,
+                                    },
+                                },
+                            ],
+                        },
                     ],
                     generationConfig: {
                         temperature: 0.1,
@@ -91,22 +97,22 @@ let AIService = class AIService {
                     },
                     safetySettings: [
                         {
-                            category: "HARM_CATEGORY_HARASSMENT",
-                            threshold: "BLOCK_MEDIUM_AND_ABOVE"
+                            category: 'HARM_CATEGORY_HARASSMENT',
+                            threshold: 'BLOCK_MEDIUM_AND_ABOVE',
                         },
                         {
-                            category: "HARM_CATEGORY_HATE_SPEECH",
-                            threshold: "BLOCK_MEDIUM_AND_ABOVE"
+                            category: 'HARM_CATEGORY_HATE_SPEECH',
+                            threshold: 'BLOCK_MEDIUM_AND_ABOVE',
                         },
                         {
-                            category: "HARM_CATEGORY_SEXUALLY_EXPLICIT",
-                            threshold: "BLOCK_MEDIUM_AND_ABOVE"
+                            category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
+                            threshold: 'BLOCK_MEDIUM_AND_ABOVE',
                         },
                         {
-                            category: "HARM_CATEGORY_DANGEROUS_CONTENT",
-                            threshold: "BLOCK_MEDIUM_AND_ABOVE"
-                        }
-                    ]
+                            category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
+                            threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+                        },
+                    ],
                 };
                 const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${this.geminiApiKey}`, {
                     method: 'POST',
@@ -165,17 +171,17 @@ let AIService = class AIService {
                     {
                         parts: [
                             {
-                                text: prompt
-                            }
-                        ]
-                    }
+                                text: prompt,
+                            },
+                        ],
+                    },
                 ],
                 generationConfig: {
                     temperature: 0.3,
                     topK: 32,
                     topP: 1,
                     maxOutputTokens: 4096,
-                }
+                },
             };
             const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${this.geminiApiKey}`, {
                 method: 'POST',
@@ -196,8 +202,8 @@ let AIService = class AIService {
                 enhancedText,
                 suggestions: [
                     `Enhanced using ${task} optimization`,
-                    'AI-powered text improvement'
-                ]
+                    'AI-powered text improvement',
+                ],
             };
         }
         catch (error) {
@@ -225,17 +231,17 @@ Please respond in JSON format:
                     {
                         parts: [
                             {
-                                text: prompt
-                            }
-                        ]
-                    }
+                                text: prompt,
+                            },
+                        ],
+                    },
                 ],
                 generationConfig: {
                     temperature: 0.4,
                     topK: 32,
                     topP: 1,
                     maxOutputTokens: 1024,
-                }
+                },
             };
             const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${this.geminiApiKey}`, {
                 method: 'POST',
@@ -265,7 +271,11 @@ Please respond in JSON format:
             return {
                 tags: ['general', 'note', 'important'],
                 title: content.substring(0, 50) + (content.length > 50 ? '...' : ''),
-                relatedTopics: ['Related Research', 'Follow Up Tasks', 'Additional Reading']
+                relatedTopics: [
+                    'Related Research',
+                    'Follow Up Tasks',
+                    'Additional Reading',
+                ],
             };
         }
         catch (error) {
@@ -273,7 +283,7 @@ Please respond in JSON format:
             return {
                 tags: ['note'],
                 title: 'Untitled Note',
-                relatedTopics: ['Research', 'Tasks']
+                relatedTopics: ['Research', 'Tasks'],
             };
         }
     }
@@ -296,8 +306,21 @@ Please respond in JSON format:
             confidence += 0.1;
         if (transcript.length > 50)
             confidence += 0.05;
-        const commonWords = ['the', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by'];
-        const hasCommonWords = commonWords.some(word => transcript.toLowerCase().includes(word));
+        const commonWords = [
+            'the',
+            'and',
+            'or',
+            'but',
+            'in',
+            'on',
+            'at',
+            'to',
+            'for',
+            'of',
+            'with',
+            'by',
+        ];
+        const hasCommonWords = commonWords.some((word) => transcript.toLowerCase().includes(word));
         if (hasCommonWords)
             confidence += 0.05;
         return Math.min(confidence, 1.0);

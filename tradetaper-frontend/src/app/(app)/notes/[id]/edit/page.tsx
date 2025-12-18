@@ -244,7 +244,7 @@ const NoteEditPage: React.FC = () => {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <FaSpinner className="animate-spin text-4xl text-blue-500 mb-4 mx-auto" />
+          <FaSpinner className="animate-spin text-4xl text-emerald-500 mb-4 mx-auto" />
           <p className="text-lg font-medium">Loading note editor...</p>
         </div>
       </div>
@@ -267,7 +267,7 @@ const NoteEditPage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50 dark:from-gray-900 dark:via-blue-900 dark:to-purple-900 p-4">
+    <div className="min-h-screen bg-white dark:bg-black p-4">
       <div className="max-w-4xl mx-auto">
         <AnimatedCard className="backdrop-blur-sm bg-white/70 dark:bg-gray-800/70 border border-white/20 shadow-xl">
           <div className="p-8">
@@ -305,7 +305,7 @@ const NoteEditPage: React.FC = () => {
                 <AnimatedButton
                   onClick={handleSave}
                   disabled={saving}
-                  className="bg-gradient-to-r from-blue-500 to-purple-600 text-white hover:from-blue-600 hover:to-purple-700"
+                  className="bg-gradient-to-r from-emerald-500 to-emerald-600 text-white hover:from-emerald-600 hover:to-emerald-700"
                 >
                   {saving ? <FaSpinner className="animate-spin" /> : <FaSave />}
                   {saving ? 'Saving...' : 'Save'}
@@ -328,12 +328,12 @@ const NoteEditPage: React.FC = () => {
               {tags.map((tag, index) => (
                 <span
                   key={index}
-                  className="inline-flex items-center gap-1 px-3 py-1 text-sm bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 rounded-full"
+                  className="inline-flex items-center gap-1 px-3 py-1 text-sm bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-200 rounded-full"
                 >
                   #{tag}
                   <button
                     onClick={() => removeTag(tag)}
-                    className="ml-1 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200"
+                    className="ml-1 text-emerald-600 dark:text-emerald-400 hover:text-emerald-800 dark:hover:text-emerald-200"
                   >
                     <FaTimes className="w-3 h-3" />
                   </button>
@@ -359,13 +359,13 @@ const NoteEditPage: React.FC = () => {
                     else setShowTagInput(false);
                   }}
                   placeholder="Add tag..."
-                  className="px-3 py-1 text-sm bg-transparent border border-gray-300 dark:border-gray-600 rounded-full outline-none focus:ring-2 focus:ring-blue-500"
+                  className="px-3 py-1 text-sm bg-transparent border border-emerald-300 dark:border-emerald-600/30 rounded-full outline-none focus:ring-2 focus:ring-emerald-500"
                   autoFocus
                 />
               ) : (
                 <button
                   onClick={() => setShowTagInput(true)}
-                  className="inline-flex items-center gap-1 px-3 py-1 text-sm text-gray-500 dark:text-gray-400 border border-dashed border-gray-300 dark:border-gray-600 rounded-full hover:border-gray-400 dark:hover:border-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+                  className="inline-flex items-center gap-1 px-3 py-1 text-sm text-emerald-600 dark:text-emerald-400 border border-dashed border-emerald-300 dark:border-emerald-600/30 rounded-full hover:border-emerald-500 hover:text-emerald-700 dark:hover:text-emerald-300 bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-950/10 dark:to-emerald-900/10 transition-all"
                 >
                   <FaTags className="w-3 h-3" />
                   Add tag
@@ -377,7 +377,7 @@ const NoteEditPage: React.FC = () => {
             <div className="flex flex-wrap gap-2 mb-6 p-4 bg-gray-50/50 dark:bg-gray-800/50 rounded-lg">
               <button
                 onClick={() => addBlock('image')}
-                className="flex items-center gap-2 px-3 py-2 text-sm bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-lg hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors"
+                className="flex items-center gap-2 px-3 py-2 text-sm bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 rounded-lg hover:bg-emerald-200 dark:hover:bg-emerald-900/50 transition-colors"
               >
                 <FaImage className="w-4 h-4" />
                 Image
@@ -426,7 +426,7 @@ const NoteEditPage: React.FC = () => {
             <div className="mt-8">
               <button
                 onClick={handleBlockMenuClick}
-                className="w-full border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 text-gray-500 dark:text-gray-400 hover:border-gray-400 dark:hover:border-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-all duration-200 flex items-center justify-center gap-2 group"
+                className="w-full border-2 border-dashed border-emerald-300 dark:border-emerald-600/30 rounded-lg p-6 text-emerald-600 dark:text-emerald-400 hover:border-emerald-500 hover:text-emerald-700 dark:hover:text-emerald-300 transition-all duration-200 flex items-center justify-center gap-2 group bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-950/10 dark:to-emerald-900/10"
               >
                 <FaPlus className="w-4 h-4 group-hover:scale-110 transition-transform" />
                 Add a block
@@ -449,7 +449,7 @@ const NoteEditPage: React.FC = () => {
             onClick={() => setShowBlockMenu(false)}
           />
           <div 
-            className="fixed z-50 bg-white dark:bg-gray-800 rounded-lg shadow-2xl border border-gray-200 dark:border-gray-700 max-h-96 overflow-y-auto"
+            className="fixed z-50 bg-gradient-to-br from-white to-emerald-50 dark:from-black dark:to-emerald-950/20 rounded-lg shadow-2xl border border-emerald-200 dark:border-emerald-700/30 max-h-96 overflow-y-auto backdrop-blur-xl"
             style={{
               top: blockMenuPosition.top,
               left: blockMenuPosition.left,
@@ -458,7 +458,7 @@ const NoteEditPage: React.FC = () => {
           >
             <div className="p-2">
               <BlockMenuItem
-                icon={<FaHeading className="text-blue-500" />}
+                icon={<FaHeading className="text-emerald-500" />}
                 label="Heading"
                 description="Big section heading"
                 onClick={() => addBlock('heading')}
@@ -504,7 +504,7 @@ const NoteEditPage: React.FC = () => {
                 onClick={() => addBlock('code')}
               />
               <BlockMenuItem
-                icon={<FaImage className="text-blue-500" />}
+                icon={<FaImage className="text-emerald-500" />}
                 label="Image"
                 description="Upload or embed with a link"
                 onClick={() => addBlock('image')}
@@ -528,7 +528,7 @@ const NoteEditPage: React.FC = () => {
                 onClick={() => addBlock('table')}
               />
               <BlockMenuItem
-                icon={<FaInfoCircle className="text-blue-500" />}
+                icon={<FaInfoCircle className="text-emerald-500" />}
                 label="Callout"
                 description="Make writing stand out"
                 onClick={() => addBlock('callout')}
@@ -620,7 +620,7 @@ const BlockEditor: React.FC<{
 
     case 'quote':
       return (
-        <div className="group relative border-l-4 border-gray-300 dark:border-gray-600 pl-4">
+        <div className="group relative border-l-4 border-emerald-300 dark:border-emerald-600/30 pl-4">
           <textarea
             value={block.content?.text || ''}
             onChange={(e) => handleContentChange('text', e.target.value)}
@@ -717,7 +717,7 @@ const BlockEditor: React.FC<{
 
     case 'image':
       return (
-        <div className="group relative border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6">
+        <div className="group relative border-2 border-dashed border-emerald-300 dark:border-emerald-600/30 rounded-lg p-6">
           <div className="text-center">
             <FaImage className="mx-auto h-12 w-12 text-gray-400" />
             <div className="mt-4 space-y-3">
@@ -744,14 +744,14 @@ const BlockEditor: React.FC<{
                   htmlFor={`file-upload-${block.id}`}
                   className={`flex items-center justify-center gap-2 w-full px-4 py-3 border-2 border-dashed rounded-lg cursor-pointer transition-all ${
                     uploading 
-                      ? 'border-blue-300 bg-blue-50 dark:bg-blue-900/20 cursor-not-allowed'
-                      : 'border-gray-300 dark:border-gray-600 hover:border-blue-400 dark:hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20'
+                      ? 'border-emerald-300 bg-emerald-50 dark:bg-emerald-900/20 cursor-not-allowed'
+                      : 'border-emerald-300 dark:border-emerald-600/30 hover:border-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/20'
                   }`}
                 >
                   {uploading ? (
                     <>
-                      <FaSpinner className="animate-spin text-blue-500" />
-                      <span className="text-blue-600 dark:text-blue-400">Uploading...</span>
+                      <FaSpinner className="animate-spin text-emerald-500" />
+                      <span className="text-emerald-600 dark:text-emerald-400">Uploading...</span>
                     </>
                   ) : (
                     <>
@@ -772,7 +772,7 @@ const BlockEditor: React.FC<{
                   value={block.content?.url || ''}
                   onChange={(e) => handleContentChange('url', e.target.value)}
                   placeholder="Or paste image URL..."
-                  className="w-full pl-10 bg-transparent border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full pl-10 bg-transparent border border-emerald-300 dark:border-emerald-600/30 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
 
@@ -781,14 +781,14 @@ const BlockEditor: React.FC<{
                 value={block.content?.caption || ''}
                 onChange={(e) => handleContentChange('caption', e.target.value)}
                 placeholder="Caption (optional)"
-                className="w-full bg-transparent border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full bg-transparent border border-emerald-300 dark:border-emerald-600/30 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500"
               />
               <input
                 type="text"
                 value={block.content?.alt || ''}
                 onChange={(e) => handleContentChange('alt', e.target.value)}
                 placeholder="Alt text (optional)"
-                className="w-full bg-transparent border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full bg-transparent border border-emerald-300 dark:border-emerald-600/30 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500"
               />
             </div>
             {block.content?.url && (
@@ -814,7 +814,7 @@ const BlockEditor: React.FC<{
 
     case 'video':
       return (
-        <div className="group relative border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6">
+        <div className="group relative border-2 border-dashed border-emerald-300 dark:border-emerald-600/30 rounded-lg p-6">
           <div className="text-center">
             <FaVideo className="mx-auto h-12 w-12 text-gray-400" />
             <div className="mt-4 space-y-2">
@@ -823,14 +823,14 @@ const BlockEditor: React.FC<{
                 value={block.content?.url || ''}
                 onChange={(e) => handleContentChange('url', e.target.value)}
                 placeholder="Video URL (YouTube, Vimeo, etc.)"
-                className="w-full bg-transparent border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full bg-transparent border border-emerald-300 dark:border-emerald-600/30 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500"
               />
               <input
                 type="text"
                 value={block.content?.caption || ''}
                 onChange={(e) => handleContentChange('caption', e.target.value)}
                 placeholder="Caption (optional)"
-                className="w-full bg-transparent border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full bg-transparent border border-emerald-300 dark:border-emerald-600/30 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500"
               />
             </div>
             {block.content?.url && (
@@ -871,7 +871,7 @@ const BlockEditor: React.FC<{
 
     case 'embed':
       return (
-        <div className="group relative border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6">
+        <div className="group relative border-2 border-dashed border-emerald-300 dark:border-emerald-600/30 rounded-lg p-6">
           <div className="text-center">
             <FaLink className="mx-auto h-12 w-12 text-gray-400" />
             <div className="mt-4 space-y-2">
@@ -880,20 +880,20 @@ const BlockEditor: React.FC<{
                 value={block.content?.url || ''}
                 onChange={(e) => handleContentChange('url', e.target.value)}
                 placeholder="URL to embed"
-                className="w-full bg-transparent border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full bg-transparent border border-emerald-300 dark:border-emerald-600/30 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500"
               />
               <input
                 type="text"
                 value={block.content?.title || ''}
                 onChange={(e) => handleContentChange('title', e.target.value)}
                 placeholder="Title (optional)"
-                className="w-full bg-transparent border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full bg-transparent border border-emerald-300 dark:border-emerald-600/30 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500"
               />
               <textarea
                 value={block.content?.description || ''}
                 onChange={(e) => handleContentChange('description', e.target.value)}
                 placeholder="Description (optional)"
-                className="w-full bg-transparent border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                className="w-full bg-transparent border border-emerald-300 dark:border-emerald-600/30 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500 resize-none"
                 rows={2}
               />
             </div>
@@ -903,7 +903,7 @@ const BlockEditor: React.FC<{
                   {block.content.title && (
                     <h4 className="font-medium text-gray-900 dark:text-white">{block.content.title}</h4>
                   )}
-                  <p className="text-sm text-blue-500 break-all">{block.content.url}</p>
+                  <p className="text-sm text-emerald-500 break-all">{block.content.url}</p>
                   {block.content.description && (
                     <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{block.content.description}</p>
                   )}
@@ -945,7 +945,7 @@ const BlockEditor: React.FC<{
                         handleContentChange('headers', newHeaders);
                         handleContentChange('rows', newRows);
                       }}
-                      className="text-blue-500 hover:text-blue-700"
+                      className="text-emerald-500 hover:text-emerald-700"
                     >
                       <FaPlus size={12} />
                     </button>
@@ -991,7 +991,7 @@ const BlockEditor: React.FC<{
                         const newRows = [...(block.content?.rows || []), newRow];
                         handleContentChange('rows', newRows);
                       }}
-                      className="text-blue-500 hover:text-blue-700 text-sm"
+                      className="text-emerald-500 hover:text-emerald-700 text-sm"
                     >
                       <FaPlus className="inline mr-1" size={12} />
                       Add Row
@@ -1015,13 +1015,13 @@ const BlockEditor: React.FC<{
 
     case 'callout':
       const calloutIcons = {
-        info: <FaInfoCircle className="text-blue-500" />,
+        info: <FaInfoCircle className="text-emerald-500" />,
         warning: <FaExclamationTriangle className="text-yellow-500" />,
         success: <FaCheckCircle className="text-green-500" />,
       };
 
       return (
-        <div className="group relative bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+        <div className="group relative bg-emerald-50 dark:bg-emerald-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
           <div className="flex items-center gap-2 mb-2">
             {calloutIcons[block.content?.type as keyof typeof calloutIcons]}
             <select
@@ -1065,7 +1065,7 @@ const BlockControls: React.FC<{
   <div className="absolute right-0 top-0 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
     <button
       onClick={() => onAddBlock('text')}
-      className="p-1 text-gray-400 hover:text-blue-500 transition-colors"
+      className="p-1 text-gray-400 hover:text-emerald-500 transition-colors"
       title="Add block"
     >
       <FaPlus size={12} />

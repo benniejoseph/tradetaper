@@ -42,10 +42,10 @@ The current Stripe integration is blocked due to Indian regulatory requirements:
 #### Debugging
 ```bash
 # Comprehensive Stripe testing
-curl -X POST https://tradetaper-backend-production.up.railway.app/api/v1/debug-stripe
+curl -X POST https://tradetaper-backend-326520250422.us-central1.run.app/api/v1/debug-stripe
 
 # Database schema verification
-curl -X POST https://tradetaper-backend-production.up.railway.app/api/v1/debug-subscription \
+curl -X POST https://tradetaper-backend-326520250422.us-central1.run.app/api/v1/debug-subscription \
   -H "Content-Type: application/json" \
   -d '{"userId": "test-user-id"}'
 ```
@@ -53,18 +53,18 @@ curl -X POST https://tradetaper-backend-production.up.railway.app/api/v1/debug-s
 #### Working Subscription Endpoints
 ```bash
 # Get pricing plans
-curl https://tradetaper-backend-production.up.railway.app/api/v1/subscriptions/pricing-plans
+curl https://tradetaper-backend-326520250422.us-central1.run.app/api/v1/subscriptions/pricing-plans
 
 # Get current subscription (requires auth)
-curl https://tradetaper-backend-production.up.railway.app/api/v1/subscriptions/current \
+curl https://tradetaper-backend-326520250422.us-central1.run.app/api/v1/subscriptions/current \
   -H "Authorization: Bearer YOUR_JWT_TOKEN"
 ```
 
 #### Blocked Payment Endpoints
 ```bash
 # These will return 500 errors due to Indian Stripe restrictions
-curl -X POST https://tradetaper-backend-production.up.railway.app/api/v1/subscriptions/create-checkout-session
-curl -X POST https://tradetaper-backend-production.up.railway.app/api/v1/subscriptions/create-payment-link
+curl -X POST https://tradetaper-backend-326520250422.us-central1.run.app/api/v1/subscriptions/create-checkout-session
+curl -X POST https://tradetaper-backend-326520250422.us-central1.run.app/api/v1/subscriptions/create-payment-link
 ```
 
 ### 🎯 **Immediate Action Required**

@@ -140,7 +140,7 @@ const NotesCalendarPage: React.FC = () => {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <AnimatedCard variant="glass" className="text-center">
-          <FaSpinner className="animate-spin text-4xl text-blue-500 mb-4 mx-auto" />
+          <FaSpinner className="animate-spin text-4xl text-emerald-500 mb-4 mx-auto" />
           <p className="text-lg font-medium">Loading calendar...</p>
         </AnimatedCard>
       </div>
@@ -233,11 +233,11 @@ const NotesCalendarPage: React.FC = () => {
               className={`
                 relative p-3 min-h-[80px] cursor-pointer transition-all duration-200 rounded-lg
                 ${day.isCurrentMonth 
-                  ? 'hover:bg-blue-50 dark:hover:bg-blue-900/20' 
+                  ? 'hover:bg-emerald-50 dark:hover:bg-emerald-900/20' 
                   : 'text-gray-400 dark:text-gray-600'
                 }
                 ${day.isToday 
-                  ? 'bg-blue-100 dark:bg-blue-900/30 ring-2 ring-blue-500' 
+                  ? 'bg-emerald-100 dark:bg-emerald-900/30 ring-2 ring-blue-500' 
                   : ''
                 }
                 ${day.hasEvents 
@@ -248,7 +248,7 @@ const NotesCalendarPage: React.FC = () => {
             >
               <div className="flex flex-col h-full">
                 <span className={`text-sm font-medium ${
-                  day.isToday ? 'text-blue-600 dark:text-blue-400' : ''
+                  day.isToday ? 'text-emerald-600 dark:text-emerald-400' : ''
                 }`}>
                   {day.dayOfMonth}
                 </span>
@@ -258,7 +258,7 @@ const NotesCalendarPage: React.FC = () => {
                     <div className={`
                       inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium
                       ${day.noteCount === 1 
-                        ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300'
+                        ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300'
                         : day.noteCount <= 3
                           ? 'bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300'
                           : 'bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-300'
@@ -272,7 +272,7 @@ const NotesCalendarPage: React.FC = () => {
               </div>
 
               {day.isToday && (
-                <div className="absolute inset-0 rounded-lg bg-blue-500/10 pointer-events-none" />
+                <div className="absolute inset-0 rounded-lg bg-emerald-500/10 pointer-events-none" />
               )}
             </motion.div>
           ))}
@@ -284,8 +284,8 @@ const NotesCalendarPage: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <AnimatedCard variant="glass" className="p-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-                <FaStickyNote className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+              <div className="p-2 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg">
+                <FaStickyNote className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
               </div>
               <div>
                 <div className="text-2xl font-bold text-gray-900 dark:text-white">

@@ -367,7 +367,7 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
               <AnimatedButton
                 onClick={requestMicrophonePermission}
                 variant="gradient"
-                className="bg-gradient-to-r from-blue-500 to-purple-500"
+                className="bg-gradient-to-r from-emerald-500 to-emerald-600"
               >
                 Grant Permission
               </AnimatedButton>
@@ -448,12 +448,12 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
                         <div className="flex items-center gap-3">
                           <button
                             onClick={() => playRecording(recording)}
-                            className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors"
+                            className="p-2 bg-gradient-to-r from-emerald-100 to-emerald-200 dark:from-emerald-900/30 dark:to-emerald-800/30 rounded-lg hover:from-emerald-200 hover:to-emerald-300 dark:hover:from-emerald-800/40 dark:hover:to-emerald-700/40 transition-all"
                           >
                             {playingId === recording.id ? (
-                              <FaPause className="w-4 h-4 text-blue-600" />
+                              <FaPause className="w-4 h-4 text-emerald-600" />
                             ) : (
-                              <FaPlay className="w-4 h-4 text-blue-600" />
+                              <FaPlay className="w-4 h-4 text-emerald-600" />
                             )}
                           </button>
                           
@@ -482,7 +482,7 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
                           )}
 
                           {recording.isTranscribing && (
-                            <FaSpinner className="animate-spin text-blue-500" />
+                            <FaSpinner className="animate-spin text-emerald-500" />
                           )}
 
                           {recording.transcript && (

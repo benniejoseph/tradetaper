@@ -102,16 +102,22 @@ let ProductionLoggerService = ProductionLoggerService_1 = class ProductionLogger
             statusCode,
             duration: `${duration}ms`,
             userId,
-            error: error ? {
-                message: error.message,
-                stack: error.stack,
-            } : undefined,
+            error: error
+                ? {
+                    message: error.message,
+                    stack: error.stack,
+                }
+                : undefined,
         };
         const level = statusCode >= 400 ? 'error' : statusCode >= 300 ? 'warn' : 'info';
         const message = `${method} ${endpoint} - ${statusCode} (${duration}ms)`;
         switch (level) {
             case 'error':
-                this.error(message, error?.stack, 'ApiCall', { endpoint, method, userId });
+                this.error(message, error?.stack, 'ApiCall', {
+                    endpoint,
+                    method,
+                    userId,
+                });
                 break;
             case 'warn':
                 this.warn(message, 'ApiCall', details);
@@ -126,10 +132,12 @@ let ProductionLoggerService = ProductionLoggerService_1 = class ProductionLogger
             table,
             duration: `${duration}ms`,
             recordCount,
-            error: error ? {
-                message: error.message,
-                stack: error.stack,
-            } : undefined,
+            error: error
+                ? {
+                    message: error.message,
+                    stack: error.stack,
+                }
+                : undefined,
         };
         const message = `DB ${operation} on ${table} - ${recordCount || 0} records (${duration}ms)`;
         if (error) {

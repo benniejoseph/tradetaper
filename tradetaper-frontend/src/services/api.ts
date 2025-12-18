@@ -3,8 +3,8 @@ import axios from 'axios';
 import { RootState } from '@/store/store';
 
 // Use environment variable with fallback to GCP backend
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 
-  'https://tradetaper-backend-481634875325.us-central1.run.app/api/v1';
+const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL || 
+  'https://tradetaper-backend-326520250422.us-central1.run.app/api/v1').trim();
 
 console.log('🔧 API Configuration:', { 
   env: process.env.NODE_ENV,
@@ -32,9 +32,19 @@ export const authApiClient = axios.create({
 export function setupAuthInterceptors(getState: () => RootState) { // removed unused dispatch parameter
     authApiClient.interceptors.request.use(
         (config: any) => {
-            const token = getState().auth.token;
+            const state = getState();
+            const token = state.auth.token;
+            console.log('🔐 Auth State:', {
+                hasToken: !!token,
+                isAuthenticated: state.auth.isAuthenticated,
+                hasUser: !!state.auth.user,
+                url: config.url
+            });
             if (token) {
                 config.headers.Authorization = `Bearer ${token}`;
+                console.log('✅ Added Bearer token to request');
+            } else {
+                console.warn('⚠️ No token found in Redux store!');
             }
             console.log('🚀 Making authenticated API request to:', config.baseURL + config.url);
             return config;

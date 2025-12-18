@@ -6,18 +6,20 @@ PROJECT_ID="trade-taper"
 SERVICE_NAME="tradetaper-backend"
 REGION="us-central1"
 INSTANCE_CONNECTION_NAME="trade-taper:us-central1:trade-taper-postgres"
+IMAGE_URL="${REGION}-docker.pkg.dev/${PROJECT_ID}/${SERVICE_NAME}/${SERVICE_NAME}:latest"
 
 echo "🚀 Deploying TradeTaper Backend to Cloud Run..."
 echo "📦 Project: ${PROJECT_ID}"
 echo "🌍 Region: ${REGION}"
+echo "🐳 Image: ${IMAGE_URL}"
 echo ""
 
 # Set the project
 gcloud config set project ${PROJECT_ID}
 
-# Build and push container image
+# Build and push container image to Artifact Registry
 echo "🏗️ Building container image..."
-gcloud builds submit --tag gcr.io/${PROJECT_ID}/${SERVICE_NAME}:latest .
+gcloud builds submit --tag ${IMAGE_URL} .
 
 if [ $? -ne 0 ]; then
     echo "❌ Build failed. Please check the logs above."
@@ -29,7 +31,7 @@ echo "✅ Build successful!"
 # Deploy to Cloud Run with ICT system
 echo "🚀 Deploying to Cloud Run..."
 gcloud run deploy ${SERVICE_NAME} \
-  --image gcr.io/${PROJECT_ID}/${SERVICE_NAME}:latest \
+  --image ${IMAGE_URL} \
   --region ${REGION} \
   --allow-unauthenticated \
   --memory 2Gi \
@@ -39,7 +41,7 @@ gcloud run deploy ${SERVICE_NAME} \
   --min-instances 0 \
   --max-instances 5 \
   --cpu-boost \
-  --update-env-vars "NODE_ENV=production,INSTANCE_CONNECTION_NAME=${INSTANCE_CONNECTION_NAME},DB_HOST=/cloudsql/${INSTANCE_CONNECTION_NAME},DB_PORT=5432,DB_NAME=tradetaper,DB_USER=postgres,DB_USERNAME=postgres,DB_PASSWORD=TradetaperDB2024!,JWT_SECRET=311d5e52dd8896799b6a7dcf73832d30647f823817e68e70d153b7f77427b97c958e0eca65aed664fc7466848ade1e70c04c7249398b29c46d17a14235b2d112,GEMINI_API_KEY=AIzaSyAl7EUlHvOVAVeeOoIqChfkiVxriMgTgYc,GLOBAL_PREFIX=api/v1,FRONTEND_URL=https://tradetaper-frontend-jtgcjetsx-benniejosephs-projects.vercel.app,GOOGLE_CLIENT_ID=326520250422-jl7bee78315684rflpf3djijhr8pgnt0.apps.googleusercontent.com,GOOGLE_CLIENT_SECRET=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,GOOGLE_CALLBACK_URL=https://tradetaper-backend-yhiuxa72ja-uc.a.run.app/api/v1/auth/google/callback,ALPHA_VANTAGE_API_KEY=7VSF3159NOLQ4KBL,FMP_API_KEY=d70qpAx9bJCRSDkV7C9n5dvN4wCmAdW9,NEWS_API_KEY=236fe13ee70740df8190cca7e77dea86,POLYGON_API_KEY=_OJDrbB9SjEaz5V5YRB44qm4rVsWz2Xi,TRADERMADE_API_KEY=X4FgwHzL7HpukWs4FjYV,JWT_EXPIRATION_TIME=24h,TRADINGVIEW_USERNAME=benniejoseph.r@gmail.com,TRADINGVIEW_PASSWORD=Bjrsks14311519!,ALLOWED_ORIGINS=http://localhost:3000,http://localhost:3001,http://localhost:3002,https://tradetaper-frontend-jtgcjetsx-benniejosephs-projects.vercel.app,https://tradetaper-admin-44q1gbakx-benniejosephs-projects.vercel.app,https://tradetaper-admin.vercel.app,https://tradetaper-frontend.vercel.app,https://tradetaper-frontend-nnhiav3rf-benniejosephs-projects.vercel.app"
+  --env-vars-file env-vars.yaml
 
 if [ $? -eq 0 ]; then
     echo ""

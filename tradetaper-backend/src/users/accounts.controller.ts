@@ -18,7 +18,7 @@ import {
   AccountResponseDto,
 } from './dto/account.dto';
 
-@Controller('accounts')
+@Controller('users/accounts')
 @UseGuards(JwtAuthGuard)
 export class AccountsController {
   constructor(private readonly accountsService: AccountsService) {}

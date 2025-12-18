@@ -65,7 +65,7 @@ export class MessageBusService implements OnModuleDestroy {
     this.addToHistory(channel, message);
     
     // Persist important messages
-    if (message.priority >= TaskPriority.HIGH) {
+    if (message.priority && message.priority >= TaskPriority.HIGH) {
       await this.persistMessage(message);
     }
     
@@ -235,11 +235,13 @@ export class MessageBusService implements OnModuleDestroy {
     }
     
     const history = this.messageHistory.get(channel);
-    history.push(message);
-    
-    // Limit history size
-    if (history.length > this.maxHistorySize) {
-      history.shift();
+    if (history) {
+      history.push(message);
+      
+      // Limit history size
+      if (history.length > this.maxHistorySize) {
+        history.shift();
+      }
     }
   }
 

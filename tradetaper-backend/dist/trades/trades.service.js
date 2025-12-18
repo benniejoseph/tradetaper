@@ -21,15 +21,18 @@ const trade_entity_1 = require("./entities/trade.entity");
 const enums_1 = require("../types/enums");
 const tag_entity_1 = require("../tags/entities/tag.entity");
 const simple_trades_gateway_1 = require("../websocket/simple-trades.gateway");
+const gemini_vision_service_1 = require("../notes/gemini-vision.service");
 let TradesService = TradesService_1 = class TradesService {
     tradesRepository;
     tagRepository;
     tradesGateway;
+    geminiVisionService;
     logger = new common_1.Logger(TradesService_1.name);
-    constructor(tradesRepository, tagRepository, tradesGateway) {
+    constructor(tradesRepository, tagRepository, tradesGateway, geminiVisionService) {
         this.tradesRepository = tradesRepository;
         this.tagRepository = tagRepository;
         this.tradesGateway = tradesGateway;
+        this.geminiVisionService = geminiVisionService;
     }
     calculateAndSetPnl(trade) {
         if (trade.status === enums_1.TradeStatus.CLOSED &&
@@ -105,22 +108,29 @@ let TradesService = TradesService_1 = class TradesService {
         this.logger.log(`Trade created successfully: ${savedTrade.id}`);
         return completeTradeData;
     }
-    async findAll(userContext, accountId, options) {
-        this.logger.log(`User ${userContext.id} fetching all their trades, account: ${accountId || 'all'}`);
+    async findAll(userContext, accountId, options, page = 1, limit = 10) {
+        this.logger.log(`User ${userContext.id} fetching trades, account: ${accountId || 'all'}, page: ${page}, limit: ${limit}`);
         const whereClause = {
             userId: userContext.id,
         };
         if (accountId) {
             whereClause.accountId = accountId;
         }
-        const trades = await this.tradesRepository.find({
+        const [trades, total] = await this.tradesRepository.findAndCount({
             where: whereClause,
             relations: ['tags'],
             order: { openTime: 'DESC' },
+            take: limit,
+            skip: (page - 1) * limit,
             ...options,
         });
-        this.logger.log(`Found ${trades.length} trades for user ${userContext.id}, account filter: ${accountId || 'all'}`);
-        return trades;
+        this.logger.log(`Found ${trades.length} of ${total} trades for user ${userContext.id}, account filter: ${accountId || 'all'}`);
+        return {
+            data: trades,
+            total,
+            page,
+            limit,
+        };
     }
     async findOne(id, userContext) {
         this.logger.log(`User ${userContext.id} fetching trade with ID ${id}`);
@@ -216,7 +226,8 @@ let TradesService = TradesService_1 = class TradesService {
                     trade.openTime = new Date(openTime);
                 }
                 if (closeTime !== undefined) {
-                    trade.closeTime = closeTime === null ? undefined : new Date(closeTime);
+                    trade.closeTime =
+                        closeTime === null ? undefined : new Date(closeTime);
                 }
                 if (tagNames !== undefined) {
                     trade.tags = await this.findOrCreateTags(tagNames, userContext.id);
@@ -237,7 +248,9 @@ let TradesService = TradesService_1 = class TradesService {
             const trade = this.tradesRepository.create({
                 ...tradeDetails,
                 openTime: new Date(tradeDto.openTime),
-                closeTime: tradeDto.closeTime ? new Date(tradeDto.closeTime) : undefined,
+                closeTime: tradeDto.closeTime
+                    ? new Date(tradeDto.closeTime)
+                    : undefined,
                 userId: userContext.id,
                 tags: resolvedTags,
             });
@@ -254,8 +267,10 @@ exports.TradesService = TradesService = TradesService_1 = __decorate([
     __param(0, (0, typeorm_1.InjectRepository)(trade_entity_1.Trade)),
     __param(1, (0, typeorm_1.InjectRepository)(tag_entity_1.Tag)),
     __param(2, (0, common_1.Inject)(simple_trades_gateway_1.SimpleTradesGateway)),
+    __param(3, (0, common_1.Inject)(gemini_vision_service_1.GeminiVisionService)),
     __metadata("design:paramtypes", [typeorm_2.Repository,
         typeorm_2.Repository,
-        simple_trades_gateway_1.SimpleTradesGateway])
+        simple_trades_gateway_1.SimpleTradesGateway,
+        gemini_vision_service_1.GeminiVisionService])
 ], TradesService);
 //# sourceMappingURL=trades.service.js.map

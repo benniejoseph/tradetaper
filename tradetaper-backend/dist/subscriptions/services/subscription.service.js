@@ -11,9 +11,6 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 var SubscriptionService_1;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.SubscriptionService = void 0;
@@ -21,24 +18,21 @@ const common_1 = require("@nestjs/common");
 const typeorm_1 = require("@nestjs/typeorm");
 const typeorm_2 = require("typeorm");
 const config_1 = require("@nestjs/config");
-const stripe_1 = __importDefault(require("stripe"));
 const subscription_entity_1 = require("../entities/subscription.entity");
+const stripe_service_1 = require("./stripe.service");
+const user_entity_1 = require("../../users/entities/user.entity");
 let SubscriptionService = SubscriptionService_1 = class SubscriptionService {
     subscriptionRepository;
+    userRepository;
     configService;
+    stripeService;
     logger = new common_1.Logger(SubscriptionService_1.name);
-    stripe;
     pricingPlans;
-    constructor(subscriptionRepository, configService) {
+    constructor(subscriptionRepository, userRepository, configService, stripeService) {
         this.subscriptionRepository = subscriptionRepository;
+        this.userRepository = userRepository;
         this.configService = configService;
-        const stripeSecretKey = this.configService.get('STRIPE_SECRET_KEY');
-        if (!stripeSecretKey) {
-            throw new Error('STRIPE_SECRET_KEY is required');
-        }
-        this.stripe = new stripe_1.default(stripeSecretKey, {
-            apiVersion: '2025-06-30.basil',
-        });
+        this.stripeService = stripeService;
         this.pricingPlans = [
             {
                 id: 'starter',
@@ -147,7 +141,7 @@ let SubscriptionService = SubscriptionService_1 = class SubscriptionService {
     }
     async getCurrentSubscription(userId) {
         const subscription = await this.getOrCreateSubscription(userId);
-        const usage = await this.getCurrentUsage(userId);
+        const usage = this.getCurrentUsage(userId);
         return {
             currentPlan: subscription.plan,
             status: subscription.status,
@@ -156,7 +150,10 @@ let SubscriptionService = SubscriptionService_1 = class SubscriptionService {
             usage,
         };
     }
-    async getCurrentUsage(userId) {
+    getCurrentUsage(userId) {
+        if (!userId) {
+            throw new Error('User ID is required to get usage');
+        }
         const now = new Date();
         const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
         const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
@@ -176,9 +173,16 @@ let SubscriptionService = SubscriptionService_1 = class SubscriptionService {
             if (!customerId) {
                 this.logger.log(`🆕 Creating new Stripe customer for user ${userId}`);
                 try {
-                    const customer = await this.stripe.customers.create({
-                        metadata: { userId },
+                    const user = await this.userRepository.findOne({
+                        where: { id: userId },
                     });
+                    if (!user) {
+                        throw new Error(`User not found for id ${userId}`);
+                    }
+                    const name = user.firstName && user.lastName
+                        ? `${user.firstName} ${user.lastName}`
+                        : undefined;
+                    const customer = await this.stripeService.createCustomer(user.email, name);
                     customerId = customer.id;
                     this.logger.log(`✅ Created Stripe customer: ${customerId}`);
                     subscription.stripeCustomerId = customerId;
@@ -199,25 +203,7 @@ let SubscriptionService = SubscriptionService_1 = class SubscriptionService {
                 this.logger.log(`✅ Using existing Stripe customer: ${customerId}`);
             }
             this.logger.log(`🛒 Creating Stripe checkout session...`);
-            const sessionParams = {
-                customer: customerId,
-                payment_method_types: ['card'],
-                line_items: [
-                    {
-                        price: priceId,
-                        quantity: 1,
-                    },
-                ],
-                mode: 'subscription',
-                success_url: successUrl,
-                cancel_url: cancelUrl,
-                allow_promotion_codes: true,
-                metadata: {
-                    userId,
-                },
-            };
-            this.logger.log(`📋 Session params:`, JSON.stringify(sessionParams, null, 2));
-            const session = await this.stripe.checkout.sessions.create(sessionParams);
+            const session = await this.stripeService.createCheckoutSession(priceId, customerId, successUrl, cancelUrl, userId);
             this.logger.log(`✅ Checkout session created: ${session.id}`);
             return {
                 sessionId: session.id,
@@ -244,10 +230,7 @@ let SubscriptionService = SubscriptionService_1 = class SubscriptionService {
             if (!subscription.stripeCustomerId) {
                 throw new common_1.HttpException('No active subscription found', common_1.HttpStatus.NOT_FOUND);
             }
-            const session = await this.stripe.billingPortal.sessions.create({
-                customer: subscription.stripeCustomerId,
-                return_url: returnUrl,
-            });
+            const session = await this.stripeService.createBillingPortalSession(subscription.stripeCustomerId, returnUrl);
             return { url: session.url };
         }
         catch (error) {
@@ -267,10 +250,10 @@ let SubscriptionService = SubscriptionService_1 = class SubscriptionService {
                     await this.handleSubscriptionCancellation(event.data.object);
                     break;
                 case 'invoice.payment_succeeded':
-                    await this.handlePaymentSucceeded(event.data.object);
+                    this.handlePaymentSucceeded(event.data.object);
                     break;
                 case 'invoice.payment_failed':
-                    await this.handlePaymentFailed(event.data.object);
+                    this.handlePaymentFailed(event.data.object);
                     break;
                 default:
                     this.logger.log(`Unhandled webhook event type: ${event.type}`);
@@ -313,10 +296,10 @@ let SubscriptionService = SubscriptionService_1 = class SubscriptionService {
         await this.subscriptionRepository.save(subscription);
         this.logger.log(`Canceled subscription for user ${userId}`);
     }
-    async handlePaymentSucceeded(invoice) {
+    handlePaymentSucceeded(invoice) {
         this.logger.log(`Payment succeeded for invoice ${invoice.id}`);
     }
-    async handlePaymentFailed(invoice) {
+    handlePaymentFailed(invoice) {
         this.logger.log(`Payment failed for invoice ${invoice.id}`);
     }
     getPlanFromPriceId(priceId) {
@@ -348,31 +331,37 @@ let SubscriptionService = SubscriptionService_1 = class SubscriptionService {
         }
     }
     async checkUsageLimit(userId, feature) {
-        const subscription = await this.getOrCreateSubscription(userId);
-        const plan = this.getPricingPlan(subscription.plan);
-        if (!plan)
+        const subscription = await this.getCurrentSubscription(userId);
+        const plan = this.getPricingPlan(subscription.currentPlan);
+        if (!plan) {
             return false;
-        if (feature === 'trades' && plan.limits.trades === 'unlimited') {
+        }
+        const limit = plan.limits[feature];
+        if (limit === 'unlimited') {
             return true;
         }
-        if (feature === 'accounts' && plan.limits.accounts === 'unlimited') {
-            return true;
-        }
-        const usage = await this.getCurrentUsage(userId);
-        if (feature === 'trades') {
-            const limit = typeof plan.limits.trades === 'number' ? plan.limits.trades : Infinity;
-            return usage.trades < limit;
-        }
-        if (feature === 'accounts') {
-            const limit = typeof plan.limits.accounts === 'number'
-                ? plan.limits.accounts
-                : Infinity;
-            return usage.accounts < limit;
-        }
-        return true;
+        const usage = subscription.usage[feature];
+        return usage < limit;
     }
-    async incrementUsage(userId, type) {
-        this.logger.log(`Usage increment for user ${userId}, type: ${type}`);
+    async incrementUsage(userId, feature) {
+        if (!userId || !feature) {
+            return;
+        }
+        const user = await this.subscriptionRepository.findOne({
+            where: {
+                userId: userId,
+            },
+        });
+        if (!user) {
+            throw new Error('User not found');
+        }
+        const subscription = await this.getCurrentSubscription(userId);
+        if (!subscription) {
+            return;
+        }
+        if (subscription.currentPlan === 'free') {
+            this.logger.log(`Incrementing usage for user ${userId}, feature: ${feature}`);
+        }
     }
     async createPaymentLink(userId, priceId) {
         try {
@@ -381,29 +370,25 @@ let SubscriptionService = SubscriptionService_1 = class SubscriptionService {
             let customerId = subscription.stripeCustomerId;
             if (!customerId) {
                 this.logger.log(`🆕 Creating new Stripe customer for payment link`);
-                const customer = await this.stripe.customers.create({
-                    metadata: { userId },
+                const user = await this.userRepository.findOne({
+                    where: { id: userId },
                 });
+                if (!user) {
+                    throw new Error(`User not found for id ${userId}`);
+                }
+                const name = user.firstName && user.lastName
+                    ? `${user.firstName} ${user.lastName}`
+                    : undefined;
+                const customer = await this.stripeService.createCustomer(user.email, name);
                 customerId = customer.id;
                 subscription.stripeCustomerId = customerId;
                 await this.subscriptionRepository.save(subscription);
                 this.logger.log(`✅ Created customer for payment link: ${customerId}`);
             }
-            const paymentLink = await this.stripe.paymentLinks.create({
-                line_items: [
-                    {
-                        price: priceId,
-                        quantity: 1,
-                    },
-                ],
-                metadata: {
-                    userId,
-                    customerId,
-                },
-            });
-            this.logger.log(`✅ Payment link created: ${paymentLink.id}`);
+            const paymentLink = await this.stripeService.createPaymentLink(userId, priceId, customerId);
+            this.logger.log(`✅ Payment link created: ${paymentLink.paymentLinkId}`);
             return {
-                paymentLinkId: paymentLink.id,
+                paymentLinkId: paymentLink.paymentLinkId,
                 url: paymentLink.url,
             };
         }
@@ -423,7 +408,10 @@ exports.SubscriptionService = SubscriptionService;
 exports.SubscriptionService = SubscriptionService = SubscriptionService_1 = __decorate([
     (0, common_1.Injectable)(),
     __param(0, (0, typeorm_1.InjectRepository)(subscription_entity_1.Subscription)),
+    __param(1, (0, typeorm_1.InjectRepository)(user_entity_1.User)),
     __metadata("design:paramtypes", [typeorm_2.Repository,
-        config_1.ConfigService])
+        typeorm_2.Repository,
+        config_1.ConfigService,
+        stripe_service_1.StripeService])
 ], SubscriptionService);
 //# sourceMappingURL=subscription.service.js.map

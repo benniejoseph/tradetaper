@@ -59,33 +59,39 @@ let GlobalExceptionFilter = GlobalExceptionFilter_1 = class GlobalExceptionFilte
             const response = exception.getResponse();
             return {
                 statusCode: status,
-                message: typeof response === 'string' ? response : response.message || exception.message,
+                message: typeof response === 'string'
+                    ? response
+                    : response.message || exception.message,
                 error: exception.name,
             };
         }
         if (exception instanceof Error) {
-            if (exception.message.includes('ECONNREFUSED') || exception.message.includes('ENOTFOUND')) {
+            if (exception.message.includes('ECONNREFUSED') ||
+                exception.message.includes('ENOTFOUND')) {
                 return {
                     statusCode: common_1.HttpStatus.SERVICE_UNAVAILABLE,
                     message: 'Database connection error',
                     error: 'DatabaseConnectionError',
                 };
             }
-            if (exception.message.includes('jwt') || exception.message.includes('token')) {
+            if (exception.message.includes('jwt') ||
+                exception.message.includes('token')) {
                 return {
                     statusCode: common_1.HttpStatus.UNAUTHORIZED,
                     message: 'Authentication failed',
                     error: 'AuthenticationError',
                 };
             }
-            if (exception.message.includes('validation') || exception.message.includes('ValidationError')) {
+            if (exception.message.includes('validation') ||
+                exception.message.includes('ValidationError')) {
                 return {
                     statusCode: common_1.HttpStatus.BAD_REQUEST,
                     message: 'Invalid input data',
                     error: 'ValidationError',
                 };
             }
-            if (exception.message.includes('Stripe') || exception.message.includes('stripe')) {
+            if (exception.message.includes('Stripe') ||
+                exception.message.includes('stripe')) {
                 return {
                     statusCode: common_1.HttpStatus.BAD_REQUEST,
                     message: 'Payment processing error',
@@ -114,9 +120,13 @@ let GlobalExceptionFilter = GlobalExceptionFilter_1 = class GlobalExceptionFilte
             this.productionLogger.warn(`Client Error: ${message}`, 'GlobalExceptionFilter', { errorContext, statusCode });
         }
         else {
-            this.productionLogger.log(`Error: ${message}`, 'GlobalExceptionFilter', { errorContext, statusCode });
+            this.productionLogger.log(`Error: ${message}`, 'GlobalExceptionFilter', {
+                errorContext,
+                statusCode,
+            });
         }
-        if (statusCode === common_1.HttpStatus.UNAUTHORIZED || statusCode === common_1.HttpStatus.FORBIDDEN) {
+        if (statusCode === common_1.HttpStatus.UNAUTHORIZED ||
+            statusCode === common_1.HttpStatus.FORBIDDEN) {
             this.productionLogger.logSecurityEvent(`${statusCode} error on ${errorContext.endpoint}`, errorContext.userId, errorContext.ip, errorContext.userAgent, 'medium');
         }
     }

@@ -72,7 +72,6 @@ let MediaService = class MediaService {
         try {
             const fileExtension = path.extname(file.originalname);
             const fileName = `notes/${noteId}/${(0, uuid_1.v4)()}${fileExtension}`;
-            let processedBuffer = file.buffer;
             let thumbnailPath;
             const media = this.mediaRepository.create({
                 noteId,

@@ -98,7 +98,10 @@ let StripeValidationService = StripeValidationService_1 = class StripeValidation
         const priceIds = [
             { key: 'STRIPE_PRICE_STARTER_MONTHLY', name: 'Starter Monthly' },
             { key: 'STRIPE_PRICE_STARTER_YEARLY', name: 'Starter Yearly' },
-            { key: 'STRIPE_PRICE_PROFESSIONAL_MONTHLY', name: 'Professional Monthly' },
+            {
+                key: 'STRIPE_PRICE_PROFESSIONAL_MONTHLY',
+                name: 'Professional Monthly',
+            },
             { key: 'STRIPE_PRICE_PROFESSIONAL_YEARLY', name: 'Professional Yearly' },
             { key: 'STRIPE_PRICE_ENTERPRISE_MONTHLY', name: 'Enterprise Monthly' },
             { key: 'STRIPE_PRICE_ENTERPRISE_YEARLY', name: 'Enterprise Yearly' },
@@ -136,13 +139,17 @@ let StripeValidationService = StripeValidationService_1 = class StripeValidation
             return;
         }
         try {
-            const webhookEndpoints = await this.stripe.webhookEndpoints.list({ limit: 10 });
+            const webhookEndpoints = await this.stripe.webhookEndpoints.list({
+                limit: 10,
+            });
             if (webhookEndpoints.data.length === 0) {
                 result.warnings.push('No webhook endpoints configured in Stripe dashboard');
                 return;
             }
-            const expectedWebhookUrl = frontendUrl ? `${frontendUrl}/api/v1/subscriptions/webhook` : null;
-            const matchingEndpoint = webhookEndpoints.data.find(endpoint => expectedWebhookUrl && endpoint.url.includes('webhook'));
+            const expectedWebhookUrl = frontendUrl
+                ? `${frontendUrl}/api/v1/subscriptions/webhook`
+                : null;
+            const matchingEndpoint = webhookEndpoints.data.find((endpoint) => expectedWebhookUrl && endpoint.url.includes('webhook'));
             if (matchingEndpoint) {
                 result.webhookEndpointValidation = {
                     valid: true,
@@ -195,14 +202,18 @@ let StripeValidationService = StripeValidationService_1 = class StripeValidation
     getConfigurationSummary() {
         const stripeSecretKey = this.configService.get('STRIPE_SECRET_KEY');
         const webhookSecret = this.configService.get('STRIPE_WEBHOOK_SECRET');
-        const keyType = stripeSecretKey?.startsWith('sk_live_') ? 'live'
-            : stripeSecretKey?.startsWith('sk_test_') ? 'test'
+        const keyType = stripeSecretKey?.startsWith('sk_live_')
+            ? 'live'
+            : stripeSecretKey?.startsWith('sk_test_')
+                ? 'test'
                 : 'unknown';
         const priceIds = {
             starter_monthly: this.configService.get('STRIPE_PRICE_STARTER_MONTHLY') || null,
             starter_yearly: this.configService.get('STRIPE_PRICE_STARTER_YEARLY') || null,
-            professional_monthly: this.configService.get('STRIPE_PRICE_PROFESSIONAL_MONTHLY') || null,
-            professional_yearly: this.configService.get('STRIPE_PRICE_PROFESSIONAL_YEARLY') || null,
+            professional_monthly: this.configService.get('STRIPE_PRICE_PROFESSIONAL_MONTHLY') ||
+                null,
+            professional_yearly: this.configService.get('STRIPE_PRICE_PROFESSIONAL_YEARLY') ||
+                null,
         };
         return {
             environment: this.configService.get('NODE_ENV') || 'development',

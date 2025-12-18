@@ -88,18 +88,22 @@ let AuthController = class AuthController {
             const result = await this.authService.validateOrCreateGoogleUser({
                 email: userInfo.email,
                 firstName: userInfo.given_name || userInfo.name?.split(' ')[0] || '',
-                lastName: userInfo.family_name || userInfo.name?.split(' ').slice(1).join(' ') || '',
+                lastName: userInfo.family_name ||
+                    userInfo.name?.split(' ').slice(1).join(' ') ||
+                    '',
                 googleId: userInfo.sub,
                 picture: userInfo.picture,
             });
             console.log('User authenticated successfully:', result.user.email);
-            const frontendUrl = this.configService.get('FRONTEND_URL') || 'http://localhost:3000';
+            const frontendUrl = this.configService.get('FRONTEND_URL') ||
+                'http://localhost:3000';
             const redirectUrl = `${frontendUrl}/auth/google/callback?token=${result.accessToken}&user=${encodeURIComponent(JSON.stringify(result.user))}`;
             return res.redirect(redirectUrl);
         }
         catch (error) {
             console.error('Google OAuth callback error:', error);
-            const frontendUrl = this.configService.get('FRONTEND_URL') || 'http://localhost:3000';
+            const frontendUrl = this.configService.get('FRONTEND_URL') ||
+                'http://localhost:3000';
             const errorUrl = `${frontendUrl}/auth/google/callback?error=${encodeURIComponent(error.message)}`;
             return res.redirect(errorUrl);
         }
@@ -150,7 +154,10 @@ let AuthController = class AuthController {
         };
     }
     async testRoute() {
-        return { message: 'Test route working', timestamp: new Date().toISOString() };
+        return {
+            message: 'Test route working',
+            timestamp: new Date().toISOString(),
+        };
     }
     async adminLogin(loginDto) {
         const adminCredentials = {
@@ -187,7 +194,7 @@ let AuthController = class AuthController {
         return {
             message: 'OAuth routes test',
             routes: ['google', 'google-callback', 'debug/google-config'],
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
         };
     }
 };

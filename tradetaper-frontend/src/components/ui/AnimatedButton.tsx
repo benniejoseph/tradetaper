@@ -21,12 +21,12 @@ interface AnimatedButtonProps {
 }
 
 const variants = {
-  primary: 'bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500',
-  secondary: 'bg-gray-600 text-white hover:bg-gray-700 focus:ring-gray-500',
-  success: 'bg-green-600 text-white hover:bg-green-700 focus:ring-green-500',
+  primary: 'bg-emerald-600 text-white hover:bg-emerald-700 focus:ring-emerald-500',
+  secondary: 'bg-gray-600 text-white hover:bg-gray-700 dark:bg-[#141414] dark:hover:bg-[#1F1F1F] focus:ring-gray-500',
+  success: 'bg-emerald-600 text-white hover:bg-emerald-700 focus:ring-emerald-500',
   danger: 'bg-red-600 text-white hover:bg-red-700 focus:ring-red-500',
-  ghost: 'bg-transparent text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 focus:ring-gray-500',
-  gradient: 'bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:from-purple-700 hover:to-pink-700',
+  ghost: 'bg-transparent text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#0A0A0A] focus:ring-gray-500',
+  gradient: 'bg-gradient-to-r from-emerald-600 to-emerald-700 text-white hover:from-emerald-700 hover:to-emerald-800',
   neon: 'bg-black text-cyan-400 border-2 border-cyan-400 hover:bg-cyan-400 hover:text-black hover:shadow-lg hover:shadow-cyan-400/50',
 };
 
@@ -210,7 +210,7 @@ export const FloatingActionButton: React.FC<{
     <div className={positionClasses[position]}>
       <motion.button
         onClick={onClick}
-        className="w-14 h-14 bg-blue-600 text-white rounded-full shadow-lg hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+        className="w-14 h-14 bg-emerald-600 text-white rounded-full shadow-lg hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2"
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.9 }}
         onHoverStart={() => setIsTooltipVisible(true)}
@@ -276,8 +276,8 @@ export const ToggleButton: React.FC<{
       </span>
       
       <motion.button
-        className={`${sizeClasses[size]} rounded-full p-1 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors duration-200 ${
-          active ? 'bg-blue-600' : 'bg-gray-300 dark:bg-gray-600'
+        className={`${sizeClasses[size]} rounded-full p-1 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 transition-colors duration-200 ${
+          active ? 'bg-emerald-600' : 'bg-gray-300 dark:bg-[#2A2A2A]'
         }`}
         onClick={() => onToggle(!active)}
         whileHover={{ scale: 1.05 }}
@@ -304,7 +304,7 @@ export const PulseButton: React.FC<{
   onClick?: () => void;
   pulseColor?: string;
   intensity?: 'low' | 'medium' | 'high';
-}> = ({ children, onClick, pulseColor = 'bg-blue-400', intensity = 'medium' }) => {
+}> = ({ children, onClick, pulseColor = 'bg-emerald-400', intensity = 'medium' }) => {
   const intensityConfig = {
     low: { scale: [1, 1.05, 1], opacity: [0.7, 0.4, 0.7] },
     medium: { scale: [1, 1.1, 1], opacity: [0.7, 0.3, 0.7] },

@@ -82,7 +82,7 @@ export default function StrategiesPage() {
         </div>
         <Link 
           href="/strategies/new"
-          className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          className="inline-flex items-center px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
         >
           <FiPlus className="mr-2" />
           New Strategy
@@ -97,7 +97,7 @@ export default function StrategiesPage() {
 
       {strategies.length === 0 ? (
         <div className="text-center py-12">
-          <div className="mx-auto w-24 h-24 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mb-4">
+          <div className="mx-auto w-24 h-24 bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-950/20 dark:to-emerald-900/20 rounded-full flex items-center justify-center mb-4 border-2 border-emerald-200 dark:border-emerald-700/30">
             <FaBullseye className="w-12 h-12 text-gray-400" />
           </div>
           <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No strategies yet</h3>
@@ -106,7 +106,7 @@ export default function StrategiesPage() {
           </p>
           <Link 
             href="/strategies/new"
-            className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            className="inline-flex items-center px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
           >
             <FiPlus className="mr-2" />
             Create Strategy
@@ -139,7 +139,7 @@ function StrategyCard({ strategy, onToggleActive, onDelete }: StrategyCardProps)
   const isProfit = stats && stats.totalPnl > 0;
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-md transition-shadow">
+    <div className="bg-gradient-to-br from-white to-emerald-50 dark:from-black dark:to-emerald-950/20 rounded-xl shadow-sm border border-emerald-200/50 dark:border-emerald-700/30 overflow-hidden hover:shadow-lg hover:shadow-emerald-500/10 transition-all backdrop-blur-xl">
       {/* Header with color indicator */}
       <div 
         className="h-2"
@@ -158,7 +158,7 @@ function StrategyCard({ strategy, onToggleActive, onDelete }: StrategyCardProps)
                 className={`px-2 py-1 text-xs rounded-full ${
                   strategy.isActive 
                     ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400' 
-                    : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-400'
+                    : 'bg-gradient-to-r from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600 text-gray-800 dark:text-gray-400'
                 }`}
               >
                 {strategy.isActive ? 'Active' : 'Inactive'}
@@ -236,7 +236,7 @@ function StrategyCard({ strategy, onToggleActive, onDelete }: StrategyCardProps)
               {strategy.tags.split(',').map((tag, index) => (
                 <span 
                   key={index}
-                  className="px-2 py-1 text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded"
+                  className="px-2 py-1 text-xs bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-950/20 dark:to-emerald-900/20 text-emerald-600 dark:text-emerald-400 rounded border border-emerald-200 dark:border-emerald-700/30"
                 >
                   {tag.trim()}
                 </span>
@@ -246,25 +246,25 @@ function StrategyCard({ strategy, onToggleActive, onDelete }: StrategyCardProps)
         )}
 
         {/* Actions */}
-        <div className="flex items-center justify-between pt-4 border-t border-gray-200 dark:border-gray-700">
+        <div className="flex items-center justify-between pt-4 border-t border-emerald-200 dark:border-emerald-700/30">
           <div className="flex space-x-2">
             <Link
               href={`/strategies/${strategy.id}`}
-              className="p-2 text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+              className="p-2 text-gray-600 dark:text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-gradient-to-r hover:from-emerald-50 hover:to-emerald-100 dark:hover:from-emerald-950/20 dark:hover:to-emerald-900/20 rounded-lg transition-all"
               title="View Details"
             >
               <FiEye className="w-4 h-4" />
             </Link>
             <Link
               href={`/strategies/${strategy.id}/edit`}
-              className="p-2 text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+              className="p-2 text-gray-600 dark:text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-gradient-to-r hover:from-emerald-50 hover:to-emerald-100 dark:hover:from-emerald-950/20 dark:hover:to-emerald-900/20 rounded-lg transition-all"
               title="Edit Strategy"
             >
               <FiEdit2 className="w-4 h-4" />
             </Link>
             <button
               onClick={() => onDelete(strategy.id)}
-              className="p-2 text-gray-600 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+              className="p-2 text-gray-600 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-gradient-to-r hover:from-red-50 hover:to-red-100 dark:hover:from-red-950/20 dark:hover:to-red-900/20 rounded-lg transition-all"
               title="Delete Strategy"
             >
               <FiTrash2 className="w-4 h-4" />

@@ -3,8 +3,7 @@
 import { Trade } from '@/types/trade';
 import { Account } from '@/store/features/accountSlice'; // Assuming Account type is exported or define here
 import { format, parseISO, differenceInMinutes, differenceInHours, differenceInDays } from 'date-fns';
-import React from 'react'; // Import React for React.ReactNode
-import { usePagination } from '@/hooks/usePagination'; // Import pagination hook
+import React, { useState, useMemo } from 'react'; // Import React for React.ReactNode
 import { FaChevronLeft, FaChevronRight } from 'react-icons/fa'; // Import icons for pagination
 import { TableLoader } from '@/components/common/LoadingSpinner'; // Import loading component
 import { CurrencyAmount } from '@/components/common/CurrencyAmount';
@@ -76,12 +75,30 @@ export const getHoldTime = (trade: Trade): string => {
 };
 
 export default function TradesTable({ trades, accounts, onRowClick, isLoading, itemsPerPage = 25 }: TradesTableProps) {
-  // Use pagination hook
-  const pagination = usePagination({
-    data: trades,
-    itemsPerPage: itemsPerPage,
-    initialPage: 1
-  });
+  // Simple inline pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  
+  const pagination = useMemo(() => {
+    const totalItems = trades.length;
+    const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage));
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = Math.min(startIndex + itemsPerPage, totalItems);
+    const currentData = trades.slice(startIndex, endIndex);
+    
+    return {
+      currentPage,
+      totalPages,
+      currentData,
+      goToPage: (page: number) => setCurrentPage(Math.max(1, Math.min(page, totalPages))),
+      nextPage: () => setCurrentPage(prev => Math.min(prev + 1, totalPages)),
+      prevPage: () => setCurrentPage(prev => Math.max(prev - 1, 1)),
+      canGoNext: currentPage < totalPages,
+      canGoPrev: currentPage > 1,
+      startIndex: startIndex + 1,
+      endIndex,
+      totalItems
+    };
+  }, [trades, currentPage, itemsPerPage]);
 
   if (isLoading) {
     return <TableLoader text="Loading trades table..." />;
@@ -97,10 +114,10 @@ export default function TradesTable({ trades, accounts, onRowClick, isLoading, i
   const tdClasses = "px-6 py-4 whitespace-nowrap text-sm";
 
   return (
-    <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 shadow-lg overflow-hidden">
+    <div className="bg-gradient-to-br from-white to-emerald-50 dark:from-black dark:to-emerald-950/20 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 shadow-lg overflow-hidden">
       {/* Pagination Controls - Top */}
       {pagination.totalPages > 1 && (
-        <div className="px-6 py-4 border-b border-gray-200/30 dark:border-gray-700/30 flex justify-between items-center bg-gray-50/50 dark:bg-gray-800/50">
+        <div className="px-6 py-4 border-b border-gray-200/30 dark:border-gray-700/30 flex justify-between items-center bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-950/20 dark:to-emerald-900/20">
           <div className="text-sm text-gray-600 dark:text-gray-400">
             Showing {((pagination.currentPage - 1) * pagination.itemsPerPage) + 1} to{' '}
             {Math.min(pagination.currentPage * pagination.itemsPerPage, trades.length)} of {trades.length} trades
@@ -109,7 +126,7 @@ export default function TradesTable({ trades, accounts, onRowClick, isLoading, i
             <button
               onClick={pagination.previousPage}
               disabled={!pagination.hasPreviousPage}
-              className="p-2 rounded-xl bg-white/80 dark:bg-gray-800/80 hover:bg-blue-500 dark:hover:bg-blue-500 text-gray-600 dark:text-gray-400 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 hover:scale-105 backdrop-blur-sm"
+              className="p-2 rounded-xl bg-gradient-to-r from-white to-emerald-50 dark:from-black dark:to-emerald-950/20 hover:bg-emerald-500 dark:hover:bg-emerald-500 text-gray-600 dark:text-gray-400 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 hover:scale-105 backdrop-blur-sm"
             >
               <FaChevronLeft className="h-4 w-4" />
             </button>
@@ -119,7 +136,7 @@ export default function TradesTable({ trades, accounts, onRowClick, isLoading, i
             <button
               onClick={pagination.nextPage}
               disabled={!pagination.hasNextPage}
-              className="p-2 rounded-xl bg-white/80 dark:bg-gray-800/80 hover:bg-blue-500 dark:hover:bg-blue-500 text-gray-600 dark:text-gray-400 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 hover:scale-105 backdrop-blur-sm"
+              className="p-2 rounded-xl bg-gradient-to-r from-white to-emerald-50 dark:from-black dark:to-emerald-950/20 hover:bg-emerald-500 dark:hover:bg-emerald-500 text-gray-600 dark:text-gray-400 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 hover:scale-105 backdrop-blur-sm"
             >
               <FaChevronRight className="h-4 w-4" />
             </button>
@@ -130,7 +147,7 @@ export default function TradesTable({ trades, accounts, onRowClick, isLoading, i
       {/* Table */}
       <div className="overflow-x-auto">
         <table className="min-w-full">
-          <thead className="bg-gray-50/80 dark:bg-gray-800/80 backdrop-blur-sm">
+          <thead className="bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-950/20 dark:to-emerald-900/20 backdrop-blur-sm">
             <tr className="border-b border-gray-200/30 dark:border-gray-700/30">
               <th className={thClasses}>Pair</th>
               <th className={thClasses}>Open Date</th>
@@ -150,22 +167,22 @@ export default function TradesTable({ trades, accounts, onRowClick, isLoading, i
               <tr 
                   key={trade.id} 
                   onClick={() => onRowClick(trade)} 
-                  className="group hover:bg-white/90 dark:hover:bg-gray-800/60 cursor-pointer transition-all duration-200 hover:shadow-md backdrop-blur-sm"
+                  className="group hover:bg-gradient-to-r hover:from-emerald-50 hover:to-emerald-100 dark:hover:from-emerald-900/30 dark:hover:to-emerald-800/30 cursor-pointer transition-all duration-200 hover:shadow-md backdrop-blur-sm"
               >
-                <td className={`${tdClasses} font-semibold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors`}>
+                <td className={`${tdClasses} font-semibold text-gray-900 dark:text-white group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors`}>
                   {trade.symbol}
                 </td>
                 <td className={`${tdClasses} text-gray-700 dark:text-gray-300`}>
                   {trade.entryDate ? format(parseISO(trade.entryDate), 'dd MMM, HH:mm:ss') : '-'}
                 </td>
                 <td className={`${tdClasses} text-gray-700 dark:text-gray-300`}>
-                  <span className="px-2 py-1 bg-blue-100/80 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-lg text-xs font-medium">
+                  <span className="px-2 py-1 bg-gradient-to-r from-emerald-100 to-emerald-200 dark:from-emerald-900/30 dark:to-emerald-800/30 text-emerald-700 dark:text-emerald-300 rounded-lg text-xs font-medium">
                     {getAccountName(trade.accountId, accounts)}
                   </span>
                 </td>
                 <td className={`${tdClasses} text-gray-700 dark:text-gray-300`}>
                   {trade.session ? (
-                    <span className="px-2 py-1 bg-purple-100/80 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-lg text-xs font-medium">
+                    <span className="px-2 py-1 bg-gradient-to-r from-emerald-200 to-emerald-300 dark:from-emerald-800/30 dark:to-emerald-700/30 text-emerald-700 dark:text-emerald-300 rounded-lg text-xs font-medium">
                       {trade.session}
                     </span>
                   ) : '-'}
@@ -216,13 +233,13 @@ export default function TradesTable({ trades, accounts, onRowClick, isLoading, i
 
       {/* Pagination Controls - Bottom */}
       {pagination.totalPages > 1 && (
-        <div className="px-6 py-4 border-t border-gray-200/30 dark:border-gray-700/30 flex justify-between items-center bg-gray-50/50 dark:bg-gray-800/50">
+        <div className="px-6 py-4 border-t border-gray-200/30 dark:border-gray-700/30 flex justify-between items-center bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-950/20 dark:to-emerald-900/20">
           <div className="flex items-center space-x-3">
             <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Items per page:</span>
             <select
               value={pagination.itemsPerPage}
               onChange={(e) => pagination.setItemsPerPage(Number(e.target.value))}
-              className="appearance-none bg-white/50 dark:bg-gray-800/50 border border-gray-200/50 dark:border-gray-700/50 rounded-lg px-3 py-2 pr-8 text-sm font-medium text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 backdrop-blur-sm hover:bg-white/70 dark:hover:bg-gray-800/70"
+              className="appearance-none bg-gradient-to-r from-white to-emerald-50 dark:from-black dark:to-emerald-950/20 border border-gray-200/50 dark:border-gray-700/50 rounded-lg px-3 py-2 pr-8 text-sm font-medium text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all duration-200 backdrop-blur-sm hover:bg-white/70 dark:hover:bg-gray-800/70"
             >
               <option value={10}>10</option>
               <option value={25}>25</option>
@@ -240,8 +257,8 @@ export default function TradesTable({ trades, accounts, onRowClick, isLoading, i
                   onClick={() => pagination.goToPage(pageNumber)}
                   className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${
                     pagination.currentPage === pageNumber
-                      ? 'bg-gradient-to-r from-blue-500 to-green-500 text-white shadow-md'
-                      : 'bg-white/80 dark:bg-gray-800/80 text-gray-700 dark:text-gray-300 hover:bg-gray-100/80 dark:hover:bg-gray-700/80 backdrop-blur-sm'
+                      ? 'bg-gradient-to-r from-emerald-500 to-emerald-600 text-white shadow-md'
+                      : 'bg-white/80 dark:bg-gray-800/80 text-gray-700 dark:text-gray-300 hover:from-emerald-100 hover:to-emerald-200 dark:hover:from-emerald-900/30 dark:hover:to-emerald-800/30 backdrop-blur-sm'
                   }`}
                 >
                   {pageNumber}

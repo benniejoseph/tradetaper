@@ -10,7 +10,7 @@ export default function MT5AccountsPage() {
       {/* Header Section */}
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
         <div className="space-y-2">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-green-600 bg-clip-text text-transparent">
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-emerald-500 to-emerald-600 bg-clip-text text-transparent">
             MetaTrader 5 Integration
           </h1>
           <p className="text-gray-600 dark:text-gray-300">
@@ -20,11 +20,11 @@ export default function MT5AccountsPage() {
       </div>
 
       {/* About MT5 Integration */}
-      <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 shadow-lg overflow-hidden mb-8">
+      <div className="bg-gradient-to-br from-white to-emerald-50 dark:from-black dark:to-emerald-950/20 backdrop-blur-xl rounded-2xl border border-emerald-200/50 dark:border-emerald-700/30 shadow-lg overflow-hidden mb-8">
         <div className="p-8">
           <div className="flex items-center space-x-3 mb-6">
-            <div className="p-3 bg-gradient-to-r from-blue-500/20 to-green-500/20 rounded-xl">
-              <FaServer className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+            <div className="p-3 bg-gradient-to-r from-emerald-500/20 to-emerald-600/20 rounded-xl">
+              <FaServer className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
             </div>
             <div>
               <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">About MT5 Integration</h2>

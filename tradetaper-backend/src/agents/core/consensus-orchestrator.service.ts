@@ -125,7 +125,7 @@ export class ConsensusOrchestratorService {
     // Execute tasks in parallel with timeout
     const votePromises = tasks.map(async (task) => {
       try {
-        const agent = this.agentRegistry.getAgent(task.assignedAgent);
+        const agent = this.agentRegistry.getAgent(task.assignedAgent || '');
         
         if (!agent) {
           return null;
@@ -215,7 +215,7 @@ export class ConsensusOrchestratorService {
       if (!voteDetails.has(decision)) {
         voteDetails.set(decision, []);
       }
-      voteDetails.get(decision).push(vote);
+      voteDetails.get(decision)?.push(vote);
     }
     
     // Find majority
@@ -230,7 +230,7 @@ export class ConsensusOrchestratorService {
     }
     
     const agreement = maxCount / votes.length;
-    const majorityVotes = voteDetails.get(majority) || [];
+    const majorityVotes = voteDetails.get(majority || '') || [];
     
     // Calculate average confidence
     const avgConfidence =
@@ -238,7 +238,7 @@ export class ConsensusOrchestratorService {
       majorityVotes.length;
     
     return {
-      decision: JSON.parse(majority),
+      decision: JSON.parse(majority || '{}'),
       confidence: avgConfidence,
       votes,
       agreement,
@@ -264,7 +264,7 @@ export class ConsensusOrchestratorService {
       if (!votesByDecision.has(decision)) {
         votesByDecision.set(decision, []);
       }
-      votesByDecision.get(decision).push(vote);
+      votesByDecision.get(decision)?.push(vote);
     }
     
     // Calculate weighted score for each decision
@@ -290,13 +290,13 @@ export class ConsensusOrchestratorService {
       }
     }
     
-    const winningVotes = votesByDecision.get(bestDecision) || [];
+    const winningVotes = votesByDecision.get(bestDecision || '') || [];
     const avgConfidence =
       winningVotes.reduce((sum, v) => sum + v.confidence, 0) /
       winningVotes.length;
     
     return {
-      decision: JSON.parse(bestDecision),
+      decision: JSON.parse(bestDecision || '{}'),
       confidence: avgConfidence,
       votes,
       agreement: bestScore,

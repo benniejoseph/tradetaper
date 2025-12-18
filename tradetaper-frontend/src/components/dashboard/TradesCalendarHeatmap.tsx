@@ -91,23 +91,32 @@ export default function TradesCalendarHeatmap({ trades, onDateClick }: TradesCal
   };
 
   return (
-    <div className="p-1 sm:p-3 h-full flex flex-col rounded-lg min-h-[180px] sm:min-h-[200px]">
-      <CalendarHeatmap
-        startDate={oneYearAgo}
-        endDate={today}
-        values={heatmapValues}
-        classForValue={classForValue}
-        showWeekdayLabels={true}
-        monthLabels={['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']}
-        onClick={(valueArg) => {
-          const value = valueArg as (CustomHeatmapValue & ReactCalendarHeatmapValue<string>) | undefined;
-          if (value && value.date && value.totalPnl !== undefined && value.count > 0 && onDateClick) {
-            const tradesForDate = getTradesForDate(value.date);
-            onDateClick(value, tradesForDate);
-          }
-        }}
-        gutterSize={2}
-      />
+    <div className="relative p-1 sm:p-3 h-full flex flex-col rounded-lg min-h-[180px] sm:min-h-[200px] bg-gradient-to-br from-emerald-50 via-emerald-100 to-emerald-50 dark:from-emerald-950/20 dark:via-emerald-900/30 dark:to-emerald-950/20">
+      {/* Subtle pattern overlay */}
+      <div className="absolute inset-0 opacity-30 dark:opacity-10 pointer-events-none">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-emerald-400/20 to-transparent rounded-full blur-3xl"></div>
+        <div className="absolute bottom-0 left-0 w-64 h-64 bg-gradient-to-tr from-emerald-500/20 to-transparent rounded-full blur-3xl"></div>
+      </div>
+      
+      {/* Calendar content with white text */}
+      <div className="relative z-10 [&_.react-calendar-heatmap-month-label]:!text-white [&_.react-calendar-heatmap-small-text]:!text-white/90 [&_text]:!fill-white">
+        <CalendarHeatmap
+          startDate={oneYearAgo}
+          endDate={today}
+          values={heatmapValues}
+          classForValue={classForValue}
+          showWeekdayLabels={true}
+          monthLabels={['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']}
+          onClick={(valueArg) => {
+            const value = valueArg as (CustomHeatmapValue & ReactCalendarHeatmapValue<string>) | undefined;
+            if (value && value.date && value.totalPnl !== undefined && value.count > 0 && onDateClick) {
+              const tradesForDate = getTradesForDate(value.date);
+              onDateClick(value, tradesForDate);
+            }
+          }}
+          gutterSize={2}
+        />
+      </div>
     </div>
   );
 } 

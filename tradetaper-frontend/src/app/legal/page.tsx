@@ -48,7 +48,7 @@ const LegalDocumentCard = ({
       <Icon className="text-2xl text-white" />
     </div>
       
-      <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-3 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+      <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-3 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
       {title}
     </h3>
       
@@ -65,7 +65,7 @@ const LegalDocumentCard = ({
           </div>
         </div>
         
-    <div className="flex items-center text-blue-600 dark:text-blue-400 font-medium group-hover:translate-x-2 transition-transform duration-300">
+    <div className="flex items-center text-emerald-600 dark:text-emerald-400 font-medium group-hover:translate-x-2 transition-transform duration-300">
       Read document <FaArrowRight className="ml-2 text-sm" />
         </div>
       </div>
@@ -146,7 +146,7 @@ export default function LegalIndexPage() {
               <span className="text-white font-medium">Legal Center</span>
             </div>
 
-            <div className="inline-flex items-center space-x-2 bg-blue-500/10 backdrop-blur-sm px-6 py-3 rounded-full text-blue-300 text-sm font-medium mb-8 border border-blue-500/20">
+            <div className="inline-flex items-center space-x-2 bg-emerald-500/10 backdrop-blur-sm px-6 py-3 rounded-full text-emerald-300 text-sm font-medium mb-8 border border-blue-500/20">
               <FaGavel className="w-4 h-4" />
               <span>Legal & Compliance</span>
             </div>
@@ -164,7 +164,7 @@ export default function LegalIndexPage() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-4xl mx-auto">
               {trustIndicators.map((indicator, index) => (
                 <div key={index} className="bg-white/5 backdrop-blur-sm rounded-2xl p-6 border border-white/10">
-                  <indicator.icon className="w-8 h-8 text-blue-400 mx-auto mb-3" />
+                  <indicator.icon className="w-8 h-8 text-emerald-400 mx-auto mb-3" />
                   <h3 className="text-white font-semibold text-sm mb-1">{indicator.title}</h3>
                   <p className="text-gray-400 text-xs">{indicator.description}</p>
                 </div>
@@ -259,7 +259,7 @@ export default function LegalIndexPage() {
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link
               href="/support"
-                className="inline-flex items-center justify-center px-8 py-4 bg-white text-blue-600 rounded-xl hover:bg-gray-100 transition-all duration-300 transform hover:scale-105 shadow-lg font-semibold"
+                className="inline-flex items-center justify-center px-8 py-4 bg-white text-emerald-600 rounded-xl hover:bg-gray-100 transition-all duration-300 transform hover:scale-105 shadow-lg font-semibold"
             >
               <FaQuestionCircle className="mr-2" />
               Visit Support Center

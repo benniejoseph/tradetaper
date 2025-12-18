@@ -33,6 +33,8 @@ export class TradesController {
     @Body() createTradeDto: CreateTradeDto,
     @Request() req,
   ): Promise<Trade> {
+    this.logger.debug(`📥 Received create trade request: ${JSON.stringify(createTradeDto)}`);
+    this.logger.debug(`👤 User: ${req.user?.email || req.user?.id}`);
     return this.tradesService.create(createTradeDto, req.user);
   }
 

@@ -2,6 +2,8 @@ import { Repository } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
 import Stripe from 'stripe';
 import { Subscription } from '../entities/subscription.entity';
+import { StripeService } from './stripe.service';
+import { User } from '../../users/entities/user.entity';
 export interface PricingPlan {
     id: string;
     name: string;
@@ -35,16 +37,17 @@ export interface SubscriptionUsage {
 }
 export declare class SubscriptionService {
     private subscriptionRepository;
+    private userRepository;
     private configService;
+    private stripeService;
     private readonly logger;
-    private readonly stripe;
     private readonly pricingPlans;
-    constructor(subscriptionRepository: Repository<Subscription>, configService: ConfigService);
+    constructor(subscriptionRepository: Repository<Subscription>, userRepository: Repository<User>, configService: ConfigService, stripeService: StripeService);
     getPricingPlans(): PricingPlan[];
     getPricingPlan(planId: string): PricingPlan | null;
     getOrCreateSubscription(userId: string): Promise<Subscription>;
     getCurrentSubscription(userId: string): Promise<BillingInfo>;
-    getCurrentUsage(userId: string): Promise<SubscriptionUsage>;
+    getCurrentUsage(userId: string): SubscriptionUsage;
     createCheckoutSession(userId: string, priceId: string, successUrl: string, cancelUrl: string): Promise<{
         sessionId: string;
         url: string;
@@ -60,7 +63,7 @@ export declare class SubscriptionService {
     private getPlanFromPriceId;
     hasFeatureAccess(userId: string, feature: string): Promise<boolean>;
     checkUsageLimit(userId: string, feature: 'trades' | 'accounts'): Promise<boolean>;
-    incrementUsage(userId: string, type: 'trades' | 'accounts'): Promise<void>;
+    incrementUsage(userId: string, feature: 'AI_NOTES' | 'TRADES' | 'STRATEGIES'): Promise<void>;
     createPaymentLink(userId: string, priceId: string): Promise<{
         paymentLinkId: string;
         url: string;

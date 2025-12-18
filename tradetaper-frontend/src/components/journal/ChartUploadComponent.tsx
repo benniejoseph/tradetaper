@@ -39,7 +39,7 @@ const ChartUploadComponent: React.FC = () => {
       <div
         className={`flex flex-col items-center justify-center w-full h-64 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${
           isDragging
-            ? 'border-blue-500 bg-blue-50'
+            ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-950/20'
             : 'border-gray-300 hover:bg-gray-50'
         }`}
         onDragEnter={handleDragEnter}

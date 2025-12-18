@@ -89,7 +89,7 @@ export default function NewStrategyPage() {
       />
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+        <div className="bg-gradient-to-br from-white to-emerald-50 dark:from-black dark:to-emerald-950/20 rounded-xl shadow-sm border border-emerald-200/50 dark:border-emerald-700/30 p-6 backdrop-blur-xl">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Basic Information</h3>
           
           <div className="space-y-4">
@@ -101,7 +101,7 @@ export default function NewStrategyPage() {
                 type="text"
                 value={formData.name}
                 onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                className="w-full px-3 py-2 border border-emerald-300 dark:border-emerald-600/30 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent bg-white dark:bg-black text-gray-900 dark:text-white"
                 placeholder="e.g., Breakout Scalping, Trend Following"
                 required
               />
@@ -115,7 +115,7 @@ export default function NewStrategyPage() {
                 value={formData.description}
                 onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
                 rows={3}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                className="w-full px-3 py-2 border border-emerald-300 dark:border-emerald-600/30 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent bg-white dark:bg-black text-gray-900 dark:text-white"
                 placeholder="Describe your strategy, rules, and methodology..."
               />
             </div>
@@ -131,7 +131,7 @@ export default function NewStrategyPage() {
                     ...prev, 
                     tradingSession: e.target.value as any || undefined 
                   }))}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  className="w-full px-3 py-2 border border-emerald-300 dark:border-emerald-600/30 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent bg-white dark:bg-black text-gray-900 dark:text-white"
                 >
                   <option value="">Select session</option>
                   <option value="london">London</option>
@@ -149,7 +149,7 @@ export default function NewStrategyPage() {
                   type="color"
                   value={formData.color}
                   onChange={(e) => setFormData(prev => ({ ...prev, color: e.target.value }))}
-                  className="w-full h-10 border border-gray-300 dark:border-gray-600 rounded-lg"
+                  className="w-full h-10 border border-emerald-300 dark:border-emerald-600/30 rounded-lg"
                 />
               </div>
             </div>
@@ -162,7 +162,7 @@ export default function NewStrategyPage() {
                 type="text"
                 value={formData.tags}
                 onChange={(e) => setFormData(prev => ({ ...prev, tags: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                className="w-full px-3 py-2 border border-emerald-300 dark:border-emerald-600/30 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent bg-white dark:bg-black text-gray-900 dark:text-white"
                 placeholder="scalping, momentum, reversal (comma separated)"
               />
             </div>
@@ -173,7 +173,7 @@ export default function NewStrategyPage() {
                 id="isActive"
                 checked={formData.isActive}
                 onChange={(e) => setFormData(prev => ({ ...prev, isActive: e.target.checked }))}
-                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                className="h-4 w-4 text-emerald-600 focus:ring-emerald-500 border-emerald-300 dark:border-emerald-600/30 rounded"
               />
               <label htmlFor="isActive" className="ml-2 block text-sm text-gray-700 dark:text-gray-300">
                 Strategy is active
@@ -183,18 +183,18 @@ export default function NewStrategyPage() {
         </div>
 
         {/* Checklist Section */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+        <div className="bg-gradient-to-br from-white to-emerald-50 dark:from-black dark:to-emerald-950/20 rounded-xl shadow-sm border border-emerald-200/50 dark:border-emerald-700/30 p-6 backdrop-blur-xl">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Trading Checklist</h3>
           
           <div className="space-y-3">
             {formData.checklist?.map((item, index) => (
-              <div key={item.id} className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+              <div key={item.id} className="flex items-center gap-3 p-3 bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-950/20 dark:to-emerald-900/20 rounded-lg border border-emerald-200 dark:border-emerald-700/30">
                 <MdDragIndicator className="text-gray-400 flex-shrink-0" />
                 <input
                   type="text"
                   value={item.text}
                   onChange={(e) => updateChecklistItem(item.id, e.target.value)}
-                  className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  className="flex-1 px-3 py-2 border border-emerald-300 dark:border-emerald-600/30 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent bg-white dark:bg-black text-gray-900 dark:text-white"
                   placeholder="Checklist item..."
                 />
                 <button
@@ -213,13 +213,13 @@ export default function NewStrategyPage() {
                 value={newChecklistItem}
                 onChange={(e) => setNewChecklistItem(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addChecklistItem())}
-                className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                className="flex-1 px-3 py-2 border border-emerald-300 dark:border-emerald-600/30 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent bg-white dark:bg-black text-gray-900 dark:text-white"
                 placeholder="Add checklist item..."
               />
               <button
                 type="button"
                 onClick={addChecklistItem}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center"
+                className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors flex items-center"
               >
                 <FiPlus className="w-4 h-4" />
               </button>
@@ -231,14 +231,14 @@ export default function NewStrategyPage() {
           <button
             type="button"
             onClick={() => router.back()}
-            className="px-4 py-2 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+            className="px-4 py-2 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-600/30 rounded-lg hover:bg-gradient-to-r hover:from-emerald-50 hover:to-emerald-100 dark:hover:from-emerald-950/20 dark:hover:to-emerald-900/20 transition-all"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={loading || !formData.name.trim()}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             {loading ? 'Creating...' : 'Create Strategy'}
           </button>

@@ -87,16 +87,16 @@ export default function DashboardPnlCalendar({ trades: allTrades }: DashboardPnl
   const getDayClass = (day: Date, pnlInfo: DailyPnlInfo | undefined): string => {
     const isSelected = isSameDay(day, selectedDate);
     // Exact colors from image would be needed for perfect match. Using Tailwind defaults for now.
-    if (isSelected) return 'bg-blue-500 text-white'; // Selected day: Blue
+    if (isSelected) return 'bg-emerald-500 text-white'; // Selected day: Emerald
     if (!isSameMonth(day, currentMonth)) return 'text-gray-400 dark:text-gray-500'; // Days not in month: Dimmed text, no bg
     
     if (pnlInfo) {
-      if (pnlInfo.pnl > 0) return 'bg-green-500 text-white'; // Win day: Green
+      if (pnlInfo.pnl > 0) return 'bg-emerald-500 text-white'; // Win day: Emerald
       if (pnlInfo.pnl < 0) return 'bg-red-500 text-white';   // Loss day: Red
     }
     // Default for days in month with no P&L or zero P&L (e.g., no trades, or breakeven)
     // Image shows these as plain, similar to out-of-month days. Let's use a very subtle background or just text.
-    return 'bg-gray-100 dark:bg-gray-700/50 hover:bg-gray-200 dark:hover:bg-gray-600/50'; 
+    return 'bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-950/10 dark:to-emerald-900/10 hover:from-emerald-100 hover:to-emerald-200 dark:hover:from-emerald-900/20 dark:hover:to-emerald-800/20'; 
   };
 
   const weekDayHeaders = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
@@ -214,25 +214,25 @@ export default function DashboardPnlCalendar({ trades: allTrades }: DashboardPnl
         </h4>
         {selectedDayStats ? (
           <div className="space-y-1.5 flex-grow">
-            <div className="flex justify-between"><span className="text-gray-600 dark:text-gray-400">Total trades</span><span>{selectedDayMetrics.totalTrades}</span></div>
-            <div className="flex justify-between"><span className="text-gray-600 dark:text-gray-400">Winrate</span><span className={selectedDayMetrics.winRate >= 50 ? 'text-green-500 font-semibold' : 'text-red-500 font-semibold'}>{selectedDayMetrics.winRate.toFixed(0)}%</span></div>
-            <div className="flex justify-between"><span className="text-gray-600 dark:text-gray-400">Return</span><span className={selectedDayMetrics.totalReturn >= 0 ? 'text-green-500 font-semibold' : 'text-red-500 font-semibold'}>${selectedDayMetrics.totalReturn.toFixed(2)}</span></div>
-            <div className="flex justify-between"><span className="text-gray-600 dark:text-gray-400">Return on winners</span><span className="text-green-500 font-semibold">${selectedDayMetrics.returnOnWinners.toFixed(2)}</span></div>
-            <div className="flex justify-between"><span className="text-gray-600 dark:text-gray-400">Return on losers</span><span className="text-red-500 font-semibold">${selectedDayMetrics.returnOnLosers.toFixed(2)}</span></div>
+            <div className="flex justify-between"><span className="text-gray-600 dark:text-gray-400">Total trades</span><span>{selectedDayMetrics.totalTrades || 0}</span></div>
+            <div className="flex justify-between"><span className="text-gray-600 dark:text-gray-400">Winrate</span><span className={(selectedDayMetrics.winRate || 0) >= 50 ? 'text-emerald-500 font-semibold' : 'text-red-500 font-semibold'}>{(selectedDayMetrics.winRate || 0).toFixed(0)}%</span></div>
+            <div className="flex justify-between"><span className="text-gray-600 dark:text-gray-400">Return</span><span className={(selectedDayMetrics.totalReturn || 0) >= 0 ? 'text-emerald-500 font-semibold' : 'text-red-500 font-semibold'}>${(selectedDayMetrics.totalReturn || 0).toFixed(2)}</span></div>
+            <div className="flex justify-between"><span className="text-gray-600 dark:text-gray-400">Return on winners</span><span className="text-emerald-500 font-semibold">${(selectedDayMetrics.returnOnWinners || 0).toFixed(2)}</span></div>
+            <div className="flex justify-between"><span className="text-gray-600 dark:text-gray-400">Return on losers</span><span className="text-red-500 font-semibold">${(selectedDayMetrics.returnOnLosers || 0).toFixed(2)}</span></div>
             
             <div className="pt-1 pb-0.5">
               {/* Win/Loss Percentage Bar - refined text and padding */}
               <div className="flex h-4 text-[0.6rem] font-semibold rounded-sm overflow-hidden">
-                <div style={{ width: `${selectedDayMetrics.winRate}%` }} className="bg-green-500 flex items-center justify-center text-white whitespace-nowrap overflow-hidden px-1 shadow-sm">
-                  L {selectedDayMetrics.winRate.toFixed(0)}%
+                <div style={{ width: `${selectedDayMetrics.winRate || 0}%` }} className="bg-emerald-500 flex items-center justify-center text-white whitespace-nowrap overflow-hidden px-1 shadow-sm">
+                  L {(selectedDayMetrics.winRate || 0).toFixed(0)}%
                 </div>
-                <div style={{ width: `${Math.max(0, 100 - selectedDayMetrics.winRate)}%` }} className="bg-red-500 flex items-center justify-center text-white whitespace-nowrap overflow-hidden px-1 shadow-sm">
-                  S {Math.max(0, 100 - selectedDayMetrics.winRate).toFixed(0)}%
+                <div style={{ width: `${Math.max(0, 100 - (selectedDayMetrics.winRate || 0))}%` }} className="bg-red-500 flex items-center justify-center text-white whitespace-nowrap overflow-hidden px-1 shadow-sm">
+                  S {Math.max(0, 100 - (selectedDayMetrics.winRate || 0)).toFixed(0)}%
                 </div>
               </div>
             </div>
 
-            <div className="flex justify-between pt-1.5 border-t border-[var(--color-light-border)] dark:border-gray-700"><span className="text-gray-600 dark:text-gray-400">Win trades</span><span className="text-green-500 font-semibold">{selectedDayMetrics.winTradesCount}</span></div>
+            <div className="flex justify-between pt-1.5 border-t border-[var(--color-light-border)] dark:border-gray-700"><span className="text-gray-600 dark:text-gray-400">Win trades</span><span className="text-emerald-500 font-semibold">{selectedDayMetrics.winTradesCount}</span></div>
             <div className="flex justify-between"><span className="text-gray-600 dark:text-gray-400">Loss trades</span><span className="text-red-500 font-semibold">{selectedDayMetrics.lossTradesCount}</span></div>
             {selectedDayMetrics.breakevenTradesCount > 0 && (
               <div className="flex justify-between"><span className="text-gray-600 dark:text-gray-400">Breakeven trades</span><span>{selectedDayMetrics.breakevenTradesCount}</span></div>

@@ -19,7 +19,7 @@ export class GeminiVisionService {
       throw new Error('GEMINI_API_KEY is not configured.');
     }
     this.genAI = new GoogleGenerativeAI(apiKey);
-    this.model = this.genAI.getGenerativeModel({ model: 'gemini-pro-vision' });
+    this.model = this.genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
   }
 
   async analyzeImage(imageBuffer: Buffer, prompt: string): Promise<string> {

@@ -141,9 +141,9 @@ export default function CompleteICTAnalysis({ symbol }: Props) {
 
   if (loading) {
     return (
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
+      <div className="bg-gradient-to-br from-white to-emerald-50 dark:from-black dark:to-emerald-950/20 rounded-lg shadow-sm p-6">
         <div className="flex items-center space-x-2 mb-4">
-          <FaSync className="animate-spin text-blue-600" />
+          <FaSync className="animate-spin text-emerald-600" />
           <span className="text-gray-900 dark:text-white">Loading Complete ICT Analysis...</span>
         </div>
       </div>
@@ -155,9 +155,9 @@ export default function CompleteICTAnalysis({ symbol }: Props) {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg p-6 text-white">
+      <div className="bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-lg p-6 text-white">
         <h2 className="text-3xl font-bold mb-2">Complete ICT Analysis</h2>
-        <p className="text-blue-100">
+        <p className="text-emerald-100">
           Comprehensive analysis using all ICT concepts for {data.symbol}
         </p>
       </div>
@@ -171,9 +171,9 @@ export default function CompleteICTAnalysis({ symbol }: Props) {
       />
 
       {/* ICT Narrative */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
+      <div className="bg-gradient-to-br from-white to-emerald-50 dark:from-black dark:to-emerald-950/20 rounded-lg shadow-sm p-6">
         <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center">
-          <FaChartLine className="mr-2 text-blue-600" />
+          <FaChartLine className="mr-2 text-emerald-600" />
           ICT Narrative
         </h3>
         <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
@@ -184,55 +184,55 @@ export default function CompleteICTAnalysis({ symbol }: Props) {
       {/* All ICT Concepts Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {/* Liquidity */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
+        <div className="bg-gradient-to-br from-white to-emerald-50 dark:from-black dark:to-emerald-950/20 rounded-lg shadow-sm p-6">
           <div className="flex items-center space-x-2 mb-4">
-            <FaWater className="text-blue-500" />
+            <FaWater className="text-emerald-500" />
             <h4 className="font-bold text-gray-900 dark:text-white">Liquidity</h4>
           </div>
           <div className="space-y-2 text-sm">
             <div>
               <p className="text-gray-600 dark:text-gray-400">Buy-Side Target:</p>
               <p className="font-mono font-bold text-green-600">
-                {data.concepts.liquidity.nearestTarget.toFixed(4)}
+                {data.concepts?.liquidity?.nearestTarget?.toFixed(4) || 'N/A'}
               </p>
             </div>
             <div>
               <p className="text-gray-600 dark:text-gray-400">Sell-Side Swept:</p>
               <p className="font-mono text-gray-900 dark:text-white">
-                {data.concepts.liquidity.sellSideLiquidity[0]?.swept ? '✓ Yes' : '✗ No'}
+                {data.concepts?.liquidity?.sellSideLiquidity?.[0]?.swept ? '✓ Yes' : '✗ No'}
               </p>
             </div>
           </div>
         </div>
 
         {/* Market Structure */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
+        <div className="bg-gradient-to-br from-white to-emerald-50 dark:from-black dark:to-emerald-950/20 rounded-lg shadow-sm p-6">
           <div className="flex items-center space-x-2 mb-4">
-            <FaChartBar className="text-purple-500" />
+            <FaChartBar className="text-emerald-600" />
             <h4 className="font-bold text-gray-900 dark:text-white">Market Structure</h4>
           </div>
           <div className="space-y-2 text-sm">
             <div>
               <p className="text-gray-600 dark:text-gray-400">Trend:</p>
               <p className={`font-bold ${
-                data.concepts.marketStructure.trend === 'BULLISH'
+                data.concepts?.marketStructure?.trend === 'BULLISH'
                   ? 'text-green-600'
                   : 'text-red-600'
               }`}>
-                {data.concepts.marketStructure.trend}
+                {data.concepts?.marketStructure?.trend || 'NEUTRAL'}
               </p>
             </div>
             <div>
               <p className="text-gray-600 dark:text-gray-400">Last BOS:</p>
               <p className="font-mono text-gray-900 dark:text-white">
-                {data.concepts.marketStructure.lastBOS?.toFixed(4) || 'N/A'}
+                {data.concepts?.marketStructure?.lastBOS?.toFixed(4) || 'N/A'}
               </p>
             </div>
           </div>
         </div>
 
         {/* Fair Value Gaps */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
+        <div className="bg-gradient-to-br from-white to-emerald-50 dark:from-black dark:to-emerald-950/20 rounded-lg shadow-sm p-6">
           <div className="flex items-center space-x-2 mb-4">
             <FaCrosshairs className="text-yellow-500" />
             <h4 className="font-bold text-gray-900 dark:text-white">Fair Value Gaps</h4>
@@ -241,20 +241,20 @@ export default function CompleteICTAnalysis({ symbol }: Props) {
             <div>
               <p className="text-gray-600 dark:text-gray-400">Bullish FVGs:</p>
               <p className="font-bold text-green-600">
-                {data.concepts.fairValueGaps.bullish.length}
+                {data.concepts?.fairValueGaps?.bullish?.length || 0}
               </p>
             </div>
             <div>
               <p className="text-gray-600 dark:text-gray-400">Nearest:</p>
               <p className="font-mono text-gray-900 dark:text-white">
-                {data.concepts.fairValueGaps.nearest?.toFixed(4) || 'N/A'}
+                {data.concepts?.fairValueGaps?.nearest?.toFixed(4) || 'N/A'}
               </p>
             </div>
           </div>
         </div>
 
         {/* Order Blocks */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
+        <div className="bg-gradient-to-br from-white to-emerald-50 dark:from-black dark:to-emerald-950/20 rounded-lg shadow-sm p-6">
           <div className="flex items-center space-x-2 mb-4">
             <FaCube className="text-green-500" />
             <h4 className="font-bold text-gray-900 dark:text-white">Order Blocks</h4>
@@ -263,61 +263,61 @@ export default function CompleteICTAnalysis({ symbol }: Props) {
             <div>
               <p className="text-gray-600 dark:text-gray-400">Bullish OBs:</p>
               <p className="font-bold text-green-600">
-                {data.concepts.orderBlocks.bullish.length}
+                {data.concepts?.orderBlocks?.bullish?.length || 0}
               </p>
             </div>
             <div>
               <p className="text-gray-600 dark:text-gray-400">Nearest:</p>
               <p className="font-mono text-gray-900 dark:text-white">
-                {data.concepts.orderBlocks.nearest?.toFixed(4) || 'N/A'}
+                {data.concepts?.orderBlocks?.nearest?.toFixed(4) || 'N/A'}
               </p>
             </div>
           </div>
         </div>
 
         {/* Kill Zones */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
+        <div className="bg-gradient-to-br from-white to-emerald-50 dark:from-black dark:to-emerald-950/20 rounded-lg shadow-sm p-6">
           <div className="flex items-center space-x-2 mb-4">
-            <FaClock className="text-blue-500" />
+            <FaClock className="text-emerald-500" />
             <h4 className="font-bold text-gray-900 dark:text-white">Kill Zones</h4>
           </div>
           <div className="space-y-2 text-sm">
             <div>
               <p className="text-gray-600 dark:text-gray-400">Current:</p>
-              <p className="font-bold text-blue-600">
-                {data.concepts.killZone.current}
+              <p className="font-bold text-emerald-600">
+                {data.concepts?.killZone?.current || 'N/A'}
               </p>
             </div>
             <div>
               <p className="text-gray-600 dark:text-gray-400">Optimal:</p>
-              <p className={`font-bold ${data.concepts.killZone.isOptimal ? 'text-green-600' : 'text-gray-600'}`}>
-                {data.concepts.killZone.isOptimal ? '✓ Yes' : '✗ No'}
+              <p className={`font-bold ${data.concepts?.killZone?.isOptimal ? 'text-green-600' : 'text-gray-600'}`}>
+                {data.concepts?.killZone?.isOptimal ? '✓ Yes' : '✗ No'}
               </p>
             </div>
           </div>
         </div>
 
         {/* Premium/Discount */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
+        <div className="bg-gradient-to-br from-white to-emerald-50 dark:from-black dark:to-emerald-950/20 rounded-lg shadow-sm p-6">
           <div className="flex items-center space-x-2 mb-4">
-            <FaMoneyBillWave className="text-purple-500" />
+            <FaMoneyBillWave className="text-emerald-600" />
             <h4 className="font-bold text-gray-900 dark:text-white">Premium/Discount</h4>
           </div>
           <div className="space-y-2 text-sm">
             <div>
               <p className="text-gray-600 dark:text-gray-400">Position:</p>
               <p className={`font-bold ${
-                data.concepts.premiumDiscount.position === 'DISCOUNT'
+                data.concepts?.premiumDiscount?.position === 'DISCOUNT'
                   ? 'text-green-600'
                   : 'text-red-600'
               }`}>
-                {data.concepts.premiumDiscount.position}
+                {data.concepts?.premiumDiscount?.position || 'NEUTRAL'}
               </p>
             </div>
             <div>
               <p className="text-gray-600 dark:text-gray-400">Level:</p>
               <p className="font-mono text-gray-900 dark:text-white">
-                {data.concepts.premiumDiscount.percentage}%
+                {data.concepts?.premiumDiscount?.percentage || 50}%
               </p>
             </div>
           </div>
@@ -325,7 +325,7 @@ export default function CompleteICTAnalysis({ symbol }: Props) {
       </div>
 
       {/* Trading Plan */}
-      <div className="bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-900/20 dark:to-blue-900/20 rounded-lg p-6 border-2 border-green-500">
+      <div className="bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-900/20 dark:to-emerald-800/20 rounded-lg p-6 border-2 border-green-500">
         <div className="flex items-center space-x-2 mb-4">
           <FaBolt className="text-green-600 text-xl" />
           <h3 className="text-xl font-bold text-gray-900 dark:text-white">Trading Plan</h3>
@@ -337,19 +337,19 @@ export default function CompleteICTAnalysis({ symbol }: Props) {
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
                 <span className="text-gray-600 dark:text-gray-400">Setup:</span>
-                <span className="font-medium text-gray-900 dark:text-white">{data.tradingPlan.setup}</span>
+                <span className="font-medium text-gray-900 dark:text-white">{data.tradingPlan?.setup || 'N/A'}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-600 dark:text-gray-400">Bias:</span>
                 <span className={`font-bold ${
-                  data.tradingPlan.bias === 'LONG' ? 'text-green-600' : 'text-red-600'
+                  data.tradingPlan?.bias === 'LONG' ? 'text-green-600' : 'text-red-600'
                 }`}>
-                  {data.tradingPlan.bias}
+                  {data.tradingPlan?.bias || 'NEUTRAL'}
                 </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-600 dark:text-gray-400">Risk/Reward:</span>
-                <span className="font-bold text-green-600">{data.tradingPlan.riskReward}R</span>
+                <span className="font-bold text-green-600">{data.tradingPlan?.riskReward || 'N/A'}R</span>
               </div>
             </div>
           </div>
@@ -360,17 +360,17 @@ export default function CompleteICTAnalysis({ symbol }: Props) {
               <div className="flex justify-between">
                 <span className="text-gray-600 dark:text-gray-400">Entry Zone:</span>
                 <span className="font-mono text-gray-900 dark:text-white">
-                  {data.tradingPlan.entryZone.min.toFixed(4)} - {data.tradingPlan.entryZone.max.toFixed(4)}
+                  {data.tradingPlan?.entryZone?.min?.toFixed(4) || 'N/A'} - {data.tradingPlan?.entryZone?.max?.toFixed(4) || 'N/A'}
                 </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-600 dark:text-gray-400">Stop Loss:</span>
-                <span className="font-mono text-red-600">{data.tradingPlan.stopLoss.toFixed(4)}</span>
+                <span className="font-mono text-red-600">{data.tradingPlan?.stopLoss?.toFixed(4) || 'N/A'}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-600 dark:text-gray-400">Take Profit:</span>
                 <span className="font-mono text-green-600">
-                  {data.tradingPlan.takeProfit.tp1.toFixed(4)} / {data.tradingPlan.takeProfit.tp2.toFixed(4)} / {data.tradingPlan.takeProfit.tp3.toFixed(4)}
+                  {data.tradingPlan?.takeProfit?.tp1?.toFixed(4) || 'N/A'} / {data.tradingPlan?.takeProfit?.tp2?.toFixed(4) || 'N/A'} / {data.tradingPlan?.takeProfit?.tp3?.toFixed(4) || 'N/A'}
                 </span>
               </div>
             </div>
@@ -379,7 +379,7 @@ export default function CompleteICTAnalysis({ symbol }: Props) {
 
         <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
           <p className="text-sm text-gray-700 dark:text-gray-300">
-            <strong>Reasoning:</strong> {data.tradingPlan.reasoning}
+            <strong>Reasoning:</strong> {data.tradingPlan?.reasoning || 'No trading plan reasoning available'}
           </p>
         </div>
       </div>

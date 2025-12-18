@@ -177,7 +177,7 @@ export default function JournalPage() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-emerald-500 mx-auto mb-4"></div>
           <p className="text-gray-600 dark:text-gray-300 text-lg">Loading your trading journal...</p>
         </div>
       </div>
@@ -189,7 +189,7 @@ export default function JournalPage() {
       {/* Header Section */}
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
         <div className="space-y-2">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-green-600 bg-clip-text text-transparent">
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-emerald-500 to-emerald-600 bg-clip-text text-transparent">
             Trading Journal
           </h1>
           <p className="text-gray-600 dark:text-gray-300">
@@ -203,12 +203,12 @@ export default function JournalPage() {
             className={`p-3 rounded-xl transition-all duration-200 hover:scale-105 ${
               showOnlyStarred 
                 ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400' 
-                : 'bg-gray-100/80 dark:bg-gray-800/80 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
+                : 'bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-950/20 dark:to-emerald-900/20 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
             }`}>
             {showOnlyStarred ? <FaStarSolid /> : <FaStarOutline />}
           </button>
           
-          <button className="p-3 rounded-xl bg-gray-100/80 dark:bg-gray-800/80 hover:bg-green-500 dark:hover:bg-green-500 text-gray-600 dark:text-gray-400 hover:text-white transition-all duration-200 hover:scale-105">
+          <button className="p-3 rounded-xl bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-950/20 dark:to-emerald-900/20 hover:bg-green-500 dark:hover:bg-green-500 text-gray-600 dark:text-gray-400 hover:text-white transition-all duration-200 hover:scale-105">
             <FaDownload className="w-4 h-4" />
           </button>
         </div>
@@ -217,13 +217,13 @@ export default function JournalPage() {
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {/* Monthly Progress Card */}
-        <div className="group relative bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 p-6 shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
-          <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-green-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl"></div>
+        <div className="group relative bg-gradient-to-br from-white to-emerald-50 dark:from-black dark:to-emerald-950/20 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 p-6 shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
+          <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-emerald-600/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl"></div>
           <div className="relative z-10">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Monthly Progress</h3>
-              <div className="p-2 bg-gradient-to-r from-blue-500/20 to-green-500/20 rounded-xl">
-                <FaChartLine className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+              <div className="p-2 bg-gradient-to-r from-emerald-500/20 to-emerald-600/20 rounded-xl">
+                <FaChartLine className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
               </div>
             </div>
             <p className={`text-3xl font-bold mb-4 ${
@@ -246,13 +246,13 @@ export default function JournalPage() {
         </div>
 
         {/* Balance Card */}
-        <div className="group relative bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 p-6 shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
-          <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-pink-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl"></div>
+        <div className="group relative bg-gradient-to-br from-white to-emerald-50 dark:from-black dark:to-emerald-950/20 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 p-6 shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
+          <div className="absolute inset-0 bg-gradient-to-br from-emerald-600/5 to-emerald-700/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl"></div>
           <div className="relative z-10">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Net Balance</h3>
-              <div className="p-2 bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-xl">
-                <FaBookOpen className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+              <div className="p-2 bg-gradient-to-r from-emerald-600/20 to-emerald-700/20 rounded-xl">
+                <FaBookOpen className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
               </div>
             </div>
             <p className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
@@ -273,12 +273,12 @@ export default function JournalPage() {
         </div>
 
         {/* Win Rate Card */}
-        <div className="group relative bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 p-6 shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
-          <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 to-blue-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl"></div>
+        <div className="group relative bg-gradient-to-br from-white to-emerald-50 dark:from-black dark:to-emerald-950/20 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 p-6 shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
+          <div className="absolute inset-0 bg-gradient-to-br from-emerald-700/5 to-emerald-800/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl"></div>
           <div className="relative z-10">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Win Rate</h3>
-              <div className="p-2 bg-gradient-to-r from-green-500/20 to-blue-500/20 rounded-xl">
+              <div className="p-2 bg-gradient-to-r from-emerald-700/20 to-emerald-800/20 rounded-xl">
                 <FaArrowUp className="w-4 h-4 text-green-600 dark:text-green-400" />
               </div>
             </div>
@@ -290,7 +290,7 @@ export default function JournalPage() {
                 <span className="text-green-600 dark:text-green-400">Wins: {headerStats.winningTradesCount}</span>
                 <span className="text-red-600 dark:text-red-400">Losses: {headerStats.losingTradesCount}</span>
               </div>
-              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden">
+              <div className="w-full bg-gradient-to-r from-emerald-100 to-emerald-200 dark:from-emerald-950/30 dark:to-emerald-900/30 rounded-full h-2 overflow-hidden">
                 <div 
                   className="bg-gradient-to-r from-green-500 to-blue-500 h-2 rounded-full transition-all duration-500"
                   style={{ width: `${headerStats.winRate}%` }}
@@ -301,7 +301,7 @@ export default function JournalPage() {
         </div>
 
         {/* Long/Short Ratio Card */}
-        <div className="group relative bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 p-6 shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
+        <div className="group relative bg-gradient-to-br from-white to-emerald-50 dark:from-black dark:to-emerald-950/20 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 p-6 shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
           <div className="absolute inset-0 bg-gradient-to-br from-orange-500/5 to-red-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl"></div>
           <div className="relative z-10">
             <div className="flex items-center justify-between mb-3">
@@ -316,11 +316,11 @@ export default function JournalPage() {
             {headerStats.longTrades + headerStats.shortTrades > 0 && (
               <div className="w-full h-3 flex rounded-xl overflow-hidden">
                 <div 
-                  className="bg-gradient-to-r from-blue-500 to-blue-600 h-full transition-all duration-500" 
+                  className="bg-gradient-to-r from-emerald-500 to-emerald-600 h-full transition-all duration-500" 
                   style={{ width: `${(headerStats.longTrades / (headerStats.longTrades + headerStats.shortTrades)) * 100}%` }}
                 ></div>
                 <div 
-                  className="bg-gradient-to-r from-purple-500 to-purple-600 h-full transition-all duration-500"
+                  className="bg-gradient-to-r from-emerald-600 to-emerald-700 h-full transition-all duration-500"
                   style={{ width: `${(headerStats.shortTrades / (headerStats.longTrades + headerStats.shortTrades)) * 100}%` }}
                 ></div>
               </div>
@@ -330,20 +330,20 @@ export default function JournalPage() {
       </div>
 
       {/* Filters and Controls */}
-      <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 p-6 shadow-lg">
+      <div className="bg-gradient-to-br from-white to-emerald-50 dark:from-black dark:to-emerald-950/20 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 p-6 shadow-lg">
         <div className="flex flex-col lg:flex-row gap-6">
           {/* Position Filters */}
           <div className="flex items-center space-x-2">
             <span className="text-sm font-medium text-gray-700 dark:text-gray-300 mr-2">Status:</span>
-            <div className="flex bg-gray-100/80 dark:bg-gray-800/80 p-1 rounded-xl">
+            <div className="flex bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-950/20 dark:to-emerald-900/20 p-1 rounded-xl">
               {(['all', 'open', 'closed'] as const).map(pos => (
                 <button 
                   key={pos}
                   onClick={() => setActivePositionFilter(pos)}
                   className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
                     activePositionFilter === pos 
-                      ? 'bg-gradient-to-r from-blue-500 to-green-500 text-white shadow-md' 
-                      : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-200/50 dark:hover:bg-gray-700/50'
+                      ? 'bg-gradient-to-r from-emerald-500 to-emerald-600 text-white shadow-md' 
+                      : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-emerald-100 dark:hover:bg-emerald-900/30'
                   }`}>
                   {pos.charAt(0).toUpperCase() + pos.slice(1)}
                 </button>
@@ -354,22 +354,22 @@ export default function JournalPage() {
           {/* Time Filters */}
           <div className="flex items-center space-x-2">
             <span className="text-sm font-medium text-gray-700 dark:text-gray-300 mr-2">Period:</span>
-            <div className="flex bg-gray-100/80 dark:bg-gray-800/80 p-1 rounded-xl">
+            <div className="flex bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-950/20 dark:to-emerald-900/20 p-1 rounded-xl">
               {(['all', '1d', '7d', '1m'] as const).map(time => (
                 <button 
                   key={time}
                   onClick={() => setActiveTimeFilter(time)}
                   className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
                     activeTimeFilter === time 
-                      ? 'bg-gradient-to-r from-blue-500 to-green-500 text-white shadow-md' 
-                      : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-200/50 dark:hover:bg-gray-700/50'
+                      ? 'bg-gradient-to-r from-emerald-500 to-emerald-600 text-white shadow-md' 
+                      : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-emerald-100 dark:hover:bg-emerald-900/30'
                   }`}>
                   {time === 'all' ? 'All time' : time === '1m' ? '1 month' : time}
                 </button>
               ))}
               <button 
                 onClick={() => setIsDatePickerOpen(true)}
-                className="p-2 rounded-lg text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-200/50 dark:hover:bg-gray-700/50 transition-all duration-200">
+                className="p-2 rounded-lg text-gray-600 dark:text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/30 transition-all duration-200">
                 <FaCalendarAlt className="h-4 w-4" />
               </button>
             </div>
@@ -381,7 +381,7 @@ export default function JournalPage() {
               <input 
                 type="text" 
                 placeholder="Search trades..." 
-                className="pl-10 pr-4 py-2.5 text-sm rounded-xl border border-gray-200/50 dark:border-gray-700/50 bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200" 
+                className="pl-10 pr-4 py-2.5 text-sm rounded-xl border border-gray-200/50 dark:border-gray-700/50 bg-gradient-to-r from-white to-emerald-50 dark:from-black dark:to-emerald-950/20 backdrop-blur-sm focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all duration-200" 
                 value={searchQuery} 
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
@@ -390,7 +390,7 @@ export default function JournalPage() {
             
             <Link 
               href="/journal/new" 
-              className="flex items-center space-x-2 bg-gradient-to-r from-blue-500 to-green-500 hover:from-blue-600 hover:to-green-600 text-white font-semibold py-2.5 px-6 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105">
+              className="flex items-center space-x-2 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-semibold py-2.5 px-6 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105">
               <FaPlus className="w-4 h-4" />
               <span>Log Trade</span>
             </Link>
@@ -401,7 +401,7 @@ export default function JournalPage() {
       {/* Loading State */}
       {isLoading && (
         <div className="text-center py-16">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-500 mx-auto mb-4"></div>
           <p className="text-gray-600 dark:text-gray-300">Loading trades...</p>
         </div>
       )}
@@ -415,9 +415,9 @@ export default function JournalPage() {
 
       {/* No Trades State */}
       {!isLoading && !error && filteredTrades.length === 0 && (
-        <div className="text-center py-16 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 shadow-lg">
+        <div className="text-center py-16 bg-gradient-to-br from-white to-emerald-50 dark:from-black dark:to-emerald-950/20 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 shadow-lg">
           <div className="max-w-md mx-auto space-y-6">
-            <div className="w-20 h-20 bg-gradient-to-r from-blue-500 to-green-500 rounded-full flex items-center justify-center mx-auto">
+            <div className="w-20 h-20 bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-full flex items-center justify-center mx-auto">
               <FaBookOpen className="w-10 h-10 text-white" />
             </div>
             <div>
@@ -438,7 +438,7 @@ export default function JournalPage() {
               return filteredTrades.length === 0 && accountTrades.length === 0 && (
                 <Link 
                   href="/journal/new" 
-                  className="inline-flex items-center space-x-2 bg-gradient-to-r from-blue-500 to-green-500 hover:from-blue-600 hover:to-green-600 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl">
+                  className="inline-flex items-center space-x-2 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl">
                   <FaPlus className="w-4 h-4" />
                   <span>Log Your First Trade</span>
                 </Link>
@@ -450,7 +450,7 @@ export default function JournalPage() {
 
       {/* Trades Table */}
       {!isLoading && filteredTrades.length > 0 && (
-        <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 shadow-lg overflow-hidden">
+        <div className="bg-gradient-to-br from-white to-emerald-50 dark:from-black dark:to-emerald-950/20 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 shadow-lg overflow-hidden">
           <TradesTable 
             trades={filteredTrades} 
             accounts={accounts} 
@@ -462,7 +462,7 @@ export default function JournalPage() {
 
       {/* Footer Stats */}
       {!isLoading && filteredTrades.length > 0 && (
-        <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 p-6 shadow-lg">
+        <div className="bg-gradient-to-br from-white to-emerald-50 dark:from-black dark:to-emerald-950/20 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 p-6 shadow-lg">
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-4">
             {[
               { label: 'Total P&L', value: footerStats.totalNetPnl, color: footerStats.totalNetPnl >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400', isAmount: true, showSign: true },
@@ -473,7 +473,7 @@ export default function JournalPage() {
               { label: 'Avg Loss', value: footerStats.averageLoss, color: 'text-red-600 dark:text-red-400', isAmount: true, showSign: true },
               { label: 'Avg R:R', value: `${footerStats.averageRR.toFixed(2)}R`, color: 'text-gray-900 dark:text-white', isAmount: false },
             ].map((stat, index) => (
-              <div key={index} className="text-center p-4 bg-gray-50/80 dark:bg-gray-800/50 rounded-xl hover:bg-gray-100/80 dark:hover:bg-gray-800/80 transition-colors duration-200 min-w-0">
+              <div key={index} className="text-center p-4 bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-950/20 dark:to-emerald-900/20 rounded-xl hover:from-emerald-100 hover:to-emerald-200 dark:hover:from-emerald-900/30 dark:hover:to-emerald-800/30 transition-colors duration-200 min-w-0">
                 <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2 truncate">{stat.label}</p>
                 <div className={`text-base lg:text-lg font-bold ${stat.color} truncate`}>
                   {stat.isAmount ? (
@@ -500,8 +500,8 @@ export default function JournalPage() {
       {/* Date Picker Modal */}
       {isDatePickerOpen && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl p-6 rounded-2xl shadow-2xl border border-gray-200/50 dark:border-gray-700/50 space-y-6 max-w-sm w-full">
-            <h3 className="text-xl font-bold text-center bg-gradient-to-r from-blue-600 to-green-600 bg-clip-text text-transparent">
+          <div className="bg-gradient-to-br from-white to-emerald-50 dark:from-black dark:to-emerald-950/30 backdrop-blur-xl p-6 rounded-2xl shadow-2xl border border-gray-200/50 dark:border-gray-700/50 space-y-6 max-w-sm w-full">
+            <h3 className="text-xl font-bold text-center bg-gradient-to-r from-emerald-500 to-emerald-600 bg-clip-text text-transparent">
               Select Date Range
             </h3>
             <div className="space-y-4">
@@ -515,7 +515,7 @@ export default function JournalPage() {
                   endDate={pickerEndDate || undefined}
                   isClearable
                   placeholderText="Start date"
-                  className="w-full p-3 border border-gray-200/50 dark:border-gray-700/50 rounded-xl bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full p-3 border border-gray-200/50 dark:border-gray-700/50 rounded-xl bg-gradient-to-r from-white to-emerald-50 dark:from-black dark:to-emerald-950/20 backdrop-blur-sm focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                   dateFormat="yyyy-MM-dd"
                 />
               </div>
@@ -530,7 +530,7 @@ export default function JournalPage() {
                   minDate={pickerStartDate || undefined}
                   isClearable
                   placeholderText="End date"
-                  className="w-full p-3 border border-gray-200/50 dark:border-gray-700/50 rounded-xl bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full p-3 border border-gray-200/50 dark:border-gray-700/50 rounded-xl bg-gradient-to-r from-white to-emerald-50 dark:from-black dark:to-emerald-950/20 backdrop-blur-sm focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                   dateFormat="yyyy-MM-dd"
                 />
               </div>
@@ -538,7 +538,7 @@ export default function JournalPage() {
             <div className="flex justify-end gap-3 pt-4">
               <button 
                 onClick={handleClearDateRange}
-                className="px-6 py-2.5 text-sm font-medium rounded-xl bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 transition-colors duration-200">
+                className="px-6 py-2.5 text-sm font-medium rounded-xl bg-gradient-to-r from-emerald-100 to-emerald-200 dark:from-emerald-950/30 dark:to-emerald-900/30 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 transition-colors duration-200">
                 Clear
               </button>
               <button 
@@ -548,7 +548,7 @@ export default function JournalPage() {
               </button>
               <button 
                 onClick={handleApplyDateRange} 
-                className="px-6 py-2.5 text-sm font-medium rounded-xl bg-gradient-to-r from-blue-500 to-green-500 hover:from-blue-600 hover:to-green-600 text-white transition-all duration-200 shadow-lg hover:shadow-xl">
+                className="px-6 py-2.5 text-sm font-medium rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white transition-all duration-200 shadow-lg hover:shadow-xl">
                 Apply
               </button>
             </div>

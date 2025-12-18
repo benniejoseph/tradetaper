@@ -161,7 +161,7 @@ export default function DailyBalancesPage() {
       {/* Header Section */}
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
         <div className="space-y-2">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-green-600 bg-clip-text text-transparent">
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-emerald-500 to-emerald-600 bg-clip-text text-transparent">
             Daily Balances
           </h1>
           <p className="text-gray-600 dark:text-gray-300">
@@ -172,11 +172,11 @@ export default function DailyBalancesPage() {
         <div className="flex items-center space-x-3">
           <button 
             onClick={handleDownloadReport}
-            className="p-3 rounded-xl bg-gray-100/80 dark:bg-gray-800/80 hover:bg-green-500 dark:hover:bg-green-500 text-gray-600 dark:text-gray-400 hover:text-white transition-all duration-200 hover:scale-105">
+            className="p-3 rounded-xl bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-950/20 dark:to-emerald-900/20 hover:bg-emerald-500 dark:hover:bg-emerald-500 text-gray-600 dark:text-gray-400 hover:text-white transition-all duration-200 hover:scale-105">
             <FaDownload className="w-4 h-4" />
           </button>
           
-          <button className="p-3 rounded-xl bg-gray-100/80 dark:bg-gray-800/80 hover:bg-purple-500 dark:hover:bg-purple-500 text-gray-600 dark:text-gray-400 hover:text-white transition-all duration-200 hover:scale-105">
+          <button className="p-3 rounded-xl bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-950/20 dark:to-emerald-900/20 hover:bg-emerald-500 dark:hover:bg-emerald-500 text-gray-600 dark:text-gray-400 hover:text-white transition-all duration-200 hover:scale-105">
             <FaInfoCircle className="w-4 h-4" />
           </button>
         </div>
@@ -184,15 +184,15 @@ export default function DailyBalancesPage() {
 
       {/* Info Banner */}
       {showInfoBanner && (
-        <div className="bg-blue-50/80 dark:bg-blue-900/20 backdrop-blur-xl rounded-2xl border border-blue-200/50 dark:border-blue-800/50 p-6 shadow-lg">
+        <div className="bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-950/20 dark:to-emerald-900/20 backdrop-blur-xl rounded-2xl border border-emerald-200/50 dark:border-emerald-700/30 p-6 shadow-lg">
           <div className="flex items-start justify-between">
             <div className="flex items-start gap-4">
-              <div className="p-2 bg-blue-100/80 dark:bg-blue-900/30 rounded-xl">
-                <FaInfoCircle className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+              <div className="p-2 bg-gradient-to-r from-emerald-500/20 to-emerald-600/20 rounded-xl">
+                <FaInfoCircle className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
               </div>
               <div>
-                <h3 className="text-lg font-semibold text-blue-900 dark:text-blue-100 mb-2">Daily Balance Overview</h3>
-                <p className="text-sm text-blue-800 dark:text-blue-200 leading-relaxed">
+                <h3 className="text-lg font-semibold text-emerald-900 dark:text-emerald-100 mb-2">Daily Balance Overview</h3>
+                <p className="text-sm text-emerald-800 dark:text-emerald-200 leading-relaxed">
                   This page provides a daily overview of your account balances. It shows the date, API used, realised P&L (Profit and Loss), and the current balance, with 
                   percentage changes indicating performance. Use this summary to track your daily trading results and account growth.
                 </p>
@@ -200,7 +200,7 @@ export default function DailyBalancesPage() {
             </div>
             <button 
               onClick={() => setShowInfoBanner(false)}
-              className="p-2 rounded-xl hover:bg-blue-200/50 dark:hover:bg-blue-800/50 text-blue-600 dark:text-blue-400 transition-colors duration-200"
+              className="p-2 rounded-xl hover:bg-emerald-200/50 dark:hover:bg-emerald-800/30 text-emerald-600 dark:text-emerald-400 transition-colors duration-200"
             >
               <FaTimes className="h-4 w-4" />
             </button>
@@ -209,19 +209,19 @@ export default function DailyBalancesPage() {
       )}
 
       {/* Controls */}
-      <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 p-6 shadow-lg">
+      <div className="bg-gradient-to-br from-white to-emerald-50 dark:from-black dark:to-emerald-950/20 backdrop-blur-xl rounded-2xl border border-emerald-200/50 dark:border-emerald-700/30 p-6 shadow-lg">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           {/* Left side - Days filter */}
           <div className="flex items-center space-x-3">
-            <div className="p-2 bg-gradient-to-r from-blue-500/20 to-green-500/20 rounded-xl">
-              <FaChevronDown className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+            <div className="p-2 bg-gradient-to-r from-emerald-500/20 to-emerald-600/20 rounded-xl">
+              <FaChevronDown className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
             </div>
             <div>
               <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 block">Time Range</label>
               <select 
                 value={daysToShow}
                 onChange={(e) => setDaysToShow(e.target.value)}
-                className="appearance-none bg-white/50 dark:bg-gray-800/50 border border-gray-200/50 dark:border-gray-700/50 rounded-lg px-4 py-2 pr-8 text-sm font-medium text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 backdrop-blur-sm hover:bg-white/70 dark:hover:bg-gray-800/70"
+                className="appearance-none bg-gradient-to-r from-emerald-50/50 to-white/50 dark:from-emerald-950/10 dark:to-emerald-900/10 border border-emerald-200/50 dark:border-emerald-700/30 rounded-lg px-4 py-2 pr-8 text-sm font-medium text-black dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all duration-200 backdrop-blur-sm hover:from-emerald-100/60 hover:to-emerald-50/60 dark:hover:from-emerald-900/20 dark:hover:to-emerald-800/20"
               >
                 <option value="7">7 days</option>
                 <option value="30">30 days</option>
@@ -235,7 +235,7 @@ export default function DailyBalancesPage() {
           {/* Right side - Download button */}
           <button
             onClick={handleDownloadReport}
-            className="flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-blue-500 to-green-500 hover:from-blue-600 hover:to-green-600 text-white font-semibold rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105"
+            className="flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-semibold rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105"
           >
             <FaDownload className="h-4 w-4" />
             <span>Download Report</span>
@@ -244,10 +244,10 @@ export default function DailyBalancesPage() {
       </div>
 
       {/* Balance Table */}
-      <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 shadow-lg overflow-hidden">
+      <div className="bg-gradient-to-br from-white to-emerald-50 dark:from-black dark:to-emerald-950/20 backdrop-blur-xl rounded-2xl border border-emerald-200/50 dark:border-emerald-700/30 shadow-lg overflow-hidden">
         {dailyBalances.length === 0 ? (
           <div className="text-center py-20">
-            <div className="w-20 h-20 bg-gradient-to-r from-blue-500 to-green-500 rounded-full flex items-center justify-center mx-auto mb-6">
+            <div className="w-20 h-20 bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6">
               <FaInfoCircle className="w-10 h-10 text-white" />
             </div>
             <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
@@ -260,8 +260,8 @@ export default function DailyBalancesPage() {
         ) : (
           <div className="overflow-x-auto">
             <table className="min-w-full">
-              <thead className="bg-gray-50/80 dark:bg-gray-800/80 backdrop-blur-sm">
-                <tr className="border-b border-gray-200/30 dark:border-gray-700/30">
+              <thead className="bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-950/20 dark:to-emerald-900/20 backdrop-blur-sm">
+                <tr className="border-b border-emerald-200/30 dark:border-emerald-700/30">
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Date
                   </th>
@@ -276,19 +276,19 @@ export default function DailyBalancesPage() {
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200/30 dark:divide-gray-700/30">
+              <tbody className="divide-y divide-emerald-200/30 dark:divide-emerald-700/30">
                 {dailyBalances.map((day, index) => {
                   const previousBalance = index < dailyBalances.length - 1 ? dailyBalances[index + 1].balance : day.balance - day.dailyPnl;
                   const pnlPercentage = calculatePercentageChange(day.dailyPnl, previousBalance);
                   const balancePercentage = calculatePercentageChange(day.balance, previousBalance);
                   
                   return (
-                    <tr key={day.date} className="group hover:bg-white/90 dark:hover:bg-gray-800/60 transition-all duration-200">
+                    <tr key={day.date} className="group hover:bg-gradient-to-r hover:from-emerald-50 hover:to-emerald-100 dark:hover:from-emerald-950/20 dark:hover:to-emerald-900/20 transition-all duration-200">
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900 dark:text-white">
                         {formatDateDisplay(day.date)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        <span className="px-2 py-1 bg-blue-100/80 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-lg text-xs font-medium">
+                        <span className="px-2 py-1 bg-gradient-to-r from-emerald-100 to-emerald-200 dark:from-emerald-900/30 dark:to-emerald-800/30 text-emerald-700 dark:text-emerald-300 rounded-lg text-xs font-medium border border-emerald-200 dark:border-emerald-700/30">
                           {day.apiName}
                         </span>
                       </td>

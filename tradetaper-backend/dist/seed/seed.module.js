@@ -27,7 +27,14 @@ exports.SeedModule = SeedModule = __decorate([
     (0, common_1.Module)({
         imports: [
             config_1.ConfigModule,
-            typeorm_1.TypeOrmModule.forFeature([user_entity_1.User, trade_entity_1.Trade, subscription_entity_1.Subscription, tag_entity_1.Tag, mt5_account_entity_1.MT5Account, strategy_entity_1.Strategy]),
+            typeorm_1.TypeOrmModule.forFeature([
+                user_entity_1.User,
+                trade_entity_1.Trade,
+                subscription_entity_1.Subscription,
+                tag_entity_1.Tag,
+                mt5_account_entity_1.MT5Account,
+                strategy_entity_1.Strategy,
+            ]),
             users_module_1.UsersModule,
         ],
         providers: [seed_service_1.SeedService, production_seed_service_1.ProductionSeedService, test_user_seed_service_1.TestUserSeedService],

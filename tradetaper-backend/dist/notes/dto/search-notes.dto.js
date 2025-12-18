@@ -39,7 +39,7 @@ __decorate([
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsArray)(),
     (0, class_validator_1.IsString)({ each: true }),
-    (0, class_transformer_1.Transform)(({ value }) => Array.isArray(value) ? value : [value]),
+    (0, class_transformer_1.Transform)(({ value }) => (Array.isArray(value) ? value : [value])),
     __metadata("design:type", Array)
 ], SearchNotesDto.prototype, "tags", void 0);
 __decorate([

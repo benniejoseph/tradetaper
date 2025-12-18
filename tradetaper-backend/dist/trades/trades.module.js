@@ -11,6 +11,7 @@ const common_1 = require("@nestjs/common");
 const typeorm_1 = require("@nestjs/typeorm");
 const trade_entity_1 = require("./entities/trade.entity");
 const trades_service_1 = require("./trades.service");
+const gemini_vision_service_1 = require("../notes/gemini-vision.service");
 const trades_controller_1 = require("./trades.controller");
 const users_module_1 = require("../users/users.module");
 const tags_module_1 = require("../tags/tags.module");
@@ -28,7 +29,7 @@ exports.TradesModule = TradesModule = __decorate([
                 ttl: 60 * 60 * 1000,
             }),
         ],
-        providers: [trades_service_1.TradesService],
+        providers: [trades_service_1.TradesService, gemini_vision_service_1.GeminiVisionService],
         controllers: [trades_controller_1.TradesController],
         exports: [trades_service_1.TradesService],
     })

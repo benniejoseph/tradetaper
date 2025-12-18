@@ -57,13 +57,13 @@ let AdminService = class AdminService {
             date.setDate(date.getDate() - i);
             data.push({
                 date: date.toISOString().split('T')[0],
-                users: 0
+                users: 0,
             });
         }
         return {
-            labels: data.map(d => d.date),
-            values: data.map(d => d.users),
-            data
+            labels: data.map((d) => d.date),
+            values: data.map((d) => d.users),
+            data,
         };
     }
     async getRevenueAnalytics(timeRange) {
@@ -74,13 +74,13 @@ let AdminService = class AdminService {
             date.setDate(date.getDate() - i);
             data.push({
                 date: date.toISOString().split('T')[0],
-                revenue: 0
+                revenue: 0,
             });
         }
         return {
-            labels: data.map(d => d.date),
-            values: data.map(d => d.revenue),
-            data
+            labels: data.map((d) => d.date),
+            values: data.map((d) => d.revenue),
+            data,
         };
     }
     async getSystemHealth() {
@@ -91,7 +91,7 @@ let AdminService = class AdminService {
             memoryUsage: 68,
             cpuUsage: 23,
             cacheHitRate: 94,
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
         };
     }
     async getActivityFeed(limit = 5) {
@@ -101,14 +101,14 @@ let AdminService = class AdminService {
         const [users, total] = await this.userRepository.findAndCount({
             skip: (page - 1) * limit,
             take: limit,
-            order: { createdAt: 'DESC' }
+            order: { createdAt: 'DESC' },
         });
         return {
             data: users,
             total,
             page,
             limit,
-            totalPages: Math.ceil(total / limit)
+            totalPages: Math.ceil(total / limit),
         };
     }
     async getTrades(page = 1, limit = 50) {
@@ -116,14 +116,14 @@ let AdminService = class AdminService {
             skip: (page - 1) * limit,
             take: limit,
             order: { createdAt: 'DESC' },
-            relations: ['user']
+            relations: ['user'],
         });
         return {
             data: trades,
             total,
             page,
             limit,
-            totalPages: Math.ceil(total / limit)
+            totalPages: Math.ceil(total / limit),
         };
     }
     async getAccounts(page = 1, limit = 50) {
@@ -131,14 +131,14 @@ let AdminService = class AdminService {
             skip: (page - 1) * limit,
             take: limit,
             order: { createdAt: 'DESC' },
-            relations: ['user']
+            relations: ['user'],
         });
         return {
             data: accounts,
             total,
             page,
             limit,
-            totalPages: Math.ceil(total / limit)
+            totalPages: Math.ceil(total / limit),
         };
     }
     async getDatabaseTables() {
@@ -197,7 +197,7 @@ let AdminService = class AdminService {
                 total,
                 page,
                 limit,
-                totalPages: Math.ceil(total / limit)
+                totalPages: Math.ceil(total / limit),
             };
         }
         catch (error) {
@@ -207,16 +207,20 @@ let AdminService = class AdminService {
                 total: 0,
                 page,
                 limit,
-                totalPages: 0
+                totalPages: 0,
             };
         }
     }
     getDaysFromTimeRange(timeRange) {
         switch (timeRange) {
-            case '7d': return 7;
-            case '30d': return 30;
-            case '90d': return 90;
-            default: return 30;
+            case '7d':
+                return 7;
+            case '30d':
+                return 30;
+            case '90d':
+                return 90;
+            default:
+                return 30;
         }
     }
     async seedSampleData() {
@@ -261,11 +265,13 @@ let AdminService = class AdminService {
                     password: 'hashedpassword202',
                     isEmailVerified: false,
                     createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
-                }
+                },
             ];
             const createdUsers = [];
             for (const userData of sampleUsers) {
-                const existingUser = await this.userRepository.findOne({ where: { email: userData.email } });
+                const existingUser = await this.userRepository.findOne({
+                    where: { email: userData.email },
+                });
                 if (!existingUser) {
                     const user = this.userRepository.create(userData);
                     const savedUser = await this.userRepository.save(user);
@@ -281,8 +287,8 @@ let AdminService = class AdminService {
                     symbol: 'EURUSD',
                     side: enums_1.TradeDirection.LONG,
                     quantity: 1.5,
-                    openPrice: 1.0850,
-                    closePrice: 1.0920,
+                    openPrice: 1.085,
+                    closePrice: 1.092,
                     status: enums_1.TradeStatus.CLOSED,
                     profitOrLoss: 105.0,
                     assetType: enums_1.AssetType.FOREX,
@@ -295,8 +301,8 @@ let AdminService = class AdminService {
                     symbol: 'GBPUSD',
                     side: enums_1.TradeDirection.SHORT,
                     quantity: 2.0,
-                    openPrice: 1.2650,
-                    closePrice: 1.2580,
+                    openPrice: 1.265,
+                    closePrice: 1.258,
                     status: enums_1.TradeStatus.CLOSED,
                     profitOrLoss: 140.0,
                     assetType: enums_1.AssetType.FOREX,
@@ -309,8 +315,8 @@ let AdminService = class AdminService {
                     symbol: 'USDJPY',
                     side: enums_1.TradeDirection.LONG,
                     quantity: 1.0,
-                    openPrice: 149.50,
-                    closePrice: 150.20,
+                    openPrice: 149.5,
+                    closePrice: 150.2,
                     status: enums_1.TradeStatus.CLOSED,
                     profitOrLoss: 70.0,
                     assetType: enums_1.AssetType.FOREX,
@@ -323,7 +329,7 @@ let AdminService = class AdminService {
                     symbol: 'AUDUSD',
                     side: enums_1.TradeDirection.LONG,
                     quantity: 1.8,
-                    openPrice: 0.6750,
+                    openPrice: 0.675,
                     status: enums_1.TradeStatus.OPEN,
                     assetType: enums_1.AssetType.FOREX,
                     openTime: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
@@ -334,8 +340,8 @@ let AdminService = class AdminService {
                     symbol: 'USDCAD',
                     side: enums_1.TradeDirection.SHORT,
                     quantity: 1.2,
-                    openPrice: 1.3450,
-                    closePrice: 1.3380,
+                    openPrice: 1.345,
+                    closePrice: 1.338,
                     status: enums_1.TradeStatus.CLOSED,
                     profitOrLoss: 84.0,
                     assetType: enums_1.AssetType.FOREX,
@@ -348,12 +354,12 @@ let AdminService = class AdminService {
                     symbol: 'EURJPY',
                     side: enums_1.TradeDirection.LONG,
                     quantity: 0.8,
-                    openPrice: 162.30,
+                    openPrice: 162.3,
                     status: enums_1.TradeStatus.OPEN,
                     assetType: enums_1.AssetType.FOREX,
                     openTime: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
                     createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
-                }
+                },
             ];
             let createdTrades = 0;
             for (const tradeData of sampleTrades) {
@@ -361,8 +367,8 @@ let AdminService = class AdminService {
                     where: {
                         symbol: tradeData.symbol,
                         user: { id: tradeData.user.id },
-                        createdAt: tradeData.createdAt
-                    }
+                        createdAt: tradeData.createdAt,
+                    },
                 });
                 if (!existingTrade) {
                     const trade = this.tradeRepository.create(tradeData);
@@ -388,9 +394,9 @@ let AdminService = class AdminService {
                     plan: 'premium',
                     status: subscription_entity_1.SubscriptionStatus.CANCELED,
                     createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
-                }
+                },
             ];
-            let createdSubscriptions = 0;
+            const createdSubscriptions = 0;
             console.log('Skipping subscription seeding due to schema mismatch');
             return {
                 success: true,
@@ -398,8 +404,8 @@ let AdminService = class AdminService {
                 data: {
                     users: createdUsers.length,
                     trades: createdTrades,
-                    subscriptions: createdSubscriptions
-                }
+                    subscriptions: createdSubscriptions,
+                },
             };
         }
         catch (error) {
@@ -407,7 +413,7 @@ let AdminService = class AdminService {
             return {
                 success: false,
                 message: 'Failed to seed sample data',
-                error: error.message
+                error: error.message,
             };
         }
     }
@@ -495,13 +501,13 @@ let AdminService = class AdminService {
                 if (!tableStats[row.table_name]) {
                     tableStats[row.table_name] = {
                         name: row.table_name,
-                        columns: []
+                        columns: [],
                     };
                 }
                 if (row.column_name) {
                     tableStats[row.table_name].columns.push({
                         name: row.column_name,
-                        type: row.data_type
+                        type: row.data_type,
                     });
                 }
             });

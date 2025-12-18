@@ -371,7 +371,7 @@ export class ICTAnalysisService {
     );
 
     try {
-      const opportunities = [];
+      const opportunities: ICTTradeOpportunity[] = [];
 
       for (const symbol of symbols) {
         const setups = await this.identifyTradeSetups(symbol);
@@ -380,7 +380,7 @@ export class ICTAnalysisService {
 
       // Sort by confidence and return top opportunities
       return opportunities
-        .sort((a, b) => b.confidence - a.confidence)
+        .sort((a, b) => (b.confidence || 0) - (a.confidence || 0))
         .slice(0, 10); // Return top 10 opportunities
     } catch (error) {
       this.logger.error('Failed to get trade opportunities', error);

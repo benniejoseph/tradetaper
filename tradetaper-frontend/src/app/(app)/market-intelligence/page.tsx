@@ -37,6 +37,7 @@ import {
 } from 'react-icons/fa';
 import CompleteICTAnalysis from '@/components/market-intelligence/CompleteICTAnalysis';
 import ICTConceptsDetail from '@/components/market-intelligence/ICTConceptsDetail';
+import TradingViewChart from '@/components/market-intelligence/TradingViewChart';
 
 interface MarketQuote {
   symbol: string;
@@ -164,10 +165,12 @@ export default function MarketIntelligencePage() {
     const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1';
     
     try {
-      // Fetch AI predictions ONLY for XAUUSD from Gemini-powered backend
-      const response = await fetch(`${API_BASE_URL}/market-intelligence/ai-predictions?symbols=${primarySymbol}`)
-        .then(res => res.ok ? res.json() : null)
-        .catch(() => null);
+      // NOTE: AI predictions endpoint not yet available - returning empty array
+      // const response = await fetch(`${API_BASE_URL}/market-intelligence/ai-predictions?symbols=${primarySymbol}`)
+      //   .then(res => res.ok ? res.json() : null)
+      //   .catch(() => null);
+      
+      const response = null; // Temporarily disabled until backend endpoint is ready
       
       if (response && response.predictions) {
         return response.predictions.map((pred: any) => ({
@@ -242,12 +245,14 @@ export default function MarketIntelligencePage() {
             confidence: analysis.ictScore || 50,
             entry: firstEntry?.price || analysis.currentPrice || 0,
             stopLoss: firstEntry?.range?.low || 0,
-            takeProfit: firstEntry?.range?.high ? [firstEntry.range.high] : [],
-            riskReward: 2.5,
+            takeProfit: Array.isArray(analysis.takeProfit) ? analysis.takeProfit : 
+                        (firstEntry?.range?.high ? [firstEntry.range.high] : []),
+            riskReward: analysis.riskReward || 2.5,
             reasoning: analysisArray.join(' ') || planArray.join(' ') || 'Complete ICT analysis available',
-            timeframe: '1H',
-            ictConcepts: ['Liquidity', 'Market Structure', 'Fair Value Gap', 'Order Block', 'Kill Zone'],
-            marketConditions: [
+            timeframe: analysis.timeframe || '1H',
+            ictConcepts: Array.isArray(analysis.ictConcepts) ? analysis.ictConcepts : 
+                        ['Liquidity', 'Market Structure', 'Fair Value Gap', 'Order Block', 'Kill Zone'],
+            marketConditions: Array.isArray(analysis.marketConditions) ? analysis.marketConditions : [
               analysis.killZone?.active ? `✅ ${analysis.killZone.name}` : '⏸️ Outside Kill Zone',
               `Bias: ${analysis.overallBias}`,
               `Score: ${analysis.ictScore}/100`
@@ -518,12 +523,12 @@ export default function MarketIntelligencePage() {
   };
 
   const getChangeColor = (change: number): string => {
-    return change >= 0 ? 'text-green-600' : 'text-red-600';
+    return change >= 0 ? 'text-emerald-600' : 'text-red-600';
   };
 
   const getConfidenceColor = (confidence: number): string => {
-    if (confidence >= 80) return 'text-green-600';
-    if (confidence >= 60) return 'text-yellow-600';
+    if (confidence >= 80) return 'text-emerald-600';
+    if (confidence >= 60) return 'text-amber-600';
     return 'text-red-600';
   };
 
@@ -598,9 +603,9 @@ export default function MarketIntelligencePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 dark:bg-black flex items-center justify-center">
         <div className="text-center">
-          <FaSync className="animate-spin text-4xl text-blue-600 mb-4 mx-auto" />
+          <FaSync className="animate-spin text-4xl text-emerald-600 mb-4 mx-auto" />
           <p className="text-gray-600 dark:text-gray-400">Loading Market Intelligence...</p>
         </div>
       </div>
@@ -609,13 +614,13 @@ export default function MarketIntelligencePage() {
 
   if (!marketData) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 dark:bg-black flex items-center justify-center">
         <div className="text-center">
           <FaExclamationTriangle className="text-4xl text-red-600 mb-4 mx-auto" />
           <p className="text-gray-600 dark:text-gray-400">Failed to load market data</p>
           <button
             onClick={fetchMarketIntelligence}
-            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+            className="mt-4 px-4 py-2 bg-emerald-600 text-white rounded hover:bg-emerald-700"
           >
             Retry
           </button>
@@ -625,27 +630,27 @@ export default function MarketIntelligencePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-6">
-      <div className="max-w-7xl mx-auto">
+    <div className="h-full flex flex-col bg-gray-50 dark:bg-black p-2 sm:p-4 lg:p-6 overflow-auto">
+      <div className="w-full flex-1 flex flex-col">
         {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between">
+        <div className="mb-4 sm:mb-6 lg:mb-8">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-                <FaBrain className="inline-block mr-3 text-blue-600" />
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-2">
+                <FaBrain className="inline-block mr-2 sm:mr-3 text-emerald-600 dark:text-emerald-400" />
                 AI Market Intelligence
               </h1>
-              <p className="text-gray-600 dark:text-gray-400">
+              <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">
                 Professional-grade market analysis powered by ICT strategies and AI predictions
               </p>
             </div>
-            <div className="flex items-center space-x-4">
-              <div className="text-sm text-gray-500">
+            <div className="flex items-center space-x-2 sm:space-x-4">
+              <div className="text-xs sm:text-sm text-gray-500 hidden sm:block">
                 Last updated: {marketData?.timestamp ? new Date(marketData.timestamp).toLocaleTimeString() : 'Unknown'}
               </div>
               <button
                 onClick={fetchMarketIntelligence}
-                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 flex items-center"
+                className="px-3 sm:px-4 py-2 bg-emerald-600 text-white rounded hover:bg-emerald-700 flex items-center text-sm sm:text-base"
               >
                 <FaSync className="mr-2" />
                 Refresh
@@ -655,10 +660,11 @@ export default function MarketIntelligencePage() {
         </div>
 
         {/* Navigation Tabs */}
-        <div className="mb-6">
-          <nav className="flex space-x-8">
+        <div className="mb-4 sm:mb-6 overflow-x-auto">
+          <nav className="flex space-x-2 sm:space-x-4 min-w-max pb-2">
             {[
               { id: 'complete-ict', label: 'Complete ICT', icon: FaTrophy },
+              { id: 'live-chart', label: 'Live Chart', icon: FaChartLine },
               { id: 'liquidity', label: 'Liquidity', icon: FaWater },
               { id: 'market-structure', label: 'Structure', icon: FaChartBar },
               { id: 'fvg', label: 'FVG', icon: FaCrosshairs },
@@ -671,13 +677,13 @@ export default function MarketIntelligencePage() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center px-4 py-2 rounded-lg font-medium transition-colors ${
+                className={`flex items-center px-3 sm:px-4 py-2 rounded-lg font-medium transition-colors whitespace-nowrap text-sm sm:text-base ${
                   activeTab === tab.id
-                    ? 'bg-blue-600 text-white'
-                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                    ? 'bg-emerald-600 text-white'
+                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800'
                 }`}
               >
-                <tab.icon className="mr-2" />
+                <tab.icon className="mr-1 sm:mr-2" />
                 {tab.label}
               </button>
             ))}
@@ -687,6 +693,65 @@ export default function MarketIntelligencePage() {
         {/* Complete ICT Analysis Tab */}
         {activeTab === 'complete-ict' && (
           <CompleteICTAnalysis symbol={selectedSymbol} />
+        )}
+
+        {/* Live TradingView Chart Tab */}
+        {activeTab === 'live-chart' && (
+          <div className="flex-1 flex flex-col bg-white dark:bg-gray-800 rounded-lg p-4 sm:p-6 shadow-sm overflow-hidden">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-4">
+              <div>
+                <h3 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white mb-2">
+                  <FaChartLine className="inline-block mr-2 text-emerald-600 dark:text-emerald-400" />
+                  Live {selectedSymbol} Chart - 4H Timeframe
+                </h3>
+                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+                  Professional TradingView chart with ICT analysis tools enabled
+                </p>
+              </div>
+              <div className="flex items-center space-x-2">
+                <label className="text-sm text-gray-600 dark:text-gray-400">Symbol:</label>
+                <select
+                  value={selectedSymbol}
+                  onChange={(e) => setSelectedSymbol(e.target.value)}
+                  className="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-emerald-500"
+                >
+                  {majorSymbols.map(sym => (
+                    <option key={sym} value={sym}>{sym}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* TradingView Chart */}
+            <div className="flex-1 w-full overflow-hidden rounded-lg border-2 border-gray-700 min-h-[600px]">
+              <TradingViewChart 
+                symbol={selectedSymbol}
+                interval="240"
+                theme="dark"
+                height={0}
+              />
+            </div>
+
+            {/* ICT Concepts Reference */}
+            <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              <div className="p-3 bg-red-50 dark:bg-red-950/20 rounded-lg border border-red-200 dark:border-red-700">
+                <h5 className="text-sm font-semibold text-red-900 dark:text-red-200 mb-1">Premium Zone</h5>
+                <p className="text-xs text-red-800 dark:text-red-300">Above 50% Fib - Look for shorts</p>
+              </div>
+              <div className="p-3 bg-emerald-50 dark:bg-emerald-950/20 rounded-lg border border-emerald-200 dark:border-emerald-700">
+                <h5 className="text-sm font-semibold text-emerald-900 dark:text-emerald-200 mb-1">Discount Zone</h5>
+                <p className="text-xs text-emerald-800 dark:text-emerald-300">Below 50% Fib - Look for longs</p>
+              </div>
+              <div className="p-3 bg-emerald-50 dark:bg-emerald-950/30 rounded-lg border border-emerald-200 dark:border-emerald-700">
+                <h5 className="text-sm font-semibold text-emerald-900 dark:text-emerald-200 mb-1">Order Blocks</h5>
+                <p className="text-xs text-emerald-800 dark:text-emerald-300">Last bullish/bearish candle before move</p>
+              </div>
+              <div className="p-3 bg-amber-50 dark:bg-amber-950/20 rounded-lg border border-amber-200 dark:border-amber-700">
+                <h5 className="text-sm font-semibold text-yellow-900 dark:text-yellow-200 mb-1">Fair Value Gaps</h5>
+                <p className="text-xs text-yellow-800 dark:text-yellow-300">Price imbalances to be filled</p>
+              </div>
+            </div>
+          </div>
         )}
 
         {/* Liquidity Detail Tab */}
@@ -714,7 +779,7 @@ export default function MarketIntelligencePage() {
           <div className="space-y-6">
             <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                <FaBullseye className="inline-block mr-2 text-blue-600" />
+                <FaBullseye className="inline-block mr-2 text-emerald-600 dark:text-emerald-400" />
                 ICT Trade Opportunities
               </h3>
               {marketData.ictOpportunities.length === 0 ? (
@@ -727,7 +792,7 @@ export default function MarketIntelligencePage() {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {marketData.ictOpportunities.map((opportunity, index) => (
+                  {marketData.ictOpportunities?.map((opportunity, index) => (
                   <div key={index} className="border border-gray-200 dark:border-gray-700 rounded-lg p-6">
                     <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center">
@@ -736,7 +801,7 @@ export default function MarketIntelligencePage() {
                         </span>
                         <span className={`px-3 py-1 rounded-full text-sm font-medium ${
                           opportunity.direction === 'long' 
-                            ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' 
+                            ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-300' 
                             : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
                         }`}>
                           {opportunity.direction.toUpperCase()}
@@ -770,22 +835,22 @@ export default function MarketIntelligencePage() {
                     <div className="mb-4">
                       <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">Take Profit Targets</p>
                       <div className="flex space-x-4">
-                        {opportunity.takeProfit.map((tp, tpIndex) => (
-                          <span key={tpIndex} className="px-2 py-1 bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 rounded text-sm">
+                        {opportunity.takeProfit?.map((tp, tpIndex) => (
+                          <span key={tpIndex} className="px-2 py-1 bg-emerald-100 text-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-300 rounded text-sm">
                             TP{tpIndex + 1}: {formatPrice(tp, opportunity.symbol)}
                           </span>
-                        ))}
+                        )) || <span className="text-gray-500">No targets available</span>}
                       </div>
                     </div>
 
                     <div className="mb-4">
                       <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">ICT Concepts</p>
                       <div className="flex flex-wrap gap-2">
-                        {opportunity.ictConcepts.map((concept, conceptIndex) => (
-                          <span key={conceptIndex} className="px-2 py-1 bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 rounded text-sm">
+                        {opportunity.ictConcepts?.map((concept, conceptIndex) => (
+                          <span key={conceptIndex} className="px-2 py-1 bg-emerald-100 text-emerald-800 dark:bg-emerald-950/20 dark:text-emerald-300 rounded text-sm">
                             {concept}
                           </span>
-                        ))}
+                        )) || <span className="text-gray-500">No concepts identified</span>}
                       </div>
                     </div>
 
@@ -806,7 +871,7 @@ export default function MarketIntelligencePage() {
           <div className="space-y-6">
             <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                <FaImage className="inline-block mr-2 text-purple-600" />
+                <FaImage className="inline-block mr-2 text-emerald-600 dark:text-emerald-400" />
                 ICT Chart Image Analysis
               </h3>
               <p className="text-gray-600 dark:text-gray-400 mb-6">
@@ -822,7 +887,7 @@ export default function MarketIntelligencePage() {
                 <select
                   value={selectedSymbol}
                   onChange={(e) => setSelectedSymbol(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-emerald-500"
                 >
                   {majorSymbols.map(symbol => (
                     <option key={symbol} value={symbol}>{symbol}</option>
@@ -873,7 +938,7 @@ export default function MarketIntelligencePage() {
                 <button
                   onClick={analyzeCharts}
                   disabled={uploadedCharts.length === 0 || analyzingCharts}
-                  className="px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center font-medium"
+                  className="px-8 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center font-medium"
                 >
                   {analyzingCharts ? (
                     <>
@@ -898,7 +963,7 @@ export default function MarketIntelligencePage() {
                   </h4>
 
                   {/* Complete Narrative */}
-                  <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-6 mb-6">
+                  <div className="bg-emerald-50 dark:bg-emerald-950/20 rounded-lg p-6 mb-6">
                     <h5 className="font-bold text-gray-900 dark:text-white mb-3">Complete ICT Narrative</h5>
                     <p className="text-gray-700 dark:text-gray-300 whitespace-pre-line">
                       {chartAnalysisResult.completeNarrative}
@@ -908,13 +973,13 @@ export default function MarketIntelligencePage() {
                   {/* Per-Timeframe Analysis */}
                   <div className="space-y-4">
                     <h5 className="font-bold text-gray-900 dark:text-white">Timeframe Analysis</h5>
-                    {chartAnalysisResult.timeframeAnalyses && chartAnalysisResult.timeframeAnalyses.map((tf: any, index: number) => (
+                    {chartAnalysisResult.timeframeAnalyses?.map((tf: any, index: number) => (
                       <div key={index} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
                         <div className="flex items-center justify-between mb-2">
                           <h6 className="font-bold text-gray-900 dark:text-white">{tf.timeframe}</h6>
                           <span className={`px-3 py-1 rounded-full text-sm font-medium ${
                             tf.bias === 'BULLISH' 
-                              ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' 
+                              ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-300' 
                               : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
                           }`}>
                             {tf.bias}
@@ -924,8 +989,8 @@ export default function MarketIntelligencePage() {
                         
                         {/* ICT Concepts Found */}
                         <div className="flex flex-wrap gap-2">
-                          {tf.conceptsIdentified && tf.conceptsIdentified.map((concept: string, ci: number) => (
-                            <span key={ci} className="px-2 py-1 bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200 rounded text-xs">
+                          {tf.conceptsIdentified?.map((concept: string, ci: number) => (
+                            <span key={ci} className="px-2 py-1 bg-emerald-100 text-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-300 rounded text-xs">
                               {concept}
                             </span>
                           ))}
@@ -936,9 +1001,9 @@ export default function MarketIntelligencePage() {
 
                   {/* Trading Recommendation */}
                   {chartAnalysisResult.tradingRecommendation && (
-                    <div className="mt-6 bg-green-50 dark:bg-green-900/20 rounded-lg p-6">
+                    <div className="mt-6 bg-emerald-50 dark:bg-emerald-950/20 rounded-lg p-6">
                       <h5 className="font-bold text-gray-900 dark:text-white mb-3">
-                        <FaRocket className="inline-block mr-2 text-green-600" />
+                        <FaRocket className="inline-block mr-2 text-emerald-600 dark:text-emerald-400" />
                         Trading Recommendation
                       </h5>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -958,7 +1023,7 @@ export default function MarketIntelligencePage() {
                         </div>
                         <div>
                           <p className="text-sm text-gray-600 dark:text-gray-400">Risk/Reward</p>
-                          <p className="font-medium text-green-600">{chartAnalysisResult.tradingRecommendation.riskReward}R</p>
+                          <p className="font-medium text-emerald-600 dark:text-emerald-400">{chartAnalysisResult.tradingRecommendation.riskReward}R</p>
                         </div>
                       </div>
                       <p className="mt-4 text-gray-700 dark:text-gray-300">
@@ -977,7 +1042,7 @@ export default function MarketIntelligencePage() {
           <div className="space-y-6">
             <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                <FaRobot className="inline-block mr-2 text-purple-600" />
+                <FaRobot className="inline-block mr-2 text-emerald-600 dark:text-emerald-400" />
                 AI Market Predictions
               </h3>
               {marketData.aiPredictions.length === 0 ? (
@@ -990,7 +1055,7 @@ export default function MarketIntelligencePage() {
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {marketData.aiPredictions.map((prediction, index) => (
+                  {marketData.aiPredictions?.map((prediction, index) => (
                   <div key={index} className="border border-gray-200 dark:border-gray-700 rounded-lg p-6">
                     <div className="flex items-center justify-between mb-4">
                       <span className="text-lg font-bold text-gray-900 dark:text-white">
@@ -998,7 +1063,7 @@ export default function MarketIntelligencePage() {
                       </span>
                       <span className={`px-3 py-1 rounded-full text-sm font-medium ${
                         prediction.prediction.direction === 'bullish' 
-                          ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                          ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-300'
                           : prediction.prediction.direction === 'bearish'
                           ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
                           : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200'
@@ -1032,7 +1097,7 @@ export default function MarketIntelligencePage() {
                       <div className="flex justify-between">
                         <span className="text-sm text-gray-600 dark:text-gray-400">Momentum</span>
                         <span className={`font-medium ${
-                          prediction.technicalAnalysis.momentum > 0 ? 'text-green-600' : 'text-red-600'
+                          prediction.technicalAnalysis.momentum > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'
                         }`}>
                           {prediction.technicalAnalysis.momentum.toFixed(0)}
                         </span>

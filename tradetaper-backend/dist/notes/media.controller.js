@@ -41,7 +41,7 @@ let MediaController = class MediaController {
     async getMediaByNote(noteId, req) {
         return this.mediaService.getMediaByNote(noteId, req.user.id);
     }
-    async generateEmbedData(url) {
+    generateEmbedData(url) {
         if (!url) {
             throw new common_1.BadRequestException('URL is required');
         }
@@ -96,7 +96,7 @@ __decorate([
     __param(0, (0, common_1.Body)('url')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
-    __metadata("design:returntype", Promise)
+    __metadata("design:returntype", Object)
 ], MediaController.prototype, "generateEmbedData", null);
 exports.MediaController = MediaController = __decorate([
     (0, common_1.Controller)('notes/media'),
