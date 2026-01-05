@@ -14,7 +14,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '@/store/store';
 import { logout } from '@/store/features/authSlice';
 import { useRouter } from 'next/navigation';
-// import { ThemeToggleButton } from '@/components/common/ThemeToggleButton'; // Removed - component no longer exists
+import { ThemeToggle } from '@/components/common/ThemeToggle';
 
 // Define props for Sidebar
 interface SidebarProps {
@@ -307,7 +307,9 @@ export default function Sidebar({ isOpen, toggleSidebar, isMobile, onExpandChang
           </div>
           
           {/* Theme Toggle - Show on mobile in sidebar */}
-          {/* Theme toggle removed - component no longer exists */}
+          <div className="mt-4 flex justify-center md:hidden">
+             <ThemeToggle showLabel variant="button" className="w-full justify-center" />
+          </div>
         </div>
       </aside>
     </>
