@@ -739,7 +739,7 @@ export default function TradeForm({ initialData, isEditMode = false, onFormSubmi
                 </div>
                 <div>
                     <FormInput
-                        label="Quantity / Size"
+                        label="Lots"
                         type="number" 
                         id="quantity" 
                         name="quantity" 

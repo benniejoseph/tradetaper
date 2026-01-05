@@ -149,11 +149,6 @@ function ContentHeader({ toggleSidebar, isMobile, isSidebarExpanded }: ContentHe
               <span className="absolute top-0.5 right-0.5 w-2 h-2 bg-red-500 rounded-full"></span>
             </button>
               
-import { ThemeToggle } from '@/components/common/ThemeToggle';
-
-// ... other imports
-
-// Inside JSX
             {/* Theme Toggle */}
             <div className="flex-shrink-0">
                <ThemeToggle className="hover:bg-gray-100 dark:hover:bg-[#0A0A0A] p-2 rounded-lg" />
