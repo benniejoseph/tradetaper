@@ -187,7 +187,7 @@
     padding-bottom: 1.35rem;
   }
   /* Force input text visibility - DEFAULT, but allow override */
-  input,
+  /* input,
   select,
   textarea {
     color: #000000;
@@ -199,10 +199,10 @@
   html.dark textarea {
     color: #FFFFFF;
     -webkit-text-fill-color: #FFFFFF;
-  }
+  } */
 
   /* ContentHeader specific inputs - WHITE text in dark mode */
-  .content-header-input,
+  /* .content-header-input,
   .content-header-input option {
     color: #000000;
     -webkit-text-fill-color: #000000;
@@ -212,7 +212,7 @@
   html.dark .content-header-input option {
     color: #FFFFFF;
     -webkit-text-fill-color: #FFFFFF;
-  }
+  } */
 
 
   /* Force option text visibility */
