@@ -1,31 +1,39 @@
 // src/store/features/mt5AccountsSlice.ts
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { RootState } from '../store';
+import { authApiClient } from '@/services/api';
 import toast from 'react-hot-toast';
 
-// Mock types since services were removed
 export interface MT5Account {
   id: string;
-  name: string;
+  userId?: string;
+  accountName: string;
   server: string;
   login: string;
-  password: string;
   isActive: boolean;
-  lastSync?: string;
-  createdAt: string;
-  updatedAt: string;
+  isRealAccount?: boolean;
+  balance?: number;
+  equity?: number;
+  currency?: string;
+  connectionStatus?: string;
+  deploymentState?: string;
+  lastSyncAt?: string;
+  totalTradesImported?: number;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface CreateMT5AccountPayload {
-  name: string;
+  accountName: string;
   server: string;
   login: string;
-  password: string;
+  password?: string;
+  isRealAccount?: boolean;
+  isActive?: boolean;
 }
 
 export interface UpdateMT5AccountPayload {
-  id: string;
-  name?: string;
+  accountName?: string;
   server?: string;
   login?: string;
   password?: string;
@@ -46,100 +54,118 @@ const initialState: MT5AccountsState = {
   error: null,
 };
 
-// Mock Async Thunks since services were removed
+// Fetch all MT5 accounts
 export const fetchMT5Accounts = createAsyncThunk(
   'mt5Accounts/fetchAccounts',
   async (_, { rejectWithValue }) => {
     try {
-      // Mock implementation
-      return [] as MT5Account[];
-    } catch (error) {
-      return rejectWithValue((error as Error).message || 'Failed to fetch MT5 accounts');
+      const response = await authApiClient.get('/mt5-accounts');
+      return response.data as MT5Account[];
+    } catch (error: any) {
+      const message = error.response?.data?.message || 'Failed to fetch MT5 accounts';
+      return rejectWithValue(message);
     }
   }
 );
 
+// Create new MT5 account
 export const createMT5Account = createAsyncThunk(
   'mt5Accounts/createAccount',
   async (accountData: CreateMT5AccountPayload, { rejectWithValue }) => {
     try {
-      // Mock implementation
-      const newAccount: MT5Account = {
-        id: Date.now().toString(),
-        ...accountData,
-        isActive: true,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
+      const response = await authApiClient.post('/mt5-accounts/create', accountData);
       toast.success('MT5 account created successfully');
-      return newAccount;
-    } catch (error) {
-      toast.error((error as Error).message || 'Failed to create MT5 account');
-      return rejectWithValue((error as Error).message || 'Failed to create MT5 account');
+      return response.data as MT5Account;
+    } catch (error: any) {
+      const message = error.response?.data?.message || 'Failed to create MT5 account';
+      toast.error(message);
+      return rejectWithValue(message);
     }
   }
 );
 
+// Update MT5 account
 export const updateMT5Account = createAsyncThunk(
   'mt5Accounts/updateAccount',
   async ({ id, data }: { id: string; data: UpdateMT5AccountPayload }, { rejectWithValue }) => {
     try {
-      // Mock implementation
-      const updatedAccount: MT5Account = {
-        id,
-        name: 'Mock Account',
-        server: 'MockServer',
-        login: '12345',
-        password: '****',
-        isActive: true,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        ...data,
-      };
+      const response = await authApiClient.put(`/mt5-accounts/${id}`, data);
       toast.success('MT5 account updated successfully');
-      return updatedAccount;
-    } catch (error) {
-      toast.error((error as Error).message || 'Failed to update MT5 account');
-      return rejectWithValue((error as Error).message || 'Failed to update MT5 account');
+      return response.data as MT5Account;
+    } catch (error: any) {
+      const message = error.response?.data?.message || 'Failed to update MT5 account';
+      toast.error(message);
+      return rejectWithValue(message);
     }
   }
 );
 
+// Delete MT5 account
 export const deleteMT5Account = createAsyncThunk(
   'mt5Accounts/deleteAccount',
   async (id: string, { rejectWithValue }) => {
     try {
-      // Mock implementation
+      await authApiClient.delete(`/mt5-accounts/${id}`);
       toast.success('MT5 account deleted successfully');
       return id;
-    } catch (error) {
-      toast.error((error as Error).message || 'Failed to delete MT5 account');
-      return rejectWithValue((error as Error).message || 'Failed to delete MT5 account');
+    } catch (error: any) {
+      const message = error.response?.data?.message || 'Failed to delete MT5 account';
+      toast.error(message);
+      return rejectWithValue(message);
     }
   }
 );
 
+// Sync MT5 account
 export const syncMT5Account = createAsyncThunk(
   'mt5Accounts/syncAccount',
-  async (id: string, { rejectWithValue }) => {
+  async (id: string, { rejectWithValue, dispatch }) => {
     try {
-      // Mock implementation
-      const updatedAccount: MT5Account = {
-        id,
-        name: 'Mock Account',
-        server: 'MockServer',
-        login: '12345',
-        password: '****',
-        isActive: true,
-        lastSync: new Date().toISOString(),
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
+      await authApiClient.post(`/mt5-accounts/${id}/sync`);
       toast.success('MT5 account synced successfully');
-      return updatedAccount;
-    } catch (error) {
-      toast.error((error as Error).message || 'Failed to sync MT5 account');
-      return rejectWithValue((error as Error).message || 'Failed to sync MT5 account');
+      // Refetch to get updated data
+      dispatch(fetchMT5Accounts());
+      return id;
+    } catch (error: any) {
+      const message = error.response?.data?.message || 'Failed to sync MT5 account';
+      toast.error(message);
+      return rejectWithValue(message);
+    }
+  }
+);
+
+// Link MT5 account to MetaApi
+export const linkMT5Account = createAsyncThunk(
+  'mt5Accounts/linkAccount',
+  async ({ id, password }: { id: string; password: string }, { rejectWithValue, dispatch }) => {
+    try {
+      const response = await authApiClient.post(`/mt5-accounts/${id}/link`, { password });
+      toast.success('MT5 account linked to MetaApi successfully');
+      // Refetch to get updated data
+      dispatch(fetchMT5Accounts());
+      return response.data;
+    } catch (error: any) {
+      const message = error.response?.data?.message || 'Failed to link MT5 account to MetaApi';
+      toast.error(message);
+      return rejectWithValue(message);
+    }
+  }
+);
+
+// Import trades from MT5 account
+export const importMT5Trades = createAsyncThunk(
+  'mt5Accounts/importTrades',
+  async ({ id, fromDate, toDate }: { id: string; fromDate?: string; toDate?: string }, { rejectWithValue, dispatch }) => {
+    try {
+      const response = await authApiClient.post(`/mt5-accounts/${id}/import-trades`, { fromDate, toDate });
+      toast.success(`Successfully imported ${response.data?.imported || 0} trades`);
+      // Refetch to get updated data
+      dispatch(fetchMT5Accounts());
+      return response.data;
+    } catch (error: any) {
+      const message = error.response?.data?.message || 'Failed to import trades';
+      toast.error(message);
+      return rejectWithValue(message);
     }
   }
 );
@@ -231,12 +257,8 @@ const mt5AccountsSlice = createSlice({
         state.isLoading = true;
         state.error = null;
       })
-      .addCase(syncMT5Account.fulfilled, (state, action) => {
+      .addCase(syncMT5Account.fulfilled, (state) => {
         state.isLoading = false;
-        const index = state.accounts.findIndex((acc) => acc.id === action.payload.id);
-        if (index !== -1) {
-          state.accounts[index] = action.payload;
-        }
         state.error = null;
       })
       .addCase(syncMT5Account.rejected, (state, action) => {
@@ -258,4 +280,4 @@ export const selectSelectedMT5Account = (state: RootState) => {
 export const selectMT5AccountsLoading = (state: RootState) => state.mt5Accounts.isLoading;
 export const selectMT5AccountsError = (state: RootState) => state.mt5Accounts.error;
 
-export default mt5AccountsSlice.reducer; 
+export default mt5AccountsSlice.reducer;

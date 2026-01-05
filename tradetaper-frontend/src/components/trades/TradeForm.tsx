@@ -3,7 +3,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 // src/components/trades/TradeForm.tsx
 "use client";
-import { useState, useEffect, FormEvent, ChangeEvent, useMemo } from 'react';
+import React, { useState, useEffect, FormEvent, ChangeEvent, useMemo } from 'react';
 import { Trade, CreateTradePayload, UpdateTradePayload, AssetType, TradeDirection, TradeStatus,
   Tag as TradeTagType
  } from '@/types/trade';
@@ -15,6 +15,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '@/store/store';
 import { createTrade, updateTrade } from '@/store/features/tradesSlice';
 import { selectSelectedAccountId, selectAvailableAccounts } from '@/store/features/accountSlice';
+import { selectMT5Accounts, fetchMT5Accounts, MT5Account } from '@/store/features/mt5AccountsSlice';
 import { authApiClient } from '@/services/api'; // To make direct API call for file upload
 import { useTheme } from '@/context/ThemeContext'; // Import useTheme
 
@@ -52,7 +53,10 @@ const validateTradeData = (data: any): { isValid: boolean; errors: ValidationErr
 
 import CreatableSelect from 'react-select/creatable';
 import { ActionMeta, MultiValue, OnChangeValue, StylesConfig } from 'react-select';
-import { FaUpload, FaTimesCircle, FaCalculator, FaSave, FaPaperPlane } from 'react-icons/fa'; // Added icons
+import { FaUpload, FaTimesCircle, FaCalculator, FaSave, FaPaperPlane } from 'react-icons/fa';
+import { FormInput } from '../ui/FormInput';
+import { FormSelect } from '../ui/FormSelect';
+import { FormTextarea } from '../ui/FormTextarea';
 
 interface TagOption {
   readonly label: string;
@@ -94,7 +98,36 @@ export default function TradeForm({ initialData, isEditMode = false, onFormSubmi
   const { isLoading: tradeSubmitLoading, error: tradeSubmitError } = useSelector((state: RootState) => state.trades);
   const selectedAccountIdFromStore = useSelector(selectSelectedAccountId);
   const availableAccounts = useSelector(selectAvailableAccounts);
+  const mt5Accounts = useSelector(selectMT5Accounts) as MT5Account[];
   const { theme } = useTheme(); // Get current theme for dynamic styles
+
+  // Merge accounts for dropdown
+  const allAccounts = useMemo(() => {
+    const manualAccountsFormatted = availableAccounts.map(acc => ({
+      id: acc.id,
+      name: acc.name,
+      balance: acc.balance,
+      currency: acc.currency,
+      type: 'Manually Added'
+    }));
+    
+    const mt5AccountsFormatted = mt5Accounts.map(acc => ({
+      id: acc.id,
+      name: acc.accountName, // Map accountName to name
+      balance: acc.balance || 0,
+      currency: acc.currency || 'USD',
+      type: 'MT5 Linked'
+    }));
+
+    return [...manualAccountsFormatted, ...mt5AccountsFormatted];
+  }, [availableAccounts, mt5Accounts]);
+
+  // Fetch MT5 accounts if needed
+  useEffect(() => {
+    if (mt5Accounts.length === 0) {
+      dispatch(fetchMT5Accounts());
+    }
+  }, [dispatch, mt5Accounts.length]);
 
   // Add validation state
   const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
@@ -103,8 +136,7 @@ export default function TradeForm({ initialData, isEditMode = false, onFormSubmi
   const labelClasses = "block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2";
   
   const formElementBaseStructuralClasses = "block w-full rounded-xl shadow-sm p-3 transition-all duration-200 border backdrop-blur-sm";
-  const formElementThemeClasses = 
-    `bg-gradient-to-r from-emerald-50/50 to-white/50 dark:from-emerald-950/10 dark:to-emerald-900/10 border-emerald-200/50 dark:border-emerald-700/30 !text-black dark:!text-white font-medium`;
+  const formElementThemeClasses = `bg-gradient-to-r from-emerald-50/50 to-white/50 dark:from-emerald-950/30 dark:to-emerald-900/10 border-emerald-200/50 dark:border-emerald-700/30 !text-gray-900 dark:!text-white placeholder-gray-500 dark:placeholder-gray-400 font-medium`;
   const formElementBorderColor = theme === 'dark' ? 'rgba(16, 185, 129, 0.3)' : 'rgba(167, 243, 208, 0.5)';
   const formElementBgColor = theme === 'dark' ? 'rgba(6, 78, 59, 0.1)' : 'rgba(236, 253, 245, 0.5)';
   const formElementTextColor = theme === 'dark' ? '#ffffff' : '#000000';
@@ -436,7 +468,7 @@ export default function TradeForm({ initialData, isEditMode = false, onFormSubmi
     }),
     menu: (provided) => ({
       ...provided,
-      backgroundColor: formElementBgColor,
+      backgroundColor: theme === 'dark' ? '#1f2937' : 'white', // gray-800 or white - OPAQUE for visibility
       borderColor: formElementBorderColor,
       borderWidth: '1px',
       borderRadius: '0.5rem',
@@ -501,7 +533,7 @@ export default function TradeForm({ initialData, isEditMode = false, onFormSubmi
     `bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-950/20 dark:to-emerald-900/20 hover:bg-emerald-500 dark:hover:bg-emerald-500 text-gray-600 dark:text-gray-400 hover:text-white focus:ring-emerald-500 hover:scale-105 backdrop-blur-sm`;
   
   // Option theme classes for standard select
-  const optionThemeClass = "bg-white dark:bg-emerald-950/20 !text-black dark:!text-white font-medium";
+  const optionThemeClass = "bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 font-medium";
 
   return (
     <div className="w-full space-y-8">
@@ -519,6 +551,7 @@ export default function TradeForm({ initialData, isEditMode = false, onFormSubmi
 
       <form onSubmit={handleSubmit} className="space-y-8">
         {/* Section 1: Core Details */}
+        {/* Section 1: Core Details */}
         <div className={sectionContainerClasses}>
           <h2 className={sectionTitleClasses}>
             <div className="p-2 bg-gradient-to-r from-emerald-500/20 to-emerald-600/20 rounded-xl">
@@ -528,25 +561,24 @@ export default function TradeForm({ initialData, isEditMode = false, onFormSubmi
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
             <div className="md:col-span-2">
-              <label htmlFor="accountId" className={labelClasses}>Account <span className="text-accent-red">*</span></label>
-              {availableAccounts.length > 0 ? (
-                <select 
-                  id="accountId" 
-                  name="accountId" 
-                  value={formData.accountId || ''} 
-                  onChange={handleChange} 
-                  required 
-                  className={themedSelectClasses}
-                >
-                  <option value="" disabled className={optionThemeClass}>Select an account</option>
-                  {availableAccounts.map(account => (
-                    <option key={account.id} value={account.id} className={optionThemeClass}>
-                      {account.name} (Balance: {account.currency} {Number(account.balance).toFixed(2)})
+              <FormSelect
+                label="Account"
+                id="accountId" 
+                name="accountId" 
+                value={formData.accountId || ''} 
+                onChange={handleChange} 
+                required
+                error={getFieldError(validationErrors, 'accountId')}
+              >
+                  <option value="" disabled>Select an account</option>
+                  {allAccounts.map(account => (
+                    <option key={account.id} value={account.id}>
+                      {account.name} ({account.type}) - {account.currency} {Number(account.balance).toFixed(2)}
                     </option>
                   ))}
-                </select>
-              ) : (
-                <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-xl p-4">
+              </FormSelect>
+              {allAccounts.length === 0 && (
+                <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-xl p-4 mt-2">
                   <p className="text-sm text-yellow-800 dark:text-yellow-200 mb-2">
                     <strong>No accounts available.</strong> You need to create a trading account first.
                   </p>
@@ -557,61 +589,53 @@ export default function TradeForm({ initialData, isEditMode = false, onFormSubmi
               )}
             </div>
             <div>
-              <label htmlFor="assetType" className={labelClasses}>Asset Type <span className="text-accent-red">*</span></label>
-              <select 
+              <FormSelect
+                label="Asset Type"
                 id="assetType" 
                 name="assetType" 
                 value={formData.assetType} 
                 onChange={handleChange} 
-                required 
-                className={themedSelectClasses}
-                style={{ color: '#000000', WebkitTextFillColor: '#000000' }}
+                required
               >
-                {Object.values(AssetType).map(type => <option key={type} value={type} className={optionThemeClass} style={{ color: '#000000' }}>{type}</option>)}
-              </select>
+                {Object.values(AssetType).map(type => <option key={type} value={type}>{type}</option>)}
+              </FormSelect>
             </div>
             <div>
-              <label htmlFor="symbol" className={labelClasses}>Symbol / Pair <span className="text-accent-red">*</span></label>
-              <input 
+              <FormInput
+                label="Symbol / Pair"
                 type="text" 
                 id="symbol" 
                 name="symbol" 
                 value={formData.symbol} 
                 onChange={handleChange} 
                 required 
-                placeholder="e.g., AAPL, EURUSD, BTCUSDT" 
-                className={themedInputClasses}
-                style={{ color: '#000000', WebkitTextFillColor: '#000000' }}
+                placeholder="e.g., AAPL, EURUSD, BTCUSDT"
+                error={getFieldError(validationErrors, 'symbol')}
               />
-              {renderFieldError('symbol')}
             </div>
             <div>
-              <label htmlFor="direction" className={labelClasses}>Direction <span className="text-accent-red">*</span></label>
-              <select 
+              <FormSelect
+                label="Direction"
                 id="direction" 
                 name="direction" 
                 value={formData.direction} 
                 onChange={handleChange} 
-                required 
-                className={themedSelectClasses}
-                style={{ color: '#000000', WebkitTextFillColor: '#000000' }}
+                required
               >
-                {Object.values(TradeDirection).map(dir => <option key={dir} value={dir} className={optionThemeClass} style={{ color: '#000000' }}>{dir}</option>)}
-              </select>
+                {Object.values(TradeDirection).map(dir => <option key={dir} value={dir}>{dir}</option>)}
+              </FormSelect>
             </div>
             <div>
-              <label htmlFor="status" className={labelClasses}>Status <span className="text-accent-red">*</span></label>
-              <select 
+              <FormSelect
+                label="Status"
                 id="status" 
                 name="status" 
                 value={formData.status} 
                 onChange={handleChange} 
-                required 
-                className={themedSelectClasses}
-                style={{ color: '#000000', WebkitTextFillColor: '#000000' }}
+                required
               >
-                {Object.values(TradeStatus).map(stat => <option key={stat} value={stat} className={optionThemeClass} style={{ color: '#000000' }}>{stat}</option>)}
-              </select>
+                {Object.values(TradeStatus).map(stat => <option key={stat} value={stat}>{stat}</option>)}
+              </FormSelect>
             </div>
             <div className="md:col-span-2 flex items-center space-x-2 mt-2">
               <input
@@ -622,7 +646,7 @@ export default function TradeForm({ initialData, isEditMode = false, onFormSubmi
                 onChange={handleChange}
                 className="h-4 w-4 rounded border-emerald-300 text-emerald-600 focus:ring-emerald-500 dark:bg-emerald-950/20 dark:border-emerald-600/30"
               />
-              <label htmlFor="isStarred" className={labelClasses + " mb-0"}>
+              <label htmlFor="isStarred" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-0">
                 Mark as Starred
               </label>
             </div>
@@ -639,24 +663,54 @@ export default function TradeForm({ initialData, isEditMode = false, onFormSubmi
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
             <div>
-              <label htmlFor="entryDate" className={labelClasses}>Entry Date & Time <span className="text-accent-red">*</span></label>
-              <input type="datetime-local" id="entryDate" name="entryDate" value={formData.entryDate} onChange={handleChange} required className={themedInputClasses} style={{ color: '#000000', WebkitTextFillColor: '#000000' }} />
-              {renderFieldError('entryDate')}
+              <FormInput
+                label="Entry Date & Time"
+                type="datetime-local" 
+                id="entryDate" 
+                name="entryDate" 
+                value={formData.entryDate} 
+                onChange={handleChange} 
+                required 
+                error={getFieldError(validationErrors, 'entryDate')}
+              />
             </div>
             <div>
-              <label htmlFor="entryPrice" className={labelClasses}>Entry Price <span className="text-accent-red">*</span></label>
-              <input type="number" id="entryPrice" name="entryPrice" value={formData.entryPrice || ''} onChange={handleChange} required placeholder="0.00" step="any" className={themedInputClasses} style={{ color: '#000000', WebkitTextFillColor: '#000000' }} />
-              {renderFieldError('entryPrice')}
+              <FormInput
+                label="Entry Price"
+                type="number" 
+                id="entryPrice" 
+                name="entryPrice" 
+                value={formData.entryPrice || ''} 
+                onChange={handleChange} 
+                required 
+                placeholder="0.00" 
+                step="any"
+                error={getFieldError(validationErrors, 'entryPrice')}
+              />
             </div>
             <div>
-              <label htmlFor="exitDate" className={labelClasses}>Exit Date & Time</label>
-              <input type="datetime-local" id="exitDate" name="exitDate" value={formData.exitDate || ''} onChange={handleChange} className={themedInputClasses} style={{ color: '#000000', WebkitTextFillColor: '#000000' }} />
-              {renderFieldError('exitDate')}
+               <FormInput
+                label="Exit Date & Time"
+                type="datetime-local" 
+                id="exitDate" 
+                name="exitDate" 
+                value={formData.exitDate || ''} 
+                onChange={handleChange} 
+                error={getFieldError(validationErrors, 'exitDate')}
+              />
             </div>
             <div>
-              <label htmlFor="exitPrice" className={labelClasses}>Exit Price</label>
-              <input type="number" id="exitPrice" name="exitPrice" value={formData.exitPrice || ''} onChange={handleChange} placeholder="0.00" step="any" className={themedInputClasses} style={{ color: '#000000', WebkitTextFillColor: '#000000' }} />
-              {renderFieldError('exitPrice')}
+              <FormInput
+                label="Exit Price"
+                type="number" 
+                id="exitPrice" 
+                name="exitPrice" 
+                value={formData.exitPrice || ''} 
+                onChange={handleChange} 
+                placeholder="0.00" 
+                step="any"
+                error={getFieldError(validationErrors, 'exitPrice')}
+              />
             </div>
           </div>
         </div>
@@ -671,24 +725,57 @@ export default function TradeForm({ initialData, isEditMode = false, onFormSubmi
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
                 <div>
-                    <label htmlFor="stopLoss" className={labelClasses}>Stop Loss</label>
-                    <input type="number" id="stopLoss" name="stopLoss" value={formData.stopLoss || ''} onChange={handleChange} placeholder="0.00" step="any" className={themedInputClasses} style={{ color: '#000000', WebkitTextFillColor: '#000000' }} />
-                    {renderFieldError('stopLoss')}
+                    <FormInput
+                        label="Stop Loss"
+                        type="number" 
+                        id="stopLoss" 
+                        name="stopLoss" 
+                        value={formData.stopLoss || ''} 
+                        onChange={handleChange} 
+                        placeholder="0.00" 
+                        step="any"
+                        error={getFieldError(validationErrors, 'stopLoss')}
+                    />
                 </div>
                 <div>
-                    <label htmlFor="takeProfit" className={labelClasses}>Take Profit</label>
-                    <input type="number" id="takeProfit" name="takeProfit" value={formData.takeProfit || ''} onChange={handleChange} placeholder="0.00" step="any" className={themedInputClasses} style={{ color: '#000000', WebkitTextFillColor: '#000000' }} />
-                    {renderFieldError('takeProfit')}
+                     <FormInput
+                        label="Take Profit"
+                        type="number" 
+                        id="takeProfit" 
+                        name="takeProfit" 
+                        value={formData.takeProfit || ''} 
+                        onChange={handleChange} 
+                        placeholder="0.00" 
+                        step="any"
+                        error={getFieldError(validationErrors, 'takeProfit')}
+                    />
                 </div>
                 <div>
-                    <label htmlFor="quantity" className={labelClasses}>Quantity / Size <span className="text-accent-red">*</span></label>
-                    <input type="number" id="quantity" name="quantity" value={formData.quantity || ''} onChange={handleChange} required placeholder="e.g., 100, 0.01" step="any" className={themedInputClasses} style={{ color: '#000000', WebkitTextFillColor: '#000000' }} />
-                    {renderFieldError('quantity')}
+                    <FormInput
+                        label="Quantity / Size"
+                        type="number" 
+                        id="quantity" 
+                        name="quantity" 
+                        value={formData.quantity || ''} 
+                        onChange={handleChange} 
+                        required 
+                        placeholder="e.g., 100, 0.01" 
+                        step="any"
+                        error={getFieldError(validationErrors, 'quantity')}
+                    />
                 </div>
                 <div>
-                    <label htmlFor="commission" className={labelClasses}>Commission</label>
-                    <input type="number" id="commission" name="commission" value={formData.commission || ''} onChange={handleChange} placeholder="0.00" step="any" className={themedInputClasses} style={{ color: '#000000', WebkitTextFillColor: '#000000' }} />
-                    {renderFieldError('commission')}
+                    <FormInput
+                        label="Commission"
+                        type="number" 
+                        id="commission" 
+                        name="commission" 
+                        value={formData.commission || ''} 
+                        onChange={handleChange} 
+                        placeholder="0.00" 
+                        step="any"
+                        error={getFieldError(validationErrors, 'commission')}
+                    />
                 </div>
                 {formData.rMultiple !== undefined && (
                     <div className="md:col-span-2">
@@ -710,24 +797,34 @@ export default function TradeForm({ initialData, isEditMode = false, onFormSubmi
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
                 <div>
-                    <label htmlFor="strategyId" className={labelClasses}>Trading Strategy</label>
-                    <select id="strategyId" name="strategyId" value={formData.strategyId || ''} onChange={handleChange} className={themedSelectClasses} style={{ color: '#000000', WebkitTextFillColor: '#000000' }}>
-                        <option value="" className={optionThemeClass}>No strategy selected</option>
+                     <FormSelect
+                        label="Trading Strategy"
+                        id="strategyId" 
+                        name="strategyId" 
+                        value={formData.strategyId || ''} 
+                        onChange={handleChange}
+                    >
+                        <option value="">No strategy selected</option>
                         {strategies.filter(s => s.isActive).map(strategy => (
-                            <option key={strategy.id} value={strategy.id} className={optionThemeClass}>
+                            <option key={strategy.id} value={strategy.id}>
                                 {strategy.name}
                             </option>
                         ))}
-                    </select>
+                    </FormSelect>
                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                         Link this trade to a specific trading strategy for performance tracking
                     </p>
                 </div>
                 <div>
-                    <label htmlFor="session" className={labelClasses}>Trading Session</label>
-                    <select id="session" name="session" value={formData.session} onChange={handleChange} className={themedSelectClasses} style={{ color: '#000000', WebkitTextFillColor: '#000000' }}>
-                        {Object.values(TradingSession).map(sess => <option key={sess} value={sess} className={optionThemeClass}>{sess}</option>)}
-                    </select>
+                    <FormSelect
+                        label="Trading Session"
+                        id="session" 
+                        name="session" 
+                        value={formData.session} 
+                        onChange={handleChange}
+                    >
+                        {Object.values(TradingSession).map(sess => <option key={sess} value={sess}>{sess}</option>)}
+                    </FormSelect>
                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                         Market session when this trade was executed
                     </p>
@@ -741,69 +838,81 @@ export default function TradeForm({ initialData, isEditMode = false, onFormSubmi
                         value={selectedTags}
                         onChange={handleTagChange}
                         placeholder="Type to add tags (e.g., Scalp, Breakout, Reversal)"
-                        classNamePrefix="react-select" // Useful for more specific global CSS if needed
-                        styles={selectStyles} // Apply custom styles
+                        classNamePrefix="react-select"
+                        styles={selectStyles} 
                         theme={(currentTheme) => ({
                             ...currentTheme,
                             borderRadius: 5,
                             colors: {
                                 ...currentTheme.colors,
-                                primary: 'var(--color-accent-blue)', // Border on focus, selected item bg
+                                primary: 'var(--color-accent-blue)', 
                                 primary75: 'var(--color-accent-blue-lighter)', 
                                 primary50: 'var(--color-accent-blue-lightest)', 
-                                primary25: 'var(--color-light-hover)', // Hover/focus bg for options
+                                primary25: 'var(--color-light-hover)', 
                                 
                                 danger: 'var(--color-accent-red)',
                                 dangerLight: 'var(--color-accent-red-lighter)',
 
-                                neutral0: formElementBgColor,  // control background
-                                neutral5: theme === 'dark' ? 'var(--color-dark-tertiary)' : 'var(--color-light-tertiary)', // multivalue bg
-                                neutral10: theme === 'dark' ? 'var(--color-dark-border)' : 'var(--color-light-border)', // multivalue hover bg, indicators
-                                neutral20: formElementBorderColor, // border and separators
-                                neutral30: formElementBorderColor, // hover border
-                                neutral40: theme === 'dark' ? 'var(--text-text-light-secondary)' : 'var(--color-text-dark-secondary)', // placeholder, disabled indicator
-                                neutral50: formElementPlaceholderColor, // placeholder text
-                                neutral60: theme === 'dark' ? 'var(--text-text-light-primary)' : 'var(--color-text-dark-primary)', // indicator hover
-                                neutral80: formElementTextColor, // input text, selected value text
-                                neutral90: formElementTextColor, // selected value text for single
+                                neutral0: formElementBgColor, 
+                                neutral5: theme === 'dark' ? 'var(--color-dark-tertiary)' : 'var(--color-light-tertiary)', 
+                                neutral10: theme === 'dark' ? 'var(--color-dark-border)' : 'var(--color-light-border)', 
+                                neutral20: formElementBorderColor, 
+                                neutral30: formElementBorderColor, 
+                                neutral40: theme === 'dark' ? 'var(--text-text-light-secondary)' : 'var(--color-text-dark-secondary)', 
+                                neutral50: formElementPlaceholderColor, 
+                                neutral60: theme === 'dark' ? 'var(--text-text-light-primary)' : 'var(--color-text-dark-primary)', 
+                                neutral80: formElementTextColor, 
+                                neutral90: formElementTextColor, 
                             },
                         })}
                     />
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                        Add custom tags to categorize and filter your trades
-                    </p>
+                </div>
+            </div>
+            
+            <div className="space-y-5 mt-6 pt-6 border-t border-emerald-100/50 dark:border-emerald-800/30">
+                <div>
+                     <FormTextarea
+                        label="Setup Details"
+                        id="setupDetails" 
+                        name="setupDetails" 
+                        value={formData.setupDetails || ''} 
+                        onChange={handleChange} 
+                        placeholder="Describe your trade setup, confluence factors, etc."
+                    />
+                </div>
+                <div>
+                     <FormTextarea
+                        label="Mistakes Made"
+                        id="mistakesMade" 
+                        name="mistakesMade" 
+                        value={formData.mistakesMade || ''} 
+                        onChange={handleChange} 
+                        placeholder="Any deviations from your plan or execution errors?"
+                    />
+                </div>
+                <div>
+                     <FormTextarea
+                        label="Lessons Learned"
+                        id="lessonsLearned" 
+                        name="lessonsLearned" 
+                        value={formData.lessonsLearned || ''} 
+                        onChange={handleChange} 
+                        placeholder="What can you take away from this trade?"
+                    />
+                </div>
+                <div>
+                     <FormTextarea
+                        label="General Notes"
+                        id="notes" 
+                        name="notes" 
+                        value={formData.notes || ''} 
+                        onChange={handleChange} 
+                        placeholder="Any other observations or comments..."
+                    />
                 </div>
             </div>
         </div>
-
-        {/* Section 5: Reflection & Notes */}
-        <div className={sectionContainerClasses}>
-            <h2 className={sectionTitleClasses}>
-              <div className="p-2 bg-gradient-to-r from-yellow-500/20 to-amber-500/20 rounded-xl">
-                <FaSave className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
-              </div>
-              <span>Reflection & Journaling</span>
-            </h2>
-            <div className="space-y-5">
-                <div>
-                    <label htmlFor="setupDetails" className={labelClasses}>Setup Details</label>
-                    <textarea id="setupDetails" name="setupDetails" value={formData.setupDetails || ''} onChange={handleChange} placeholder="Describe your trade setup, confluence factors, etc." className={themedTextareaClasses} style={{ color: '#000000', WebkitTextFillColor: '#000000' }} />
-                </div>
-                <div>
-                    <label htmlFor="mistakesMade" className={labelClasses}>Mistakes Made</label>
-                    <textarea id="mistakesMade" name="mistakesMade" value={formData.mistakesMade || ''} onChange={handleChange} placeholder="Any deviations from your plan or execution errors?" className={themedTextareaClasses} style={{ color: '#000000', WebkitTextFillColor: '#000000' }} />
-                </div>
-                <div>
-                    <label htmlFor="lessonsLearned" className={labelClasses}>Lessons Learned</label>
-                    <textarea id="lessonsLearned" name="lessonsLearned" value={formData.lessonsLearned || ''} onChange={handleChange} placeholder="What can you take away from this trade?" className={themedTextareaClasses} style={{ color: '#000000', WebkitTextFillColor: '#000000' }} />
-                </div>
-                <div>
-                    <label htmlFor="notes" className={labelClasses}>General Notes</label>
-                    <textarea id="notes" name="notes" value={formData.notes || ''} onChange={handleChange} placeholder="Any other observations or comments..." className={themedTextareaClasses} style={{ color: '#000000', WebkitTextFillColor: '#000000' }} />
-                </div>
-            </div>
-        </div>
-
+        
         {/* Section 6: Chart Upload */}
         <div className={sectionContainerClasses}>
             <h2 className={sectionTitleClasses}>

@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { FaChartBar, FaArrowUp, FaArrowDown, FaEquals, FaInfoCircle } from 'react-icons/fa';
 import { getPremiumDiscount, type PremiumDiscountData } from '@/services/ictService';
+import { DataSourceBadge, type DataSource } from './DashboardSkeleton';
 
 // Remove local interface - use imported type instead
 
@@ -14,6 +15,7 @@ export default function PremiumDiscountWidget({ symbol = 'XAUUSD' }: Props) {
   const [data, setData] = useState<PremiumDiscountData | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedSymbol, setSelectedSymbol] = useState(symbol);
+  const [dataSource, setDataSource] = useState<DataSource>('demo');
 
   const symbols = ['XAUUSD', 'EURUSD', 'GBPUSD', 'USDJPY', 'BTCUSD'];
 
@@ -26,22 +28,26 @@ export default function PremiumDiscountWidget({ symbol = 'XAUUSD' }: Props) {
     try {
       const result = await getPremiumDiscount(sym, '1H');
       setData(result);
+      // Get dataSource from API response (falls back to 'twelvedata' if not present)
+      setDataSource((result as any).dataSource || 'twelvedata');
     } catch (error) {
       console.error('Error fetching premium/discount data from API, using fallback:', error);
       // Fallback to demo data if API fails
       setData(generateDemoData(sym));
+      setDataSource('demo');
     } finally {
       setLoading(false);
     }
   };
 
   const generateDemoData = (sym: string): PremiumDiscountData => {
+    // Updated demo prices as of late 2024/early 2025
     const prices: Record<string, { price: number; high: number; low: number }> = {
-      'EURUSD': { price: 1.0850, high: 1.0920, low: 1.0780 },
-      'XAUUSD': { price: 2030.50, high: 2055.00, low: 2010.00 },
-      'GBPUSD': { price: 1.2750, high: 1.2850, low: 1.2650 },
-      'USDJPY': { price: 149.50, high: 150.20, low: 148.80 },
-      'BTCUSD': { price: 43500, high: 44500, low: 42500 },
+      'EURUSD': { price: 1.0420, high: 1.0520, low: 1.0380 },
+      'XAUUSD': { price: 2630.50, high: 2680.00, low: 2600.00 },
+      'GBPUSD': { price: 1.2550, high: 1.2650, low: 1.2450 },
+      'USDJPY': { price: 157.50, high: 158.20, low: 156.80 },
+      'BTCUSD': { price: 94500, high: 96500, low: 92500 },
     };
 
     const { price, high, low } = prices[sym] || prices['EURUSD'];
@@ -146,16 +152,17 @@ export default function PremiumDiscountWidget({ symbol = 'XAUUSD' }: Props) {
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
             Premium/Discount Arrays
           </h3>
+          <DataSourceBadge source={dataSource} />
         </div>
         
-        {/* Symbol Selector */}
+        {/* Symbol Selector - Styled for dark mode visibility */}
         <select
           value={selectedSymbol}
           onChange={(e) => setSelectedSymbol(e.target.value)}
-          className="px-3 py-1 text-sm border border-emerald-300 dark:border-emerald-600/30 rounded-lg bg-gradient-to-r from-emerald-50 to-white dark:from-emerald-950/20 dark:to-black text-gray-900 dark:text-white focus:ring-2 focus:ring-emerald-500"
+          className="px-3 py-2 text-sm font-medium border-2 border-emerald-400 dark:border-emerald-500 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 cursor-pointer shadow-sm hover:border-emerald-500 transition-colors"
         >
           {symbols.map((sym) => (
-            <option key={sym} value={sym}>{sym}</option>
+            <option key={sym} value={sym} className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white py-2">{sym}</option>
           ))}
         </select>
       </div>

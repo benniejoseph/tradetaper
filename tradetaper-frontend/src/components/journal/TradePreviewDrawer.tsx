@@ -463,7 +463,7 @@ export default function TradePreviewDrawer({
                 <DetailItem label="Funding" value="$0.00" />
                 <DetailItem label="Max Favorable Excursion (MFE)" value={<span className="text-gray-400 dark:text-gray-500">- (Future Feature)</span>} />
                 <DetailItem label="Max Adverse Excursion (MAE)" value={<span className="text-gray-400 dark:text-gray-500">- (Future Feature)</span>} />
-                <DetailItem label="Leverage Used" value={<span className="text-gray-400 dark:text-gray-500">- (Future Feature)</span>} />
+                <DetailItem label="Margin Used" value={trade.marginUsed ? `$${trade.marginUsed.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}` : '-'} />
               </div>
 
               <SectionTitle title="Entry / Exit" icon={<FaDollarSign className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />} />

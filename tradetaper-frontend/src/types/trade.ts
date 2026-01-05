@@ -63,6 +63,7 @@ export interface Trade {
   updatedAt: string;
   accountId?: string; // Added: To link trade to an account
   isStarred?: boolean; // New field for starring trades
+  marginUsed?: number; // Added: Margin used for the trade
 }
 
 export interface CreateTradePayload extends Omit<Partial<Trade>, 'id' | 'userId' | 'createdAt' | 'updatedAt' | 'profitOrLoss' | 'tags'> {
