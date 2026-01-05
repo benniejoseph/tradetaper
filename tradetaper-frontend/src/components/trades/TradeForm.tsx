@@ -132,26 +132,9 @@ export default function TradeForm({ initialData, isEditMode = false, onFormSubmi
   // Add validation state
   const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
 
-  // --- THEME HELPER CLASSES ---
-  const labelClasses = "block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2";
-  
-  const formElementBaseStructuralClasses = "block w-full rounded-xl shadow-sm p-3 transition-all duration-200 border backdrop-blur-sm";
-  const formElementThemeClasses = `bg-gradient-to-r from-emerald-50/50 to-white/50 dark:from-emerald-950/30 dark:to-emerald-900/10 border-emerald-200/50 dark:border-emerald-700/30 !text-gray-900 dark:!text-white placeholder-gray-500 dark:placeholder-gray-400 font-medium`;
-  const formElementBorderColor = theme === 'dark' ? 'rgba(16, 185, 129, 0.3)' : 'rgba(167, 243, 208, 0.5)';
-  const formElementBgColor = theme === 'dark' ? 'rgba(6, 78, 59, 0.1)' : 'rgba(236, 253, 245, 0.5)';
-  const formElementTextColor = theme === 'dark' ? '#ffffff' : '#000000';
-  const formElementPlaceholderColor = theme === 'dark' ? 'rgba(209, 213, 219, 0.6)' : 'rgba(107, 114, 128, 0.7)';
-
-  const inputFocusClasses = "focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:outline-none hover:from-emerald-100/60 hover:to-emerald-50/60 dark:hover:from-emerald-900/20 dark:hover:to-emerald-800/20";
-  const placeholderClasses = "placeholder:text-gray-600 dark:placeholder:text-gray-400 placeholder:font-normal";
-  
-  const themedInputClasses = `${formElementBaseStructuralClasses} ${formElementThemeClasses} ${inputFocusClasses} ${placeholderClasses}`;
-  const themedSelectClasses = `${formElementBaseStructuralClasses} ${formElementThemeClasses} ${inputFocusClasses} appearance-none`;
-  const themedTextareaClasses = `${formElementBaseStructuralClasses} ${formElementThemeClasses} ${inputFocusClasses} ${placeholderClasses} min-h-[120px] resize-y`;
-
   const sectionContainerClasses = "bg-gradient-to-br from-white to-emerald-50 dark:from-black dark:to-emerald-950/20 backdrop-blur-xl p-8 rounded-2xl border border-emerald-200/50 dark:border-emerald-700/30 shadow-lg hover:shadow-xl transition-all duration-200";
   const sectionTitleClasses = "text-2xl font-bold text-gray-900 dark:text-white mb-6 pb-3 border-b border-emerald-200/30 dark:border-emerald-700/30 flex items-center space-x-3";
-  // --- END THEME HELPER CLASSES ---
+  const labelClasses = "block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2";
 
   const [selectedTags, setSelectedTags] = useState<MultiValue<TagOption>>([]);
 
@@ -262,14 +245,14 @@ export default function TradeForm({ initialData, isEditMode = false, onFormSubmi
         quantity: initialData.quantity,
         commission: initialData.commission,
         notes: initialData.notes || '',
-        session: getEnumValue(TradingSession, initialData.session, TradingSession.NEW_YORK),
-        setupDetails: initialData.setupDetails || '',
-        mistakesMade: initialData.mistakesMade || '',
-        lessonsLearned: initialData.lessonsLearned || '',
-        imageUrl: initialData.imageUrl || '',
-        rMultiple: initialData.rMultiple ?? undefined,
-        isStarred: initialData.isStarred || false,
-        strategyId: initialData.strategyId || undefined,
+        session: getEnumValue(TradingSession, initialData?.session, TradingSession.NEW_YORK),
+        setupDetails: initialData?.setupDetails || '',
+        mistakesMade: initialData?.mistakesMade || '',
+        lessonsLearned: initialData?.lessonsLearned || '',
+        imageUrl: initialData?.imageUrl || '',
+        rMultiple: initialData?.rMultiple ?? undefined,
+        isStarred: initialData?.isStarred || false,
+        strategyId: initialData?.strategyId || undefined,
       }));
       setImagePreviewUrl(initialData.imageUrl || null);
       setSelectedFile(null);
@@ -416,18 +399,18 @@ export default function TradeForm({ initialData, isEditMode = false, onFormSubmi
     }
   };
 
-  // --- CUSTOM STYLES FOR REACT-SELECT ---
+  // --- CUSTOM STYLES FOR REACT-SELECT (Robust Theming) ---
   const selectStyles: StylesConfig<TagOption, true> = {
     control: (provided, state) => ({
       ...provided,
-      backgroundColor: formElementBgColor,
-      borderColor: state.isFocused ? 'var(--color-accent-green)' : formElementBorderColor,
-      boxShadow: state.isFocused ? '0 0 0 2px var(--color-accent-green-transparent)' : 'none', // Ring effect
-      borderRadius: '0.5rem', // Matches rounded-lg
-      minHeight: '42px', // Matches p-2.5 with typical line height
+      backgroundColor: 'var(--bg-secondary)', // Use CSS variables
+      borderColor: state.isFocused ? 'var(--accent)' : 'var(--border)',
+      boxShadow: state.isFocused ? '0 0 0 2px var(--shadow-md)' : 'none', 
+      borderRadius: '0.75rem', 
+      minHeight: '46px', 
       transition: 'border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out',
       '&:hover': {
-        borderColor: state.isFocused ? 'var(--color-accent-green)' : formElementBorderColor,
+        borderColor: state.isFocused ? 'var(--accent)' : 'var(--border-hover)',
       },
     }),
     valueContainer: (provided) => ({
@@ -436,72 +419,76 @@ export default function TradeForm({ initialData, isEditMode = false, onFormSubmi
     }),
     input: (provided) => ({
       ...provided,
-      color: formElementTextColor,
+      color: 'var(--text-primary)',
       margin: '0px',
       padding: '0px',
     }),
     placeholder: (provided) => ({
       ...provided,
-      color: formElementPlaceholderColor,
+      color: 'var(--text-tertiary)',
     }),
     singleValue: (provided) => ({
       ...provided,
-      color: formElementTextColor,
+      color: 'var(--text-primary)',
     }),
     multiValue: (provided) => ({
       ...provided,
-      backgroundColor: theme === 'dark' ? 'var(--color-dark-tertiary)' : 'var(--color-light-tertiary)', // multivalue bg
-      borderRadius: '0.25rem', // Slightly less rounded for tags
+      backgroundColor: 'var(--bg-tertiary)',
+      borderRadius: '0.375rem',
+      border: '1px solid var(--border)',
     }),
     multiValueLabel: (provided) => ({
       ...provided,
-      color: formElementTextColor,
+      color: 'var(--text-secondary)',
       fontSize: '0.875rem',
+      fontWeight: 500,
     }),
     multiValueRemove: (provided) => ({
       ...provided,
-      color: theme === 'dark' ? 'var(--text-text-light-secondary)' : 'var(--color-text-dark-secondary)',
+      color: 'var(--text-tertiary)',
       '&:hover': {
-        backgroundColor: theme === 'dark' ? 'var(--color-accent-red-darker)' : 'var(--color-accent-red)',
-        color: 'white',
+        backgroundColor: 'var(--error-light)',
+        color: 'var(--error)',
       },
+      borderTopRightRadius: '0.375rem',
+      borderBottomRightRadius: '0.375rem',
     }),
     menu: (provided) => ({
       ...provided,
-      backgroundColor: theme === 'dark' ? '#1f2937' : 'white', // gray-800 or white - OPAQUE for visibility
-      borderColor: formElementBorderColor,
+      backgroundColor: 'var(--bg-primary)',
+      borderColor: 'var(--border)',
       borderWidth: '1px',
-      borderRadius: '0.5rem',
-      boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06)', // Standard shadow
-      zIndex: 9999, // Ensure dropdown appears above other elements
+      borderRadius: '0.75rem',
+      boxShadow: 'var(--shadow-lg)',
+      zIndex: 9999, 
     }),
     menuPortal: (provided) => ({
       ...provided,
-      zIndex: 9999, // For portal mode if needed
+      zIndex: 9999,
     }),
     option: (provided, state) => ({
       ...provided,
-      backgroundColor: state.isSelected ? 'var(--color-accent-blue)' : state.isFocused ? (theme === 'dark' ? 'var(--color-dark-hover)' : 'var(--color-light-hover)') : 'transparent',
-      color: state.isSelected ? 'white' : formElementTextColor,
+      backgroundColor: state.isSelected ? 'var(--accent)' : state.isFocused ? 'var(--bg-secondary)' : 'transparent',
+      color: state.isSelected ? 'white' : 'var(--text-primary)',
       fontSize: '0.875rem',
+      cursor: 'pointer',
       '&:active': {
-        backgroundColor: 'var(--color-accent-blue-darker)',
+        backgroundColor: 'var(--accent-hover)',
       },
     }),
-    // Add other parts if needed: dropdownIndicator, clearIndicator, etc.
-    indicatorSeparator: () => ({ display: 'none' }), // Often hidden for cleaner look
+    indicatorSeparator: () => ({ display: 'none' }),
     dropdownIndicator: (provided) => ({
         ...provided,
-        color: theme === 'dark' ? 'var(--text-text-light-secondary)' : 'var(--color-text-dark-secondary)',
+        color: 'var(--text-tertiary)',
         '&:hover': {
-            color: theme === 'dark' ? 'white' : 'black',
+            color: 'var(--text-secondary)',
         }
     }),
     clearIndicator: (provided) => ({
         ...provided,
-        color: theme === 'dark' ? 'var(--text-text-light-secondary)' : 'var(--color-text-dark-secondary)',
+        color: 'var(--text-tertiary)',
         '&:hover': {
-            color: theme === 'dark' ? 'white' : 'black',
+            color: 'var(--text-secondary)',
         }
     }),
   };
@@ -840,31 +827,6 @@ export default function TradeForm({ initialData, isEditMode = false, onFormSubmi
                         placeholder="Type to add tags (e.g., Scalp, Breakout, Reversal)"
                         classNamePrefix="react-select"
                         styles={selectStyles} 
-                        theme={(currentTheme) => ({
-                            ...currentTheme,
-                            borderRadius: 5,
-                            colors: {
-                                ...currentTheme.colors,
-                                primary: 'var(--color-accent-blue)', 
-                                primary75: 'var(--color-accent-blue-lighter)', 
-                                primary50: 'var(--color-accent-blue-lightest)', 
-                                primary25: 'var(--color-light-hover)', 
-                                
-                                danger: 'var(--color-accent-red)',
-                                dangerLight: 'var(--color-accent-red-lighter)',
-
-                                neutral0: formElementBgColor, 
-                                neutral5: theme === 'dark' ? 'var(--color-dark-tertiary)' : 'var(--color-light-tertiary)', 
-                                neutral10: theme === 'dark' ? 'var(--color-dark-border)' : 'var(--color-light-border)', 
-                                neutral20: formElementBorderColor, 
-                                neutral30: formElementBorderColor, 
-                                neutral40: theme === 'dark' ? 'var(--text-text-light-secondary)' : 'var(--color-text-dark-secondary)', 
-                                neutral50: formElementPlaceholderColor, 
-                                neutral60: theme === 'dark' ? 'var(--text-text-light-primary)' : 'var(--color-text-dark-primary)', 
-                                neutral80: formElementTextColor, 
-                                neutral90: formElementTextColor, 
-                            },
-                        })}
                     />
                 </div>
             </div>
