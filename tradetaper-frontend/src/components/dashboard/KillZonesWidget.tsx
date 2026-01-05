@@ -220,6 +220,10 @@ export default function KillZonesWidget() {
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
             ICT Kill Zones
           </h3>
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
+            <span className="w-1.5 h-1.5 rounded-full mr-1.5 bg-green-500 animate-pulse"></span>
+            Live
+          </span>
         </div>
         <div className="text-sm text-gray-500 dark:text-gray-400">
           {currentTime.toLocaleTimeString('en-US', { 

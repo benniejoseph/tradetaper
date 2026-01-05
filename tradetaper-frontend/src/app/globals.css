@@ -186,54 +186,55 @@
     padding-top: 1.35rem;
     padding-bottom: 1.35rem;
   }
-  /* Force input text visibility - HIGHEST PRIORITY */
+  /* Force input text visibility - DEFAULT, but allow override */
   input,
   select,
   textarea {
-    color: #000000 !important;
-    -webkit-text-fill-color: #000000 !important;
+    color: #000000;
+    -webkit-text-fill-color: #000000;
   }
 
   html.dark input,
   html.dark select,
   html.dark textarea {
-    color: #000000 !important;
-    -webkit-text-fill-color: #000000 !important;
+    color: #FFFFFF;
+    -webkit-text-fill-color: #FFFFFF;
   }
 
   /* ContentHeader specific inputs - WHITE text in dark mode */
   .content-header-input,
   .content-header-input option {
-    color: #000000 !important;
-    -webkit-text-fill-color: #000000 !important;
+    color: #000000;
+    -webkit-text-fill-color: #000000;
   }
 
   html.dark .content-header-input,
   html.dark .content-header-input option {
-    color: #FFFFFF !important;
-    -webkit-text-fill-color: #FFFFFF !important;
+    color: #FFFFFF;
+    -webkit-text-fill-color: #FFFFFF;
   }
+
 
   /* Force option text visibility */
   option {
-    color: #000000 !important;
-    background-color: #FFFFFF !important;
+    color: #000000;
+    background-color: #FFFFFF;
   }
 
   html.dark option {
-    color: #FFFFFF !important;
-    background-color: #0A0A0A !important;
+    color: #FFFFFF;
+    background-color: #0A0A0A;
   }
 
   /* Additional specificity for form elements */
   input::placeholder {
-    color: #6B7280 !important;
-    opacity: 0.7 !important;
+    color: #6B7280;
+    opacity: 0.7;
   }
 
   html.dark input::placeholder {
-    color: #9CA3AF !important;
-    opacity: 0.7 !important;
+    color: #9CA3AF;
+    opacity: 0.7;
   }
 
   /* You can add more base styles here if needed */

@@ -402,4 +402,12 @@ const tradesSlice = createSlice({
 });
 
 export const { clearTradesError, setCurrentTrade, setTradeFilters, resetTradeFilters, setAnalyticsDateFilters, resetAnalyticsDateFilters, addTrade, updateTradeRealtime, removeTrade, setTrades } = tradesSlice.actions;
+
+export const selectAllTrades = (state: { trades: TradesState }) => state.trades.trades;
+export const selectTradesLoading = (state: { trades: TradesState }) => state.trades.isLoading;
+export const selectTradesError = (state: { trades: TradesState }) => state.trades.error;
+export const selectTotalTrades = (state: { trades: TradesState }) => state.trades.total;
+export const selectCurrentPage = (state: { trades: TradesState }) => state.trades.page;
+export const selectTradesLimit = (state: { trades: TradesState }) => state.trades.limit;
+
 export default tradesSlice.reducer;

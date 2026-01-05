@@ -9,15 +9,27 @@ import {
   updateMT5Account, 
   deleteMT5Account, 
   syncMT5Account,
+  linkMT5Account,
+  importMT5Trades,
   selectMT5Accounts,
   selectMT5AccountsLoading,
   selectMT5AccountsError,
 } from '@/store/features/mt5AccountsSlice';
-import { FaPlus, FaEdit, FaTrash, FaSync, FaInfoCircle } from 'react-icons/fa';
-// import MT5AccountForm from './MT5AccountForm'; // Removed - component no longer exists
-// import { MT5AccountsService, MT5Server } from '@/services/mt5AccountsService'; // Removed - service no longer exists
-// import { formatDate } from '@/utils/dateUtils'; // Removed - utility no longer exists
+import { FaPlus, FaEdit, FaTrash, FaSync, FaInfoCircle, FaLink, FaDownload } from 'react-icons/fa';
+import MT5AccountForm, { MT5Server } from './MT5AccountForm';
 import toast from 'react-hot-toast';
+
+// Helper function to format dates
+const formatDate = (dateString: string): string => {
+  try {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      month: 'short', day: 'numeric', year: 'numeric',
+      hour: '2-digit', minute: '2-digit'
+    });
+  } catch {
+    return 'Invalid date';
+  }
+};
 
 const MT5AccountsTab = () => {
   const dispatch = useDispatch<AppDispatch>();
@@ -43,6 +55,9 @@ const MT5AccountsTab = () => {
   const [mt5Servers, setMT5Servers] = useState<MT5Server[]>([]);
   const [loadingServers, setLoadingServers] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [linkingAccount, setLinkingAccount] = useState<string | null>(null);
+  const [showLinkModal, setShowLinkModal] = useState<any | null>(null);
+  const [linkPassword, setLinkPassword] = useState('');
 
   // Ensure component is mounted before rendering portals
   useEffect(() => {
@@ -62,21 +77,8 @@ const MT5AccountsTab = () => {
   }, [dispatch]);
 
   useEffect(() => {
-    const fetchServers = async () => {
-      console.log('Starting to fetch MT5 servers...');
-      setLoadingServers(true);
-      try {
-        const servers = await MT5AccountsService.getServers();
-        setMT5Servers(servers);
-      } catch (error) {
-        console.error('Failed to fetch MT5 servers:', error);
-        showToast('Failed to load MetaTrader 5 servers. Using default servers instead.', 'error');
-      } finally {
-        setLoadingServers(false);
-      }
-    };
-
-    fetchServers();
+    // Servers are now provided as defaults in MT5AccountForm
+    // No external API to fetch servers
   }, []);
 
   // Debug log whenever mt5Servers changes
@@ -135,15 +137,31 @@ const MT5AccountsTab = () => {
     }
   };
 
-  const handleImportTrades = async (accountId: string, fromDate: Date, toDate: Date) => {
+  const handleLinkAccount = async (account: any) => {
+    if (!linkPassword) {
+      showToast('Please enter your MT5 password', 'error');
+      return;
+    }
+    setLinkingAccount(account.id);
+    try {
+      await dispatch(linkMT5Account({ id: account.id, password: linkPassword })).unwrap();
+      setShowLinkModal(null);
+      setLinkPassword('');
+      showToast('Account linked to MetaApi successfully! You can now sync and import trades.', 'success');
+    } catch (error) {
+      console.error('Error linking account:', error);
+    } finally {
+      setLinkingAccount(null);
+    }
+  };
+
+  const handleImportTrades = async (accountId: string) => {
     setImportingTrades(accountId);
     try {
-      const trades = await MT5AccountsService.importTrades(accountId, fromDate, toDate);
-      showToast(`Successfully imported ${trades.length} trades!`, 'success');
-      setShowImportModal(null);
+      await dispatch(importMT5Trades({ id: accountId })).unwrap();
+      showToast('Trades imported successfully!', 'success');
     } catch (error) {
       console.error('Error importing trades:', error);
-      showToast('Failed to import trades. Please try again.', 'error');
     } finally {
       setImportingTrades(null);
     }
@@ -178,6 +196,8 @@ const MT5AccountsTab = () => {
           login: formData.login,
           password: formData.password,
           isActive: formData.isActive,
+          initialBalance: formData.initialBalance,
+          currency: formData.currency,
         };
         console.log('Create payload:', createData);
         console.log('Payload types:', {
@@ -313,26 +333,47 @@ const MT5AccountsTab = () => {
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-[var(--color-text-dark-secondary)] dark:text-text-light-secondary">
-                    {account.lastSynced ? formatDate(account.lastSynced) : 'Never'}
+                    {account.lastSyncAt ? formatDate(account.lastSyncAt) : 'Never'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <div className="flex space-x-2">
                       <button 
                         onClick={() => handleEditAccount(account)}
-                        className="text-indigo-600 hover:text-indigo-900"
+                        className="text-indigo-600 hover:text-indigo-900" title="Edit"
                       >
                         <FaEdit className="h-4 w-4" />
                       </button>
+                      {account.connectionStatus !== 'connected' && (
+                        <button 
+                          onClick={() => setShowLinkModal(account)}
+                          className="text-blue-600 hover:text-blue-900" title="Link to MetaApi"
+                        >
+                          <FaLink className="h-4 w-4" />
+                        </button>
+                      )}
                       <button 
-                        onClick={() => handleSyncAccount(account.id)}
+                        onClick={() => {
+                          showToast('Syncing... This may take a minute if the account needs to wake up.', 'success');
+                          handleSyncAccount(account.id);
+                        }}
                         className={`text-emerald-600 hover:text-emerald-900 ${syncingAccount === account.id ? 'animate-spin' : ''}`}
                         disabled={syncingAccount === account.id}
+                        title="Sync Now (Starts Session)"
                       >
                         <FaSync className="h-4 w-4" />
                       </button>
                       <button 
+                        onClick={() => handleImportTrades(account.id)}
+                        className={`text-purple-600 hover:text-purple-900`}
+                        disabled={importingTrades === account.id}
+                        title="Import Trades"
+                      >
+                        <FaDownload className={`h-4 w-4 ${importingTrades === account.id ? 'animate-pulse' : ''}`} />
+                      </button>
+                      <button 
                         onClick={() => handleDeleteAccount(account.id)}
                         className={`${confirmDelete === account.id ? 'text-red-600' : 'text-gray-600'} hover:text-red-900`}
+                        title="Delete"
                       >
                         <FaTrash className="h-4 w-4" />
                       </button>
@@ -375,6 +416,62 @@ const MT5AccountsTab = () => {
             onCancel={handleCloseEditModal}
             isSubmitting={loading}
           />
+        )}
+      </Modal>
+
+      {/* Link Account Modal */}
+      <Modal 
+        isOpen={!!showLinkModal} 
+        onClose={() => { setShowLinkModal(null); setLinkPassword(''); }} 
+        title="Link to MetaApi"
+      >
+        {showLinkModal && (
+          <div className="space-y-4">
+            <p className="text-sm text-[var(--color-text-dark-secondary)] dark:text-text-light-secondary">
+              Enter your MT5 password to link account <strong>{showLinkModal.accountName}</strong> to MetaApi.
+              This will enable automatic syncing and trade history import.
+            </p>
+            <div>
+              <label className="block text-sm font-medium text-[var(--color-text-dark-primary)] dark:text-text-light-primary mb-1">
+                MT5 Password
+              </label>
+              <input
+                type="password"
+                value={linkPassword}
+                onChange={(e) => setLinkPassword(e.target.value)}
+                className="w-full px-3 py-2 border border-[var(--color-light-border)] dark:border-gray-700 rounded-md bg-[var(--color-light-primary)] dark:bg-dark-primary text-[var(--color-text-dark-primary)] dark:text-text-light-primary focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                placeholder="Enter your MT5 password"
+              />
+            </div>
+            <div className="flex justify-end space-x-3 pt-4">
+              <button
+                onClick={() => { setShowLinkModal(null); setLinkPassword(''); }}
+                className="px-4 py-2 border border-[var(--color-light-border)] dark:border-gray-700 rounded-md text-[var(--color-text-dark-secondary)] dark:text-text-light-secondary hover:bg-[var(--color-light-hover)] dark:hover:bg-dark-primary"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleLinkAccount(showLinkModal)}
+                disabled={linkingAccount === showLinkModal.id || !linkPassword}
+                className="px-4 py-2 bg-emerald-600 text-white rounded-md hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+              >
+                {linkingAccount === showLinkModal.id ? (
+                  <>
+                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Linking...
+                  </>
+                ) : (
+                  <>
+                    <FaLink className="mr-2" />
+                    Link Account
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
         )}
       </Modal>
     </div>

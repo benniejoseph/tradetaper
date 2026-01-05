@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { FaBolt, FaInfoCircle, FaChartLine } from 'react-icons/fa';
 import { getPowerOfThree, type PowerOfThreeData as APIPowerOfThreeData } from '@/services/ictService';
+import { DataSourceBadge, type DataSource } from './DashboardSkeleton';
 
 interface PowerOfThreeData {
   symbol: string;
@@ -25,6 +26,7 @@ export default function PowerOfThreeWidget({ symbol = 'XAUUSD' }: Props) {
   const [data, setData] = useState<PowerOfThreeData | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedSymbol, setSelectedSymbol] = useState(symbol);
+  const [dataSource, setDataSource] = useState<DataSource>('demo');
 
   const symbols = ['XAUUSD', 'EURUSD', 'GBPUSD', 'USDJPY', 'BTCUSD'];
 
@@ -37,10 +39,13 @@ export default function PowerOfThreeWidget({ symbol = 'XAUUSD' }: Props) {
     try {
       const result = await getPowerOfThree(sym, '1H');
       setData(result as PowerOfThreeData);
+      // Get dataSource from API response (falls back to 'twelvedata' if not present)
+      setDataSource((result as any).dataSource || 'twelvedata');
     } catch (error) {
       console.error('Error fetching Power of Three data from API, using fallback:', error);
       // Fallback to demo data if API fails
       setData(generateDemoData(sym));
+      setDataSource('demo');
     } finally {
       setLoading(false);
     }
@@ -173,16 +178,17 @@ export default function PowerOfThreeWidget({ symbol = 'XAUUSD' }: Props) {
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
             Power of Three (AMD)
           </h3>
+          <DataSourceBadge source={dataSource} />
         </div>
         
-        {/* Symbol Selector */}
+        {/* Symbol Selector - Styled for dark mode visibility */}
         <select
           value={selectedSymbol}
           onChange={(e) => setSelectedSymbol(e.target.value)}
-          className="px-3 py-1 text-sm border border-emerald-300 dark:border-emerald-600/30 rounded-lg bg-gradient-to-r from-emerald-50 to-white dark:from-emerald-950/20 dark:to-black text-gray-900 dark:text-white focus:ring-2 focus:ring-emerald-500"
+          className="px-3 py-2 text-sm font-medium border-2 border-yellow-400 dark:border-yellow-500 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 cursor-pointer shadow-sm hover:border-yellow-500 transition-colors"
         >
           {symbols.map((sym) => (
-            <option key={sym} value={sym}>{sym}</option>
+            <option key={sym} value={sym} className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white py-2">{sym}</option>
           ))}
         </select>
       </div>
