@@ -16,9 +16,10 @@ interface TradesTableProps {
   itemsPerPage?: number; // Optional: default pagination size
 }
 
-const getAccountName = (accountId: string | undefined, accounts: Account[]): string => {
-  if (!accountId) return 'N/A';
-  const account = accounts.find(acc => acc.id === accountId);
+const getAccountName = (trade: Trade, accounts: Account[]): string => {
+  if (trade.account?.name) return trade.account.name;
+  if (!trade.accountId) return 'N/A';
+  const account = accounts.find(acc => acc.id === trade.accountId);
   return account ? account.name : 'Unknown Account';
 };
 
@@ -177,7 +178,7 @@ export default function TradesTable({ trades, accounts, onRowClick, isLoading, i
                 </td>
                 <td className={`${tdClasses} text-gray-700 dark:text-gray-300`}>
                   <span className="px-2 py-1 bg-gradient-to-r from-emerald-100 to-emerald-200 dark:from-emerald-900/30 dark:to-emerald-800/30 text-emerald-700 dark:text-emerald-300 rounded-lg text-xs font-medium">
-                    {getAccountName(trade.accountId, accounts)}
+                    {getAccountName(trade, accounts)}
                   </span>
                 </td>
                 <td className={`${tdClasses} text-gray-700 dark:text-gray-300`}>
