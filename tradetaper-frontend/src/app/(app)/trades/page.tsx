@@ -4,6 +4,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '@/store/store';
 import { fetchMT5Accounts, selectMT5Accounts, MT5Account } from '@/store/features/mt5AccountsSlice';
+import { fetchTrades, selectAllTrades, selectTradesLoading } from '@/store/features/tradesSlice';
+import { fetchAccounts, selectAvailableAccounts, Account } from '@/store/features/accountSlice';
 import { useMemo } from 'react';
 
 export default function TradesPage() {

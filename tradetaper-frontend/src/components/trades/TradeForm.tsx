@@ -359,8 +359,10 @@ export default function TradeForm({ initialData, isEditMode = false, onFormSubmi
           assetType: formData.assetType as AssetType,
           symbol: formData.symbol as string,
           direction: formData.direction as TradeDirection,
-          entryDate: formData.entryDate as string,
+          entryDate: new Date(formData.entryDate as string).toISOString(),
           entryPrice: formData.entryPrice as number,
+          exitDate: formData.exitDate ? new Date(formData.exitDate as string).toISOString() : undefined,
+          exitPrice: formData.exitPrice ?? undefined,
           quantity: formData.quantity as number,
           isStarred: formData.isStarred,
       };
