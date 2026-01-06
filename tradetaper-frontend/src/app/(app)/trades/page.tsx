@@ -10,6 +10,8 @@ import { useMemo } from 'react';
 import { FaPlus, FaFilter, FaSync } from 'react-icons/fa';
 import Link from 'next/link';
 import { Trade } from '@/types/trade';
+import TradesTable from '@/components/journal/TradesTable';
+import TradePreviewDrawer from '@/components/journal/TradePreviewDrawer';
 
 export default function TradesPage() {
   const dispatch = useDispatch<AppDispatch>();
