@@ -65,6 +65,7 @@ export interface Trade {
   isStarred?: boolean; // New field for starring trades
   marginUsed?: number; // Added: Margin used for the trade
   account?: { id: string; name: string; type: string; balance?: number }; // Populated by backend
+}
 
 export interface CreateTradePayload extends Omit<Partial<Trade>, 'id' | 'userId' | 'createdAt' | 'updatedAt' | 'profitOrLoss' | 'tags'> {
   assetType: AssetType;
