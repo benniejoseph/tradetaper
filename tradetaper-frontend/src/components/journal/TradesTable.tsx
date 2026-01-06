@@ -4,9 +4,12 @@ import { Trade } from '@/types/trade';
 import { Account } from '@/store/features/accountSlice'; // Assuming Account type is exported or define here
 import { format, parseISO, differenceInMinutes, differenceInHours, differenceInDays } from 'date-fns';
 import React, { useState, useMemo } from 'react'; // Import React for React.ReactNode
-import { FaChevronLeft, FaChevronRight } from 'react-icons/fa'; // Import icons for pagination
+import { FaChevronLeft, FaChevronRight, FaEdit, FaCheck, FaTimes } from 'react-icons/fa'; // Import icons for pagination
 import { TableLoader } from '@/components/common/LoadingSpinner'; // Import loading component
 import { CurrencyAmount } from '@/components/common/CurrencyAmount';
+import { useDispatch } from 'react-redux';
+import { updateTrade } from '@/store/features/tradesSlice';
+import { AppDispatch } from '@/store/store';
 
 interface TradesTableProps {
   trades: Trade[];
@@ -161,49 +164,102 @@ export default function TradesTable({ trades, accounts, onRowClick, isLoading, i
               <th className={thClasses}>P&L</th>
               <th className={thClasses}>R-Multiple</th>
               <th className={thClasses}>Chart</th>
+              <th className={thClasses}>Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200/30 dark:divide-gray-700/30">
-            {pagination.currentData.map((trade) => (
+            {pagination.currentData.map((trade) => {
+              const isEditing = editingId === trade.id;
+              
+              return (
               <tr 
                   key={trade.id} 
-                  onClick={() => onRowClick(trade)} 
-                  className="group hover:bg-gradient-to-r hover:from-emerald-50 hover:to-emerald-100 dark:hover:from-emerald-900/30 dark:hover:to-emerald-800/30 cursor-pointer transition-all duration-200 hover:shadow-md backdrop-blur-sm"
+                  onClick={() => !isEditing && onRowClick(trade)} 
+                  className={`group transition-all duration-200 backdrop-blur-sm ${
+                    isEditing 
+                      ? 'bg-yellow-50 dark:bg-yellow-900/10' 
+                      : 'hover:bg-gradient-to-r hover:from-emerald-50 hover:to-emerald-100 dark:hover:from-emerald-900/30 dark:hover:to-emerald-800/30 cursor-pointer hover:shadow-md'
+                  }`}
               >
-                <td className={`${tdClasses} font-semibold text-gray-900 dark:text-white group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors`}>
+                <td className={`${tdClasses} font-semibold text-gray-900 dark:text-white`}>
                   {trade.symbol}
                 </td>
                 <td className={`${tdClasses} text-gray-700 dark:text-gray-300`}>
-                  {trade.entryDate ? format(parseISO(trade.entryDate), 'dd MMM, HH:mm:ss') : '-'}
+                  {trade.entryDate ? format(parseISO(trade.entryDate), 'dd MMM, HH:mm') : '-'}
                 </td>
                 <td className={`${tdClasses} text-gray-700 dark:text-gray-300`}>
                   <span className="px-2 py-1 bg-gradient-to-r from-emerald-100 to-emerald-200 dark:from-emerald-900/30 dark:to-emerald-800/30 text-emerald-700 dark:text-emerald-300 rounded-lg text-xs font-medium">
                     {getAccountName(trade, accounts)}
                   </span>
                 </td>
-                <td className={`${tdClasses} text-gray-700 dark:text-gray-300`}>
-                  {trade.session ? (
-                    <span className="px-2 py-1 bg-gradient-to-r from-emerald-200 to-emerald-300 dark:from-emerald-800/30 dark:to-emerald-700/30 text-emerald-700 dark:text-emerald-300 rounded-lg text-xs font-medium">
-                      {trade.session}
-                    </span>
-                  ) : '-'}
+                
+                {/* Editable Session */}
+                <td className={`${tdClasses} text-gray-700 dark:text-gray-300`} onClick={(e) => e.stopPropagation()}>
+                  {isEditing ? (
+                    <select
+                      value={editForm.session || ''}
+                      onChange={(e) => setEditForm({ ...editForm, session: e.target.value })}
+                      className="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded px-2 py-1.5 text-xs w-24 focus:ring-2 focus:ring-emerald-500"
+                    >
+                      <option value="">-</option>
+                      <option value="Asian">Asian</option>
+                      <option value="London">London</option>
+                      <option value="New York">New York</option>
+                    </select>
+                  ) : (
+                    trade.session ? (
+                      <span className="px-2 py-1 bg-gradient-to-r from-emerald-200 to-emerald-300 dark:from-emerald-800/30 dark:to-emerald-700/30 text-emerald-700 dark:text-emerald-300 rounded-lg text-xs font-medium">
+                        {trade.session}
+                      </span>
+                    ) : '-'
+                  )}
                 </td>
+
                 <td className={`${tdClasses} text-gray-700 dark:text-gray-300`}>{getWeekday(trade.entryDate)}</td>
                 <td className={`${tdClasses} text-gray-700 dark:text-gray-300`}>{getHoldTime(trade)}</td>
                 <td className={`${tdClasses} font-mono text-gray-900 dark:text-white`}>{formatPrice(trade.entryPrice)}</td>
                 <td className={`${tdClasses} font-mono text-gray-900 dark:text-white`}>{formatPrice(trade.exitPrice)}</td>
-                <td className={`${tdClasses} font-mono`}>{formatPnl(trade.profitOrLoss)}</td>
-                <td className={`${tdClasses} text-gray-700 dark:text-gray-300`}>
-                  {trade.rMultiple !== undefined && trade.rMultiple !== null ? (
-                    <span className={`font-semibold ${
-                      trade.rMultiple > 0 ? 'text-green-600 dark:text-green-400' : 
-                      trade.rMultiple < 0 ? 'text-red-600 dark:text-red-400' : 
-                      'text-gray-500 dark:text-gray-400'
-                    }`}>
-                      {trade.rMultiple.toFixed(2)}R
-                    </span>
-                  ) : '-'}
+                
+                {/* Editable P&L */}
+                <td className={`${tdClasses} font-mono`} onClick={(e) => e.stopPropagation()}>
+                  {isEditing ? (
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={editForm.profitOrLoss ?? ''}
+                      onChange={(e) => setEditForm({ ...editForm, profitOrLoss: parseFloat(e.target.value) })}
+                      className="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded px-2 py-1.5 text-xs w-24 focus:ring-2 focus:ring-emerald-500 text-right"
+                      placeholder="0.00"
+                    />
+                  ) : (
+                    formatPnl(trade.profitOrLoss)
+                  )}
                 </td>
+
+                {/* Editable R-Multiple */}
+                <td className={`${tdClasses} text-gray-700 dark:text-gray-300`} onClick={(e) => e.stopPropagation()}>
+                  {isEditing ? (
+                    <input
+                      type="number"
+                      step="0.1"
+                      value={editForm.rMultiple ?? ''}
+                      onChange={(e) => setEditForm({ ...editForm, rMultiple: parseFloat(e.target.value) })}
+                      className="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded px-2 py-1.5 text-xs w-16 focus:ring-2 focus:ring-emerald-500 text-right"
+                      placeholder="0.0R"
+                    />
+                  ) : (
+                    trade.rMultiple !== undefined && trade.rMultiple !== null ? (
+                      <span className={`font-semibold ${
+                        trade.rMultiple > 0 ? 'text-green-600 dark:text-green-400' : 
+                        trade.rMultiple < 0 ? 'text-red-600 dark:text-red-400' : 
+                        'text-gray-500 dark:text-gray-400'
+                      }`}>
+                        {trade.rMultiple.toFixed(2)}R
+                      </span>
+                    ) : '-'
+                  )}
+                </td>
+
                 <td className={`${tdClasses} text-center`}>
                   {trade.imageUrl ? (
                     <div className="flex justify-center">
@@ -219,15 +275,45 @@ export default function TradesTable({ trades, accounts, onRowClick, isLoading, i
                           console.error('Table image failed to load:', trade.imageUrl);
                           (e.target as HTMLImageElement).style.display = 'none';
                         }}
-                        onLoad={() => console.log('Table image loaded:', trade.imageUrl)}
                       />
                     </div>
                   ) : (
                     <span className="text-gray-400 dark:text-gray-500 text-xs">No image</span>
                   )}
                 </td>
+
+                {/* Actions Column */}
+                <td className={`${tdClasses} text-right`} onClick={(e) => e.stopPropagation()}>
+                  {isEditing ? (
+                    <div className="flex items-center gap-2 justify-end">
+                      <button
+                        onClick={() => handleSave(trade.id)}
+                        className="p-1.5 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 dark:bg-green-900/30 dark:text-green-400 dark:hover:bg-green-900/50 transition-colors"
+                        title="Save"
+                      >
+                        <FaCheck className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={handleCancel}
+                        className="p-1.5 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400 dark:hover:bg-red-900/50 transition-colors"
+                        title="Cancel"
+                      >
+                        <FaTimes className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={(e) => handleEditClick(trade, e)}
+                      className="p-2 text-gray-400 hover:text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-lg transition-all opacity-0 group-hover:opacity-100"
+                      title="Quick Edit"
+                    >
+                      <FaEdit className="w-4 h-4" />
+                    </button>
+                  )}
+                </td>
               </tr>
-            ))}
+            );
+            })}
           </tbody>
         </table>
       </div>
