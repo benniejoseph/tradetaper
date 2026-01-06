@@ -1,11 +1,17 @@
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '@/store/store';
 import { fetchMT5Accounts, selectMT5Accounts, MT5Account, selectSelectedMT5AccountId, setSelectedMT5Account } from '@/store/features/mt5AccountsSlice';
 import { fetchAccounts, selectAvailableAccounts, selectSelectedAccountId, setSelectedAccount } from '@/store/features/accountSlice';
-// ... imports
+import { fetchTrades, selectAllTrades, selectTradesLoading } from '@/store/features/tradesSlice';
+import { Trade } from '@/types/trade';
+import TradesTable from '@/components/journal/TradesTable';
+import TradePreviewDrawer from '@/components/journal/TradePreviewDrawer';
+import { FaPlus, FaFilter, FaSync } from 'react-icons/fa';
+import Link from 'next/link';
+
 
 export default function TradesPage() {
   const dispatch = useDispatch<AppDispatch>();
