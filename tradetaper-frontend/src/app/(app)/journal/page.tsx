@@ -6,7 +6,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '@/store/store';
 import { fetchTrades, deleteTrade, setCurrentTrade } from '@/store/features/tradesSlice';
 import { selectSelectedAccountId, selectAvailableAccounts, selectSelectedAccount, fetchAccounts } from '@/store/features/accountSlice';
-import { selectSelectedMT5AccountId } from '@/store/features/mt5AccountsSlice';
+import { selectSelectedMT5AccountId, fetchMT5Accounts, selectMT5Accounts } from '@/store/features/mt5AccountsSlice';
 import Link from 'next/link';
 import { calculateDashboardStats, DashboardStats } from '@/utils/analytics';
 import { Trade, TradeStatus } from '@/types/trade';
@@ -34,7 +34,8 @@ export default function JournalPage() {
   const selectedAccountId = useSelector(selectSelectedAccountId);
   const selectedMT5AccountId = useSelector(selectSelectedMT5AccountId);
   const selectedAccount = useSelector(selectSelectedAccount);
-  const accounts = useSelector(selectAvailableAccounts);
+  const manualAccounts = useSelector(selectAvailableAccounts);
+  const mt5Accounts = useSelector(selectMT5Accounts);
 
   // State for filters and UI
   const [activePositionFilter, setActivePositionFilter] = useState<'all' | 'open' | 'closed'>('all');
@@ -55,12 +56,33 @@ export default function JournalPage() {
     if (isAuthenticated) {
       // Fetch accounts first
       dispatch(fetchAccounts());
+      dispatch(fetchMT5Accounts());
       
       // Get the actual selected account ID (could be MT5 or regular account)
       const currentAccountId = selectedAccountId || selectedMT5AccountId;
       dispatch(fetchTrades(currentAccountId || undefined)); 
     }
   }, [dispatch, isAuthenticated, selectedAccountId, selectedMT5AccountId]);
+
+  // Merge and normalize accounts
+  const allAccounts = useMemo(() => {
+    const formattedManual = manualAccounts.map(acc => ({
+      ...acc,
+      type: 'Manual'
+    }));
+    
+    const formattedMT5 = mt5Accounts.map(acc => ({
+      id: acc.id,
+      name: acc.accountName,
+      balance: acc.balance || 0,
+      currency: acc.currency || 'USD',
+      createdAt: acc.createdAt || '',
+      updatedAt: acc.updatedAt || '',
+      type: 'MT5'
+    }));
+
+    return [...formattedManual, ...formattedMT5];
+  }, [manualAccounts, mt5Accounts]);
 
   const filteredTrades = useMemo(() => {
     // Use the currently selected account (MT5 or regular)
@@ -453,7 +475,7 @@ export default function JournalPage() {
         <div className="bg-gradient-to-br from-white to-emerald-50 dark:from-black dark:to-emerald-950/20 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 shadow-lg overflow-hidden">
           <TradesTable 
             trades={filteredTrades} 
-            accounts={accounts} 
+            accounts={allAccounts} 
             onRowClick={handleRowClick} 
             isLoading={isLoading} 
           />
