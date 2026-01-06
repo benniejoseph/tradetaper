@@ -7,6 +7,9 @@ import { fetchMT5Accounts, selectMT5Accounts, MT5Account } from '@/store/feature
 import { fetchTrades, selectAllTrades, selectTradesLoading } from '@/store/features/tradesSlice';
 import { fetchAccounts, selectAvailableAccounts, Account } from '@/store/features/accountSlice';
 import { useMemo } from 'react';
+import { FaPlus, FaFilter, FaSync } from 'react-icons/fa';
+import Link from 'next/link';
+import { Trade } from '@/types/trade';
 
 export default function TradesPage() {
   const dispatch = useDispatch<AppDispatch>();
