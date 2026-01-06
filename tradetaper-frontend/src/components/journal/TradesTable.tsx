@@ -79,8 +79,47 @@ export const getHoldTime = (trade: Trade): string => {
 };
 
 export default function TradesTable({ trades, accounts, onRowClick, isLoading, itemsPerPage = 25 }: TradesTableProps) {
+  const dispatch = useDispatch<AppDispatch>();
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState<Partial<Trade>>({});
+
   // Simple inline pagination
   const [currentPage, setCurrentPage] = useState(1);
+  
+  const handleEditClick = (trade: Trade, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setEditingId(trade.id);
+    setEditForm({
+      profitOrLoss: trade.profitOrLoss,
+      rMultiple: trade.rMultiple,
+      session: trade.session
+    });
+  };
+
+  const handleCancel = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setEditingId(null);
+    setEditForm({});
+  };
+
+  const handleSave = async (tradeId: string) => {
+    try {
+      if (editingId) {
+        await dispatch(updateTrade({ 
+          id: tradeId, 
+          payload: {
+            ...(editForm.profitOrLoss !== undefined && { profitOrLoss: editForm.profitOrLoss }),
+            ...(editForm.rMultiple !== undefined && { rMultiple: editForm.rMultiple }),
+            ...(editForm.session !== undefined && { session: editForm.session })
+          } 
+        })).unwrap();
+        setEditingId(null);
+        setEditForm({});
+      }
+    } catch (error) {
+      console.error('Failed to update trade:', error);
+    }
+  };
   
   const pagination = useMemo(() => {
     const totalItems = trades.length;

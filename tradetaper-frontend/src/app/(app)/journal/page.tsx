@@ -60,7 +60,7 @@ export default function JournalPage() {
       
       // Get the actual selected account ID (could be MT5 or regular account)
       const currentAccountId = selectedAccountId || selectedMT5AccountId;
-      dispatch(fetchTrades(currentAccountId || undefined)); 
+      dispatch(fetchTrades({ accountId: currentAccountId || undefined, limit: 1000 })); 
     }
   }, [dispatch, isAuthenticated, selectedAccountId, selectedMT5AccountId]);
 

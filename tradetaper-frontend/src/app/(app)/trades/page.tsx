@@ -3,15 +3,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '@/store/store';
-import { fetchMT5Accounts, selectMT5Accounts, MT5Account } from '@/store/features/mt5AccountsSlice';
-import { fetchTrades, selectAllTrades, selectTradesLoading } from '@/store/features/tradesSlice';
-import { fetchAccounts, selectAvailableAccounts, Account } from '@/store/features/accountSlice';
-import { useMemo } from 'react';
-import { FaPlus, FaFilter, FaSync } from 'react-icons/fa';
-import Link from 'next/link';
-import { Trade } from '@/types/trade';
-import TradesTable from '@/components/journal/TradesTable';
-import TradePreviewDrawer from '@/components/journal/TradePreviewDrawer';
+import { fetchMT5Accounts, selectMT5Accounts, MT5Account, selectSelectedMT5AccountId, setSelectedMT5Account } from '@/store/features/mt5AccountsSlice';
+import { fetchAccounts, selectAvailableAccounts, selectSelectedAccountId, setSelectedAccount } from '@/store/features/accountSlice';
+// ... imports
 
 export default function TradesPage() {
   const dispatch = useDispatch<AppDispatch>();
@@ -20,15 +14,37 @@ export default function TradesPage() {
   const mt5Accounts = useSelector((state: RootState) => selectMT5Accounts(state));
   const isLoading = useSelector((state: RootState) => selectTradesLoading(state));
   
+  // Global Selection State
+  const globalSelectedManualId = useSelector((state: RootState) => selectSelectedAccountId(state));
+  const globalSelectedMT5Id = useSelector((state: RootState) => selectSelectedMT5AccountId(state));
+  
   const [selectedTrade, setSelectedTrade] = useState<Trade | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const [selectedAccountId, setSelectedAccountId] = useState<string>('');
+  // Local state initialized with global state if available
+  const [selectedAccountId, setSelectedAccountId] = useState<string>(globalSelectedManualId || globalSelectedMT5Id || '');
+
+  // Sync local state when global state changes
+  useEffect(() => {
+    const newId = globalSelectedManualId || globalSelectedMT5Id || '';
+    if (newId !== selectedAccountId) {
+      setSelectedAccountId(newId);
+    }
+  }, [globalSelectedManualId, globalSelectedMT5Id]);
 
   useEffect(() => {
-    dispatch(fetchTrades({ page: 1, limit: 100 }));
+    // Fetch accounts first
     dispatch(fetchAccounts());
     dispatch(fetchMT5Accounts());
   }, [dispatch]);
+
+  // Fetch trades whenever selectedAccountId changes (which now responds to global changes)
+  useEffect(() => {
+    dispatch(fetchTrades({ 
+      page: 1, 
+      limit: 1000, 
+      accountId: selectedAccountId || undefined 
+    }));
+  }, [dispatch, selectedAccountId]);
 
   // Merge and normalize accounts
   const allAccounts = useMemo(() => {
@@ -53,18 +69,29 @@ export default function TradesPage() {
   const handleRefresh = useCallback(() => {
     dispatch(fetchTrades({ 
       page: 1, 
-      limit: 100, 
+      limit: 1000, 
       accountId: selectedAccountId || undefined 
     }));
   }, [dispatch, selectedAccountId]);
 
   const handleAccountFilter = (accountId: string) => {
+    // Update local state
     setSelectedAccountId(accountId);
-    dispatch(fetchTrades({ 
-      page: 1, 
-      limit: 100, 
-      accountId: accountId || undefined 
-    }));
+    
+    // Dispatch to global state
+    if (!accountId) {
+       dispatch(setSelectedAccount(null));
+       dispatch(setSelectedMT5Account(null));
+    } else {
+       const isMT5 = mt5Accounts.find(acc => acc.id === accountId);
+       if (isMT5) {
+         dispatch(setSelectedMT5Account(accountId));
+         dispatch(setSelectedAccount(null));
+       } else {
+         dispatch(setSelectedAccount(accountId));
+         dispatch(setSelectedMT5Account(null));
+       }
+    }
   };
 
   const handleRowClick = (trade: Trade) => {
