@@ -208,7 +208,19 @@ export default function TradesPage() {
                   ? selectedAccount.balance 
                   : selectedAccount.balance + totalPnL;
                   
-                return `$${displayBalance.toFixed(2)}`;
+                return (
+                  <div>
+                    <span>{`$${displayBalance.toFixed(2)}`}</span>
+                    {selectedAccount && (
+                      <span className="block text-xs mt-1 font-normal text-gray-500 dark:text-gray-400">
+                        Base: ${selectedAccount.balance.toFixed(2)}
+                        {selectedAccount.type !== 'MT5' && (
+                          <> + P&L: ${(filteredTrades.reduce((sum, t) => sum + (t.profitOrLoss ?? 0), 0)).toFixed(2)}</>
+                        )}
+                      </span>
+                    )}
+                  </div>
+                );
               })()}
             </p>
           </div>
