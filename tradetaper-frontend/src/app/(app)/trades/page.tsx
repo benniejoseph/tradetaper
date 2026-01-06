@@ -107,7 +107,7 @@ export default function TradesPage() {
                 <option value="">All Accounts</option>
                 {allAccounts.map((account) => (
                   <option key={account.id} value={account.id}>
-                    {account.name} ({account.type})
+                    {account.name} ({account.type}) - ${account.balance.toFixed(2)}
                   </option>
                 ))}
               </select>
@@ -134,7 +134,7 @@ export default function TradesPage() {
         </div>
 
         {/* Stats Summary */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8">
           <div className="bg-white dark:bg-gray-800/50 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
             <p className="text-sm text-gray-500 dark:text-gray-400">Total Trades</p>
             <p className="text-2xl font-bold text-gray-900 dark:text-white">{filteredTrades.length}</p>
@@ -159,6 +159,24 @@ export default function TradesPage() {
                 : 'text-red-600 dark:text-red-400'
             }`}>
               ${filteredTrades.reduce((sum: number, t: Trade) => sum + (t.profitOrLoss ?? 0), 0).toFixed(2)}
+            </p>
+          </div>
+          <div className="bg-white dark:bg-gray-800/50 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
+            <p className="text-sm text-gray-500 dark:text-gray-400">Net Balance</p>
+            <p className="text-2xl font-bold text-gray-900 dark:text-white">
+              {(() => {
+                const selectedAccount = allAccounts.find(a => a.id === selectedAccountId);
+                if (!selectedAccount) return 'N/A';
+                
+                // For MT5, balance is strictly what returns from API (includes closed PnL)
+                // For Manual, we assume it's starting balance + calculated PnL
+                const totalPnL = filteredTrades.reduce((sum, t) => sum + (t.profitOrLoss ?? 0), 0);
+                const displayBalance = selectedAccount.type === 'MT5' 
+                  ? selectedAccount.balance 
+                  : selectedAccount.balance + totalPnL;
+                  
+                return `$${displayBalance.toFixed(2)}`;
+              })()}
             </p>
           </div>
         </div>

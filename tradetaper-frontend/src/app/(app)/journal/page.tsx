@@ -267,7 +267,7 @@ export default function JournalPage() {
           </div>
         </div>
 
-        {/* Balance Card */}
+          {/* Balance Card */}
         <div className="group relative bg-gradient-to-br from-white to-emerald-50 dark:from-black dark:to-emerald-950/20 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 p-6 shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
           <div className="absolute inset-0 bg-gradient-to-br from-emerald-600/5 to-emerald-700/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl"></div>
           <div className="relative z-10">
@@ -278,16 +278,24 @@ export default function JournalPage() {
               </div>
             </div>
             <p className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-              {selectedAccount?.balance !== undefined ? 
-                <CurrencyAmount amount={selectedAccount.balance + footerStats.totalNetPnl} className="inline" /> : 
-                (selectedAccountId || selectedMT5AccountId ? 'N/A' : <CurrencyAmount amount={footerStats.totalNetPnl} className="inline" />)
-              }
+              {(() => {
+                if (!selectedAccount) return (selectedAccountId || selectedMT5AccountId ? 'N/A' : <CurrencyAmount amount={footerStats.totalNetPnl} className="inline" />);
+                
+                const displayBalance = selectedAccount.type === 'MT5'
+                  ? selectedAccount.balance
+                  : selectedAccount.balance + footerStats.totalNetPnl;
+                  
+                return <CurrencyAmount amount={displayBalance} className="inline" />;
+              })()}
             </p>
             <p className="text-sm text-gray-500 dark:text-gray-400">
               {selectedAccount?.name || 'All Accounts'}
               {selectedAccount && (
                 <span className="block text-xs mt-1">
-                  Base: <CurrencyAmount amount={selectedAccount.balance} className="inline" /> + P&L: <CurrencyAmount amount={footerStats.totalNetPnl} className="inline" showSign />
+                  Base: <CurrencyAmount amount={selectedAccount.balance} className="inline" /> 
+                  {selectedAccount.type !== 'MT5' && (
+                    <> + P&L: <CurrencyAmount amount={footerStats.totalNetPnl} className="inline" showSign /></>
+                  )}
                 </span>
               )}
             </p>
