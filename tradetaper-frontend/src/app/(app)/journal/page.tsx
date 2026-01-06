@@ -279,25 +279,50 @@ export default function JournalPage() {
             </div>
             <p className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
               {(() => {
-                if (!selectedAccount) return (selectedAccountId || selectedMT5AccountId ? 'N/A' : <CurrencyAmount amount={footerStats.totalNetPnl} className="inline" />);
+                // Determine the currently active account ID (Manual or MT5)
+                const currentAccountId = selectedAccountId || selectedMT5AccountId;
                 
-                const displayBalance = selectedAccount.type === 'MT5'
-                  ? selectedAccount.balance
-                  : selectedAccount.balance + footerStats.totalNetPnl;
+                // If "All Accounts" is selected, show the total PnL across all accounts (or N/A for balance if mixed)
+                if (!currentAccountId) {
+                   return <CurrencyAmount amount={footerStats.totalNetPnl} className="inline" />;
+                }
+
+                // Find the specific account object from the unified list (supports both Manual and MT5)
+                const activeAccount = allAccounts.find(a => a.id === currentAccountId);
+                
+                if (!activeAccount) return 'N/A';
+                
+                const displayBalance = activeAccount.type === 'MT5'
+                  ? activeAccount.balance
+                  : activeAccount.balance + footerStats.totalNetPnl;
                   
                 return <CurrencyAmount amount={displayBalance} className="inline" />;
               })()}
             </p>
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              {selectedAccount?.name || 'All Accounts'}
-              {selectedAccount && (
-                <span className="block text-xs mt-1">
-                  Base: <CurrencyAmount amount={selectedAccount.balance} className="inline" /> 
-                  {selectedAccount.type !== 'MT5' && (
-                    <> + P&L: <CurrencyAmount amount={footerStats.totalNetPnl} className="inline" showSign /></>
-                  )}
-                </span>
-              )}
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              {(() => {
+                 const currentAccountId = selectedAccountId || selectedMT5AccountId;
+                 const activeAccount = allAccounts.find(a => a.id === currentAccountId);
+                 return activeAccount?.name || 'All Accounts';
+              })()}
+              {(() => {
+                const currentAccountId = selectedAccountId || selectedMT5AccountId;
+                const activeAccount = allAccounts.find(a => a.id === currentAccountId);
+                
+                if (activeAccount) {
+                  return (
+                    <span className="block text-xs mt-1">
+                      Base: <CurrencyAmount amount={activeAccount.balance} className="inline" /> 
+                      {activeAccount.type !== 'MT5' && (
+                        <> + P&L: <CurrencyAmount amount={footerStats.totalNetPnl} className="inline" showSign /></>
+                      )}
+                    </span>
+                  );
+                }
+                return null;
+              })()}
+            </p>
             </p>
           </div>
         </div>
