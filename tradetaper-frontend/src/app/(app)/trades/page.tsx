@@ -3,18 +3,14 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '@/store/store';
-import { fetchTrades, selectAllTrades, selectTradesLoading } from '@/store/features/tradesSlice';
-import { fetchAccounts, selectAvailableAccounts, Account } from '@/store/features/accountSlice';
-import TradesTable from '@/components/journal/TradesTable';
-import TradePreviewDrawer from '@/components/journal/TradePreviewDrawer';
-import { Trade } from '@/types/trade';
-import { FaPlus, FaFilter, FaSync } from 'react-icons/fa';
-import Link from 'next/link';
+import { fetchMT5Accounts, selectMT5Accounts, MT5Account } from '@/store/features/mt5AccountsSlice';
+import { useMemo } from 'react';
 
 export default function TradesPage() {
   const dispatch = useDispatch<AppDispatch>();
   const trades = useSelector((state: RootState) => selectAllTrades(state));
-  const accounts = useSelector((state: RootState) => selectAvailableAccounts(state));
+  const manualAccounts = useSelector((state: RootState) => selectAvailableAccounts(state));
+  const mt5Accounts = useSelector((state: RootState) => selectMT5Accounts(state));
   const isLoading = useSelector((state: RootState) => selectTradesLoading(state));
   
   const [selectedTrade, setSelectedTrade] = useState<Trade | null>(null);
@@ -24,7 +20,28 @@ export default function TradesPage() {
   useEffect(() => {
     dispatch(fetchTrades({ page: 1, limit: 100 }));
     dispatch(fetchAccounts());
+    dispatch(fetchMT5Accounts());
   }, [dispatch]);
+
+  // Merge and normalize accounts
+  const allAccounts = useMemo(() => {
+    const formattedManual = manualAccounts.map(acc => ({
+      ...acc,
+      type: 'Manual'
+    }));
+    
+    const formattedMT5 = mt5Accounts.map(acc => ({
+      id: acc.id,
+      name: acc.accountName,
+      balance: acc.balance || 0,
+      currency: acc.currency || 'USD',
+      createdAt: acc.createdAt || '',
+      updatedAt: acc.updatedAt || '',
+      type: 'MT5'
+    }));
+
+    return [...formattedManual, ...formattedMT5];
+  }, [manualAccounts, mt5Accounts]);
 
   const handleRefresh = useCallback(() => {
     dispatch(fetchTrades({ 
@@ -81,9 +98,9 @@ export default function TradesPage() {
                 className="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-emerald-500"
               >
                 <option value="">All Accounts</option>
-                {accounts.map((account: Account) => (
+                {allAccounts.map((account) => (
                   <option key={account.id} value={account.id}>
-                    {account.name}
+                    {account.name} ({account.type})
                   </option>
                 ))}
               </select>
@@ -142,7 +159,7 @@ export default function TradesPage() {
         {/* Trades Table */}
         <TradesTable
           trades={filteredTrades}
-          accounts={accounts}
+          accounts={allAccounts}
           onRowClick={handleRowClick}
           isLoading={isLoading}
           itemsPerPage={25}
