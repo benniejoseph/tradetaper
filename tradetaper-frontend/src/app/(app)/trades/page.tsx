@@ -204,16 +204,20 @@ export default function TradesPage() {
                 // For MT5, balance is strictly what returns from API (includes closed PnL)
                 // For Manual, we assume it's starting balance + calculated PnL
                 const totalPnL = filteredTrades.reduce((sum, t) => sum + (t.profitOrLoss ?? 0), 0);
+                
+                // Ensure balance is a number
+                const rawBalance = Number(selectedAccount.balance) || 0;
+                
                 const displayBalance = selectedAccount.type === 'MT5' 
-                  ? selectedAccount.balance 
-                  : selectedAccount.balance + totalPnL;
+                  ? rawBalance 
+                  : rawBalance + totalPnL;
                   
                 return (
                   <div>
                     <span>{`$${displayBalance.toFixed(2)}`}</span>
                     {selectedAccount && (
                       <span className="block text-xs mt-1 font-normal text-gray-500 dark:text-gray-400">
-                        Base: ${selectedAccount.balance.toFixed(2)}
+                        Base: ${rawBalance.toFixed(2)}
                         {selectedAccount.type !== 'MT5' && (
                           <> + P&L: ${(filteredTrades.reduce((sum, t) => sum + (t.profitOrLoss ?? 0), 0)).toFixed(2)}</>
                         )}
