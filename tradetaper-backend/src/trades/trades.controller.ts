@@ -58,6 +58,15 @@ export class TradesController {
     return this.tradesService.findOne(id, req.user);
   }
 
+  @Get(':id/candles')
+  getCandles(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Query('timeframe') timeframe: string,
+    @Request() req,
+  ) {
+    return this.tradesService.getTradeCandles(id, timeframe || '1h', req.user);
+  }
+
   @Patch(':id')
   update(
     @Param('id', ParseUUIDPipe) id: string,

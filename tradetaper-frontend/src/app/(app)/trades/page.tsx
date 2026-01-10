@@ -5,12 +5,13 @@ import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '@/store/store';
 import { fetchMT5Accounts, selectMT5Accounts, MT5Account, selectSelectedMT5AccountId, setSelectedMT5Account } from '@/store/features/mt5AccountsSlice';
 import { fetchAccounts, selectAvailableAccounts, selectSelectedAccountId, setSelectedAccount } from '@/store/features/accountSlice';
-import { fetchTrades, selectAllTrades, selectTradesLoading } from '@/store/features/tradesSlice';
+import { fetchTrades, selectAllTrades, selectTradesLoading, deleteTrade } from '@/store/features/tradesSlice';
 import { Trade } from '@/types/trade';
 import TradesTable from '@/components/journal/TradesTable';
 import TradePreviewDrawer from '@/components/journal/TradePreviewDrawer';
 import { FaPlus, FaFilter, FaSync } from 'react-icons/fa';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 
 export default function TradesPage() {
@@ -19,6 +20,7 @@ export default function TradesPage() {
   const manualAccounts = useSelector((state: RootState) => selectAvailableAccounts(state));
   const mt5Accounts = useSelector((state: RootState) => selectMT5Accounts(state));
   const isLoading = useSelector((state: RootState) => selectTradesLoading(state));
+  const filteredTrades = trades; // Alias trades to filteredTrades
   
   // Global Selection State
   const globalSelectedManualId = useSelector((state: RootState) => selectSelectedAccountId(state));
@@ -62,7 +64,7 @@ export default function TradesPage() {
     const formattedMT5 = mt5Accounts.map(acc => ({
       id: acc.id,
       name: acc.accountName,
-      balance: acc.balance || 0,
+      balance: Number(acc.balance) || 0,
       currency: acc.currency || 'USD',
       createdAt: acc.createdAt || '',
       updatedAt: acc.updatedAt || '',
@@ -110,9 +112,19 @@ export default function TradesPage() {
     setSelectedTrade(null);
   };
 
-  const filteredTrades = selectedAccountId 
-    ? trades.filter((t: Trade) => t.accountId === selectedAccountId)
-    : trades;
+  const router = useRouter(); // Add useRouter
+
+  const handleEditTrade = (tradeId: string) => {
+    router.push(`/journal/edit/${tradeId}`);
+  };  
+
+  const handleDeleteTrade = async (tradeId: string) => {
+    if (confirm('Are you sure you want to delete this trade?')) {
+      await dispatch(deleteTrade(tradeId));
+      setIsDrawerOpen(false);
+      setSelectedTrade(null);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-emerald-50/30 to-gray-50 dark:from-gray-900 dark:via-emerald-950/20 dark:to-gray-900">
@@ -277,6 +289,8 @@ export default function TradesPage() {
           trade={selectedTrade}
           isOpen={isDrawerOpen}
           onClose={handleCloseDrawer}
+          onEdit={handleEditTrade}
+          onDelete={handleDeleteTrade}
         />
       )}
     </div>

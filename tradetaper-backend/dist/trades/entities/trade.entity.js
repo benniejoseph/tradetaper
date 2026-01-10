@@ -32,6 +32,7 @@ let Trade = class Trade {
     closePrice;
     quantity;
     commission;
+    marginUsed;
     notes;
     profitOrLoss;
     rMultiple;
@@ -47,17 +48,30 @@ let Trade = class Trade {
     chartImageUrl;
     createdAt;
     updatedAt;
+    getContractSize() {
+        if (!this.symbol)
+            return 1;
+        const s = this.symbol.toUpperCase();
+        if (s.includes('XAU') || s.includes('GOLD'))
+            return 100;
+        if (s.includes('XAG') || s.includes('SILVER'))
+            return 5000;
+        if (this.assetType === enums_1.AssetType.FOREX)
+            return 100000;
+        return 1;
+    }
     calculatePnl() {
         if (this.status === enums_1.TradeStatus.CLOSED &&
             this.openPrice &&
             this.closePrice &&
             this.quantity) {
+            const contractSize = this.getContractSize();
             let pnl = 0;
             if (this.side === enums_1.TradeDirection.LONG) {
-                pnl = (this.closePrice - this.openPrice) * this.quantity;
+                pnl = (this.closePrice - this.openPrice) * this.quantity * contractSize;
             }
             else if (this.side === enums_1.TradeDirection.SHORT) {
-                pnl = (this.openPrice - this.closePrice) * this.quantity;
+                pnl = (this.openPrice - this.closePrice) * this.quantity * contractSize;
             }
             this.profitOrLoss = parseFloat((pnl - (this.commission || 0)).toFixed(4));
         }
@@ -147,9 +161,13 @@ __decorate([
 ], Trade.prototype, "quantity", void 0);
 __decorate([
     (0, class_transformer_1.Type)(() => Number),
-    (0, typeorm_1.Column)('decimal', { precision: 10, scale: 2, default: 0 }),
+    (0, typeorm_1.Column)('decimal', { precision: 10, scale: 2, nullable: true }),
     __metadata("design:type", Number)
 ], Trade.prototype, "commission", void 0);
+__decorate([
+    (0, typeorm_1.Column)('decimal', { precision: 10, scale: 2, nullable: true }),
+    __metadata("design:type", Number)
+], Trade.prototype, "marginUsed", void 0);
 __decorate([
     (0, typeorm_1.Column)('text', { nullable: true }),
     __metadata("design:type", String)

@@ -27,12 +27,24 @@ import { TradesService } from '../trades/trades.service';
 
 @Controller('mt5-accounts')
 @UseGuards(JwtAuthGuard)
+// Version: 20260101.v2 - Added POST create endpoint
 export class MT5AccountsController {
   constructor(
     private readonly mt5AccountsService: MT5AccountsService,
     private readonly tradeHistoryParserService: TradeHistoryParserService,
     private readonly tradesService: TradesService,
   ) {}
+
+  @Post('create')
+  async create(
+    @Request() req,
+    @Body() createMT5AccountDto: CreateMT5AccountDto,
+  ): Promise<MT5AccountResponseDto> {
+    return this.mt5AccountsService.create(
+      createMT5AccountDto,
+      req.user.id,
+    ) as Promise<MT5AccountResponseDto>;
+  }
 
   @Post('manual')
   async createManual(
@@ -87,6 +99,30 @@ export class MT5AccountsController {
     return [];
   }
 
+  @Get(':id/candles')
+  async getCandles(
+    @Request() req,
+    @Param('id') id: string,
+    @Query('symbol') symbol: string,
+    @Query('timeframe') timeframe: string,
+    @Query('startTime') startTimeStr: string,
+    @Query('endTime') endTimeStr: string,
+  ) {
+    const account = await this.mt5AccountsService.findOne(id);
+    if (!account || account.userId !== req.user.id) {
+      throw new BadRequestException('MT5 account not found');
+    }
+
+    if (!symbol || !timeframe || !startTimeStr) {
+      throw new BadRequestException('Missing parameters: symbol, timeframe, startTime');
+    }
+
+    const startTime = new Date(startTimeStr);
+    const endTime = endTimeStr ? new Date(endTimeStr) : new Date();
+
+    return this.mt5AccountsService.getCandles(id, symbol, timeframe, startTime, endTime);
+  }
+
   @Post(':id/sync')
   @HttpCode(HttpStatus.OK)
   async syncAccount(@Param('id') id: string): Promise<void> {
@@ -99,8 +135,66 @@ export class MT5AccountsController {
     if (!account || account.userId !== req.user.id) {
       throw new BadRequestException('MT5 account not found');
     }
-    // For manual accounts, just remove from database
     await this.mt5AccountsService.remove(id);
+  }
+
+  /**
+   * Link MT5 account to MetaApi cloud for real-time sync
+   */
+  @Post(':id/link')
+  @HttpCode(HttpStatus.OK)
+  async linkAccount(
+    @Request() req,
+    @Param('id') id: string,
+    @Body() body: { password: string },
+  ) {
+    const account = await this.mt5AccountsService.findOne(id);
+    if (!account || account.userId !== req.user.id) {
+      throw new BadRequestException('MT5 account not found');
+    }
+
+    if (!body.password) {
+      throw new BadRequestException('MT5 password is required to link account');
+    }
+
+    const result = await this.mt5AccountsService.linkAccount(id, { password: body.password });
+    return {
+      success: true,
+      message: 'MT5 account linked successfully',
+      metaApiAccountId: result.accountId,
+      state: result.state,
+    };
+  }
+
+  /**
+   * Unlink MT5 account from MetaApi
+   */
+  @Post(':id/unlink')
+  @HttpCode(HttpStatus.OK)
+  async unlinkAccount(@Request() req, @Param('id') id: string) {
+    const account = await this.mt5AccountsService.findOne(id);
+    if (!account || account.userId !== req.user.id) {
+      throw new BadRequestException('MT5 account not found');
+    }
+
+    await this.mt5AccountsService.unlinkAccount(id);
+    return {
+      success: true,
+      message: 'MT5 account unlinked from MetaApi',
+    };
+  }
+
+  /**
+   * Get connection status from MetaApi
+   */
+  @Get(':id/status')
+  async getConnectionStatus(@Request() req, @Param('id') id: string) {
+    const account = await this.mt5AccountsService.findOne(id);
+    if (!account || account.userId !== req.user.id) {
+      throw new BadRequestException('MT5 account not found');
+    }
+
+    return this.mt5AccountsService.getConnectionStatus(id);
   }
 
   @Post(':id/import-trades')

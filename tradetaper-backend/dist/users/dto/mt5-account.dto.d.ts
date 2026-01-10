@@ -7,6 +7,8 @@ export declare class CreateMT5AccountDto {
     currency?: string;
     isActive?: boolean;
     isRealAccount?: boolean;
+    initialBalance?: number;
+    leverage?: number;
 }
 export declare class CreateManualMT5AccountDto {
     accountName: string;

@@ -50,6 +50,9 @@ export class MT5Account {
   balance: number;
 
   @Column({ type: 'decimal', precision: 19, scale: 2, default: 0 })
+  initialBalance: number; // User-provided starting account size
+
+  @Column({ type: 'decimal', precision: 19, scale: 2, default: 0 })
   equity: number;
 
   @Column({ type: 'decimal', precision: 19, scale: 2, default: 0 })

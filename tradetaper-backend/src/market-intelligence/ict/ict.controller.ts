@@ -264,7 +264,7 @@ export class ICTController {
     this.logger.log(`Getting Premium/Discount for ${symbol} on ${timeframe}`);
     
     try {
-      const priceData = await this.marketDataProvider.getPriceData({
+      const { data: priceData, source } = await this.marketDataProvider.getPriceDataWithSource({
         symbol,
         timeframe: timeframe || '1H',
         limit: 100,
@@ -277,7 +277,10 @@ export class ICTController {
 
       return {
         success: true,
-        data: analysis,
+        data: {
+          ...analysis,
+          dataSource: source,
+        },
         timestamp: new Date(),
       };
     } catch (error) {
@@ -300,7 +303,7 @@ export class ICTController {
     this.logger.log(`Getting Power of Three for ${symbol} on ${timeframe}`);
     
     try {
-      const priceData = await this.marketDataProvider.getPriceData({
+      const { data: priceData, source } = await this.marketDataProvider.getPriceDataWithSource({
         symbol,
         timeframe: timeframe || '1H',
         limit: 100,
@@ -313,7 +316,10 @@ export class ICTController {
 
       return {
         success: true,
-        data: analysis,
+        data: {
+          ...analysis,
+          dataSource: source,
+        },
         timestamp: new Date(),
       };
     } catch (error) {

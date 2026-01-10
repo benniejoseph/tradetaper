@@ -28,7 +28,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
               configService.get<string>('DB_PASSWORD') ||
               configService.get<string>('DATABASE_PASSWORD'),
             autoLoadEntities: true,
-            synchronize: false,
+            synchronize: true, // Enabled to create TradeCandle table
             logging: ['error', 'warn'] as any,
             retryAttempts: 10,
             retryDelay: 5000,
@@ -73,7 +73,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
               configService.get<string>('DATABASE_NAME') ||
               'tradetaper',
             autoLoadEntities: true,
-            synchronize: false,
+            synchronize: true,
             logging: true,
           };
         }

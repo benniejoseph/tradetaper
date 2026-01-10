@@ -29,6 +29,13 @@ import TradingActivityModal from '@/components/dashboard/TradingActivityModal';
 import TopTradesByReturn from '@/components/dashboard/TopPairsTraded';
 import DashboardPnlCalendar from '@/components/dashboard/DashboardPnlCalendar';
 import KillZoneBanner from '@/components/dashboard/KillZoneBanner';
+import AIInsightsCard from '@/components/dashboard/AIInsightsCard';
+import HourlyPerformanceChart from '@/components/dashboard/analytics/HourlyPerformanceChart';
+import SessionBreakdownChart from '@/components/dashboard/analytics/SessionBreakdownChart';
+import HoldingTimeScatter from '@/components/dashboard/analytics/HoldingTimeScatter';
+import TraderScoreRadar from '@/components/dashboard/visuals/TraderScoreRadar';
+import AccountHealthGauge from '@/components/dashboard/visuals/AccountHealthGauge';
+import { FaBrain, FaClock, FaHourglassHalf, FaGlobeAmericas, FaChartPie, FaTachometerAlt } from 'react-icons/fa';
 
 // Time range mapping
 const timeRangeDaysMapping: { [key: string]: number } = {
@@ -52,6 +59,20 @@ export default function DashboardPage() {
   const [isTradingActivityModalOpen, setIsTradingActivityModalOpen] = useState(false);
   const [selectedDateData, setSelectedDateData] = useState<{date: string; count: number; totalPnl: number} | null>(null);
   const [selectedDateTrades, setSelectedDateTrades] = useState<Trade[]>([]);
+  const [analyticsData, setAnalyticsData] = useState<any>(null); // Use proper type in real app
+  const { token } = useSelector((state: RootState) => state.auth);
+
+  // Fetch Advanced Analytics
+  useEffect(() => {
+    if (isAuthenticated && token) {
+      fetch(`${process.env.NEXT_PUBLIC_API_URL}/analytics/advanced${selectedAccountId ? `?accountId=${selectedAccountId}` : ''}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      .then(res => res.json())
+      .then(data => setAnalyticsData(data))
+      .catch(err => console.error("Failed to fetch analytics", err));
+    }
+  }, [isAuthenticated, token, selectedAccountId]);
 
   // Fetch trades
   useEffect(() => {
@@ -142,6 +163,22 @@ export default function DashboardPage() {
   const avgFeesPerDay = (dashboardStats?.totalCommissions || 0) / numberOfTradingDays;
   const avgTradesPerDay = (dashboardStats?.closedTrades || 0) / numberOfTradingDays;
 
+  // Min/Max for Gauge
+  const { minEquity, maxEquity } = useMemo(() => {
+     if (!equityCurve || equityCurve.length === 0) return { minEquity: 0, maxEquity: 0 };
+     const values = equityCurve.map(p => p.value);
+     return { minEquity: Math.min(...values), maxEquity: Math.max(...values) };
+  }, [equityCurve]);
+  
+  // Balance approximation (using equity for now as we don't track separate balance history per se)
+  // In a real scenario, we'd have a separate balance curve.
+  const minBalance = minEquity;
+  const maxBalance = maxEquity;
+  const currentBalance = dashboardStats?.currentBalance || 0;
+  // Ensure max is at least current
+  const gaugeMax = Math.max(maxBalance, currentBalance);
+  const gaugeMin = Math.min(minBalance, currentBalance);
+
   // Handlers
   const handleSaveTarget = async (newGoal: number) => {
     if (isAllAccountsSelected) {
@@ -183,6 +220,30 @@ export default function DashboardPage() {
         
         {/* Quick Action Cards */}
         <QuickActionCards />
+
+
+
+        {/* AI Analysis Section */}
+        <AIInsightsCard />
+
+        {/* Visual Analytics Row (Radar & Gauge) */}
+        {analyticsData?.radarMetrics && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+             <DashboardCard title="Trader Score Breakdown" icon={FaChartPie}>
+                 <TraderScoreRadar data={analyticsData.radarMetrics} />
+             </DashboardCard>
+             <DashboardCard title="Account Health" icon={FaTachometerAlt}>
+                 <AccountHealthGauge 
+                    balance={currentBalance}
+                    equity={equityCurve[equityCurve.length - 1]?.value || currentBalance}
+                    minBalance={gaugeMin}
+                    maxBalance={gaugeMax}
+                    minEquity={gaugeMin} // Using same range for simplicity unless distinct data exists
+                    maxEquity={gaugeMax}
+                 />
+             </DashboardCard>
+          </div>
+        )}
 
         {/* Kill Zone Status Banner */}
         <KillZoneBanner />
@@ -258,10 +319,36 @@ export default function DashboardPage() {
             <TopTradesByReturn trades={filteredTrades || []} topN={5} />
           </DashboardCard>
 
+
           {/* Calendar */}
           <DashboardCard title="P&L Calendar" icon={FaCalendarDay} gridSpan="lg:col-span-3" showInfoIcon>
             <DashboardPnlCalendar trades={filteredTrades || []} />
           </DashboardCard>
+          
+          {/* --- DEEP DIVE ANALYTICS SECTION --- */}
+          {analyticsData && (
+            <>
+              <div className="lg:col-span-6 flex items-center gap-2 mt-4 mb-2">
+                 <FaBrain className="text-indigo-500 w-5 h-5" />
+                 <h2 className="text-xl font-bold text-gray-900 dark:text-white">Deep Dive Analytics</h2>
+              </div>
+
+              {/* Hourly Performance */}
+              <DashboardCard title="Performance by Hour" icon={FaClock} gridSpan="lg:col-span-6">
+                 <HourlyPerformanceChart data={analyticsData.hourlyPerformance} />
+              </DashboardCard>
+
+              {/* Session Breakdown */}
+              <DashboardCard title="Session Performance" icon={FaGlobeAmericas} gridSpan="lg:col-span-3">
+                 <SessionBreakdownChart data={analyticsData.sessionPerformance} />
+              </DashboardCard>
+
+              {/* Holding Time Analysis */}
+              <DashboardCard title="Holding Time vs PnL" icon={FaHourglassHalf} gridSpan="lg:col-span-3">
+                 <HoldingTimeScatter data={analyticsData.holdingTimeAnalysis} />
+              </DashboardCard>
+            </>
+          )}
           
           {/* Trading Activity Heatmap */}
           <DashboardCard title="Trading Activity Heatmap" icon={FaCalendarAlt} gridSpan="lg:col-span-6">

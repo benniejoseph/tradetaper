@@ -4,12 +4,19 @@ import { Trade } from '@/types/trade';
 import { Account } from '@/store/features/accountSlice'; // Assuming Account type is exported or define here
 import { format, parseISO, differenceInMinutes, differenceInHours, differenceInDays } from 'date-fns';
 import React, { useState, useMemo } from 'react'; // Import React for React.ReactNode
-import { FaChevronLeft, FaChevronRight, FaEdit, FaCheck, FaTimes } from 'react-icons/fa'; // Import icons for pagination
-import { TableLoader } from '@/components/common/LoadingSpinner'; // Import loading component
-import { CurrencyAmount } from '@/components/common/CurrencyAmount';
 import { useDispatch } from 'react-redux';
-import { updateTrade } from '@/store/features/tradesSlice';
+import { updateTrade, deleteTrades } from '@/store/features/tradesSlice';
+import { FaChevronLeft, FaChevronRight, FaEdit, FaCheck, FaTimes, FaTrash } from 'react-icons/fa'; // Import icons for pagination
+import { CurrencyAmount } from '@/components/common/CurrencyAmount';
 import { AppDispatch } from '@/store/store';
+import { FaSpinner } from 'react-icons/fa';
+
+const TableLoader = ({ text }: { text: string }) => (
+  <div className="flex flex-col items-center justify-center p-8 text-gray-500 dark:text-gray-400">
+    <FaSpinner className="w-8 h-8 animate-spin mb-3 text-emerald-500" />
+    <p>{text}</p>
+  </div>
+);
 
 interface TradesTableProps {
   trades: Trade[];
@@ -82,9 +89,48 @@ export default function TradesTable({ trades, accounts, onRowClick, isLoading, i
   const dispatch = useDispatch<AppDispatch>();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<Partial<Trade>>({});
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   // Simple inline pagination
   const [currentPage, setCurrentPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = useState(itemsPerPage || 25);
+  
+  const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>, currentData: Trade[]) => {
+    if (e.target.checked) {
+      const newSelected = new Set(selectedIds);
+      currentData.forEach(trade => newSelected.add(trade.id));
+      setSelectedIds(newSelected);
+    } else {
+      const newSelected = new Set(selectedIds);
+      currentData.forEach(trade => newSelected.delete(trade.id));
+      setSelectedIds(newSelected);
+    }
+  };
+
+  const handleSelectRow = (tradeId: string) => {
+    const newSelected = new Set(selectedIds);
+    if (newSelected.has(tradeId)) {
+      newSelected.delete(tradeId);
+    } else {
+      newSelected.add(tradeId);
+    }
+    setSelectedIds(newSelected);
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.size === 0) return;
+    
+    if (confirm(`Are you sure you want to delete ${selectedIds.size} trades?`)) {
+      try {
+        await dispatch(deleteTrades(Array.from(selectedIds))).unwrap();
+        setSelectedIds(new Set());
+      } catch (error) {
+        console.error('Failed to delete trades:', error);
+        alert('Failed to delete some trades. Please try again.');
+      }
+    }
+  };
+
   
   const handleEditClick = (trade: Trade, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -103,31 +149,26 @@ export default function TradesTable({ trades, accounts, onRowClick, isLoading, i
   };
 
   const handleSave = async (tradeId: string) => {
+    if (!tradeId) return;
     try {
-      if (editingId) {
-        await dispatch(updateTrade({ 
-          id: tradeId, 
-          payload: {
-            ...(editForm.profitOrLoss !== undefined && { profitOrLoss: editForm.profitOrLoss }),
-            ...(editForm.rMultiple !== undefined && { rMultiple: editForm.rMultiple }),
-            ...(editForm.session !== undefined && { session: editForm.session })
-          } 
-        })).unwrap();
-        setEditingId(null);
-        setEditForm({});
-      }
+      await dispatch(updateTrade({ 
+        id: tradeId, 
+        data: editForm 
+      })).unwrap();
+      setEditingId(null);
+      setEditForm({});
     } catch (error) {
       console.error('Failed to update trade:', error);
     }
   };
-  
+
   const pagination = useMemo(() => {
     const totalItems = trades.length;
-    const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage));
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const endIndex = Math.min(startIndex + itemsPerPage, totalItems);
+    const totalPages = Math.ceil(totalItems / rowsPerPage);
+    const startIndex = (currentPage - 1) * rowsPerPage;
+    const endIndex = Math.min(startIndex + rowsPerPage, totalItems);
     const currentData = trades.slice(startIndex, endIndex);
-    
+
     return {
       currentPage,
       totalPages,
@@ -139,9 +180,13 @@ export default function TradesTable({ trades, accounts, onRowClick, isLoading, i
       canGoPrev: currentPage > 1,
       startIndex: startIndex + 1,
       endIndex,
-      totalItems
+      totalItems,
+      itemsPerPage: rowsPerPage,
+      setItemsPerPage: setRowsPerPage,
     };
-  }, [trades, currentPage, itemsPerPage]);
+  }, [trades, currentPage, rowsPerPage]);
+
+  const allPageIdsSelected = pagination.currentData.length > 0 && pagination.currentData.every(t => selectedIds.has(t.id));
 
   if (isLoading) {
     return <TableLoader text="Loading trades table..." />;
@@ -187,11 +232,35 @@ export default function TradesTable({ trades, accounts, onRowClick, isLoading, i
         </div>
       )}
 
+      {/* Bulk Delete Bar */}
+      {selectedIds.size > 0 && (
+        <div className="bg-red-50 dark:bg-red-900/20 px-6 py-2 flex items-center justify-between border-b border-red-100 dark:border-red-900/30 transition-all animate-in fade-in slide-in-from-top-2">
+          <span className="text-sm font-medium text-red-800 dark:text-red-200">
+            {selectedIds.size} trade{selectedIds.size > 1 ? 's' : ''} selected
+          </span>
+          <button
+            onClick={handleBulkDelete}
+            className="flex items-center gap-2 px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-medium transition-colors"
+          >
+            <FaTrash className="w-3.5 h-3.5" />
+            Delete Selected
+          </button>
+        </div>
+      )}
+
       {/* Table */}
       <div className="overflow-x-auto">
         <table className="min-w-full">
           <thead className="bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-950/20 dark:to-emerald-900/20 backdrop-blur-sm">
             <tr className="border-b border-gray-200/30 dark:border-gray-700/30">
+              <th className="px-4 py-4 w-10">
+                 <input 
+                   type="checkbox" 
+                   checked={allPageIdsSelected}
+                   onChange={(e) => handleSelectAll(e, pagination.currentData)}
+                   className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+                 />
+              </th>
               <th className={thClasses}>Pair</th>
               <th className={thClasses}>Open Date</th>
               <th className={thClasses}>Account</th>
@@ -210,19 +279,29 @@ export default function TradesTable({ trades, accounts, onRowClick, isLoading, i
             {pagination.currentData.map((trade) => {
               const isEditing = editingId === trade.id;
               
-              return (
-              <tr 
-                  key={trade.id} 
-                  onClick={() => !isEditing && onRowClick(trade)} 
-                  className={`group transition-all duration-200 backdrop-blur-sm ${
-                    isEditing 
-                      ? 'bg-yellow-50 dark:bg-yellow-900/10' 
-                      : 'hover:bg-gradient-to-r hover:from-emerald-50 hover:to-emerald-100 dark:hover:from-emerald-900/30 dark:hover:to-emerald-800/30 cursor-pointer hover:shadow-md'
-                  }`}
-              >
-                <td className={`${tdClasses} font-semibold text-gray-900 dark:text-white`}>
-                  {trade.symbol}
-                </td>
+                return (
+                <tr 
+                    key={trade.id} 
+                    onClick={() => !isEditing && onRowClick(trade)} 
+                    className={`group transition-all duration-200 backdrop-blur-sm ${
+                      isEditing 
+                        ? 'bg-yellow-50 dark:bg-yellow-900/10' 
+                        : selectedIds.has(trade.id)
+                          ? 'bg-emerald-50/50 dark:bg-emerald-900/20'
+                          : 'hover:bg-gradient-to-r hover:from-emerald-50 hover:to-emerald-100 dark:hover:from-emerald-900/30 dark:hover:to-emerald-800/30 cursor-pointer hover:shadow-md'
+                    }`}
+                >
+                  <td className="px-4 py-4" onClick={(e) => e.stopPropagation()}>
+                    <input 
+                      type="checkbox"
+                      checked={selectedIds.has(trade.id)}
+                      onChange={() => handleSelectRow(trade.id)}
+                      className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+                    />
+                  </td>
+                  <td className={`${tdClasses} font-semibold text-gray-900 dark:text-white`}>
+                    {trade.symbol}
+                  </td>
                 <td className={`${tdClasses} text-gray-700 dark:text-gray-300`}>
                   {trade.entryDate ? format(parseISO(trade.entryDate), 'dd MMM, HH:mm') : '-'}
                 </td>

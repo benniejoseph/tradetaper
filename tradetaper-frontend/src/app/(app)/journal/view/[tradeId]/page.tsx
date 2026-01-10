@@ -5,7 +5,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '@/store/store';
 import { fetchTradeById } from '@/store/features/tradesSlice';
 import Link from 'next/link';
-import TradingViewChart from '@/components/market-intelligence/TradingViewChart';
+import TradeExecutionChart from '@/components/market-intelligence/TradeExecutionChart';
 import { format as formatDateFns, differenceInMinutes, differenceInHours, differenceInDays } from 'date-fns';
 import { TradeDirection, TradeStatus } from '@/types/trade';
 import { addDays, subDays } from 'date-fns';
@@ -22,15 +22,7 @@ import {
   FaChartLine
 } from 'react-icons/fa';
 
-// TradingView interval mapping
-const TIME_INTERVALS = [
-  { value: '1', label: '1m' },
-  { value: '5', label: '5m' },
-  { value: '15', label: '15m' },
-  { value: '60', label: '1h' },
-  { value: '240', label: '4h' },
-  { value: 'D', label: '1D' },
-];
+
 
 export default function ViewTradePage() {
   const dispatch = useDispatch<AppDispatch>();
@@ -38,7 +30,7 @@ export default function ViewTradePage() {
   const tradeId = params.tradeId as string;
 
   const { currentTrade, isLoading: tradeIsLoading, error: tradeError } = useSelector((state: RootState) => state.trades);
-  const [selectedInterval, setSelectedInterval] = useState('15');
+
 
   useEffect(() => {
     if (tradeId) {
@@ -245,42 +237,16 @@ export default function ViewTradePage() {
               </div>
             </div>
             
-            <div className="flex items-center space-x-2">
-              {TIME_INTERVALS.map((interval) => (
-                <button
-                  key={interval.value}
-                  onClick={() => setSelectedInterval(interval.value)}
-                  className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${
-                    selectedInterval === interval.value
-                      ? 'bg-gradient-to-r from-emerald-500 to-emerald-600 text-white shadow-lg'
-                      : 'bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-950/20 dark:to-emerald-900/20 text-gray-600 dark:text-gray-400 hover:from-emerald-100 hover:to-emerald-200 dark:hover:from-emerald-900/30 dark:hover:to-emerald-800/30 hover:text-gray-900 dark:hover:text-white'
-                  }`}
-                >
-                  {interval.label}
-                </button>
-              ))}
-            </div>
+
           </div>
         </div>
 
         {/* Chart */}
         <div className="p-6">
           <div className="h-[700px] w-full rounded-xl overflow-hidden border-2 border-gray-700">
-            <TradingViewChart 
-              symbol={currentTrade.symbol}
-              interval={selectedInterval}
-              theme="dark"
+            <TradeExecutionChart 
+              trade={currentTrade}
               height={700}
-              tradeMarker={{
-                entryDate: currentTrade.entryDate,
-                exitDate: currentTrade.exitDate || undefined,
-                entryPrice: currentTrade.entryPrice || 0,
-                exitPrice: currentTrade.exitPrice || undefined,
-                stopLoss: currentTrade.stopLoss || undefined,
-                takeProfit: currentTrade.takeProfit || undefined,
-                direction: currentTrade.direction as 'LONG' | 'SHORT',
-                profitLoss: currentTrade.profitLoss || undefined,
-              }}
             />
           </div>
         </div>

@@ -301,21 +301,7 @@ export default function TradePreviewDrawer({
       });
   };
 
-  const handleAnalyzeNote = async () => {
-    if (!trade || !trade.id) return;
-    setIsAnalyzingNote(true);
-    try {
-      const tags = await analyzeNote(trade.id);
-      // Assuming the updateTrade action can handle updating psychologicalTags
-      // You might need a specific action or direct state update if not.
-      dispatch(updateTrade({ id: trade.id, payload: { psychologicalTags: tags } as UpdateTradePayload }));
-    } catch (error) {
-      console.error("Failed to analyze note:", error);
-      // Handle error, e.g., show a toast notification
-    } finally {
-      setIsAnalyzingNote(false);
-    }
-  };
+  // const handleAnalyzeNote = async () => { ... } // Removed as analyzeNote service is missing
 
   const isWin = trade.profitOrLoss !== undefined && trade.profitOrLoss !== null && trade.profitOrLoss > 0;
   const isLoss = trade.profitOrLoss !== undefined && trade.profitOrLoss !== null && trade.profitOrLoss < 0;
@@ -520,13 +506,7 @@ export default function TradePreviewDrawer({
 
                     {trade.notes && (!trade.psychologicalTags || trade.psychologicalTags.length === 0) && (
                       <div className="flex justify-end mt-4">
-                        <button
-                          onClick={handleAnalyzeNote}
-                          disabled={isAnalyzingNote}
-                          className="px-4 py-2 bg-emerald-500 text-white rounded-md text-sm font-medium hover:bg-emerald-600 disabled:opacity-50"
-                        >
-                          {isAnalyzingNote ? 'Analyzing...' : 'Analyze Note'}
-                        </button>
+                        {/* Analyzer disabled until service is restored */}
                       </div>
                     )}
                   </div>
@@ -558,12 +538,37 @@ export default function TradePreviewDrawer({
 
           {activeTab === 'manage' && (
             <>
-              <SectionTitle title="Notes & Analysis" icon={<FaEdit className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />} />
-              <div className="space-y-3">
-                {trade.notes && <DetailItem label="Notes" value={<div className="text-right max-w-xs whitespace-pre-wrap">{trade.notes}</div>} />}
-                {trade.setupDetails && <DetailItem label="Setup Details" value={<div className="text-right max-w-xs whitespace-pre-wrap">{trade.setupDetails}</div>} />}
-                {trade.mistakesMade && <DetailItem label="Mistakes Made" value={<div className="text-right max-w-xs whitespace-pre-wrap">{trade.mistakesMade}</div>} />}
-                {trade.lessonsLearned && <DetailItem label="Lessons Learned" value={<div className="text-right max-w-xs whitespace-pre-wrap">{trade.lessonsLearned}</div>} />}
+              <SectionTitle title="Quick Edit" icon={<FaEdit className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />} />
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Notes</label>
+                  <textarea
+                    defaultValue={trade.notes || ''}
+                    onBlur={(e) => dispatch(updateTrade({ id: trade.id, payload: { notes: e.target.value } }))}
+                    className="w-full px-4 py-2 bg-white/50 dark:bg-black/20 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none transition-all resize-y min-h-[100px]"
+                    placeholder="Add your trade notes here..."
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Mistakes Made</label>
+                  <textarea
+                    defaultValue={trade.mistakesMade || ''}
+                    onBlur={(e) => dispatch(updateTrade({ id: trade.id, payload: { mistakesMade: e.target.value } }))}
+                    className="w-full px-4 py-2 bg-white/50 dark:bg-black/20 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none transition-all resize-y"
+                    placeholder="What did you do wrong?"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Lessons Learned</label>
+                  <textarea
+                    defaultValue={trade.lessonsLearned || ''}
+                    onBlur={(e) => dispatch(updateTrade({ id: trade.id, payload: { lessonsLearned: e.target.value } }))}
+                    className="w-full px-4 py-2 bg-white/50 dark:bg-black/20 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none transition-all resize-y"
+                    placeholder="What did you learn?"
+                  />
+                </div>
               </div>
               
               {trade.imageUrl && (

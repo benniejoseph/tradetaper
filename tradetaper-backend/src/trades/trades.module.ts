@@ -8,11 +8,18 @@ import { TradesController } from './trades.controller';
 import { UsersModule } from '../users/users.module';
 import { TagsModule } from '../tags/tags.module';
 import { CacheModule } from '@nestjs/cache-manager';
+import { TradeJournalSyncService } from './services/trade-journal-sync.service';
+import { Note } from '../notes/entities/note.entity';
 // import { WebSocketGatewayModule } from '../websocket/websocket.module';
+
+import { TradeCandle } from './entities/trade-candle.entity';
+
+import { YahooFinanceService } from '../integrations/yahoo-finance/yahoo-finance.service';
+import { MassiveService } from '../integrations/massive/massive.service';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Trade]),
+    TypeOrmModule.forFeature([Trade, Note, TradeCandle]),
     forwardRef(() => UsersModule),
     TagsModule,
     // WebSocketGatewayModule,
@@ -20,8 +27,8 @@ import { CacheModule } from '@nestjs/cache-manager';
       ttl: 60 * 60 * 1000, // 1 hour
     }),
   ],
-  providers: [TradesService, GeminiVisionService],
+  providers: [TradesService, GeminiVisionService, TradeJournalSyncService, YahooFinanceService, MassiveService],
   controllers: [TradesController],
-  exports: [TradesService],
+  exports: [TradesService, TradeJournalSyncService],
 })
 export class TradesModule {}

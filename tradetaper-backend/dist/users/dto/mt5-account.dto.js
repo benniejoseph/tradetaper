@@ -20,6 +20,8 @@ class CreateMT5AccountDto {
     currency;
     isActive;
     isRealAccount;
+    initialBalance;
+    leverage;
 }
 exports.CreateMT5AccountDto = CreateMT5AccountDto;
 __decorate([
@@ -62,6 +64,16 @@ __decorate([
     (0, class_validator_1.IsBoolean)(),
     __metadata("design:type", Boolean)
 ], CreateMT5AccountDto.prototype, "isRealAccount", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Number)
+], CreateMT5AccountDto.prototype, "initialBalance", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Number)
+], CreateMT5AccountDto.prototype, "leverage", void 0);
 class CreateManualMT5AccountDto {
     accountName;
     server;

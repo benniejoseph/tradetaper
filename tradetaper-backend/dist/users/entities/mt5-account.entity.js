@@ -25,6 +25,7 @@ let MT5Account = class MT5Account {
     isRealAccount;
     isActive;
     balance;
+    initialBalance;
     equity;
     margin;
     marginFree;
@@ -99,6 +100,10 @@ __decorate([
     (0, typeorm_1.Column)({ type: 'decimal', precision: 19, scale: 2, default: 0 }),
     __metadata("design:type", Number)
 ], MT5Account.prototype, "balance", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'decimal', precision: 19, scale: 2, default: 0 }),
+    __metadata("design:type", Number)
+], MT5Account.prototype, "initialBalance", void 0);
 __decorate([
     (0, typeorm_1.Column)({ type: 'decimal', precision: 19, scale: 2, default: 0 }),
     __metadata("design:type", Number)

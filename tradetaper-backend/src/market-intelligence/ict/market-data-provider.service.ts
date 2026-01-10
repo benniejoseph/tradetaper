@@ -20,12 +20,19 @@ export interface MarketDataRequest {
   limit?: number; // Number of candles (default 100)
 }
 
+export interface MarketDataResponse {
+  data: Candle[];
+  source: 'tradingview' | 'twelvedata' | 'fallback';
+  symbol: string;
+  timestamp: Date;
+}
+
 @Injectable()
 export class MarketDataProviderService {
   private readonly logger = new Logger(MarketDataProviderService.name);
   
   // Cache for market data (5 minutes)
-  private cache = new Map<string, { data: Candle[]; timestamp: number }>();
+  private cache = new Map<string, { data: Candle[]; source: string; timestamp: number }>();
   private readonly CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
   constructor(
@@ -36,8 +43,9 @@ export class MarketDataProviderService {
 
   /**
    * Get historical price data for any symbol
+   * Returns both data and source information
    */
-  async getPriceData(request: MarketDataRequest): Promise<Candle[]> {
+  async getPriceDataWithSource(request: MarketDataRequest): Promise<MarketDataResponse> {
     const { symbol, timeframe, limit = 100 } = request;
     
     const cacheKey = `${symbol}_${timeframe}_${limit}`;
@@ -45,13 +53,19 @@ export class MarketDataProviderService {
     
     // Return cached data if fresh
     if (cached && Date.now() - cached.timestamp < this.CACHE_TTL) {
-      this.logger.log(`Cache hit for ${cacheKey}`);
-      return cached.data;
+      this.logger.log(`Cache hit for ${cacheKey} (source: ${cached.source})`);
+      return {
+        data: cached.data,
+        source: cached.source as 'tradingview' | 'twelvedata' | 'fallback',
+        symbol,
+        timestamp: new Date(cached.timestamp),
+      };
     }
 
     this.logger.log(`Fetching real market data for ${symbol} on ${timeframe}`);
 
     let data: Candle[];
+    let source: 'tradingview' | 'twelvedata' | 'fallback' = 'fallback';
 
     // Try TradingView first (PREMIUM - Real-time data)
     if (this.tradingViewService.isConnected()) {
@@ -59,186 +73,132 @@ export class MarketDataProviderService {
       try {
         data = await this.tradingViewService.getRealtimeCandles(symbol, timeframe, limit);
         if (data && data.length > 0) {
-          this.cache.set(cacheKey, { data, timestamp: Date.now() });
-          return data;
+          source = 'tradingview';
+          this.cache.set(cacheKey, { data, source, timestamp: Date.now() });
+          return { data, source, symbol, timestamp: new Date() };
         }
       } catch (error) {
-        this.logger.warn(`TradingView failed, falling back to free sources: ${error.message}`);
+        this.logger.warn(`TradingView failed, falling back to Twelve Data: ${error.message}`);
       }
     }
 
-    // Fallback to free data sources
-    this.logger.log(`Using free data sources for ${symbol}`);
+    // Try Twelve Data for ALL assets (Forex, Commodities, Crypto, Stocks)
+    this.logger.log(`📊 Using Twelve Data for ${symbol}`);
+    try {
+      data = await this.getTwelveData(symbol, timeframe, limit);
+      if (data && data.length > 0) {
+        source = 'twelvedata';
+        this.cache.set(cacheKey, { data, source, timestamp: Date.now() });
+        return { data, source, symbol, timestamp: new Date() };
+      }
+    } catch (error) {
+      this.logger.warn(`Twelve Data failed: ${error.message}`);
+    }
+
+    // Final fallback - generated data
+    this.logger.warn(`⚠️ All sources failed, using fallback data for ${symbol}`);
+    data = this.generateFallbackData(symbol, limit);
+    source = 'fallback';
+    this.cache.set(cacheKey, { data, source, timestamp: Date.now() });
     
-    // Determine asset type and route to appropriate provider
-    if (this.isCrypto(symbol)) {
-      data = await this.getCryptoData(symbol, timeframe, limit);
-    } else if (this.isCommodity(symbol)) {
-      // Commodities (Gold, Silver, Oil) use Yahoo Finance
-      data = await this.getStockData(symbol, timeframe, limit);
-    } else if (this.isForex(symbol)) {
-      data = await this.getForexData(symbol, timeframe, limit);
-    } else {
-      data = await this.getStockData(symbol, timeframe, limit);
-    }
+    return { data, source, symbol, timestamp: new Date() };
+  }
 
-    // Cache the result
-    this.cache.set(cacheKey, { data, timestamp: Date.now() });
+  /**
+   * Legacy method - returns just the candles array
+   */
+  async getPriceData(request: MarketDataRequest): Promise<Candle[]> {
+    const response = await this.getPriceDataWithSource(request);
+    return response.data;
+  }
+
+  /**
+   * Get data from Twelve Data API (supports Forex, Commodities, Crypto, Stocks)
+   */
+  private async getTwelveData(
+    symbol: string,
+    timeframe: string,
+    limit: number,
+  ): Promise<Candle[]> {
+    const apiKey = this.configService.get<string>('TWELVE_DATA_API_KEY');
     
-    return data;
-  }
-
-  /**
-   * Get crypto data from Binance (free, no API key needed for public data)
-   */
-  private async getCryptoData(
-    symbol: string,
-    timeframe: string,
-    limit: number,
-  ): Promise<Candle[]> {
-    try {
-      // Convert symbol format (BTCUSD -> BTCUSDT for Binance)
-      const binanceSymbol = symbol.replace('USD', 'USDT').replace('/', '');
-      const interval = this.toBinanceInterval(timeframe);
-
-      const url = 'https://api.binance.com/api/v3/klines';
-      const response = await firstValueFrom(
-        this.httpService.get(url, {
-          params: {
-            symbol: binanceSymbol,
-            interval,
-            limit,
-          },
-          timeout: 10000,
-        }),
-      );
-
-      return response.data.map((candle: any[]) => ({
-        timestamp: new Date(candle[0]),
-        open: parseFloat(candle[1]),
-        high: parseFloat(candle[2]),
-        low: parseFloat(candle[3]),
-        close: parseFloat(candle[4]),
-        volume: parseFloat(candle[5]),
-      }));
-    } catch (error) {
-      this.logger.error(`Failed to fetch crypto data from Binance: ${error.message}`);
-      throw error;
+    if (!apiKey) {
+      this.logger.warn('TWELVE_DATA_API_KEY not set');
+      throw new Error('Twelve Data API key not configured');
     }
-  }
 
-  /**
-   * Get forex data from Twelve Data (free tier: 8 API calls/minute)
-   */
-  private async getForexData(
-    symbol: string,
-    timeframe: string,
-    limit: number,
-  ): Promise<Candle[]> {
-    try {
-      const apiKey = this.configService.get<string>('TWELVE_DATA_API_KEY');
-      
-      if (!apiKey) {
-        this.logger.warn('TWELVE_DATA_API_KEY not set, using fallback data');
-        return this.generateFallbackData(symbol, limit);
-      }
+    // Convert symbol format for Twelve Data
+    const twelveSymbol = this.toTwelveDataSymbol(symbol);
+    const interval = this.toTwelveDataInterval(timeframe);
 
-      // Convert symbol format (EURUSD -> EUR/USD for Twelve Data)
-      const pair = `${symbol.slice(0, 3)}/${symbol.slice(3, 6)}`;
-      const interval = this.toTwelveDataInterval(timeframe);
+    this.logger.log(`Fetching from Twelve Data: ${twelveSymbol} (original: ${symbol})`);
 
-      const url = 'https://api.twelvedata.com/time_series';
-      const response = await firstValueFrom(
-        this.httpService.get(url, {
-          params: {
-            symbol: pair,
-            interval,
-            outputsize: limit,
-            apikey: apiKey,
-          },
-          timeout: 10000,
-        }),
-      );
+    const url = 'https://api.twelvedata.com/time_series';
+    const response = await firstValueFrom(
+      this.httpService.get(url, {
+        params: {
+          symbol: twelveSymbol,
+          interval,
+          outputsize: limit,
+          apikey: apiKey,
+        },
+        timeout: 15000,
+      }),
+    );
 
-      if (response.data.status === 'error') {
-        throw new Error(response.data.message);
-      }
-
-      const values = response.data.values || [];
-      return values.map((candle: any) => ({
-        timestamp: new Date(candle.datetime),
-        open: parseFloat(candle.open),
-        high: parseFloat(candle.high),
-        low: parseFloat(candle.low),
-        close: parseFloat(candle.close),
-        volume: parseFloat(candle.volume || 0),
-      })).reverse(); // Twelve Data returns newest first, reverse it
-    } catch (error) {
-      this.logger.error(`Failed to fetch forex data from Twelve Data: ${error.message}`);
-      return this.generateFallbackData(symbol, limit);
+    if (response.data.status === 'error') {
+      throw new Error(response.data.message || 'Twelve Data API error');
     }
-  }
 
-  /**
-   * Get stock data from Yahoo Finance (via yfinance2 npm package)
-   */
-  private async getStockData(
-    symbol: string,
-    timeframe: string,
-    limit: number,
-  ): Promise<Candle[]> {
-    try {
-      // Convert symbol to Yahoo Finance format
-      const yahooSymbol = this.toYahooSymbol(symbol);
-      const interval = this.toYahooInterval(timeframe);
-      const period = this.calculatePeriod(timeframe, limit);
-
-      this.logger.log(`Fetching from Yahoo Finance: ${yahooSymbol} (original: ${symbol})`);
-
-      const url = `https://query1.finance.yahoo.com/v8/finance/chart/${yahooSymbol}`;
-      const response = await firstValueFrom(
-        this.httpService.get(url, {
-          params: {
-            interval,
-            range: period,
-          },
-          timeout: 10000,
-        }),
-      );
-
-      const result = response.data.chart.result[0];
-      const timestamps = result.timestamp;
-      const quotes = result.indicators.quote[0];
-
-      return timestamps.map((timestamp: number, index: number) => ({
-        timestamp: new Date(timestamp * 1000),
-        open: quotes.open[index],
-        high: quotes.high[index],
-        low: quotes.low[index],
-        close: quotes.close[index],
-        volume: quotes.volume[index],
-      })).slice(-limit); // Take last 'limit' candles
-    } catch (error) {
-      this.logger.error(`Failed to fetch stock data from Yahoo Finance: ${error.message}`);
-      return this.generateFallbackData(symbol, limit);
+    const values = response.data.values || [];
+    
+    if (values.length === 0) {
+      throw new Error('No data returned from Twelve Data');
     }
+
+    return values.map((candle: any) => ({
+      timestamp: new Date(candle.datetime),
+      open: parseFloat(candle.open),
+      high: parseFloat(candle.high),
+      low: parseFloat(candle.low),
+      close: parseFloat(candle.close),
+      volume: parseFloat(candle.volume || 0),
+    })).reverse(); // Twelve Data returns newest first, reverse it
   }
 
   /**
-   * Convert symbol to Yahoo Finance format
+   * Convert symbol to Twelve Data format
    */
-  private toYahooSymbol(symbol: string): string {
-    const yahooMapping: Record<string, string> = {
-      'XAUUSD': 'GC=F',     // Gold Futures
-      'XAGUSD': 'SI=F',     // Silver Futures
-      'BTCUSD': 'BTC-USD',  // Bitcoin
-      'ETHUSD': 'ETH-USD',  // Ethereum
+  private toTwelveDataSymbol(symbol: string): string {
+    // Commodities
+    const commodityMapping: Record<string, string> = {
+      'XAUUSD': 'XAU/USD',   // Gold
+      'XAGUSD': 'XAG/USD',   // Silver
+      'XTIUSD': 'WTI/USD',   // Oil WTI
+      'XBRUSD': 'BRENT/USD', // Brent Oil
     };
-    return yahooMapping[symbol] || symbol;
+    
+    if (commodityMapping[symbol]) {
+      return commodityMapping[symbol];
+    }
+
+    // Forex pairs - add slash
+    if (this.isForex(symbol) && !symbol.includes('/')) {
+      return `${symbol.slice(0, 3)}/${symbol.slice(3, 6)}`;
+    }
+
+    // Crypto - add slash and adjust format
+    if (this.isCrypto(symbol)) {
+      const base = symbol.replace('USD', '').replace('USDT', '');
+      return `${base}/USD`;
+    }
+
+    return symbol;
   }
 
   /**
    * Generate realistic fallback data when APIs fail
+   * Uses current approximate market prices (updated Dec 2024)
    */
   private generateFallbackData(symbol: string, limit: number): Candle[] {
     this.logger.warn(`Generating fallback data for ${symbol}`);
@@ -248,11 +208,11 @@ export class MarketDataProviderService {
     let currentPrice = basePrice;
 
     for (let i = 0; i < limit; i++) {
-      const change = (Math.random() - 0.5) * (basePrice * 0.02); // 2% max change
+      const change = (Math.random() - 0.5) * (basePrice * 0.002); // 0.2% max change
       const open = currentPrice;
       const close = currentPrice + change;
-      const high = Math.max(open, close) + Math.random() * (basePrice * 0.005);
-      const low = Math.min(open, close) - Math.random() * (basePrice * 0.005);
+      const high = Math.max(open, close) + Math.random() * (basePrice * 0.001);
+      const low = Math.min(open, close) - Math.random() * (basePrice * 0.001);
       
       data.push({
         timestamp: new Date(Date.now() - (limit - i) * 3600000), // Hourly candles
@@ -272,7 +232,6 @@ export class MarketDataProviderService {
   /**
    * Helper methods
    */
-
   private isCrypto(symbol: string): boolean {
     return (
       symbol.includes('BTC') ||
@@ -292,25 +251,11 @@ export class MarketDataProviderService {
   }
 
   private isForex(symbol: string): boolean {
-    // Forex pairs (excluding commodities)
     const forexPairs = [
       'EURUSD', 'GBPUSD', 'USDJPY', 'AUDUSD', 'USDCAD', 'USDCHF', 
       'NZDUSD', 'EURGBP', 'EURJPY', 'GBPJPY'
     ];
     return forexPairs.some(pair => symbol.includes(pair));
-  }
-
-  private toBinanceInterval(timeframe: string): string {
-    const mapping: Record<string, string> = {
-      '1m': '1m',
-      '5m': '5m',
-      '15m': '15m',
-      '1h': '1h',
-      '4h': '4h',
-      '1d': '1d',
-      '1w': '1w',
-    };
-    return mapping[timeframe] || '1h';
   }
 
   private toTwelveDataInterval(timeframe: string): string {
@@ -319,60 +264,35 @@ export class MarketDataProviderService {
       '5m': '5min',
       '15m': '15min',
       '1h': '1h',
+      '1H': '1h',
       '4h': '4h',
+      '4H': '4h',
       '1d': '1day',
+      '1D': '1day',
       '1w': '1week',
+      '1W': '1week',
     };
     return mapping[timeframe] || '1h';
   }
 
-  private toYahooInterval(timeframe: string): string {
-    const mapping: Record<string, string> = {
-      '1m': '1m',
-      '5m': '5m',
-      '15m': '15m',
-      '1h': '1h',
-      '4h': '1h', // Yahoo doesn't have 4h, use 1h and aggregate
-      '1d': '1d',
-      '1w': '1wk',
-    };
-    return mapping[timeframe] || '1h';
-  }
-
-  private calculatePeriod(timeframe: string, limit: number): string {
-    const minutes = {
-      '1m': 1,
-      '5m': 5,
-      '15m': 15,
-      '1h': 60,
-      '4h': 240,
-      '1d': 1440,
-      '1w': 10080,
-    }[timeframe] || 60;
-
-    const totalMinutes = minutes * limit;
-    const days = Math.ceil(totalMinutes / 1440);
-
-    if (days <= 1) return '1d';
-    if (days <= 5) return '5d';
-    if (days <= 30) return '1mo';
-    if (days <= 90) return '3mo';
-    if (days <= 180) return '6mo';
-    if (days <= 365) return '1y';
-    return '2y';
-  }
-
+  /**
+   * Get approximate current base prices (Dec 2024 values)
+   */
   private getBasePrice(symbol: string): number {
     const prices: Record<string, number> = {
-      'EURUSD': 1.0850,
-      'GBPUSD': 1.2750,
-      'USDJPY': 149.50,
-      'XAUUSD': 4107.00,  // Updated to current Gold price
-      'XAGUSD': 31.50,    // Silver
-      'BTCUSD': 43500.00,
-      'ETHUSD': 2300.00,
-      'SPX500': 4750.00,
-      'NASDAQ100': 16250.00,
+      'EURUSD': 1.0420,
+      'GBPUSD': 1.2550,
+      'USDJPY': 157.50,
+      'AUDUSD': 0.6220,
+      'USDCAD': 1.4380,
+      'USDCHF': 0.9050,
+      'NZDUSD': 0.5620,
+      'XAUUSD': 2630.00,   // Gold - Updated Dec 2024
+      'XAGUSD': 29.50,      // Silver
+      'BTCUSD': 94500.00,   // Bitcoin - Updated Dec 2024
+      'ETHUSD': 3350.00,    // Ethereum
+      'SPX500': 5880.00,
+      'NASDAQ100': 21200.00,
     };
     return prices[symbol] || 100.0;
   }
@@ -385,4 +305,3 @@ export class MarketDataProviderService {
     this.logger.log('Market data cache cleared');
   }
 }
-

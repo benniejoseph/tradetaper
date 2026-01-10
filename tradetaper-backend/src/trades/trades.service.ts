@@ -6,6 +6,7 @@ import {
   Logger,
   Inject,
   BadRequestException,
+  forwardRef,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, FindManyOptions, In } from 'typeorm';
@@ -19,6 +20,14 @@ import { SimpleTradesGateway } from '../websocket/simple-trades.gateway';
 import { GeminiVisionService } from '../notes/gemini-vision.service'; // New import
 import { Express } from 'express'; // New import
 import { PaginatedResponseDto } from '../common/dto/paginated-response.dto';
+import { AccountsService } from '../users/accounts.service';
+import { MT5AccountsService } from '../users/mt5-accounts.service';
+
+import { TradeCandle } from './entities/trade-candle.entity';
+
+import { YahooFinanceService } from '../integrations/yahoo-finance/yahoo-finance.service';
+
+import { MassiveService } from '../integrations/massive/massive.service';
 
 @Injectable()
 export class TradesService {
@@ -27,36 +36,158 @@ export class TradesService {
   constructor(
     @InjectRepository(Trade)
     private readonly tradesRepository: Repository<Trade>,
+    @InjectRepository(TradeCandle)
+    private readonly tradeCandleRepository: Repository<TradeCandle>,
     @InjectRepository(Tag)
     private readonly tagRepository: Repository<Tag>,
     @Inject(SimpleTradesGateway)
     private readonly tradesGateway: SimpleTradesGateway,
     @Inject(GeminiVisionService)
     private readonly geminiVisionService: GeminiVisionService,
+    @Inject(forwardRef(() => AccountsService))
+    private readonly accountsService: AccountsService,
+    @Inject(forwardRef(() => MT5AccountsService))
+    private readonly mt5AccountsService: MT5AccountsService,
+    private readonly yahooFinanceService: YahooFinanceService,
+    private readonly massiveService: MassiveService,
   ) {}
 
-  private calculateAndSetPnl(trade: Trade): void {
-    if (
-      trade.status === TradeStatus.CLOSED &&
-      trade.openPrice != null &&
-      trade.closePrice != null &&
-      trade.quantity != null
-    ) {
-      let pnl = 0;
-      if (trade.side === TradeDirection.LONG) {
-        // Compare with enum member
-        pnl = (trade.closePrice - trade.openPrice) * trade.quantity;
-      } else if (trade.side === TradeDirection.SHORT) {
-        // Compare with enum member
-        pnl = (trade.openPrice - trade.closePrice) * trade.quantity;
-      }
-      trade.profitOrLoss = parseFloat(
-        (pnl - (trade.commission || 0)).toFixed(4),
-      );
-    } else {
-      trade.profitOrLoss = undefined;
+  async getTradeCandles(
+    tradeId: string,
+    timeframe: string,
+    userContext: UserResponseDto,
+  ): Promise<any[]> {
+    this.logger.debug(`Fetching candles for trade ${tradeId}, timeframe ${timeframe}`);
+    
+    try {
+        // 1. Check Cache
+        const cached = await this.tradeCandleRepository.findOne({ where: { tradeId, timeframe } });
+        if (cached) {
+            this.logger.debug(`Cache HIT for trade ${tradeId}`);
+            return cached.data;
+        }
+        this.logger.debug(`Cache MISS for trade ${tradeId}`);
+
+        // 2. Get Trade details
+        const trade = await this.findOne(tradeId, userContext);
+        
+        // 3. Calculate Buffer
+        const exitTime = trade.closeTime ? new Date(trade.closeTime).getTime() : Date.now();
+        let bufferMs = 0;
+        
+        switch (timeframe) {
+            case '1m': bufferMs = 60 * 1000 * 60 * 2; break; 
+            case '5m': bufferMs = 60 * 1000 * 60 * 5; break; 
+            case '15m': bufferMs = 60 * 1000 * 60 * 12; break; 
+            case '1h': bufferMs = 60 * 1000 * 60 * 48; break; 
+            case '4h': bufferMs = 60 * 1000 * 60 * 24 * 7; break; 
+            case '1d': bufferMs = 60 * 1000 * 60 * 24 * 30; break; 
+            default: bufferMs = 60 * 1000 * 60 * 48; 
+        }
+        
+        const entryTime = new Date(trade.openTime).getTime();
+        const startTime = new Date(entryTime - bufferMs);
+        const endTime = new Date(exitTime + bufferMs);
+        
+        let data: any[] = [];
+
+        // 4. Try MetaApi (Primary - Strategy A)
+        if (trade.accountId) {
+            try {
+                this.logger.debug(`Strategy A: Fetching from MetaApi...`);
+                data = await this.mt5AccountsService.getCandles(
+                    trade.accountId, 
+                    trade.symbol, 
+                    timeframe, 
+                    startTime, 
+                    endTime
+                );
+            } catch (e) {
+                this.logger.warn(`MetaApi Strategy failed: ${e.message}`);
+            }
+        }
+
+        // 5. Try Massive/Polygon (Secondary - Strategy B)
+        if (!data || data.length === 0) {
+            this.logger.debug(`Strategy B: Fallback to Massive (Polygon) for ${trade.symbol}...`);
+            data = await this.massiveService.getCandles(
+                trade.symbol,
+                timeframe,
+                startTime,
+                endTime
+            );
+            this.logger.debug(`Massive returned ${data?.length || 0} candles`);
+        }
+
+        // 6. Try Yahoo Finance (Tertiary - Strategy C)
+        if (!data || data.length === 0) {
+            this.logger.debug(`Strategy C: Fallback to Yahoo Finance for ${trade.symbol}...`);
+            data = await this.yahooFinanceService.getCandles(
+                trade.symbol,
+                timeframe,
+                startTime,
+                endTime
+            );
+            this.logger.debug(`Yahoo Finance returned ${data?.length || 0} candles`);
+        }
+
+        // 6. Cache result if trade is CLOSED and we found data
+        if (trade.status === TradeStatus.CLOSED && data && data.length > 0) {
+            this.logger.debug(`Caching result for trade ${tradeId}`);
+            try {
+                await this.tradeCandleRepository.save({
+                    tradeId: trade.id,
+                    symbol: trade.symbol,
+                    timeframe,
+                    data
+                });
+            } catch (cacheError) {
+                this.logger.error(`Failed to cache candles: ${cacheError.message}`);
+            }
+        }
+
+        return data || [];
+    } catch (error) {
+        this.logger.error(`Error in getTradeCandles: ${error.message}`, error.stack);
+        throw error;
     }
   }
+
+  private async _populateAccountDetails(trades: Trade[], userId: string): Promise<Trade[]> {
+    if (!trades.length) return trades;
+
+    const accountIds = [...new Set(trades.map(t => t.accountId).filter(id => id))];
+    if (accountIds.length === 0) return trades;
+
+    // Fetch from both services
+    // Note: This is not efficient for large datasets but works for now given the split architecture
+    // Ideally we'd have a unified cache or table
+    
+    // We can't easily query by IDs blindly because we don't know which ID belongs to which service
+    // But we can try to fetch all user accounts and map them
+    
+    // Better approach: Fetch all user accounts once (cached) and map
+    const [manualAccounts, mt5Accounts] = await Promise.all([
+      this.accountsService.findAllByUser(userId),
+      this.mt5AccountsService.findAllByUser(userId),
+    ]);
+
+    const accountMap = new Map<string, any>();
+    manualAccounts.forEach(a => accountMap.set(a.id, { id: a.id, name: a.name, type: 'manual' }));
+    mt5Accounts.forEach(a => accountMap.set(a.id, { id: a.id, name: a.accountName, type: 'mt5' }));
+
+    return trades.map(trade => {
+      if (trade.accountId) {
+        const account = accountMap.get(trade.accountId);
+        if (account) {
+          (trade as any).account = account;
+        }
+      }
+      return trade;
+    });
+  }
+
+  /* Removed calculateAndSetPnl as it is now handled by the Trade entity */
 
   private async findOrCreateTags(
     tagNames: string[],
@@ -130,7 +261,7 @@ export class TradesService {
       tags: resolvedTags,
     });
 
-    this.calculateAndSetPnl(trade);
+    trade.calculatePnl();
     const savedTrade = await this.tradesRepository.save(trade);
 
     // Load the complete trade with relations for response
@@ -145,9 +276,21 @@ export class TradesService {
       );
     }
 
+    const [populatedTrade] = await this._populateAccountDetails([completeTradeData], userContext.id);
+
     this.logger.log(`Trade created successfully: ${savedTrade.id}`);
 
-    return completeTradeData;
+    return populatedTrade;
+  }
+
+  async findAllByUser(userId: string): Promise<Trade[]> {
+    this.logger.debug(`Fetching ALL trades for user ${userId} for analytics`);
+    const trades = await this.tradesRepository.find({
+      where: { userId },
+      relations: ['tags'],
+      order: { openTime: 'DESC' },
+    });
+    return this._populateAccountDetails(trades, userId);
   }
 
   async findAll(
@@ -177,16 +320,39 @@ export class TradesService {
       ...options,
     });
 
+    const populatedTrades = await this._populateAccountDetails(trades, userContext.id);
+
     this.logger.log(
       `Found ${trades.length} of ${total} trades for user ${userContext.id}, account filter: ${accountId || 'all'}`,
     );
 
     return {
-      data: trades,
+      data: populatedTrades,
       total,
       page,
       limit,
     };
+  }
+
+  async findDuplicate(userId: string, symbol: string, entryDate: Date, externalId?: string): Promise<Trade | null> {
+     const queryBuilder = this.tradesRepository.createQueryBuilder('trade')
+      .where('trade.userId = :userId', { userId })
+      .andWhere('trade.accountId IS NOT NULL'); // Ignore orphaned trades
+
+    if (externalId) {
+      // If external ID is provided (e.g. from MT5), use it for exact match
+      queryBuilder.andWhere('trade.externalId = :externalId', { externalId });
+    } else {
+      // Otherwise fallback to symbol and fuzzy time match (within 60s)
+      queryBuilder
+        .andWhere('trade.symbol = :symbol', { symbol })
+        .andWhere('trade.openTime BETWEEN :start AND :end', { 
+          start: new Date(entryDate.getTime() - 60000), 
+          end: new Date(entryDate.getTime() + 60000) 
+        });
+    }
+
+    return await queryBuilder.getOne();
   }
 
   async findOne(id: string, userContext: UserResponseDto): Promise<Trade> {
@@ -198,7 +364,9 @@ export class TradesService {
         .where('trade.id = :id', { id })
         .andWhere('trade.userId = :userId', { userId: userContext.id })
         .getOneOrFail();
-      return trade;
+      
+      const [populatedTrade] = await this._populateAccountDetails([trade], userContext.id);
+      return populatedTrade;
     } catch (error: any) {
       let errorMessage = 'Unknown error';
       if (error instanceof Error) {
@@ -253,7 +421,7 @@ export class TradesService {
       trade.tags = await this.findOrCreateTags(tagNames, userContext.id);
     }
 
-    this.calculateAndSetPnl(trade);
+    trade.calculatePnl();
     const updatedTrade = await this.tradesRepository.save(trade);
 
     return updatedTrade;
@@ -345,7 +513,7 @@ export class TradesService {
           trade.tags = await this.findOrCreateTags(tagNames, userContext.id);
         }
 
-        this.calculateAndSetPnl(trade);
+        trade.calculatePnl();
         updatedTrades.push(trade);
       }
     }
@@ -382,7 +550,7 @@ export class TradesService {
         tags: resolvedTags,
       });
 
-      this.calculateAndSetPnl(trade);
+      trade.calculatePnl();
       createdTrades.push(trade);
     }
 
