@@ -18,39 +18,49 @@ const common_1 = require("@nestjs/common");
 const typeorm_1 = require("@nestjs/typeorm");
 const typeorm_2 = require("typeorm");
 const trade_entity_1 = require("./entities/trade.entity");
-const enums_1 = require("../types/enums");
 const tag_entity_1 = require("../tags/entities/tag.entity");
 const simple_trades_gateway_1 = require("../websocket/simple-trades.gateway");
 const gemini_vision_service_1 = require("../notes/gemini-vision.service");
+const accounts_service_1 = require("../users/accounts.service");
+const mt5_accounts_service_1 = require("../users/mt5-accounts.service");
 let TradesService = TradesService_1 = class TradesService {
     tradesRepository;
     tagRepository;
     tradesGateway;
     geminiVisionService;
+    accountsService;
+    mt5AccountsService;
     logger = new common_1.Logger(TradesService_1.name);
-    constructor(tradesRepository, tagRepository, tradesGateway, geminiVisionService) {
+    constructor(tradesRepository, tagRepository, tradesGateway, geminiVisionService, accountsService, mt5AccountsService) {
         this.tradesRepository = tradesRepository;
         this.tagRepository = tagRepository;
         this.tradesGateway = tradesGateway;
         this.geminiVisionService = geminiVisionService;
+        this.accountsService = accountsService;
+        this.mt5AccountsService = mt5AccountsService;
     }
-    calculateAndSetPnl(trade) {
-        if (trade.status === enums_1.TradeStatus.CLOSED &&
-            trade.openPrice != null &&
-            trade.closePrice != null &&
-            trade.quantity != null) {
-            let pnl = 0;
-            if (trade.side === enums_1.TradeDirection.LONG) {
-                pnl = (trade.closePrice - trade.openPrice) * trade.quantity;
+    async _populateAccountDetails(trades, userId) {
+        if (!trades.length)
+            return trades;
+        const accountIds = [...new Set(trades.map(t => t.accountId).filter(id => id))];
+        if (accountIds.length === 0)
+            return trades;
+        const [manualAccounts, mt5Accounts] = await Promise.all([
+            this.accountsService.findAllByUser(userId),
+            this.mt5AccountsService.findAllByUser(userId),
+        ]);
+        const accountMap = new Map();
+        manualAccounts.forEach(a => accountMap.set(a.id, { id: a.id, name: a.name, type: 'manual' }));
+        mt5Accounts.forEach(a => accountMap.set(a.id, { id: a.id, name: a.accountName, type: 'mt5' }));
+        return trades.map(trade => {
+            if (trade.accountId) {
+                const account = accountMap.get(trade.accountId);
+                if (account) {
+                    trade.account = account;
+                }
             }
-            else if (trade.side === enums_1.TradeDirection.SHORT) {
-                pnl = (trade.openPrice - trade.closePrice) * trade.quantity;
-            }
-            trade.profitOrLoss = parseFloat((pnl - (trade.commission || 0)).toFixed(4));
-        }
-        else {
-            trade.profitOrLoss = undefined;
-        }
+            return trade;
+        });
     }
     async findOrCreateTags(tagNames, userId) {
         if (!tagNames || tagNames.length === 0) {
@@ -96,7 +106,7 @@ let TradesService = TradesService_1 = class TradesService {
             userId: userContext.id,
             tags: resolvedTags,
         });
-        this.calculateAndSetPnl(trade);
+        trade.calculatePnl();
         const savedTrade = await this.tradesRepository.save(trade);
         const completeTradeData = await this.tradesRepository.findOne({
             where: { id: savedTrade.id },
@@ -105,8 +115,9 @@ let TradesService = TradesService_1 = class TradesService {
         if (!completeTradeData) {
             throw new common_1.NotFoundException(`Trade with id ${savedTrade.id} not found after creation`);
         }
+        const [populatedTrade] = await this._populateAccountDetails([completeTradeData], userContext.id);
         this.logger.log(`Trade created successfully: ${savedTrade.id}`);
-        return completeTradeData;
+        return populatedTrade;
     }
     async findAll(userContext, accountId, options, page = 1, limit = 10) {
         this.logger.log(`User ${userContext.id} fetching trades, account: ${accountId || 'all'}, page: ${page}, limit: ${limit}`);
@@ -124,13 +135,30 @@ let TradesService = TradesService_1 = class TradesService {
             skip: (page - 1) * limit,
             ...options,
         });
+        const populatedTrades = await this._populateAccountDetails(trades, userContext.id);
         this.logger.log(`Found ${trades.length} of ${total} trades for user ${userContext.id}, account filter: ${accountId || 'all'}`);
         return {
-            data: trades,
+            data: populatedTrades,
             total,
             page,
             limit,
         };
+    }
+    async findDuplicate(userId, symbol, entryDate, externalId) {
+        const queryBuilder = this.tradesRepository.createQueryBuilder('trade')
+            .where('trade.userId = :userId', { userId });
+        if (externalId) {
+            queryBuilder.andWhere('trade.externalId = :externalId', { externalId });
+        }
+        else {
+            queryBuilder
+                .andWhere('trade.symbol = :symbol', { symbol })
+                .andWhere('trade.openTime BETWEEN :start AND :end', {
+                start: new Date(entryDate.getTime() - 60000),
+                end: new Date(entryDate.getTime() + 60000)
+            });
+        }
+        return await queryBuilder.getOne();
     }
     async findOne(id, userContext) {
         this.logger.log(`User ${userContext.id} fetching trade with ID ${id}`);
@@ -141,7 +169,8 @@ let TradesService = TradesService_1 = class TradesService {
                 .where('trade.id = :id', { id })
                 .andWhere('trade.userId = :userId', { userId: userContext.id })
                 .getOneOrFail();
-            return trade;
+            const [populatedTrade] = await this._populateAccountDetails([trade], userContext.id);
+            return populatedTrade;
         }
         catch (error) {
             let errorMessage = 'Unknown error';
@@ -156,7 +185,7 @@ let TradesService = TradesService_1 = class TradesService {
         this.logger.log(`User ${userContext.id} updating trade with ID ${id}`);
         const trade = await this.tradesRepository.findOne({
             where: { id, userId: userContext.id },
-            relations: ['tags'],
+            relations: ['tags', 'account'],
         });
         if (!trade) {
             throw new common_1.NotFoundException(`Trade with ID "${id}" not found for update.`);
@@ -178,7 +207,7 @@ let TradesService = TradesService_1 = class TradesService {
         if (tagNames !== undefined) {
             trade.tags = await this.findOrCreateTags(tagNames, userContext.id);
         }
-        this.calculateAndSetPnl(trade);
+        trade.calculatePnl();
         const updatedTrade = await this.tradesRepository.save(trade);
         return updatedTrade;
     }
@@ -211,7 +240,7 @@ let TradesService = TradesService_1 = class TradesService {
         const tradeIds = updates.map((u) => u.id);
         const trades = await this.tradesRepository.find({
             where: { id: (0, typeorm_2.In)(tradeIds), userId: userContext.id },
-            relations: ['tags'],
+            relations: ['tags', 'account'],
         });
         if (trades.length !== updates.length) {
             throw new common_1.NotFoundException('Some trades not found or do not belong to user');
@@ -232,7 +261,7 @@ let TradesService = TradesService_1 = class TradesService {
                 if (tagNames !== undefined) {
                     trade.tags = await this.findOrCreateTags(tagNames, userContext.id);
                 }
-                this.calculateAndSetPnl(trade);
+                trade.calculatePnl();
                 updatedTrades.push(trade);
             }
         }
@@ -254,7 +283,7 @@ let TradesService = TradesService_1 = class TradesService {
                 userId: userContext.id,
                 tags: resolvedTags,
             });
-            this.calculateAndSetPnl(trade);
+            trade.calculatePnl();
             createdTrades.push(trade);
         }
         const savedTrades = await this.tradesRepository.save(createdTrades);
@@ -268,9 +297,13 @@ exports.TradesService = TradesService = TradesService_1 = __decorate([
     __param(1, (0, typeorm_1.InjectRepository)(tag_entity_1.Tag)),
     __param(2, (0, common_1.Inject)(simple_trades_gateway_1.SimpleTradesGateway)),
     __param(3, (0, common_1.Inject)(gemini_vision_service_1.GeminiVisionService)),
+    __param(4, (0, common_1.Inject)((0, common_1.forwardRef)(() => accounts_service_1.AccountsService))),
+    __param(5, (0, common_1.Inject)((0, common_1.forwardRef)(() => mt5_accounts_service_1.MT5AccountsService))),
     __metadata("design:paramtypes", [typeorm_2.Repository,
         typeorm_2.Repository,
         simple_trades_gateway_1.SimpleTradesGateway,
-        gemini_vision_service_1.GeminiVisionService])
+        gemini_vision_service_1.GeminiVisionService,
+        accounts_service_1.AccountsService,
+        mt5_accounts_service_1.MT5AccountsService])
 ], TradesService);
 //# sourceMappingURL=trades.service.js.map

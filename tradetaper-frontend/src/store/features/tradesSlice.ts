@@ -220,7 +220,8 @@ export const updateTrade = createAsyncThunk<Trade, { id: string; payload: Update
   }
 );
 
-export const deleteTrade = createAsyncThunk<string, string, { rejectValue: string }>( // Returns deleted trade ID on success
+// Returns deleted trade ID on success
+export const deleteTrade = createAsyncThunk<string, string, { rejectValue: string }>( 
   'trades/deleteTrade',
   async (tradeId, { rejectWithValue }) => {
     try {
@@ -229,6 +230,19 @@ export const deleteTrade = createAsyncThunk<string, string, { rejectValue: strin
       return tradeId;
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || error.message || 'Failed to delete trade');
+    }
+  }
+);
+
+// Bulk delete trades
+export const deleteTrades = createAsyncThunk<string[], string[], { rejectValue: string }>(
+  'trades/deleteTrades',
+  async (tradeIds, { rejectWithValue }) => {
+    try {
+      await authApiClient.post('/trades/bulk/delete', { tradeIds });
+      return tradeIds;
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.message || error.message || 'Failed to delete trades');
     }
   }
 );
@@ -381,6 +395,22 @@ const tradesSlice = createSlice({
         }
       })
       .addCase(deleteTrade.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload as string;
+      })
+      // deleteTrades (bulk)
+      .addCase(deleteTrades.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(deleteTrades.fulfilled, (state, action: PayloadAction<string[]>) => {
+        state.isLoading = false;
+        state.trades = state.trades.filter(trade => !action.payload.includes(trade.id));
+        if (state.currentTrade && action.payload.includes(state.currentTrade.id)) {
+            state.currentTrade = null;
+        }
+      })
+      .addCase(deleteTrades.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload as string;
       })

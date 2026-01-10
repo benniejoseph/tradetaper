@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsString, IsOptional, IsBoolean } from 'class-validator';
+import { IsNotEmpty, IsString, IsOptional, IsBoolean, IsNumber } from 'class-validator';
 
 export class CreateMT5AccountDto {
   @IsNotEmpty()
@@ -32,6 +32,14 @@ export class CreateMT5AccountDto {
   @IsOptional()
   @IsBoolean()
   isRealAccount?: boolean;
+
+  @IsOptional()
+  @IsNumber()
+  initialBalance?: number;
+
+  @IsOptional()
+  @IsNumber()
+  leverage?: number;
 }
 
 export class CreateManualMT5AccountDto {

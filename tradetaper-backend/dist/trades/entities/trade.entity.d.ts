@@ -18,6 +18,7 @@ export declare class Trade {
     closePrice?: number;
     quantity: number;
     commission: number;
+    marginUsed?: number;
     notes?: string;
     profitOrLoss?: number;
     rMultiple?: number;
@@ -33,5 +34,6 @@ export declare class Trade {
     chartImageUrl?: string;
     createdAt: Date;
     updatedAt: Date;
+    getContractSize(): number;
     calculatePnl(): void;
 }

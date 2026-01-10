@@ -44,8 +44,18 @@ export class TradingViewAdvancedService implements OnModuleInit {
     try {
       this.logger.log('Attempting to authenticate with TradingView...');
       
-      // Perform login
-      const token = await TradingView.login(username, password);
+      // Perform login - Library method is loginUser, not login
+      // Check if loginUser exists, otherwise try other common methods or log error without crashing
+      let token = '';
+      
+      if (typeof TradingView.loginUser === 'function') {
+         token = await TradingView.loginUser(username, password, false); // false = rememberMe
+      } else if (typeof TradingView.login === 'function') {
+         token = await TradingView.login(username, password);
+      } else {
+         this.logger.warn('TradingView login method not found on library export. Skipping authentication.');
+         return;
+      }
       
       if (token) {
         this.client.token = token;
@@ -55,8 +65,8 @@ export class TradingViewAdvancedService implements OnModuleInit {
         this.logger.error('❌ Failed to authenticate with TradingView - no token received');
       }
     } catch (error) {
-      this.logger.error('❌ TradingView authentication error:', error.message);
-      this.isAuthenticated = false;
+      this.logger.error(`❌ TradingView authentication error: ${error.message}`);
+      // Do not set isAuthenticated = false here, let it remain false from initialization
     }
   }
 
@@ -253,6 +263,80 @@ export class TradingViewAdvancedService implements OnModuleInit {
       };
     } catch (error) {
       this.logger.error(`Failed to get screener results:`, error.message);
+      throw error;
+    }
+  }
+
+  /**
+   * Get historical OHLC data for backtesting
+   * @param symbol - Symbol to fetch (e.g., 'OANDA:XAUUSD', 'NASDAQ:AAPL')
+   * @param interval - Timeframe ('1', '5', '15', '60', '240', 'D', 'W')
+   * @param bars - Number of bars to fetch (max ~5000 with premium)
+   */
+  async getHistoricalData(
+    symbol: string,
+    interval: string = '240',
+    bars: number = 500,
+  ): Promise<{
+    symbol: string;
+    interval: string;
+    data: Array<{
+      time: number;
+      open: number;
+      high: number;
+      low: number;
+      close: number;
+      volume: number;
+    }>;
+  }> {
+    if (!this.isAuthenticated) {
+      throw new Error('TradingView API is not authenticated');
+    }
+
+    try {
+      this.logger.log(`Fetching ${bars} bars of ${interval} data for ${symbol}...`);
+      
+      const chart = new this.client.Session.Chart();
+      
+      chart.setMarket(symbol, {
+        timeframe: interval,
+        range: bars,
+      });
+
+      return new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          reject(new Error('Historical data fetch timeout'));
+        }, 30000);
+
+        chart.onUpdate(() => {
+          clearTimeout(timeout);
+          
+          const periods = chart.periods || [];
+          const data = periods.map((candle: any) => ({
+            time: candle.time * 1000, // Convert to milliseconds
+            open: candle.open,
+            high: candle.high,
+            low: candle.low,
+            close: candle.close,
+            volume: candle.volume || 0,
+          }));
+
+          this.logger.log(`✅ Fetched ${data.length} bars for ${symbol}`);
+          
+          resolve({
+            symbol,
+            interval,
+            data,
+          });
+        });
+
+        chart.onError((error: any) => {
+          clearTimeout(timeout);
+          reject(error);
+        });
+      });
+    } catch (error) {
+      this.logger.error(`Failed to get historical data for ${symbol}:`, error.message);
       throw error;
     }
   }

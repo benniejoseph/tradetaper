@@ -98,8 +98,11 @@ export class Trade {
   quantity: number;
 
   @Type(() => Number)
-  @Column('decimal', { precision: 10, scale: 2, default: 0 })
+  @Column('decimal', { precision: 10, scale: 2, nullable: true })
   commission: number;
+
+  @Column('decimal', { precision: 10, scale: 2, nullable: true })
+  marginUsed?: number; // Calculated: (Price * Quantity * ContractSize) / Leverage
 
   @Column('text', { nullable: true })
   notes?: string;
@@ -183,6 +186,24 @@ export class Trade {
 
   // Method to calculate P&L (example, can be more complex)
   // This is a conceptual method. Actual P&L might be set by the service upon closing a trade.
+  // Helper to determine contract size based on asset type or symbol
+  getContractSize(): number {
+    if (!this.symbol) return 1;
+    const s = this.symbol.toUpperCase();
+
+    // Metals (Gold/Silver)
+    if (s.includes('XAU') || s.includes('GOLD')) return 100;
+    if (s.includes('XAG') || s.includes('SILVER')) return 5000;
+
+    // Forex (Standard Lot = 100,000 units)
+    if (this.assetType === AssetType.FOREX) return 100000;
+
+    // Crypto, Stocks, Indices - Default to 1 (Spot/Shares)
+    return 1;
+  }
+
+  // Method to calculate P&L (example, can be more complex)
+  // This is a conceptual method. Actual P&L might be set by the service upon closing a trade.
   calculatePnl(): void {
     if (
       this.status === TradeStatus.CLOSED &&
@@ -190,11 +211,13 @@ export class Trade {
       this.closePrice &&
       this.quantity
     ) {
+      const contractSize = this.getContractSize();
       let pnl = 0;
+      
       if (this.side === TradeDirection.LONG) {
-        pnl = (this.closePrice - this.openPrice) * this.quantity;
+        pnl = (this.closePrice - this.openPrice) * this.quantity * contractSize;
       } else if (this.side === TradeDirection.SHORT) {
-        pnl = (this.openPrice - this.closePrice) * this.quantity;
+        pnl = (this.openPrice - this.closePrice) * this.quantity * contractSize;
       }
       this.profitOrLoss = parseFloat((pnl - (this.commission || 0)).toFixed(4));
     } else {

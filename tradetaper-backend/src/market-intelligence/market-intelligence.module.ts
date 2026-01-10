@@ -14,6 +14,7 @@ import { FreeDataSourcesModule } from './free-data-sources/free-data-sources.mod
 import { ICTModule } from './ict/ict.module'; // NEW ICT MODULE
 import { TradingViewAdvancedService } from './tradingview/tradingview-advanced.service';
 import { TradingViewAdvancedController } from './tradingview/tradingview-advanced.controller';
+import { GeminiInsightsService } from './gemini-insights.service';
 
 @Module({
   imports: [
@@ -39,6 +40,7 @@ import { TradingViewAdvancedController } from './tradingview/tradingview-advance
     ForexFactoryService,
     MarketDataAggregatorService,
     TradingViewAdvancedService, // NEW: TradingView Advanced API Service
+    GeminiInsightsService,
   ],
   exports: [
     MarketIntelligenceService,
@@ -46,6 +48,7 @@ import { TradingViewAdvancedController } from './tradingview/tradingview-advance
     FreeDataSourcesModule,
     ICTModule,
     TradingViewAdvancedService, // Export for use in other modules
+    GeminiInsightsService,
   ],
 })
 export class MarketIntelligenceModule {}

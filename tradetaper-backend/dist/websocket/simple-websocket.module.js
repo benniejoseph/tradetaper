@@ -9,14 +9,17 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.SimpleWebSocketModule = void 0;
 const common_1 = require("@nestjs/common");
 const simple_trades_gateway_1 = require("./simple-trades.gateway");
+const ict_gateway_1 = require("./ict.gateway");
+const market_intelligence_module_1 = require("../market-intelligence/market-intelligence.module");
 let SimpleWebSocketModule = class SimpleWebSocketModule {
 };
 exports.SimpleWebSocketModule = SimpleWebSocketModule;
 exports.SimpleWebSocketModule = SimpleWebSocketModule = __decorate([
     (0, common_1.Global)(),
     (0, common_1.Module)({
-        providers: [simple_trades_gateway_1.SimpleTradesGateway],
-        exports: [simple_trades_gateway_1.SimpleTradesGateway],
+        imports: [(0, common_1.forwardRef)(() => market_intelligence_module_1.MarketIntelligenceModule)],
+        providers: [simple_trades_gateway_1.SimpleTradesGateway, ict_gateway_1.ICTGateway],
+        exports: [simple_trades_gateway_1.SimpleTradesGateway, ict_gateway_1.ICTGateway],
     })
 ], SimpleWebSocketModule);
 //# sourceMappingURL=simple-websocket.module.js.map

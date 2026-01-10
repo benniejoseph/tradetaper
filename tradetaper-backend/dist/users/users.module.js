@@ -18,6 +18,7 @@ const config_1 = require("@nestjs/config");
 const mt5_account_entity_1 = require("./entities/mt5-account.entity");
 const mt5_accounts_service_1 = require("./mt5-accounts.service");
 const mt5_accounts_controller_1 = require("./mt5-accounts.controller");
+const metaapi_module_1 = require("../integrations/metaapi/metaapi.module");
 const trade_history_parser_service_1 = require("./trade-history-parser.service");
 const cache_manager_1 = require("@nestjs/cache-manager");
 const trades_module_1 = require("../trades/trades.module");
@@ -34,6 +35,7 @@ exports.UsersModule = UsersModule = __decorate([
                 max: 100,
             }),
             (0, common_1.forwardRef)(() => trades_module_1.TradesModule),
+            metaapi_module_1.MetaApiModule,
         ],
         providers: [
             users_service_1.UsersService,
