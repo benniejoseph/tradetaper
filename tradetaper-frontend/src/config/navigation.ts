@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 // src/config/navigation.ts
 import { IconType } from 'react-icons';
-import { FaTachometerAlt, FaListAlt, FaChartBar, FaPenSquare, FaCog, FaBook, FaCalendarAlt, FaChartPie, FaBalanceScale, FaUsers, FaCreditCard, FaDollarSign, FaBullseye, FaStickyNote, FaBrain, FaChartLine, FaFlask } from 'react-icons/fa';
+import { FaTachometerAlt, FaListAlt, FaChartBar, FaPenSquare, FaCog, FaBook, FaCalendarAlt, FaChartPie, FaBalanceScale, FaUsers, FaCreditCard, FaDollarSign, FaBullseye, FaStickyNote, FaBrain, FaChartLine, FaFlask, FaBell } from 'react-icons/fa';
 
 export interface NavItem {
   label: string;
@@ -12,7 +12,6 @@ export interface NavItem {
 export const mainNavItems: NavItem[] = [
   { label: 'Dashboard', href: '/dashboard', icon: FaTachometerAlt },
   { label: 'Market Intelligence', href: '/market-intelligence', icon: FaChartLine }, // ICT Analysis & Market Data
-  { label: 'ICT Backtest', href: '/backtest', icon: FaFlask }, // ICT Strategy Backtesting
   { label: 'Journal', href: '/journal', icon: FaBook }, // Changed Trades to Journal, new icon
   { label: 'Notes', href: '/notes', icon: FaStickyNote }, // New notes feature
   { label: 'Psychology', href: '/psychology', icon: FaBrain },
@@ -27,6 +26,7 @@ export const mainNavItems: NavItem[] = [
 
 export const userNavItems: NavItem[] = [
     // { label: 'Profile', href: '/profile', icon: FaUserCircle }, // Placeholder
+    { label: 'Notifications', href: '/notifications', icon: FaBell },
     { label: 'Settings', href: '/settings', icon: FaCog }, // Uncommented and href updated
     { label: 'Billing', href: '/billing', icon: FaCreditCard },
 ];

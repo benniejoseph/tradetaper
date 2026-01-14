@@ -23,6 +23,7 @@ import { AgentOrchestratorModule } from './agents/agent-orchestrator.module';
 import { AgentsImplementationModule } from './agents/implementations/agents-implementation.module';
 import { AgentsModule } from './agents/agents.module';
 import { AnalyticsModule } from './analytics/analytics.module';
+import { NotificationsModule } from './notifications/notifications.module';
 
 @Module({
   imports: [
@@ -49,6 +50,7 @@ import { AnalyticsModule } from './analytics/analytics.module';
     AgentsImplementationModule, // AI Agents (Psychology, Market Analyst, Risk Manager)
     AgentsModule,
     AnalyticsModule,
+    NotificationsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
