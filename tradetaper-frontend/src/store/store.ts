@@ -5,6 +5,7 @@ import tradesReducer from './features/tradesSlice';
 import accountReducer from './features/accountSlice';
 import subscriptionReducer from './features/subscriptionSlice';
 import mt5AccountsReducer from './features/mt5AccountsSlice';
+import notificationsReducer from './features/notificationsSlice';
 import { setupAuthInterceptors } from '@/services/api';
 
 export const store = configureStore({
@@ -14,6 +15,7 @@ export const store = configureStore({
     accounts: accountReducer,
     subscription: subscriptionReducer,
     mt5Accounts: mt5AccountsReducer,
+    notifications: notificationsReducer,
   },
 });
 

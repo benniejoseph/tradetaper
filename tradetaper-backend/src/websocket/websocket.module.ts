@@ -1,9 +1,13 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TradesGateway } from './trades.gateway';
 import { WebSocketService } from './websocket.service';
+import { NotificationsGateway } from './notifications.gateway';
 
 @Module({
-  providers: [WebSocketService, TradesGateway],
-  exports: [WebSocketService, TradesGateway],
+  providers: [WebSocketService, TradesGateway, NotificationsGateway],
+  exports: [WebSocketService, TradesGateway, NotificationsGateway],
 })
-export class WebSocketGatewayModule {}
+export class WebSocketModule {}
+
+// Re-export for backwards compatibility
+export { WebSocketModule as WebSocketGatewayModule };
