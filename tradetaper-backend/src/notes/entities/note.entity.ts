@@ -13,6 +13,7 @@ import {
 import { PsychologicalInsight } from './psychological-insight.entity';
 import { User } from '../../users/entities/user.entity';
 import { Account } from '../../users/entities/account.entity';
+import { MT5Account } from '../../users/entities/mt5-account.entity';
 import { Trade } from '../../trades/entities/trade.entity';
 // Forward declarations to avoid circular imports
 // import { NoteBlock } from './note-block.entity';
@@ -56,6 +57,10 @@ export class Note {
 
   @Column({ name: 'trade_id', nullable: true })
   tradeId?: string;
+
+  // New column for MT5 Account
+  @Column({ name: 'mt5_account_id', nullable: true })
+  mt5AccountId?: string;
 
   @Column({ length: 255 })
   title: string;
@@ -104,6 +109,10 @@ export class Note {
   @ManyToOne(() => Account, { eager: false, nullable: true })
   @JoinColumn({ name: 'account_id' })
   account?: Account;
+
+  @ManyToOne(() => MT5Account, { eager: false, nullable: true })
+  @JoinColumn({ name: 'mt5_account_id' })
+  mt5Account?: MT5Account;
 
   @ManyToOne(() => Trade, { eager: false, nullable: true })
   @JoinColumn({ name: 'trade_id' })

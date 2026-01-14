@@ -40,6 +40,10 @@ export class CreateMT5AccountDto {
   @IsOptional()
   @IsNumber()
   leverage?: number;
+
+  @IsOptional()
+  @IsNumber()
+  target?: number;
 }
 
 export class CreateManualMT5AccountDto {
@@ -70,6 +74,10 @@ export class CreateManualMT5AccountDto {
   @IsOptional()
   @IsBoolean()
   isRealAccount?: boolean;
+
+  @IsOptional()
+  @IsNumber()
+  target?: number;
 }
 
 export class UpdateMT5AccountDto {
@@ -100,6 +108,10 @@ export class UpdateMT5AccountDto {
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;
+
+  @IsOptional()
+  @IsNumber()
+  target?: number;
 }
 
 export class MT5AccountResponseDto {
@@ -111,6 +123,7 @@ export class MT5AccountResponseDto {
   balance: number;
   accountType?: string;
   currency?: string;
+  target?: number;
   lastSyncAt?: Date;
   createdAt: Date;
   updatedAt: Date;

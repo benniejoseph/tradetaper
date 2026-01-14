@@ -48,36 +48,46 @@ const initialState: TradesState = {
 
 // Helper function to transform API response to frontend Trade interface
 function transformApiTradeToFrontend(apiTrade: any): Trade {
-  return {
-    id: apiTrade.id,
-    userId: apiTrade.userId,
-    assetType: apiTrade.assetType,
-    symbol: apiTrade.symbol,
-    direction: apiTrade.side, // API: side → Frontend: direction
-    status: apiTrade.status,
-    entryDate: apiTrade.openTime, // API: openTime → Frontend: entryDate
-    entryPrice: parseFloat(apiTrade.openPrice), // API: openPrice → Frontend: entryPrice (ensure number)
-    exitDate: apiTrade.closeTime, // API: closeTime → Frontend: exitDate
-    exitPrice: apiTrade.closePrice ? parseFloat(apiTrade.closePrice) : undefined, // API: closePrice → Frontend: exitPrice
-    quantity: parseFloat(apiTrade.quantity), // Ensure number
-    stopLoss: apiTrade.stopLoss ? parseFloat(apiTrade.stopLoss) : undefined,
-    takeProfit: apiTrade.takeProfit ? parseFloat(apiTrade.takeProfit) : undefined,
-    commission: apiTrade.commission ? parseFloat(apiTrade.commission) : undefined,
-    notes: apiTrade.notes,
-    profitOrLoss: apiTrade.profitOrLoss ? parseFloat(apiTrade.profitOrLoss) : undefined,
-    rMultiple: apiTrade.rMultiple ? parseFloat(apiTrade.rMultiple) : undefined,
-    ictConcept: apiTrade.ictConcept,
-    session: apiTrade.session,
-    setupDetails: apiTrade.setupDetails,
-    mistakesMade: apiTrade.mistakesMade,
-    lessonsLearned: apiTrade.lessonsLearned,
-    imageUrl: apiTrade.imageUrl,
-    tags: apiTrade.tags || [],
-    createdAt: apiTrade.createdAt,
-    updatedAt: apiTrade.updatedAt,
-    accountId: apiTrade.accountId,
-    isStarred: apiTrade.isStarred || false,
-  };
+  if (!apiTrade) {
+    console.error('transformApiTradeToFrontend received null/undefined trade');
+    throw new Error('Invalid trade data: trade is null or undefined');
+  }
+
+  try {
+    return {
+      id: apiTrade.id,
+      userId: apiTrade.userId,
+      assetType: apiTrade.assetType,
+      symbol: apiTrade.symbol,
+      direction: apiTrade.side, // API: side → Frontend: direction
+      status: apiTrade.status,
+      entryDate: apiTrade.openTime, // API: openTime → Frontend: entryDate
+      entryPrice: parseFloat(apiTrade.openPrice), // API: openPrice → Frontend: entryPrice (ensure number)
+      exitDate: apiTrade.closeTime, // API: closeTime → Frontend: exitDate
+      exitPrice: apiTrade.closePrice ? parseFloat(apiTrade.closePrice) : undefined, // API: closePrice → Frontend: exitPrice
+      quantity: parseFloat(apiTrade.quantity), // Ensure number
+      stopLoss: apiTrade.stopLoss ? parseFloat(apiTrade.stopLoss) : undefined,
+      takeProfit: apiTrade.takeProfit ? parseFloat(apiTrade.takeProfit) : undefined,
+      commission: apiTrade.commission ? parseFloat(apiTrade.commission) : undefined,
+      notes: apiTrade.notes,
+      profitOrLoss: apiTrade.profitOrLoss ? parseFloat(apiTrade.profitOrLoss) : undefined,
+      rMultiple: apiTrade.rMultiple ? parseFloat(apiTrade.rMultiple) : undefined,
+      ictConcept: apiTrade.ictConcept,
+      session: apiTrade.session,
+      setupDetails: apiTrade.setupDetails,
+      mistakesMade: apiTrade.mistakesMade,
+      lessonsLearned: apiTrade.lessonsLearned,
+      imageUrl: apiTrade.imageUrl,
+      tags: apiTrade.tags || [],
+      createdAt: apiTrade.createdAt,
+      updatedAt: apiTrade.updatedAt,
+      accountId: apiTrade.accountId,
+      isStarred: apiTrade.isStarred || false,
+    };
+  } catch (error) {
+    console.error('Error transforming trade:', apiTrade, error);
+    throw error;
+  }
 }
 
 // Helper function to transform frontend payload to backend API format
@@ -243,6 +253,27 @@ export const deleteTrades = createAsyncThunk<string[], string[], { rejectValue: 
       return tradeIds;
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || error.message || 'Failed to delete trades');
+    }
+  }
+);
+
+export const bulkUpdateTrades = createAsyncThunk<Trade[], { ids: string[]; data: Partial<UpdateTradePayload> }, { rejectValue: string }>(
+  'trades/bulkUpdateTrades',
+  async ({ ids, data }, { rejectWithValue }) => {
+    try {
+      // Transform frontend data to backend format for each ID
+      const updates = ids.map(id => ({
+        id,
+        data: transformFrontendToApiPayload(data)
+      }));
+
+      const response = await authApiClient.post<any>('/trades/bulk/update', { updates });
+      console.log('Raw bulkUpdateTrades from API:', response.data);
+
+      const transformedTrades = response.data.trades.map(transformApiTradeToFrontend);
+      return transformedTrades;
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.message || error.message || 'Failed to bulk update trades');
     }
   }
 );
@@ -425,6 +456,28 @@ const tradesSlice = createSlice({
         console.log('Chart analysis successful:', action.payload);
       })
       .addCase(analyzeChart.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload as string;
+      })
+      // bulkUpdateTrades
+      .addCase(bulkUpdateTrades.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(bulkUpdateTrades.fulfilled, (state, action: PayloadAction<Trade[]>) => {
+        state.isLoading = false;
+        // Update local state for each updated trade
+        action.payload.forEach(updatedTrade => {
+          const index = state.trades.findIndex(t => t.id === updatedTrade.id);
+          if (index !== -1) {
+            state.trades[index] = updatedTrade;
+          }
+          if (state.currentTrade?.id === updatedTrade.id) {
+            state.currentTrade = updatedTrade;
+          }
+        });
+      })
+      .addCase(bulkUpdateTrades.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload as string;
       });

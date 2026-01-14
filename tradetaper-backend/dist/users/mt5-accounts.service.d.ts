@@ -50,4 +50,5 @@ export declare class MT5AccountsService {
     private mapToResponseDto;
     private cleanupCorruptedAccounts;
     private ensureAccountDeployed;
+    getCandles(accountId: string, symbol: string, timeframe: string, startTime: Date, endTime: Date): Promise<any[]>;
 }

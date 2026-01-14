@@ -30,6 +30,8 @@ export interface LLMRequest {
   userId?: string;
   requireJson?: boolean;
   qualityThreshold?: number;
+  images?: string[]; // Array of base64 strings or URLs
+  modelPreference?: string;
 }
 
 export interface LLMResponse {
@@ -64,6 +66,13 @@ export class MultiModelOrchestratorService {
   
   // Model configurations in priority order
   private readonly models: ModelConfig[] = [
+    {
+      name: 'gemini-2.0-flash',
+      provider: 'google',
+      priority: 0, // Highest priority
+      enabled: true,
+      maxRetries: 3,
+    },
     {
       name: 'gemini-1.5-flash',
       provider: 'google',
@@ -126,7 +135,13 @@ export class MultiModelOrchestratorService {
     
     // 1. Check semantic cache first
     const taskComplexity = request.taskComplexity || 'medium';
-    const selectedModel = this.selectModel(request);
+    let selectedModel = request.modelPreference || this.selectModel(request);
+    
+    // Validate model preference validity if provided
+    if (request.modelPreference && !this.getProviderForModel(request.modelPreference)) {
+      this.logger.warn(`Invalid model preference: ${request.modelPreference}, falling back to auto-selection`);
+      selectedModel = this.selectModel(request);
+    }
     
     const cachedResponse = await this.semanticCache.get(
       request.prompt,
@@ -239,13 +254,13 @@ export class MultiModelOrchestratorService {
     const optimizeFor = request.optimizeFor || 'cost';
     
     if (optimizeFor === 'cost') {
-      // Always use cheapest model for simple tasks
+      // Always use cheapest model for simple tasks (2.0-flash is very cheap and fast)
       if (complexity === 'simple') {
-        return 'gemini-1.5-flash';
+        return 'gemini-2.0-flash';
       }
       // Use cost-effective model for medium tasks
       if (complexity === 'medium') {
-        return 'gemini-1.5-flash';
+        return 'gemini-2.0-flash';
       }
       // Use better model for complex tasks
       return 'gemini-1.5-pro';
@@ -254,7 +269,7 @@ export class MultiModelOrchestratorService {
       return 'gemini-1.5-pro';
     } else {
       // Optimize for speed - use fastest model
-      return 'gemini-1.5-flash';
+      return 'gemini-2.0-flash';
     }
   }
 
@@ -342,13 +357,42 @@ export class MultiModelOrchestratorService {
       generationConfig.responseMimeType = 'application/json';
     }
     
-    const parts: Array<{ text: string }> = [];
+    const parts: Array<any> = [];
     
     if (request.system) {
-      parts.push({ text: request.system });
+      // Gemini 1.5 usually takes system instruction in model config, but putting it in parts works for prompts often,
+      // or we should use systemInstruction prop in getGenerativeModel. 
+      // For now, prepeding to prompt is safer for compatibility across versions if systemInstruction not set.
+      // But let's check if we can use systemInstruction in getGenerativeModel. 
+      // Actually, let's just prepend to prompt for now or add as first text part.
+      parts.push({ text: `System: ${request.system}\n\n` });
     }
     
     parts.push({ text: request.prompt });
+    
+    // Add images if present
+    if (request.images && request.images.length > 0) {
+      request.images.forEach(img => {
+        // Simple base64 detection
+        let mimeType = 'image/jpeg';
+        let data = img;
+        
+        if (img.startsWith('data:')) {
+          const matches = img.match(/^data:(.+);base64,(.+)$/);
+          if (matches) {
+            mimeType = matches[1];
+            data = matches[2];
+          }
+        }
+        
+        parts.push({
+          inlineData: {
+            mimeType,
+            data
+          }
+        });
+      });
+    }
     
     const result = await model.generateContent({
       contents: [{ role: 'user', parts }],

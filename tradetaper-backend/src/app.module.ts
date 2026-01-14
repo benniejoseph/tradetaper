@@ -21,6 +21,7 @@ import { PredictiveTradesModule } from './predictive-trades/predictive-trades.mo
 import { MarketIntelligenceModule } from './market-intelligence/market-intelligence.module';
 import { AgentOrchestratorModule } from './agents/agent-orchestrator.module';
 import { AgentsImplementationModule } from './agents/implementations/agents-implementation.module';
+import { AgentsModule } from './agents/agents.module';
 import { AnalyticsModule } from './analytics/analytics.module';
 
 @Module({
@@ -46,6 +47,7 @@ import { AnalyticsModule } from './analytics/analytics.module';
     MarketIntelligenceModule,
     MarketIntelligenceModule,
     AgentsImplementationModule, // AI Agents (Psychology, Market Analyst, Risk Manager)
+    AgentsModule,
     AnalyticsModule,
   ],
   controllers: [AppController],

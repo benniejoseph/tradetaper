@@ -9,6 +9,8 @@ import { JournalAgent } from './journal.agent';
 import { TradeAssistantAgent } from './trade-assistant.agent';
 import { NewsSentimentAgent } from './news-sentiment.agent';
 import { ICTBacktestAgent } from './ict-backtest.agent';
+import { ICTMentorAgent } from './ict-mentor.agent';
+import { KnowledgeBaseModule } from '../../knowledge-base/knowledge-base.module';
 
 /**
  * Agents Implementation Module
@@ -24,12 +26,14 @@ import { ICTBacktestAgent } from './ict-backtest.agent';
  * - TradeAssistantAgent: Trade outcome predictions
  * - NewsSentimentAgent: News & sentiment analysis
  * - ICTBacktestAgent: ICT strategy backtesting & optimization
+ * - ICTMentorAgent: ICT mentorship with Knowledge Base RAG & Vision
  */
 @Module({
   imports: [
     NotesModule, // For PsychologyAgent, JournalAgent
     MarketIntelligenceModule, // For MarketAnalystAgent, ICTBacktestAgent
     PredictiveTradesModule, // For TradeAssistantAgent
+    KnowledgeBaseModule, // For ICTMentorAgent
   ],
   providers: [
     PsychologyAgent,
@@ -39,6 +43,7 @@ import { ICTBacktestAgent } from './ict-backtest.agent';
     TradeAssistantAgent,
     NewsSentimentAgent,
     ICTBacktestAgent,
+    ICTMentorAgent,
   ],
   exports: [
     PsychologyAgent,
@@ -48,6 +53,7 @@ import { ICTBacktestAgent } from './ict-backtest.agent';
     TradeAssistantAgent,
     NewsSentimentAgent,
     ICTBacktestAgent,
+    ICTMentorAgent,
   ],
 })
 export class AgentsImplementationModule {}

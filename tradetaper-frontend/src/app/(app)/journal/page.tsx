@@ -14,7 +14,7 @@ import {
   FaPlus, FaCalendarAlt, FaSearch, FaDownload, FaThList, FaThLarge, 
   FaStar as FaStarSolid, FaRegStar as FaStarOutline, FaFilter,
   FaCog, FaShareAlt, FaBell, FaSync, FaArrowUp, FaArrowDown,
-  FaChartLine, FaBookOpen, FaEye, FaEdit, FaTrash
+  FaChartLine, FaBookOpen, FaEye, FaEdit, FaTrash, FaInfoCircle
 } from 'react-icons/fa';
 import TradesTable from '@/components/journal/TradesTable';
 import TradePreviewDrawer from '@/components/journal/TradePreviewDrawer';
@@ -292,9 +292,13 @@ export default function JournalPage() {
                 
                 if (!activeAccount) return 'N/A';
                 
+                const balance = Number(activeAccount.balance) || 0;
+                const commissions = Number(footerStats.totalCommissions) || 0;
+                const netPnL = Number(footerStats.totalNetPnl) || 0;
+
                 const displayBalance = activeAccount.type === 'MT5'
-                  ? activeAccount.balance
-                  : activeAccount.balance + footerStats.totalNetPnl;
+                  ? balance - Math.abs(commissions)
+                  : balance + netPnL;
                   
                 return <CurrencyAmount amount={displayBalance} className="inline" />;
               })()}
@@ -523,13 +527,20 @@ export default function JournalPage() {
               { label: 'Total P&L', value: footerStats.totalNetPnl, color: footerStats.totalNetPnl >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400', isAmount: true, showSign: true },
               { label: 'Total Trades', value: footerStats.totalTrades, color: 'text-gray-900 dark:text-white', isAmount: false },
               { label: 'Commissions', value: footerStats.totalCommissions, color: 'text-gray-900 dark:text-white', isAmount: true },
-              { label: 'Total Value', value: footerStats.totalTradedValue, color: 'text-gray-900 dark:text-white', isAmount: true },
+              { label: 'Total Value', value: footerStats.totalTradedValue, color: 'text-gray-900 dark:text-white', isAmount: true, info: 'Total volume traded (Entry Price × Quantity)' },
               { label: 'Avg Win', value: footerStats.averageWin, color: 'text-green-600 dark:text-green-400', isAmount: true, showSign: true },
               { label: 'Avg Loss', value: footerStats.averageLoss, color: 'text-red-600 dark:text-red-400', isAmount: true, showSign: true },
               { label: 'Avg R:R', value: `${footerStats.averageRR.toFixed(2)}R`, color: 'text-gray-900 dark:text-white', isAmount: false },
             ].map((stat, index) => (
               <div key={index} className="text-center p-4 bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-950/20 dark:to-emerald-900/20 rounded-xl hover:from-emerald-100 hover:to-emerald-200 dark:hover:from-emerald-900/30 dark:hover:to-emerald-800/30 transition-colors duration-200 min-w-0">
-                <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2 truncate">{stat.label}</p>
+                <div className="flex items-center justify-center gap-1 mb-2">
+                  <p className="text-xs font-medium text-gray-500 dark:text-gray-400 truncate">{stat.label}</p>
+                  {stat.info && (
+                    <span title={stat.info} className="cursor-help text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+                      <FaInfoCircle size={12} />
+                    </span>
+                  )}
+                </div>
                 <div className={`text-base lg:text-lg font-bold ${stat.color} truncate`}>
                   {stat.isAmount ? (
                     <>{stat.showSign && typeof stat.value === 'number' && stat.value >= 0 ? '+' : ''}<CurrencyAmount amount={typeof stat.value === 'number' ? stat.value : 0} className="inline" /></>

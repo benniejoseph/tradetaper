@@ -101,7 +101,7 @@ export function calculateDashboardStats(trades: Trade[]): DashboardStats {
     pnlSeriesForDrawdown.push(pnl);
 
     totalNetPnl += pnl;
-    totalCommissions += trade.commission || 0;
+    totalCommissions += Math.abs(trade.commission || 0);
 
     if (pnl > 0) { 
       winningTrades++; 

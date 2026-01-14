@@ -91,10 +91,10 @@ export default function AIInsightsCard() {
                       {insight.type.replace('_', ' ')}
                    </span>
                 </div>
-                <h4 className="text-slate-900 dark:text-white font-semibold text-xs mb-1 line-clamp-1">{insight.title}</h4>
-                <p className="text-slate-600 dark:text-emerald-200/70 text-[11px] leading-tight mb-2 line-clamp-3">{insight.description}</p>
+                <h4 className="text-slate-900 dark:text-white font-semibold text-xs mb-1">{insight.title}</h4>
+                <p className="text-slate-600 dark:text-emerald-200/70 text-xs leading-relaxed mb-2">{insight.description}</p>
                 {insight.actionableStep && (
-                   <div className="bg-white dark:bg-emerald-950/50 rounded p-1.5 text-[10px] text-emerald-700 dark:text-emerald-300 border border-emerald-100 dark:border-emerald-900/50">
+                   <div className="bg-white dark:bg-emerald-950/50 rounded p-2 text-xs text-emerald-700 dark:text-emerald-300 border border-emerald-100 dark:border-emerald-900/50">
                       <strong>Do this:</strong> {insight.actionableStep}
                    </div>
                 )}

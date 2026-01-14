@@ -11,14 +11,30 @@ import { TypeOrmModule } from '@nestjs/typeorm';
           configService.get<string>('NODE_ENV') === 'production';
 
         if (isProduction) {
-          // Cloud Run production configuration using Unix socket
-          console.log('🔧 Using Unix socket for Cloud Run');
-          
+          const instanceName = configService.get<string>('INSTANCE_CONNECTION_NAME');
+          // Check for DB_SSL (default true in prod if not specified, safe for Cloud)
+          const isSSL = configService.get<string>('DB_SSL') === 'true' || true; 
+
+          let hostConfig = {};
+          if (instanceName) {
+            console.log('🔧 Using Unix socket for Cloud Run');
+            hostConfig = {
+              host: `/cloudsql/${instanceName}`,
+            };
+          } else {
+             console.log('🔧 Using Standard TCP Connection');
+             hostConfig = {
+               host: configService.get<string>('DB_HOST'),
+               port: Number(configService.get<string>('DB_PORT') || 5432),
+               ssl: isSSL ? { rejectUnauthorized: false } : false,
+             };
+          }
+
           const config = {
             type: 'postgres' as const,
-            host: '/cloudsql/trade-taper:us-central1:trade-taper-postgres',
-            port: 5432,
+            ...hostConfig,
             database:
+              configService.get<string>('DB_DATABASE') ||
               configService.get<string>('DB_NAME') ||
               configService.get<string>('DATABASE_NAME'),
             username:
@@ -28,7 +44,9 @@ import { TypeOrmModule } from '@nestjs/typeorm';
               configService.get<string>('DB_PASSWORD') ||
               configService.get<string>('DATABASE_PASSWORD'),
             autoLoadEntities: true,
-            synchronize: true, // Enabled to create TradeCandle table
+            synchronize: false,
+            migrationsRun: true,
+            migrations: [__dirname + '/../migrations/*{.ts,.js}'],
             logging: ['error', 'warn'] as any,
             retryAttempts: 10,
             retryDelay: 5000,
@@ -37,11 +55,11 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 
           console.log('🔧 Final database config:', {
             type: config.type,
-            host: config.host,
-            port: config.port,
+            host: (config as any).host,
             database: config.database,
             username: config.username,
             hasPassword: !!config.password,
+            ssl: !!(config as any).ssl,
           });
 
           return config;

@@ -66,6 +66,18 @@ let MT5AccountsController = class MT5AccountsController {
     getLiveTrades() {
         return [];
     }
+    async getCandles(req, id, symbol, timeframe, startTimeStr, endTimeStr) {
+        const account = await this.mt5AccountsService.findOne(id);
+        if (!account || account.userId !== req.user.id) {
+            throw new common_1.BadRequestException('MT5 account not found');
+        }
+        if (!symbol || !timeframe || !startTimeStr) {
+            throw new common_1.BadRequestException('Missing parameters: symbol, timeframe, startTime');
+        }
+        const startTime = new Date(startTimeStr);
+        const endTime = endTimeStr ? new Date(endTimeStr) : new Date();
+        return this.mt5AccountsService.getCandles(id, symbol, timeframe, startTime, endTime);
+    }
     async syncAccount(id) {
         await this.mt5AccountsService.syncAccount(id);
     }
@@ -171,6 +183,18 @@ __decorate([
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", void 0)
 ], MT5AccountsController.prototype, "getLiveTrades", null);
+__decorate([
+    (0, common_1.Get)(':id/candles'),
+    __param(0, (0, common_1.Request)()),
+    __param(1, (0, common_1.Param)('id')),
+    __param(2, (0, common_1.Query)('symbol')),
+    __param(3, (0, common_1.Query)('timeframe')),
+    __param(4, (0, common_1.Query)('startTime')),
+    __param(5, (0, common_1.Query)('endTime')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String, String, String, String, String]),
+    __metadata("design:returntype", Promise)
+], MT5AccountsController.prototype, "getCandles", null);
 __decorate([
     (0, common_1.Post)(':id/sync'),
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),

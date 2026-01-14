@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AppDataSource = void 0;
+require("dotenv/config");
 const typeorm_1 = require("typeorm");
 const config_1 = require("@nestjs/config");
 const user_entity_1 = require("../users/entities/user.entity");
@@ -15,6 +16,8 @@ const note_entity_1 = require("../notes/entities/note.entity");
 const note_block_entity_1 = require("../notes/entities/note-block.entity");
 const note_media_entity_1 = require("../notes/entities/note-media.entity");
 const psychological_insight_entity_1 = require("../notes/entities/psychological-insight.entity");
+const knowledge_document_entity_1 = require("../knowledge-base/entities/knowledge-document.entity");
+const vector_embedding_entity_1 = require("../knowledge-base/entities/vector-embedding.entity");
 const cloud_sql_connector_1 = require("@google-cloud/cloud-sql-connector");
 const isProduction = process.env.NODE_ENV === 'production';
 console.log('🔧 Database configuration (data-source.ts):', {
@@ -26,45 +29,74 @@ console.log('🔧 Database configuration (data-source.ts):', {
 async function createDataSource() {
     const configService = new config_1.ConfigService();
     if (isProduction) {
-        if (!process.env.INSTANCE_CONNECTION_NAME) {
-            throw new Error('INSTANCE_CONNECTION_NAME is not defined.');
+        if (process.env.INSTANCE_CONNECTION_NAME) {
+            if (!process.env.DB_USER || !process.env.DB_PASSWORD) {
+                throw new Error('DB_USER/DB_PASSWORD not defined for Cloud SQL.');
+            }
+            const connector = new cloud_sql_connector_1.Connector();
+            const clientOpts = await connector.getOptions({
+                instanceConnectionName: process.env.INSTANCE_CONNECTION_NAME,
+            });
+            return new typeorm_1.DataSource({
+                ...clientOpts,
+                type: 'postgres',
+                database: process.env.DB_NAME || 'tradetaper',
+                username: process.env.DB_USER,
+                password: process.env.DB_PASSWORD,
+                entities: [
+                    user_entity_1.User,
+                    account_entity_1.Account,
+                    trade_entity_1.Trade,
+                    tag_entity_1.Tag,
+                    mt5_account_entity_1.MT5Account,
+                    subscription_entity_1.Subscription,
+                    usage_entity_1.Usage,
+                    strategy_entity_1.Strategy,
+                    note_entity_1.Note,
+                    note_block_entity_1.NoteBlock,
+                    note_media_entity_1.NoteMedia,
+                    psychological_insight_entity_1.PsychologicalInsight,
+                    knowledge_document_entity_1.KnowledgeDocument,
+                    vector_embedding_entity_1.VectorEmbedding,
+                ],
+                migrations: ['dist/migrations/*{.ts,.js}'],
+                synchronize: false,
+                logging: false,
+            });
         }
-        if (!process.env.DB_USER) {
-            throw new Error('DB_USER is not defined.');
+        else {
+            return new typeorm_1.DataSource({
+                type: 'postgres',
+                host: process.env.DB_HOST,
+                port: parseInt(process.env.DB_PORT || '5432', 10),
+                username: process.env.DB_USER || process.env.DB_USERNAME,
+                password: process.env.DB_PASSWORD,
+                database: process.env.DB_DATABASE || process.env.DB_NAME || 'tradetaper',
+                ssl: { rejectUnauthorized: false },
+                entities: [
+                    user_entity_1.User,
+                    account_entity_1.Account,
+                    trade_entity_1.Trade,
+                    tag_entity_1.Tag,
+                    mt5_account_entity_1.MT5Account,
+                    subscription_entity_1.Subscription,
+                    usage_entity_1.Usage,
+                    strategy_entity_1.Strategy,
+                    note_entity_1.Note,
+                    note_block_entity_1.NoteBlock,
+                    note_media_entity_1.NoteMedia,
+                    psychological_insight_entity_1.PsychologicalInsight,
+                    knowledge_document_entity_1.KnowledgeDocument,
+                    vector_embedding_entity_1.VectorEmbedding,
+                ],
+                migrations: ['dist/migrations/*{.ts,.js}'],
+                synchronize: false,
+                logging: false,
+            });
         }
-        if (!process.env.DB_PASSWORD) {
-            throw new Error('DB_PASSWORD is not defined.');
-        }
-        const connector = new cloud_sql_connector_1.Connector();
-        const clientOpts = await connector.getOptions({
-            instanceConnectionName: process.env.INSTANCE_CONNECTION_NAME,
-        });
-        return new typeorm_1.DataSource({
-            ...clientOpts,
-            type: 'postgres',
-            database: process.env.DB_NAME || 'tradetaper',
-            username: process.env.DB_USER,
-            password: process.env.DB_PASSWORD,
-            entities: [
-                user_entity_1.User,
-                account_entity_1.Account,
-                trade_entity_1.Trade,
-                tag_entity_1.Tag,
-                mt5_account_entity_1.MT5Account,
-                subscription_entity_1.Subscription,
-                usage_entity_1.Usage,
-                strategy_entity_1.Strategy,
-                note_entity_1.Note,
-                note_block_entity_1.NoteBlock,
-                note_media_entity_1.NoteMedia,
-                psychological_insight_entity_1.PsychologicalInsight,
-            ],
-            migrations: ['dist/migrations/*{.ts,.js}'],
-            synchronize: false,
-            logging: false,
-        });
     }
     else {
+        const isSSL = configService.get('DB_SSL') === 'true';
         return new typeorm_1.DataSource({
             type: 'postgres',
             host: configService.get('DB_HOST', 'localhost'),
@@ -72,6 +104,7 @@ async function createDataSource() {
             username: configService.get('DB_USERNAME', 'postgres'),
             password: configService.get('DB_PASSWORD', 'postgres'),
             database: configService.get('DB_DATABASE', 'tradetaper'),
+            ssl: isSSL ? { rejectUnauthorized: false } : false,
             entities: [
                 user_entity_1.User,
                 account_entity_1.Account,
@@ -85,6 +118,8 @@ async function createDataSource() {
                 note_block_entity_1.NoteBlock,
                 note_media_entity_1.NoteMedia,
                 psychological_insight_entity_1.PsychologicalInsight,
+                knowledge_document_entity_1.KnowledgeDocument,
+                vector_embedding_entity_1.VectorEmbedding,
             ],
             migrations: ['src/migrations/*{.ts,.js}'],
             synchronize: false,

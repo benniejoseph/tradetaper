@@ -52,6 +52,9 @@ export class MT5Account {
   @Column({ type: 'decimal', precision: 19, scale: 2, default: 0 })
   initialBalance: number; // User-provided starting account size
 
+  @Column({ type: 'decimal', precision: 19, scale: 2, nullable: true, default: 0 })
+  target: number;
+
   @Column({ type: 'decimal', precision: 19, scale: 2, default: 0 })
   equity: number;
 

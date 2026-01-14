@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { GoogleGenerativeAI } from '@google/generative-ai';
 import { Trade } from '../trades/entities/trade.entity';
+import { MultiModelOrchestratorService } from '../agents/llm/multi-model-orchestrator.service';
 
 export interface AIInsight {
   type: 'STRENGTH' | 'WEAKNESS' | 'FOCUS_AREA';
@@ -19,24 +19,17 @@ export interface TraderCoachingReport {
 @Injectable()
 export class GeminiInsightsService {
   private readonly logger = new Logger(GeminiInsightsService.name);
-  private geminiPro: any;
 
-  constructor(private configService: ConfigService) {
-    const apiKey = this.configService.get<string>('GEMINI_API_KEY');
-    if (!apiKey) {
-      this.logger.warn('GEMINI_API_KEY is not configured. AI Insights will be disabled.');
-    } else {
-      const genAI = new GoogleGenerativeAI(apiKey);
-      this.geminiPro = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
-    }
-  }
+  constructor(
+    private configService: ConfigService,
+    private orchestrator: MultiModelOrchestratorService // Injection
+  ) {}
 
   async analyzeTradePatterns(trades: Trade[]): Promise<TraderCoachingReport> {
-    if (!this.geminiPro || trades.length < 5) {
-      // Return a placeholder report if not enough data or no API key
+    if (trades.length < 5) {
       return {
         traderScore: 50,
-        scoreReasoning: "Insufficient data (need at least 5 trades) or AI service unavailable.",
+        scoreReasoning: "Insufficient data (need at least 5 trades).",
         insights: [
             { type: 'FOCUS_AREA', title: 'Gather Data', description: 'Log more trades to unlock AI insights.' }
         ]
@@ -44,7 +37,7 @@ export class GeminiInsightsService {
     }
 
     // Limit to last 50 trades to respect token limits and relevance
-    const recentTrades = trades.slice(0, 50).map(t => ({
+    const recentTrades = trades.slice(0, 100).map(t => ({
       symbol: t.symbol,
       side: t.side,
       pnl: t.profitOrLoss,
@@ -56,43 +49,84 @@ export class GeminiInsightsService {
     }));
 
     const prompt = `
-      You are an expert trading psychology coach and analyst.
-      Analyze the following recent trading history (JSON format):
+      You are an elite ICT (Inner Circle Trader) Trading Psychologist and Mentor.
+      Your goal is to mold the student into a professional, profitable trader by analyzing their trade history.
+
+      DATA TO ANALYZE (Recent 100 Trades):
       ${JSON.stringify(recentTrades)}
 
-      Your task:
-      1. Calculate a "Trader Score" (0-100) based on consistency, risk management (implied by PnL distribution), and learning (mistakes vs lessons).
-      2. Identify 3 key patterns:
-         - One clear STRENGTH (what they do well).
-         - One clear WEAKNESS (a leak to fix).
-         - One FOCUS AREA (an actionable step for next week).
-      
-      Return ONLY valid JSON in this specific format:
+      ANALYSIS GUIDELINES:
+      1. **ICT Concepts**: specific focus on adherence to Killzones (London/NY), PD Arrays (Order Blocks, FVG), and Market Structure shifts.
+      2. **Psychology**: deeply analyze "mistakes" vs "lessons" to gauge self-awareness and improvement.
+      3. **Risk**: Evaluate PnL distribution. Are winners > losers? Are losses clustered (tilt)?
+
+      OUTPUT REQUIREMENTS:
+      1. **Trader Score (0-100)**: 
+         - < 50: Gambler/Tilt prone.
+         - 50-70: Developing Student.
+         - 70-90: Profitable/Consistent.
+         - > 90: ICT Charter Member Status.
+      2. **Insights**:
+         - **STRENGTH**: Identify the ONE thing they are mastering (e.g., "High Winrate in NY Killzone", "Excellent reaction to H4 Order Blocks").
+         - **WEAKNESS**: Identify the ONE leak draining their account (e.g., "Overtrading after 11AM EST", "Fading trends without MSS"). BE SPECIFIC.
+         - **FOCUS AREA**: A concrete technical or psychological homework assignment (e.g., "Only filter trades at Equilibrium or Discount this week", "Stop trading after 2 consecutive losses").
+
+      Submit response as strictly valid JSON:
       {
-        "traderScore": 75,
-        "scoreReasoning": "Brief explanation of the score...",
+        "traderScore": number,
+        "scoreReasoning": "Detailed explanation of the score, referencing specific ICT habits observed.",
         "insights": [
-          { "type": "STRENGTH", "title": "Great Win Rate on Gold", "description": "...", "actionableStep": "..." },
-          { "type": "WEAKNESS", "title": "Overtrading on Mondays", "description": "...", "actionableStep": "..." },
-          { "type": "FOCUS_AREA", "title": "Refine Stop Losses", "description": "...", "actionableStep": "..." }
+          { 
+            "type": "STRENGTH", 
+            "title": "Short summarization", 
+            "description": "Detailed analysis of why this is a strength, citing trade behavior.", 
+            "actionableStep": "How to double down on this." 
+          },
+          { 
+            "type": "WEAKNESS", 
+            "title": "Short summarization", 
+            "description": "Detailed analysis of the leak. Be tough but fair.", 
+            "actionableStep": "Specific rule to fix this." 
+          },
+          { 
+            "type": "FOCUS_AREA", 
+            "title": "Short summarization", 
+            "description": "The specific assignment for the week.", 
+            "actionableStep": "The concrete action to take." 
+          }
         ]
       }
     `;
 
     try {
-      const result = await this.geminiPro.generateContent(prompt);
-      const response = await result.response;
-      const text = response.text();
+      const response = await this.orchestrator.complete({
+        prompt: prompt,
+        modelPreference: 'gemini-2.0-flash', // Use the fast new model
+        taskComplexity: 'medium',
+        requireJson: true,
+        optimizeFor: 'speed'
+      });
+      
+      const text = response.content;
       
       // Clean potential markdown blocks
       const cleanText = text.replace(/```json/g, '').replace(/```/g, '').trim();
       return JSON.parse(cleanText);
 
     } catch (error) {
-      this.logger.error(`Gemini analysis failed: ${error.message}`);
+      this.logger.error(`AI Analysis failed: ${error.message}`);
+      
+      // Determine user-friendly error message
+      let userMessage = "AI Analysis Failed";
+      if (error.message.includes('429')) {
+         userMessage = "AI Usage Limit Exceeded (Please try again later)";
+      } else if (error.message.includes('404')) {
+         userMessage = "AI Model Unavailable";
+      }
+
       return {
           traderScore: 0,
-          scoreReasoning: "AI Analysis Failed",
+          scoreReasoning: userMessage,
           insights: []
       };
     }

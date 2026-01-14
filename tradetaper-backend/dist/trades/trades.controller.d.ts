@@ -10,6 +10,7 @@ export declare class TradesController {
     create(createTradeDto: CreateTradeDto, req: any): Promise<Trade>;
     findAll(req: any, accountId?: string, page?: number, limit?: number): Promise<PaginatedResponseDto<Trade>>;
     findOne(id: string, req: any): Promise<Trade>;
+    getCandles(id: string, timeframe: string, req: any): Promise<any[]>;
     update(id: string, updateTradeDto: UpdateTradeDto, req: any): Promise<Trade>;
     remove(id: string, req: any): Promise<void>;
     bulkDelete(body: {

@@ -2,8 +2,35 @@
 
 import { Trade, TradeStatus, UpdateTradePayload, TradeDirection } from '@/types/trade';
 import { FaTimes, FaEdit, FaTrashAlt, FaExternalLinkAlt, FaShareSquare, FaStar as FaStarSolid, FaRegStar as FaStarOutline, FaTwitter, FaLinkedin, FaCopy, FaDownload, FaChartLine, FaClock, FaDollarSign, FaBrain } from 'react-icons/fa'; // Added FaBrain
-import { format, parseISO } from 'date-fns';
-import { getWeekday, getHoldTime, formatPrice } from './TradesTable';
+import { format, parseISO, differenceInMinutes, differenceInHours, differenceInDays } from 'date-fns';
+import { formatPrice } from './TradesTable';
+
+// Helper functions moved from TradesTable
+const getWeekday = (dateStr: string | undefined): string => {
+  if (!dateStr) return '-';
+  try {
+    return format(parseISO(dateStr), 'EEEE');
+  } catch (e) {
+    return '-';
+  }
+};
+
+const getHoldTime = (trade: Trade): string => {
+  if (!trade.entryDate || !trade.exitDate) return '-';
+  try {
+    const start = parseISO(trade.entryDate);
+    const end = parseISO(trade.exitDate);
+    const diffMins = differenceInMinutes(end, start);
+    
+    if (diffMins < 60) return `${diffMins}m`;
+    const diffHours = differenceInHours(end, start);
+    if (diffHours < 24) return `${diffHours}h ${diffMins % 60}m`;
+    const diffDays = differenceInDays(end, start);
+    return `${diffDays}d ${diffHours % 24}h`;
+  } catch (e) {
+    return '-';
+  }
+};
 import React, { useState, useRef } from 'react';
 import { useDispatch } from 'react-redux';
 import { AppDispatch } from '@/store/store';
