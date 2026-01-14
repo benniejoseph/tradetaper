@@ -5,7 +5,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '@/store/store';
 import { fetchTradeById } from '@/store/features/tradesSlice';
 import Link from 'next/link';
-import TradeExecutionChart from '@/components/market-intelligence/TradeExecutionChart';
+import TradingViewChart from '@/components/market-intelligence/TradingViewChart';
 import { format as formatDateFns, differenceInMinutes, differenceInHours, differenceInDays } from 'date-fns';
 import { TradeDirection, TradeStatus } from '@/types/trade';
 import { addDays, subDays } from 'date-fns';
@@ -244,8 +244,10 @@ export default function ViewTradePage() {
         {/* Chart */}
         <div className="p-6">
           <div className="h-[700px] w-full rounded-xl overflow-hidden border-2 border-gray-700">
-            <TradeExecutionChart 
-              trade={currentTrade}
+            <TradingViewChart 
+              symbol={currentTrade.symbol || 'XAUUSD'}
+              interval="60"
+              theme="dark"
               height={700}
             />
           </div>
