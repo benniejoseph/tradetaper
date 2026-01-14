@@ -27,6 +27,8 @@ const predictive_trades_module_1 = require("./predictive-trades/predictive-trade
 const market_intelligence_module_1 = require("./market-intelligence/market-intelligence.module");
 const agent_orchestrator_module_1 = require("./agents/agent-orchestrator.module");
 const agents_implementation_module_1 = require("./agents/implementations/agents-implementation.module");
+const agents_module_1 = require("./agents/agents.module");
+const analytics_module_1 = require("./analytics/analytics.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -51,7 +53,10 @@ exports.AppModule = AppModule = __decorate([
             notes_module_1.NotesModule,
             predictive_trades_module_1.PredictiveTradesModule,
             market_intelligence_module_1.MarketIntelligenceModule,
+            market_intelligence_module_1.MarketIntelligenceModule,
             agents_implementation_module_1.AgentsImplementationModule,
+            agents_module_1.AgentsModule,
+            analytics_module_1.AnalyticsModule,
         ],
         controllers: [app_controller_1.AppController],
         providers: [app_service_1.AppService],

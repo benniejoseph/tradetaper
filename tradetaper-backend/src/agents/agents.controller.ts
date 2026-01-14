@@ -212,6 +212,75 @@ export class AgentsController {
   }
   
   /**
+   * Chat with ICT Mentor (RAG)
+   */
+  @Post('mentor/chat')
+  async chatWithMentor(
+    @Req() req: any,
+    @Body() body: { question: string },
+  ) {
+    const context = this.orchestrator.createContext(req.user.id);
+    
+    const response = await this.orchestrator.routeToCapability(
+      'mentor-qa',
+      {
+        action: 'ask',
+        question: body.question,
+      },
+      context,
+    );
+    
+    return response;
+  }
+
+  /**
+   * Audit trade screenshot with Mentor (Vision)
+   */
+  @Post('mentor/audit')
+  async auditTrade(
+    @Req() req: any,
+    @Body() body: { imageUrl: string; description?: string },
+  ) {
+    const context = this.orchestrator.createContext(req.user.id);
+    
+    const response = await this.orchestrator.routeToCapability(
+      'audit-trade',
+      {
+        action: 'audit-trade',
+        imageUrl: body.imageUrl,
+        description: body.description,
+      },
+      context,
+    );
+    
+    return response;
+  }
+
+  /**
+   * Ingest knowledge material
+   */
+  @Post('mentor/ingest')
+  async ingestKnowledge(
+    @Req() req: any,
+    @Body() body: { title: string; content: string; type: 'transcript' | 'text' },
+  ) {
+    const context = this.orchestrator.createContext(req.user.id);
+    
+    const response = await this.orchestrator.routeToCapability(
+      'ingest-knowledge',
+      {
+        action: 'ingest',
+        title: body.title,
+        content: body.content,
+        type: body.type,
+      },
+      context,
+    );
+    
+    return response;
+  }
+
+  /**
    * Get agent orchestrator stats
    */
   @Get('stats')

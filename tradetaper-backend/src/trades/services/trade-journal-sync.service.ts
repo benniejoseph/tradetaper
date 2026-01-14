@@ -1,7 +1,7 @@
 // src/trades/services/trade-journal-sync.service.ts
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, DeepPartial } from 'typeorm';
 import { Note, NoteContentBlock } from '../../notes/entities/note.entity';
 import { Trade } from '../entities/trade.entity';
 import { TradeDirection, TradeStatus, TradingSession } from '../../types/enums';
@@ -40,9 +40,8 @@ export class TradeJournalSyncService {
     const tags = this.generateTags(trade);
 
     // Create note
-    const note = this.noteRepository.create({
+    const noteData: DeepPartial<Note> = {
       userId: trade.userId,
-      accountId: trade.accountId,
       tradeId: trade.id,
       title,
       content,
@@ -52,7 +51,19 @@ export class TradeJournalSyncService {
       visibility: 'private',
       wordCount: 0,
       readingTime: 0,
-    });
+    };
+
+    // Link to correct account type
+    // If trade has externalId or mt5Magic, it's likely from MT5
+    if (trade.externalId || trade.mt5Magic) {
+      noteData.mt5AccountId = trade.accountId;
+      noteData.accountId = undefined;
+    } else {
+      noteData.accountId = trade.accountId;
+      noteData.mt5AccountId = undefined;
+    }
+
+    const note = this.noteRepository.create(noteData);
 
     const savedNote = await this.noteRepository.save(note);
     this.logger.log(`Created journal note ${savedNote.id} for trade ${trade.id}`);

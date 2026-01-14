@@ -46,7 +46,8 @@ export class TradesController {
     @Query('limit') limit = 10,
   ): Promise<PaginatedResponseDto<Trade>> {
     // Ensure limit doesn't exceed a max value to prevent abuse
-    const safeLimit = Math.min(100, limit);
+    // Increase max limit to support full analytics
+    const safeLimit = Math.min(5000, limit);
     return this.tradesService.findAll(req.user, accountId, undefined, page, safeLimit);
   }
 

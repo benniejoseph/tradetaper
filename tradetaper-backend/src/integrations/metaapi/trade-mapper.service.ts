@@ -151,7 +151,7 @@ export class TradeMapperService {
     }
 
     const realizedPnL = exitDeals.reduce((sum, d) => sum + d.profit, 0);
-    const commission = [...entryDeals, ...exitDeals].reduce((sum, d) => sum + d.commission, 0);
+    const commission = Math.abs([...entryDeals, ...exitDeals].reduce((sum, d) => sum + d.commission, 0));
     const swap = [...entryDeals, ...exitDeals].reduce((sum, d) => sum + d.swap, 0);
 
     const firstDeal = entryDeals[0];

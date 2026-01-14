@@ -18,26 +18,113 @@ const common_1 = require("@nestjs/common");
 const typeorm_1 = require("@nestjs/typeorm");
 const typeorm_2 = require("typeorm");
 const trade_entity_1 = require("./entities/trade.entity");
+const enums_1 = require("../types/enums");
 const tag_entity_1 = require("../tags/entities/tag.entity");
 const simple_trades_gateway_1 = require("../websocket/simple-trades.gateway");
 const gemini_vision_service_1 = require("../notes/gemini-vision.service");
 const accounts_service_1 = require("../users/accounts.service");
 const mt5_accounts_service_1 = require("../users/mt5-accounts.service");
+const trade_candle_entity_1 = require("./entities/trade-candle.entity");
+const yahoo_finance_service_1 = require("../integrations/yahoo-finance/yahoo-finance.service");
+const massive_service_1 = require("../integrations/massive/massive.service");
 let TradesService = TradesService_1 = class TradesService {
     tradesRepository;
+    tradeCandleRepository;
     tagRepository;
     tradesGateway;
     geminiVisionService;
     accountsService;
     mt5AccountsService;
+    yahooFinanceService;
+    massiveService;
     logger = new common_1.Logger(TradesService_1.name);
-    constructor(tradesRepository, tagRepository, tradesGateway, geminiVisionService, accountsService, mt5AccountsService) {
+    constructor(tradesRepository, tradeCandleRepository, tagRepository, tradesGateway, geminiVisionService, accountsService, mt5AccountsService, yahooFinanceService, massiveService) {
         this.tradesRepository = tradesRepository;
+        this.tradeCandleRepository = tradeCandleRepository;
         this.tagRepository = tagRepository;
         this.tradesGateway = tradesGateway;
         this.geminiVisionService = geminiVisionService;
         this.accountsService = accountsService;
         this.mt5AccountsService = mt5AccountsService;
+        this.yahooFinanceService = yahooFinanceService;
+        this.massiveService = massiveService;
+    }
+    async getTradeCandles(tradeId, timeframe, userContext) {
+        this.logger.debug(`Fetching candles for trade ${tradeId}, timeframe ${timeframe}`);
+        try {
+            const cached = await this.tradeCandleRepository.findOne({ where: { tradeId, timeframe } });
+            if (cached) {
+                this.logger.debug(`Cache HIT for trade ${tradeId}`);
+                return cached.data;
+            }
+            this.logger.debug(`Cache MISS for trade ${tradeId}`);
+            const trade = await this.findOne(tradeId, userContext);
+            const exitTime = trade.closeTime ? new Date(trade.closeTime).getTime() : Date.now();
+            let bufferMs = 0;
+            switch (timeframe) {
+                case '1m':
+                    bufferMs = 60 * 1000 * 60 * 2;
+                    break;
+                case '5m':
+                    bufferMs = 60 * 1000 * 60 * 5;
+                    break;
+                case '15m':
+                    bufferMs = 60 * 1000 * 60 * 12;
+                    break;
+                case '1h':
+                    bufferMs = 60 * 1000 * 60 * 48;
+                    break;
+                case '4h':
+                    bufferMs = 60 * 1000 * 60 * 24 * 7;
+                    break;
+                case '1d':
+                    bufferMs = 60 * 1000 * 60 * 24 * 30;
+                    break;
+                default: bufferMs = 60 * 1000 * 60 * 48;
+            }
+            const entryTime = new Date(trade.openTime).getTime();
+            const startTime = new Date(entryTime - bufferMs);
+            const endTime = new Date(exitTime + bufferMs);
+            let data = [];
+            if (trade.accountId) {
+                try {
+                    this.logger.debug(`Strategy A: Fetching from MetaApi...`);
+                    data = await this.mt5AccountsService.getCandles(trade.accountId, trade.symbol, timeframe, startTime, endTime);
+                }
+                catch (e) {
+                    this.logger.warn(`MetaApi Strategy failed: ${e.message}`);
+                }
+            }
+            if (!data || data.length === 0) {
+                this.logger.debug(`Strategy B: Fallback to Massive (Polygon) for ${trade.symbol}...`);
+                data = await this.massiveService.getCandles(trade.symbol, timeframe, startTime, endTime);
+                this.logger.debug(`Massive returned ${data?.length || 0} candles`);
+            }
+            if (!data || data.length === 0) {
+                this.logger.debug(`Strategy C: Fallback to Yahoo Finance for ${trade.symbol}...`);
+                data = await this.yahooFinanceService.getCandles(trade.symbol, timeframe, startTime, endTime);
+                this.logger.debug(`Yahoo Finance returned ${data?.length || 0} candles`);
+            }
+            if (trade.status === enums_1.TradeStatus.CLOSED && data && data.length > 0) {
+                this.logger.debug(`Caching result for trade ${tradeId}`);
+                try {
+                    await this.tradeCandleRepository.save({
+                        tradeId: trade.id,
+                        symbol: trade.symbol,
+                        timeframe,
+                        data
+                    });
+                }
+                catch (cacheError) {
+                    this.logger.error(`Failed to cache candles: ${cacheError.message}`);
+                }
+            }
+            return data || [];
+        }
+        catch (error) {
+            this.logger.error(`Error in getTradeCandles: ${error.message}`, error.stack);
+            throw error;
+        }
     }
     async _populateAccountDetails(trades, userId) {
         if (!trades.length)
@@ -119,6 +206,15 @@ let TradesService = TradesService_1 = class TradesService {
         this.logger.log(`Trade created successfully: ${savedTrade.id}`);
         return populatedTrade;
     }
+    async findAllByUser(userId) {
+        this.logger.debug(`Fetching ALL trades for user ${userId} for analytics`);
+        const trades = await this.tradesRepository.find({
+            where: { userId },
+            relations: ['tags'],
+            order: { openTime: 'DESC' },
+        });
+        return this._populateAccountDetails(trades, userId);
+    }
     async findAll(userContext, accountId, options, page = 1, limit = 10) {
         this.logger.log(`User ${userContext.id} fetching trades, account: ${accountId || 'all'}, page: ${page}, limit: ${limit}`);
         const whereClause = {
@@ -146,7 +242,8 @@ let TradesService = TradesService_1 = class TradesService {
     }
     async findDuplicate(userId, symbol, entryDate, externalId) {
         const queryBuilder = this.tradesRepository.createQueryBuilder('trade')
-            .where('trade.userId = :userId', { userId });
+            .where('trade.userId = :userId', { userId })
+            .andWhere('trade.accountId IS NOT NULL');
         if (externalId) {
             queryBuilder.andWhere('trade.externalId = :externalId', { externalId });
         }
@@ -185,7 +282,7 @@ let TradesService = TradesService_1 = class TradesService {
         this.logger.log(`User ${userContext.id} updating trade with ID ${id}`);
         const trade = await this.tradesRepository.findOne({
             where: { id, userId: userContext.id },
-            relations: ['tags', 'account'],
+            relations: ['tags'],
         });
         if (!trade) {
             throw new common_1.NotFoundException(`Trade with ID "${id}" not found for update.`);
@@ -240,7 +337,7 @@ let TradesService = TradesService_1 = class TradesService {
         const tradeIds = updates.map((u) => u.id);
         const trades = await this.tradesRepository.find({
             where: { id: (0, typeorm_2.In)(tradeIds), userId: userContext.id },
-            relations: ['tags', 'account'],
+            relations: ['tags'],
         });
         if (trades.length !== updates.length) {
             throw new common_1.NotFoundException('Some trades not found or do not belong to user');
@@ -294,16 +391,20 @@ exports.TradesService = TradesService;
 exports.TradesService = TradesService = TradesService_1 = __decorate([
     (0, common_1.Injectable)(),
     __param(0, (0, typeorm_1.InjectRepository)(trade_entity_1.Trade)),
-    __param(1, (0, typeorm_1.InjectRepository)(tag_entity_1.Tag)),
-    __param(2, (0, common_1.Inject)(simple_trades_gateway_1.SimpleTradesGateway)),
-    __param(3, (0, common_1.Inject)(gemini_vision_service_1.GeminiVisionService)),
-    __param(4, (0, common_1.Inject)((0, common_1.forwardRef)(() => accounts_service_1.AccountsService))),
-    __param(5, (0, common_1.Inject)((0, common_1.forwardRef)(() => mt5_accounts_service_1.MT5AccountsService))),
+    __param(1, (0, typeorm_1.InjectRepository)(trade_candle_entity_1.TradeCandle)),
+    __param(2, (0, typeorm_1.InjectRepository)(tag_entity_1.Tag)),
+    __param(3, (0, common_1.Inject)(simple_trades_gateway_1.SimpleTradesGateway)),
+    __param(4, (0, common_1.Inject)(gemini_vision_service_1.GeminiVisionService)),
+    __param(5, (0, common_1.Inject)((0, common_1.forwardRef)(() => accounts_service_1.AccountsService))),
+    __param(6, (0, common_1.Inject)((0, common_1.forwardRef)(() => mt5_accounts_service_1.MT5AccountsService))),
     __metadata("design:paramtypes", [typeorm_2.Repository,
+        typeorm_2.Repository,
         typeorm_2.Repository,
         simple_trades_gateway_1.SimpleTradesGateway,
         gemini_vision_service_1.GeminiVisionService,
         accounts_service_1.AccountsService,
-        mt5_accounts_service_1.MT5AccountsService])
+        mt5_accounts_service_1.MT5AccountsService,
+        yahoo_finance_service_1.YahooFinanceService,
+        massive_service_1.MassiveService])
 ], TradesService);
 //# sourceMappingURL=trades.service.js.map

@@ -1,12 +1,12 @@
 "use client";
 
-import { Trade } from '@/types/trade';
+import { Trade, AssetType, TradeDirection, TradeStatus } from '@/types/trade';
 import { Account } from '@/store/features/accountSlice'; // Assuming Account type is exported or define here
 import { format, parseISO, differenceInMinutes, differenceInHours, differenceInDays } from 'date-fns';
 import React, { useState, useMemo } from 'react'; // Import React for React.ReactNode
 import { useDispatch } from 'react-redux';
-import { updateTrade, deleteTrades } from '@/store/features/tradesSlice';
-import { FaChevronLeft, FaChevronRight, FaEdit, FaCheck, FaTimes, FaTrash } from 'react-icons/fa'; // Import icons for pagination
+import { updateTrade, deleteTrades, bulkUpdateTrades } from '@/store/features/tradesSlice';
+import { FaChevronLeft, FaChevronRight, FaEdit, FaCheck, FaTimes, FaTrash, FaPen } from 'react-icons/fa'; // Import icons for pagination
 import { CurrencyAmount } from '@/components/common/CurrencyAmount';
 import { AppDispatch } from '@/store/store';
 import { FaSpinner } from 'react-icons/fa';
@@ -53,43 +53,17 @@ export const formatPnl = (pnl: number | undefined | null): React.ReactNode => {
   );
 };
 
-export const getWeekday = (dateString: string | undefined): string => {
-  if (!dateString) return '-';
-  try {
-    return format(parseISO(dateString), 'EEE'); // Mon, Tue, etc.
-  } catch {
-    return '-';
-  }
-};
 
-export const getHoldTime = (trade: Trade): string => {
-  if (!trade.entryDate || !trade.exitDate) return '-';
-  
-  try {
-    const entry = parseISO(trade.entryDate);
-    const exit = parseISO(trade.exitDate);
-    
-    const minutes = differenceInMinutes(exit, entry);
-    const hours = differenceInHours(exit, entry);
-    const days = differenceInDays(exit, entry);
-
-    if (days > 0) {
-      return `${days}d ${hours % 24}h`;
-    } else if (hours > 0) {
-      return `${hours}h ${minutes % 60}m`;
-    } else {
-      return `${minutes}m`;
-    }
-  } catch {
-    return '-';
-  }
-};
 
 export default function TradesTable({ trades, accounts, onRowClick, isLoading, itemsPerPage = 25 }: TradesTableProps) {
   const dispatch = useDispatch<AppDispatch>();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<Partial<Trade>>({});
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  
+  // Bulk Edit State
+  const [isBulkEditing, setIsBulkEditing] = useState(false);
+  const [bulkUpdates, setBulkUpdates] = useState<Partial<Trade>>({});
 
   // Simple inline pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -132,13 +106,37 @@ export default function TradesTable({ trades, accounts, onRowClick, isLoading, i
   };
 
   
+  /* Bulk Edit Logic */
+  const handleBulkUpdate = async () => {
+    if (selectedIds.size === 0 || Object.keys(bulkUpdates).length === 0) return;
+    
+    if (confirm(`Are you sure you want to update ${Object.keys(bulkUpdates).length} fields for ${selectedIds.size} trades?`)) {
+      try {
+        await dispatch(bulkUpdateTrades({
+          ids: Array.from(selectedIds),
+          data: bulkUpdates
+        })).unwrap();
+        setIsBulkEditing(false);
+        setBulkUpdates({});
+        setSelectedIds(new Set());
+      } catch (error) {
+        console.error('Failed to bulk update trades:', error);
+        alert('Failed to update some trades. Please try again.');
+      }
+    }
+  };
+
   const handleEditClick = (trade: Trade, e: React.MouseEvent) => {
     e.stopPropagation();
     setEditingId(trade.id);
     setEditForm({
       profitOrLoss: trade.profitOrLoss,
       rMultiple: trade.rMultiple,
-      session: trade.session
+      session: trade.session,
+      commission: trade.commission,
+      assetType: trade.assetType,
+      direction: trade.direction,
+      status: trade.status
     });
   };
 
@@ -153,7 +151,7 @@ export default function TradesTable({ trades, accounts, onRowClick, isLoading, i
     try {
       await dispatch(updateTrade({ 
         id: tradeId, 
-        data: editForm 
+        payload: editForm 
       })).unwrap();
       setEditingId(null);
       setEditForm({});
@@ -231,20 +229,121 @@ export default function TradesTable({ trades, accounts, onRowClick, isLoading, i
           </div>
         </div>
       )}
-
-      {/* Bulk Delete Bar */}
+      {/* Bulk Action Bar */}
       {selectedIds.size > 0 && (
-        <div className="bg-red-50 dark:bg-red-900/20 px-6 py-2 flex items-center justify-between border-b border-red-100 dark:border-red-900/30 transition-all animate-in fade-in slide-in-from-top-2">
-          <span className="text-sm font-medium text-red-800 dark:text-red-200">
-            {selectedIds.size} trade{selectedIds.size > 1 ? 's' : ''} selected
-          </span>
-          <button
-            onClick={handleBulkDelete}
-            className="flex items-center gap-2 px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-medium transition-colors"
-          >
-            <FaTrash className="w-3.5 h-3.5" />
-            Delete Selected
-          </button>
+        <div className="bg-emerald-50 dark:bg-emerald-900/20 px-6 py-2 flex flex-col gap-2 border-b border-emerald-100 dark:border-emerald-900/30 transition-all animate-in fade-in slide-in-from-top-2">
+           <div className="flex items-center justify-between">
+              <span className="text-sm font-medium text-emerald-800 dark:text-emerald-200">
+                {selectedIds.size} trade{selectedIds.size > 1 ? 's' : ''} selected
+              </span>
+              
+              <div className="flex items-center gap-2">
+                {!isBulkEditing ? (
+                  <>
+                    <button
+                      onClick={() => setIsBulkEditing(true)}
+                      className="flex items-center gap-2 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-medium transition-colors"
+                    >
+                      <FaPen className="w-3.5 h-3.5" />
+                      Bulk Edit
+                    </button>
+                    <button
+                      onClick={handleBulkDelete}
+                      className="flex items-center gap-2 px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-medium transition-colors"
+                    >
+                      <FaTrash className="w-3.5 h-3.5" />
+                      Delete
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      onClick={handleBulkUpdate}
+                      disabled={Object.keys(bulkUpdates).length === 0}
+                      className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg text-sm font-medium transition-colors"
+                    >
+                      Apply Changes
+                    </button>
+                    <button
+                      onClick={() => {
+                        setIsBulkEditing(false);
+                        setBulkUpdates({});
+                      }}
+                      className="px-3 py-1.5 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg text-sm font-medium transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </>
+                )}
+              </div>
+           </div>
+
+           {/* Bulk Edit Inputs Row */}
+           {isBulkEditing && (
+             <div className="flex items-center gap-2 p-2 bg-white/50 dark:bg-black/20 rounded-lg overflow-x-auto pb-4">
+                 <div className="flex flex-col gap-1 min-w-[120px]">
+                   <label className="text-xs font-semibold text-gray-500 uppercase">Status</label>
+                   <select
+                      value={bulkUpdates.status || ''}
+                      onChange={(e) => setBulkUpdates({...bulkUpdates, status: e.target.value as TradeStatus || undefined})}
+                      className="rounded border-emerald-300 dark:border-emerald-700 dark:bg-gray-800 text-xs py-1.5 focus:ring-emerald-500"
+                    >
+                      <option value="">(No Change)</option>
+                      {Object.values(TradeStatus).map(s => <option key={s} value={s}>{s}</option>)}
+                    </select>
+                 </div>
+
+                 <div className="flex flex-col gap-1 min-w-[120px]">
+                   <label className="text-xs font-semibold text-gray-500 uppercase">Asset</label>
+                   <select
+                      value={bulkUpdates.assetType || ''}
+                      onChange={(e) => setBulkUpdates({...bulkUpdates, assetType: e.target.value as AssetType || undefined})}
+                      className="rounded border-emerald-300 dark:border-emerald-700 dark:bg-gray-800 text-xs py-1.5 focus:ring-emerald-500"
+                    >
+                      <option value="">(No Change)</option>
+                      {Object.values(AssetType).map(t => <option key={t} value={t}>{t}</option>)}
+                    </select>
+                 </div>
+
+                 <div className="flex flex-col gap-1 min-w-[120px]">
+                   <label className="text-xs font-semibold text-gray-500 uppercase">Direction</label>
+                   <select
+                      value={bulkUpdates.direction || ''}
+                      onChange={(e) => setBulkUpdates({...bulkUpdates, direction: e.target.value as TradeDirection || undefined})}
+                      className="rounded border-emerald-300 dark:border-emerald-700 dark:bg-gray-800 text-xs py-1.5 focus:ring-emerald-500"
+                    >
+                      <option value="">(No Change)</option>
+                      {Object.values(TradeDirection).map(d => <option key={d} value={d}>{d}</option>)}
+                    </select>
+                 </div>
+
+                 <div className="flex flex-col gap-1 min-w-[120px]">
+                   <label className="text-xs font-semibold text-gray-500 uppercase">Session</label>
+                   <select
+                      value={bulkUpdates.session || ''}
+                      onChange={(e) => setBulkUpdates({...bulkUpdates, session: e.target.value as TradingSession || undefined})}
+                      className="rounded border-emerald-300 dark:border-emerald-700 dark:bg-gray-800 text-xs py-1.5 focus:ring-emerald-500"
+                    >
+                      <option value="">(No Change)</option>
+                      <option value="Asian">Asian</option>
+                      <option value="London">London</option>
+                      <option value="New York">New York</option>
+                    </select>
+                 </div>
+
+                 <div className="flex flex-col gap-1 min-w-[100px]">
+                   <label className="text-xs font-semibold text-gray-500 uppercase">Commission</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={bulkUpdates.commission ?? ''}
+                      onChange={(e) => setBulkUpdates({ ...bulkUpdates, commission: e.target.value ? parseFloat(e.target.value) : undefined })}
+                      className="rounded border-emerald-300 dark:border-emerald-700 dark:bg-gray-800 text-xs py-1.5 focus:ring-emerald-500"
+                      placeholder="(No Change)"
+                    />
+                 </div>
+             </div>
+           )}
         </div>
       )}
 
@@ -264,14 +363,15 @@ export default function TradesTable({ trades, accounts, onRowClick, isLoading, i
               <th className={thClasses}>Pair</th>
               <th className={thClasses}>Open Date</th>
               <th className={thClasses}>Account</th>
+              <th className={thClasses}>Asset</th>
+              <th className={thClasses}>Direction</th>
+              <th className={thClasses}>Status</th>
               <th className={thClasses}>Session</th>
-              <th className={thClasses}>Weekday</th>
-              <th className={thClasses}>Holdtime</th>
               <th className={thClasses}>Entry</th>
               <th className={thClasses}>Exit</th>
               <th className={thClasses}>P&L</th>
+              <th className={thClasses}>Comm.</th>
               <th className={thClasses}>R-Multiple</th>
-              <th className={thClasses}>Chart</th>
               <th className={thClasses}>Actions</th>
             </tr>
           </thead>
@@ -310,6 +410,72 @@ export default function TradesTable({ trades, accounts, onRowClick, isLoading, i
                     {getAccountName(trade, accounts)}
                   </span>
                 </td>
+
+                {/* Editable Asset Type */}
+                <td className={`${tdClasses} text-gray-700 dark:text-gray-300`} onClick={(e) => e.stopPropagation()}>
+                  {isEditing ? (
+                    <select
+                      value={editForm.assetType || ''}
+                      onChange={(e) => setEditForm({ ...editForm, assetType: e.target.value as AssetType })}
+                      className="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded px-2 py-1.5 text-xs w-24 focus:ring-2 focus:ring-emerald-500"
+                    >
+                      {Object.values(AssetType).map((type) => (
+                        <option key={type} value={type}>{type}</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                      {trade.assetType}
+                    </span>
+                  )}
+                </td>
+
+                {/* Editable Direction */}
+                <td className={`${tdClasses} text-gray-700 dark:text-gray-300`} onClick={(e) => e.stopPropagation()}>
+                  {isEditing ? (
+                    <select
+                      value={editForm.direction || ''}
+                      onChange={(e) => setEditForm({ ...editForm, direction: e.target.value as TradeDirection })}
+                      className="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded px-2 py-1.5 text-xs w-20 focus:ring-2 focus:ring-emerald-500"
+                    >
+                      {Object.values(TradeDirection).map((dir) => (
+                        <option key={dir} value={dir}>{dir}</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <span className={`text-xs font-bold uppercase ${
+                      trade.direction === TradeDirection.LONG 
+                        ? 'text-green-600 dark:text-green-400' 
+                        : 'text-red-600 dark:text-red-400'
+                    }`}>
+                      {trade.direction}
+                    </span>
+                  )}
+                </td>
+
+                {/* Editable Status */}
+                <td className={`${tdClasses} text-gray-700 dark:text-gray-300`} onClick={(e) => e.stopPropagation()}>
+                  {isEditing ? (
+                    <select
+                      value={editForm.status || ''}
+                      onChange={(e) => setEditForm({ ...editForm, status: e.target.value as TradeStatus })}
+                      className="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded px-2 py-1.5 text-xs w-24 focus:ring-2 focus:ring-emerald-500"
+                    >
+                      {Object.values(TradeStatus).map((status) => (
+                        <option key={status} value={status}>{status}</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <span className={`px-2 py-1 rounded-lg text-xs font-medium ${
+                      trade.status === TradeStatus.OPEN ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300' :
+                      trade.status === TradeStatus.PENDING ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300' :
+                      trade.status === TradeStatus.CANCELLED ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' :
+                      'bg-gray-100 text-gray-800 dark:bg-gray-700/50 dark:text-gray-300'
+                    }`}>
+                      {trade.status}
+                    </span>
+                  )}
+                </td>
                 
                 {/* Editable Session */}
                 <td className={`${tdClasses} text-gray-700 dark:text-gray-300`} onClick={(e) => e.stopPropagation()}>
@@ -333,8 +499,6 @@ export default function TradesTable({ trades, accounts, onRowClick, isLoading, i
                   )}
                 </td>
 
-                <td className={`${tdClasses} text-gray-700 dark:text-gray-300`}>{getWeekday(trade.entryDate)}</td>
-                <td className={`${tdClasses} text-gray-700 dark:text-gray-300`}>{getHoldTime(trade)}</td>
                 <td className={`${tdClasses} font-mono text-gray-900 dark:text-white`}>{formatPrice(trade.entryPrice)}</td>
                 <td className={`${tdClasses} font-mono text-gray-900 dark:text-white`}>{formatPrice(trade.exitPrice)}</td>
                 
@@ -351,6 +515,22 @@ export default function TradesTable({ trades, accounts, onRowClick, isLoading, i
                     />
                   ) : (
                     formatPnl(trade.profitOrLoss)
+                  )}
+                </td>
+
+                {/* Editable Commission */}
+                <td className={`${tdClasses} font-mono text-gray-700 dark:text-gray-300`} onClick={(e) => e.stopPropagation()}>
+                  {isEditing ? (
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={editForm.commission ?? ''}
+                      onChange={(e) => setEditForm({ ...editForm, commission: parseFloat(e.target.value) })}
+                      className="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded px-2 py-1.5 text-xs w-20 focus:ring-2 focus:ring-emerald-500 text-right"
+                      placeholder="0.00"
+                    />
+                  ) : (
+                    trade.commission ? `-$${Math.abs(trade.commission).toFixed(2)}` : '-'
                   )}
                 </td>
 
@@ -375,28 +555,6 @@ export default function TradesTable({ trades, accounts, onRowClick, isLoading, i
                         {trade.rMultiple.toFixed(2)}R
                       </span>
                     ) : '-'
-                  )}
-                </td>
-
-                <td className={`${tdClasses} text-center`}>
-                  {trade.imageUrl ? (
-                    <div className="flex justify-center">
-                      <img
-                        src={trade.imageUrl}
-                        alt={`${trade.symbol} chart`}
-                        className="w-12 h-8 object-cover rounded-lg shadow-sm hover:scale-110 transition-transform duration-200 cursor-pointer"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          window.open(trade.imageUrl, '_blank');
-                        }}
-                        onError={(e) => {
-                          console.error('Table image failed to load:', trade.imageUrl);
-                          (e.target as HTMLImageElement).style.display = 'none';
-                        }}
-                      />
-                    </div>
-                  ) : (
-                    <span className="text-gray-400 dark:text-gray-500 text-xs">No image</span>
                   )}
                 </td>
 

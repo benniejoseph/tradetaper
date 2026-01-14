@@ -374,12 +374,10 @@ export class MT5AccountsService {
       const createTradeDto: any = {
         assetType: trade.assetType,
         symbol: trade.symbol,
-        direction: trade.direction,
+        side: trade.direction, // Corrected from direction to side
         status: TradeStatus.CLOSED, // Imported trades are usually closed history
-        entryDate: trade.entryDate.toISOString(),
-        entryPrice: trade.entryPrice,
-        exitDate: trade.exitDate?.toISOString(),
-        exitPrice: trade.exitPrice || undefined,
+        openPrice: trade.entryPrice, // Corrected from entryPrice to openPrice
+        closePrice: trade.exitPrice || undefined, // Corrected from exitPrice to closePrice
         openTime: trade.entryDate.toISOString(),
         closeTime: trade.exitDate?.toISOString(),
         quantity: trade.quantity,
@@ -553,6 +551,9 @@ export class MT5AccountsService {
     if (updateMT5AccountDto.isActive !== undefined) {
       updatedData.isActive = updateMT5AccountDto.isActive;
     }
+    if (updateMT5AccountDto.target !== undefined) {
+      updatedData.target = updateMT5AccountDto.target;
+    }
 
     await this.mt5AccountRepository.update(id, updatedData);
 
@@ -631,6 +632,10 @@ export class MT5AccountsService {
         );
       }
     } catch (error) {
+      if (error.message && error.message.toLowerCase().includes('not found')) {
+         this.logger.warn(`MetaApi account not found (likely deleted remotely): ${error.message}`);
+         throw new UnprocessableEntityException('MetaApi account not found. It may have been deleted remotely. Please unlink and re-link this account.');
+      }
       this.logger.error(`Failed to ensure account deployment: ${error.message}`);
       throw error;
     }

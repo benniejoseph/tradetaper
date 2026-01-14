@@ -178,6 +178,16 @@ export class Trade {
   })
   chartImageUrl?: string;
 
+  @Index()
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  externalId?: string; // MT5 Position ID
+
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  externalDealId?: string; // MT5 Deal ID
+
+  @Column({ type: 'bigint', nullable: true })
+  mt5Magic?: number;
+
   @CreateDateColumn()
   createdAt: Date;
 

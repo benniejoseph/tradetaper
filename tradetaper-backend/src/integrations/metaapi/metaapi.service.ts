@@ -352,7 +352,11 @@ export class MetaApiService implements OnModuleInit {
         deployed: account.state === 'DEPLOYED',
       };
     } catch (error) {
-      this.logger.error(`Failed to get connection status: ${error.message}`);
+      if (error.message && error.message.toLowerCase().includes('not found')) {
+        this.logger.warn(`Account not found in MetaApi: ${error.message}`);
+      } else {
+        this.logger.error(`Failed to get connection status: ${error.message}`);
+      }
       throw new Error(`Failed to get connection status: ${error.message}`);
     }
   }

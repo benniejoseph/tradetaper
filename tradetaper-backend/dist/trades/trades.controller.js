@@ -37,6 +37,9 @@ let TradesController = TradesController_1 = class TradesController {
     findOne(id, req) {
         return this.tradesService.findOne(id, req.user);
     }
+    getCandles(id, timeframe, req) {
+        return this.tradesService.getTradeCandles(id, timeframe || '1h', req.user);
+    }
     update(id, updateTradeDto, req) {
         return this.tradesService.update(id, updateTradeDto, req.user);
     }
@@ -81,6 +84,15 @@ __decorate([
     __metadata("design:paramtypes", [String, Object]),
     __metadata("design:returntype", Promise)
 ], TradesController.prototype, "findOne", null);
+__decorate([
+    (0, common_1.Get)(':id/candles'),
+    __param(0, (0, common_1.Param)('id', common_1.ParseUUIDPipe)),
+    __param(1, (0, common_1.Query)('timeframe')),
+    __param(2, (0, common_1.Request)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String, Object]),
+    __metadata("design:returntype", void 0)
+], TradesController.prototype, "getCandles", null);
 __decorate([
     (0, common_1.Patch)(':id'),
     __param(0, (0, common_1.Param)('id', common_1.ParseUUIDPipe)),

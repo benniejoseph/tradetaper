@@ -20,7 +20,9 @@ export interface MT5Account {
   lastSyncAt?: string;
   totalTradesImported?: number;
   createdAt?: string;
+  createdAt?: string;
   updatedAt?: string;
+  target?: number;
 }
 
 export interface CreateMT5AccountPayload {
@@ -30,6 +32,7 @@ export interface CreateMT5AccountPayload {
   password?: string;
   isRealAccount?: boolean;
   isActive?: boolean;
+  target?: number;
 }
 
 export interface UpdateMT5AccountPayload {
@@ -38,6 +41,7 @@ export interface UpdateMT5AccountPayload {
   login?: string;
   password?: string;
   isActive?: boolean;
+  target?: number;
 }
 
 interface MT5AccountsState {

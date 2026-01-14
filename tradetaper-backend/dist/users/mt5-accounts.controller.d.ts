@@ -12,6 +12,7 @@ export declare class MT5AccountsController {
     findAll(req: any): Promise<MT5AccountResponseDto[]>;
     findOne(req: any, id: string): Promise<MT5AccountResponseDto>;
     getLiveTrades(): never[];
+    getCandles(req: any, id: string, symbol: string, timeframe: string, startTimeStr: string, endTimeStr: string): Promise<any[]>;
     syncAccount(id: string): Promise<void>;
     remove(req: any, id: string): Promise<void>;
     linkAccount(req: any, id: string, body: {

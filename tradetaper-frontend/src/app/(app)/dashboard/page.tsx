@@ -5,7 +5,11 @@ import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '@/store/store';
 import { fetchTrades } from '@/store/features/tradesSlice';
 import { selectSelectedAccountId, selectSelectedAccount, selectAvailableAccounts, updateAccountThunk } from '@/store/features/accountSlice';
-import { selectSelectedMT5AccountId, selectMT5Accounts } from '@/store/features/mt5AccountsSlice';
+import {  fetchMT5Accounts, 
+  selectMT5Accounts, 
+  selectSelectedMT5AccountId,
+  updateMT5Account
+} from '@/store/features/mt5AccountsSlice';
 import { calculateDashboardStats, calculateEquityCurveData } from '@/utils/analytics';
 import { Trade, TradeStatus } from '@/types/trade';
 import { format as formatDateFns, subDays, isAfter, parseISO } from 'date-fns';
@@ -52,6 +56,7 @@ export default function DashboardPage() {
   const selectedMT5AccountId = useSelector(selectSelectedMT5AccountId);
   const selectedAccount = useSelector(selectSelectedAccount);
   const allRegularAccounts = useSelector(selectAvailableAccounts);
+  const allMT5Accounts = useSelector(selectMT5Accounts);
   
   // State
   const [timeRange, setTimeRange] = useState('All');
@@ -78,7 +83,8 @@ export default function DashboardPage() {
   useEffect(() => {
     if (isAuthenticated) {
       const currentAccountId = selectedAccountId || selectedMT5AccountId;
-      dispatch(fetchTrades({ accountId: currentAccountId || undefined }));
+      // Fetch sufficient history for accurate analytics
+      dispatch(fetchTrades({ accountId: currentAccountId || undefined, limit: 2000 }));
     }
   }, [dispatch, isAuthenticated, selectedAccountId, selectedMT5AccountId]);
 
@@ -103,22 +109,36 @@ export default function DashboardPage() {
   }, [filteredTrades]);
 
   // Target calculations
-  const { personalTargetCurrent, personalTargetGoal, isAllAccountsSelected } = useMemo(() => {
+  const { personalTargetCurrent, isAllAccountsSelected } = useMemo(() => {
     const isAllAccounts = !selectedAccountId && !selectedMT5AccountId;
     if (isAllAccounts) {
       const regularTargetSum = allRegularAccounts.reduce((sum: number, acc: any) => sum + (acc.target || 0), 0);
       return {
         personalTargetCurrent: dashboardStats?.totalNetPnl || 0,
-        personalTargetGoal: regularTargetSum > 0 ? regularTargetSum : 1000,
         isAllAccountsSelected: true
       };
     }
     return {
       personalTargetCurrent: dashboardStats?.totalNetPnl || 0,
-      personalTargetGoal: (selectedAccount as any)?.target || 1000,
       isAllAccountsSelected: false
     };
-  }, [selectedAccountId, selectedMT5AccountId, selectedAccount, allRegularAccounts, dashboardStats?.totalNetPnl]);
+  }, [selectedAccountId, selectedMT5AccountId, dashboardStats?.totalNetPnl]);
+
+  const personalTargetGoal = useMemo(() => {
+    if (selectedAccountId && selectedAccount) {
+       return (selectedAccount as any).target || 1000;
+    }
+    if (selectedMT5AccountId) {
+       const mt5Acc = allMT5Accounts.find(a => a.id === selectedMT5AccountId);
+       return mt5Acc?.target || 1000;
+    }
+    // For All Accounts, sum of targets? or just use a default/aggregate
+    // Currently dashboard uses a single gauge, so maybe sum is appropriate, 
+    // or just return 0 if not applicable.
+    // Let's assume for now 1000 * count or something, but 'dashboardStats' doesn't have a target field.
+    // Better to default to 1000 if not selected.
+    return 1000; 
+  }, [selectedAccountId, selectedAccount, selectedMT5AccountId, allMT5Accounts, dashboardStats]);
 
   // Equity curve
   const equityCurve = useMemo(() => {
@@ -131,21 +151,100 @@ export default function DashboardPage() {
     return [{ date: formatDateFns(new Date(), 'MMM dd'), value: 0 }]; 
   }, [filteredTrades]);
 
+  // Calculate True Current Balance (based on All Trades logic)
+  // Calculate True Current Balance
+  const trueCurrentBalance = useMemo(() => {
+    // Helper to calculate balance for a single manual account
+    const getManualBalance = (acc: any) => {
+      const accTrades = trades?.filter(t => t.accountId === acc.id) || [];
+      const accPnl = accTrades.reduce((sum, t) => sum + (t.profitOrLoss || 0), 0);
+      return (Number(acc.balance) || 0) + accPnl;
+    };
+
+    // Helper to calculate balance for a single MT5 account
+    const getMT5Balance = (acc: any) => {
+       const rawBalance = Number(acc.balance) || 0;
+       // We need trades for this account to subtract commissions
+       // Assuming 'trades' contains all trades if we are in 'All' mode, or trades for this account
+       const accTrades = trades?.filter(t => t.accountId === acc.id) || [];
+       const totalCommissions = accTrades.reduce((sum, t) => sum + (t.commission || 0), 0);
+       return rawBalance - Math.abs(totalCommissions);
+    };
+
+    if (selectedAccountId) {
+       // Manual Account Selected
+       if (!selectedAccount) return 0;
+       return getManualBalance(selectedAccount);
+    }
+
+    if (selectedMT5AccountId) {
+       // MT5 Account Selected
+       const mt5Acc = allMT5Accounts.find(a => a.id === selectedMT5AccountId);
+       if (!mt5Acc) return 0;
+       return getMT5Balance(mt5Acc);
+    }
+
+    // All Accounts Selected (Aggregate)
+    let total = 0;
+    
+    // Sum Manual Accounts
+    allRegularAccounts.forEach(acc => {
+      total += getManualBalance(acc);
+    });
+
+    // Sum MT5 Accounts
+    allMT5Accounts.forEach(acc => {
+      total += getMT5Balance(acc);
+    });
+
+    return total;
+  }, [selectedAccountId, selectedMT5AccountId, selectedAccount, allMT5Accounts, allRegularAccounts, trades]);
+
+  // Shift Equity Curve to match Balance
+  const shiftedEquityCurve = useMemo(() => {
+     if (!equityCurve || equityCurve.length === 0) return [];
+     // The equity curve is cumulative PnL for the period.
+     // We want it to be a Balance curve.
+     // End of curve should match trueCurrentBalance (approx).
+     // Warning: dashboardStats.totalNetPnl might differ slightly from equityCurve[last] due to calculation differences?
+     // Let's assume equityCurve[last].value IS totalNetPnl.
+     
+     const lastPnl = equityCurve[equityCurve.length - 1]?.value || 0;
+     const offset = trueCurrentBalance - lastPnl;
+     
+     return equityCurve.map(point => ({
+       ...point,
+       value: point.value + offset
+     }));
+  }, [equityCurve, trueCurrentBalance]);
+
   // Period metrics
   const periodMetrics = useMemo(() => {
-    const initialBalanceForPeriod = equityCurve[0]?.value;
-    const currentBalance = dashboardStats?.currentBalance;
-    const totalNetPnlForPeriod = dashboardStats?.totalNetPnl;
+    const totalNetPnlForPeriod = dashboardStats?.totalNetPnl || 0;
+    
+    // We need to fetch the MT5 account details if an MT5 ID is selected
+    // This requires us to access the mt5Accounts list from store
+    
+    // Let's defer strict calculation to the return/render or a better useMemo block 
+    // once we have the account object.
+    
+    // For now, let's keep existing logic but warn it's PnL-based.
+    // Wait, the user WANTS it fixed.
+    
+    const initialBalanceForPeriod = shiftedEquityCurve[0]?.value || 0;
+    const currentBalance = trueCurrentBalance;
+    
     let balancePercentageChange = 0;
     if (initialBalanceForPeriod && currentBalance) {
       balancePercentageChange = ((currentBalance - initialBalanceForPeriod) / initialBalanceForPeriod) * 100;
     }
     let roiPercentage = 0;
+    // ROI is typically on INITIAL balance
     if (initialBalanceForPeriod && totalNetPnlForPeriod) {
       roiPercentage = (totalNetPnlForPeriod / initialBalanceForPeriod) * 100;
     }
     return { balancePercentageChange, roiPercentage, initialBalanceForPeriod };
-  }, [equityCurve, dashboardStats]);
+  }, [shiftedEquityCurve, trueCurrentBalance, dashboardStats]);
 
   const personalTargetProgress = useMemo(() => {
     if (personalTargetGoal === 0) return 0;
@@ -186,13 +285,17 @@ export default function DashboardPage() {
       setIsSetTargetModalOpen(false);
       return;
     }
-    if (selectedAccount) {
-      try {
+
+    try {
+      if (selectedAccountId && selectedAccount) {
         await dispatch(updateAccountThunk({ id: (selectedAccount as any).id, target: newGoal })).unwrap();
         setIsSetTargetModalOpen(false);
-      } catch (error) {
-        console.error('Failed to update target:', error);
+      } else if (selectedMT5AccountId) {
+        await dispatch(updateMT5Account({ id: selectedMT5AccountId, data: { target: newGoal } })).unwrap();
+        setIsSetTargetModalOpen(false);
       }
+    } catch (error) {
+      console.error('Failed to update target:', error);
     }
   };
 
@@ -202,7 +305,9 @@ export default function DashboardPage() {
     setIsTradingActivityModalOpen(true);
   };
 
-  // Loading state
+
+
+  // Handle Loading state
   if (tradesLoading && trades.length === 0 && !dashboardStats) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-white dark:bg-black">
@@ -253,11 +358,11 @@ export default function DashboardPage() {
           
           {/* Portfolio Balance */}
           <PortfolioBalanceCard
-            currentBalance={dashboardStats?.currentBalance || 0}
+            currentBalance={trueCurrentBalance}
             balancePercentageChange={periodMetrics.balancePercentageChange}
             initialBalance={periodMetrics.initialBalanceForPeriod || 0}
             totalNetPnl={dashboardStats?.totalNetPnl || 0}
-            equityCurve={equityCurve}
+            equityCurve={shiftedEquityCurve}
             timeRange={timeRange}
             onTimeRangeChange={setTimeRange}
           />

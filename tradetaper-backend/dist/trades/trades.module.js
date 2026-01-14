@@ -18,20 +18,23 @@ const tags_module_1 = require("../tags/tags.module");
 const cache_manager_1 = require("@nestjs/cache-manager");
 const trade_journal_sync_service_1 = require("./services/trade-journal-sync.service");
 const note_entity_1 = require("../notes/entities/note.entity");
+const trade_candle_entity_1 = require("./entities/trade-candle.entity");
+const yahoo_finance_service_1 = require("../integrations/yahoo-finance/yahoo-finance.service");
+const massive_service_1 = require("../integrations/massive/massive.service");
 let TradesModule = class TradesModule {
 };
 exports.TradesModule = TradesModule;
 exports.TradesModule = TradesModule = __decorate([
     (0, common_1.Module)({
         imports: [
-            typeorm_1.TypeOrmModule.forFeature([trade_entity_1.Trade, note_entity_1.Note]),
+            typeorm_1.TypeOrmModule.forFeature([trade_entity_1.Trade, note_entity_1.Note, trade_candle_entity_1.TradeCandle]),
             (0, common_1.forwardRef)(() => users_module_1.UsersModule),
             tags_module_1.TagsModule,
             cache_manager_1.CacheModule.register({
                 ttl: 60 * 60 * 1000,
             }),
         ],
-        providers: [trades_service_1.TradesService, gemini_vision_service_1.GeminiVisionService, trade_journal_sync_service_1.TradeJournalSyncService],
+        providers: [trades_service_1.TradesService, gemini_vision_service_1.GeminiVisionService, trade_journal_sync_service_1.TradeJournalSyncService, yahoo_finance_service_1.YahooFinanceService, massive_service_1.MassiveService],
         controllers: [trades_controller_1.TradesController],
         exports: [trades_service_1.TradesService, trade_journal_sync_service_1.TradeJournalSyncService],
     })

@@ -9,7 +9,7 @@ import { fetchTrades, selectAllTrades, selectTradesLoading, deleteTrade } from '
 import { Trade } from '@/types/trade';
 import TradesTable from '@/components/journal/TradesTable';
 import TradePreviewDrawer from '@/components/journal/TradePreviewDrawer';
-import { FaPlus, FaFilter, FaSync } from 'react-icons/fa';
+import { FaPlus, FaFilter, FaSync, FaInfoCircle } from 'react-icons/fa';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
@@ -179,7 +179,7 @@ export default function TradesPage() {
         </div>
 
         {/* Stats Summary */}
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
           <div className="bg-white dark:bg-gray-800/50 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
             <p className="text-sm text-gray-500 dark:text-gray-400">Total Trades</p>
             <p className="text-2xl font-bold text-gray-900 dark:text-white">{filteredTrades.length}</p>
@@ -194,6 +194,17 @@ export default function TradesPage() {
             <p className="text-sm text-gray-500 dark:text-gray-400">Losing Trades</p>
             <p className="text-2xl font-bold text-red-600 dark:text-red-400">
               {filteredTrades.filter((t: Trade) => (t.profitOrLoss ?? 0) < 0).length}
+            </p>
+          </div>
+          <div className="bg-white dark:bg-gray-800/50 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
+            <div className="flex items-center gap-1 mb-1">
+              <p className="text-sm text-gray-500 dark:text-gray-400">Total Value</p>
+              <span title="Total volume traded (Entry Price × Quantity)" className="cursor-help text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+                <FaInfoCircle size={12} />
+              </span>
+            </div>
+            <p className="text-2xl font-bold text-gray-900 dark:text-white">
+              ${filteredTrades.reduce((sum: number, t: Trade) => sum + ((t.entryPrice || 0) * (t.quantity || 0)), 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </p>
           </div>
           <div className="bg-white dark:bg-gray-800/50 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
@@ -219,9 +230,10 @@ export default function TradesPage() {
                 
                 // Ensure balance is a number
                 const rawBalance = Number(selectedAccount.balance) || 0;
+                const totalCommissions = filteredTrades.reduce((sum, t) => sum + (t.commission || 0), 0);
                 
                 const displayBalance = selectedAccount.type === 'MT5' 
-                  ? rawBalance 
+                  ? rawBalance - Math.abs(totalCommissions)
                   : rawBalance + totalPnL;
                   
                 return (
