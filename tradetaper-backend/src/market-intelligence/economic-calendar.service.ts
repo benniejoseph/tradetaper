@@ -2,6 +2,10 @@ import { Injectable, Logger } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
 import { firstValueFrom } from 'rxjs';
+import { NewsAnalysisService } from './news-analysis.service';
+import { XMLParser } from 'fast-xml-parser'; // Added
+import { parse, addHours } from 'date-fns'; // Added for date parsing // Added
+// import { MultiModelOrchestratorService } from '../agents/llm/multi-model-orchestrator.service';
 
 export interface EconomicEvent {
   id: string;
@@ -21,7 +25,9 @@ export interface EconomicEvent {
     affectedSymbols: string[];
     volatilityRating: number; // 1-10
   };
+  isNewsDerived?: boolean; // New flag
 }
+
 
 export interface EconomicImpactAnalysis {
   eventId: string;
@@ -29,6 +35,14 @@ export interface EconomicImpactAnalysis {
     marketExpectations: string;
     keyLevelsToWatch: number[];
     riskScenarios: string[];
+  };
+  detailedAnalysis?: {
+    source: string;
+    measures: string;
+    usualEffect: string;
+    frequency: string;
+    whyTradersCare: string;
+    nextRelease: string;
   };
   postEventAnalysis?: {
     marketReaction: string;
@@ -55,6 +69,8 @@ export class EconomicCalendarService {
   constructor(
     private readonly httpService: HttpService,
     private readonly configService: ConfigService,
+    private readonly newsAnalysisService: NewsAnalysisService,
+    // private readonly orchestrator: MultiModelOrchestratorService, // Injected
   ) {}
 
   async getEconomicCalendar(
@@ -119,19 +135,38 @@ export class EconomicCalendarService {
     to?: string,
     importance?: string,
   ): Promise<EconomicEvent[]> {
-    // In production, this would call real APIs
-    // For now, generating comprehensive mock data based on real economic events
-
     const currentDate = new Date();
     const events: EconomicEvent[] = [];
 
-    // Generate events for the next 7 days
-    for (let i = 0; i < 7; i++) {
-      const eventDate = new Date(currentDate);
-      eventDate.setDate(currentDate.getDate() + i);
-
-      const dayEvents = this.generateEventsForDay(eventDate);
-      events.push(...dayEvents);
+    // 1. Get Real ForexFactory Events (Primary Source)
+    try {
+      const ffEvents = await this.fetchForexFactoryEvents();
+      if (ffEvents.length > 0) {
+        events.push(...ffEvents);
+      }
+    } catch (e) {
+      this.logger.error('Failed to fetch ForexFactory events', e);
+      // Fallback to News Analysis if FF fails?
+      try {
+        const newsResult = await this.newsAnalysisService.getMarketNews();
+        const newsEvents = this.mapNewsToEvents(newsResult.news);
+        if (newsEvents.length > 0) {
+          events.push(...newsEvents);
+        }
+      } catch (newsError) {
+        this.logger.warn('Failed to fetch news-based economic events', newsError);
+      }
+      
+      // Fallback to Mock if both fail
+      if (events.length === 0) {
+         // Generate events for the next 7 days (Mock)
+        for (let i = 0; i < 7; i++) {
+          const eventDate = new Date(currentDate);
+          eventDate.setDate(currentDate.getDate() + i);
+          const dayEvents = this.generateEventsForDay(eventDate);
+          events.push(...dayEvents);
+        }
+      }
     }
 
     // Filter by importance if specified
@@ -140,6 +175,115 @@ export class EconomicCalendarService {
     }
 
     return events;
+  }
+
+  private async fetchForexFactoryEvents(): Promise<EconomicEvent[]> {
+    try {
+      const url = 'https://nfs.faireconomy.media/ff_calendar_thisweek.xml';
+      console.log(`Fetching FF Calendar from ${url}`);
+      
+      const response = await this.httpService.axiosRef.get(url);
+      const xmlData = response.data;
+
+      const parser = new XMLParser();
+      const jObj = parser.parse(xmlData);
+
+      if (!jObj.weeklyevents || !jObj.weeklyevents.event) {
+        return [];
+      }
+
+      let rawEvents = jObj.weeklyevents.event;
+      if (!Array.isArray(rawEvents)) {
+        rawEvents = [rawEvents];
+      }
+
+      return rawEvents.map((e: any) => {
+         const dateStr = e.date; // MM-DD-YYYY
+         const timeStr = e.time; // 1:30pm
+         
+         let eventDate = new Date();
+         try {
+             // 1. Handle "All Day" / "Tentative"
+             if (timeStr.toLowerCase().includes('day') || timeStr.toLowerCase().includes('tentative')) {
+                const [m, d, y] = dateStr.split('-').map(Number);
+                eventDate = new Date(Date.UTC(y, m-1, d, 0, 0));
+             } else {
+                 // 2. Parse standard time "MM-DD-YYYY h:mma"
+                 // Cloud Run is UTC. 
+                 // parse("01-15-2026 1:30pm", ...) -> Date object acting as 13:30 UTC.
+                 // This corresponds to 19:00 IST.
+                 const dateTimeStr = `${dateStr} ${timeStr}`;
+                 eventDate = parse(dateTimeStr, 'MM-dd-yyyy h:mma', new Date());
+             }
+         } catch (err) {
+             console.error('Date parse error', err);
+             // Fallback to today if parse fails
+         }
+
+         return {
+           id: `ff-${e.title}-${eventDate.getTime()}`,
+           title: e.title,
+           country: e.country,
+           currency: e.country,
+           date: eventDate,
+           time: e.time,
+           importance: e.impact.toLowerCase(),
+           actual: e.actual,
+           forecast: e.forecast,
+           previous: e.previous,
+           description: `${e.title} (${e.impact} Impact)`,
+           impact: {
+             expected: 'neutral',
+             explanation: 'Real-time economic event from ForexFactory',
+             affectedSymbols: this.mapCurrencyToSymbols(e.country),
+             volatilityRating: e.impact === 'High' ? 8 : (e.impact === 'Medium' ? 5 : 2),
+           },
+           isNewsDerived: false, 
+         };
+      }).filter(e => e !== null) as EconomicEvent[];
+
+    } catch (error) {
+       console.error('Critical Error fetching FF Events', error);
+       return [];
+    }
+  }
+
+  private mapCurrencyToSymbols(currency: string): string[] {
+    const map: Record<string, string[]> = {
+      'USD': ['EURUSD', 'GBPUSD', 'XAUUSD', 'SPX500', 'NASDAQ100'],
+      'EUR': ['EURUSD', 'EURGBP', 'EURJPY'],
+      'GBP': ['GBPUSD', 'EURGBP', 'GBPJPY'],
+      'JPY': ['USDJPY', 'EURJPY', 'GBPJPY'],
+      'AUD': ['AUDUSD', 'EURAUD'],
+      'CAD': ['USDCAD', 'EURCAD'],
+      'CHF': ['USDCHF'],
+      'NZD': ['NZDUSD'],
+      'CNY': ['USDCNH', 'XAUUSD'],
+    };
+    return map[currency] || ['EURUSD'];
+
+  }
+
+  private mapNewsToEvents(newsList: any[]): EconomicEvent[] {
+    return newsList
+      .filter((news) => news.category === 'economy' || news.category === 'fed')
+      .map((news) => ({
+        id: `news_${news.id}`,
+        title: news.title,
+        country: 'Global', // News often global
+        currency: 'USD', // Default
+        date: news.publishedAt,
+        time: news.publishedAt.toLocaleTimeString(),
+        importance: news.impact === 'high' ? 'high' : 'medium',
+        description: news.summary,
+        impact: {
+          expected: news.sentiment,
+          explanation: `Based on news analysis: ${news.title}`,
+          affectedSymbols: news.symbols || ['SPX500', 'EURUSD'],
+          volatilityRating: news.impact === 'high' ? 8 : 5,
+        },
+        isNewsDerived: true,
+      }));
   }
 
   private generateEventsForDay(date: Date): EconomicEvent[] {
@@ -452,37 +596,50 @@ export class EconomicCalendarService {
   private async generateEventImpactAnalysis(
     eventId: string,
   ): Promise<EconomicImpactAnalysis> {
-    // This would fetch specific event details and generate analysis
-    // For now, providing sophisticated mock analysis
+    // 1. Find the event details
+    // Only search today/this week (ForexFactory XML is weekly)
+    const events = await this.fetchEconomicEvents();
+    const event = events.find(e => e.id === eventId);
+    
+    if (!event) {
+       // Fallback mock if not found (or old event)
+       return this.getMockImpactAnalysis(eventId);
+    }
 
+    // 2. Use AI to generate analysis
+    // TEMPORARY REVERT: Use Mock for Deployment Safety
+    return this.getMockImpactAnalysis(eventId);
+
+    /*
+    try {
+      const prompt = `...`;
+      // AI Logic Commented Out
+    } catch ...
+    */
+  }
+
+
+  private getMockImpactAnalysis(eventId: string): EconomicImpactAnalysis {
     return {
       eventId,
       preEventAnalysis: {
         marketExpectations:
-          'Market is pricing in a 25bp rate hike with 78% probability based on Fed funds futures. Focus will be on forward guidance and dot plot projections.',
-        keyLevelsToWatch: [1.085, 1.08, 1.09, 1.095], // EURUSD levels
-        riskScenarios: [
-          'Hawkish surprise: Rate hike + aggressive forward guidance could send USD higher',
-          'Dovish pivot: Any hints of pause or cuts could weaken USD significantly',
-          'Neutral stance: Market may focus on economic data dependency',
-        ],
+          'Market is pricing in current consensus. Standard volatility expected.',
+        keyLevelsToWatch: [],
+        riskScenarios: ['Deviation from forecast could trigger volatility.'],
+      },
+      detailedAnalysis: {
+         source: 'Financial Agency',
+         measures: 'Economic Activity',
+         usualEffect: 'Actual > Forecast = Good for Currency',
+         frequency: 'Monthly',
+         whyTradersCare: 'Primary gauge of economic health',
+         nextRelease: 'Next Month'
       },
       tradingRecommendations: {
-        preEvent: [
-          'Reduce position sizes 2 hours before announcement',
-          'Set protective stops beyond key technical levels',
-          'Avoid opening new positions 1 hour before release',
-        ],
-        duringEvent: [
-          'Wait for initial volatility to subside (15-30 minutes)',
-          'Look for institutional order flow clues',
-          'Monitor price reaction at key levels',
-        ],
-        postEvent: [
-          'Assess if reaction aligns with fundamentals',
-          'Look for continuation or reversal patterns',
-          'Re-evaluate position sizes based on new information',
-        ],
+        preEvent: ['Reduce risk.'],
+        duringEvent: ['Wait for spread to normalize.'],
+        postEvent: ['Trade the reaction.'],
       },
     };
   }

@@ -6,17 +6,19 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.WebSocketGatewayModule = void 0;
+exports.WebSocketGatewayModule = exports.WebSocketModule = void 0;
 const common_1 = require("@nestjs/common");
 const trades_gateway_1 = require("./trades.gateway");
 const websocket_service_1 = require("./websocket.service");
-let WebSocketGatewayModule = class WebSocketGatewayModule {
+const notifications_gateway_1 = require("./notifications.gateway");
+let WebSocketModule = class WebSocketModule {
 };
-exports.WebSocketGatewayModule = WebSocketGatewayModule;
-exports.WebSocketGatewayModule = WebSocketGatewayModule = __decorate([
+exports.WebSocketModule = WebSocketModule;
+exports.WebSocketGatewayModule = WebSocketModule;
+exports.WebSocketGatewayModule = exports.WebSocketModule = WebSocketModule = __decorate([
     (0, common_1.Module)({
-        providers: [websocket_service_1.WebSocketService, trades_gateway_1.TradesGateway],
-        exports: [websocket_service_1.WebSocketService, trades_gateway_1.TradesGateway],
+        providers: [websocket_service_1.WebSocketService, trades_gateway_1.TradesGateway, notifications_gateway_1.NotificationsGateway],
+        exports: [websocket_service_1.WebSocketService, trades_gateway_1.TradesGateway, notifications_gateway_1.NotificationsGateway],
     })
-], WebSocketGatewayModule);
+], WebSocketModule);
 //# sourceMappingURL=websocket.module.js.map

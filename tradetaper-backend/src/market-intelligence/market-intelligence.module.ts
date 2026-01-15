@@ -8,6 +8,7 @@ import { NewsAnalysisService } from './news-analysis.service';
 import { ICTAnalysisService } from './ict-analysis.service';
 import { EconomicCalendarService } from './economic-calendar.service';
 import { AIMarketPredictionService } from './ai-market-prediction.service';
+import { MarketSentimentService } from './market-sentiment.service'; // Added
 import { ForexFactoryService } from './forex-factory.service';
 import { MarketDataAggregatorService } from './market-data-aggregator.service';
 import { FreeDataSourcesModule } from './free-data-sources/free-data-sources.module';
@@ -15,6 +16,7 @@ import { ICTModule } from './ict/ict.module'; // NEW ICT MODULE
 import { TradingViewAdvancedService } from './tradingview/tradingview-advanced.service';
 import { TradingViewAdvancedController } from './tradingview/tradingview-advanced.controller';
 import { GeminiInsightsService } from './gemini-insights.service';
+
 
 @Module({
   imports: [
@@ -41,14 +43,17 @@ import { GeminiInsightsService } from './gemini-insights.service';
     MarketDataAggregatorService,
     TradingViewAdvancedService, // NEW: TradingView Advanced API Service
     GeminiInsightsService,
+    MarketSentimentService, // Added
   ],
   exports: [
     MarketIntelligenceService,
     AIMarketPredictionService, // Export for agent usage
+    EconomicCalendarService, // ADDDED: Required for NotificationsModule
     FreeDataSourcesModule,
     ICTModule,
     TradingViewAdvancedService, // Export for use in other modules
     GeminiInsightsService,
+    MarketSentimentService, // Added
   ],
 })
 export class MarketIntelligenceModule {}

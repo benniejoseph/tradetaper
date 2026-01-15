@@ -21,6 +21,8 @@ export interface MarketNews {
     | 'crypto'
     | 'general';
   imageUrl?: string;
+  hasVideo?: boolean;
+  videoUrl?: string; // YouTube/Embed
 }
 
 export interface NewsAnalysisResult {
@@ -32,6 +34,10 @@ export interface NewsAnalysisResult {
   topSources: string[];
 }
 
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Cache } from 'cache-manager';
+import { Inject } from '@nestjs/common';
+
 @Injectable()
 export class NewsAnalysisService {
   private readonly logger = new Logger(NewsAnalysisService.name);
@@ -39,23 +45,21 @@ export class NewsAnalysisService {
   private readonly alphaVantageKey = process.env.ALPHA_VANTAGE_API_KEY;
   private readonly fmpKey = process.env.FMP_API_KEY;
 
-  // Cache for rate limiting
-  private newsCache: { data: NewsAnalysisResult; timestamp: Date } | null =
-    null;
   private readonly CACHE_DURATION = 300000; // 5 minutes
 
-  constructor(private readonly httpService: HttpService) {}
+  constructor(
+    private readonly httpService: HttpService,
+    @Inject(CACHE_MANAGER) private cacheManager: Cache
+  ) {}
 
-  async getMarketNews(): Promise<NewsAnalysisResult> {
-    // Check cache first
-    if (
-      this.newsCache &&
-      Date.now() - this.newsCache.timestamp.getTime() < this.CACHE_DURATION
-    ) {
-      return this.newsCache.data;
-    }
-
-    this.logger.log('Fetching live market news and analyzing sentiment...');
+  async getMarketNews(categoryFilter?: string): Promise<NewsAnalysisResult> {
+    const cacheKey = categoryFilter ? `news_${categoryFilter}` : 'news_all';
+    
+    // Check cache
+    const cached = await this.cacheManager.get<NewsAnalysisResult>(cacheKey);
+    if (cached) return cached;
+    
+    this.logger.log(`Fetching market news (Filter: ${categoryFilter || 'All'})...`);
 
     try {
       // Fetch from multiple sources in parallel
@@ -63,30 +67,30 @@ export class NewsAnalysisService {
         await Promise.allSettled([
           this.getNewsFromNewsAPI(),
           this.getNewsFromAlphaVantage(),
-          this.getNewsFromFMP(),
+          this.getNewsFromFMP(), // FMP is often limited, keep it.
         ]);
-
+        
       const allNews: MarketNews[] = [];
 
-      if (newsApiResults.status === 'fulfilled') {
-        allNews.push(...newsApiResults.value);
+      if (newsApiResults.status === 'fulfilled') allNews.push(...newsApiResults.value);
+      if (alphaVantageResults.status === 'fulfilled') allNews.push(...alphaVantageResults.value);
+      if (fmpResults.status === 'fulfilled') allNews.push(...fmpResults.value);
+
+      // Deduplicate
+      let uniqueNews = this.deduplicateNews(allNews);
+
+      // Filter
+      if (categoryFilter && categoryFilter !== 'all') {
+          uniqueNews = uniqueNews.filter(n => n.category.toLowerCase() === categoryFilter.toLowerCase() || 
+                                              (categoryFilter === 'market' && ['economy','fed','earnings'].includes(n.category)));
       }
 
-      if (alphaVantageResults.status === 'fulfilled') {
-        allNews.push(...alphaVantageResults.value);
-      }
-
-      if (fmpResults.status === 'fulfilled') {
-        allNews.push(...fmpResults.value);
-      }
-
-      // Remove duplicates and sort by date
-      const uniqueNews = this.deduplicateNews(allNews);
+      // Sort
       const sortedNews = uniqueNews
         .sort((a, b) => b.publishedAt.getTime() - a.publishedAt.getTime())
-        .slice(0, 50); // Limit to 50 most recent
+        .slice(0, 50);
 
-      // Calculate overall sentiment
+      // Calc Sentiment
       const sentimentScores = sortedNews.map((news) => news.sentimentScore);
       const avgSentiment =
         sentimentScores.length > 0
@@ -102,12 +106,12 @@ export class NewsAnalysisService {
         topSources: this.getTopSources(sortedNews),
       };
 
-      // Cache the result
-      this.newsCache = { data: result, timestamp: new Date() };
+      // Cache (5 mins)
+      await this.cacheManager.set(cacheKey, result, this.CACHE_DURATION);
       return result;
     } catch (error) {
-      this.logger.error('Error fetching market news:', error);
-      return this.getFallbackNews();
+       this.logger.error('Error fetching market news:', error);
+       return this.getFallbackNews();
     }
   }
 
@@ -154,6 +158,8 @@ export class NewsAnalysisService {
         ),
         category: this.categorizeNews(article.title),
         imageUrl: article.urlToImage,
+        hasVideo: this.detectVideo(article.url),
+        videoUrl: this.extractVideoUrl(article.url),
       }));
     } catch (error) {
       this.logger.error('NewsAPI error:', error.message);
@@ -521,6 +527,7 @@ export class NewsAnalysisService {
           impact: 'medium',
           symbols: [],
           category: 'general',
+          hasVideo: false
         },
       ],
       overallSentiment: 'neutral',
@@ -529,5 +536,17 @@ export class NewsAnalysisService {
       lastUpdated: new Date(),
       topSources: ['TradeTaper System'],
     };
+  }
+
+  private detectVideo(url: string): boolean {
+    return url.includes('youtube.com') || url.includes('video') || url.includes('watch?v=');
+  }
+
+  private extractVideoUrl(url: string): string | undefined {
+    if (url.includes('youtube.com/watch')) {
+       const videoId = url.split('v=')[1]?.split('&')[0];
+       return videoId ? `https://www.youtube.com/embed/${videoId}` : undefined;
+    }
+    return undefined;
   }
 }

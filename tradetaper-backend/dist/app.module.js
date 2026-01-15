@@ -29,6 +29,7 @@ const agent_orchestrator_module_1 = require("./agents/agent-orchestrator.module"
 const agents_implementation_module_1 = require("./agents/implementations/agents-implementation.module");
 const agents_module_1 = require("./agents/agents.module");
 const analytics_module_1 = require("./analytics/analytics.module");
+const notifications_module_1 = require("./notifications/notifications.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -57,6 +58,7 @@ exports.AppModule = AppModule = __decorate([
             agents_implementation_module_1.AgentsImplementationModule,
             agents_module_1.AgentsModule,
             analytics_module_1.AnalyticsModule,
+            notifications_module_1.NotificationsModule,
         ],
         controllers: [app_controller_1.AppController],
         providers: [app_service_1.AppService],

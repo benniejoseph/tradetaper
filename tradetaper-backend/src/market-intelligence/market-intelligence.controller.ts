@@ -14,6 +14,7 @@ import { NewsAnalysisService } from './news-analysis.service';
 import { ICTAnalysisService } from './ict-analysis.service';
 import { EconomicCalendarService } from './economic-calendar.service';
 import { AIMarketPredictionService } from './ai-market-prediction.service';
+import { MarketSentimentService } from './market-sentiment.service'; // Added
 
 @Controller('market-intelligence')
 export class MarketIntelligenceController {
@@ -25,6 +26,7 @@ export class MarketIntelligenceController {
     private readonly ictAnalysisService: ICTAnalysisService,
     private readonly economicCalendarService: EconomicCalendarService,
     private readonly aiPredictionService: AIMarketPredictionService,
+    private readonly marketSentimentService: MarketSentimentService, // Added
   ) {}
 
   // Public endpoint for testing live data integration
@@ -98,20 +100,32 @@ export class MarketIntelligenceController {
   @UseGuards(JwtAuthGuard)
   @Get('news')
   async getMarketNews(
-    @Query('symbols') symbols?: string,
-    @Query('limit') limit: number = 50,
+    @Query('category') category?: string,
   ) {
-    this.logger.log(`Getting market news for symbols: ${symbols || 'all'}`);
+    this.logger.log(`Getting market news (Category: ${category || 'All'})`);
     try {
-      const symbolArray = symbols
-        ? symbols.split(',')
-        : ['GOLD', 'EURUSD', 'GBPUSD', 'USDJPY', 'SPX500', 'NASDAQ100'];
-      const newsResult = await this.newsAnalysisService.getMarketNews();
-      return newsResult.news.slice(0, limit);
+      // Use new category filter in service
+      const newsResult = await this.newsAnalysisService.getMarketNews(category);
+      return newsResult;
     } catch (error) {
       this.logger.error('Failed to get market news', error);
       throw new HttpException(
         'Failed to fetch market news',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('ai-analysis')
+  async getAISentimentAnalysis() {
+    this.logger.log('Getting AI Sentiment Report');
+    try {
+      return await this.marketSentimentService.generateSentimentReport();
+    } catch (error) {
+      this.logger.error('Failed to get AI analysis', error);
+       throw new HttpException(
+        'Failed to fetch AI analysis',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }

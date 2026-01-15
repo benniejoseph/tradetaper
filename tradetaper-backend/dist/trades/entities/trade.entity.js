@@ -46,6 +46,9 @@ let Trade = class Trade {
     imageUrl;
     tags;
     chartImageUrl;
+    externalId;
+    externalDealId;
+    mt5Magic;
     createdAt;
     updatedAt;
     getContractSize() {
@@ -243,6 +246,19 @@ __decorate([
     }),
     __metadata("design:type", String)
 ], Trade.prototype, "chartImageUrl", void 0);
+__decorate([
+    (0, typeorm_1.Index)(),
+    (0, typeorm_1.Column)({ type: 'varchar', length: 255, nullable: true }),
+    __metadata("design:type", String)
+], Trade.prototype, "externalId", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'varchar', length: 255, nullable: true }),
+    __metadata("design:type", String)
+], Trade.prototype, "externalDealId", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'bigint', nullable: true }),
+    __metadata("design:type", Number)
+], Trade.prototype, "mt5Magic", void 0);
 __decorate([
     (0, typeorm_1.CreateDateColumn)(),
     __metadata("design:type", Date)

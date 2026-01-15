@@ -7,12 +7,16 @@ import { NotificationsService } from './notifications.service';
 import { NotificationsController } from './notifications.controller';
 import { NotificationSchedulerService } from './notification-scheduler.service';
 import { WebSocketModule } from '../websocket/websocket.module';
+import { UsersModule } from '../users/users.module';
+import { MarketIntelligenceModule } from '../market-intelligence/market-intelligence.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Notification, NotificationPreference]),
     ScheduleModule.forRoot(),
     forwardRef(() => WebSocketModule),
+    UsersModule,
+    forwardRef(() => MarketIntelligenceModule), // Added with forwardRef
   ],
   controllers: [NotificationsController],
   providers: [NotificationsService, NotificationSchedulerService],

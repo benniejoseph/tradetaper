@@ -22,6 +22,7 @@ class CreateMT5AccountDto {
     isRealAccount;
     initialBalance;
     leverage;
+    target;
 }
 exports.CreateMT5AccountDto = CreateMT5AccountDto;
 __decorate([
@@ -74,6 +75,11 @@ __decorate([
     (0, class_validator_1.IsNumber)(),
     __metadata("design:type", Number)
 ], CreateMT5AccountDto.prototype, "leverage", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Number)
+], CreateMT5AccountDto.prototype, "target", void 0);
 class CreateManualMT5AccountDto {
     accountName;
     server;
@@ -82,6 +88,7 @@ class CreateManualMT5AccountDto {
     currency;
     isActive;
     isRealAccount;
+    target;
 }
 exports.CreateManualMT5AccountDto = CreateManualMT5AccountDto;
 __decorate([
@@ -119,6 +126,11 @@ __decorate([
     (0, class_validator_1.IsBoolean)(),
     __metadata("design:type", Boolean)
 ], CreateManualMT5AccountDto.prototype, "isRealAccount", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Number)
+], CreateManualMT5AccountDto.prototype, "target", void 0);
 class UpdateMT5AccountDto {
     accountName;
     server;
@@ -127,6 +139,7 @@ class UpdateMT5AccountDto {
     accountType;
     currency;
     isActive;
+    target;
 }
 exports.UpdateMT5AccountDto = UpdateMT5AccountDto;
 __decorate([
@@ -164,6 +177,11 @@ __decorate([
     (0, class_validator_1.IsBoolean)(),
     __metadata("design:type", Boolean)
 ], UpdateMT5AccountDto.prototype, "isActive", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Number)
+], UpdateMT5AccountDto.prototype, "target", void 0);
 class MT5AccountResponseDto {
     id;
     accountName;
@@ -173,6 +191,7 @@ class MT5AccountResponseDto {
     balance;
     accountType;
     currency;
+    target;
     lastSyncAt;
     createdAt;
     updatedAt;

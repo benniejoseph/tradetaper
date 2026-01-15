@@ -9,6 +9,7 @@ export declare class CreateMT5AccountDto {
     isRealAccount?: boolean;
     initialBalance?: number;
     leverage?: number;
+    target?: number;
 }
 export declare class CreateManualMT5AccountDto {
     accountName: string;
@@ -18,6 +19,7 @@ export declare class CreateManualMT5AccountDto {
     currency?: string;
     isActive?: boolean;
     isRealAccount?: boolean;
+    target?: number;
 }
 export declare class UpdateMT5AccountDto {
     accountName?: string;
@@ -27,6 +29,7 @@ export declare class UpdateMT5AccountDto {
     accountType?: string;
     currency?: string;
     isActive?: boolean;
+    target?: number;
 }
 export declare class MT5AccountResponseDto {
     id: string;
@@ -37,6 +40,7 @@ export declare class MT5AccountResponseDto {
     balance: number;
     accountType?: string;
     currency?: string;
+    target?: number;
     lastSyncAt?: Date;
     createdAt: Date;
     updatedAt: Date;

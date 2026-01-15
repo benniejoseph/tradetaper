@@ -291,12 +291,10 @@ let MT5AccountsService = MT5AccountsService_1 = class MT5AccountsService {
                 const createTradeDto = {
                     assetType: trade.assetType,
                     symbol: trade.symbol,
-                    direction: trade.direction,
+                    side: trade.direction,
                     status: enums_1.TradeStatus.CLOSED,
-                    entryDate: trade.entryDate.toISOString(),
-                    entryPrice: trade.entryPrice,
-                    exitDate: trade.exitDate?.toISOString(),
-                    exitPrice: trade.exitPrice || undefined,
+                    openPrice: trade.entryPrice,
+                    closePrice: trade.exitPrice || undefined,
                     openTime: trade.entryDate.toISOString(),
                     closeTime: trade.exitDate?.toISOString(),
                     quantity: trade.quantity,
@@ -443,6 +441,9 @@ let MT5AccountsService = MT5AccountsService_1 = class MT5AccountsService {
         if (updateMT5AccountDto.isActive !== undefined) {
             updatedData.isActive = updateMT5AccountDto.isActive;
         }
+        if (updateMT5AccountDto.target !== undefined) {
+            updatedData.target = updateMT5AccountDto.target;
+        }
         await this.mt5AccountRepository.update(id, updatedData);
         const updatedAccount = await this.mt5AccountRepository.findOne({ where: { id } });
         if (!updatedAccount) {
@@ -503,6 +504,10 @@ let MT5AccountsService = MT5AccountsService_1 = class MT5AccountsService {
             }
         }
         catch (error) {
+            if (error.message && error.message.toLowerCase().includes('not found')) {
+                this.logger.warn(`MetaApi account not found (likely deleted remotely): ${error.message}`);
+                throw new common_1.UnprocessableEntityException('MetaApi account not found. It may have been deleted remotely. Please unlink and re-link this account.');
+            }
             this.logger.error(`Failed to ensure account deployment: ${error.message}`);
             throw error;
         }
