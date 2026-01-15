@@ -32,6 +32,9 @@ export declare class Trade {
     imageUrl?: string;
     tags: Tag[];
     chartImageUrl?: string;
+    externalId?: string;
+    externalDealId?: string;
+    mt5Magic?: number;
     createdAt: Date;
     updatedAt: Date;
     getContractSize(): number;

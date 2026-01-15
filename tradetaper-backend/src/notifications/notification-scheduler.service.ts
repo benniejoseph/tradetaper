@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Inject, forwardRef } from '@nestjs/common'; // Added Inject, forwardRef
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { NotificationsService } from './notifications.service';
 import { NotificationType, NotificationPriority } from './entities/notification.entity';
@@ -6,12 +6,14 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, LessThanOrEqual, MoreThan, Between } from 'typeorm';
 import { NotificationPreference } from './entities/notification-preference.entity';
 
+import { EconomicCalendarService } from '../market-intelligence/economic-calendar.service';
+
 interface ScheduledEconomicEvent {
   id: string;
   title: string;
   country: string;
   currency: string;
-  scheduledTime: Date;
+  scheduledTime: Date; 
   importance: 'low' | 'medium' | 'high';
   description?: string;
 }
@@ -21,10 +23,12 @@ export class NotificationSchedulerService {
   private readonly logger = new Logger(NotificationSchedulerService.name);
 
   // Track which events we've already sent alerts for
-  private alertsSent = new Map<string, Set<string>>(); // eventId -> Set<'1h' | '15m' | 'now'>
+  private alertsSent = new Map<string, Set<string>>();
 
   constructor(
     private readonly notificationsService: NotificationsService,
+    @Inject(forwardRef(() => EconomicCalendarService))
+    private readonly economicCalendarService: EconomicCalendarService, // Injected with forwardRef
     @InjectRepository(NotificationPreference)
     private readonly preferenceRepository: Repository<NotificationPreference>,
   ) {}
@@ -40,27 +44,42 @@ export class NotificationSchedulerService {
     const now = new Date();
 
     try {
-      // Get upcoming events (mocked for now, will integrate with real API)
+      // Get upcoming events from Real Service
       const upcomingEvents = await this.getUpcomingEconomicEvents();
 
       for (const event of upcomingEvents) {
-        const minutesUntilEvent = Math.floor(
-          (event.scheduledTime.getTime() - now.getTime()) / (1000 * 60),
-        );
+        const diffMs = event.scheduledTime.getTime() - now.getTime();
+        const minutesUntilEvent = Math.round(diffMs / 60000); // 1.5 -> 2, 60.1 -> 60
 
-        // Check 1-hour alert (55-65 minutes)
-        if (minutesUntilEvent >= 55 && minutesUntilEvent <= 65) {
-          await this.sendEconomicAlert(event, '1h', NotificationType.ECONOMIC_EVENT_1H);
+        // Tolerance for cron (cron runs every 5 mins, usually at :00, :05)
+        // We want to catch the exact window.
+        // If minutes is 60 (+/- 2.5), 45 (+/- 2.5), etc.
+        const tolerance = 2; 
+
+        // 1. 60 Minute Alert (1h)
+        if (minutesUntilEvent >= 60 - tolerance && minutesUntilEvent <= 60 + tolerance) {
+           await this.sendEconomicAlert(event, '1h', NotificationType.ECONOMIC_EVENT_1H);
         }
 
-        // Check 15-minute alert (10-20 minutes)
-        if (minutesUntilEvent >= 10 && minutesUntilEvent <= 20) {
-          await this.sendEconomicAlert(event, '15m', NotificationType.ECONOMIC_EVENT_15M);
+        // 2. 45 Minute Alert (Use 15M type)
+        // User requested "Starting from 1h prior till news... for 15 min interval"
+        if (minutesUntilEvent >= 45 - tolerance && minutesUntilEvent <= 45 + tolerance) {
+           await this.sendEconomicAlert(event, '45m', NotificationType.ECONOMIC_EVENT_15M);
         }
 
-        // Check event starting now (0-5 minutes)
+        // 3. 30 Minute Alert (Use 15M type)
+        if (minutesUntilEvent >= 30 - tolerance && minutesUntilEvent <= 30 + tolerance) {
+           await this.sendEconomicAlert(event, '30m', NotificationType.ECONOMIC_EVENT_15M);
+        }
+
+        // 4. 15 Minute Alert (Use 15M type)
+        if (minutesUntilEvent >= 15 - tolerance && minutesUntilEvent <= 15 + tolerance) {
+           await this.sendEconomicAlert(event, '15m', NotificationType.ECONOMIC_EVENT_15M);
+        }
+
+        // 5. NOW Alert (0-5 mins)
         if (minutesUntilEvent >= 0 && minutesUntilEvent <= 5) {
-          await this.sendEconomicAlert(event, 'now', NotificationType.ECONOMIC_EVENT_NOW);
+           await this.sendEconomicAlert(event, 'now', NotificationType.ECONOMIC_EVENT_NOW);
         }
       }
 
@@ -96,7 +115,7 @@ export class NotificationSchedulerService {
    */
   private async sendEconomicAlert(
     event: ScheduledEconomicEvent,
-    alertType: '1h' | '15m' | 'now',
+    alertType: '1h' | '45m' | '30m' | '15m' | 'now',
     notificationType: NotificationType,
   ): Promise<void> {
     // Check if we've already sent this alert
@@ -120,19 +139,33 @@ export class NotificationSchedulerService {
     switch (alertType) {
       case '1h':
         title = `📅 ${event.title} in 1 hour`;
-        message = `${event.currency} - ${event.country}: ${event.title} is scheduled in approximately 1 hour.`;
+        message = `${event.currency}: ${event.title} is scheduled in 1h.`;
+        priority = NotificationPriority.HIGH;
+        break;
+      case '45m':
+        title = `⚠️ ${event.title} in 45 minutes`;
+        message = `${event.currency}: ${event.title} in 45 mins.`;
+        priority = NotificationPriority.HIGH;
+        break;
+      case '30m':
+        title = `⚠️ ${event.title} in 30 minutes`;
+        message = `${event.currency}: ${event.title} in 30 mins. Volatility Incoming.`;
         priority = NotificationPriority.HIGH;
         break;
       case '15m':
         title = `⚠️ ${event.title} in 15 minutes`;
-        message = `${event.currency} - ${event.country}: ${event.title} is starting in approximately 15 minutes. Consider your positions.`;
+        message = `${event.currency}: ${event.title} starting in 15 mins. Check positions!`;
         priority = NotificationPriority.URGENT;
         break;
       case 'now':
-        title = `🔴 ${event.title} starting now`;
-        message = `${event.currency} - ${event.country}: ${event.title} is happening now!`;
+        title = `🔴 ${event.title} starting NOW`;
+        message = `${event.currency}: ${event.title} released.`;
         priority = NotificationPriority.URGENT;
         break;
+      default:
+         title = `Event Alert`;
+         message = `${event.title}`;
+         priority = NotificationPriority.NORMAL;
     }
 
     // Send to each subscribed user
@@ -185,7 +218,7 @@ export class NotificationSchedulerService {
    */
   private async getSubscribedUsers(
     importance: 'low' | 'medium' | 'high',
-    alertType: '1h' | '15m' | 'now',
+    alertType: '1h' | '45m' | '30m' | '15m' | 'now',
   ): Promise<NotificationPreference[]> {
     const preferences = await this.preferenceRepository.find({
       where: { enabled: true },
@@ -201,7 +234,10 @@ export class NotificationSchedulerService {
       switch (alertType) {
         case '1h':
           return pref.economicAlert1h;
+        case '45m':
+        case '30m':
         case '15m':
+          // Reuse '15m' preference for all countdown intervals if enabled
           return pref.economicAlert15m;
         case 'now':
           return pref.economicAlertNow;
@@ -216,41 +252,29 @@ export class NotificationSchedulerService {
    * TODO: Integrate with EconomicCalendarService
    */
   private async getUpcomingEconomicEvents(): Promise<ScheduledEconomicEvent[]> {
-    // Mock data for testing - will be replaced with actual API call
-    const now = new Date();
-
-    // Generate sample events for the next 2 hours
-    const events: ScheduledEconomicEvent[] = [];
-
-    // Sample events (in production, fetch from EconomicCalendarService)
-    const sampleEvents = [
-      { title: 'Non-Farm Payrolls', country: 'United States', currency: 'USD', importance: 'high' as const },
-      { title: 'ECB Interest Rate Decision', country: 'Eurozone', currency: 'EUR', importance: 'high' as const },
-      { title: 'UK CPI y/y', country: 'United Kingdom', currency: 'GBP', importance: 'high' as const },
-      { title: 'German ZEW', country: 'Germany', currency: 'EUR', importance: 'medium' as const },
-      { title: 'Japan Trade Balance', country: 'Japan', currency: 'JPY', importance: 'medium' as const },
-    ];
-
-    // Create events at various times for testing
-    // In production, this would fetch real scheduled times from the API
-    const testOffsets = [15, 60, 3]; // 15 min, 1 hour, 3 min from now
-
-    for (let i = 0; i < Math.min(sampleEvents.length, 3); i++) {
-      const event = sampleEvents[i];
-      const scheduledTime = new Date(now.getTime() + testOffsets[i] * 60 * 1000);
-
-      events.push({
-        id: `event-${i}-${scheduledTime.getTime()}`,
-        title: event.title,
-        country: event.country,
-        currency: event.currency,
-        importance: event.importance,
-        scheduledTime,
-        description: `${event.title} for ${event.country}`,
-      });
-    }
-
-    return events;
+     // Fetch from Economic Calendar Service
+     // Range: Now to Now + 2 hours to catch 1h alerts
+     const now = new Date();
+     const twoHoursLater = new Date(now.getTime() + 2 * 60 * 60 * 1000);
+     
+     // Format dates for service if needed? 
+     // Service accepts ISO strings or undefined?
+     // getEconomicCalendar(from?: string, to?: string)
+     
+     const response = await this.economicCalendarService.getEconomicCalendar(
+       now.toISOString(),
+       twoHoursLater.toISOString()
+     );
+     
+     return response.events.map(e => ({
+       id: e.id,
+       title: e.title,
+       country: e.country,
+       currency: e.currency,
+       scheduledTime: typeof e.date === 'string' ? new Date(e.date) : e.date,
+       importance: e.importance as 'low' | 'medium' | 'high',
+       description: e.description,
+     }));
   }
 
   private getEventIcon(importance: 'low' | 'medium' | 'high'): string {

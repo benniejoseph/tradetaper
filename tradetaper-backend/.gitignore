@@ -23,4 +23,4 @@ env.yaml.example
 
 # Logs
 *.log
-dev.log
+dev.log.env.yaml

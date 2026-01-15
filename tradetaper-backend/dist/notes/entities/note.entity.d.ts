@@ -1,6 +1,7 @@
 import { PsychologicalInsight } from './psychological-insight.entity';
 import { User } from '../../users/entities/user.entity';
 import { Account } from '../../users/entities/account.entity';
+import { MT5Account } from '../../users/entities/mt5-account.entity';
 import { Trade } from '../../trades/entities/trade.entity';
 export interface NoteContentBlock {
     id: string;
@@ -13,6 +14,7 @@ export declare class Note {
     userId: string;
     accountId?: string;
     tradeId?: string;
+    mt5AccountId?: string;
     title: string;
     content: NoteContentBlock[];
     tags: string[];
@@ -28,6 +30,7 @@ export declare class Note {
     psychologicalTags?: string[];
     user: User;
     account?: Account;
+    mt5Account?: MT5Account;
     trade?: Trade;
     psychologicalInsights: PsychologicalInsight[];
     get preview(): string;

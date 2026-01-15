@@ -31,7 +31,7 @@ let TradesController = TradesController_1 = class TradesController {
         return this.tradesService.create(createTradeDto, req.user);
     }
     findAll(req, accountId, page = 1, limit = 10) {
-        const safeLimit = Math.min(100, limit);
+        const safeLimit = Math.min(5000, limit);
         return this.tradesService.findAll(req.user, accountId, undefined, page, safeLimit);
     }
     findOne(id, req) {

@@ -1,2 +1,3 @@
-export declare class WebSocketGatewayModule {
+export declare class WebSocketModule {
 }
+export { WebSocketModule as WebSocketGatewayModule };

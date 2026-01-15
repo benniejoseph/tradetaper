@@ -14,12 +14,14 @@ const typeorm_1 = require("typeorm");
 const psychological_insight_entity_1 = require("./psychological-insight.entity");
 const user_entity_1 = require("../../users/entities/user.entity");
 const account_entity_1 = require("../../users/entities/account.entity");
+const mt5_account_entity_1 = require("../../users/entities/mt5-account.entity");
 const trade_entity_1 = require("../../trades/entities/trade.entity");
 let Note = class Note {
     id;
     userId;
     accountId;
     tradeId;
+    mt5AccountId;
     title;
     content;
     tags;
@@ -35,6 +37,7 @@ let Note = class Note {
     psychologicalTags;
     user;
     account;
+    mt5Account;
     trade;
     psychologicalInsights;
     get preview() {
@@ -72,6 +75,10 @@ __decorate([
     (0, typeorm_1.Column)({ name: 'trade_id', nullable: true }),
     __metadata("design:type", String)
 ], Note.prototype, "tradeId", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'mt5_account_id', nullable: true }),
+    __metadata("design:type", String)
+], Note.prototype, "mt5AccountId", void 0);
 __decorate([
     (0, typeorm_1.Column)({ length: 255 }),
     __metadata("design:type", String)
@@ -134,6 +141,11 @@ __decorate([
     (0, typeorm_1.JoinColumn)({ name: 'account_id' }),
     __metadata("design:type", account_entity_1.Account)
 ], Note.prototype, "account", void 0);
+__decorate([
+    (0, typeorm_1.ManyToOne)(() => mt5_account_entity_1.MT5Account, { eager: false, nullable: true }),
+    (0, typeorm_1.JoinColumn)({ name: 'mt5_account_id' }),
+    __metadata("design:type", mt5_account_entity_1.MT5Account)
+], Note.prototype, "mt5Account", void 0);
 __decorate([
     (0, typeorm_1.ManyToOne)(() => trade_entity_1.Trade, { eager: false, nullable: true }),
     (0, typeorm_1.JoinColumn)({ name: 'trade_id' }),

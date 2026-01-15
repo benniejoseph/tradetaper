@@ -13,6 +13,7 @@ export declare class MT5Account {
     isActive: boolean;
     balance: number;
     initialBalance: number;
+    target: number;
     equity: number;
     margin: number;
     marginFree: number;

@@ -12,9 +12,50 @@ const common_1 = require("@nestjs/common");
 let WebSocketService = WebSocketService_1 = class WebSocketService {
     logger = new common_1.Logger(WebSocketService_1.name);
     server = null;
+    userSockets = new Map();
     setServer(server) {
         this.server = server;
         this.logger.log('WebSocket server instance set');
+    }
+    registerUserSocket(userId, socketId) {
+        if (!this.userSockets.has(userId)) {
+            this.userSockets.set(userId, new Set());
+        }
+        this.userSockets.get(userId).add(socketId);
+        this.logger.debug(`Socket ${socketId} registered for user ${userId}`);
+    }
+    unregisterSocket(socketId) {
+        for (const [userId, sockets] of this.userSockets.entries()) {
+            if (sockets.has(socketId)) {
+                sockets.delete(socketId);
+                if (sockets.size === 0) {
+                    this.userSockets.delete(userId);
+                }
+                this.logger.debug(`Socket ${socketId} unregistered from user ${userId}`);
+                break;
+            }
+        }
+    }
+    sendToUser(userId, event, data) {
+        if (!this.server) {
+            this.logger.warn('WebSocket server not initialized');
+            return;
+        }
+        const sockets = this.userSockets.get(userId);
+        if (sockets && sockets.size > 0) {
+            for (const socketId of sockets) {
+                this.server.to(socketId).emit(event, data);
+            }
+            this.logger.debug(`Sent ${event} to user ${userId} (${sockets.size} sockets)`);
+        }
+    }
+    broadcast(event, data) {
+        if (!this.server) {
+            this.logger.warn('WebSocket server not initialized');
+            return;
+        }
+        this.server.emit(event, data);
+        this.logger.debug(`Broadcast ${event} to all clients`);
     }
     notifyTradeCreated(trade) {
         if (!this.server) {
@@ -47,6 +88,13 @@ let WebSocketService = WebSocketService_1 = class WebSocketService {
         }
         this.server.emit('trades:bulk', { operation, count, trades });
         this.logger.debug(`Bulk operation notification sent: ${operation} (${count} trades)`);
+    }
+    getConnectedUsersCount() {
+        return this.userSockets.size;
+    }
+    isUserConnected(userId) {
+        const sockets = this.userSockets.get(userId);
+        return sockets !== undefined && sockets.size > 0;
     }
 };
 exports.WebSocketService = WebSocketService;

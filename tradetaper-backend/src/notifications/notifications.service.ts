@@ -1,6 +1,6 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, LessThanOrEqual, In, MoreThan } from 'typeorm';
+import { Repository, LessThanOrEqual, In, MoreThan, IsNull } from 'typeorm';
 import {
   Notification,
   NotificationType,
@@ -12,7 +12,11 @@ import {
   NotificationPreference,
   ChannelPreference,
 } from './entities/notification-preference.entity';
+import { Resend } from 'resend';
+import { ConfigService } from '@nestjs/config';
 import { WebSocketService } from '../websocket/websocket.service';
+import { UsersService } from '../users/users.service'; // Assuming UsersService exists and can find email
+
 
 export interface CreateNotificationDto {
   userId: string;
@@ -46,7 +50,18 @@ export class NotificationsService {
     @InjectRepository(NotificationPreference)
     private readonly preferenceRepository: Repository<NotificationPreference>,
     private readonly webSocketService: WebSocketService,
-  ) {}
+    private readonly configService: ConfigService,
+    private readonly usersService: UsersService, // Inject UsersService
+  ) {
+    const resendApiKey = this.configService.get<string>('RESEND_API_KEY');
+    if (resendApiKey) {
+      this.resend = new Resend(resendApiKey);
+    } else {
+      this.logger.warn('RESEND_API_KEY not configured');
+    }
+  }
+
+  private resend: Resend;
 
   /**
    * Send a notification to a user
@@ -201,7 +216,7 @@ export class NotificationsService {
 
     if (filter.unreadOnly) {
       where.status = In([NotificationStatus.DELIVERED, NotificationStatus.PENDING]);
-      where.readAt = null;
+      where.readAt = IsNull();
     }
 
     const [notifications, total] = await this.notificationRepository.findAndCount({
@@ -216,7 +231,7 @@ export class NotificationsService {
       where: {
         userId,
         status: In([NotificationStatus.DELIVERED, NotificationStatus.PENDING]),
-        readAt: null,
+        readAt: IsNull(),
       },
     });
 
@@ -254,7 +269,7 @@ export class NotificationsService {
       {
         userId,
         status: NotificationStatus.DELIVERED,
-        readAt: null,
+        readAt: IsNull(),
       },
       {
         status: NotificationStatus.READ,
@@ -287,7 +302,7 @@ export class NotificationsService {
       where: {
         userId,
         status: In([NotificationStatus.DELIVERED, NotificationStatus.PENDING]),
-        readAt: null,
+        readAt: IsNull(),
       },
     });
   }
@@ -400,11 +415,46 @@ export class NotificationsService {
   }
 
   private async deliverEmail(notification: Notification): Promise<void> {
-    this.logger.debug(`Delivering email notification ${notification.id}`);
+    if (!this.resend) {
+      this.logger.warn('Resend client not initialized - skipping email');
+      return;
+    }
 
-    // TODO: Implement email delivery via SendGrid/Resend
-    // This is a placeholder for email integration
-    this.logger.warn('Email notifications not yet implemented');
+    try {
+      const user = await this.usersService.findOneById(notification.userId);
+      if (!user || !user.email) {
+        this.logger.warn(`User ${notification.userId} not found or no email - skipping email notification`);
+        return;
+      }
+
+      this.logger.debug(`Delivering email notification ${notification.id} to ${user.email}`);
+
+      const { data, error } = await this.resend.emails.send({
+        from: this.configService.get<string>('NOTIFICATION_FROM_EMAIL') || 'notifications@tradetaper.com',
+        to: [user.email],
+        subject: notification.title,
+        html: `
+          <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2>${notification.title}</h2>
+            <p>${notification.message}</p>
+            ${notification.actionUrl ? `<a href="${notification.actionUrl}" style="display: inline-block; padding: 10px 20px; background-color: #007bff; color: white; text-decoration: none; border-radius: 5px;">View Details</a>` : ''}
+            <hr />
+            <p style="font-size: 12px; color: #666;">
+              You received this email because you have notifications enabled.
+              <a href="${this.configService.get<string>('FRONTEND_URL')}/notifications">Manage Preferences</a>
+            </p>
+          </div>
+        `,
+      });
+
+      if (error) {
+        this.logger.error('Resend email failed:', error);
+      } else {
+          this.logger.log(`Email sent successfully: ${data?.id}`);
+      }
+    } catch (error) {
+      this.logger.error(`Failed to send email to user ${notification.userId}`, error);
+    }
   }
 
   private isQuietHours(preferences: NotificationPreference): boolean {
