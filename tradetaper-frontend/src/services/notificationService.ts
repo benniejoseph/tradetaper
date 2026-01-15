@@ -1,4 +1,4 @@
-import api from './api';
+import { authApiClient as api } from './api';
 
 export interface Notification {
   id: string;
