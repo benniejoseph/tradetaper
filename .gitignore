@@ -47,3 +47,33 @@ dev.log
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+# Sensitive files - NEVER COMMIT
+*.env
+*.env.*
+!*.env.example
+.env
+.env.local
+.env.production
+.env.yaml
+tradetaper-backend/.env
+tradetaper-backend/.env.*
+tradetaper-frontend/.env
+tradetaper-frontend/.env.*
+tradetaper-admin/.env
+tradetaper-admin/.env.*
+
+# Firebase keys - NEVER COMMIT
+**/firebase-adminsdk*.json
+*-adminsdk-*.json
+firebase*.json
+!firebase.json
+
+# Private keys
+*.pem
+*.key
+*.p12
+*-key.json
+
+# Other sensitive files
+verify_notifications.js
