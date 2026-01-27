@@ -19,6 +19,7 @@ let Trade = class Trade {
     id;
     user;
     userId;
+    strategy;
     strategyId;
     accountId;
     isStarred;
@@ -100,6 +101,14 @@ __decorate([
     (0, typeorm_1.Column)(),
     __metadata("design:type", String)
 ], Trade.prototype, "userId", void 0);
+__decorate([
+    (0, typeorm_1.ManyToOne)('Strategy', {
+        eager: false,
+        onDelete: 'SET NULL',
+    }),
+    (0, typeorm_1.JoinColumn)({ name: 'strategyId' }),
+    __metadata("design:type", Object)
+], Trade.prototype, "strategy", void 0);
 __decorate([
     (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", String)

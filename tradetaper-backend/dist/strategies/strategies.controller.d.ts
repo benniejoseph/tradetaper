@@ -32,7 +32,7 @@ export declare class StrategiesController {
         userId: string;
     }[]>;
     findOne(id: string, req: any): Promise<import("./entities/strategy.entity").Strategy>;
-    getStats(): {
+    getStats(id: string, req: any): Promise<{
         totalTrades: number;
         closedTrades: number;
         winningTrades: number;
@@ -43,7 +43,7 @@ export declare class StrategiesController {
         averageWin: number;
         averageLoss: number;
         profitFactor: number;
-    };
+    }>;
     update(id: string, updateStrategyDto: UpdateStrategyDto, req: any): Promise<import("./entities/strategy.entity").Strategy>;
     toggleActive(id: string, req: any): Promise<import("./entities/strategy.entity").Strategy>;
     remove(id: string, req: any): Promise<{
