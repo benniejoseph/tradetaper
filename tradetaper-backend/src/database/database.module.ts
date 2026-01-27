@@ -44,7 +44,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
               configService.get<string>('DB_PASSWORD') ||
               configService.get<string>('DATABASE_PASSWORD'),
             autoLoadEntities: true,
-            synchronize: false,
+            synchronize: true, // TEMPORARY: Enable to create new time columns, then set back to false
             migrationsRun: true,
             migrations: [__dirname + '/../migrations/*{.ts,.js}'],
             logging: ['error', 'warn'] as any,
