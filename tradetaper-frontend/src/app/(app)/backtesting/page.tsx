@@ -183,24 +183,24 @@ export default function BacktestingPage() {
               />
               <StatCard
                 label="Win Rate"
-                value={`${stats.winRate}%`}
-                trend={stats.winRate >= 50 ? 'up' : 'down'}
+                value={`${Number(stats.winRate).toFixed(1)}%`}
+                trend={Number(stats.winRate) >= 50 ? 'up' : 'down'}
               />
               <StatCard
                 label="Total P&L"
-                value={`$${stats.totalPnlDollars.toLocaleString()}`}
-                subValue={`${stats.totalPnlPips} pips`}
-                trend={stats.totalPnlDollars >= 0 ? 'up' : 'down'}
+                value={`$${Number(stats.totalPnlDollars).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                subValue={`${Number(stats.totalPnlPips).toFixed(1)} pips`}
+                trend={Number(stats.totalPnlDollars) >= 0 ? 'up' : 'down'}
               />
               <StatCard
                 label="Profit Factor"
-                value={stats.profitFactor}
-                trend={stats.profitFactor >= 1.5 ? 'up' : stats.profitFactor >= 1 ? 'neutral' : 'down'}
+                value={Number(stats.profitFactor).toFixed(2)}
+                trend={Number(stats.profitFactor) >= 1.5 ? 'up' : Number(stats.profitFactor) >= 1 ? 'neutral' : 'down'}
               />
               <StatCard
                 label="Expectancy"
-                value={`$${stats.expectancy.toFixed(2)}`}
-                trend={stats.expectancy >= 0 ? 'up' : 'down'}
+                value={`$${Number(stats.expectancy).toFixed(2)}`}
+                trend={Number(stats.expectancy) >= 0 ? 'up' : 'down'}
               />
             </div>
           ) : (
@@ -217,7 +217,7 @@ export default function BacktestingPage() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <StatCard
                 label="Avg R-Multiple"
-                value={stats.averageRMultiple.toFixed(2)}
+                value={Number(stats.averageRMultiple).toFixed(2)}
                 subValue="Risk:Reward"
               />
               <StatCard
