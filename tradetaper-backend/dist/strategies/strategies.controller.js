@@ -35,8 +35,8 @@ let StrategiesController = class StrategiesController {
     async findOne(id, req) {
         return this.strategiesService.findOne(id, req.user.id);
     }
-    getStats() {
-        return this.strategiesService.getStrategyStats();
+    async getStats(id, req) {
+        return this.strategiesService.getStrategyStats(id, req.user.id);
     }
     async update(id, updateStrategyDto, req) {
         return this.strategiesService.update(id, updateStrategyDto, req.user.id);
@@ -82,9 +82,11 @@ __decorate([
 ], StrategiesController.prototype, "findOne", null);
 __decorate([
     (0, common_1.Get)(':id/stats'),
+    __param(0, (0, common_1.Param)('id', common_1.ParseUUIDPipe)),
+    __param(1, (0, common_1.Request)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", []),
-    __metadata("design:returntype", void 0)
+    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:returntype", Promise)
 ], StrategiesController.prototype, "getStats", null);
 __decorate([
     (0, common_1.Patch)(':id'),

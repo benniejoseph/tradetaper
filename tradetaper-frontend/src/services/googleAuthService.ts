@@ -48,8 +48,8 @@ export class GoogleAuthService {
           localStorage.setItem('user', JSON.stringify(userData));
         }
 
-        // Clean up URL parameters
-        window.history.replaceState({}, document.title, window.location.pathname);
+        // Don't clean up URL here - let the redirect handle it
+        // The new page load will have a clean URL
         
         console.log('Google OAuth authentication successful');
         return true;

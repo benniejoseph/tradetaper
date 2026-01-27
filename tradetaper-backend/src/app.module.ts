@@ -24,6 +24,7 @@ import { AgentsImplementationModule } from './agents/implementations/agents-impl
 import { AgentsModule } from './agents/agents.module';
 import { AnalyticsModule } from './analytics/analytics.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { BacktestingModule } from './backtesting/backtesting.module';
 
 @Module({
   imports: [
@@ -51,6 +52,7 @@ import { NotificationsModule } from './notifications/notifications.module';
     AgentsModule,
     AnalyticsModule,
     NotificationsModule,
+    BacktestingModule, // Strategy backtesting framework
   ],
   controllers: [AppController],
   providers: [AppService],

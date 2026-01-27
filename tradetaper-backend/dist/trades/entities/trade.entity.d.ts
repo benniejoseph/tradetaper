@@ -5,6 +5,7 @@ export declare class Trade {
     id: string;
     user: User;
     userId: string;
+    strategy: any;
     strategyId?: string;
     accountId?: string;
     isStarred?: boolean;

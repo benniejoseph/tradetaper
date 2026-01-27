@@ -12,12 +12,13 @@ const typeorm_1 = require("@nestjs/typeorm");
 const strategies_controller_1 = require("./strategies.controller");
 const strategies_service_1 = require("./strategies.service");
 const strategy_entity_1 = require("./entities/strategy.entity");
+const trade_entity_1 = require("../trades/entities/trade.entity");
 let StrategiesModule = class StrategiesModule {
 };
 exports.StrategiesModule = StrategiesModule;
 exports.StrategiesModule = StrategiesModule = __decorate([
     (0, common_1.Module)({
-        imports: [typeorm_1.TypeOrmModule.forFeature([strategy_entity_1.Strategy])],
+        imports: [typeorm_1.TypeOrmModule.forFeature([strategy_entity_1.Strategy, trade_entity_1.Trade])],
         controllers: [strategies_controller_1.StrategiesController],
         providers: [strategies_service_1.StrategiesService],
         exports: [strategies_service_1.StrategiesService],

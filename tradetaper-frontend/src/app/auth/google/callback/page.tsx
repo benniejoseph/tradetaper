@@ -11,10 +11,43 @@ function GoogleCallbackContent() {
   const [errorMessage, setErrorMessage] = useState<string>('');
 
   useEffect(() => {
+    // Prevent running if already processed or if no params yet
+    if (status !== 'processing') return;
+    
     const handleCallback = async () => {
       try {
-        // Add a small delay to prevent flash
-        await new Promise(resolve => setTimeout(resolve, 500));
+        // Check if we have any auth-related params before processing
+        const token = searchParams.get('token');
+        const user = searchParams.get('user');
+        const error = searchParams.get('error');
+        
+        // If no relevant params, wait - they might still be loading
+        if (!token && !user && !error) {
+          console.log('No auth params yet, waiting...');
+          // Give it a moment for params to populate
+          await new Promise(resolve => setTimeout(resolve, 300));
+          
+          // Re-check after waiting
+          const tokenRetry = searchParams.get('token');
+          const userRetry = searchParams.get('user');
+          const errorRetry = searchParams.get('error');
+          
+          if (!tokenRetry && !userRetry && !errorRetry) {
+            // Still no params - check localStorage as fallback (might already be authenticated)
+            const storedToken = localStorage.getItem('token');
+            if (storedToken) {
+              console.log('Found existing token in localStorage, redirecting to dashboard');
+              router.push('/dashboard');
+              return;
+            }
+            // Truly no params - redirect to login
+            console.log('No auth params found after waiting');
+            setErrorMessage('No authentication data received');
+            setStatus('error');
+            setTimeout(() => router.push('/login'), 2000);
+            return;
+          }
+        }
         
         const success = await GoogleAuthService.handleGoogleCallback(searchParams);
         
@@ -23,18 +56,14 @@ function GoogleCallbackContent() {
           // Redirect to dashboard after successful authentication
           setTimeout(() => {
             router.push('/dashboard');
-          }, 1500);
+          }, 1000);
         } else {
           // Check if there's an error parameter
-          const error = searchParams.get('error');
-          const hasToken = searchParams.get('token');
-          const hasUser = searchParams.get('user');
+          const errorParam = searchParams.get('error');
           
           let errorMsg = 'Authentication failed';
-          if (error) {
-            errorMsg = `Authentication error: ${error}`;
-          } else if (!hasToken || !hasUser) {
-            errorMsg = 'Missing authentication data from callback';
+          if (errorParam) {
+            errorMsg = `Authentication error: ${errorParam}`;
           }
           
           setErrorMessage(errorMsg);
@@ -43,20 +72,20 @@ function GoogleCallbackContent() {
           // Redirect to login page after error
           setTimeout(() => {
             router.push('/login');
-          }, 4000); // Increased delay to give user time to read error
+          }, 3000);
         }
-      } catch (error) {
-        console.error('Error in Google callback:', error);
-        setErrorMessage(`Callback processing error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      } catch (err) {
+        console.error('Error in Google callback:', err);
+        setErrorMessage(`Callback processing error: ${err instanceof Error ? err.message : 'Unknown error'}`);
         setStatus('error');
         setTimeout(() => {
           router.push('/login');
-        }, 4000);
+        }, 3000);
       }
     };
 
     handleCallback();
-  }, [searchParams, router]);
+  }, [searchParams, router, status]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">

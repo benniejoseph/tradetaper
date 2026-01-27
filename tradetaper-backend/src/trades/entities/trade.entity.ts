@@ -39,13 +39,13 @@ export class Trade {
   @Column()
   userId: string; // Foreign key storage
 
-  // Strategy relationship temporarily commented out
-  // @ManyToOne('Strategy', {
-  //   eager: false,
-  //   onDelete: 'SET NULL',
-  // })
-  // @JoinColumn({ name: 'strategyId' })
-  // strategy: any;
+  // Strategy relationship
+  @ManyToOne('Strategy', {
+    eager: false,
+    onDelete: 'SET NULL',
+  })
+  @JoinColumn({ name: 'strategyId' })
+  strategy: any;
 
   @Column({ nullable: true })
   strategyId?: string;
