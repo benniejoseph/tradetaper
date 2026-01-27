@@ -69,8 +69,13 @@ export class BacktestingService {
     createDto: CreateBacktestTradeDto,
     userId: string,
   ): Promise<BacktestTrade> {
+    const entryTime = this.parseTimeToTimestamp(createDto.entryTime, createDto.tradeDate);
+    const exitTime = this.parseTimeToTimestamp(createDto.exitTime, createDto.tradeDate);
+
     const trade = this.backtestTradeRepository.create({
       ...createDto,
+      entryTime,
+      exitTime,
       userId,
     });
     return await this.backtestTradeRepository.save(trade);
@@ -608,22 +613,35 @@ export class BacktestingService {
       ? this.tagService.normalizeAll(createDto.tags)
       : [];
 
-    // Convert empty string times to null (PostgreSQL can't parse "")
-    const startTime = createDto.startTime && createDto.startTime.trim() !== '' 
-      ? createDto.startTime 
-      : null;
-    const endTime = createDto.endTime && createDto.endTime.trim() !== '' 
-      ? createDto.endTime 
-      : null;
+    const startTime = this.parseTimeToTimestamp(createDto.startTime, createDto.tradeDate);
+    const endTime = this.parseTimeToTimestamp(createDto.endTime, createDto.tradeDate);
 
     const log = this.marketLogRepository.create({
       ...createDto,
       tags: normalizedTags,
-      startTime: startTime as any,
-      endTime: endTime as any,
+      startTime: startTime,
+      endTime: endTime,
       userId,
     });
     return await this.marketLogRepository.save(log);
+  }
+
+  // Helper to combine date and time into a proper timestamp
+  // Time comes as "HH:mm" (e.g., "09:30"), we need to combine with tradeDate
+  private parseTimeToTimestamp(timeStr: string | undefined, dateStr: string): Date | null {
+    if (!timeStr || timeStr.trim() === '') return null;
+    
+    // timeStr format: "HH:mm" or "HH:mm:ss"
+    // dateStr format: "YYYY-MM-DD"
+    try {
+      // Combine date and time, assuming EST (UTC-5) or EDT (UTC-4)
+      // For simplicity, we'll use the system's interpretation
+      const combined = `${dateStr}T${timeStr}:00`;
+      const date = new Date(combined);
+      return isNaN(date.getTime()) ? null : date;
+    } catch {
+      return null;
+    }
   }
 
   async findAllLogs(

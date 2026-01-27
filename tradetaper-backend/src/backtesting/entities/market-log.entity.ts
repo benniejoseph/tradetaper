@@ -55,10 +55,10 @@ export class MarketLog {
 
   // Time Range (stored as UTC, displayed as EST/EDT - America/New_York)
   @Column({ type: 'timestamptz', nullable: true })
-  startTime: Date;
+  startTime: Date | null;
 
   @Column({ type: 'timestamptz', nullable: true })
-  endTime: Date;
+  endTime: Date | null;
 
   // Analysis
   @Column('simple-array', { nullable: true })
