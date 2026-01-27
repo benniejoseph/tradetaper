@@ -608,9 +608,19 @@ export class BacktestingService {
       ? this.tagService.normalizeAll(createDto.tags)
       : [];
 
+    // Convert empty string times to null (PostgreSQL can't parse "")
+    const startTime = createDto.startTime && createDto.startTime.trim() !== '' 
+      ? createDto.startTime 
+      : null;
+    const endTime = createDto.endTime && createDto.endTime.trim() !== '' 
+      ? createDto.endTime 
+      : null;
+
     const log = this.marketLogRepository.create({
       ...createDto,
       tags: normalizedTags,
+      startTime: startTime as any,
+      endTime: endTime as any,
       userId,
     });
     return await this.marketLogRepository.save(log);
