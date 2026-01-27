@@ -81,12 +81,12 @@ export class CreateBacktestTradeDto {
   @IsDateString()
   tradeDate: string;
 
-  // Entry/Exit times in EST/EDT (America/New_York) - send ISO string with timezone
-  @IsDateString()
+  // Entry/Exit times in EST/EDT (America/New_York) - send time string like "09:30"
+  @IsString()
   @IsOptional()
   entryTime?: string;
 
-  @IsDateString()
+  @IsString()
   @IsOptional()
   exitTime?: string;
 
