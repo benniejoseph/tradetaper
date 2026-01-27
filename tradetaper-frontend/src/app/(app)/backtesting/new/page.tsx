@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Strategy } from '@/types/strategy';
@@ -82,6 +82,8 @@ function NewBacktestTradeContent() {
     killZone: 'ny_open',
     dayOfWeek: 'tuesday',
     hourOfDay: 14,
+    entryTime: '',
+    exitTime: '',
     tradeDate: new Date().toISOString().split('T')[0],
     setupType: 'Order Block Entry',
     ictConcept: 'Power of Three (AMD)',
@@ -323,13 +325,21 @@ function NewBacktestTradeContent() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Hour (UTC)</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Entry Time (EST/EDT)</label>
               <input
-                type="number"
-                min="0"
-                max="23"
-                value={formData.hourOfDay ?? ''}
-                onChange={(e) => updateField('hourOfDay', parseInt(e.target.value) || undefined)}
+                type="time"
+                value={formData.entryTime || ''}
+                onChange={(e) => updateField('entryTime', e.target.value)}
+                className="w-full px-4 py-2 border border-purple-300 dark:border-purple-600/30 rounded-lg bg-white dark:bg-black text-gray-900 dark:text-white"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Exit Time (EST/EDT)</label>
+              <input
+                type="time"
+                value={formData.exitTime || ''}
+                onChange={(e) => updateField('exitTime', e.target.value)}
                 className="w-full px-4 py-2 border border-purple-300 dark:border-purple-600/30 rounded-lg bg-white dark:bg-black text-gray-900 dark:text-white"
               />
             </div>
