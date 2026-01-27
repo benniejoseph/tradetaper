@@ -5,6 +5,10 @@ import {
   DimensionStats,
   PerformanceMatrix,
   AnalysisData,
+  MarketLog,
+  CreateMarketLogDto,
+  UpdateMarketLogDto,
+  MarketPatternDiscovery,
 } from '@/types/backtesting';
 
 const API_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
@@ -211,6 +215,85 @@ export const backtestingService = {
       headers: getAuthHeaders(),
     });
     if (!response.ok) throw new Error('Failed to fetch symbols');
+    return response.json();
+  },
+
+  // ============ MARKET LOGS ============
+
+  async createLog(data: CreateMarketLogDto): Promise<MarketLog> {
+    const response = await fetch(`${API_URL}/api/v1/backtesting/logs`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to create market log');
+    }
+    return response.json();
+  },
+
+  async getLogs(filters?: {
+    symbol?: string;
+    session?: string;
+    timeframe?: string;
+    sentiment?: string;
+    tags?: string[];
+    startDate?: string;
+    endDate?: string;
+  }): Promise<MarketLog[]> {
+    const params = new URLSearchParams();
+    if (filters) {
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value) {
+          if (Array.isArray(value)) {
+            value.forEach(v => params.append(key, v));
+          } else {
+            params.append(key, value as string);
+          }
+        }
+      });
+    }
+
+    const url = `${API_URL}/api/v1/backtesting/logs${params.toString() ? `?${params}` : ''}`;
+    const response = await fetch(url, {
+      headers: getAuthHeaders(),
+    });
+    if (!response.ok) throw new Error('Failed to fetch market logs');
+    return response.json();
+  },
+
+  async getLog(id: string): Promise<MarketLog> {
+    const response = await fetch(`${API_URL}/api/v1/backtesting/logs/${id}`, {
+      headers: getAuthHeaders(),
+    });
+    if (!response.ok) throw new Error('Failed to fetch market log');
+    return response.json();
+  },
+
+  async updateLog(id: string, data: UpdateMarketLogDto): Promise<MarketLog> {
+    const response = await fetch(`${API_URL}/api/v1/backtesting/logs/${id}`, {
+      method: 'PATCH',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) throw new Error('Failed to update market log');
+    return response.json();
+  },
+
+  async deleteLog(id: string): Promise<void> {
+    const response = await fetch(`${API_URL}/api/v1/backtesting/logs/${id}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+    });
+    if (!response.ok) throw new Error('Failed to delete market log');
+  },
+
+  async analyzePatterns(): Promise<{ totalLogs: number; discoveries: MarketPatternDiscovery[] }> {
+    const response = await fetch(`${API_URL}/api/v1/backtesting/logs/analysis`, {
+      headers: getAuthHeaders(),
+    });
+    if (!response.ok) throw new Error('Failed to fetch pattern analysis');
     return response.json();
   },
 };

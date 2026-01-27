@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.ICTConcept = exports.TradingSession = exports.TradeStatus = exports.TradeDirection = exports.AssetType = void 0;
+exports.MarketSentiment = exports.MarketMovementType = exports.ICTConcept = exports.TradingSession = exports.TradeStatus = exports.TradeDirection = exports.AssetType = void 0;
 var AssetType;
 (function (AssetType) {
     AssetType["STOCK"] = "Stock";
@@ -46,4 +46,18 @@ var ICTConcept;
     ICTConcept["MARKET_STRUCTURE_SHIFT"] = "Market Structure Shift (MSS)";
     ICTConcept["OTHER"] = "Other";
 })(ICTConcept || (exports.ICTConcept = ICTConcept = {}));
+var MarketMovementType;
+(function (MarketMovementType) {
+    MarketMovementType["EXPANSION"] = "Expansion";
+    MarketMovementType["RETRACEMENT"] = "Retracement";
+    MarketMovementType["REVERSAL"] = "Reversal";
+    MarketMovementType["CONSOLIDATION"] = "Consolidation";
+    MarketMovementType["OTHER"] = "Other";
+})(MarketMovementType || (exports.MarketMovementType = MarketMovementType = {}));
+var MarketSentiment;
+(function (MarketSentiment) {
+    MarketSentiment["BULLISH"] = "Bullish";
+    MarketSentiment["BEARISH"] = "Bearish";
+    MarketSentiment["NEUTRAL"] = "Neutral";
+})(MarketSentiment || (exports.MarketSentiment = MarketSentiment = {}));
 //# sourceMappingURL=enums.js.map

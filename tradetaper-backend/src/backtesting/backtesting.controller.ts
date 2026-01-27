@@ -13,7 +13,10 @@ import {
 } from '@nestjs/common';
 import { BacktestingService } from './backtesting.service';
 import { CreateBacktestTradeDto } from './dto/create-backtest-trade.dto';
+import { CreateBacktestTradeDto } from './dto/create-backtest-trade.dto';
 import { UpdateBacktestTradeDto } from './dto/update-backtest-trade.dto';
+import { CreateMarketLogDto } from './dto/create-market-log.dto';
+import { UpdateMarketLogDto } from './dto/update-market-log.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @Controller('backtesting')
@@ -69,6 +72,57 @@ export class BacktestingController {
     return this.backtestingService.remove(id, req.user.id);
   }
 
+  // ============ MARKET LOGS ============
+
+  @Post('logs')
+  async createLog(@Body() createDto: CreateMarketLogDto, @Request() req) {
+    return this.backtestingService.createLog(createDto, req.user.id);
+  }
+
+  @Get('logs')
+  async findAllLogs(
+    @Request() req,
+    @Query('symbol') symbol?: string,
+    @Query('session') session?: string,
+    @Query('timeframe') timeframe?: string,
+    @Query('sentiment') sentiment?: string,
+    @Query('tags') tags?: string[],
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ) {
+    // Handle tags if they come as a single string
+    const tagArray = typeof tags === 'string' ? [tags] : tags;
+    
+    return this.backtestingService.findAllLogs(req.user.id, {
+      symbol,
+      session,
+      timeframe,
+      sentiment,
+      tags: tagArray,
+      startDate,
+      endDate,
+    });
+  }
+
+  @Get('logs/:id')
+  async findOneLog(@Param('id', ParseUUIDPipe) id: string, @Request() req) {
+    return this.backtestingService.findOneLog(id, req.user.id);
+  }
+
+  @Patch('logs/:id')
+  async updateLog(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() updateDto: UpdateMarketLogDto,
+    @Request() req,
+  ) {
+    return this.backtestingService.updateLog(id, updateDto, req.user.id);
+  }
+
+  @Delete('logs/:id')
+  async removeLog(@Param('id', ParseUUIDPipe) id: string, @Request() req) {
+    return this.backtestingService.removeLog(id, req.user.id);
+  }
+
   // ============ ANALYTICS ============
 
   @Get('stats')
@@ -114,6 +168,11 @@ export class BacktestingController {
     @Request() req,
   ) {
     return this.backtestingService.getAnalysisData(strategyId, req.user.id);
+  }
+
+  @Get('logs/analysis')
+  async analyzePatterns(@Request() req) {
+    return this.backtestingService.analyzePatterns(req.user.id);
   }
 
   @Get('symbols')
