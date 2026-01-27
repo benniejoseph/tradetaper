@@ -13,7 +13,6 @@ import {
 } from '@nestjs/common';
 import { BacktestingService } from './backtesting.service';
 import { CreateBacktestTradeDto } from './dto/create-backtest-trade.dto';
-import { CreateBacktestTradeDto } from './dto/create-backtest-trade.dto';
 import { UpdateBacktestTradeDto } from './dto/update-backtest-trade.dto';
 import { CreateMarketLogDto } from './dto/create-market-log.dto';
 import { UpdateMarketLogDto } from './dto/update-market-log.dto';
@@ -77,6 +76,11 @@ export class BacktestingController {
   @Post('logs')
   async createLog(@Body() createDto: CreateMarketLogDto, @Request() req) {
     return this.backtestingService.createLog(createDto, req.user.id);
+  }
+
+  @Get('logs/analysis')
+  async analyzePatterns(@Request() req) {
+    return this.backtestingService.analyzePatterns(req.user.id);
   }
 
   @Get('logs')
@@ -170,10 +174,7 @@ export class BacktestingController {
     return this.backtestingService.getAnalysisData(strategyId, req.user.id);
   }
 
-  @Get('logs/analysis')
-  async analyzePatterns(@Request() req) {
-    return this.backtestingService.analyzePatterns(req.user.id);
-  }
+
 
   @Get('symbols')
   async getSymbols(@Request() req) {
