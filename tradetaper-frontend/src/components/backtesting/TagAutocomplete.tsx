@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { FiTag, FiX } from 'react-icons/fi';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://tradetaper-backend-yhiuxa72ja-uc.a.run.app';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://tradetaper-backend-326520250422.us-central1.run.app/api/v1';
 
 interface TagAutocompleteProps {
   tags: string[];
@@ -44,7 +44,7 @@ export default function TagAutocomplete({
     setIsLoading(true);
     try {
       const response = await fetch(
-        `${API_URL}/api/v1/backtesting/tags/suggestions?prefix=${encodeURIComponent(prefix)}`,
+        `${API_URL}/backtesting/tags/suggestions?prefix=${encodeURIComponent(prefix)}`,
         { headers: getAuthHeaders() }
       );
       if (response.ok) {
