@@ -17,6 +17,22 @@ const getAuthHeaders = () => {
   };
 };
 
+  //Helper to transform backend response (decimal strings) to numbers
+  const transformTrade = (trade: any): BacktestTrade => {
+    return {
+      ...trade,
+      entryPrice: Number(trade.entryPrice),
+      exitPrice: trade.exitPrice ? Number(trade.exitPrice) : undefined,
+      stopLoss: trade.stopLoss ? Number(trade.stopLoss) : undefined,
+      takeProfit: trade.takeProfit ? Number(trade.takeProfit) : undefined,
+      lotSize: Number(trade.lotSize),
+      pnlPips: trade.pnlPips ? Number(trade.pnlPips) : undefined,
+      pnlDollars: trade.pnlDollars ? Number(trade.pnlDollars) : undefined,
+      rMultiple: trade.rMultiple ? Number(trade.rMultiple) : undefined,
+      checklistScore: trade.checklistScore ? Number(trade.checklistScore) : undefined,
+    };
+  };
+
 export const backtestingService = {
   // ============ CRUD ============
 
@@ -30,7 +46,8 @@ export const backtestingService = {
       const error = await response.json();
       throw new Error(error.message || 'Failed to create backtest trade');
     }
-    return response.json();
+    const trade = await response.json();
+    return transformTrade(trade);
   },
 
   async getTrades(filters?: {
@@ -54,7 +71,8 @@ export const backtestingService = {
       headers: getAuthHeaders(),
     });
     if (!response.ok) throw new Error('Failed to fetch backtest trades');
-    return response.json();
+    const trades = await response.json();
+    return trades.map(transformTrade);
   },
 
   async getTrade(id: string): Promise<BacktestTrade> {
@@ -62,7 +80,8 @@ export const backtestingService = {
       headers: getAuthHeaders(),
     });
     if (!response.ok) throw new Error('Failed to fetch backtest trade');
-    return response.json();
+    const trade = await response.json();
+    return transformTrade(trade);
   },
 
   async updateTrade(id: string, data: Partial<CreateBacktestTradeDto>): Promise<BacktestTrade> {
@@ -72,7 +91,8 @@ export const backtestingService = {
       body: JSON.stringify(data),
     });
     if (!response.ok) throw new Error('Failed to update backtest trade');
-    return response.json();
+    const trade = await response.json();
+    return transformTrade(trade);
   },
 
   async deleteTrade(id: string): Promise<void> {
@@ -90,7 +110,19 @@ export const backtestingService = {
       headers: getAuthHeaders(),
     });
     if (!response.ok) throw new Error('Failed to fetch overall stats');
-    return response.json();
+    const stats = await response.json();
+    // Transform known decimal fields in stats if necessary, though simpler to assume safer backend stats
+    // But let's be safe
+    return {
+      ...stats,
+      winRate: Number(stats.winRate),
+      totalPnlPips: Number(stats.totalPnlPips),
+      totalPnlDollars: Number(stats.totalPnlDollars),
+      averageRMultiple: Number(stats.averageRMultiple),
+      profitFactor: Number(stats.profitFactor),
+      expectancy: Number(stats.expectancy),
+      ruleFollowingRate: Number(stats.ruleFollowingRate),
+    };
   },
 
   async getStrategyStats(strategyId: string): Promise<BacktestStats> {
@@ -98,7 +130,17 @@ export const backtestingService = {
       headers: getAuthHeaders(),
     });
     if (!response.ok) throw new Error('Failed to fetch strategy stats');
-    return response.json();
+    const stats = await response.json();
+    return {
+      ...stats,
+      winRate: Number(stats.winRate),
+      totalPnlPips: Number(stats.totalPnlPips),
+      totalPnlDollars: Number(stats.totalPnlDollars),
+      averageRMultiple: Number(stats.averageRMultiple),
+      profitFactor: Number(stats.profitFactor),
+      expectancy: Number(stats.expectancy),
+      ruleFollowingRate: Number(stats.ruleFollowingRate),
+    };
   },
 
   async getDimensionStats(
@@ -110,7 +152,13 @@ export const backtestingService = {
       { headers: getAuthHeaders() }
     );
     if (!response.ok) throw new Error('Failed to fetch dimension stats');
-    return response.json();
+    const data = await response.json();
+    return data.map((item: any) => ({
+      ...item,
+      winRate: Number(item.winRate),
+      profitFactor: Number(item.profitFactor),
+      expectancy: Number(item.expectancy),
+    }));
   },
 
   async getPerformanceMatrix(
@@ -123,7 +171,15 @@ export const backtestingService = {
       { headers: getAuthHeaders() }
     );
     if (!response.ok) throw new Error('Failed to fetch performance matrix');
-    return response.json();
+    const matrix = await response.json();
+    return {
+      ...matrix,
+      data: matrix.data.map((item: any) => ({
+         ...item,
+         winRate: Number(item.winRate),
+         profitFactor: Number(item.profitFactor),
+      }))
+    };
   },
 
   async getAnalysisData(strategyId: string): Promise<AnalysisData> {
@@ -132,7 +188,22 @@ export const backtestingService = {
       { headers: getAuthHeaders() }
     );
     if (!response.ok) throw new Error('Failed to fetch analysis data');
-    return response.json();
+    const data = await response.json();
+    // Recursive transformation might be complex, but key fields:
+    return {
+      ...data,
+      overallStats: {
+        ...data.overallStats,
+        winRate: Number(data.overallStats.winRate),
+        totalPnlPips: Number(data.overallStats.totalPnlPips),
+        totalPnlDollars: Number(data.overallStats.totalPnlDollars),
+        averageRMultiple: Number(data.overallStats.averageRMultiple),
+        profitFactor: Number(data.overallStats.profitFactor),
+        expectancy: Number(data.overallStats.expectancy),
+        ruleFollowingRate: Number(data.overallStats.ruleFollowingRate),
+      },
+      // Transform nested arrays if needed, but these seem to be the critical top-level ones causing crashes
+    };
   },
 
   async getSymbols(): Promise<string[]> {
