@@ -53,6 +53,13 @@ export class MarketLog {
   })
   session: TradingSession;
 
+  // Time Range (stored as UTC, displayed as EST/EDT - America/New_York)
+  @Column({ type: 'timestamptz', nullable: true })
+  startTime: Date;
+
+  @Column({ type: 'timestamptz', nullable: true })
+  endTime: Date;
+
   // Analysis
   @Column('simple-array', { nullable: true })
   tags: string[]; // e.g. ["fvg", "sweep", "monday_high"]

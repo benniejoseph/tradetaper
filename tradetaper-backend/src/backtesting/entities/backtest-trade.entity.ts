@@ -148,6 +148,13 @@ export class BacktestTrade {
   @Index()
   tradeDate: Date;
 
+  // Entry/Exit Times (stored as UTC, displayed as EST/EDT - America/New_York)
+  @Column({ type: 'timestamptz', nullable: true })
+  entryTime: Date;
+
+  @Column({ type: 'timestamptz', nullable: true })
+  exitTime: Date;
+
   // Setup Details
   @Column({ length: 100, nullable: true })
   setupType: string; // FVG, OB, BOS, CHoCH, etc.

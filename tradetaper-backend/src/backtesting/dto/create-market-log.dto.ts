@@ -34,6 +34,15 @@ export class CreateMarketLogDto {
   @IsOptional()
   session?: TradingSession;
 
+  // Time range in EST/EDT (America/New_York) - send ISO string with timezone
+  @IsDateString()
+  @IsOptional()
+  startTime?: string;
+
+  @IsDateString()
+  @IsOptional()
+  endTime?: string;
+
   @IsArray()
   @IsString({ each: true })
   @IsOptional()
