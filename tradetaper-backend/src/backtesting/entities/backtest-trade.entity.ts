@@ -150,10 +150,10 @@ export class BacktestTrade {
 
   // Entry/Exit Times (stored as UTC, displayed as EST/EDT - America/New_York)
   @Column({ type: 'timestamptz', nullable: true })
-  entryTime: Date;
+  entryTime: Date | null;
 
   @Column({ type: 'timestamptz', nullable: true })
-  exitTime: Date;
+  exitTime: Date | null;
 
   // Setup Details
   @Column({ length: 100, nullable: true })
