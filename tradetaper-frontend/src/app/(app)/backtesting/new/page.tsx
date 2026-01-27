@@ -71,20 +71,20 @@ function NewBacktestTradeContent() {
   const [formData, setFormData] = useState<CreateBacktestTradeDto>({
     strategyId: strategyIdFromUrl || '',
     symbol: 'XAUUSD',
-    direction: 'LONG',
+    direction: 'Long',
     entryPrice: 0,
     exitPrice: undefined,
     stopLoss: undefined,
     takeProfit: undefined,
     lotSize: 1,
     timeframe: 'M15',
-    session: 'newyork',
+    session: 'New York',
     killZone: 'ny_open',
     dayOfWeek: 'tuesday',
     hourOfDay: 14,
     tradeDate: new Date().toISOString().split('T')[0],
     setupType: 'Order Block Entry',
-    ictConcept: 'Power of Three',
+    ictConcept: 'Power of Three (AMD)',
     marketStructure: 'bullish',
     htfBias: 'bullish',
     outcome: 'win',
@@ -230,8 +230,8 @@ function NewBacktestTradeContent() {
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
                     type="radio"
-                    checked={formData.direction === 'LONG'}
-                    onChange={() => updateField('direction', 'LONG')}
+                    checked={formData.direction === 'Long'}
+                    onChange={() => updateField('direction', 'Long')}
                     className="text-emerald-600"
                   />
                   <span className="text-green-600 font-medium">LONG</span>
@@ -239,8 +239,8 @@ function NewBacktestTradeContent() {
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
                     type="radio"
-                    checked={formData.direction === 'SHORT'}
-                    onChange={() => updateField('direction', 'SHORT')}
+                    checked={formData.direction === 'Short'}
+                    onChange={() => updateField('direction', 'Short')}
                     className="text-emerald-600"
                   />
                   <span className="text-red-600 font-medium">SHORT</span>
