@@ -12,6 +12,7 @@ import {
   ParseUUIDPipe,
 } from '@nestjs/common';
 import { BacktestingService } from './backtesting.service';
+import { TagService } from './services/tag.service';
 import { CreateBacktestTradeDto } from './dto/create-backtest-trade.dto';
 import { UpdateBacktestTradeDto } from './dto/update-backtest-trade.dto';
 import { CreateMarketLogDto } from './dto/create-market-log.dto';
@@ -21,7 +22,10 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 @Controller('backtesting')
 @UseGuards(JwtAuthGuard)
 export class BacktestingController {
-  constructor(private readonly backtestingService: BacktestingService) {}
+  constructor(
+    private readonly backtestingService: BacktestingService,
+    private readonly tagService: TagService,
+  ) {}
 
   // ============ CRUD ============
 
@@ -69,6 +73,34 @@ export class BacktestingController {
   @Delete('trades/:id')
   async remove(@Param('id', ParseUUIDPipe) id: string, @Request() req) {
     return this.backtestingService.remove(id, req.user.id);
+  }
+
+  // ============ TAG INTELLIGENCE ============
+
+  @Get('tags/suggestions')
+  async getTagSuggestions(
+    @Request() req,
+    @Query('prefix') prefix: string = '',
+  ) {
+    return this.tagService.getSuggestions(req.user.id, prefix);
+  }
+
+  @Post('tags/check-duplicate')
+  async checkDuplicate(
+    @Request() req,
+    @Body() body: { symbol: string; tradeDate: string; tags: string[] },
+  ) {
+    return this.tagService.checkDuplicate(
+      req.user.id,
+      body.symbol,
+      body.tradeDate,
+      body.tags,
+    );
+  }
+
+  @Post('tags/normalize')
+  normalizeTagsEndpoint(@Body() body: { tags: string[] }) {
+    return { normalized: this.tagService.normalizeAll(body.tags) };
   }
 
   // ============ MARKET LOGS ============
