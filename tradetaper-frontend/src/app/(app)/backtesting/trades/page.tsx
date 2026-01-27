@@ -249,18 +249,18 @@ function BacktestTradesContent() {
                       </span>
                     </td>
                     <td className={`px-4 py-3 text-sm text-right font-medium ${
-                      (trade.pnlDollars || 0) >= 0 
+                      (Number(trade.pnlDollars) || 0) >= 0 
                         ? 'text-green-600 dark:text-green-400' 
                         : 'text-red-600 dark:text-red-400'
                     }`}>
-                      {trade.pnlDollars ? `$${trade.pnlDollars.toFixed(2)}` : '-'}
+                      {trade.pnlDollars !== undefined && trade.pnlDollars !== null ? `$${Number(trade.pnlDollars).toFixed(2)}` : '-'}
                     </td>
                     <td className={`px-4 py-3 text-sm text-right font-medium ${
-                      (trade.rMultiple || 0) >= 0 
+                      (Number(trade.rMultiple) || 0) >= 0 
                         ? 'text-green-600 dark:text-green-400' 
                         : 'text-red-600 dark:text-red-400'
                     }`}>
-                      {trade.rMultiple ? `${trade.rMultiple}R` : '-'}
+                      {trade.rMultiple !== undefined && trade.rMultiple !== null ? `${Number(trade.rMultiple).toFixed(2)}R` : '-'}
                     </td>
                     <td className="px-4 py-3 text-center">
                       <button
@@ -313,10 +313,10 @@ function BacktestTradesContent() {
           </div>
           <div className="bg-white dark:bg-black p-4 rounded-lg border border-gray-200 dark:border-gray-700">
             <div className={`text-2xl font-bold ${
-              trades.reduce((sum, t) => sum + (t.pnlDollars || 0), 0) >= 0 
+              trades.reduce((sum, t) => sum + (Number(t.pnlDollars) || 0), 0) >= 0 
                 ? 'text-green-600' : 'text-red-600'
             }`}>
-              ${trades.reduce((sum, t) => sum + (t.pnlDollars || 0), 0).toFixed(2)}
+              ${trades.reduce((sum, t) => sum + (Number(t.pnlDollars) || 0), 0).toFixed(2)}
             </div>
             <div className="text-sm text-gray-500">Total P&L</div>
           </div>

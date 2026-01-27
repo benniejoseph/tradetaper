@@ -204,10 +204,10 @@ function PerformanceMatrixContent() {
                     }
                     return (
                       <td key={col} className="px-4 py-3 text-center">
-                        <div className={`inline-block px-3 py-2 rounded ${getWinRateColor(cell.winRate)}`}>
-                          <div className="font-bold text-lg">{cell.winRate.toFixed(0)}%</div>
+                        <div className={`inline-block px-3 py-2 rounded ${getWinRateColor(Number(cell.winRate))}`}>
+                          <div className="font-bold text-lg">{Number(cell.winRate).toFixed(0)}%</div>
                           <div className="text-xs opacity-80">{cell.trades} trades</div>
-                          <div className="text-xs opacity-80">PF: {cell.profitFactor.toFixed(2)}</div>
+                          <div className="text-xs opacity-80">PF: {Number(cell.profitFactor).toFixed(2)}</div>
                         </div>
                       </td>
                     );

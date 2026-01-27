@@ -68,11 +68,11 @@ function DimensionSection({
               <span className="text-sm text-gray-500">{item.trades} trades</span>
             </div>
             <div className="flex items-center gap-4">
-              <div className={`font-bold ${item.winRate >= 50 ? 'text-green-600' : 'text-red-600'}`}>
-                {item.winRate.toFixed(1)}%
+              <div className={`font-bold ${Number(item.winRate) >= 50 ? 'text-green-600' : 'text-red-600'}`}>
+                {Number(item.winRate).toFixed(1)}%
               </div>
               <div className="text-sm text-gray-500">
-                PF: {item.profitFactor.toFixed(2)}
+                PF: {Number(item.profitFactor).toFixed(2)}
               </div>
               <RecommendationBadge rec={item.recommendation} />
             </div>
@@ -258,38 +258,38 @@ function AnalysisContent() {
               <div className="text-sm text-gray-500">Total Trades</div>
             </div>
             <div className={`p-4 rounded-lg border text-center ${
-              analysis.overallStats.winRate >= 50 
+              Number(analysis.overallStats.winRate) >= 50 
                 ? 'bg-green-50 dark:bg-green-900/10 border-green-200 dark:border-green-800' 
                 : 'bg-red-50 dark:bg-red-900/10 border-red-200 dark:border-red-800'
             }`}>
               <div className={`text-2xl font-bold ${
-                analysis.overallStats.winRate >= 50 ? 'text-green-600' : 'text-red-600'
+                Number(analysis.overallStats.winRate) >= 50 ? 'text-green-600' : 'text-red-600'
               }`}>
-                {analysis.overallStats.winRate.toFixed(1)}%
+                {Number(analysis.overallStats.winRate).toFixed(1)}%
               </div>
               <div className="text-sm text-gray-500">Win Rate</div>
             </div>
             <div className={`p-4 rounded-lg border text-center ${
-              analysis.overallStats.profitFactor >= 1.5 
+              Number(analysis.overallStats.profitFactor) >= 1.5 
                 ? 'bg-green-50 dark:bg-green-900/10 border-green-200 dark:border-green-800' 
                 : 'bg-yellow-50 dark:bg-yellow-900/10 border-yellow-200 dark:border-yellow-800'
             }`}>
               <div className={`text-2xl font-bold ${
-                analysis.overallStats.profitFactor >= 1.5 ? 'text-green-600' : 'text-yellow-600'
+                Number(analysis.overallStats.profitFactor) >= 1.5 ? 'text-green-600' : 'text-yellow-600'
               }`}>
-                {analysis.overallStats.profitFactor.toFixed(2)}
+                {Number(analysis.overallStats.profitFactor).toFixed(2)}
               </div>
               <div className="text-sm text-gray-500">Profit Factor</div>
             </div>
             <div className={`p-4 rounded-lg border text-center ${
-              analysis.overallStats.expectancy >= 0 
+              Number(analysis.overallStats.expectancy) >= 0 
                 ? 'bg-green-50 dark:bg-green-900/10 border-green-200 dark:border-green-800' 
                 : 'bg-red-50 dark:bg-red-900/10 border-red-200 dark:border-red-800'
             }`}>
               <div className={`text-2xl font-bold ${
-                analysis.overallStats.expectancy >= 0 ? 'text-green-600' : 'text-red-600'
+                Number(analysis.overallStats.expectancy) >= 0 ? 'text-green-600' : 'text-red-600'
               }`}>
-                ${analysis.overallStats.expectancy.toFixed(2)}
+                ${Number(analysis.overallStats.expectancy).toFixed(2)}
               </div>
               <div className="text-sm text-gray-500">Expectancy</div>
             </div>
