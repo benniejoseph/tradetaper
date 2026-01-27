@@ -5,15 +5,13 @@ import {
   FaBrain, 
   FaChartLine, 
   FaCalendarAlt,
-  FaRobot,
-  FaNewspaper, // Added
-  FaChartPie, // Added
+  FaNewspaper,
+  FaChartPie,
 } from 'react-icons/fa';
 import TradingViewChart from '@/components/market-intelligence/TradingViewChart';
-import AgentInsight from '@/components/market-intelligence/AgentInsight';
 import EconomicCalendar from '@/components/market-intelligence/EconomicCalendar';
-import NewsFeed from '@/components/market-intelligence/NewsFeed'; // Added
-import SentimentDashboard from '@/components/market-intelligence/SentimentDashboard'; // Added
+import NewsFeed from '@/components/market-intelligence/NewsFeed';
+import SentimentDashboard from '@/components/market-intelligence/SentimentDashboard';
 
 import { useRouter, useSearchParams } from 'next/navigation';
 
@@ -77,79 +75,59 @@ export default function MarketIntelligencePage() {
 
         {/* Live TradingView Chart Tab */}
         {activeTab === 'live-chart' && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Main Chart Section */}
-            <div className="col-span-1 lg:col-span-2 flex flex-col space-y-4">
-              <div className="flex-1 flex flex-col bg-white dark:bg-gray-800 rounded-lg p-4 sm:p-6 shadow-sm overflow-hidden min-h-[600px]">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-4">
-                  <div>
-                    <h3 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white mb-2">
-                      <FaChartLine className="inline-block mr-2 text-emerald-600 dark:text-emerald-400" />
-                      Live {selectedSymbol} Chart - 4H Timeframe
-                    </h3>
-                    <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
-                      Professional TradingView chart with ICT analysis tools enabled
-                    </p>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <label className="text-sm text-gray-600 dark:text-gray-400">Symbol:</label>
-                    <select
-                      value={selectedSymbol}
-                      onChange={(e) => setSelectedSymbol(e.target.value)}
-                      className="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-emerald-500"
-                    >
-                      {majorSymbols.map(sym => (
-                        <option key={sym} value={sym}>{sym}</option>
-                      ))}
-                    </select>
-                  </div>
+          <div className="flex flex-col space-y-4">
+            <div className="flex-1 flex flex-col bg-white dark:bg-gray-800 rounded-lg p-4 sm:p-6 shadow-sm overflow-hidden min-h-[600px]">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-4">
+                <div>
+                  <h3 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white mb-2">
+                    <FaChartLine className="inline-block mr-2 text-emerald-600 dark:text-emerald-400" />
+                    Live {selectedSymbol} Chart - 4H Timeframe
+                  </h3>
+                  <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+                    Professional TradingView chart with ICT analysis tools enabled
+                  </p>
                 </div>
-
-                {/* TradingView Chart */}
-                <div className="flex-1 w-full overflow-hidden rounded-lg border-2 border-gray-700 min-h-[500px]">
-                  <TradingViewChart 
-                    symbol={selectedSymbol}
-                    interval="240"
-                    theme="dark"
-                    height={0}
-                  />
-                </div>
-
-                {/* ICT Concepts Reference */}
-                <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                  <div className="p-3 bg-red-50 dark:bg-red-950/20 rounded-lg border border-red-200 dark:border-red-700">
-                    <h5 className="text-sm font-semibold text-red-900 dark:text-red-200 mb-1">Premium Zone</h5>
-                    <p className="text-xs text-red-800 dark:text-red-300">Above 50% Fib - Look for shorts</p>
-                  </div>
-                  <div className="p-3 bg-emerald-50 dark:bg-emerald-950/20 rounded-lg border border-emerald-200 dark:border-emerald-700">
-                    <h5 className="text-sm font-semibold text-emerald-900 dark:text-emerald-200 mb-1">Discount Zone</h5>
-                    <p className="text-xs text-emerald-800 dark:text-emerald-300">Below 50% Fib - Look for longs</p>
-                  </div>
-                  <div className="p-3 bg-emerald-50 dark:bg-emerald-950/30 rounded-lg border border-emerald-200 dark:border-emerald-700">
-                    <h5 className="text-sm font-semibold text-emerald-900 dark:text-emerald-200 mb-1">Order Blocks</h5>
-                    <p className="text-xs text-emerald-800 dark:text-emerald-300">Last bullish/bearish candle</p>
-                  </div>
-                  <div className="p-3 bg-amber-50 dark:bg-amber-950/20 rounded-lg border border-amber-200 dark:border-amber-700">
-                    <h5 className="text-sm font-semibold text-yellow-900 dark:text-yellow-200 mb-1">Fair Value Gaps</h5>
-                    <p className="text-xs text-yellow-800 dark:text-yellow-300">Price imbalances to be filled</p>
-                  </div>
+                <div className="flex items-center space-x-2">
+                  <label className="text-sm text-gray-600 dark:text-gray-400">Symbol:</label>
+                  <select
+                    value={selectedSymbol}
+                    onChange={(e) => setSelectedSymbol(e.target.value)}
+                    className="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-emerald-500"
+                  >
+                    {majorSymbols.map(sym => (
+                      <option key={sym} value={sym}>{sym}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
-            </div>
 
-            {/* Side Panel - Agent & Insights */}
-            <div className="col-span-1 space-y-6">
-              <AgentInsight symbol={selectedSymbol} />
-            
-              {/* Fallback Market Sentiment (Static for now as widget file not found) */}
-              <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm">
-                <h3 className="font-bold text-gray-900 dark:text-white mb-2">Market Sentiment</h3>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600 dark:text-gray-400">Fear & Greed Index</span>
-                  <span className="font-bold text-emerald-500">65 (Greed)</span>
+              {/* TradingView Chart */}
+              <div className="flex-1 w-full overflow-hidden rounded-lg border-2 border-gray-700 min-h-[500px]">
+                <TradingViewChart 
+                  symbol={selectedSymbol}
+                  interval="240"
+                  theme="dark"
+                  height={0}
+                />
+              </div>
+
+              {/* ICT Concepts Reference */}
+              <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                <div className="p-3 bg-red-50 dark:bg-red-950/20 rounded-lg border border-red-200 dark:border-red-700">
+                  <h5 className="text-sm font-semibold text-red-900 dark:text-red-200 mb-1">Premium Zone</h5>
+                  <p className="text-xs text-red-800 dark:text-red-300">Above 50% Fib - Look for shorts</p>
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700 mt-2">
-                  <div className="bg-emerald-500 h-2.5 rounded-full" style={{ width: '65%' }}></div>
+                <div className="p-3 bg-emerald-50 dark:bg-emerald-950/20 rounded-lg border border-emerald-200 dark:border-emerald-700">
+                  <h5 className="text-sm font-semibold text-emerald-900 dark:text-emerald-200 mb-1">Discount Zone</h5>
+                  <p className="text-xs text-emerald-800 dark:text-emerald-300">Below 50% Fib - Look for longs</p>
+                </div>
+                <div className="p-3 bg-emerald-50 dark:bg-emerald-950/30 rounded-lg border border-emerald-200 dark:border-emerald-700">
+                  <h5 className="text-sm font-semibold text-emerald-900 dark:text-emerald-200 mb-1">Order Blocks</h5>
+                  <p className="text-xs text-emerald-800 dark:text-emerald-300">Last bullish/bearish candle</p>
+                </div>
+                <div className="p-3 bg-amber-50 dark:bg-amber-950/20 rounded-lg border border-amber-200 dark:border-amber-700">
+                  <h5 className="text-sm font-semibold text-yellow-900 dark:text-yellow-200 mb-1">Fair Value Gaps</h5>
+                  <p className="text-xs text-yellow-800 dark:text-yellow-300">Price imbalances to be filled</p>
                 </div>
               </div>
             </div>
