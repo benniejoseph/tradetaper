@@ -38,3 +38,15 @@ export declare enum ICTConcept {
     MARKET_STRUCTURE_SHIFT = "Market Structure Shift (MSS)",
     OTHER = "Other"
 }
+export declare enum MarketMovementType {
+    EXPANSION = "Expansion",
+    RETRACEMENT = "Retracement",
+    REVERSAL = "Reversal",
+    CONSOLIDATION = "Consolidation",
+    OTHER = "Other"
+}
+export declare enum MarketSentiment {
+    BULLISH = "Bullish",
+    BEARISH = "Bearish",
+    NEUTRAL = "Neutral"
+}

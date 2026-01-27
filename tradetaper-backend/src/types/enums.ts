@@ -43,3 +43,17 @@ export enum ICTConcept {
   MARKET_STRUCTURE_SHIFT = 'Market Structure Shift (MSS)',
   OTHER = 'Other',
 }
+
+export enum MarketMovementType {
+  EXPANSION = 'Expansion',
+  RETRACEMENT = 'Retracement',
+  REVERSAL = 'Reversal',
+  CONSOLIDATION = 'Consolidation',
+  OTHER = 'Other',
+}
+
+export enum MarketSentiment {
+  BULLISH = 'Bullish',
+  BEARISH = 'Bearish',
+  NEUTRAL = 'Neutral',
+}

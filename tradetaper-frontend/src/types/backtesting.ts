@@ -247,3 +247,65 @@ export const SETUP_TYPES = [
   'Breakout',
   'Pullback',
 ];
+
+// Market Log Types
+export type MarketMovementType = 'Expansion' | 'Retracement' | 'Reversal' | 'Consolidation' | 'Other';
+export type MarketSentiment = 'Bullish' | 'Bearish' | 'Neutral';
+
+export interface MarketLog {
+  id: string;
+  userId: string;
+  symbol: string;
+  tradeDate: string;
+  timeframe: Timeframe;
+  session?: TradingSession;
+  tags?: string[];
+  observation: string;
+  movementType?: MarketMovementType;
+  significance?: number;
+  sentiment?: MarketSentiment;
+  screenshotUrl?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateMarketLogDto {
+  symbol: string;
+  tradeDate: string;
+  timeframe: Timeframe;
+  session?: TradingSession;
+  tags?: string[];
+  observation: string;
+  movementType?: MarketMovementType;
+  significance?: number;
+  sentiment?: MarketSentiment;
+  screenshotUrl?: string;
+}
+
+export type UpdateMarketLogDto = Partial<CreateMarketLogDto>;
+
+export const MARKET_MOVEMENTS: { value: MarketMovementType; label: string }[] = [
+  { value: 'Expansion', label: 'Expansion' },
+  { value: 'Retracement', label: 'Retracement' },
+  { value: 'Reversal', label: 'Reversal' },
+  { value: 'Consolidation', label: 'Consolidation' },
+  { value: 'Other', label: 'Other' },
+];
+
+export const MARKET_SENTIMENTS: { value: MarketSentiment; label: string }[] = [
+  { value: 'Bullish', label: 'Bullish' },
+  { value: 'Bearish', label: 'Bearish' },
+  { value: 'Neutral', label: 'Neutral' },
+];
+
+export interface MarketPatternDiscovery {
+  tag: string;
+  occurrences: number;
+  confidence: number;
+  avgSignificance: number;
+  dominantPattern: string;
+  dominantSentiment: string;
+  movementDistribution: Record<string, number>;
+  sentimentDistribution: Record<string, number>;
+}
+

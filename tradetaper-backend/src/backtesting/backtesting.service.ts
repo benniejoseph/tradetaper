@@ -4,6 +4,9 @@ import { Repository } from 'typeorm';
 import { BacktestTrade, TradeOutcome } from './entities/backtest-trade.entity';
 import { CreateBacktestTradeDto } from './dto/create-backtest-trade.dto';
 import { UpdateBacktestTradeDto } from './dto/update-backtest-trade.dto';
+import { MarketLog } from './entities/market-log.entity';
+import { CreateMarketLogDto } from './dto/create-market-log.dto';
+import { UpdateMarketLogDto } from './dto/update-market-log.dto';
 
 export interface BacktestStats {
   totalTrades: number;
@@ -55,6 +58,8 @@ export class BacktestingService {
   constructor(
     @InjectRepository(BacktestTrade)
     private backtestTradeRepository: Repository<BacktestTrade>,
+    @InjectRepository(MarketLog)
+    private marketLogRepository: Repository<MarketLog>,
   ) {}
 
   async create(
@@ -427,6 +432,79 @@ export class BacktestingService {
 
   // ============ SYMBOLS LIST ============
 
+  // ============ MARKET LOGS ANALYSIS ============
+
+  async analyzePatterns(userId: string): Promise<any> {
+    const logs = await this.marketLogRepository.find({
+      where: { userId },
+    });
+
+    // 1. Tag Frequency & Correlation
+    const tagStats = new Map<string, {
+      count: number;
+      movements: Record<string, number>;
+      sentiments: Record<string, number>;
+      avgSignificance: number;
+    }>();
+
+    logs.forEach(log => {
+      if (!log.tags) return;
+      
+      log.tags.forEach(tag => {
+        if (!tagStats.has(tag)) {
+          tagStats.set(tag, {
+            count: 0,
+            movements: {},
+            sentiments: {},
+            avgSignificance: 0,
+          });
+        }
+        
+        const stats = tagStats.get(tag)!;
+        stats.count++;
+        
+        // Movement correlation
+        if (log.movementType) {
+          stats.movements[log.movementType] = (stats.movements[log.movementType] || 0) + 1;
+        }
+
+        // Sentiment correlation
+        if (log.sentiment) {
+          stats.sentiments[log.sentiment] = (stats.sentiments[log.sentiment] || 0) + 1;
+        }
+
+        // Running average for significance
+        stats.avgSignificance = ((stats.avgSignificance * (stats.count - 1)) + (log.significance || 3)) / stats.count;
+      });
+    });
+
+    // Format for frontend
+    const discoveries = Array.from(tagStats.entries()).map(([tag, stats]) => {
+      // Find dominant movement
+      const dominantMovement = Object.entries(stats.movements)
+        .sort(([,a], [,b]) => b - a)[0];
+        
+      const dominantSentiment = Object.entries(stats.sentiments)
+        .sort(([,a], [,b]) => b - a)[0];
+
+      return {
+        tag,
+        occurrences: stats.count,
+        confidence: parseFloat(((stats.count / logs.length) * 100).toFixed(1)), // % of total logs
+        avgSignificance: parseFloat(stats.avgSignificance.toFixed(1)),
+        dominantPattern: dominantMovement ? dominantMovement[0] : 'Mixed',
+        dominantSentiment: dominantSentiment ? dominantSentiment[0] : 'Neutral',
+        movementDistribution: stats.movements,
+        sentimentDistribution: stats.sentiments
+      };
+    }).sort((a, b) => b.occurrences - a.occurrences);
+
+    return {
+      totalLogs: logs.length,
+      discoveries: discoveries.filter(d => d.occurrences > 2), // Filter noise
+    };
+  }
+
   async getDistinctSymbols(userId: string): Promise<string[]> {
     const result = await this.backtestTradeRepository
       .createQueryBuilder('bt')
@@ -435,5 +513,100 @@ export class BacktestingService {
       .getRawMany();
     
     return result.map(r => r.symbol);
+  }
+
+  // ============ MARKET LOGS ============
+
+  async createLog(
+    createDto: CreateMarketLogDto,
+    userId: string,
+  ): Promise<MarketLog> {
+    const log = this.marketLogRepository.create({
+      ...createDto,
+      userId,
+    });
+    return await this.marketLogRepository.save(log);
+  }
+
+  async findAllLogs(
+    userId: string,
+    filters?: {
+      symbol?: string;
+      session?: string;
+      timeframe?: string;
+      sentiment?: string;
+      tags?: string[];
+      startDate?: string;
+      endDate?: string;
+    },
+  ): Promise<MarketLog[]> {
+    const query = this.marketLogRepository
+      .createQueryBuilder('ml')
+      .where('ml.userId = :userId', { userId })
+      .orderBy('ml.tradeDate', 'DESC')
+      .addOrderBy('ml.createdAt', 'DESC');
+
+    if (filters?.symbol) {
+      query.andWhere('ml.symbol = :symbol', { symbol: filters.symbol });
+    }
+    if (filters?.session) {
+      query.andWhere('ml.session = :session', { session: filters.session });
+    }
+    if (filters?.timeframe) {
+      query.andWhere('ml.timeframe = :timeframe', { timeframe: filters.timeframe });
+    }
+    if (filters?.sentiment) {
+      query.andWhere('ml.sentiment = :sentiment', { sentiment: filters.sentiment });
+    }
+    if (filters?.startDate) {
+      query.andWhere('ml.tradeDate >= :startDate', { startDate: filters.startDate });
+    }
+    if (filters?.endDate) {
+      query.andWhere('ml.tradeDate <= :endDate', { endDate: filters.endDate });
+    }
+    // Tag filtering needs special handling for simple-array
+    if (filters?.tags && filters.tags.length > 0) {
+      // Very basic tag filtering - finding logs that contain ANY of the tags
+      // For arrays stored as string (simple-array), exact matching is tricky in TypeORM without Postgres specific queries
+      // We'll filter in memory for MVP if array query fails, or use LIKE
+      // Assuming simple-array stores as "tag1,tag2"
+      
+      // Better approach for cross-db compatibility with 'simple-array' is standard LIKE
+      // But let's rely on TypeORM's handling or memory filter for now to be safe
+      // Let's defer strict tag filtering to frontend or exact match for now
+      // Or we can use `like` for partial matches
+      filters.tags.forEach(tag => {
+        query.andWhere('ml.tags LIKE :tagParam', { tagParam: `%${tag}%` });
+      });
+    }
+
+    return await query.getMany();
+  }
+
+  async findOneLog(id: string, userId: string): Promise<MarketLog> {
+    const log = await this.marketLogRepository.findOne({
+      where: { id, userId },
+    });
+    if (!log) {
+      throw new NotFoundException(`Market log with ID ${id} not found`);
+    }
+    return log;
+  }
+
+  async updateLog(
+    id: string,
+    updateDto: UpdateMarketLogDto,
+    userId: string,
+  ): Promise<MarketLog> {
+    const log = await this.findOneLog(id, userId);
+    Object.assign(log, updateDto);
+    return await this.marketLogRepository.save(log);
+  }
+
+  async removeLog(id: string, userId: string): Promise<void> {
+    const result = await this.marketLogRepository.delete({ id, userId });
+    if (result.affected === 0) {
+      throw new NotFoundException(`Market log with ID ${id} not found`);
+    }
   }
 }
