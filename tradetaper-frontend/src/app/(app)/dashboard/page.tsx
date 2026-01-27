@@ -12,7 +12,7 @@ import {  fetchMT5Accounts,
 } from '@/store/features/mt5AccountsSlice';
 import { calculateDashboardStats, calculateEquityCurveData } from '@/utils/analytics';
 import { Trade, TradeStatus } from '@/types/trade';
-import { format as formatDateFns, subDays, isAfter, parseISO } from 'date-fns';
+import { format as formatDateFns, subDays, isAfter, parseISO, format, isValid } from 'date-fns';
 import { FaChartLine, FaPlus, FaListOl, FaCalendarAlt, FaCalendarDay } from 'react-icons/fa';
 import { AnimatedCard } from '@/components/ui/AnimatedCard';
 import { AnimatedButton } from '@/components/ui/AnimatedButton';
@@ -39,12 +39,32 @@ import SessionBreakdownChart from '@/components/dashboard/analytics/SessionBreak
 import HoldingTimeScatter from '@/components/dashboard/analytics/HoldingTimeScatter';
 import TraderScoreRadar from '@/components/dashboard/visuals/TraderScoreRadar';
 import AccountHealthGauge from '@/components/dashboard/visuals/AccountHealthGauge';
+import PairsPerformanceTable from '@/components/dashboard/PairsPerformanceTable';
+import AdvancedPerformanceChart from '@/components/dashboard/AdvancedPerformanceChart';
 import { FaBrain, FaClock, FaHourglassHalf, FaGlobeAmericas, FaChartPie, FaTachometerAlt } from 'react-icons/fa';
 
 // Time range mapping
 const timeRangeDaysMapping: { [key: string]: number } = {
   '7d': 7, '1M': 30, '3M': 90, '1Y': 365, 'All': Infinity,
 };
+
+// Types for new components
+interface ChartDataPoint {
+  date: string;
+  pnl: number;
+  netPnl: number;
+  mae: number;
+}
+
+interface PairStats {
+  symbol: string;
+  returnDollar: number;
+  profitFactor: number;
+  mae: number;
+  winPercent: number;
+  returnLoss: number;
+  tradesCount: number;
+}
 
 export default function DashboardPage() {
   const dispatch = useDispatch<AppDispatch>();
@@ -101,6 +121,101 @@ export default function DashboardPage() {
       } catch { return false; }
     });
   }, [trades, timeRange]);
+
+  // Calculate pairs performance (Migrated from OverviewPage)
+  const pairsPerformance = useMemo((): PairStats[] => {
+    if (!filteredTrades) return [];
+    const closedTrades = filteredTrades.filter(t => t.status === TradeStatus.CLOSED);
+    const symbolGroups: { [symbol: string]: Trade[] } = {};
+
+    closedTrades.forEach(trade => {
+      if (!symbolGroups[trade.symbol]) {
+        symbolGroups[trade.symbol] = [];
+      }
+      symbolGroups[trade.symbol].push(trade);
+    });
+
+    const pairStats: PairStats[] = Object.entries(symbolGroups)
+      .map(([symbol, symbolTrades]) => {
+        const totalPnl = symbolTrades.reduce((sum, t) => sum + (t.profitOrLoss || 0), 0);
+        const wins = symbolTrades.filter(t => (t.profitOrLoss || 0) > 0);
+        const losses = symbolTrades.filter(t => (t.profitOrLoss || 0) < 0);
+        
+        const totalWins = wins.reduce((sum, t) => sum + (t.profitOrLoss || 0), 0);
+        const totalLosses = Math.abs(losses.reduce((sum, t) => sum + (t.profitOrLoss || 0), 0));
+        
+        const profitFactor = totalLosses > 0 ? totalWins / totalLosses : totalWins > 0 ? 999 : 0;
+        const winPercent = symbolTrades.length > 0 ? (wins.length / symbolTrades.length) * 100 : 0;
+        
+        // Simulated MAE calculation
+        const mae = losses.reduce((sum, t) => sum + Math.abs(t.profitOrLoss || 0) * 0.3, 0);
+
+        return {
+          symbol: symbol,
+          returnDollar: totalPnl,
+          profitFactor,
+          mae: -mae,
+          winPercent,
+          returnLoss: totalLosses > 0 ? -totalLosses : 0,
+          tradesCount: symbolTrades.length,
+        };
+      })
+      .filter(stat => stat.tradesCount >= 1)
+      .sort((a, b) => b.returnDollar - a.returnDollar)
+      .slice(0, 10);
+
+    return pairStats;
+  }, [filteredTrades]);
+
+  // Calculate chart data (Migrated from OverviewPage)
+  const chartData = useMemo((): ChartDataPoint[] => {
+    if (!filteredTrades) return [];
+    const closedTrades = filteredTrades
+      .filter(t => t.status === TradeStatus.CLOSED && t.exitDate)
+      .sort((a, b) => new Date(a.exitDate!).getTime() - new Date(b.exitDate!).getTime());
+
+    if (closedTrades.length === 0) return [];
+
+    let cumulativePnl = 0;
+    let cumulativeNetPnl = 0;
+    const dataPoints: ChartDataPoint[] = [];
+
+    // Group trades by day for better visualization
+    const dailyGroups: { [key: string]: Trade[] } = {};
+    closedTrades.forEach(trade => {
+      const dateKey = format(parseISO(trade.exitDate!), 'yyyy-MM-dd');
+      if (!dailyGroups[dateKey]) {
+        dailyGroups[dateKey] = [];
+      }
+      dailyGroups[dateKey].push(trade);
+    });
+
+    Object.entries(dailyGroups).forEach(([date, dayTrades]) => {
+      const dayPnl = dayTrades.reduce((sum, t) => sum + (t.profitOrLoss || 0), 0);
+      const dayCommissions = dayTrades.reduce((sum, t) => sum + (t.commission || 0), 0);
+      
+      cumulativePnl += dayPnl;
+      cumulativeNetPnl += (dayPnl - dayCommissions);
+      
+      // Calculate simulated MAE (since we don't have tick data)
+      // We'll use a negative value based on losing trades as a proxy
+      const dayMAE = dayTrades.reduce((mae, trade) => {
+        if ((trade.profitOrLoss || 0) < 0) {
+          return mae + Math.abs(trade.profitOrLoss || 0) * 0.3; // Simulate MAE as 30% worse than final loss
+        }
+        return mae;
+      }, 0);
+
+      dataPoints.push({
+        date: format(parseISO(date), 'MMM dd'),
+        pnl: cumulativePnl,
+        netPnl: cumulativeNetPnl,
+        mae: -dayMAE, // Negative because MAE represents adverse movement
+      });
+    });
+
+    return dataPoints;
+  }, [filteredTrades]);
 
   // Stats
   const dashboardStats = useMemo(() => {
@@ -424,9 +539,18 @@ export default function DashboardPage() {
             <TopTradesByReturn trades={filteredTrades || []} topN={5} />
           </DashboardCard>
 
+          {/* Advanced Performance Chart */}
+          <div className="lg:col-span-6">
+            <AdvancedPerformanceChart data={chartData} />
+          </div>
+
+          {/* Pairs Performance Table */}
+          <div className="lg:col-span-6">
+            <PairsPerformanceTable data={pairsPerformance} />
+          </div>
 
           {/* Calendar */}
-          <DashboardCard title="P&L Calendar" icon={FaCalendarDay} gridSpan="lg:col-span-3" showInfoIcon>
+          <DashboardCard title="P&L Calendar" icon={FaCalendarDay} gridSpan="lg:col-span-6" showInfoIcon>
             <DashboardPnlCalendar trades={filteredTrades || []} />
           </DashboardCard>
           
