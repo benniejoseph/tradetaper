@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, Inject, forwardRef } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { BacktestTrade, TradeOutcome } from './entities/backtest-trade.entity';
@@ -7,6 +7,7 @@ import { UpdateBacktestTradeDto } from './dto/update-backtest-trade.dto';
 import { MarketLog } from './entities/market-log.entity';
 import { CreateMarketLogDto } from './dto/create-market-log.dto';
 import { UpdateMarketLogDto } from './dto/update-market-log.dto';
+import { TagService } from './services/tag.service';
 
 export interface BacktestStats {
   totalTrades: number;
@@ -60,6 +61,8 @@ export class BacktestingService {
     private backtestTradeRepository: Repository<BacktestTrade>,
     @InjectRepository(MarketLog)
     private marketLogRepository: Repository<MarketLog>,
+    @Inject(forwardRef(() => TagService))
+    private tagService: TagService,
   ) {}
 
   async create(
@@ -439,16 +442,27 @@ export class BacktestingService {
       where: { userId },
     });
 
+    const MINIMUM_SAMPLE_SIZE = 15;
+    const canAnalyze = logs.length >= MINIMUM_SAMPLE_SIZE;
+
     // 1. Tag Frequency & Correlation
     const tagStats = new Map<string, {
       count: number;
       movements: Record<string, number>;
       sentiments: Record<string, number>;
+      sessions: Record<string, number>;
+      timeframes: Record<string, number>;
       avgSignificance: number;
     }>();
 
+    // 2. Tag Pair Correlation Tracking
+    const tagPairs = new Map<string, {
+      count: number;
+      movements: Record<string, number>;
+    }>();
+
     logs.forEach(log => {
-      if (!log.tags) return;
+      if (!log.tags || log.tags.length === 0) return;
       
       log.tags.forEach(tag => {
         if (!tagStats.has(tag)) {
@@ -456,6 +470,8 @@ export class BacktestingService {
             count: 0,
             movements: {},
             sentiments: {},
+            sessions: {},
+            timeframes: {},
             avgSignificance: 0,
           });
         }
@@ -473,35 +489,101 @@ export class BacktestingService {
           stats.sentiments[log.sentiment] = (stats.sentiments[log.sentiment] || 0) + 1;
         }
 
+        // Session correlation
+        if (log.session) {
+          stats.sessions[log.session] = (stats.sessions[log.session] || 0) + 1;
+        }
+
+        // Timeframe correlation
+        if (log.timeframe) {
+          stats.timeframes[log.timeframe] = (stats.timeframes[log.timeframe] || 0) + 1;
+        }
+
         // Running average for significance
         stats.avgSignificance = ((stats.avgSignificance * (stats.count - 1)) + (log.significance || 3)) / stats.count;
       });
+
+      // Track tag pairs (for correlation discovery)
+      if (log.tags.length >= 2) {
+        for (let i = 0; i < log.tags.length; i++) {
+          for (let j = i + 1; j < log.tags.length; j++) {
+            const pairKey = [log.tags[i], log.tags[j]].sort().join(' + ');
+            if (!tagPairs.has(pairKey)) {
+              tagPairs.set(pairKey, { count: 0, movements: {} });
+            }
+            const pair = tagPairs.get(pairKey)!;
+            pair.count++;
+            if (log.movementType) {
+              pair.movements[log.movementType] = (pair.movements[log.movementType] || 0) + 1;
+            }
+          }
+        }
+      }
     });
 
-    // Format for frontend
+    // Helper: Get best value from a record
+    const getBest = (record: Record<string, number>): { value: string; count: number } | null => {
+      const entries = Object.entries(record);
+      if (entries.length === 0) return null;
+      const sorted = entries.sort(([,a], [,b]) => b - a);
+      return { value: sorted[0][0], count: sorted[0][1] };
+    };
+
+    // Helper: Determine sample size status
+    const getSampleStatus = (count: number): string => {
+      if (count < 5) return 'insufficient';
+      if (count < 15) return 'minimal';
+      if (count < 30) return 'adequate';
+      return 'robust';
+    };
+
+    // Format discoveries for frontend
     const discoveries = Array.from(tagStats.entries()).map(([tag, stats]) => {
-      // Find dominant movement
-      const dominantMovement = Object.entries(stats.movements)
-        .sort(([,a], [,b]) => b - a)[0];
-        
-      const dominantSentiment = Object.entries(stats.sentiments)
-        .sort(([,a], [,b]) => b - a)[0];
+      const dominantMovement = getBest(stats.movements);
+      const dominantSentiment = getBest(stats.sentiments);
+      const bestSession = getBest(stats.sessions);
+      const bestTimeframe = getBest(stats.timeframes);
 
       return {
         tag,
         occurrences: stats.count,
-        confidence: parseFloat(((stats.count / logs.length) * 100).toFixed(1)), // % of total logs
+        sampleSizeStatus: getSampleStatus(stats.count),
+        confidence: parseFloat(((stats.count / logs.length) * 100).toFixed(1)),
         avgSignificance: parseFloat(stats.avgSignificance.toFixed(1)),
-        dominantPattern: dominantMovement ? dominantMovement[0] : 'Mixed',
-        dominantSentiment: dominantSentiment ? dominantSentiment[0] : 'Neutral',
+        dominantPattern: dominantMovement?.value || 'Mixed',
+        dominantSentiment: dominantSentiment?.value || 'Neutral',
+        bestSession: bestSession?.value || null,
+        bestTimeframe: bestTimeframe?.value || null,
         movementDistribution: stats.movements,
-        sentimentDistribution: stats.sentiments
+        sentimentDistribution: stats.sentiments,
+        sessionDistribution: stats.sessions,
+        timeframeDistribution: stats.timeframes,
       };
     }).sort((a, b) => b.occurrences - a.occurrences);
 
+    // Format correlations for frontend
+    const correlations = Array.from(tagPairs.entries())
+      .filter(([, pair]) => pair.count >= 3) // Minimum 3 co-occurrences
+      .map(([key, pair]) => {
+        const dominant = getBest(pair.movements);
+        const successRate = dominant ? (dominant.count / pair.count * 100).toFixed(1) : 0;
+        return {
+          tags: key,
+          coOccurrences: pair.count,
+          dominantOutcome: dominant?.value || 'Mixed',
+          successRate: parseFloat(String(successRate)),
+        };
+      })
+      .sort((a, b) => b.coOccurrences - a.coOccurrences)
+      .slice(0, 10); // Top 10 correlations
+
     return {
       totalLogs: logs.length,
-      discoveries: discoveries.filter(d => d.occurrences > 2), // Filter noise
+      minimumForAnalysis: MINIMUM_SAMPLE_SIZE,
+      canAnalyze,
+      needsMoreData: !canAnalyze ? MINIMUM_SAMPLE_SIZE - logs.length : 0,
+      discoveries: discoveries.filter(d => d.occurrences >= 2), // Filter noise
+      correlations,
     };
   }
 
@@ -521,8 +603,14 @@ export class BacktestingService {
     createDto: CreateMarketLogDto,
     userId: string,
   ): Promise<MarketLog> {
+    // Normalize tags before saving
+    const normalizedTags = createDto.tags 
+      ? this.tagService.normalizeAll(createDto.tags)
+      : [];
+
     const log = this.marketLogRepository.create({
       ...createDto,
+      tags: normalizedTags,
       userId,
     });
     return await this.marketLogRepository.save(log);
