@@ -30,6 +30,8 @@ export interface BacktestTrade {
   dayOfWeek?: DayOfWeek;
   hourOfDay?: number;
   tradeDate: string;
+  entryTime?: string;
+  exitTime?: string;
   
   // Setup Details
   setupType?: string;
@@ -75,6 +77,8 @@ export interface CreateBacktestTradeDto {
   dayOfWeek?: DayOfWeek;
   hourOfDay?: number;
   tradeDate: string;
+  entryTime?: string;
+  exitTime?: string;
   setupType?: string;
   ictConcept?: string;
   marketStructure?: MarketStructure;
@@ -259,6 +263,8 @@ export interface MarketLog {
   tradeDate: string;
   timeframe: Timeframe;
   session?: TradingSession;
+  startTime?: string;
+  endTime?: string;
   tags?: string[];
   observation: string;
   movementType?: MarketMovementType;
@@ -274,6 +280,8 @@ export interface CreateMarketLogDto {
   tradeDate: string;
   timeframe: Timeframe;
   session?: TradingSession;
+  startTime?: string;
+  endTime?: string;
   tags?: string[];
   observation: string;
   movementType?: MarketMovementType;

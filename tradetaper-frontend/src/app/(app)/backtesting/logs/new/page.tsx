@@ -28,6 +28,8 @@ export default function NewMarketLogPage() {
     tradeDate: new Date().toISOString().split('T')[0],
     timeframe: 'M15',
     session: 'New York',
+    startTime: '',
+    endTime: '',
     tags: [],
     observation: '',
     movementType: 'Expansion',
@@ -135,6 +137,30 @@ export default function NewMarketLogPage() {
                   <option key={s.value} value={s.value}>{s.label}</option>
                 ))}
               </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Start Time <span className="text-xs text-gray-500">(EST/EDT)</span>
+              </label>
+              <input
+                type="time"
+                value={formData.startTime || ''}
+                onChange={e => setFormData({ ...formData, startTime: e.target.value })}
+                className="w-full px-4 py-2 border border-gray-200 dark:border-gray-800 rounded-lg bg-transparent focus:ring-2 focus:ring-blue-500 outline-none"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                End Time <span className="text-xs text-gray-500">(EST/EDT)</span>
+              </label>
+              <input
+                type="time"
+                value={formData.endTime || ''}
+                onChange={e => setFormData({ ...formData, endTime: e.target.value })}
+                className="w-full px-4 py-2 border border-gray-200 dark:border-gray-800 rounded-lg bg-transparent focus:ring-2 focus:ring-blue-500 outline-none"
+              />
             </div>
 
             <div>
