@@ -6,8 +6,8 @@ export type MarketStructure = 'bullish' | 'bearish' | 'consolidating';
 export type HTFBias = 'bullish' | 'bearish' | 'neutral';
 export type TradeOutcome = 'win' | 'loss' | 'breakeven';
 export type DayOfWeek = 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday';
-export type TradingSession = 'london' | 'newyork' | 'asia' | 'sydney';
-export type TradeDirection = 'LONG' | 'SHORT';
+export type TradingSession = 'London' | 'New York' | 'Asia' | 'London-NY Overlap' | 'Other';
+export type TradeDirection = 'Long' | 'Short';
 
 export interface BacktestTrade {
   id: string;
@@ -165,10 +165,11 @@ export const TIMEFRAMES: { value: Timeframe; label: string }[] = [
 ];
 
 export const SESSIONS: { value: TradingSession; label: string }[] = [
-  { value: 'london', label: 'London' },
-  { value: 'newyork', label: 'New York' },
-  { value: 'asia', label: 'Asia' },
-  { value: 'sydney', label: 'Sydney' },
+  { value: 'London', label: 'London' },
+  { value: 'New York', label: 'New York' },
+  { value: 'Asia', label: 'Asia' },
+  { value: 'London-NY Overlap', label: 'London-NY Overlap' },
+  { value: 'Other', label: 'Other' },
 ];
 
 export const KILL_ZONES: { value: KillZone; label: string }[] = [
@@ -219,18 +220,19 @@ export const COMMON_SYMBOLS = [
 ];
 
 export const ICT_CONCEPTS = [
-  'Power of Three',
-  'AMD (Accumulation, Manipulation, Distribution)',
-  'Silver Bullet',
-  'ICT Killzones',
   'Fair Value Gap',
   'Order Block',
   'Breaker Block',
-  'Liquidity Sweep',
-  'Market Structure Shift',
-  'Change of Character',
-  'Smart Money Concept',
-  'Optimal Trade Entry',
+  'Mitigation Block',
+  'Liquidity Grab (BSL/SSL)',
+  'Liquidity Void',
+  'Silver Bullet',
+  'Judas Swing',
+  'SMT Divergence',
+  'Power of Three (AMD)',
+  'Optimal Trade Entry (OTE)',
+  'Market Structure Shift (MSS)',
+  'Other',
 ];
 
 export const SETUP_TYPES = [
