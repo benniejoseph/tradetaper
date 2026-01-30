@@ -29,6 +29,8 @@ export const authApiClient = axios.create({
   },
 });
 
+export default authApiClient;
+
 export function setupAuthInterceptors(getState: () => RootState) { // removed unused dispatch parameter
     authApiClient.interceptors.request.use(
         (config: any) => {

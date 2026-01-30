@@ -8,7 +8,9 @@ import {
   selectMT5Accounts,
   selectMT5AccountsLoading,
   deleteMT5Account,
-  syncMT5Account
+  syncMT5Account,
+  createMT5Account,
+  updateMT5Account
 } from '@/store/features/mt5AccountsSlice';
 import { MT5Account } from '@/types/mt5Account';
 import { 
@@ -18,6 +20,7 @@ import {
 } from 'react-icons/fa';
 import { mt5Service } from '@/services/mt5Service';
 import MT5AccountForm from './MT5AccountForm';
+import TerminalStatusCard from './TerminalStatusCard';
 
 
 const MT5AccountsList: React.FC = () => {
@@ -140,6 +143,24 @@ const MT5AccountsList: React.FC = () => {
       alert(err.response?.data?.message || 'Failed to import trades');
     } finally {
       setImportLoading(false);
+    }
+  };
+
+  const handleSaveAccount = async (formData: any) => {
+    try {
+      if (editingAccount) {
+        await dispatch(updateMT5Account({
+          id: editingAccount.id,
+          data: formData
+        })).unwrap();
+      } else {
+        await dispatch(createMT5Account(formData)).unwrap();
+      }
+      setShowForm(false);
+      setEditingAccount(null);
+      dispatch(fetchMT5Accounts());
+    } catch (err) {
+      console.error('Failed to save account:', err);
     }
   };
 
@@ -304,7 +325,12 @@ const MT5AccountsList: React.FC = () => {
 
       {/* Add Account Form */}
       {showForm && (
-        <MT5AccountForm onCancel={handleCancelForm} />
+        <MT5AccountForm 
+          account={editingAccount}
+          onSubmit={handleSaveAccount}
+          onCancel={handleCancelForm}
+          isSubmitting={isLoading}
+        />
       )}
 
       {/* MT5 Accounts List */}
@@ -488,6 +514,13 @@ const MT5AccountsList: React.FC = () => {
                       <FaTrash className="w-5 h-5" />
                     </button>
                   </div>
+                </div>
+
+                <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
+                  <TerminalStatusCard 
+                    accountId={account.id} 
+                    accountName={account.accountName} 
+                  />
                 </div>
               </div>
             ))}

@@ -18,133 +18,7 @@ interface MT5AccountFormProps {
   isSubmitting?: boolean;
 }
 
-// Comprehensive list of common MT5 broker servers
-const ALL_SERVERS: MT5Server[] = [
-  // MetaQuotes Demo
-  { name: 'MetaQuotes-Demo' },
-  // IC Markets
-  { name: 'ICMarketsSC-Demo' },
-  { name: 'ICMarketsSC-Live01' },
-  { name: 'ICMarketsSC-Live02' },
-  { name: 'ICMarketsSC-Live03' },
-  { name: 'ICMarkets-Demo' },
-  { name: 'ICMarkets-Live' },
-  // Exness
-  { name: 'Exness-MT5Real' },
-  { name: 'Exness-MT5Real2' },
-  { name: 'Exness-MT5Real3' },
-  { name: 'Exness-MT5Real4' },
-  { name: 'Exness-MT5Real5' },
-  { name: 'Exness-MT5Real6' },
-  { name: 'Exness-MT5Real7' },
-  { name: 'Exness-MT5Real8' },
-  { name: 'Exness-MT5Trial' },
-  { name: 'Exness-MT5Trial2' },
-  { name: 'Exness-MT5Trial3' },
-  // FTMO
-  { name: 'FTMO-Demo' },
-  { name: 'FTMO-Demo2' },
-  { name: 'FTMO-Server' },
-  { name: 'FTMO-Server2' },
-  { name: 'FTMO-Live' },
-  // XM
-  { name: 'XMGlobal-MT5' },
-  { name: 'XMGlobal-MT5 2' },
-  { name: 'XMGlobal-MT5 3' },
-  { name: 'XMGlobal-Real 1' },
-  // Pepperstone
-  { name: 'Pepperstone-Demo' },
-  { name: 'Pepperstone-Edge01' },
-  { name: 'Pepperstone-Edge02' },
-  { name: 'Pepperstone-Edge03' },
-  // OANDA
-  { name: 'OANDA-OandaPractice-1' },
-  { name: 'OANDA-OandaLive-1' },
-  // Admiral Markets
-  { name: 'AdmiralMarkets-Demo' },
-  { name: 'AdmiralMarkets-Live' },
-  { name: 'Admirals-MT5' },
-  // FBS
-  { name: 'FBS-Demo' },
-  { name: 'FBS-Real' },
-  { name: 'FBS-Real-2' },
-  // RoboForex
-  { name: 'RoboForex-ECN' },
-  { name: 'RoboForex-Demo' },
-  { name: 'RoboForex-Pro' },
-  // Tickmill
-  { name: 'Tickmill-Demo' },
-  { name: 'Tickmill-Live' },
-  // FxPro
-  { name: 'FxPro-MT5' },
-  { name: 'FxPro-Demo01' },
-  // Alpari
-  { name: 'Alpari-MT5-Demo' },
-  { name: 'Alpari-MT5' },
-  // HotForex / HFM
-  { name: 'HFMarketsEU-Demo MT5' },
-  { name: 'HFMarketsEU-Live Server MT5' },
-  // FXCM
-  { name: 'FXCM-MT5' },
-  { name: 'FXCM-Demo01' },
-  // AvaTrade
-  { name: 'Ava-Demo' },
-  { name: 'Ava-Real' },
-  // Vantage
-  { name: 'VantageInternational-Demo' },
-  { name: 'VantageInternational-Live' },
-  // ThinkMarkets
-  { name: 'ThinkMarkets-Demo' },
-  { name: 'ThinkMarkets-Live' },
-  // FXTM
-  { name: 'ForexTimeFXTM-Demo01' },
-  { name: 'ForexTimeFXTM-ECN-Demo' },
-  // My Forex Funds
-  { name: 'MyForexFunds-Demo' },
-  { name: 'MyForexFunds-Live' },
-  // The 5ers
-  { name: 'The5ers-Demo' },
-  { name: 'The5ers-Live' },
-  // Funded Next
-  { name: 'FundedNext-Demo' },
-  { name: 'FundedNext-Server' },
-  // True Forex Funds
-  { name: 'TrueForexFunds-Demo' },
-  { name: 'TrueForexFunds-Live' },
-  // E8 Funding
-  { name: 'E8Funding-Demo' },
-  { name: 'E8Funding-Live' },
-  // FundingPips
-  { name: 'FundingPips-Demo' },
-  { name: 'FundingPips-Server' },
-  { name: 'FundingPips-Live' },
-  { name: 'FundingPips-Real' },
-  { name: 'FundingPips2-SIM' },
-  // Funding Traders
-  { name: 'FundingTraders-Demo' },
-  { name: 'FundingTraders-Live' },
-  // Alpha Capital Group
-  { name: 'AlphaCapital-Demo' },
-  { name: 'AlphaCapital-Live' },
-  // Topstep
-  { name: 'Topstep-Demo' },
-  { name: 'Topstep-Live' },
-  // Apex Trader Funding
-  { name: 'ApexTrader-Demo' },
-  { name: 'ApexTrader-Live' },
-  // Lux Trading Firm
-  { name: 'LuxTradingFirm-Demo' },
-  { name: 'LuxTradingFirm-Live' },
-  // City Traders Imperium
-  { name: 'CTI-Demo' },
-  { name: 'CTI-Live' },
-  // Surge Trading
-  { name: 'SurgeTrading-Demo' },
-  { name: 'SurgeTrading-Live' },
-  // Blue Guardian
-  { name: 'BlueGuardian-Demo' },
-  { name: 'BlueGuardian-Live' },
-];
+// Server list loaded lazily via import('@/data/mt5Servers')
 
 export default function MT5AccountForm({ 
   account, 
@@ -171,6 +45,15 @@ export default function MT5AccountForm({
   const serverInputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
+  const [loadedServers, setLoadedServers] = useState<MT5Server[]>([]);
+
+  // Load servers lazily
+  useEffect(() => {
+    import('@/data/mt5Servers').then((mod) => {
+      setLoadedServers(mod.MT5_SERVERS);
+    });
+  }, []);
+
   // Populate form when editing
   useEffect(() => {
     if (account) {
@@ -190,7 +73,7 @@ export default function MT5AccountForm({
 
   // Filter servers based on search
   useEffect(() => {
-    const allServersList = servers.length > 0 ? servers : ALL_SERVERS;
+    const allServersList = servers.length > 0 ? servers : (loadedServers.length > 0 ? loadedServers : []);
     
     if (serverSearch.trim() === '') {
       setFilteredServers(allServersList.slice(0, 15));
@@ -198,10 +81,10 @@ export default function MT5AccountForm({
       const searchLower = serverSearch.toLowerCase();
       const filtered = allServersList.filter(s => 
         s.name.toLowerCase().includes(searchLower)
-      ).slice(0, 15);
+      ).slice(0, 50); // Show more results
       setFilteredServers(filtered);
     }
-  }, [serverSearch, servers]);
+  }, [serverSearch, servers, loadedServers]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -241,11 +124,18 @@ export default function MT5AccountForm({
       return;
     }
 
-    onSubmit({
-      ...formData,
+    const submissionData = {
+      accountName: formData.name,
+      server: formData.server,
+      login: formData.login,
+      password: formData.password,
+      isActive: formData.isActive,
       initialBalance: formData.initialBalance ? parseFloat(formData.initialBalance) : undefined,
       leverage: formData.leverage ? parseInt(formData.leverage) : 100,
-    });
+      currency: formData.currency
+    };
+
+    onSubmit(submissionData);
   };
 
   return (
@@ -320,22 +210,25 @@ export default function MT5AccountForm({
                   </div>
                 )}
                 
-                {/* Custom server option */}
-                {serverSearch && !filteredServers.some(s => s.name.toLowerCase() === serverSearch.toLowerCase()) && (
-                  <button
-                    type="button"
-                    onClick={() => handleServerSelect({ name: serverSearch })}
-                    className="w-full text-left px-4 py-3 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 font-medium"
-                  >
-                    Use custom server: "{serverSearch}"
-                  </button>
-                )}
+            {/* Custom server option - Always show if text is entered to confirm manual entry intent */}
+            {serverSearch && (
+              <div className="border-t border-gray-100 dark:border-gray-700">
+                <button
+                  type="button"
+                  onClick={() => handleServerSelect({ name: serverSearch })}
+                  className="w-full text-left px-4 py-3 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 font-medium hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition-colors flex items-center justify-between"
+                >
+                  <span>Use custom server: <strong>"{serverSearch}"</strong></span>
+                  <span className="text-xs bg-emerald-200 dark:bg-emerald-800 px-2 py-1 rounded">Manual Entry</span>
+                </button>
+              </div>
+            )}
               </div>
             )}
           </>
         )}
-        <p className="mt-1 text-xs text-gray-500">
-          Type your broker name to find servers or enter custom server name
+        <p className="mt-2 text-xs text-gray-500 flex items-start gap-1">
+          <span className="text-emerald-500 font-bold">Tip:</span> <span>If your server isn't listed, simply type the exact name from your MT5 login screen and click "Use custom server".</span>
         </p>
       </div>
 

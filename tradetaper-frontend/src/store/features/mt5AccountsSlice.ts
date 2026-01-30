@@ -20,7 +20,6 @@ export interface MT5Account {
   lastSyncAt?: string;
   totalTradesImported?: number;
   createdAt?: string;
-  createdAt?: string;
   updatedAt?: string;
   target?: number;
 }
@@ -120,54 +119,17 @@ export const deleteMT5Account = createAsyncThunk(
   }
 );
 
-// Sync MT5 account
+// Sync MT5 account (placeholder for FTP-based sync)
 export const syncMT5Account = createAsyncThunk(
   'mt5Accounts/syncAccount',
   async (id: string, { rejectWithValue, dispatch }) => {
     try {
       await authApiClient.post(`/mt5-accounts/${id}/sync`);
-      toast.success('MT5 account synced successfully');
-      // Refetch to get updated data
+      toast.success('Sync requested - FTP sync coming soon');
       dispatch(fetchMT5Accounts());
       return id;
     } catch (error: any) {
       const message = error.response?.data?.message || 'Failed to sync MT5 account';
-      toast.error(message);
-      return rejectWithValue(message);
-    }
-  }
-);
-
-// Link MT5 account to MetaApi
-export const linkMT5Account = createAsyncThunk(
-  'mt5Accounts/linkAccount',
-  async ({ id, password }: { id: string; password: string }, { rejectWithValue, dispatch }) => {
-    try {
-      const response = await authApiClient.post(`/mt5-accounts/${id}/link`, { password });
-      toast.success('MT5 account linked to MetaApi successfully');
-      // Refetch to get updated data
-      dispatch(fetchMT5Accounts());
-      return response.data;
-    } catch (error: any) {
-      const message = error.response?.data?.message || 'Failed to link MT5 account to MetaApi';
-      toast.error(message);
-      return rejectWithValue(message);
-    }
-  }
-);
-
-// Import trades from MT5 account
-export const importMT5Trades = createAsyncThunk(
-  'mt5Accounts/importTrades',
-  async ({ id, fromDate, toDate }: { id: string; fromDate?: string; toDate?: string }, { rejectWithValue, dispatch }) => {
-    try {
-      const response = await authApiClient.post(`/mt5-accounts/${id}/import-trades`, { fromDate, toDate });
-      toast.success(`Successfully imported ${response.data?.imported || 0} trades`);
-      // Refetch to get updated data
-      dispatch(fetchMT5Accounts());
-      return response.data;
-    } catch (error: any) {
-      const message = error.response?.data?.message || 'Failed to import trades';
       toast.error(message);
       return rejectWithValue(message);
     }

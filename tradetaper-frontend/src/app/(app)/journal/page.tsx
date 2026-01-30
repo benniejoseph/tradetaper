@@ -297,13 +297,12 @@ export default function JournalPage() {
                 const netPnL = Number(footerStats.totalNetPnl) || 0;
 
                 const displayBalance = activeAccount.type === 'MT5'
-                  ? balance - Math.abs(commissions)
+                  ? balance // MT5 Balance is already net of closed trades
                   : balance + netPnL;
                   
                 return <CurrencyAmount amount={displayBalance} className="inline" />;
               })()}
             </p>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
             <p className="text-sm text-gray-500 dark:text-gray-400">
               {(() => {
                  const currentAccountId = selectedAccountId || selectedMT5AccountId;
@@ -317,9 +316,10 @@ export default function JournalPage() {
                 if (activeAccount) {
                   return (
                     <span className="block text-xs mt-1">
-                      Base: <CurrencyAmount amount={activeAccount.balance} className="inline" /> 
-                      {activeAccount.type !== 'MT5' && (
-                        <> + P&L: <CurrencyAmount amount={footerStats.totalNetPnl} className="inline" showSign /></>
+                      {activeAccount.type === 'MT5' ? (
+                         <>Total P&L: <CurrencyAmount amount={footerStats.totalNetPnl} className="inline" showSign /></>
+                      ) : (
+                         <>Base: <CurrencyAmount amount={activeAccount.balance} className="inline" /> + P&L: <CurrencyAmount amount={footerStats.totalNetPnl} className="inline" showSign /></>
                       )}
                     </span>
                   );
@@ -327,7 +327,7 @@ export default function JournalPage() {
                 return null;
               })()}
             </p>
-            </p>
+
           </div>
         </div>
 
