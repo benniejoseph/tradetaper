@@ -278,12 +278,7 @@ export default function DashboardPage() {
 
     // Helper to calculate balance for a single MT5 account
     const getMT5Balance = (acc: any) => {
-       const rawBalance = Number(acc.balance) || 0;
-       // We need trades for this account to subtract commissions
-       // Assuming 'trades' contains all trades if we are in 'All' mode, or trades for this account
-       const accTrades = trades?.filter(t => t.accountId === acc.id) || [];
-       const totalCommissions = accTrades.reduce((sum, t) => sum + (t.commission || 0), 0);
-       return rawBalance - Math.abs(totalCommissions);
+       return Number(acc.balance) || 0;
     };
 
     if (selectedAccountId) {
