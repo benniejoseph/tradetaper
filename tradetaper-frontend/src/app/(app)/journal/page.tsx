@@ -66,22 +66,29 @@ export default function JournalPage() {
 
   // Merge and normalize accounts
   const allAccounts = useMemo(() => {
-    const formattedManual = manualAccounts.map(acc => ({
-      ...acc,
-      type: 'Manual'
-    }));
-    
     const formattedMT5 = mt5Accounts.map(acc => ({
       id: acc.id,
       name: acc.accountName,
-      balance: acc.balance || 0,
+      balance: Number(acc.balance) || 0,
       currency: acc.currency || 'USD',
       createdAt: acc.createdAt || '',
       updatedAt: acc.updatedAt || '',
       type: 'MT5'
     }));
 
-    return [...formattedManual, ...formattedMT5];
+    const formattedManual = manualAccounts.map(acc => ({
+      ...acc,
+      type: 'Manual'
+    }));
+
+    // Prioritize MT5 accounts if there are overlaps, and deduplicate by ID
+    const merged = [...formattedMT5, ...formattedManual];
+    const seen = new Set();
+    return merged.filter(acc => {
+      if (seen.has(acc.id)) return false;
+      seen.add(acc.id);
+      return true;
+    });
   }, [manualAccounts, mt5Accounts]);
 
   const filteredTrades = useMemo(() => {
