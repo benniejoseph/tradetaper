@@ -233,7 +233,7 @@ export default function TradesPage() {
                 const totalCommissions = filteredTrades.reduce((sum, t) => sum + (t.commission || 0), 0);
                 
                 const displayBalance = selectedAccount.type === 'MT5' 
-                  ? rawBalance - Math.abs(totalCommissions)
+                  ? rawBalance
                   : rawBalance + totalPnL;
                   
                 return (

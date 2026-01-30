@@ -4,6 +4,7 @@ import { Trade, TradeStatus, UpdateTradePayload, TradeDirection } from '@/types/
 import { FaTimes, FaEdit, FaTrashAlt, FaExternalLinkAlt, FaShareSquare, FaStar as FaStarSolid, FaRegStar as FaStarOutline, FaTwitter, FaLinkedin, FaCopy, FaDownload, FaChartLine, FaClock, FaDollarSign, FaBrain } from 'react-icons/fa'; // Added FaBrain
 import { format, parseISO, differenceInMinutes, differenceInHours, differenceInDays } from 'date-fns';
 import { formatPrice } from './TradesTable';
+import TradeCandleChart from '../charts/TradeCandleChart';
 
 // Helper functions moved from TradesTable
 const getWeekday = (dateStr: string | undefined): string => {
@@ -483,6 +484,19 @@ export default function TradePreviewDrawer({
               <div className="space-y-3">
                 <DetailItem label="Entry Price" value={formatPrice(trade.entryPrice)} valueClass="font-mono" />
                 <DetailItem label="Exit Price" value={formatPrice(trade.exitPrice)} valueClass="font-mono" />
+              </div>
+
+              <SectionTitle title="Execution Chart" icon={<FaChartLine className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />} />
+              <div className="mb-6">
+                <TradeCandleChart 
+                  tradeId={trade.id} 
+                  symbol={trade.symbol} 
+                  entryPrice={trade.entryPrice}
+                  exitPrice={trade.exitPrice}
+                  entryTime={trade.entryDate}
+                  exitTime={trade.exitDate}
+                  direction={trade.direction}
+                />
               </div>
 
               <SectionTitle title="Time" icon={<FaClock className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />} />
