@@ -443,15 +443,15 @@ export default function JournalPage() {
 
           {/* Search and Actions */}
           <div className="flex items-center space-x-3 ml-auto">
-            <div className="relative">
+            <div className="relative group">
               <input 
                 type="text" 
                 placeholder="Search trades..." 
-                className="pl-10 pr-4 py-2.5 text-sm rounded-xl border border-gray-200/50 dark:border-gray-700/50 bg-gradient-to-r from-white to-emerald-50 dark:from-black dark:to-emerald-950/20 backdrop-blur-sm focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all duration-200" 
+                className="pl-10 pr-4 py-2.5 text-sm rounded-xl border border-gray-200/50 dark:border-gray-700/50 bg-white dark:bg-gray-950 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all duration-200 w-64" 
                 value={searchQuery} 
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
-              <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 group-focus-within:text-emerald-500 transition-colors duration-200" />
             </div>
             
             <Link 
