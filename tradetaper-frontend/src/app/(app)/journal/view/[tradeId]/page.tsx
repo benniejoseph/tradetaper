@@ -9,8 +9,8 @@ import TradeCandleChart from '@/components/charts/TradeCandleChart';
 import { format as formatDateFns } from 'date-fns';
 import { 
   FaArrowLeft, 
-  FaEdit, 
-  FaDownload,
+  FaPenToSquare, 
+  FaCloudArrowDown,
   FaArrowUp,
   FaArrowDown,
   FaDollarSign,
@@ -19,8 +19,8 @@ import {
   FaBrain,
   FaTag,
   FaBullseye,
-  FaCalendarAlt,
-  FaLayersGroup,
+  FaCalendarDays,
+  FaLayerGroup,
   FaMicrochip,
   FaTerminal
 } from 'react-icons/fa6';
@@ -122,10 +122,10 @@ export default function ViewTradePage() {
           {/* Action Bar */}
           <div className="p-8 flex items-center gap-3 border-l border-white/5 bg-white/2">
             <button onClick={() => window.print()} className="p-4 bg-white/5 hover:bg-white/10 rounded-2xl border border-white/5 transition-all transition-transform active:scale-95">
-              <FaDownload className="w-4 h-4 text-gray-400" />
+              <FaCloudArrowDown className="w-4 h-4 text-gray-400" />
             </button>
             <Link href={`/journal/edit/${trade.id}`} className="flex items-center gap-3 px-8 py-4 bg-emerald-500 hover:bg-emerald-600 text-white font-black rounded-2xl shadow-xl shadow-emerald-500/20 transition-all active:scale-95">
-              <FaEdit className="w-4 h-4" />
+              <FaPenToSquare className="w-4 h-4" />
               <span className="text-[11px] uppercase tracking-widest">Edit Execution</span>
             </Link>
           </div>
@@ -183,7 +183,7 @@ export default function ViewTradePage() {
             </div>
 
             <div className="space-y-4">
-              <SidebarField label="Account Instance" value={trade.accountName} icon={<FaLayersGroup />} />
+              <SidebarField label="Account Instance" value={trade.accountName} icon={<FaLayerGroup />} />
               <SidebarField label="Asset Category" value={trade.assetType} icon={<FaBullseye />} />
               <SidebarField label="Entry Execution" value={`${formatPrice(trade.entryPrice)} @ ${formatDateFns(new Date(trade.entryDate), 'MMM dd, HH:mm')}`} icon={<FaClock />} />
               <SidebarField label="Exit Execution" value={trade.exitDate ? `${formatPrice(trade.exitPrice)} @ ${formatDateFns(new Date(trade.exitDate), 'MMM dd, HH:mm')}` : 'Position In Progress'} icon={<FaClock />} />
