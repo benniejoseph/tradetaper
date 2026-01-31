@@ -33,6 +33,7 @@ let Trade = class Trade {
     closePrice;
     quantity;
     commission;
+    swap;
     marginUsed;
     notes;
     profitOrLoss;
@@ -176,6 +177,11 @@ __decorate([
     (0, typeorm_1.Column)('decimal', { precision: 10, scale: 2, nullable: true }),
     __metadata("design:type", Number)
 ], Trade.prototype, "commission", void 0);
+__decorate([
+    (0, class_transformer_1.Type)(() => Number),
+    (0, typeorm_1.Column)('decimal', { precision: 10, scale: 2, nullable: true }),
+    __metadata("design:type", Number)
+], Trade.prototype, "swap", void 0);
 __decorate([
     (0, typeorm_1.Column)('decimal', { precision: 10, scale: 2, nullable: true }),
     __metadata("design:type", Number)

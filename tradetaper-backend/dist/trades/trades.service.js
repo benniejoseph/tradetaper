@@ -86,24 +86,23 @@ let TradesService = TradesService_1 = class TradesService {
             const startTime = new Date(entryTime - bufferMs);
             const endTime = new Date(exitTime + bufferMs);
             let data = [];
-            if (trade.accountId) {
-                try {
-                    this.logger.debug(`Strategy A: Fetching from MetaApi...`);
-                    data = await this.mt5AccountsService.getCandles(trade.accountId, trade.symbol, timeframe, startTime, endTime);
-                }
-                catch (e) {
-                    this.logger.warn(`MetaApi Strategy failed: ${e.message}`);
-                }
-            }
-            if (!data || data.length === 0) {
-                this.logger.debug(`Strategy B: Fallback to Massive (Polygon) for ${trade.symbol}...`);
+            this.logger.debug(`Strategy A: Fetching from Massive (Polygon) for ${trade.symbol}...`);
+            try {
                 data = await this.massiveService.getCandles(trade.symbol, timeframe, startTime, endTime);
                 this.logger.debug(`Massive returned ${data?.length || 0} candles`);
             }
+            catch (e) {
+                this.logger.warn(`Massive Strategy failed: ${e.message}`);
+            }
             if (!data || data.length === 0) {
-                this.logger.debug(`Strategy C: Fallback to Yahoo Finance for ${trade.symbol}...`);
-                data = await this.yahooFinanceService.getCandles(trade.symbol, timeframe, startTime, endTime);
-                this.logger.debug(`Yahoo Finance returned ${data?.length || 0} candles`);
+                this.logger.debug(`Strategy B: Fallback to Yahoo Finance for ${trade.symbol}...`);
+                try {
+                    data = await this.yahooFinanceService.getCandles(trade.symbol, timeframe, startTime, endTime);
+                    this.logger.debug(`Yahoo Finance returned ${data?.length || 0} candles`);
+                }
+                catch (e) {
+                    this.logger.warn(`Yahoo Finance Strategy failed: ${e.message}`);
+                }
             }
             if (trade.status === enums_1.TradeStatus.CLOSED && data && data.length > 0) {
                 this.logger.debug(`Caching result for trade ${tradeId}`);
@@ -256,6 +255,11 @@ let TradesService = TradesService_1 = class TradesService {
             });
         }
         return await queryBuilder.getOne();
+    }
+    async findOneByExternalId(userId, externalId) {
+        return await this.tradesRepository.findOne({
+            where: { userId, externalId },
+        });
     }
     async findOne(id, userContext) {
         this.logger.log(`User ${userContext.id} fetching trade with ID ${id}`);

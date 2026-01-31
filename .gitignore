@@ -77,3 +77,5 @@ firebase*.json
 
 # Other sensitive files
 verify_notifications.js
+.env*.local
+*.zip

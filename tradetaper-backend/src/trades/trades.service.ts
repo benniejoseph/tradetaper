@@ -26,8 +26,8 @@ import { MT5AccountsService } from '../users/mt5-accounts.service';
 import { TradeCandle } from './entities/trade-candle.entity';
 
 import { YahooFinanceService } from '../integrations/yahoo-finance/yahoo-finance.service';
-
 import { MassiveService } from '../integrations/massive/massive.service';
+import { TerminalFarmService } from '../terminal-farm/terminal-farm.service';
 
 @Injectable()
 export class TradesService {
@@ -48,6 +48,8 @@ export class TradesService {
     private readonly accountsService: AccountsService,
     @Inject(forwardRef(() => MT5AccountsService))
     private readonly mt5AccountsService: MT5AccountsService,
+    @Inject(forwardRef(() => TerminalFarmService))
+    private readonly terminalFarmService: TerminalFarmService,
     private readonly yahooFinanceService: YahooFinanceService,
     private readonly massiveService: MassiveService,
   ) {}
@@ -91,25 +93,9 @@ export class TradesService {
         
         let data: any[] = [];
 
-        // 4. Try MetaApi (Primary - Strategy A)
-        if (trade.accountId) {
-            try {
-                this.logger.debug(`Strategy A: Fetching from MetaApi...`);
-                data = await this.mt5AccountsService.getCandles(
-                    trade.accountId, 
-                    trade.symbol, 
-                    timeframe, 
-                    startTime, 
-                    endTime
-                );
-            } catch (e) {
-                this.logger.warn(`MetaApi Strategy failed: ${e.message}`);
-            }
-        }
-
-        // 5. Try Massive/Polygon (Secondary - Strategy B)
-        if (!data || data.length === 0) {
-            this.logger.debug(`Strategy B: Fallback to Massive (Polygon) for ${trade.symbol}...`);
+        // 4. Try Massive/Polygon (Primary - Strategy A)
+        this.logger.debug(`Strategy A: Fetching from Massive (Polygon) for ${trade.symbol}...`);
+        try {
             data = await this.massiveService.getCandles(
                 trade.symbol,
                 timeframe,
@@ -117,21 +103,56 @@ export class TradesService {
                 endTime
             );
             this.logger.debug(`Massive returned ${data?.length || 0} candles`);
+        } catch (e) {
+            this.logger.warn(`Massive Strategy failed: ${e.message}`);
         }
 
-        // 6. Try Yahoo Finance (Tertiary - Strategy C)
+        // 5. Try Yahoo Finance (Secondary - Strategy B)
         if (!data || data.length === 0) {
-            this.logger.debug(`Strategy C: Fallback to Yahoo Finance for ${trade.symbol}...`);
-            data = await this.yahooFinanceService.getCandles(
-                trade.symbol,
-                timeframe,
-                startTime,
-                endTime
-            );
-            this.logger.debug(`Yahoo Finance returned ${data?.length || 0} candles`);
+            this.logger.debug(`Strategy B: Fallback to Yahoo Finance for ${trade.symbol}...`);
+            try {
+                data = await this.yahooFinanceService.getCandles(
+                    trade.symbol,
+                    timeframe,
+                    startTime,
+                    endTime
+                );
+                this.logger.debug(`Yahoo Finance returned ${data?.length || 0} candles`);
+            } catch (e) {
+                this.logger.warn(`Yahoo Finance Strategy failed: ${e.message}`);
+            }
         }
 
-        // 6. Cache result if trade is CLOSED and we found data
+        // 6. Strategy C: MT5 Native (If External ID and no data found yet)
+        if ((!data || data.length === 0) && trade.externalId) {
+             this.logger.debug(`Strategy C: Requesting from MT5 Terminal...`);
+             
+             // Check if we already have execution candles saved
+             if (trade.executionCandles && trade.executionCandles.length > 0) {
+                 this.logger.debug(`Returning saved execution candles from DB`);
+                 return trade.executionCandles;
+             }
+
+             // Find Active Terminal
+             if (trade.accountId) {
+                 const terminal = await this.terminalFarmService.findTerminalForAccount(trade.accountId);
+                 if (terminal && terminal.status === 'RUNNING') {
+                     // Queue Command
+                     const startStr = new Date(startTime).toISOString().replace('T', ' ').substring(0, 19);
+                     const endStr = new Date(endTime).toISOString().replace('T', ' ').substring(0, 19);
+                     // Payload: SYMBOL,TIMEFRAME,START,END,TRADEID
+                     const payload = `${trade.symbol},${timeframe},${startStr},${endStr},${trade.id}`;
+                     
+                     this.terminalFarmService.queueCommand(terminal.id, 'FETCH_CANDLES', payload);
+                     
+                     return [{ status: 'queued', message: 'Request sent to MT5 Terminal. Please wait...' }];
+                 } else {
+                     this.logger.warn(`No running terminal found for account ${trade.accountId}`);
+                 }
+             }
+        }
+
+        // 7. Cache result if trade is CLOSED and we found data
         if (trade.status === TradeStatus.CLOSED && data && data.length > 0) {
             this.logger.debug(`Caching result for trade ${tradeId}`);
             try {
@@ -150,6 +171,15 @@ export class TradesService {
     } catch (error) {
         this.logger.error(`Error in getTradeCandles: ${error.message}`, error.stack);
         throw error;
+    }
+  }
+
+  async saveExecutionCandles(tradeId: string, candles: any[]): Promise<void> {
+    const trade = await this.tradesRepository.findOne({ where: { id: tradeId } });
+    if (trade) {
+        trade.executionCandles = candles;
+        await this.tradesRepository.save(trade);
+        this.logger.log(`Saved ${candles.length} execution candles for trade ${tradeId}`);
     }
   }
 
@@ -261,7 +291,9 @@ export class TradesService {
       tags: resolvedTags,
     });
 
-    trade.calculatePnl();
+    if (createTradeDto.profitOrLoss === undefined) {
+      trade.calculatePnl();
+    }
     const savedTrade = await this.tradesRepository.save(trade);
 
     // Load the complete trade with relations for response
@@ -355,6 +387,12 @@ export class TradesService {
     return await queryBuilder.getOne();
   }
 
+  async findOneByExternalId(userId: string, externalId: string): Promise<Trade | null> {
+    return await this.tradesRepository.findOne({
+      where: { userId, externalId },
+    });
+  }
+
   async findOne(id: string, userContext: UserResponseDto): Promise<Trade> {
     this.logger.log(`User ${userContext.id} fetching trade with ID ${id}`);
     try {
@@ -421,7 +459,9 @@ export class TradesService {
       trade.tags = await this.findOrCreateTags(tagNames, userContext.id);
     }
 
-    trade.calculatePnl();
+    if (updateTradeDto.profitOrLoss === undefined) {
+      trade.calculatePnl();
+    }
     const updatedTrade = await this.tradesRepository.save(trade);
 
     return updatedTrade;
@@ -513,7 +553,9 @@ export class TradesService {
           trade.tags = await this.findOrCreateTags(tagNames, userContext.id);
         }
 
-        trade.calculatePnl();
+        if (update.data.profitOrLoss === undefined) {
+          trade.calculatePnl();
+        }
         updatedTrades.push(trade);
       }
     }
@@ -550,7 +592,9 @@ export class TradesService {
         tags: resolvedTags,
       });
 
-      trade.calculatePnl();
+      if (tradeDto.profitOrLoss === undefined) {
+        trade.calculatePnl();
+      }
       createdTrades.push(trade);
     }
 

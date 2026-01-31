@@ -16,11 +16,13 @@ import { TradeCandle } from './entities/trade-candle.entity';
 
 import { YahooFinanceService } from '../integrations/yahoo-finance/yahoo-finance.service';
 import { MassiveService } from '../integrations/massive/massive.service';
+import { TerminalFarmModule } from '../terminal-farm/terminal-farm.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Trade, Note, TradeCandle]),
     forwardRef(() => UsersModule),
+    forwardRef(() => TerminalFarmModule),
     TagsModule,
     // WebSocketGatewayModule,
     CacheModule.register({

@@ -25,6 +25,8 @@ import { AgentsModule } from './agents/agents.module';
 import { AnalyticsModule } from './analytics/analytics.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { BacktestingModule } from './backtesting/backtesting.module';
+import { StatementParserModule } from './statement-parser/statement-parser.module';
+import { TerminalFarmModule } from './terminal-farm/terminal-farm.module';
 
 @Module({
   imports: [
@@ -53,6 +55,8 @@ import { BacktestingModule } from './backtesting/backtesting.module';
     AnalyticsModule,
     NotificationsModule,
     BacktestingModule, // Strategy backtesting framework
+    StatementParserModule, // MT4/MT5 statement file upload and parsing
+    TerminalFarmModule, // MT5 terminal auto-sync infrastructure
   ],
   controllers: [AppController],
   providers: [AppService],

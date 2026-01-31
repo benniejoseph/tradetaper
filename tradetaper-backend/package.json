@@ -57,7 +57,6 @@
     "form-data": "^4.0.3",
     "isomorphic-dompurify": "^2.26.0",
     "langchain": "^1.2.7",
-    "metaapi.cloud-sdk": "^29.3.2",
     "multer": "^2.0.1",
     "passport": "^0.7.0",
     "passport-google-oauth20": "^2.0.0",

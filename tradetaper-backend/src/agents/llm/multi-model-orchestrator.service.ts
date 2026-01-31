@@ -67,23 +67,23 @@ export class MultiModelOrchestratorService {
   // Model configurations in priority order
   private readonly models: ModelConfig[] = [
     {
-      name: 'gemini-2.0-flash',
+      name: 'gemini-3-pro-preview',
       provider: 'google',
-      priority: 0, // Highest priority
+      priority: 0, // Highest priority, advanced reasoning
       enabled: true,
       maxRetries: 3,
     },
     {
-      name: 'gemini-1.5-flash',
+      name: 'gemini-1.5-pro',
       provider: 'google',
       priority: 1,
       enabled: true,
       maxRetries: 2,
     },
     {
-      name: 'gemini-1.5-pro',
+      name: 'gemini-1.5-flash',
       provider: 'google',
-      priority: 3,
+      priority: 2,
       enabled: true,
       maxRetries: 2,
     },
@@ -254,22 +254,14 @@ export class MultiModelOrchestratorService {
     const optimizeFor = request.optimizeFor || 'cost';
     
     if (optimizeFor === 'cost') {
-      // Always use cheapest model for simple tasks (2.0-flash is very cheap and fast)
-      if (complexity === 'simple') {
-        return 'gemini-2.0-flash';
-      }
-      // Use cost-effective model for medium tasks
-      if (complexity === 'medium') {
-        return 'gemini-2.0-flash';
-      }
-      // Use better model for complex tasks
-      return 'gemini-1.5-pro';
+      // Use flash for simple/medium to save cost
+      return complexity === 'complex' ? 'gemini-3-pro-preview' : 'gemini-1.5-flash';
     } else if (optimizeFor === 'quality') {
       // Use best available model
-      return 'gemini-1.5-pro';
+      return 'gemini-3-pro-preview';
     } else {
-      // Optimize for speed - use fastest model
-      return 'gemini-2.0-flash';
+      // Speed
+      return 'gemini-1.5-flash';
     }
   }
 
