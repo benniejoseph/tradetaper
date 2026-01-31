@@ -597,18 +597,21 @@ export default function TradesTable({ trades, accounts, onRowClick, isLoading, i
       {/* Pagination Controls - Bottom */}
       {pagination.totalPages > 1 && (
         <div className="px-6 py-4 border-t border-gray-200/30 dark:border-gray-700/30 flex justify-between items-center bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-950/20 dark:to-emerald-900/20">
-          <div className="flex items-center space-x-3">
-            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Items per page:</span>
-            <select
-              value={pagination.itemsPerPage}
-              onChange={(e) => pagination.setItemsPerPage(Number(e.target.value))}
-              className="appearance-none bg-gradient-to-r from-white to-emerald-50 dark:from-black dark:to-emerald-950/20 border border-gray-200/50 dark:border-gray-700/50 rounded-lg px-3 py-2 pr-8 text-sm font-medium text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all duration-200 backdrop-blur-sm hover:bg-white/70 dark:hover:bg-gray-800/70"
-            >
-              <option value={10}>10</option>
-              <option value={25}>25</option>
-              <option value={50}>50</option>
-              <option value={100}>100</option>
-            </select>
+          <div className="flex items-center bg-gray-100/50 dark:bg-gray-800/50 p-1 rounded-xl border border-gray-200/50 dark:border-gray-700/50 backdrop-blur-md">
+            <span className="text-[10px] items-center uppercase font-bold text-gray-400 dark:text-gray-500 px-2 tracking-wider">Show</span>
+            {[10, 25, 50, 100].map((size) => (
+              <button
+                key={size}
+                onClick={() => pagination.setItemsPerPage(size)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all duration-200 ${
+                  pagination.itemsPerPage === size
+                    ? 'bg-white dark:bg-gray-700 text-emerald-600 dark:text-emerald-400 shadow-sm scale-110 z-10'
+                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                }`}
+              >
+                {size}
+              </button>
+            ))}
           </div>
           <div className="flex items-center space-x-1">
             {/* Page numbers - simplified for this example */}
