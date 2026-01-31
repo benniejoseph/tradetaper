@@ -341,22 +341,38 @@ export default function TradePreviewDrawer({
   const pnlPercentage = calculatePnlPercentage(trade);
   const entryValue = trade.entryPrice && trade.quantity ? trade.entryPrice * trade.quantity : null;
 
-  const DetailItem: React.FC<{ label: string; value: string | number | React.ReactNode | null | undefined; valueClass?: string; containerClass?: string }> = 
-    ({ label, value, valueClass, containerClass }) => (
-    <div className={`flex justify-between items-center py-3 px-4 bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-950/10 dark:to-emerald-900/10 backdrop-blur-sm rounded-xl border border-gray-200/30 dark:border-gray-700/30 hover:from-emerald-100 hover:to-emerald-200 dark:hover:from-emerald-900/20 dark:hover:to-emerald-800/20 transition-all duration-200 ${containerClass || ''}`}>
-      <span className="text-sm font-medium text-gray-600 dark:text-gray-400">{label}</span>
-      <span className={`text-sm text-right font-semibold ${valueClass || 'text-gray-900 dark:text-white'}`}>{value ?? '-'}</span>
+  const MetricCard: React.FC<{ 
+    label: string; 
+    value: React.ReactNode; 
+    icon?: React.ReactNode; 
+    trend?: 'up' | 'down' | 'neutral';
+    subValue?: string;
+  }> = ({ label, value, icon, trend, subValue }) => (
+    <div className="bg-white/50 dark:bg-emerald-950/5 backdrop-blur-xl p-4 rounded-2xl border border-gray-200/50 dark:border-white/5 hover:border-emerald-500/30 transition-all duration-300 group">
+      <div className="flex justify-between items-start mb-2">
+        <div className="flex items-center gap-2">
+          {icon && <div className="p-2 bg-emerald-100/50 dark:bg-emerald-500/10 rounded-xl text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition-transform">{icon}</div>}
+          <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{label}</span>
+        </div>
+        {trend && (
+          <div className={`text-xs font-bold px-2 py-1 rounded-lg ${
+            trend === 'up' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400' :
+            trend === 'down' ? 'bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-400' :
+            'bg-gray-100 text-gray-700 dark:bg-white/10 dark:text-gray-400'
+          }`}>
+            {trend === 'up' ? '↑' : trend === 'down' ? '↓' : '→'}
+          </div>
+        )}
+      </div>
+      <div className="text-lg font-bold text-gray-900 dark:text-white tracking-tight">{value}</div>
+      {subValue && <div className="text-xs text-gray-500 dark:text-gray-400 mt-1 font-medium">{subValue}</div>}
     </div>
   );
 
   const SectionTitle: React.FC<{ title: string; icon?: React.ReactNode }> = ({ title, icon }) => (
-    <div className="flex items-center gap-3 mb-4 mt-6">
-      {icon && (
-        <div className="p-2 bg-gradient-to-r from-emerald-500/20 to-emerald-600/20 rounded-xl">
-          {icon}
-        </div>
-      )}
-      <h4 className="text-lg font-bold text-gray-900 dark:text-white">{title}</h4>
+    <div className="flex items-center gap-3 mb-4 mt-8 first:mt-2">
+      <div className="h-6 w-1 bg-gradient-to-b from-emerald-500 to-emerald-600 rounded-full" />
+      <h4 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-widest">{title}</h4>
     </div>
   );
 
@@ -369,303 +385,264 @@ export default function TradePreviewDrawer({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-50 transition-opacity duration-300 ease-in-out p-4" onClick={onClose}>
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center z-50 transition-opacity duration-300 ease-in-out p-4" onClick={onClose}>
       <div 
-        className="w-full max-w-4xl max-h-[90vh] bg-gradient-to-br from-white to-emerald-50 dark:from-black dark:to-emerald-950/20 backdrop-blur-xl border border-gray-200/50 dark:border-gray-700/50 shadow-2xl flex flex-col rounded-2xl overflow-hidden transform transition-all duration-300 ease-in-out scale-100 opacity-100" 
+        className="w-full max-w-4xl max-h-[95vh] bg-white dark:bg-[#0A0A0A] border border-gray-200/50 dark:border-white/10 shadow-[0_0_50px_-12px_rgba(16,185,129,0.2)] flex flex-col rounded-[2.5rem] overflow-hidden transform transition-all duration-300 ease-in-out scale-100 opacity-100" 
         onClick={(e) => e.stopPropagation()} 
       >
         {/* Header */}
-        <div className="p-6 border-b border-gray-200/30 dark:border-gray-700/30 bg-gradient-to-r from-emerald-50 to-white dark:from-emerald-950/20 dark:to-black">
-          <div className="flex justify-between items-start mb-4">
-            <div className="flex flex-col">
-                <h2 className="text-3xl font-bold bg-gradient-to-r from-emerald-500 to-emerald-600 bg-clip-text text-transparent">{trade.symbol}</h2>
-                <div className="flex items-center space-x-3 mt-2">
-                    <span className={`px-3 py-1.5 rounded-xl text-white text-sm font-semibold shadow-lg ${statusColor}`}>{statusText}</span>
-                    <span className="px-3 py-1.5 rounded-xl bg-gray-100/80 dark:bg-gray-800/80 text-gray-700 dark:text-gray-300 text-sm font-semibold backdrop-blur-sm">{trade.direction}</span>
+        <div className="px-8 pt-8 pb-6 bg-gradient-to-b from-emerald-50/50 to-transparent dark:from-emerald-500/5 dark:to-transparent">
+          <div className="flex justify-between items-start">
+            <div className="space-y-4">
+              <div className="flex items-center gap-3">
+                <div className={`p-3 rounded-2xl shadow-lg border ${
+                  trade.direction === TradeDirection.LONG 
+                    ? 'bg-emerald-500/20 border-emerald-500/30 text-emerald-600 dark:text-emerald-400' 
+                    : 'bg-red-500/20 border-red-500/30 text-red-600 dark:text-red-400'
+                }`}>
+                  {trade.direction === TradeDirection.LONG ? '↗' : '↘'}
                 </div>
+                <div>
+                  <h2 className="text-4xl font-extrabold tracking-tighter text-gray-900 dark:text-white">{trade.symbol}</h2>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-tighter text-white shadow-sm ${statusColor}`}>
+                      {statusText}
+                    </span>
+                    <span className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">
+                      {trade.assetType} • {trade.direction}
+                    </span>
+                  </div>
+                </div>
+              </div>
             </div>
-            <div className="flex items-center space-x-2">
-                <button 
-                  onClick={handleToggleStar} 
-                  title={trade.isStarred ? "Remove from favorites" : "Add to favorites"}
-                  className="p-2.5 rounded-xl bg-gray-100/80 dark:bg-gray-800/80 hover:bg-yellow-500 dark:hover:bg-yellow-500 text-gray-600 dark:text-gray-400 hover:text-white transition-all duration-200 hover:scale-105 backdrop-blur-sm"
-                >
-                    {trade.isStarred ? 
-                        <FaStarSolid className="h-5 w-5 text-yellow-400" /> : 
-                        <FaStarOutline className="h-5 w-5" />
-                    }
-                </button>
-                <button 
-                  onClick={handleShare} 
-                  title="Share Trade"
-                  className="p-2.5 rounded-xl bg-gray-100/80 dark:bg-[#141414] hover:bg-emerald-500 dark:hover:bg-emerald-600 text-gray-600 dark:text-gray-400 hover:text-white transition-all duration-200 hover:scale-105 backdrop-blur-sm"
-                >
-                    <FaShareSquare className="h-5 w-5" />
-                </button>
-                <button 
-                  onClick={handleExternalLink} 
-                  title="View Details"
-                  className="p-2.5 rounded-xl bg-gray-100/80 dark:bg-[#141414] hover:bg-emerald-500 dark:hover:bg-emerald-600 text-gray-600 dark:text-gray-400 hover:text-white transition-all duration-200 hover:scale-105 backdrop-blur-sm"
-                >
-                    <FaExternalLinkAlt className="h-5 w-5" />
-                </button>
-                <button 
-                  onClick={onClose} 
-                  title="Close"
-                  className="p-2.5 rounded-xl bg-gray-100/80 dark:bg-gray-800/80 hover:bg-red-500 dark:hover:bg-red-500 text-gray-600 dark:text-gray-400 hover:text-white transition-all duration-200 hover:scale-105 backdrop-blur-sm"
-                >
-                  <FaTimes className="h-5 w-5" />
-                </button>
-            </div>
-          </div>
-          <div className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
-            <div className="flex items-center gap-4">
-              <span>Opened: {trade.entryDate ? format(parseISO(trade.entryDate), 'dd MMM yy, HH:mm') : '-'}</span>
-              {trade.status === TradeStatus.CLOSED && trade.exitDate && (
-                  <span>Closed: {format(parseISO(trade.exitDate), 'dd MMM yy, HH:mm')}</span>
-              )}
-            </div>
-          </div>
-        </div>
 
-        {/* Tabs */}
-        <div className="px-6 border-b border-gray-200/30 dark:border-gray-700/30 bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-950/10 dark:to-emerald-900/10 backdrop-blur-xl">
-          <div className="flex space-x-1">
+            <div className="flex items-center gap-2 bg-gray-100/50 dark:bg-white/5 p-1.5 rounded-2xl backdrop-blur-xl border border-gray-200/50 dark:border-white/5">
+                {[
+                  { icon: trade.isStarred ? <FaStarSolid className="h-4 w-4 text-yellow-400" /> : <FaStarOutline className="h-4 w-4" />, onClick: handleToggleStar, title: "Favorite" },
+                  { icon: <FaShareSquare className="h-4 w-4" />, onClick: handleShare, title: "Share" },
+                  { icon: <FaExternalLinkAlt className="h-4 w-4" />, onClick: handleExternalLink, title: "Full View" },
+                  { icon: <FaTimes className="h-4 w-4" />, onClick: onClose, title: "Close", className: "hover:bg-red-500 hover:text-white" }
+                ].map((btn, idx) => (
+                  <button 
+                    key={idx}
+                    onClick={btn.onClick} 
+                    title={btn.title}
+                    className={`p-3 rounded-xl hover:bg-white dark:hover:bg-white/10 text-gray-600 dark:text-gray-400 transition-all duration-200 active:scale-95 ${btn.className || ''}`}
+                  >
+                    {btn.icon}
+                  </button>
+                ))}
+            </div>
+          </div>
+          
+          <div className="flex items-center gap-6 mt-8 p-1.5 bg-gray-100/50 dark:bg-white/5 rounded-2xl w-fit border border-gray-200/50 dark:border-white/5">
+            {[
+              { id: 'details', label: 'Trade Details', icon: <FaChartLine className="w-3.5 h-3.5" /> },
+              { id: 'manage', label: 'Journaling', icon: <FaEdit className="w-3.5 h-3.5" /> }
+            ].map((tab) => (
               <button 
-                  onClick={() => setActiveTab('details')}
-                  className={`py-4 px-4 text-sm font-semibold rounded-t-xl transition-all duration-200 ${
-                    activeTab === 'details' 
-                      ? 'text-emerald-600 dark:text-emerald-400 bg-gradient-to-t from-emerald-50/80 to-transparent dark:from-emerald-950/30 border-b-2 border-emerald-500' 
-                      : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-emerald-100 dark:hover:bg-emerald-900/30'
-                  }`}
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id as 'details' | 'manage')}
+                className={`flex items-center gap-2 py-2 px-6 text-xs font-bold rounded-xl transition-all duration-300 ${
+                  activeTab === tab.id 
+                    ? 'text-emerald-600 dark:text-emerald-400 bg-white dark:bg-[#111111] shadow-xl shadow-emerald-500/10' 
+                    : 'text-gray-500 hover:text-gray-900 dark:hover:text-white'
+                }`}
               >
-                  Details
+                {tab.icon}
+                {tab.label}
               </button>
-              <button 
-                  onClick={() => setActiveTab('manage')}
-                  className={`py-4 px-4 text-sm font-semibold rounded-t-xl transition-all duration-200 ${
-                    activeTab === 'manage' 
-                      ? 'text-emerald-600 dark:text-emerald-400 bg-gradient-to-t from-emerald-50/80 to-transparent dark:from-emerald-950/30 border-b-2 border-emerald-500' 
-                      : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-emerald-100 dark:hover:bg-emerald-900/30'
-                  }`}
-              >
-                  Manage
-              </button>
+            ))}
           </div>
         </div>
 
         {/* Content Area */}
-        <div className="flex-grow p-6 overflow-y-auto space-y-4 text-sm">
+        <div className="flex-grow px-8 pb-8 overflow-y-auto space-y-6 custom-scrollbar">
           {activeTab === 'details' && (
-            <>
-              {/* P&L Highlight Card */}
-              <div className="bg-gradient-to-br from-emerald-50/80 to-emerald-100/80 dark:from-emerald-950/20 dark:to-emerald-900/20 backdrop-blur-xl p-6 rounded-2xl border border-gray-200/50 dark:border-gray-700/50 shadow-lg">
-                <div className="flex justify-between items-center mb-2">
-                    <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Net P&L</p>
-                    {pnlPercentage !== null && (
-                        <span className={`text-sm font-bold px-3 py-1 rounded-lg ${
-                          pnlPercentage > 0 
-                            ? 'bg-emerald-100/80 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-300' 
-                            : pnlPercentage < 0 
-                            ? 'bg-red-100/80 text-red-700 dark:bg-red-900/30 dark:text-red-300' 
-                            : 'bg-gradient-to-r from-emerald-100 to-emerald-200 dark:from-emerald-900/30 dark:to-emerald-800/30 text-gray-700 dark:text-gray-300'
-                        }`}>
-                            {pnlPercentage > 0 ? '+' : ''}{pnlPercentage.toFixed(1)}%
-                        </span>
-                    )}
-                </div>
-                <span className={`text-3xl font-bold ${
-                  isWin ? 'text-emerald-600 dark:text-emerald-400' : 
-                  isLoss ? 'text-red-600 dark:text-red-400' : 
-                  'text-gray-900 dark:text-white'
-                }`}>
-                    {trade.profitOrLoss !== undefined && trade.profitOrLoss !== null ? 
-                      `${trade.profitOrLoss > 0 ? '+' : ''}$${Math.abs(trade.profitOrLoss).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}` : 
-                      '-'
-                    }
-                </span>
-              </div>
-
-              <SectionTitle title="Performance" icon={<FaChartLine className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />} />              <div className="space-y-3">
-                <DetailItem label="P&L (Gross)" value={trade.profitOrLoss !== undefined && trade.profitOrLoss !== null && trade.commission !== undefined && trade.commission !== null ? `$${(trade.profitOrLoss + trade.commission).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}` : '-'} />
-                <DetailItem label="Fees" value={trade.commission !== undefined && trade.commission !== null ? `-$${Math.abs(trade.commission).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}` : '-'} valueClass="text-red-600 dark:text-red-400" />
-                <DetailItem label="Funding" value="$0.00" />
-                <DetailItem label="Max Favorable Excursion (MFE)" value={<span className="text-gray-400 dark:text-gray-500">- (Future Feature)</span>} />
-                <DetailItem label="Max Adverse Excursion (MAE)" value={<span className="text-gray-400 dark:text-gray-500">- (Future Feature)</span>} />
-                <DetailItem label="Margin Used" value={trade.marginUsed ? `$${trade.marginUsed.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}` : '-'} />
-              </div>
-
-              <SectionTitle title="Entry / Exit" icon={<FaDollarSign className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />} />
-              <div className="space-y-3">
-                <DetailItem label="Entry Price" value={formatPrice(trade.entryPrice)} valueClass="font-mono" />
-                <DetailItem label="Exit Price" value={formatPrice(trade.exitPrice)} valueClass="font-mono" />
-              </div>
-
-              <SectionTitle title="Execution Chart" icon={<FaChartLine className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />} />
-              <div className="mb-6">
-                <TradeCandleChart 
-                  tradeId={trade.id} 
-                  symbol={trade.symbol} 
-                  entryPrice={trade.entryPrice}
-                  exitPrice={trade.exitPrice}
-                  entryTime={trade.entryDate}
-                  exitTime={trade.exitDate}
-                  direction={trade.direction}
-                />
-              </div>
-
-              <SectionTitle title="Time" icon={<FaClock className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />} />
-              <div className="space-y-3">
-                <DetailItem label="Weekday" value={getWeekday(trade.entryDate)} />
-                <DetailItem label="Session" value={trade.session || '-'} />
-                <DetailItem label="Hold Time" value={getHoldTime(trade)} />
-              </div>
-            
-              <SectionTitle title="Size" icon={<FaDollarSign className="w-5 h-5 text-orange-600 dark:text-orange-400" />} />
-              <div className="space-y-3">
-                <DetailItem label="Volume (Entry Value)" value={entryValue !== null ? `$${entryValue.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}` : '-'} />
-                <DetailItem label="Quantity" value={trade.quantity?.toLocaleString()} />
-                <DetailItem label="R-Multiple" value={trade.rMultiple !== undefined && trade.rMultiple !== null ? `${trade.rMultiple.toFixed(2)}R` : '-'} />
-              </div>
-
-              {/* Notes Section in Details Tab */}
-              {(trade.notes || trade.setupDetails || trade.mistakesMade || trade.lessonsLearned || (trade.psychologicalTags && trade.psychologicalTags.length > 0)) && (
-                <>
-                  <SectionTitle title="Notes & Analysis" icon={<FaEdit className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />} />
-                  <div className="space-y-3">
-                    {trade.notes && (
-                      <DetailItem
-                        label="Notes"
-                        value={<div className="text-right max-w-xs whitespace-pre-wrap text-sm">{trade.notes}</div>}
-                        containerClass="flex-col items-start"
-                      />
-                    )}
-                    {trade.setupDetails && <DetailItem label="Setup Details" value={<div className="text-right max-w-xs whitespace-pre-wrap text-sm">{trade.setupDetails}</div>} />}
-                    {trade.mistakesMade && <DetailItem label="Mistakes Made" value={<div className="text-right max-w-xs whitespace-pre-wrap text-sm">{trade.mistakesMade}</div>} />}
-                    {trade.lessonsLearned && <DetailItem label="Lessons Learned" value={<div className="text-right max-w-xs whitespace-pre-wrap text-sm">{trade.lessonsLearned}</div>} />}
-
-                    {trade.psychologicalTags && trade.psychologicalTags.length > 0 && (
-                      <DetailItem
-                        label="Psychological Tags"
-                        value={
-                          <div className="flex flex-wrap justify-end gap-2">
-                            {trade.psychologicalTags.map((tag, index) => (
-                              <span key={index} className="px-2 py-1 bg-emerald-100/80 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 rounded-lg text-xs font-medium">
-                                {tag}
-                              </span>
-                            ))}
-                          </div>
-                        }
-                        containerClass="flex-col items-start"
-                      />
-                    )}
-
-                    {trade.notes && (!trade.psychologicalTags || trade.psychologicalTags.length === 0) && (
-                      <div className="flex justify-end mt-4">
-                        {/* Analyzer disabled until service is restored */}
-                      </div>
-                    )}
+            <div className="grid grid-cols-12 gap-8">
+              {/* Left Column - Metrics */}
+              <div className="col-span-12 lg:col-span-5 space-y-8">
+                {/* Hero P&L */}
+                <div className="relative overflow-hidden bg-gradient-to-br from-emerald-500 to-emerald-700 p-8 rounded-[2rem] shadow-2xl shadow-emerald-500/20 group">
+                  <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:scale-125 transition-transform duration-700">
+                    <FaDollarSign className="w-32 h-32 -mr-12 -mt-12 rotate-12" />
                   </div>
-                </>
-              )}
-
-              {/* Chart Attachment in Details Tab */}
-              {trade.imageUrl && (
-                <>
-                  <SectionTitle title="Chart Attachment" icon={<FaChartLine className="w-5 h-5 text-teal-600 dark:text-teal-400" />} />
-                  <div className="bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-950/10 dark:to-emerald-900/10 backdrop-blur-sm rounded-2xl border border-gray-200/50 dark:border-gray-700/50 p-4 hover:from-emerald-100 hover:to-emerald-200 dark:hover:from-emerald-900/20 dark:hover:to-emerald-800/20 transition-all duration-200">
-                    <div className="relative w-full rounded-xl overflow-hidden cursor-pointer" onClick={() => window.open(trade.imageUrl, '_blank')}>
-                      <img 
-                        src={trade.imageUrl} 
-                        alt={`${trade.symbol} trade chart`} 
-                        className="w-full h-auto max-h-64 object-contain hover:scale-105 transition-transform duration-300 rounded-xl" 
-                        onError={(e) => {
-                          console.error('Image failed to load:', trade.imageUrl);
-                          (e.target as HTMLImageElement).style.display = 'none';
-                        }}
-                        onLoad={() => console.log('Image loaded successfully:', trade.imageUrl)}
-                      />
+                  <div className="relative z-10">
+                    <p className="text-emerald-100 text-xs font-black uppercase tracking-[0.2em] mb-4">Total Net Return</p>
+                    <div className="flex items-baseline gap-3">
+                      <span className="text-5xl font-black text-white tracking-tighter">
+                        {trade.profitOrLoss !== undefined && trade.profitOrLoss !== null ? 
+                          `${trade.profitOrLoss > 0 ? '+' : ''}$${Math.abs(trade.profitOrLoss).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}` : 
+                          '-'
+                        }
+                      </span>
+                      {pnlPercentage !== null && (
+                        <span className="text-lg font-bold text-emerald-200 bg-white/10 px-3 py-1 rounded-xl backdrop-blur-md">
+                          {pnlPercentage > 0 ? '+' : ''}{pnlPercentage.toFixed(1)}%
+                        </span>
+                      )}
                     </div>
                   </div>
-                </>
-              )}
-            </>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <MetricCard 
+                    label="Volume" 
+                    icon={<FaDollarSign />} 
+                    value={entryValue !== null ? `$${entryValue.toLocaleString(undefined, {minimumFractionDigits:0, maximumFractionDigits:0})}` : '-'} 
+                    subValue={`${trade.quantity?.toLocaleString()} Units`}
+                  />
+                  <MetricCard 
+                    label="R-Multiple" 
+                    icon={<FaChartLine />} 
+                    value={trade.rMultiple !== undefined && trade.rMultiple !== null ? `${trade.rMultiple.toFixed(2)}R` : '-'} 
+                    trend={trade.rMultiple && trade.rMultiple > 2 ? 'up' : 'neutral'}
+                  />
+                  <MetricCard 
+                    label="Entry Price" 
+                    value={formatPrice(trade.entryPrice)} 
+                    subValue={trade.entryDate ? format(parseISO(trade.entryDate), 'EEEE') : ''}
+                  />
+                  <MetricCard 
+                    label="Exit Price" 
+                    value={formatPrice(trade.exitPrice)} 
+                    subValue={getHoldTime(trade)}
+                  />
+                </div>
+
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center p-4 bg-gray-50 dark:bg-white/5 rounded-2xl border border-gray-200/50 dark:border-white/5">
+                    <div className="flex items-center gap-3">
+                      <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
+                      <span className="text-xs font-bold text-gray-500 dark:text-gray-400">P&L Gross</span>
+                    </div>
+                    <span className="text-sm font-black text-gray-900 dark:text-white">
+                      {trade.profitOrLoss !== undefined && trade.profitOrLoss !== null && trade.commission !== undefined && trade.commission !== null ? `$${(trade.profitOrLoss + trade.commission).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}` : '-'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center p-4 bg-gray-50 dark:bg-white/5 rounded-2xl border border-gray-200/50 dark:border-white/5">
+                    <div className="flex items-center gap-3">
+                      <div className="w-2 h-2 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]" />
+                      <span className="text-xs font-bold text-gray-500 dark:text-gray-400">Total Fees</span>
+                    </div>
+                    <span className="text-sm font-black text-red-500 italic">
+                      {trade.commission !== undefined && trade.commission !== null ? `-$${Math.abs(trade.commission).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}` : '-0.00'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Right Column - Chart & Notes */}
+              <div className="col-span-12 lg:col-span-7 space-y-8">
+                <div className="p-1 bg-gray-100 dark:bg-white/5 rounded-[2.5rem] border border-gray-200/50 dark:border-white/5 shadow-inner">
+                  <TradeCandleChart 
+                    tradeId={trade.id} 
+                    symbol={trade.symbol} 
+                    entryPrice={trade.entryPrice}
+                    exitPrice={trade.exitPrice}
+                    entryTime={trade.entryDate}
+                    exitTime={trade.exitDate}
+                    direction={trade.direction}
+                  />
+                </div>
+
+                <div className="bg-gray-50 dark:bg-white/2 p-8 rounded-[2rem] border border-gray-200/50 dark:border-white/5">
+                  <SectionTitle title="Execution Timeline" icon={<FaClock className="w-4 h-4" />} />
+                  <div className="flex items-center justify-between text-xs font-bold uppercase tracking-widest text-gray-400">
+                    <div className="space-y-1">
+                      <p className="text-gray-600 dark:text-emerald-400 text-sm">{trade.entryDate ? format(parseISO(trade.entryDate), 'HH:mm:ss') : '-'}</p>
+                      <p>{trade.entryDate ? format(parseISO(trade.entryDate), 'dd MMM yyyy') : '-'}</p>
+                      <p className="text-[10px] text-gray-500 uppercase tracking-tighter">Market Open</p>
+                    </div>
+                    <div className="flex-grow mx-8 h-px bg-gradient-to-r from-emerald-500/50 via-gray-300 dark:via-white/10 to-red-500/50 relative">
+                       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 px-4 py-1 bg-white dark:bg-[#0A0A0A] border border-gray-200 dark:border-white/10 rounded-full text-[10px] text-emerald-600 dark:text-emerald-400">
+                         {getHoldTime(trade)}
+                       </div>
+                    </div>
+                    <div className="space-y-1 text-right">
+                      <p className="text-gray-600 dark:text-red-400 text-sm">{trade.status === TradeStatus.CLOSED && trade.exitDate ? format(parseISO(trade.exitDate), 'HH:mm:ss') : '-'}</p>
+                      <p>{trade.status === TradeStatus.CLOSED && trade.exitDate ? format(parseISO(trade.exitDate), 'dd MMM yyyy') : '-'}</p>
+                      <p className="text-[10px] text-gray-500 uppercase tracking-tighter">Market Exit</p>
+                    </div>
+                  </div>
+                </div>
+
+                {trade.imageUrl && (
+                  <div className="group relative rounded-[2rem] overflow-hidden border border-gray-200/50 dark:border-white/5 cursor-zoom-in" onClick={() => window.open(trade.imageUrl, '_blank')}>
+                    <img src={trade.imageUrl} alt="Chart" className="w-full h-auto max-h-[400px] object-cover group-hover:scale-105 transition-transform duration-700" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-8">
+                      <p className="text-white text-sm font-bold flex items-center gap-2">
+                        <FaChartLine /> View Full Capture
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
           )}
 
           {activeTab === 'manage' && (
-            <>
-              <SectionTitle title="Quick Edit" icon={<FaEdit className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />} />
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Notes</label>
-                  <textarea
-                    defaultValue={trade.notes || ''}
-                    onBlur={(e) => dispatch(updateTrade({ id: trade.id, payload: { notes: e.target.value } }))}
-                    className="w-full px-4 py-2 bg-white/50 dark:bg-black/20 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none transition-all resize-y min-h-[100px]"
-                    placeholder="Add your trade notes here..."
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Mistakes Made</label>
-                  <textarea
-                    defaultValue={trade.mistakesMade || ''}
-                    onBlur={(e) => dispatch(updateTrade({ id: trade.id, payload: { mistakesMade: e.target.value } }))}
-                    className="w-full px-4 py-2 bg-white/50 dark:bg-black/20 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none transition-all resize-y"
-                    placeholder="What did you do wrong?"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Lessons Learned</label>
-                  <textarea
-                    defaultValue={trade.lessonsLearned || ''}
-                    onBlur={(e) => dispatch(updateTrade({ id: trade.id, payload: { lessonsLearned: e.target.value } }))}
-                    className="w-full px-4 py-2 bg-white/50 dark:bg-black/20 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none transition-all resize-y"
-                    placeholder="What did you learn?"
-                  />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-4">
+              <div className="space-y-6">
+                <div className="p-8 bg-gray-50 dark:bg-white/2 rounded-[2rem] border border-gray-200/50 dark:border-white/5">
+                  <SectionTitle title="Core Context" icon={<FaBrain />} />
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500">Trade Thesis & Notes</label>
+                      <textarea
+                        defaultValue={trade.notes || ''}
+                        onBlur={(e) => dispatch(updateTrade({ id: trade.id, payload: { notes: e.target.value } }))}
+                        className="w-full p-6 bg-white dark:bg-black/40 border border-gray-200/50 dark:border-white/5 rounded-[1.5rem] focus:ring-2 focus:ring-emerald-500 outline-none transition-all text-sm min-h-[180px] leading-relaxed shadow-inner"
+                        placeholder="What was the reason for this entry? Describe the price action..."
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
-              
-              {trade.imageUrl && (
-                <div className="mt-6">
-                    <SectionTitle title="Chart Attachment" icon={<FaChartLine className="w-5 h-5 text-teal-600 dark:text-teal-400" />} />
-                    <div className="bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-950/10 dark:to-emerald-900/10 backdrop-blur-sm rounded-2xl border border-gray-200/50 dark:border-gray-700/50 p-4 hover:from-emerald-100 hover:to-emerald-200 dark:hover:from-emerald-900/20 dark:hover:to-emerald-800/20 transition-all duration-200">
-                        <div className="relative w-full rounded-xl overflow-hidden cursor-pointer" onClick={() => window.open(trade.imageUrl, '_blank')}>
-                            <img 
-                                src={trade.imageUrl} 
-                                alt={`${trade.symbol} trade chart`} 
-                                className="w-full h-auto max-h-64 object-contain hover:scale-105 transition-transform duration-300 rounded-xl" 
-                                onError={(e) => {
-                                  console.error('Image failed to load:', trade.imageUrl);
-                                  (e.target as HTMLImageElement).style.display = 'none';
-                                }}
-                                onLoad={() => console.log('Image loaded successfully:', trade.imageUrl)}
-                            />
-                        </div>
+
+              <div className="space-y-6">
+                <div className="p-8 bg-gray-50 dark:bg-white/2 rounded-[2rem] border border-gray-200/50 dark:border-white/5">
+                  <SectionTitle title="Retrospective" icon={<FaBrain />} />
+                  <div className="space-y-6">
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black uppercase tracking-[0.2em] text-red-500">Mistakes & Behavioral Data</label>
+                      <textarea
+                        defaultValue={trade.mistakesMade || ''}
+                        onBlur={(e) => dispatch(updateTrade({ id: trade.id, payload: { mistakesMade: e.target.value } }))}
+                        className="w-full p-4 bg-white dark:bg-black/40 border border-gray-200/50 dark:border-white/5 rounded-2xl focus:ring-2 focus:ring-red-500 transition-all text-sm min-h-[100px]"
+                        placeholder="Identify any psychological pitfalls or rule breaks..."
+                      />
                     </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-500">Key Lessons</label>
+                      <textarea
+                        defaultValue={trade.lessonsLearned || ''}
+                        onBlur={(e) => dispatch(updateTrade({ id: trade.id, payload: { lessonsLearned: e.target.value } }))}
+                        className="w-full p-4 bg-white dark:bg-black/40 border border-gray-200/50 dark:border-white/5 rounded-2xl focus:ring-2 focus:ring-emerald-500 transition-all text-sm min-h-[100px]"
+                        placeholder="What will you do differently next time?"
+                      />
+                    </div>
+                  </div>
                 </div>
-              )}
-            </>
+              </div>
+            </div>
           )}
         </div>
 
         {/* Footer Actions */}
-        <div className="p-6 border-t border-gray-200/30 dark:border-gray-700/30 bg-gradient-to-r from-emerald-50 to-white dark:from-emerald-950/20 dark:to-black backdrop-blur-xl">
-          <div className="flex space-x-4">
+        <div className="px-8 py-6 bg-gray-50 dark:bg-white/5 border-t border-gray-200/30 dark:border-white/5">
+          <div className="flex gap-4">
             <button 
               onClick={() => onEdit(trade.id)} 
-              className="flex-1 py-3 px-6 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-semibold transition-all duration-200 text-sm flex items-center justify-center space-x-2 shadow-lg hover:shadow-xl hover:scale-105"
+              className="flex-1 py-4 px-6 rounded-2xl bg-emerald-500 hover:bg-emerald-600 text-white font-black tracking-widest uppercase text-xs flex items-center justify-center gap-3 transition-all duration-300 shadow-lg shadow-emerald-500/20 active:scale-95"
             >
-              <FaEdit className="w-4 h-4" />
-              <span>Edit Trade</span>
+              <FaEdit /> Update Entry
             </button>
             <button 
               onClick={() => onDelete(trade.id)} 
-              className="flex-1 py-3 px-6 rounded-xl bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-semibold transition-all duration-200 text-sm flex items-center justify-center space-x-2 shadow-lg hover:shadow-xl hover:scale-105"
+              className="px-6 py-4 rounded-2xl bg-gray-200 dark:bg-white/5 hover:bg-red-500 hover:text-white text-gray-600 dark:text-gray-400 font-bold text-xs transition-all duration-300 active:scale-95"
             >
-              <FaTrashAlt className="w-4 h-4" />
-              <span>Delete Trade</span>
+              <FaTrashAlt />
             </button>
           </div>
         </div>
