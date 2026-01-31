@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useCallback } from 'react';
-import { Upload, FileText, CheckCircle, XCircle, Loader2 } from 'lucide-react';
+import { Upload, FileText, CircleCheck, CircleX, LoaderCircle } from 'lucide-react';
 import { statementService, StatementUploadResponse } from '@/services/statementService';
 import toast from 'react-hot-toast';
 
@@ -105,7 +105,7 @@ export function StatementUpload({ accountId, onSuccess }: StatementUploadProps) 
         <div className="flex flex-col items-center gap-3">
           {isUploading ? (
             <>
-              <Loader2 className="w-10 h-10 text-blue-500 animate-spin" />
+              <LoaderCircle className="w-10 h-10 text-blue-500 animate-spin" />
               <p className="text-gray-300">Processing statement...</p>
             </>
           ) : (
@@ -143,9 +143,9 @@ export function StatementUpload({ accountId, onSuccess }: StatementUploadProps) 
         `}>
           <div className="flex items-start gap-3">
             {result.status === 'COMPLETED' ? (
-              <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
+              <CircleCheck className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
             ) : (
-              <XCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+              <CircleX className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
             )}
             
             <div className="flex-1">

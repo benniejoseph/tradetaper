@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Upload, FileText, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
+import { Upload, FileText, CircleCheck, CircleAlert, LoaderCircle } from 'lucide-react';
 
 export default function KnowledgeUploader() {
   const [title, setTitle] = useState('');
@@ -92,9 +92,9 @@ export default function KnowledgeUploader() {
             status === 'success' ? 'bg-emerald-500/10 text-emerald-400' : 
             status === 'error' ? 'bg-red-500/10 text-red-400' : 'bg-zinc-800 text-zinc-300'
           }`}>
-            {status === 'success' && <CheckCircle className="w-4 h-4" />}
-            {status === 'error' && <AlertCircle className="w-4 h-4" />}
-            {status === 'uploading' && <Loader2 className="w-4 h-4 animate-spin" />}
+            {status === 'success' && <CircleCheck className="w-4 h-4" />}
+            {status === 'error' && <CircleAlert className="w-4 h-4" />}
+            {status === 'uploading' && <LoaderCircle className="w-4 h-4 animate-spin" />}
             {message}
           </div>
         )}

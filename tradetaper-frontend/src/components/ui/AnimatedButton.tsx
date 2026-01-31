@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Loader2 } from 'lucide-react';
+import { LoaderCircle } from 'lucide-react';
 
 interface AnimatedButtonProps {
   children: React.ReactNode;
@@ -152,7 +152,7 @@ export const AnimatedButton: React.FC<AnimatedButtonProps> = ({
               exit={{ opacity: 0, scale: 0.8 }}
               className="flex items-center space-x-2"
             >
-              <Loader2 className={`${iconSizes[size]} animate-spin`} />
+              <LoaderCircle className={`${iconSizes[size]} animate-spin`} />
               <span>Loading...</span>
             </motion.div>
           ) : (

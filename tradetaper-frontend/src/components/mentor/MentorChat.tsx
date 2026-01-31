@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Send, Image as ImageIcon, Loader2, Bot, User, Trash2, Maximize2 } from 'lucide-react';
+import { Send, Image as ImageIcon, LoaderCircle, Bot, User, Trash2, Maximize2 } from 'lucide-react';
 
 interface Message {
   id: string;
@@ -171,7 +171,7 @@ export default function MentorChat() {
         {loading && (
           <div className="flex justify-start">
             <div className="bg-zinc-800 rounded-2xl p-4 rounded-tl-none flex items-center gap-2 text-zinc-400 text-sm">
-              <Loader2 className="w-4 h-4 animate-spin" />
+              <LoaderCircle className="w-4 h-4 animate-spin" />
               Thinking...
             </div>
           </div>
