@@ -18,11 +18,11 @@ export const FormInput = forwardRef<HTMLInputElement, FormInputProps>(
           ref={ref}
           className={`
             block w-full rounded-xl shadow-sm p-3 transition-all duration-200 border backdrop-blur-sm
-            bg-gradient-to-r from-emerald-50/50 to-white/50 dark:from-emerald-950/30 dark:to-emerald-900/10
-            border-emerald-200/50 dark:border-emerald-700/30
-            !text-gray-900 dark:!text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 font-medium
+            bg-white dark:bg-gray-950
+            border-emerald-200/50 dark:border-emerald-700/50
+            text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 font-medium
             focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:outline-none
-            hover:from-emerald-100/60 hover:to-emerald-50/60 dark:hover:from-emerald-900/20 dark:hover:to-emerald-800/20
+            hover:border-emerald-300 dark:hover:border-emerald-600
             ${error ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''}
           `}
           {...props}
