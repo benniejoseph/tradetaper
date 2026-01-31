@@ -5,7 +5,6 @@ import { FaTimes, FaEdit, FaTrashAlt, FaExternalLinkAlt, FaShareSquare, FaStar a
 import { format, parseISO, differenceInMinutes, differenceInHours, differenceInDays } from 'date-fns';
 import { formatPrice } from './TradesTable';
 import TradeCandleChart from '../charts/TradeCandleChart';
-
 // Helper functions moved from TradesTable
 const getWeekday = (dateStr: string | undefined): string => {
   if (!dateStr) return '-';
@@ -370,13 +369,13 @@ export default function TradePreviewDrawer({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-md flex justify-end z-40 transition-opacity duration-300 ease-in-out" onClick={onClose}>
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-50 transition-opacity duration-300 ease-in-out p-4" onClick={onClose}>
       <div 
-        className="w-full max-w-lg h-full bg-gradient-to-br from-white to-emerald-50 dark:from-black dark:to-emerald-950/20 backdrop-blur-xl border-l border-gray-200/50 dark:border-gray-700/50 shadow-2xl flex flex-col transform transition-transform duration-300 ease-in-out translate-x-0" 
+        className="w-full max-w-4xl max-h-[90vh] bg-gradient-to-br from-white to-emerald-50 dark:from-black dark:to-emerald-950/20 backdrop-blur-xl border border-gray-200/50 dark:border-gray-700/50 shadow-2xl flex flex-col rounded-2xl overflow-hidden transform transition-all duration-300 ease-in-out scale-100 opacity-100" 
         onClick={(e) => e.stopPropagation()} 
       >
         {/* Header */}
-        <div className="p-6 border-b border-gray-200/30 dark:border-gray-700/30 bg-gradient-to-r from-emerald-50 to-white dark:from-emerald-950/20 dark:to-black backdrop-blur-xl">
+        <div className="p-6 border-b border-gray-200/30 dark:border-gray-700/30 bg-gradient-to-r from-emerald-50 to-white dark:from-emerald-950/20 dark:to-black">
           <div className="flex justify-between items-start mb-4">
             <div className="flex flex-col">
                 <h2 className="text-3xl font-bold bg-gradient-to-r from-emerald-500 to-emerald-600 bg-clip-text text-transparent">{trade.symbol}</h2>
@@ -386,19 +385,35 @@ export default function TradePreviewDrawer({
                 </div>
             </div>
             <div className="flex items-center space-x-2">
-                <button onClick={handleToggleStar} className="p-2.5 rounded-xl bg-gray-100/80 dark:bg-gray-800/80 hover:bg-yellow-500 dark:hover:bg-yellow-500 text-gray-600 dark:text-gray-400 hover:text-white transition-all duration-200 hover:scale-105 backdrop-blur-sm">
+                <button 
+                  onClick={handleToggleStar} 
+                  title={trade.isStarred ? "Remove from favorites" : "Add to favorites"}
+                  className="p-2.5 rounded-xl bg-gray-100/80 dark:bg-gray-800/80 hover:bg-yellow-500 dark:hover:bg-yellow-500 text-gray-600 dark:text-gray-400 hover:text-white transition-all duration-200 hover:scale-105 backdrop-blur-sm"
+                >
                     {trade.isStarred ? 
                         <FaStarSolid className="h-5 w-5 text-yellow-400" /> : 
                         <FaStarOutline className="h-5 w-5" />
                     }
                 </button>
-                <button onClick={handleShare} className="p-2.5 rounded-xl bg-gray-100/80 dark:bg-[#141414] hover:bg-emerald-500 dark:hover:bg-emerald-600 text-gray-600 dark:text-gray-400 hover:text-white transition-all duration-200 hover:scale-105 backdrop-blur-sm">
+                <button 
+                  onClick={handleShare} 
+                  title="Share Trade"
+                  className="p-2.5 rounded-xl bg-gray-100/80 dark:bg-[#141414] hover:bg-emerald-500 dark:hover:bg-emerald-600 text-gray-600 dark:text-gray-400 hover:text-white transition-all duration-200 hover:scale-105 backdrop-blur-sm"
+                >
                     <FaShareSquare className="h-5 w-5" />
                 </button>
-                <button onClick={handleExternalLink} className="p-2.5 rounded-xl bg-gray-100/80 dark:bg-[#141414] hover:bg-emerald-500 dark:hover:bg-emerald-600 text-gray-600 dark:text-gray-400 hover:text-white transition-all duration-200 hover:scale-105 backdrop-blur-sm">
+                <button 
+                  onClick={handleExternalLink} 
+                  title="View Details"
+                  className="p-2.5 rounded-xl bg-gray-100/80 dark:bg-[#141414] hover:bg-emerald-500 dark:hover:bg-emerald-600 text-gray-600 dark:text-gray-400 hover:text-white transition-all duration-200 hover:scale-105 backdrop-blur-sm"
+                >
                     <FaExternalLinkAlt className="h-5 w-5" />
                 </button>
-                <button onClick={onClose} className="p-2.5 rounded-xl bg-gray-100/80 dark:bg-gray-800/80 hover:bg-red-500 dark:hover:bg-red-500 text-gray-600 dark:text-gray-400 hover:text-white transition-all duration-200 hover:scale-105 backdrop-blur-sm">
+                <button 
+                  onClick={onClose} 
+                  title="Close"
+                  className="p-2.5 rounded-xl bg-gray-100/80 dark:bg-gray-800/80 hover:bg-red-500 dark:hover:bg-red-500 text-gray-600 dark:text-gray-400 hover:text-white transition-all duration-200 hover:scale-105 backdrop-blur-sm"
+                >
                   <FaTimes className="h-5 w-5" />
                 </button>
             </div>
