@@ -470,7 +470,10 @@ export default function TradePreviewDrawer({
                   <div className="relative z-10">
                     <p className="text-emerald-100 text-[10px] font-black uppercase tracking-[0.3em] mb-4">Total Net Return</p>
                     <div className="flex flex-wrap items-baseline gap-4 max-w-full">
-                      <span className="text-4xl md:text-5xl font-black text-white tracking-tighter truncate max-w-[70%]">
+                      <span 
+                        className="font-black text-white tracking-tighter"
+                        style={{ fontSize: 'clamp(1.5rem, 8vw, 3rem)', lineHeight: '1' }}
+                      >
                         {trade.profitOrLoss !== undefined && trade.profitOrLoss !== null ? 
                           `${trade.profitOrLoss > 0 ? '+' : ''}$${Math.abs(trade.profitOrLoss).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}` : 
                           '-'
@@ -542,9 +545,11 @@ export default function TradePreviewDrawer({
                     symbol={trade.symbol} 
                     entryPrice={trade.entryPrice}
                     exitPrice={trade.exitPrice}
-                    entryTime={trade.entryDate}
-                    exitTime={trade.exitDate}
+                    entryDate={trade.entryDate}
+                    exitDate={trade.exitDate}
                     direction={trade.direction}
+                    stopLoss={trade.stopLoss}
+                    takeProfit={trade.takeProfit}
                   />
                 </div>
 

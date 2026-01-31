@@ -3,7 +3,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { createChart, ColorType, CandlestickData, Time, UTCTimestamp, IChartApi, CandlestickSeries } from 'lightweight-charts';
 import api from '@/services/api'; // Assuming you have an axios instance
-import { FaSpinner } from 'react-icons/fa';
+import { FaSpinner, FaChartLine } from 'react-icons/fa';
 
 interface Candle {
   time: string | number;
@@ -18,9 +18,11 @@ interface TradeCandleChartProps {
   symbol: string;
   entryPrice?: number;
   exitPrice?: number;
-  entryTime?: string;
-  exitTime?: string;
-  direction?: 'LONG' | 'SHORT';
+  entryDate?: string;
+  exitDate?: string;
+  direction?: 'Long' | 'Short';
+  stopLoss?: number;
+  takeProfit?: number;
 }
 
 const TradeCandleChart: React.FC<TradeCandleChartProps> = ({
@@ -28,9 +30,11 @@ const TradeCandleChart: React.FC<TradeCandleChartProps> = ({
   symbol,
   entryPrice,
   exitPrice,
-  entryTime,
-  exitTime,
-  direction
+  entryDate,
+  exitDate,
+  direction,
+  stopLoss,
+  takeProfit
 }) => {
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
@@ -39,15 +43,16 @@ const TradeCandleChart: React.FC<TradeCandleChartProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
 
+  const [timeframe, setTimeframe] = useState<string>('5m');
   // Polling for queued data
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const fetchCandles = async () => {
     try {
       setLoading(true);
-      // We generally want '1m' or '5m' for execution accuracy, default to 5m for now
+      // We generally want '1m' or '5m' for execution accuracy
       // Backend handles "queued" status
-      const response = await api.get(`/trades/${tradeId}/candles?timeframe=5m`);
+      const response = await api.get(`/trades/${tradeId}/candles?timeframe=${timeframe}`);
       
       const data = response.data;
       
@@ -102,9 +107,10 @@ const TradeCandleChart: React.FC<TradeCandleChartProps> = ({
     return () => {
         if (pollIntervalRef.current) {
             clearInterval(pollIntervalRef.current);
+            pollIntervalRef.current = null;
         }
     };
-  }, [tradeId]);
+  }, [tradeId, timeframe]);
 
   useEffect(() => {
     if (!chartContainerRef.current || candles.length === 0) return;
@@ -144,30 +150,69 @@ const TradeCandleChart: React.FC<TradeCandleChartProps> = ({
 
     candleSeries.setData(candles);
 
+    // Position Tool Simulation: Entry, SL, TP Lines
+    if (entryPrice) {
+      candleSeries.createPriceLine({
+        price: entryPrice,
+        color: '#3b82f6', // blue
+        lineWidth: 2,
+        lineStyle: 0, // Solid
+        axisLabelVisible: true,
+        title: 'ENTRY',
+      });
+    }
+
+    if (stopLoss) {
+      candleSeries.createPriceLine({
+        price: stopLoss,
+        color: '#ef4444', // red
+        lineWidth: 1,
+        lineStyle: 1, // Dotted
+        axisLabelVisible: true,
+        title: `SL: ${stopLoss.toLocaleString()}`,
+      });
+    }
+
+    if (takeProfit) {
+      candleSeries.createPriceLine({
+        price: takeProfit,
+        color: '#10b981', // green
+        lineWidth: 1,
+        lineStyle: 1, // Dotted
+        axisLabelVisible: true,
+        title: `TP: ${takeProfit.toLocaleString()}`,
+      });
+    }
+
+    // candleSeries.setMarkers(markers);
+
+    // Fit content
+    chart.timeScale().fitContent();
+
     // Markers for Entry and Exit
     const markers: any[] = [];
     
-    if (entryTime && entryPrice) {
-        const entryTs = new Date(entryTime).getTime() / 1000 as UTCTimestamp;
+    if (entryDate && entryPrice) {
+        const entryTs = new Date(entryDate).getTime() / 1000 as UTCTimestamp;
         // Find closest candle time
         // Lightweight markers need exact time matching a candle
         // Simple approximation:
         markers.push({
             time: entryTs,
-            position: direction === 'LONG' ? 'belowBar' : 'aboveBar',
+            position: direction === 'Long' ? 'belowBar' : 'aboveBar',
             color: '#3b82f6', // blue
-            shape: direction === 'LONG' ? 'arrowUp' : 'arrowDown',
+            shape: direction === 'Long' ? 'arrowUp' : 'arrowDown',
             text: 'Entry',
         });
     }
 
-    if (exitTime && exitPrice) {
-         const exitTs = new Date(exitTime).getTime() / 1000 as UTCTimestamp;
+    if (exitDate && exitPrice) {
+         const exitTs = new Date(exitDate).getTime() / 1000 as UTCTimestamp;
          markers.push({
             time: exitTs,
-            position: direction === 'LONG' ? 'aboveBar' : 'belowBar',
+            position: direction === 'Long' ? 'aboveBar' : 'belowBar',
             color: '#f59e0b', // orange
-            shape: direction === 'LONG' ? 'arrowDown' : 'arrowUp', // Exit implies opposite action? Or just mark it
+            shape: direction === 'Long' ? 'arrowDown' : 'arrowUp', // Exit implies opposite action? Or just mark it
             text: 'Exit',
         });
     }
@@ -191,7 +236,7 @@ const TradeCandleChart: React.FC<TradeCandleChartProps> = ({
         chartRef.current.remove();
       }
     };
-  }, [candles, entryTime, exitTime, direction]);
+  }, [candles, entryDate, exitDate, direction, stopLoss, takeProfit]);
 
   if (loading && candles.length === 0) {
     return (
@@ -218,14 +263,45 @@ const TradeCandleChart: React.FC<TradeCandleChartProps> = ({
   }
 
   return (
-    <div className="w-full bg-white dark:bg-[#141414] rounded-xl border border-gray-200 dark:border-gray-800 p-4 shadow-sm">
-      <div className="mb-4 flex justify-between items-center">
-        <h4 className="font-semibold text-gray-900 dark:text-gray-100">{symbol} - Execution</h4>
-        <div className="text-xs text-gray-500">
-            {candles.length} candles loaded
+    <div className="w-full bg-white dark:bg-[#0A0A0A] rounded-[2rem] border border-gray-200/50 dark:border-white/5 p-6 shadow-xl space-y-4">
+      <div className="flex justify-between items-center">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-emerald-500/10 rounded-xl">
+             <FaChartLine className="w-4 h-4 text-emerald-500" />
+          </div>
+          <div>
+            <h4 className="font-bold text-gray-900 dark:text-gray-100 text-sm">{symbol} Analysis</h4>
+            <p className="text-[10px] text-gray-500 uppercase tracking-widest font-black">Execution Details</p>
+          </div>
+        </div>
+        
+        <div className="flex items-center gap-2 bg-gray-100 dark:bg-white/5 p-1 rounded-xl border border-gray-200/30 dark:border-white/5">
+          {['1m', '5m', '15m', '1h'].map((tf) => (
+            <button
+              key={tf}
+              onClick={() => setTimeframe(tf)}
+              className={`px-3 py-1.5 text-[10px] font-bold rounded-lg transition-all duration-200 ${
+                timeframe === tf 
+                  ? 'bg-white dark:bg-emerald-500 text-emerald-600 dark:text-white shadow-sm' 
+                  : 'text-gray-500 hover:text-gray-900 dark:hover:text-white'
+              }`}
+            >
+              {tf.toUpperCase()}
+            </button>
+          ))}
         </div>
       </div>
-      <div ref={chartContainerRef} className="w-full h-[400px]" />
+      
+      <div className="relative group">
+        <div ref={chartContainerRef} className="w-full h-[400px] cursor-crosshair" />
+        {candles.length > 0 && (
+          <div className="absolute top-4 left-4 pointer-events-none bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-lg border border-white/10 opacity-0 group-hover:opacity-100 transition-opacity">
+            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-tighter">
+              {candles.length} Data Points Synced
+            </p>
+          </div>
+        )}
+      </div>
     </div>
   );
 };
