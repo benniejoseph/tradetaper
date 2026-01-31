@@ -385,7 +385,7 @@ export default function TradePreviewDrawer({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center z-50 transition-opacity duration-300 ease-in-out p-4" onClick={onClose}>
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 transition-opacity duration-300 ease-in-out p-4" onClick={onClose}>
       <div 
         className="w-full max-w-4xl max-h-[95vh] bg-white dark:bg-[#0A0A0A] border border-gray-200/50 dark:border-white/10 shadow-[0_0_50px_-12px_rgba(16,185,129,0.2)] flex flex-col rounded-[2.5rem] overflow-hidden transform transition-all duration-300 ease-in-out scale-100 opacity-100" 
         onClick={(e) => e.stopPropagation()} 
@@ -403,8 +403,8 @@ export default function TradePreviewDrawer({
                   {trade.direction === TradeDirection.LONG ? '↗' : '↘'}
                 </div>
                 <div>
-                  <h2 className="text-4xl font-extrabold tracking-tighter text-gray-900 dark:text-white">{trade.symbol}</h2>
-                  <div className="flex items-center gap-2 mt-1">
+                  <h2 className="text-4xl font-extrabold tracking-tighter text-gray-900 dark:text-white leading-none">{trade.symbol}</h2>
+                  <div className="flex items-center gap-2 mt-2">
                     <span className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-tighter text-white shadow-sm ${statusColor}`}>
                       {statusText}
                     </span>
@@ -468,16 +468,16 @@ export default function TradePreviewDrawer({
                     <FaDollarSign className="w-32 h-32 -mr-12 -mt-12 rotate-12" />
                   </div>
                   <div className="relative z-10">
-                    <p className="text-emerald-100 text-xs font-black uppercase tracking-[0.2em] mb-4">Total Net Return</p>
-                    <div className="flex items-baseline gap-3">
-                      <span className="text-5xl font-black text-white tracking-tighter">
+                    <p className="text-emerald-100 text-[10px] font-black uppercase tracking-[0.3em] mb-4">Total Net Return</p>
+                    <div className="flex flex-wrap items-baseline gap-4 max-w-full">
+                      <span className="text-4xl md:text-5xl font-black text-white tracking-tighter truncate max-w-[70%]">
                         {trade.profitOrLoss !== undefined && trade.profitOrLoss !== null ? 
                           `${trade.profitOrLoss > 0 ? '+' : ''}$${Math.abs(trade.profitOrLoss).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}` : 
                           '-'
                         }
                       </span>
                       {pnlPercentage !== null && (
-                        <span className="text-lg font-bold text-emerald-200 bg-white/10 px-3 py-1 rounded-xl backdrop-blur-md">
+                        <span className="text-base md:text-lg font-bold text-emerald-200 bg-white/10 px-3 py-1 rounded-xl backdrop-blur-md whitespace-nowrap">
                           {pnlPercentage > 0 ? '+' : ''}{pnlPercentage.toFixed(1)}%
                         </span>
                       )}
@@ -499,34 +499,36 @@ export default function TradePreviewDrawer({
                     trend={trade.rMultiple && trade.rMultiple > 2 ? 'up' : 'neutral'}
                   />
                   <MetricCard 
-                    label="Entry Price" 
-                    value={formatPrice(trade.entryPrice)} 
-                    subValue={trade.entryDate ? format(parseISO(trade.entryDate), 'EEEE') : ''}
+                    label="Stop Loss" 
+                    icon={<FaChartLine className="rotate-180" />} 
+                    value={trade.stopLoss ? formatPrice(trade.stopLoss) : '-'} 
+                    subValue="Equity Protection"
                   />
                   <MetricCard 
-                    label="Exit Price" 
-                    value={formatPrice(trade.exitPrice)} 
-                    subValue={getHoldTime(trade)}
+                    label="Take Profit" 
+                    icon={<FaDollarSign className="text-emerald-500" />} 
+                    value={trade.takeProfit ? formatPrice(trade.takeProfit) : '-'} 
+                    subValue="Target Objective"
                   />
                 </div>
 
                 <div className="space-y-3">
                   <div className="flex justify-between items-center p-4 bg-gray-50 dark:bg-white/5 rounded-2xl border border-gray-200/50 dark:border-white/5">
                     <div className="flex items-center gap-3">
-                      <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
-                      <span className="text-xs font-bold text-gray-500 dark:text-gray-400">P&L Gross</span>
+                      <div className="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
+                      <span className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">Entry Price</span>
                     </div>
-                    <span className="text-sm font-black text-gray-900 dark:text-white">
-                      {trade.profitOrLoss !== undefined && trade.profitOrLoss !== null && trade.commission !== undefined && trade.commission !== null ? `$${(trade.profitOrLoss + trade.commission).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}` : '-'}
+                    <span className="text-sm font-black text-gray-900 dark:text-white font-mono">
+                      {formatPrice(trade.entryPrice)}
                     </span>
                   </div>
                   <div className="flex justify-between items-center p-4 bg-gray-50 dark:bg-white/5 rounded-2xl border border-gray-200/50 dark:border-white/5">
                     <div className="flex items-center gap-3">
-                      <div className="w-2 h-2 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]" />
-                      <span className="text-xs font-bold text-gray-500 dark:text-gray-400">Total Fees</span>
+                      <div className="w-2 h-2 rounded-full bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.5)]" />
+                      <span className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">Exit Price</span>
                     </div>
-                    <span className="text-sm font-black text-red-500 italic">
-                      {trade.commission !== undefined && trade.commission !== null ? `-$${Math.abs(trade.commission).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}` : '-0.00'}
+                    <span className="text-sm font-black text-gray-900 dark:text-white font-mono">
+                      {formatPrice(trade.exitPrice)}
                     </span>
                   </div>
                 </div>
@@ -546,37 +548,52 @@ export default function TradePreviewDrawer({
                   />
                 </div>
 
-                <div className="bg-gray-50 dark:bg-white/2 p-8 rounded-[2rem] border border-gray-200/50 dark:border-white/5">
+                <div className="dark:bg-[#111111] bg-gray-50 p-8 rounded-[2rem] border border-gray-200/50 dark:border-white/5 transition-colors duration-300">
                   <SectionTitle title="Execution Timeline" icon={<FaClock className="w-4 h-4" />} />
-                  <div className="flex items-center justify-between text-xs font-bold uppercase tracking-widest text-gray-400">
+                  <div className="flex items-center justify-between text-xs font-bold uppercase tracking-widest text-gray-400 mt-6">
                     <div className="space-y-1">
-                      <p className="text-gray-600 dark:text-emerald-400 text-sm">{trade.entryDate ? format(parseISO(trade.entryDate), 'HH:mm:ss') : '-'}</p>
-                      <p>{trade.entryDate ? format(parseISO(trade.entryDate), 'dd MMM yyyy') : '-'}</p>
-                      <p className="text-[10px] text-gray-500 uppercase tracking-tighter">Market Open</p>
+                      <p className="text-emerald-600 dark:text-emerald-400 text-sm font-black">{trade.entryDate ? format(parseISO(trade.entryDate), 'HH:mm:ss') : '-'}</p>
+                      <p className="text-gray-500 dark:text-gray-400">{trade.entryDate ? format(parseISO(trade.entryDate), 'dd MMM yyyy') : '-'}</p>
+                      <p className="text-[10px] text-gray-400 dark:text-gray-600 uppercase tracking-tighter mt-1">Market Open</p>
                     </div>
                     <div className="flex-grow mx-8 h-px bg-gradient-to-r from-emerald-500/50 via-gray-300 dark:via-white/10 to-red-500/50 relative">
-                       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 px-4 py-1 bg-white dark:bg-[#0A0A0A] border border-gray-200 dark:border-white/10 rounded-full text-[10px] text-emerald-600 dark:text-emerald-400">
+                       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 px-4 py-1.5 bg-white dark:bg-[#0A0A0A] border border-gray-200 dark:border-white/10 rounded-full text-[10px] text-emerald-600 dark:text-emerald-400 shadow-sm">
                          {getHoldTime(trade)}
                        </div>
                     </div>
                     <div className="space-y-1 text-right">
-                      <p className="text-gray-600 dark:text-red-400 text-sm">{trade.status === TradeStatus.CLOSED && trade.exitDate ? format(parseISO(trade.exitDate), 'HH:mm:ss') : '-'}</p>
-                      <p>{trade.status === TradeStatus.CLOSED && trade.exitDate ? format(parseISO(trade.exitDate), 'dd MMM yyyy') : '-'}</p>
-                      <p className="text-[10px] text-gray-500 uppercase tracking-tighter">Market Exit</p>
+                      <p className="text-red-500 dark:text-red-400 text-sm font-black">{trade.status === TradeStatus.CLOSED && trade.exitDate ? format(parseISO(trade.exitDate), 'HH:mm:ss') : '-'}</p>
+                      <p className="text-gray-500 dark:text-gray-400">{trade.status === TradeStatus.CLOSED && trade.exitDate ? format(parseISO(trade.exitDate), 'dd MMM yyyy') : '-'}</p>
+                      <p className="text-[10px] text-gray-400 dark:text-gray-600 uppercase tracking-tighter mt-1">Market Exit</p>
                     </div>
                   </div>
                 </div>
 
-                {trade.imageUrl && (
-                  <div className="group relative rounded-[2rem] overflow-hidden border border-gray-200/50 dark:border-white/5 cursor-zoom-in" onClick={() => window.open(trade.imageUrl, '_blank')}>
-                    <img src={trade.imageUrl} alt="Chart" className="w-full h-auto max-h-[400px] object-cover group-hover:scale-105 transition-transform duration-700" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-8">
-                      <p className="text-white text-sm font-bold flex items-center gap-2">
-                        <FaChartLine /> View Full Capture
-                      </p>
+                {/* Additional Data: Concepts & Tags */}
+                <div className="flex flex-wrap gap-4">
+                  {trade.ictConcept && (
+                    <div className="bg-emerald-500/10 border border-emerald-500/20 px-4 py-2 rounded-xl">
+                      <p className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest mb-1">ICT Concept</p>
+                      <p className="text-sm font-bold text-gray-900 dark:text-white uppercase">{trade.ictConcept}</p>
                     </div>
-                  </div>
-                )}
+                  )}
+                  {trade.session && (
+                    <div className="bg-blue-500/10 border border-blue-500/20 px-4 py-2 rounded-xl">
+                      <p className="text-[10px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest mb-1">Session</p>
+                      <p className="text-sm font-bold text-gray-900 dark:text-white uppercase">{trade.session}</p>
+                    </div>
+                  )}
+                  {trade.tags && trade.tags.length > 0 && (
+                    <div className="flex-grow bg-gray-500/10 border border-gray-500/20 px-4 py-2 rounded-xl">
+                      <p className="text-[10px] font-black text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-1">Tags</p>
+                      <div className="flex flex-wrap gap-2">
+                        {trade.tags.map((tag, idx) => (
+                          <span key={idx} className="text-xs font-bold text-gray-600 dark:text-gray-300">#{tag.name}</span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           )}
@@ -584,15 +601,15 @@ export default function TradePreviewDrawer({
           {activeTab === 'manage' && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-4">
               <div className="space-y-6">
-                <div className="p-8 bg-gray-50 dark:bg-white/2 rounded-[2rem] border border-gray-200/50 dark:border-white/5">
+                <div className="p-8 dark:bg-[#111111] bg-gray-50 rounded-[2rem] border border-gray-200/50 dark:border-white/5 shadow-sm transition-colors duration-300">
                   <SectionTitle title="Core Context" icon={<FaBrain />} />
                   <div className="space-y-4">
                     <div className="space-y-2">
-                      <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500">Trade Thesis & Notes</label>
+                      <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 dark:text-gray-400">Trade Thesis & Notes</label>
                       <textarea
                         defaultValue={trade.notes || ''}
                         onBlur={(e) => dispatch(updateTrade({ id: trade.id, payload: { notes: e.target.value } }))}
-                        className="w-full p-6 bg-white dark:bg-black/40 border border-gray-200/50 dark:border-white/5 rounded-[1.5rem] focus:ring-2 focus:ring-emerald-500 outline-none transition-all text-sm min-h-[180px] leading-relaxed shadow-inner"
+                        className="w-full p-6 bg-white dark:bg-black/40 border border-gray-200/50 dark:border-white/5 rounded-[1.5rem] focus:ring-2 focus:ring-emerald-500 outline-none transition-all text-sm min-h-[180px] leading-relaxed shadow-inner dark:text-white"
                         placeholder="What was the reason for this entry? Describe the price action..."
                       />
                     </div>
@@ -601,7 +618,7 @@ export default function TradePreviewDrawer({
               </div>
 
               <div className="space-y-6">
-                <div className="p-8 bg-gray-50 dark:bg-white/2 rounded-[2rem] border border-gray-200/50 dark:border-white/5">
+                <div className="p-8 dark:bg-[#111111] bg-gray-50 rounded-[2rem] border border-gray-200/50 dark:border-white/5 shadow-sm transition-colors duration-300">
                   <SectionTitle title="Retrospective" icon={<FaBrain />} />
                   <div className="space-y-6">
                     <div className="space-y-2">
@@ -609,7 +626,7 @@ export default function TradePreviewDrawer({
                       <textarea
                         defaultValue={trade.mistakesMade || ''}
                         onBlur={(e) => dispatch(updateTrade({ id: trade.id, payload: { mistakesMade: e.target.value } }))}
-                        className="w-full p-4 bg-white dark:bg-black/40 border border-gray-200/50 dark:border-white/5 rounded-2xl focus:ring-2 focus:ring-red-500 transition-all text-sm min-h-[100px]"
+                        className="w-full p-4 bg-white dark:bg-black/40 border border-gray-200/50 dark:border-white/5 rounded-2xl focus:ring-2 focus:ring-red-500 transition-all text-sm min-h-[100px] dark:text-white"
                         placeholder="Identify any psychological pitfalls or rule breaks..."
                       />
                     </div>
@@ -618,7 +635,7 @@ export default function TradePreviewDrawer({
                       <textarea
                         defaultValue={trade.lessonsLearned || ''}
                         onBlur={(e) => dispatch(updateTrade({ id: trade.id, payload: { lessonsLearned: e.target.value } }))}
-                        className="w-full p-4 bg-white dark:bg-black/40 border border-gray-200/50 dark:border-white/5 rounded-2xl focus:ring-2 focus:ring-emerald-500 transition-all text-sm min-h-[100px]"
+                        className="w-full p-4 bg-white dark:bg-black/40 border border-gray-200/50 dark:border-white/5 rounded-2xl focus:ring-2 focus:ring-emerald-500 transition-all text-sm min-h-[100px] dark:text-white"
                         placeholder="What will you do differently next time?"
                       />
                     </div>
