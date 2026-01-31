@@ -26,22 +26,22 @@ import {
 } from 'react-icons/fa6';
 
 const DataPill: React.FC<{ label: string; value: string; icon?: React.ReactNode; color?: string }> = ({ label, value, icon, color = 'emerald' }) => (
-  <div className="flex flex-col gap-1 px-4 border-r border-white/5 last:border-0 min-w-[120px]">
-    <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">{label}</span>
+  <div className="flex flex-col gap-1 px-4 border-r border-zinc-200 dark:border-white/5 last:border-0 min-w-[120px]">
+    <span className="text-[10px] font-black text-zinc-500 dark:text-gray-500 uppercase tracking-widest">{label}</span>
     <div className="flex items-center gap-2">
       {icon && <span className={`text-${color}-500 w-3 h-3`}>{icon}</span>}
-      <span className="text-sm font-bold text-white tracking-tight">{value}</span>
+      <span className="text-sm font-bold text-zinc-900 dark:text-white tracking-tight">{value}</span>
     </div>
   </div>
 );
 
 const SidebarField: React.FC<{ label: string; value: React.ReactNode; icon: React.ReactNode }> = ({ label, value, icon }) => (
-  <div className="p-4 rounded-2xl bg-white/5 border border-white/5 space-y-2">
-    <div className="flex items-center gap-2 text-gray-500">
+  <div className="p-4 rounded-2xl bg-zinc-50 dark:bg-white/5 border border-zinc-200 dark:border-white/5 space-y-2">
+    <div className="flex items-center gap-2 text-zinc-500 dark:text-gray-500">
       <span className="w-4 h-4">{icon}</span>
       <span className="text-[10px] font-black uppercase tracking-[0.2em]">{label}</span>
     </div>
-    <div className="text-sm font-bold text-white pl-6">{value || <span className="text-gray-600 italic">Unassigned</span>}</div>
+    <div className="text-sm font-bold text-zinc-900 dark:text-white pl-6">{value || <span className="text-zinc-400 dark:text-gray-600 italic">Unassigned</span>}</div>
   </div>
 );
 
@@ -92,37 +92,37 @@ export default function ViewTradePage() {
   return (
     <div className="max-w-[1600px] mx-auto space-y-6 pb-20">
       {/* Workstation Header */}
-      <div className="bg-[#0A0A0A] border border-white/5 rounded-[2.5rem] overflow-hidden shadow-2xl">
+      <div className="bg-white dark:bg-[#0A0A0A] border border-zinc-200 dark:border-white/5 rounded-[2.5rem] overflow-hidden shadow-2xl">
         <div className="flex flex-col lg:flex-row items-stretch">
           {/* Symbol & Direction Banner */}
-          <div className={`p-8 flex items-center gap-6 min-w-[350px] ${trade.direction === 'Long' ? 'bg-gradient-to-br from-emerald-500/20 to-transparent' : 'bg-gradient-to-br from-red-500/20 to-transparent'}`}>
+          <div className={`p-8 flex items-center gap-6 min-w-[350px] ${trade.direction === 'Long' ? 'bg-emerald-500/10 dark:bg-emerald-500/20' : 'bg-red-500/10 dark:bg-red-500/20'}`}>
             <div className={`p-5 rounded-3xl shadow-2xl ${trade.direction === 'Long' ? 'bg-emerald-500 text-white' : 'bg-red-500 text-white'}`}>
               {trade.direction === 'Long' ? <FaArrowUp className="w-8 h-8" /> : <FaArrowDown className="w-8 h-8" />}
             </div>
             <div>
               <div className="flex items-center gap-3">
-                <h1 className="text-5xl font-black text-white tracking-tighter leading-none">{trade.symbol}</h1>
+                <h1 className="text-5xl font-black text-zinc-900 dark:text-white tracking-tighter leading-none">{trade.symbol}</h1>
                 <span className={`px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest ${trade.status === 'Closed' ? 'bg-emerald-500/20 text-emerald-500' : 'bg-blue-500/20 text-blue-500'}`}>
                   {trade.status}
                 </span>
               </div>
-              <p className="text-gray-500 text-[10px] font-black uppercase tracking-[0.3em] mt-2">Professional Terminal V2.0</p>
+              <p className="text-zinc-500 dark:text-gray-500 text-[10px] font-black uppercase tracking-[0.3em] mt-2">Professional Terminal V2.0</p>
             </div>
           </div>
 
           {/* Quick Stats Horizontal Strip */}
-          <div className="flex-1 flex flex-wrap items-center p-8 border-l border-white/5">
+          <div className="flex-1 flex flex-wrap items-center p-8 border-l border-zinc-200 dark:border-white/5">
             <DataPill label="Total P&L" value={trade.profitOrLoss !== undefined ? `${trade.profitOrLoss > 0 ? '+' : ''}$${Math.abs(trade.profitOrLoss).toLocaleString()}` : '-'} color={trade.profitOrLoss >= 0 ? 'emerald' : 'red'} />
-            <DataPill label="Return %" value={pnlPercentage !== null ? `${pnlPercentage > 0 ? '+' : ''}${pnlPercentage.toFixed(2)}%` : '-'} color={pnlPercentage >= 0 ? 'emerald' : 'red'} />
+            <DataPill label="Return %" value={pnlPercentage !== null ? `${pnlPercentage > 0 ? '+' : ''}${pnlPercentage.toFixed(2)}%` : '-'} color={(pnlPercentage && pnlPercentage >= 0) ? 'emerald' : 'red'} />
             <DataPill label="R-Efficiency" value={trade.rMultiple ? `${trade.rMultiple.toFixed(2)}R` : '-'} icon={<FaChartLine />} />
             <DataPill label="Stop Threshold" value={formatPrice(trade.stopLoss)} icon={<FaBullseye />} color="red" />
             <DataPill label="Profit Target" value={formatPrice(trade.takeProfit)} icon={<FaBullseye />} color="emerald" />
           </div>
-
+ 
           {/* Action Bar */}
-          <div className="p-8 flex items-center gap-3 border-l border-white/5 bg-white/2">
-            <button onClick={() => window.print()} className="p-4 bg-white/5 hover:bg-white/10 rounded-2xl border border-white/5 transition-all transition-transform active:scale-95">
-              <FaCloudArrowDown className="w-4 h-4 text-gray-400" />
+          <div className="p-8 flex items-center gap-3 border-l border-zinc-200 dark:border-white/5 bg-zinc-50/50 dark:bg-white/2">
+            <button onClick={() => window.print()} className="p-4 bg-zinc-100 dark:bg-white/5 hover:bg-zinc-200 dark:hover:bg-white/10 rounded-2xl border border-zinc-200 dark:border-white/5 transition-all transition-transform active:scale-95">
+              <FaCloudArrowDown className="w-4 h-4 text-zinc-500 dark:text-gray-400" />
             </button>
             <Link href={`/journal/edit/${trade.id}`} className="flex items-center gap-3 px-8 py-4 bg-emerald-500 hover:bg-emerald-600 text-white font-black rounded-2xl shadow-xl shadow-emerald-500/20 transition-all active:scale-95">
               <FaPenToSquare className="w-4 h-4" />
@@ -136,12 +136,12 @@ export default function ViewTradePage() {
       <div className="grid grid-cols-12 gap-6">
         {/* Workspace: 70% Chart */}
         <div className="col-span-12 lg:col-span-8 space-y-6">
-          <div className="bg-[#0A0A0A] p-1 border border-white/5 rounded-[3rem] shadow-2xl relative">
+          <div className="bg-white dark:bg-[#0A0A0A] p-1 border border-zinc-200 dark:border-white/5 rounded-[3rem] shadow-2xl relative">
             <div className="absolute top-8 left-8 z-10 flex items-center gap-3">
-              <div className="p-2 bg-emerald-500/20 rounded-lg">
+              <div className="p-2 bg-emerald-500/10 dark:bg-emerald-500/20 rounded-lg">
                 <FaMicrochip className="w-3 h-3 text-emerald-500" />
               </div>
-              <span className="text-[10px] font-black text-white uppercase tracking-widest">Live Execution Stream</span>
+              <span className="text-[10px] font-black text-zinc-900 dark:text-white uppercase tracking-widest">Live Execution Stream</span>
             </div>
             <TradeCandleChart 
               tradeId={trade.id} 
@@ -157,53 +157,72 @@ export default function ViewTradePage() {
           </div>
 
           {/* Tags & Concepts Overlay */}
-          <div className="bg-white/5 backdrop-blur-md p-6 rounded-[2rem] border border-white/5 flex flex-wrap gap-3">
+          <div className="bg-white/80 dark:bg-white/5 backdrop-blur-md p-6 rounded-[2rem] border border-zinc-200 dark:border-white/5 flex flex-wrap gap-3">
             <div className="flex items-center gap-3 mr-4">
-              <FaTag className="w-4 h-4 text-gray-500" />
-              <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Metadata</span>
+              <FaTag className="w-4 h-4 text-zinc-400 dark:text-gray-500" />
+              <span className="text-[10px] font-black text-zinc-400 dark:text-gray-500 uppercase tracking-widest">Metadata</span>
             </div>
             {trade.ictConcept && (
-              <span className="px-4 py-2 bg-indigo-500/10 text-indigo-400 text-[10px] font-black rounded-xl border border-indigo-500/20 uppercase tracking-widest">{trade.ictConcept}</span>
+              <span className="px-4 py-2 bg-indigo-500/10 text-indigo-500 dark:text-indigo-400 text-[10px] font-black rounded-xl border border-indigo-500/10 dark:border-indigo-500/20 uppercase tracking-widest">{trade.ictConcept}</span>
             )}
-            {trade.tradingSession && (
-              <span className="px-4 py-2 bg-amber-500/10 text-amber-400 text-[10px] font-black rounded-xl border border-amber-500/20 uppercase tracking-widest">{trade.tradingSession}</span>
+            {trade.session && (
+              <span className="px-4 py-2 bg-amber-500/10 text-amber-600 dark:text-amber-400 text-[10px] font-black rounded-xl border border-amber-500/10 dark:border-amber-500/20 uppercase tracking-widest">{trade.session}</span>
             )}
-            {trade.tags?.map((tag: string, i: number) => (
-              <span key={i} className="px-4 py-2 bg-white/5 text-gray-400 text-[10px] font-black rounded-xl border border-white/10 uppercase tracking-widest">{tag}</span>
+            {trade.tags?.map((tag: any, i: number) => (
+              <span key={i} className="px-4 py-2 bg-zinc-100 dark:bg-white/5 text-zinc-600 dark:text-gray-400 text-[10px] font-black rounded-xl border border-zinc-200 dark:border-white/10 uppercase tracking-widest">{typeof tag === 'string' ? tag : tag.name}</span>
             ))}
           </div>
         </div>
 
         {/* Workspace: 30% Desk Metadata */}
         <div className="col-span-12 lg:col-span-4 space-y-6">
-          <div className="bg-[#0A0A0A] border border-white/5 rounded-[3rem] p-8 space-y-8 shadow-2xl">
+          <div className="bg-white dark:bg-[#0A0A0A] border border-zinc-200 dark:border-white/5 rounded-[3rem] p-8 space-y-8 shadow-2xl">
             <div className="flex items-center gap-3 mb-2">
               <FaTerminal className="w-4 h-4 text-emerald-500" />
-              <h3 className="text-lg font-black text-white uppercase tracking-tighter leading-none">Trading Desk</h3>
+              <h3 className="text-lg font-black text-zinc-900 dark:text-white uppercase tracking-tighter leading-none">Trading Desk</h3>
             </div>
-
+ 
             <div className="space-y-4">
-              <SidebarField label="Account Instance" value={trade.accountName} icon={<FaLayerGroup />} />
+              <SidebarField label="Account Instance" value={trade.account?.name || trade.accountName} icon={<FaLayerGroup />} />
               <SidebarField label="Asset Category" value={trade.assetType} icon={<FaBullseye />} />
               <SidebarField label="Entry Execution" value={`${formatPrice(trade.entryPrice)} @ ${formatDateFns(new Date(trade.entryDate), 'MMM dd, HH:mm')}`} icon={<FaClock />} />
               <SidebarField label="Exit Execution" value={trade.exitDate ? `${formatPrice(trade.exitPrice)} @ ${formatDateFns(new Date(trade.exitDate), 'MMM dd, HH:mm')}` : 'Position In Progress'} icon={<FaClock />} />
               <SidebarField label="Volume Units" value={trade.quantity?.toLocaleString()} icon={<FaDollarSign />} />
+              {trade.externalId && <SidebarField label="Position ID" value={trade.externalId} icon={<FaTerminal />} />}
             </div>
-
+ 
             {/* Micro Metrics Grid */}
             <div className="grid grid-cols-2 gap-4 pt-4">
-               <div className="p-5 bg-white/2 border border-white/5 rounded-3xl">
-                 <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest mb-1">R:R Performance</p>
-                 <p className="text-xl font-black text-white">{trade.rMultiple ? trade.rMultiple.toFixed(2) : '-'}R</p>
+               <div className="p-5 bg-zinc-50 dark:bg-white/2 border border-zinc-100 dark:border-white/5 rounded-3xl">
+                 <p className="text-[9px] font-black text-zinc-400 dark:text-gray-500 uppercase tracking-widest mb-1">R:R Performance</p>
+                 <p className="text-xl font-black text-zinc-900 dark:text-white">{trade.rMultiple ? trade.rMultiple.toFixed(2) : '-'}R</p>
                </div>
-               <div className="p-5 bg-white/2 border border-white/5 rounded-3xl">
-                 <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest mb-1">Risk Status</p>
+               <div className="p-5 bg-zinc-50 dark:bg-white/2 border border-zinc-100 dark:border-white/5 rounded-3xl">
+                 <p className="text-[9px] font-black text-zinc-400 dark:text-gray-500 uppercase tracking-widest mb-1">Risk Status</p>
                  <p className={`text-xl font-black ${trade.profitOrLoss >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>{trade.profitOrLoss >= 0 ? 'Secured' : 'Stopped'}</p>
                </div>
+               {trade.commission !== undefined && (
+                 <div className="p-5 bg-zinc-50 dark:bg-white/2 border border-zinc-100 dark:border-white/5 rounded-3xl">
+                   <p className="text-[9px] font-black text-zinc-400 dark:text-gray-500 uppercase tracking-widest mb-1">Commission</p>
+                   <p className="text-xl font-black text-zinc-900 dark:text-white">${trade.commission.toFixed(2)}</p>
+                 </div>
+               )}
+               {trade.swap !== undefined && (
+                 <div className="p-5 bg-zinc-50 dark:bg-white/2 border border-zinc-100 dark:border-white/5 rounded-3xl">
+                   <p className="text-[9px] font-black text-zinc-400 dark:text-gray-500 uppercase tracking-widest mb-1">Swap</p>
+                   <p className="text-xl font-black text-zinc-900 dark:text-white">${trade.swap.toFixed(2)}</p>
+                 </div>
+               )}
+               {trade.marginUsed !== undefined && (
+                 <div className="p-5 bg-zinc-50 dark:bg-white/2 border border-zinc-100 dark:border-white/5 rounded-3xl">
+                   <p className="text-[9px] font-black text-zinc-400 dark:text-gray-500 uppercase tracking-widest mb-1">Margin Used</p>
+                   <p className="text-xl font-black text-zinc-900 dark:text-white">${trade.marginUsed.toFixed(2)}</p>
+                 </div>
+               )}
             </div>
           </div>
 
-          <Link href="/journal" className="flex items-center justify-center gap-3 p-6 bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white font-black rounded-3xl border border-white/5 transition-all text-xs uppercase tracking-widest">
+          <Link href="/journal" className="flex items-center justify-center gap-3 p-6 bg-zinc-50 dark:bg-white/5 hover:bg-zinc-100 dark:hover:bg-white/10 text-zinc-500 dark:text-gray-400 hover:text-zinc-900 dark:hover:text-white font-black rounded-3xl border border-zinc-200 dark:border-white/5 transition-all text-xs uppercase tracking-widest">
             <FaArrowLeft className="w-3 h-3" />
             Back to Journal
           </Link>
@@ -212,49 +231,49 @@ export default function ViewTradePage() {
 
       {/* Analysis Workspace (Bottom) */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-[#0A0A0A] border border-white/5 rounded-[3rem] p-10 space-y-6 shadow-2xl">
+        <div className="bg-white dark:bg-[#0A0A0A] border border-zinc-200 dark:border-white/5 rounded-[3rem] p-10 space-y-6 shadow-2xl">
           <div className="flex items-center gap-3">
             <div className="p-3 bg-emerald-500/10 rounded-2xl text-emerald-500">
               <FaBrain className="w-5 h-5" />
             </div>
-            <h3 className="text-xl font-black text-white uppercase tracking-tighter">Strategic Thesis</h3>
+            <h3 className="text-xl font-black text-zinc-900 dark:text-white uppercase tracking-tighter">Strategic Thesis</h3>
           </div>
           <div className="space-y-6">
             <div>
-              <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-3">Primary Analysis / Setup Notes</p>
-              <div className="bg-white/2 p-6 rounded-2xl border border-white/5">
-                <p className="text-gray-300 text-sm leading-relaxed font-medium whitespace-pre-wrap">{trade.notes || "No thesis provided."}</p>
+              <p className="text-[10px] font-black text-zinc-400 dark:text-gray-500 uppercase tracking-widest mb-3">Primary Analysis / Setup Notes</p>
+              <div className="bg-zinc-50 dark:bg-white/2 p-6 rounded-2xl border border-zinc-100 dark:border-white/5">
+                <p className="text-zinc-700 dark:text-gray-300 text-sm leading-relaxed font-medium whitespace-pre-wrap">{trade.notes || "No thesis provided."}</p>
               </div>
             </div>
             {trade.setupDetails && (
               <div>
-                <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-3">Configuration & Precision Details</p>
-                <div className="bg-white/2 p-6 rounded-2xl border border-white/5">
-                  <p className="text-gray-300 text-sm leading-relaxed font-medium italic whitespace-pre-wrap">{trade.setupDetails}</p>
+                <p className="text-[10px] font-black text-zinc-400 dark:text-gray-500 uppercase tracking-widest mb-3">Configuration & Precision Details</p>
+                <div className="bg-zinc-50 dark:bg-white/2 p-6 rounded-2xl border border-zinc-100 dark:border-white/5">
+                  <p className="text-zinc-700 dark:text-gray-300 text-sm leading-relaxed font-medium italic whitespace-pre-wrap">{trade.setupDetails}</p>
                 </div>
               </div>
             )}
           </div>
         </div>
-
-        <div className="bg-[#0A0A0A] border border-white/5 rounded-[3rem] p-10 space-y-6 shadow-2xl">
+ 
+        <div className="bg-white dark:bg-[#0A0A0A] border border-zinc-200 dark:border-white/5 rounded-[3rem] p-10 space-y-6 shadow-2xl">
           <div className="flex items-center gap-3">
             <div className="p-3 bg-red-500/10 rounded-2xl text-red-500">
               <FaMicrochip className="w-5 h-5" />
             </div>
-            <h3 className="text-xl font-black text-white uppercase tracking-tighter">Post-Execution Audit</h3>
+            <h3 className="text-xl font-black text-zinc-900 dark:text-white uppercase tracking-tighter">Post-Execution Audit</h3>
           </div>
           <div className="space-y-6">
             <div>
-              <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-3">Execution Mistakes & Anomalies</p>
+              <p className="text-[10px] font-black text-zinc-400 dark:text-gray-500 uppercase tracking-widest mb-3">Execution Mistakes & Anomalies</p>
               <div className="bg-red-500/5 p-6 rounded-2xl border border-red-500/10">
-                <p className="text-gray-400 text-sm leading-relaxed font-medium italic whitespace-pre-wrap">{trade.mistakesMade || "Zero anomalies detected in execution."}</p>
+                <p className="text-red-900/60 dark:text-gray-400 text-sm leading-relaxed font-medium italic whitespace-pre-wrap">{trade.mistakesMade || "Zero anomalies detected in execution."}</p>
               </div>
             </div>
             <div>
-              <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-3">Permanent Learning Outcome</p>
-              <div className="bg-white/2 p-6 rounded-2xl border border-white/5">
-                <p className="text-gray-300 text-sm leading-relaxed font-medium whitespace-pre-wrap">{trade.lessonsLearned || "Standard operational procedure confirmed."}</p>
+              <p className="text-[10px] font-black text-zinc-400 dark:text-gray-500 uppercase tracking-widest mb-3">Permanent Learning Outcome</p>
+              <div className="bg-zinc-50 dark:bg-white/2 p-6 rounded-2xl border border-zinc-100 dark:border-white/5">
+                <p className="text-zinc-700 dark:text-gray-300 text-sm leading-relaxed font-medium whitespace-pre-wrap">{trade.lessonsLearned || "Standard operational procedure confirmed."}</p>
               </div>
             </div>
           </div>

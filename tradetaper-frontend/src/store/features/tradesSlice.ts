@@ -83,6 +83,10 @@ function transformApiTradeToFrontend(apiTrade: any): Trade {
       updatedAt: apiTrade.updatedAt,
       accountId: apiTrade.accountId,
       isStarred: apiTrade.isStarred || false,
+      swap: apiTrade.swap ? parseFloat(apiTrade.swap) : undefined,
+      externalId: apiTrade.externalId,
+      account: apiTrade.account,
+      marginUsed: apiTrade.marginUsed ? parseFloat(apiTrade.marginUsed) : undefined,
     };
   } catch (error) {
     console.error('Error transforming trade:', apiTrade, error);

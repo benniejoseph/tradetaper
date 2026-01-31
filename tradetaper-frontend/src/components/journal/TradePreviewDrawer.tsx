@@ -1,7 +1,7 @@
 "use client";
 
 import { Trade, TradeStatus, UpdateTradePayload, TradeDirection } from '@/types/trade';
-import { FaTimes, FaEdit, FaTrashAlt, FaExternalLinkAlt, FaShareSquare, FaStar as FaStarSolid, FaRegStar as FaStarOutline, FaTwitter, FaLinkedin, FaCopy, FaDownload, FaChartLine, FaClock, FaDollarSign, FaBrain } from 'react-icons/fa'; // Added FaBrain
+import { FaTimes, FaEdit, FaTrashAlt, FaExternalLinkAlt, FaShareSquare, FaStar as FaStarSolid, FaRegStar as FaStarOutline, FaTwitter, FaLinkedin, FaCopy, FaDownload, FaChartLine, FaClock, FaDollarSign, FaBrain, FaSync, FaTerminal } from 'react-icons/fa'; // Added FaBrain, FaSync, FaTerminal
 import { format, parseISO, differenceInMinutes, differenceInHours, differenceInDays } from 'date-fns';
 import { formatPrice } from './TradesTable';
 import TradeCandleChart from '../charts/TradeCandleChart';
@@ -502,20 +502,39 @@ export default function TradePreviewDrawer({
                     trend={trade.rMultiple && trade.rMultiple > 2 ? 'up' : 'neutral'}
                   />
                   <MetricCard 
-                    label="Stop Loss" 
-                    icon={<FaChartLine className="rotate-180" />} 
-                    value={trade.stopLoss ? formatPrice(trade.stopLoss) : '-'} 
-                    subValue="Equity Protection"
-                  />
-                  <MetricCard 
                     label="Take Profit" 
                     icon={<FaDollarSign className="text-emerald-500" />} 
                     value={trade.takeProfit ? formatPrice(trade.takeProfit) : '-'} 
                     subValue="Target Objective"
                   />
+                  {trade.commission !== undefined && (
+                    <MetricCard 
+                      label="Commission" 
+                      icon={<FaDollarSign className="text-red-500" />} 
+                      value={`-$${Math.abs(trade.commission).toFixed(2)}`} 
+                    />
+                  )}
+                  {trade.swap !== undefined && (
+                    <MetricCard 
+                      label="Swap" 
+                      icon={<FaSync className="text-blue-500" />} 
+                      value={`${trade.swap >= 0 ? '+' : '-'}$${Math.abs(trade.swap).toFixed(2)}`} 
+                    />
+                  )}
                 </div>
 
                 <div className="space-y-3">
+                  {trade.externalId && (
+                    <div className="flex justify-between items-center p-4 bg-gray-50 dark:bg-white/5 rounded-2xl border border-gray-200/50 dark:border-white/5">
+                      <div className="flex items-center gap-3">
+                        <FaTerminal className="w-3.5 h-3.5 text-gray-400" />
+                        <span className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">Position ID</span>
+                      </div>
+                      <span className="text-sm font-black text-gray-900 dark:text-white font-mono">
+                        {trade.externalId}
+                      </span>
+                    </div>
+                  )}
                   <div className="flex justify-between items-center p-4 bg-gray-50 dark:bg-white/5 rounded-2xl border border-gray-200/50 dark:border-white/5">
                     <div className="flex items-center gap-3">
                       <div className="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
