@@ -1,0 +1,53 @@
+# Terminal Farm - Docker Compose Configuration
+# This file sets up the development environment for terminal farm testing
+
+version: '3.8'
+
+services:
+  # MT5 Terminal (Development/Test Instance)
+  mt5-terminal:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    platform: linux/amd64
+    container_name: tradetaper-mt5-dev
+    environment:
+      - MT5_SERVER=${MT5_SERVER:-ICMarkets-Demo02}
+      - MT5_LOGIN=${MT5_LOGIN:-12345678}
+      - MT5_PASSWORD=${MT5_PASSWORD:-password}
+      - TERMINAL_ID=${TERMINAL_ID:-dev-terminal-001}
+      - API_ENDPOINT=${API_ENDPOINT:-http://host.docker.internal:3000}
+      - API_KEY=${API_KEY:-}
+      - ENABLE_VNC=true
+    ports:
+      - "5900:5900"  # VNC for debugging
+    cap_add:
+      - SYS_PTRACE
+    security_opt:
+      - seccomp:unconfined
+      - apparmor:unconfined
+    volumes:
+      - ./ea:/home/trader/mt5/MQL5/Experts:ro
+      - mt5-data:/home/trader/.wine
+    restart: unless-stopped
+    networks:
+      - tradetaper
+
+  # Redis for message queue (optional - for scaling)
+  redis:
+    image: redis:7-alpine
+    container_name: tradetaper-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - tradetaper
+
+networks:
+  tradetaper:
+    driver: bridge
+
+volumes:
+  mt5-data:
+  redis-data:

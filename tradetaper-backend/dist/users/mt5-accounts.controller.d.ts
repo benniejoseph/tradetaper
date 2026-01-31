@@ -12,37 +12,17 @@ export declare class MT5AccountsController {
     findAll(req: any): Promise<MT5AccountResponseDto[]>;
     findOne(req: any, id: string): Promise<MT5AccountResponseDto>;
     getLiveTrades(): never[];
-    getCandles(req: any, id: string, symbol: string, timeframe: string, startTimeStr: string, endTimeStr: string): Promise<any[]>;
-    syncAccount(id: string): Promise<void>;
+    syncAccount(req: any, id: string): Promise<void>;
     remove(req: any, id: string): Promise<void>;
-    linkAccount(req: any, id: string, body: {
-        password: string;
-    }): Promise<{
-        success: boolean;
-        message: string;
-        metaApiAccountId: string;
-        state: string;
-    }>;
-    unlinkAccount(req: any, id: string): Promise<{
-        success: boolean;
-        message: string;
-    }>;
     getConnectionStatus(req: any, id: string): Promise<{
         state: string;
         connectionStatus: string;
         deployed: boolean;
-        metaApiAvailable: boolean;
-    }>;
-    importTrades(req: any, id: string, body: {
-        fromDate: string;
-        toDate: string;
-    }): Promise<{
-        imported: number;
-        skipped: number;
-        errors: number;
+        ftpConfigured: boolean;
     }>;
     healthCheck(): {
         status: string;
+        syncMethod: string;
         timestamp: string;
     };
     update(req: any, id: string, updateMT5AccountDto: UpdateMT5AccountDto): Promise<MT5AccountResponseDto>;

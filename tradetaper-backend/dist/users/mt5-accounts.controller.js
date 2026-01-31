@@ -66,19 +66,11 @@ let MT5AccountsController = class MT5AccountsController {
     getLiveTrades() {
         return [];
     }
-    async getCandles(req, id, symbol, timeframe, startTimeStr, endTimeStr) {
+    async syncAccount(req, id) {
         const account = await this.mt5AccountsService.findOne(id);
         if (!account || account.userId !== req.user.id) {
             throw new common_1.BadRequestException('MT5 account not found');
         }
-        if (!symbol || !timeframe || !startTimeStr) {
-            throw new common_1.BadRequestException('Missing parameters: symbol, timeframe, startTime');
-        }
-        const startTime = new Date(startTimeStr);
-        const endTime = endTimeStr ? new Date(endTimeStr) : new Date();
-        return this.mt5AccountsService.getCandles(id, symbol, timeframe, startTime, endTime);
-    }
-    async syncAccount(id) {
         await this.mt5AccountsService.syncAccount(id);
     }
     async remove(req, id) {
@@ -88,33 +80,6 @@ let MT5AccountsController = class MT5AccountsController {
         }
         await this.mt5AccountsService.remove(id);
     }
-    async linkAccount(req, id, body) {
-        const account = await this.mt5AccountsService.findOne(id);
-        if (!account || account.userId !== req.user.id) {
-            throw new common_1.BadRequestException('MT5 account not found');
-        }
-        if (!body.password) {
-            throw new common_1.BadRequestException('MT5 password is required to link account');
-        }
-        const result = await this.mt5AccountsService.linkAccount(id, { password: body.password });
-        return {
-            success: true,
-            message: 'MT5 account linked successfully',
-            metaApiAccountId: result.accountId,
-            state: result.state,
-        };
-    }
-    async unlinkAccount(req, id) {
-        const account = await this.mt5AccountsService.findOne(id);
-        if (!account || account.userId !== req.user.id) {
-            throw new common_1.BadRequestException('MT5 account not found');
-        }
-        await this.mt5AccountsService.unlinkAccount(id);
-        return {
-            success: true,
-            message: 'MT5 account unlinked from MetaApi',
-        };
-    }
     async getConnectionStatus(req, id) {
         const account = await this.mt5AccountsService.findOne(id);
         if (!account || account.userId !== req.user.id) {
@@ -122,18 +87,10 @@ let MT5AccountsController = class MT5AccountsController {
         }
         return this.mt5AccountsService.getConnectionStatus(id);
     }
-    async importTrades(req, id, body) {
-        const account = await this.mt5AccountsService.findOne(id);
-        if (!account || account.userId !== req.user.id) {
-            throw new common_1.BadRequestException('MT5 account not found');
-        }
-        const fromDate = body.fromDate ? new Date(body.fromDate) : new Date(0);
-        const toDate = body.toDate ? new Date(body.toDate) : new Date();
-        return this.mt5AccountsService.importTradesFromMT5(id, fromDate.toISOString(), toDate.toISOString());
-    }
     healthCheck() {
         return {
             status: 'ok',
+            syncMethod: 'ftp',
             timestamp: new Date().toISOString(),
         };
     }
@@ -184,23 +141,12 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], MT5AccountsController.prototype, "getLiveTrades", null);
 __decorate([
-    (0, common_1.Get)(':id/candles'),
-    __param(0, (0, common_1.Request)()),
-    __param(1, (0, common_1.Param)('id')),
-    __param(2, (0, common_1.Query)('symbol')),
-    __param(3, (0, common_1.Query)('timeframe')),
-    __param(4, (0, common_1.Query)('startTime')),
-    __param(5, (0, common_1.Query)('endTime')),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, String, String, String, String, String]),
-    __metadata("design:returntype", Promise)
-], MT5AccountsController.prototype, "getCandles", null);
-__decorate([
     (0, common_1.Post)(':id/sync'),
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
-    __param(0, (0, common_1.Param)('id')),
+    __param(0, (0, common_1.Request)()),
+    __param(1, (0, common_1.Param)('id')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String]),
+    __metadata("design:paramtypes", [Object, String]),
     __metadata("design:returntype", Promise)
 ], MT5AccountsController.prototype, "syncAccount", null);
 __decorate([
@@ -212,25 +158,6 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], MT5AccountsController.prototype, "remove", null);
 __decorate([
-    (0, common_1.Post)(':id/link'),
-    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
-    __param(0, (0, common_1.Request)()),
-    __param(1, (0, common_1.Param)('id')),
-    __param(2, (0, common_1.Body)()),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, String, Object]),
-    __metadata("design:returntype", Promise)
-], MT5AccountsController.prototype, "linkAccount", null);
-__decorate([
-    (0, common_1.Post)(':id/unlink'),
-    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
-    __param(0, (0, common_1.Request)()),
-    __param(1, (0, common_1.Param)('id')),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, String]),
-    __metadata("design:returntype", Promise)
-], MT5AccountsController.prototype, "unlinkAccount", null);
-__decorate([
     (0, common_1.Get)(':id/status'),
     __param(0, (0, common_1.Request)()),
     __param(1, (0, common_1.Param)('id')),
@@ -238,15 +165,6 @@ __decorate([
     __metadata("design:paramtypes", [Object, String]),
     __metadata("design:returntype", Promise)
 ], MT5AccountsController.prototype, "getConnectionStatus", null);
-__decorate([
-    (0, common_1.Post)(':id/import-trades'),
-    __param(0, (0, common_1.Request)()),
-    __param(1, (0, common_1.Param)('id')),
-    __param(2, (0, common_1.Body)()),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, String, Object]),
-    __metadata("design:returntype", Promise)
-], MT5AccountsController.prototype, "importTrades", null);
 __decorate([
     (0, common_1.Get)('health'),
     __metadata("design:type", Function),

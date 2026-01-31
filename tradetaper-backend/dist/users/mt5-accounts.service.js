@@ -54,30 +54,20 @@ const mt5_account_entity_1 = require("./entities/mt5-account.entity");
 const config_1 = require("@nestjs/config");
 const crypto = __importStar(require("crypto"));
 const trades_service_1 = require("../trades/trades.service");
-const enums_1 = require("../types/enums");
 const user_entity_1 = require("./entities/user.entity");
-const metaapi_service_1 = require("../integrations/metaapi/metaapi.service");
-const trade_mapper_service_1 = require("../integrations/metaapi/trade-mapper.service");
-const trade_journal_sync_service_1 = require("../trades/services/trade-journal-sync.service");
 let MT5AccountsService = MT5AccountsService_1 = class MT5AccountsService {
     mt5AccountRepository;
     userRepository;
     configService;
     tradesService;
-    metaApiService;
-    tradeMapperService;
-    tradeJournalSyncService;
     logger = new common_1.Logger(MT5AccountsService_1.name);
     encryptionKey;
     encryptionIV;
-    constructor(mt5AccountRepository, userRepository, configService, tradesService, metaApiService, tradeMapperService, tradeJournalSyncService) {
+    constructor(mt5AccountRepository, userRepository, configService, tradesService) {
         this.mt5AccountRepository = mt5AccountRepository;
         this.userRepository = userRepository;
         this.configService = configService;
         this.tradesService = tradesService;
-        this.metaApiService = metaApiService;
-        this.tradeMapperService = tradeMapperService;
-        this.tradeJournalSyncService = tradeJournalSyncService;
         const encryptionKeyString = this.configService.get('MT5_ENCRYPTION_KEY') ||
             crypto.randomBytes(32).toString('hex');
         const encryptionIVString = this.configService.get('MT5_ENCRYPTION_IV') ||
@@ -111,9 +101,6 @@ let MT5AccountsService = MT5AccountsService_1 = class MT5AccountsService {
             throw new Error('Failed to decrypt sensitive data');
         }
     }
-    isMetaApiAvailable() {
-        return this.metaApiService.isAvailable();
-    }
     async create(createDto, userId) {
         this.logger.log(`Creating MT5 account for user ${userId}`);
         const mt5Account = this.mt5AccountRepository.create({
@@ -139,202 +126,6 @@ let MT5AccountsService = MT5AccountsService_1 = class MT5AccountsService {
         const savedAccount = await this.mt5AccountRepository.save(mt5Account);
         this.logger.log(`MT5 account ${savedAccount.id} created successfully`);
         return this.mapToResponseDto(savedAccount);
-    }
-    async linkAccount(id, credentials) {
-        const account = await this.mt5AccountRepository.findOne({ where: { id } });
-        if (!account) {
-            throw new common_1.NotFoundException(`MT5 account with id ${id} not found`);
-        }
-        if (!this.metaApiService.isAvailable()) {
-            throw new common_1.UnprocessableEntityException('MetaApi integration not available');
-        }
-        this.logger.log(`Linking MT5 account ${id} to MetaApi`);
-        let login;
-        let server;
-        const isManual = account.metadata?.isManual || account.connectionStatus === 'manual';
-        try {
-            if (isManual) {
-                login = account.login;
-                server = account.server;
-            }
-            else {
-                login = this.decrypt(account.login);
-                server = this.decrypt(account.server);
-            }
-        }
-        catch (error) {
-            this.logger.error(`Decryption failed during link: ${error.message}`);
-            throw new common_1.UnprocessableEntityException('Failed to decrypt account credentials. Please delete and limits-add this account.');
-        }
-        try {
-            const result = await this.metaApiService.provisionAccount({
-                login,
-                password: credentials.password,
-                server,
-                accountName: account.accountName,
-            });
-            await this.mt5AccountRepository.update(id, {
-                metaApiAccountId: result.accountId,
-                deploymentState: 'DEPLOYED',
-                connectionState: 'CONNECTED',
-                connectionStatus: 'connected',
-                lastSyncError: null,
-            });
-            this.logger.log(`MT5 account ${id} linked successfully with MetaApi ID: ${result.accountId}`);
-            return result;
-        }
-        catch (error) {
-            this.logger.error(`Provisioning failed: ${error.message}`);
-            if (error.message.toLowerCase().includes('broker')) {
-                throw new common_1.UnprocessableEntityException('Broker server not found. Check server name.');
-            }
-            if (error.message.toLowerCase().includes('auth') || error.message.toLowerCase().includes('password')) {
-                throw new common_1.UnprocessableEntityException('Invalid credentials. Check login and password.');
-            }
-            throw new common_1.UnprocessableEntityException(`Link failed: ${error.message}`);
-        }
-    }
-    async unlinkAccount(id) {
-        const account = await this.mt5AccountRepository.findOne({ where: { id } });
-        if (!account) {
-            throw new common_1.NotFoundException(`MT5 account with id ${id} not found`);
-        }
-        if (!account.metaApiAccountId) {
-            throw new Error('Account is not linked to MetaApi');
-        }
-        await this.metaApiService.unlinkAccount(account.metaApiAccountId);
-        await this.mt5AccountRepository.update(id, {
-            metaApiAccountId: undefined,
-            deploymentState: 'UNDEPLOYED',
-            connectionState: 'DISCONNECTED',
-            connectionStatus: 'disconnected',
-        });
-        this.logger.log(`MT5 account ${id} unlinked from MetaApi`);
-    }
-    async getConnectionStatus(id) {
-        const account = await this.mt5AccountRepository.findOne({ where: { id } });
-        if (!account) {
-            throw new common_1.NotFoundException(`MT5 account with id ${id} not found`);
-        }
-        if (!account.metaApiAccountId) {
-            return {
-                state: account.deploymentState || 'UNDEPLOYED',
-                connectionStatus: account.connectionStatus || 'disconnected',
-                deployed: false,
-                metaApiAvailable: this.metaApiService.isAvailable(),
-            };
-        }
-        const status = await this.metaApiService.getConnectionStatus(account.metaApiAccountId);
-        return {
-            ...status,
-            metaApiAvailable: true,
-        };
-    }
-    async syncAccount(id) {
-        const account = await this.mt5AccountRepository.findOne({ where: { id } });
-        if (!account) {
-            throw new common_1.NotFoundException(`MT5 account with id ${id} not found`);
-        }
-        if (!account.metaApiAccountId) {
-            this.logger.warn(`Account ${id} is not linked to MetaApi, skipping sync`);
-            return;
-        }
-        this.logger.log(`Syncing account ${id} from MetaApi`);
-        try {
-            await this.ensureAccountDeployed(account.metaApiAccountId);
-            const accountInfo = await this.metaApiService.getAccountInfo(account.metaApiAccountId);
-            await this.mt5AccountRepository.update(id, {
-                balance: accountInfo.balance,
-                equity: accountInfo.equity,
-                margin: accountInfo.margin,
-                marginFree: accountInfo.freeMargin,
-                leverage: accountInfo.leverage,
-                currency: accountInfo.currency,
-                lastSyncAt: new Date(),
-                connectionStatus: 'connected',
-            });
-            this.logger.log(`Account ${id} synced successfully`);
-        }
-        catch (error) {
-            this.logger.error(`Failed to sync account ${id}: ${error.message}`);
-            await this.mt5AccountRepository.update(id, {
-                lastSyncError: error.message,
-                lastSyncErrorAt: new Date(),
-                syncAttempts: (account.syncAttempts || 0) + 1,
-            });
-            throw new common_1.UnprocessableEntityException(`Sync failed: ${error.message}`);
-        }
-    }
-    async importTradesFromMT5(id, fromDate, toDate) {
-        const account = await this.mt5AccountRepository.findOne({ where: { id } });
-        if (!account) {
-            throw new common_1.NotFoundException(`MT5 account with id ${id} not found`);
-        }
-        if (!account.metaApiAccountId) {
-            throw new Error('Account is not linked to MetaApi. Please link the account first.');
-        }
-        this.logger.log(`Importing trades for account ${id} from ${fromDate} to ${toDate}`);
-        await this.ensureAccountDeployed(account.metaApiAccountId);
-        const deals = await this.metaApiService.getDealHistory(account.metaApiAccountId, new Date(fromDate), new Date(toDate));
-        const mappedTrades = this.tradeMapperService.mapDealsToTrades(deals);
-        let imported = 0;
-        let skipped = 0;
-        let errors = 0;
-        for (const trade of mappedTrades) {
-            try {
-                const duplicate = await this.tradesService.findDuplicate(account.userId, trade.symbol, trade.entryDate, trade.externalId);
-                if (duplicate) {
-                    this.logger.debug(`Skipping duplicate trade: ${trade.symbol} at ${trade.entryDate}`);
-                    skipped++;
-                    continue;
-                }
-                const createTradeDto = {
-                    assetType: trade.assetType,
-                    symbol: trade.symbol,
-                    side: trade.direction,
-                    status: enums_1.TradeStatus.CLOSED,
-                    openPrice: trade.entryPrice,
-                    closePrice: trade.exitPrice || undefined,
-                    openTime: trade.entryDate.toISOString(),
-                    closeTime: trade.exitDate?.toISOString(),
-                    quantity: trade.quantity,
-                    commission: trade.commission,
-                    marginUsed: trade.marginUsed,
-                    notes: `${trade.notes}\nSwap: ${trade.swap}`,
-                    accountId: id,
-                };
-                const createdTrade = await this.tradesService.create(createTradeDto, { id: account.userId });
-                try {
-                    await this.tradeJournalSyncService.createJournalForTrade(createdTrade);
-                    this.logger.log(`Auto-created journal for trade ${createdTrade.id}`);
-                }
-                catch (journalError) {
-                    this.logger.warn(`Failed to create journal for trade ${createdTrade.id}: ${journalError.message}`);
-                }
-                imported++;
-            }
-            catch (error) {
-                this.logger.error(`Failed to import trade ${trade.externalId}: ${error.message}`);
-                errors++;
-            }
-        }
-        const totalPnL = mappedTrades
-            .filter(t => !t.externalId || imported > 0)
-            .reduce((sum, t) => sum + (t.realizedPnL || 0), 0);
-        const initialBal = parseFloat(String(account.initialBalance)) || 0;
-        const currentBal = parseFloat(String(account.balance)) || 0;
-        const baseBalance = initialBal || currentBal;
-        const newBalance = baseBalance + totalPnL;
-        this.logger.log(`Balance calculation: base=${baseBalance}, pnl=${totalPnL}, new=${newBalance}`);
-        await this.mt5AccountRepository.update(id, {
-            totalTradesImported: (account.totalTradesImported || 0) + imported,
-            lastSyncAt: new Date(),
-            balance: newBalance,
-            equity: newBalance,
-            profit: totalPnL,
-        });
-        this.logger.log(`Import complete: ${imported} imported, ${skipped} skipped, ${errors} errors, P&L: ${totalPnL}`);
-        return { imported, skipped, errors };
     }
     async createManual(manualAccountData) {
         this.logger.log(`Creating manual MT5 account for user ${manualAccountData.userId}`);
@@ -403,7 +194,6 @@ let MT5AccountsService = MT5AccountsService_1 = class MT5AccountsService {
                     lastSyncAt: account.lastSyncAt,
                     createdAt: account.createdAt,
                     updatedAt: account.updatedAt,
-                    metaApiAccountId: account.metaApiAccountId,
                     connectionStatus: account.connectionStatus || 'disconnected',
                     isRealAccount: account.isRealAccount,
                 });
@@ -456,14 +246,6 @@ let MT5AccountsService = MT5AccountsService_1 = class MT5AccountsService {
         if (!account) {
             throw new common_1.NotFoundException(`MT5 account with id ${id} not found`);
         }
-        if (account.metaApiAccountId) {
-            try {
-                await this.metaApiService.unlinkAccount(account.metaApiAccountId);
-            }
-            catch (error) {
-                this.logger.warn(`Failed to unlink from MetaApi: ${error.message}`);
-            }
-        }
         try {
             await this.mt5AccountRepository.manager.query('UPDATE trades SET "accountId" = NULL WHERE "accountId" = $1', [id]);
         }
@@ -482,45 +264,26 @@ let MT5AccountsService = MT5AccountsService_1 = class MT5AccountsService {
             server: isManual ? server : this.decrypt(server),
         };
     }
-    async cleanupCorruptedAccounts(accountIds) {
-        try {
-            this.logger.log(`Cleaning up ${accountIds.length} corrupted MT5 accounts`);
-            await this.mt5AccountRepository.delete(accountIds);
-        }
-        catch (error) {
-            this.logger.error(`Failed to cleanup corrupted accounts: ${error.message}`);
-        }
-    }
-    async ensureAccountDeployed(metaApiAccountId) {
-        try {
-            const status = await this.metaApiService.getConnectionStatus(metaApiAccountId);
-            if (!status.deployed) {
-                this.logger.log(`Account ${metaApiAccountId} is UNDEPLOYED. Auto-deploying for sync...`);
-                await this.metaApiService.deployAccount(metaApiAccountId);
-                await this.mt5AccountRepository.update({ metaApiAccountId }, {
-                    deploymentState: 'DEPLOYED',
-                    connectionState: 'CONNECTED'
-                });
-            }
-        }
-        catch (error) {
-            if (error.message && error.message.toLowerCase().includes('not found')) {
-                this.logger.warn(`MetaApi account not found (likely deleted remotely): ${error.message}`);
-                throw new common_1.UnprocessableEntityException('MetaApi account not found. It may have been deleted remotely. Please unlink and re-link this account.');
-            }
-            this.logger.error(`Failed to ensure account deployment: ${error.message}`);
-            throw error;
-        }
-    }
-    async getCandles(accountId, symbol, timeframe, startTime, endTime) {
-        const account = await this.findOne(accountId);
+    async syncAccount(id) {
+        const account = await this.mt5AccountRepository.findOne({ where: { id } });
         if (!account) {
-            throw new Error('Account not found');
+            throw new common_1.NotFoundException(`MT5 account with id ${id} not found`);
         }
-        if (!account.login) {
-            return [];
+        this.logger.log(`Sync requested for account ${id} - FTP sync not yet implemented`);
+        throw new common_1.UnprocessableEntityException('Auto-sync via FTP is coming soon. Please use manual file upload for now.');
+    }
+    async getConnectionStatus(id) {
+        const account = await this.mt5AccountRepository.findOne({ where: { id } });
+        if (!account) {
+            throw new common_1.NotFoundException(`MT5 account with id ${id} not found`);
         }
-        return this.metaApiService.getCandles(account.id, symbol, timeframe, startTime, endTime);
+        const ftpConfigured = false;
+        return {
+            state: account.deploymentState || 'MANUAL',
+            connectionStatus: account.connectionStatus || 'disconnected',
+            deployed: false,
+            ftpConfigured,
+        };
     }
 };
 exports.MT5AccountsService = MT5AccountsService;
@@ -531,9 +294,6 @@ exports.MT5AccountsService = MT5AccountsService = MT5AccountsService_1 = __decor
     __metadata("design:paramtypes", [typeorm_2.Repository,
         typeorm_2.Repository,
         config_1.ConfigService,
-        trades_service_1.TradesService,
-        metaapi_service_1.MetaApiService,
-        trade_mapper_service_1.TradeMapperService,
-        trade_journal_sync_service_1.TradeJournalSyncService])
+        trades_service_1.TradesService])
 ], MT5AccountsService);
 //# sourceMappingURL=mt5-accounts.service.js.map

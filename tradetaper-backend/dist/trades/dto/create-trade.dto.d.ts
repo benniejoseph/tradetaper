@@ -23,4 +23,9 @@ export declare class CreateTradeDto {
     accountId?: string;
     isStarred?: boolean;
     strategyId?: string;
+    swap?: number;
+    profitOrLoss?: number;
+    externalId?: string;
+    externalDealId?: string;
+    mt5Magic?: number;
 }

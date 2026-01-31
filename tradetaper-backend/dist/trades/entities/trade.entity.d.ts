@@ -19,6 +19,7 @@ export declare class Trade {
     closePrice?: number;
     quantity: number;
     commission: number;
+    swap?: number;
     marginUsed?: number;
     notes?: string;
     profitOrLoss?: number;

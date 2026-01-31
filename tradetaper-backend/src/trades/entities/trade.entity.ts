@@ -101,6 +101,10 @@ export class Trade {
   @Column('decimal', { precision: 10, scale: 2, nullable: true })
   commission: number;
 
+  @Type(() => Number) // Added swap
+  @Column('decimal', { precision: 10, scale: 2, nullable: true })
+  swap?: number;
+
   @Column('decimal', { precision: 10, scale: 2, nullable: true })
   marginUsed?: number; // Calculated: (Price * Quantity * ContractSize) / Leverage
 
@@ -188,6 +192,13 @@ export class Trade {
   @Column({ type: 'bigint', nullable: true })
   mt5Magic?: number;
 
+  @Type(() => Number)
+  @Column('decimal', { precision: 19, scale: 8, nullable: true })
+  contractSize?: number;
+
+  @Column({ type: 'jsonb', nullable: true })
+  executionCandles?: any[]; // Array of { time, open, high, low, close }
+
   @CreateDateColumn()
   createdAt: Date;
 
@@ -198,6 +209,10 @@ export class Trade {
   // This is a conceptual method. Actual P&L might be set by the service upon closing a trade.
   // Helper to determine contract size based on asset type or symbol
   getContractSize(): number {
+    // 1. Prefer stored contract size if available
+    if (this.contractSize) return this.contractSize;
+
+    // 2. Fallback to heuristics (Legacy)
     if (!this.symbol) return 1;
     const s = this.symbol.toUpperCase();
 
@@ -207,6 +222,9 @@ export class Trade {
 
     // Forex (Standard Lot = 100,000 units)
     if (this.assetType === AssetType.FOREX) return 100000;
+
+    // Indices (Usually 1, 10, or 20 but broker dependent. 1 is safest default for CFDs)
+    if (this.assetType === AssetType.INDICES) return 1;
 
     // Crypto, Stocks, Indices - Default to 1 (Spot/Shares)
     return 1;
@@ -229,7 +247,7 @@ export class Trade {
       } else if (this.side === TradeDirection.SHORT) {
         pnl = (this.openPrice - this.closePrice) * this.quantity * contractSize;
       }
-      this.profitOrLoss = parseFloat((pnl - (this.commission || 0)).toFixed(4));
+      this.profitOrLoss = parseFloat((pnl + (this.commission || 0) + (this.swap || 0)).toFixed(4));
     } else {
       this.profitOrLoss = undefined;
     }

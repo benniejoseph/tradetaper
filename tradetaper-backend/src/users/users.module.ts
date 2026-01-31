@@ -10,7 +10,6 @@ import { ConfigModule } from '@nestjs/config';
 import { MT5Account } from './entities/mt5-account.entity';
 import { MT5AccountsService } from './mt5-accounts.service';
 import { MT5AccountsController } from './mt5-accounts.controller';
-import { MetaApiModule } from '../integrations/metaapi/metaapi.module';
 import { TradeHistoryParserService } from './trade-history-parser.service';
 import { CacheModule } from '@nestjs/cache-manager';
 import { TradesModule } from '../trades/trades.module';
@@ -25,7 +24,6 @@ import { TradesModule } from '../trades/trades.module';
       max: 100, // maximum number of items in cache
     }),
     forwardRef(() => TradesModule),
-    MetaApiModule,
   ],
   providers: [
     UsersService,

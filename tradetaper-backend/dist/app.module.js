@@ -31,6 +31,8 @@ const agents_module_1 = require("./agents/agents.module");
 const analytics_module_1 = require("./analytics/analytics.module");
 const notifications_module_1 = require("./notifications/notifications.module");
 const backtesting_module_1 = require("./backtesting/backtesting.module");
+const statement_parser_module_1 = require("./statement-parser/statement-parser.module");
+const terminal_farm_module_1 = require("./terminal-farm/terminal-farm.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -61,6 +63,8 @@ exports.AppModule = AppModule = __decorate([
             analytics_module_1.AnalyticsModule,
             notifications_module_1.NotificationsModule,
             backtesting_module_1.BacktestingModule,
+            statement_parser_module_1.StatementParserModule,
+            terminal_farm_module_1.TerminalFarmModule,
         ],
         controllers: [app_controller_1.AppController],
         providers: [app_service_1.AppService],

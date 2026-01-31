@@ -36,6 +36,11 @@ class CreateTradeDto {
     accountId;
     isStarred;
     strategyId;
+    swap;
+    profitOrLoss;
+    externalId;
+    externalDealId;
+    mt5Magic;
 }
 exports.CreateTradeDto = CreateTradeDto;
 __decorate([
@@ -163,4 +168,29 @@ __decorate([
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
 ], CreateTradeDto.prototype, "strategyId", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Number)
+], CreateTradeDto.prototype, "swap", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Number)
+], CreateTradeDto.prototype, "profitOrLoss", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], CreateTradeDto.prototype, "externalId", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], CreateTradeDto.prototype, "externalDealId", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Number)
+], CreateTradeDto.prototype, "mt5Magic", void 0);
 //# sourceMappingURL=create-trade.dto.js.map

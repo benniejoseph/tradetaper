@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch } from '@/store/store';
@@ -9,13 +9,11 @@ import {
   updateMT5Account, 
   deleteMT5Account, 
   syncMT5Account,
-  linkMT5Account,
-  importMT5Trades,
   selectMT5Accounts,
   selectMT5AccountsLoading,
   selectMT5AccountsError,
 } from '@/store/features/mt5AccountsSlice';
-import { FaPlus, FaEdit, FaTrash, FaSync, FaInfoCircle, FaLink, FaDownload } from 'react-icons/fa';
+import { FaPlus, FaEdit, FaTrash, FaSync, FaInfoCircle } from 'react-icons/fa';
 import MT5AccountForm, { MT5Server } from './MT5AccountForm';
 import toast from 'react-hot-toast';
 
@@ -50,14 +48,7 @@ const MT5AccountsTab = () => {
   const [selectedAccount, setSelectedAccount] = useState<any>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [syncingAccount, setSyncingAccount] = useState<string | null>(null);
-  const [importingTrades, setImportingTrades] = useState<string | null>(null);
-  const [showImportModal, setShowImportModal] = useState<string | null>(null);
-  const [mt5Servers, setMT5Servers] = useState<MT5Server[]>([]);
-  const [loadingServers, setLoadingServers] = useState(false);
   const [mounted, setMounted] = useState(false);
-  const [linkingAccount, setLinkingAccount] = useState<string | null>(null);
-  const [showLinkModal, setShowLinkModal] = useState<any | null>(null);
-  const [linkPassword, setLinkPassword] = useState('');
 
   // Ensure component is mounted before rendering portals
   useEffect(() => {
@@ -76,22 +67,7 @@ const MT5AccountsTab = () => {
     dispatch(fetchMT5Accounts());
   }, [dispatch]);
 
-  useEffect(() => {
-    // Servers are now provided as defaults in MT5AccountForm
-    // No external API to fetch servers
-  }, []);
-
-  // Debug log whenever mt5Servers changes
-  useEffect(() => {
-    console.log('MT5 Servers state updated:', {
-      servers: mt5Servers,
-      count: mt5Servers.length,
-      loadingServers
-    });
-  }, [mt5Servers, loadingServers]);
-
   const handleAddAccount = () => {
-    console.log('Opening add account modal');
     setIsAddOpen(true);
   };
 
@@ -120,7 +96,6 @@ const MT5AccountsTab = () => {
       }
     } else {
       setConfirmDelete(id);
-      // Auto-reset after 3 seconds
       setTimeout(() => setConfirmDelete(null), 3000);
     }
   };
@@ -131,44 +106,13 @@ const MT5AccountsTab = () => {
       await dispatch(syncMT5Account(id)).unwrap();
       showToast('The MT5 account has been successfully synced.', 'success');
     } catch (error) {
-      showToast('Failed to sync the MT5 account. Please check credentials and try again.', 'error');
+      showToast('Failed to sync the MT5 account. Please check configuration and try again.', 'error');
     } finally {
       setSyncingAccount(null);
     }
   };
 
-  const handleLinkAccount = async (account: any) => {
-    if (!linkPassword) {
-      showToast('Please enter your MT5 password', 'error');
-      return;
-    }
-    setLinkingAccount(account.id);
-    try {
-      await dispatch(linkMT5Account({ id: account.id, password: linkPassword })).unwrap();
-      setShowLinkModal(null);
-      setLinkPassword('');
-      showToast('Account linked to MetaApi successfully! You can now sync and import trades.', 'success');
-    } catch (error) {
-      console.error('Error linking account:', error);
-    } finally {
-      setLinkingAccount(null);
-    }
-  };
-
-  const handleImportTrades = async (accountId: string) => {
-    setImportingTrades(accountId);
-    try {
-      await dispatch(importMT5Trades({ id: accountId })).unwrap();
-      showToast('Trades imported successfully!', 'success');
-    } catch (error) {
-      console.error('Error importing trades:', error);
-    } finally {
-      setImportingTrades(null);
-    }
-  };
-
   const handleFormSubmit = async (formData: any) => {
-    console.log('Form submitted with data:', formData);
     try {
       if (selectedAccount) {
         // Update existing account
@@ -179,7 +123,6 @@ const MT5AccountsTab = () => {
           ...(formData.password ? { password: formData.password } : {}),
           isActive: formData.isActive,
         };
-        console.log('Update payload:', updateData);
         
         await dispatch(updateMT5Account({
           id: selectedAccount.id,
@@ -199,14 +142,6 @@ const MT5AccountsTab = () => {
           initialBalance: formData.initialBalance,
           currency: formData.currency,
         };
-        console.log('Create payload:', createData);
-        console.log('Payload types:', {
-          accountName: typeof createData.accountName,
-          server: typeof createData.server,
-          login: typeof createData.login,
-          password: typeof createData.password,
-          isActive: typeof createData.isActive,
-        });
         
         await dispatch(createMT5Account(createData)).unwrap();
         
@@ -252,7 +187,6 @@ const MT5AccountsTab = () => {
       </div>
     );
 
-    // Render modal using portal to document.body
     return createPortal(modalContent, document.body);
   };
 
@@ -343,14 +277,6 @@ const MT5AccountsTab = () => {
                       >
                         <FaEdit className="h-4 w-4" />
                       </button>
-                      {account.connectionStatus !== 'connected' && (
-                        <button 
-                          onClick={() => setShowLinkModal(account)}
-                          className="text-blue-600 hover:text-blue-900" title="Link to MetaApi"
-                        >
-                          <FaLink className="h-4 w-4" />
-                        </button>
-                      )}
                       <button 
                         onClick={() => {
                           showToast('Syncing... This may take a minute if the account needs to wake up.', 'success');
@@ -358,17 +284,9 @@ const MT5AccountsTab = () => {
                         }}
                         className={`text-emerald-600 hover:text-emerald-900 ${syncingAccount === account.id ? 'animate-spin' : ''}`}
                         disabled={syncingAccount === account.id}
-                        title="Sync Now (Starts Session)"
+                        title="Sync Now"
                       >
                         <FaSync className="h-4 w-4" />
-                      </button>
-                      <button 
-                        onClick={() => handleImportTrades(account.id)}
-                        className={`text-purple-600 hover:text-purple-900`}
-                        disabled={importingTrades === account.id}
-                        title="Import Trades"
-                      >
-                        <FaDownload className={`h-4 w-4 ${importingTrades === account.id ? 'animate-pulse' : ''}`} />
                       </button>
                       <button 
                         onClick={() => handleDeleteAccount(account.id)}
@@ -393,8 +311,6 @@ const MT5AccountsTab = () => {
         title="Add MetaTrader 5 Account"
       >
         <MT5AccountForm
-          servers={mt5Servers}
-          loadingServers={loadingServers}
           onSubmit={handleFormSubmit}
           onCancel={handleCloseAddModal}
           isSubmitting={loading}
@@ -410,72 +326,14 @@ const MT5AccountsTab = () => {
         {selectedAccount && (
           <MT5AccountForm
             account={selectedAccount}
-            servers={mt5Servers}
-            loadingServers={loadingServers}
             onSubmit={handleFormSubmit}
             onCancel={handleCloseEditModal}
             isSubmitting={loading}
           />
         )}
       </Modal>
-
-      {/* Link Account Modal */}
-      <Modal 
-        isOpen={!!showLinkModal} 
-        onClose={() => { setShowLinkModal(null); setLinkPassword(''); }} 
-        title="Link to MetaApi"
-      >
-        {showLinkModal && (
-          <div className="space-y-4">
-            <p className="text-sm text-[var(--color-text-dark-secondary)] dark:text-text-light-secondary">
-              Enter your MT5 password to link account <strong>{showLinkModal.accountName}</strong> to MetaApi.
-              This will enable automatic syncing and trade history import.
-            </p>
-            <div>
-              <label className="block text-sm font-medium text-[var(--color-text-dark-primary)] dark:text-text-light-primary mb-1">
-                MT5 Password
-              </label>
-              <input
-                type="password"
-                value={linkPassword}
-                onChange={(e) => setLinkPassword(e.target.value)}
-                className="w-full px-3 py-2 border border-[var(--color-light-border)] dark:border-gray-700 rounded-md bg-[var(--color-light-primary)] dark:bg-dark-primary text-[var(--color-text-dark-primary)] dark:text-text-light-primary focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                placeholder="Enter your MT5 password"
-              />
-            </div>
-            <div className="flex justify-end space-x-3 pt-4">
-              <button
-                onClick={() => { setShowLinkModal(null); setLinkPassword(''); }}
-                className="px-4 py-2 border border-[var(--color-light-border)] dark:border-gray-700 rounded-md text-[var(--color-text-dark-secondary)] dark:text-text-light-secondary hover:bg-[var(--color-light-hover)] dark:hover:bg-dark-primary"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => handleLinkAccount(showLinkModal)}
-                disabled={linkingAccount === showLinkModal.id || !linkPassword}
-                className="px-4 py-2 bg-emerald-600 text-white rounded-md hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
-              >
-                {linkingAccount === showLinkModal.id ? (
-                  <>
-                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    Linking...
-                  </>
-                ) : (
-                  <>
-                    <FaLink className="mr-2" />
-                    Link Account
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-        )}
-      </Modal>
     </div>
   );
 };
 
-export default MT5AccountsTab; 
+export default MT5AccountsTab;

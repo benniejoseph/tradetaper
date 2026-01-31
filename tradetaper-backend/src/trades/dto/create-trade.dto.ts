@@ -128,5 +128,29 @@ export class CreateTradeDto {
   @IsString()
   strategyId?: string;
 
-  // profitOrLoss and rMultiple will typically be calculated by the backend, not provided by client on create
+  @IsOptional()
+  @IsNumber()
+  swap?: number;
+
+  @IsOptional()
+  @IsNumber()
+  profitOrLoss?: number;
+
+  @IsOptional()
+  @IsString()
+  externalId?: string;
+
+  @IsOptional()
+  @IsString()
+  externalDealId?: string;
+
+  @IsOptional()
+  @IsNumber()
+  mt5Magic?: number;
+
+  @IsOptional()
+  @IsNumber()
+  contractSize?: number;
+
+  // rMultiple will typically be calculated by the backend
 }
