@@ -69,7 +69,7 @@ export default function DashboardCard({
                   className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all duration-200 ${
                     selectedTimeRange === range 
                       ? 'bg-gradient-to-r from-emerald-500 to-emerald-600 text-white shadow-md' 
-                      : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-white/80 dark:hover:bg-[#0A0A0A]'
+                      : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-white/80 dark:hover:bg-white/5'
                   }`}>
                   {range}
                 </button>
@@ -78,7 +78,7 @@ export default function DashboardCard({
           )}
           
           {showMenuIcon && (
-            <button className="p-2 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100/80 dark:hover:bg-[#0A0A0A]/80 transition-all duration-200">
+            <button className="p-2 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100/80 dark:hover:bg-white/10 transition-all duration-200">
               <FaEllipsisH className="w-4 h-4" />
             </button>
           )}

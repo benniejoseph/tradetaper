@@ -163,13 +163,13 @@ const MT5AccountsTab = () => {
     
     const modalContent = (
       <div className="fixed inset-0 z-[9999] bg-black bg-opacity-50 flex items-center justify-center p-4">
-        <div className="relative bg-[var(--color-light-primary)] dark:bg-dark-secondary w-full max-w-4xl max-h-[95vh] overflow-hidden rounded-xl shadow-2xl">
+        <div className="relative bg-white dark:bg-[#0A0A0A] w-full max-w-4xl max-h-[95vh] overflow-hidden rounded-xl shadow-2xl">
           {/* Modal Header */}
-          <div className="bg-[var(--color-light-primary)] dark:bg-dark-secondary border-b border-[var(--color-light-border)] dark:border-gray-700 px-6 py-4 flex justify-between items-center">
-            <h3 className="text-xl font-semibold text-[var(--color-text-dark-primary)] dark:text-text-light-primary">{title}</h3>
+          <div className="bg-white dark:bg-[#0A0A0A] border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex justify-between items-center">
+            <h3 className="text-xl font-semibold text-gray-900 dark:text-white">{title}</h3>
             <button 
               onClick={onClose} 
-              className="text-[var(--color-text-dark-secondary)] dark:text-text-light-secondary hover:text-[var(--color-text-dark-primary)] dark:hover:text-text-light-primary transition-colors p-2 rounded-full hover:bg-[var(--color-light-hover)] dark:hover:bg-dark-primary"
+              className="text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors p-2 rounded-full hover:bg-gray-100 dark:hover:bg-white/5"
             >
               <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -193,7 +193,7 @@ const MT5AccountsTab = () => {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-[var(--color-text-dark-primary)] dark:text-text-light-primary">MetaTrader 5 Accounts</h2>
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">MetaTrader 5 Accounts</h2>
         <button 
           onClick={handleAddAccount}
           className="px-4 py-2 bg-emerald-600 text-white rounded-md hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-opacity-50 flex items-center transition-colors"
@@ -210,18 +210,18 @@ const MT5AccountsTab = () => {
       )}
       
       <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-[var(--color-light-border)] dark:divide-gray-700">
-          <thead className="bg-[var(--color-light-secondary)] dark:bg-dark-primary">
+        <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+          <thead className="bg-gray-50 dark:bg-white/5">
             <tr>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-[var(--color-text-dark-secondary)] dark:text-text-light-secondary uppercase tracking-wider">Name</th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-[var(--color-text-dark-secondary)] dark:text-text-light-secondary uppercase tracking-wider">Server</th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-[var(--color-text-dark-secondary)] dark:text-text-light-secondary uppercase tracking-wider">Login</th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-[var(--color-text-dark-secondary)] dark:text-text-light-secondary uppercase tracking-wider">Balance</th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-[var(--color-text-dark-secondary)] dark:text-text-light-secondary uppercase tracking-wider">
+              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Name</th>
+              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Server</th>
+              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Login</th>
+              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Balance</th>
+              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                 <div className="flex items-center">
                   Active
                   <div className="relative ml-1 group">
-                    <FaInfoCircle className="h-4 w-4 text-[var(--color-text-dark-secondary)] dark:text-text-light-secondary cursor-help" />
+                    <FaInfoCircle className="h-4 w-4 text-gray-400 dark:text-gray-500 cursor-help" />
                     <div className="absolute left-0 bottom-full mb-2 hidden group-hover:block w-64 p-2 bg-gray-800 dark:bg-gray-900 text-white text-xs rounded shadow-lg z-10">
                       When active, this account will be automatically synced with MetaTrader 5. 
                       Inactive accounts will not sync data but will remain in your account list.
@@ -229,11 +229,11 @@ const MT5AccountsTab = () => {
                   </div>
                 </div>
               </th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-[var(--color-text-dark-secondary)] dark:text-text-light-secondary uppercase tracking-wider">Last Synced</th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-[var(--color-text-dark-secondary)] dark:text-text-light-secondary uppercase tracking-wider">Actions</th>
+              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Last Synced</th>
+              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
             </tr>
           </thead>
-          <tbody className="bg-[var(--color-light-primary)] dark:bg-dark-secondary divide-y divide-[var(--color-light-border)] dark:divide-gray-700">
+          <tbody className="bg-white dark:bg-[#0A0A0A] divide-y divide-gray-200 dark:divide-gray-700">
             {loading ? (
               <tr>
                 <td colSpan={7} className="px-6 py-4 text-center">
@@ -248,17 +248,17 @@ const MT5AccountsTab = () => {
               </tr>
             ) : accounts.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-6 py-4 text-center text-sm text-[var(--color-text-dark-secondary)] dark:text-text-light-secondary">
+                <td colSpan={7} className="px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400">
                   No MetaTrader 5 accounts found. Add an account to get started.
                 </td>
               </tr>
             ) : (
               accounts.map((account) => (
                 <tr key={account.id}>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-[var(--color-text-dark-primary)] dark:text-text-light-primary">{account.accountName}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-[var(--color-text-dark-secondary)] dark:text-text-light-secondary">{account.server}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-[var(--color-text-dark-secondary)] dark:text-text-light-secondary">{account.login}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-[var(--color-text-dark-secondary)] dark:text-text-light-secondary">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">{account.accountName}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{account.server}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{account.login}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                     {formatBalance(account.balance)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-[var(--color-text-dark-secondary)] dark:text-text-light-secondary">
