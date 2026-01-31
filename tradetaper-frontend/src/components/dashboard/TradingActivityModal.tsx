@@ -28,8 +28,8 @@ export default function TradingActivityModal({
   if (!isOpen || !selectedDate) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4">
-      <div className="bg-white dark:bg-black rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden border border-gray-200 dark:border-gray-700">
+    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+      <div className="bg-white dark:bg-[#0A0A0A] rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden border border-gray-200 dark:border-white/10">
         {/* Modal Header */}
         <div className="bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-950/30 dark:to-emerald-900/30 px-6 py-4 border-b border-emerald-200 dark:border-emerald-600/30 flex justify-between items-center">
           <div className="flex items-center space-x-3">
@@ -40,7 +40,7 @@ export default function TradingActivityModal({
           </div>
           <button 
             onClick={onClose}
-            className="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-[#0A0A0A] transition-colors"
+            className="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
           >
             <FaTimes className="w-5 h-5" />
           </button>

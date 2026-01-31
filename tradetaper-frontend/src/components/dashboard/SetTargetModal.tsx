@@ -94,7 +94,7 @@ export default function SetTargetModal({
           <button 
             type="button"
             onClick={onClose}
-            className="w-full sm:w-auto px-6 py-3 text-sm font-semibold rounded-lg border border-gray-300 dark:border-emerald-600/30 hover:bg-gray-100 dark:hover:bg-[#0A0A0A] text-gray-900 dark:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 dark:focus:ring-offset-black shadow-sm"
+            className="w-full sm:w-auto px-6 py-3 text-sm font-semibold rounded-lg border border-gray-300 dark:border-emerald-600/30 hover:bg-gray-100 dark:hover:bg-white/5 text-gray-900 dark:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 dark:focus:ring-offset-black shadow-sm"
           >
             Cancel
           </button>

@@ -41,9 +41,9 @@ export const formatPrice = (price: number | undefined | null): string => {
 
 export const formatPnl = (pnl: number | undefined | null): React.ReactNode => {
   if (pnl === undefined || pnl === null || typeof pnl !== 'number') {
-    return <span className="text-[var(--color-text-dark-secondary)] dark:text-text-light-secondary">-</span>;
+    return <span className="text-gray-500 dark:text-gray-400">-</span>;
   }
-  const textColor = pnl > 0 ? 'text-accent-green' : pnl < 0 ? 'text-accent-red' : 'text-[var(--color-text-dark-secondary)] dark:text-text-light-secondary';
+  const textColor = pnl > 0 ? 'text-green-500' : pnl < 0 ? 'text-red-500' : 'text-gray-500 dark:text-gray-400';
   return (
     <CurrencyAmount 
       amount={pnl} 

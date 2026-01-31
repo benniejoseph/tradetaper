@@ -19,7 +19,7 @@ export const themeClasses = {
     interactive: 'bg-white dark:bg-[#0A0A0A] border border-gray-200 dark:border-[#1F1F1F] rounded-xl shadow-sm dark:shadow-emerald-500/5 hover:shadow-md dark:hover:shadow-emerald-500/10 hover:border-gray-300 dark:hover:border-[#2A2A2A] transition-all duration-300 cursor-pointer',
     gradient: 'bg-gradient-to-br from-white to-gray-50 dark:from-[#0A0A0A] dark:to-[#141414] border border-gray-200 dark:border-[#1F1F1F] rounded-xl shadow-sm dark:shadow-emerald-500/5 transition-all duration-300',
     glassmorphism: 'bg-white/80 dark:bg-black/80 backdrop-blur-xl border border-gray-200/50 dark:border-[#1F1F1F]/50 rounded-xl shadow-lg dark:shadow-emerald-500/10',
-    emeraldGlow: 'bg-[#0A0A0A] border border-emerald-500/20 rounded-xl shadow-lg shadow-emerald-500/20',
+    emeraldGlow: 'bg-emerald-50 dark:bg-[#0A0A0A] border border-emerald-500/20 rounded-xl shadow-lg shadow-emerald-500/10 dark:shadow-emerald-500/20',
   },
 
   // Button Classes
