@@ -234,6 +234,7 @@ const TradeCandleChart: React.FC<TradeCandleChartProps> = ({
       window.removeEventListener('resize', handleResize);
       if (chartRef.current) {
         chartRef.current.remove();
+        chartRef.current = null; // Important: Clear the reference
       }
     };
   }, [candles, entryDate, exitDate, direction, stopLoss, takeProfit]);

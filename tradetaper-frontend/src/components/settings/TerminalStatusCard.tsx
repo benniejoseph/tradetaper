@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { terminalService, TerminalStatus } from '@/services/terminalService';
-import { Loader2, Power, Copy, CheckCircle, XCircle, AlertCircle, RefreshCw } from 'lucide-react';
+import { LoaderCircle, Power, Copy, CircleCheck, CircleX, CircleAlert, RefreshCw } from 'lucide-react';
 
 interface TerminalStatusCardProps {
   accountId: string;
@@ -85,7 +85,7 @@ export default function TerminalStatusCard({ accountId, accountName }: TerminalS
   if (loading) {
     return (
       <div className="flex items-center space-x-2 text-gray-500 text-sm p-4 bg-gray-50 rounded-lg">
-        <Loader2 className="h-4 w-4 animate-spin" />
+        <LoaderCircle className="h-4 w-4 animate-spin" />
         <span>Loading terminal status...</span>
       </div>
     );
@@ -104,11 +104,11 @@ export default function TerminalStatusCard({ accountId, accountName }: TerminalS
             disabled={actionLoading}
             className="flex items-center space-x-2 px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50 transition-colors"
           >
-            {actionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Power className="h-4 w-4" />}
+            {actionLoading ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Power className="h-4 w-4" />}
             <span>Enable Auto-Sync</span>
           </button>
         </div>
-        {error && <p className="mt-2 text-sm text-red-600 flex items-center"><AlertCircle className="h-4 w-4 mr-1" />{error}</p>}
+        {error && <p className="mt-2 text-sm text-red-600 flex items-center"><CircleAlert className="h-4 w-4 mr-1" />{error}</p>}
       </div>
     );
   }
@@ -124,7 +124,7 @@ export default function TerminalStatusCard({ accountId, accountName }: TerminalS
               status.status === 'ERROR' ? 'bg-red-100 text-red-800' :
               'bg-yellow-100 text-yellow-800'
             }`}>
-              {status.status === 'RUNNING' && <CheckCircle className="h-3 w-3 mr-1" />}
+              {status.status === 'RUNNING' && <CircleCheck className="h-3 w-3 mr-1" />}
               {status.status}
             </span>
           </h4>
@@ -155,7 +155,7 @@ export default function TerminalStatusCard({ accountId, accountName }: TerminalS
             className="p-1.5 hover:bg-gray-200 rounded-md text-gray-600 transition-colors"
             title="Copy ID"
           >
-            {copied ? <CheckCircle className="h-4 w-4 text-green-600" /> : <Copy className="h-4 w-4" />}
+            {copied ? <CircleCheck className="h-4 w-4 text-green-600" /> : <Copy className="h-4 w-4" />}
           </button>
         </div>
       </div>
@@ -177,7 +177,7 @@ export default function TerminalStatusCard({ accountId, accountName }: TerminalS
 
       {status.status === 'RUNNING' && !status.lastHeartbeat && (
         <div className="text-xs text-orange-600 bg-orange-50 p-2 rounded flex items-start">
-          <AlertCircle className="h-4 w-4 mr-2 flex-shrink-0 mt-0.5" />
+          <CircleAlert className="h-4 w-4 mr-2 flex-shrink-0 mt-0.5" />
           <span>
             Waiting for connection... Make sure you've added the API URL to MT5 settings and attached the EA.
           </span>
