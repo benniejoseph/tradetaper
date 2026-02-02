@@ -96,3 +96,27 @@ For 100+ users: Kubernetes cluster
 - Never commit `.env` files
 - Use TERMINAL_WEBHOOK_SECRET for API authentication
 - Consider VPN for terminal-to-API communication
+
+## Orchestrator Automation (Multi-Account)
+
+To automate the management of multiple terminals on a single VM, use the `orchestrator.py` script.
+
+### Prerequisites
+- Python 3.8+
+- Docker SDK for Python (`pip install docker requests`)
+- Docker Engine running
+
+### Usage
+1. Set the environment variables:
+   ```bash
+   export API_ENDPOINT="https://api.tradetaper.io"
+   export ORCHESTRATOR_SECRET="your-orchestrator-secret"
+   export IMAGE_NAME="tradetaper/mt5-terminal:latest"
+   ```
+
+2. Run the orchestrator:
+   ```bash
+   python3 orchestrator.py
+   ```
+
+The script will poll the API every 60 seconds and automatically start/stop Docker containers to match your enabled accounts in the TradeTaper Dashboard.

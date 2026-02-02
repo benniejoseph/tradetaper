@@ -1,0 +1,7 @@
+{
+  "name": "tradetaper-root",
+  "version": "1.0.0",
+  "scripts": {
+    "vercel-build": "cd tradetaper-frontend && npm install && npm run build"
+  }
+}

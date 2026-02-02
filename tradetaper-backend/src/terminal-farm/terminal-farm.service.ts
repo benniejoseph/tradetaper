@@ -13,6 +13,7 @@ import {
   TerminalResponseDto,
   TerminalCandlesSyncDto,
 } from './dto/terminal.dto';
+import { MT5AccountsService } from '../users/mt5-accounts.service'; // Import service
 import { TradesService } from '../trades/trades.service';
 import { TradeStatus, TradeDirection, AssetType } from '../types/enums';
 
@@ -27,11 +28,13 @@ export class TerminalFarmService {
   constructor(
     @InjectRepository(TerminalInstance)
     private readonly terminalRepository: Repository<TerminalInstance>,
-    @InjectRepository(MT5Account)
-    private readonly mt5AccountRepository: Repository<MT5Account>,
+    @Inject(forwardRef(() => MT5AccountsService))
+    private readonly mt5AccountsService: MT5AccountsService,
     private readonly configService: ConfigService,
     @Inject(forwardRef(() => TradesService))
     private readonly tradesService: TradesService,
+    @InjectRepository(MT5Account) // Keep for other methods if needed, or remove if fully replaced
+    private readonly mt5AccountRepository: Repository<MT5Account>,
   ) {}
 
   /**
@@ -50,9 +53,8 @@ export class TerminalFarmService {
     this.logger.log(`Enabling auto-sync for account ${accountId}`);
 
     // Verify account ownership
-    const account = await this.mt5AccountRepository.findOne({
-      where: { id: accountId, userId },
-    });
+    const accounts = await this.mt5AccountsService.findAllByUser(userId);
+    const account = accounts.find(a => a.id === accountId);
 
     if (!account) {
       throw new NotFoundException('Account not found');
@@ -81,11 +83,18 @@ export class TerminalFarmService {
     await this.terminalRepository.save(terminal);
 
     // Trigger terminal provisioning (async)
-    this.provisionTerminal(terminal.id, account).catch(err => {
-      this.logger.error(`Failed to provision terminal: ${err.message}`);
-    });
+    // We pass the full entity if needed, but provisionTerminal expects MT5Account entity
+    // We can fetch it or trust the service. 
+    // For now, let's fetch the entity to keep provisionTerminal happy
+    const accountEntity = await this.mt5AccountRepository.findOne({ where: { id: accountId } });
+    
+    if(accountEntity) {
+        this.provisionTerminal(terminal.id, accountEntity).catch(err => {
+          this.logger.error(`Failed to provision terminal: ${err.message}`);
+        });
+    }
 
-    return this.mapToResponse(terminal, account);
+    return this.mapToResponse(terminal, accountEntity!);
   }
 
   /**
@@ -95,9 +104,8 @@ export class TerminalFarmService {
     this.logger.log(`Disabling auto-sync for account ${accountId}`);
 
     // Verify account ownership
-    const account = await this.mt5AccountRepository.findOne({
-      where: { id: accountId, userId },
-    });
+    const accounts = await this.mt5AccountsService.findAllByUser(userId);
+    const account = accounts.find(a => a.id === accountId);
 
     if (!account) {
       throw new NotFoundException('Account not found');
@@ -142,6 +150,65 @@ export class TerminalFarmService {
     }
 
     return this.mapToResponse(terminal, account);
+  }
+
+  /**
+   * Get orchestrator configuration (all active terminals with credentials)
+   */
+  async getOrchestratorConfig(): Promise<any[]> {
+    // Find all terminals that should be running
+    const terminals = await this.terminalRepository.find({
+      where: [
+        { status: TerminalStatus.PENDING },
+        { status: TerminalStatus.STARTING },
+        { status: TerminalStatus.RUNNING },
+        { status: TerminalStatus.STOPPING },
+      ],
+    });
+
+    const config: any[] = [];
+
+    for (const terminal of terminals) {
+      if (terminal.status === TerminalStatus.STOPPING) {
+        // Include for teardown instruction
+        config.push({
+          id: terminal.id,
+          status: 'STOPPED', // Instruction to orchestrator
+          accountId: terminal.accountId,
+        });
+        
+        // Mark as STOPPED in DB immediately 
+        terminal.status = TerminalStatus.STOPPED;
+        await this.terminalRepository.save(terminal);
+        continue;
+      }
+
+      try {
+        // Get decrypted credentials using the service
+        const account = await this.mt5AccountsService.getDecryptedCredentials(terminal.accountId);
+        
+        config.push({
+            id: terminal.id,
+            status: 'RUNNING',
+            accountId: terminal.accountId,
+            server: account.server,
+            login: account.login,
+            password: account.password,
+            terminalId: terminal.id, // Explicit pass
+            environment: {
+                MT5_SERVER: account.server,
+                MT5_LOGIN: account.login,
+                MT5_PASSWORD: account.password,
+                TERMINAL_ID: terminal.id,
+            }
+        });
+
+      } catch (e) {
+        this.logger.error(`Failed to prepare config for terminal ${terminal.id}: ${e.message}`);
+      }
+    }
+    
+    return config;
   }
 
   // In-memory command queue: TerminalID -> Command Object

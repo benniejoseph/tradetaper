@@ -301,6 +301,26 @@ export class MT5AccountsService {
   }
 
   /**
+   * Get decrypted credentials (INTERNAL USE ONLY - Orchestrator)
+   */
+  async getDecryptedCredentials(id: string): Promise<MT5AccountResponseDto & { password?: string }> {
+    const account = await this.mt5AccountRepository.findOne({ where: { id } });
+    if (!account) {
+      throw new NotFoundException(`MT5 account with id ${id} not found`);
+    }
+
+    const isManual = account.metadata?.isManual || account.connectionStatus === 'manual';
+    const { password, login, server, ...rest } = account;
+
+    return {
+      ...rest,
+      login: isManual ? login : this.decrypt(login),
+      server: isManual ? server : this.decrypt(server),
+      password: isManual ? password : this.decrypt(password),
+    };
+  }
+
+  /**
    * Sync account - placeholder for FTP-based sync (to be implemented)
    */
   async syncAccount(id: string): Promise<void> {
