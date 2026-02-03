@@ -89,47 +89,38 @@ export default function DisciplinePage() {
 
       <div className="max-w-6xl mx-auto space-y-6">
         {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="flex flex-col md:flex-row md:items-center md:justify-between gap-4"
-        >
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-              🎮 Trade Discipline
+              Trade Discipline
             </h1>
             <p className="text-gray-600 dark:text-gray-400">
               Complete checklists, earn XP, and trade with discipline
             </p>
           </div>
           
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
+          <button
             onClick={() => setShowApprovalModal(true)}
             className="px-6 py-3 bg-gradient-to-r from-emerald-500 to-cyan-500 text-white font-bold rounded-xl shadow-lg shadow-emerald-500/25"
           >
-            🎯 Request Trade Approval
-          </motion.button>
-        </motion.div>
+            Request Trade Approval
+          </button>
+        </div>
 
         {/* Dashboard */}
         <DisciplineDashboard discipline={discipline} loading={loading} />
 
         {/* Recent Approvals */}
-        <AnimatedCard variant="default" className="space-y-4">
+        <AnimatedCard animate={false} variant="default" className="space-y-4">
           <h3 className="text-lg font-bold text-gray-900 dark:text-white">
-            📋 Recent Trade Approvals
+            Recent Trade Approvals
           </h3>
           
           {recentApprovals.length > 0 ? (
             <div className="divide-y divide-gray-200 dark:divide-gray-700">
-              {recentApprovals.map((approval, index) => (
-                <motion.div
+              {recentApprovals.map((approval) => (
+                <div
                   key={approval.id}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: index * 0.05 }}
                   className="py-3 flex items-center justify-between"
                 >
                   <div className="flex items-center gap-3">
@@ -164,29 +155,26 @@ export default function DisciplinePage() {
                       {approval.status.toUpperCase()}
                     </div>
                   </div>
-                </motion.div>
+                </div>
               ))}
             </div>
           ) : (
             <div className="text-center py-8 text-gray-500">
-              <div className="text-4xl mb-2">📊</div>
               <p>No trade approvals yet. Start by requesting a trade approval!</p>
             </div>
           )}
         </AnimatedCard>
 
         {/* Strategy Selector */}
-        <AnimatedCard variant="glass" className="space-y-4">
+        <AnimatedCard animate={false} variant="glass" className="space-y-4">
           <h3 className="text-lg font-bold text-gray-900 dark:text-white">
-            📋 Select Strategy for Next Trade
+            Select Strategy for Next Trade
           </h3>
           <div className="grid md:grid-cols-2 gap-3">
             {DEMO_STRATEGIES.map((strategy) => (
-              <motion.button
+              <button
                 key={strategy.id}
                 onClick={() => setSelectedStrategy(strategy)}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
                 className={`p-4 rounded-xl text-left transition-all border-2 ${
                   selectedStrategy.id === strategy.id
                     ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20'
@@ -199,7 +187,7 @@ export default function DisciplinePage() {
                 <div className="text-sm text-gray-500 dark:text-gray-400">
                   {strategy.checklist.length} checklist items • Max {strategy.maxRiskPercent}% risk
                 </div>
-              </motion.button>
+              </button>
             ))}
           </div>
         </AnimatedCard>
