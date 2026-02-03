@@ -17,16 +17,14 @@ import { CreateTradeDto } from './dto/create-trade.dto';
 import { UpdateTradeDto } from './dto/update-trade.dto';
 import { UserResponseDto } from '../users/dto/user-response.dto';
 import { SimpleTradesGateway } from '../websocket/simple-trades.gateway';
-import { GeminiVisionService } from '../notes/gemini-vision.service'; // New import
-import { Express } from 'express'; // New import
+import { GeminiVisionService } from '../notes/gemini-vision.service';
+import { Express } from 'express';
 import { PaginatedResponseDto } from '../common/dto/paginated-response.dto';
 import { AccountsService } from '../users/accounts.service';
 import { MT5AccountsService } from '../users/mt5-accounts.service';
 
 import { TradeCandle } from './entities/trade-candle.entity';
 
-import { YahooFinanceService } from '../integrations/yahoo-finance/yahoo-finance.service';
-import { MassiveService } from '../integrations/massive/massive.service';
 import { TerminalFarmService } from '../terminal-farm/terminal-farm.service';
 
 @Injectable()
@@ -50,8 +48,6 @@ export class TradesService {
     private readonly mt5AccountsService: MT5AccountsService,
     @Inject(forwardRef(() => TerminalFarmService))
     private readonly terminalFarmService: TerminalFarmService,
-    private readonly yahooFinanceService: YahooFinanceService,
-    private readonly massiveService: MassiveService,
   ) {}
 
   async getTradeCandles(
@@ -62,7 +58,7 @@ export class TradesService {
     this.logger.debug(`Fetching candles for trade ${tradeId}, timeframe ${timeframe}`);
     
     try {
-        // 1. Check Cache
+        // 1. Check TradeCandle cache first
         const cached = await this.tradeCandleRepository.findOne({ where: { tradeId, timeframe } });
         if (cached) {
             this.logger.debug(`Cache HIT for trade ${tradeId}`);
@@ -70,104 +66,60 @@ export class TradesService {
         }
         this.logger.debug(`Cache MISS for trade ${tradeId}`);
 
-        // 2. Get Trade details
+        // 2. Get Trade details and check executionCandles
         const trade = await this.findOne(tradeId, userContext);
         
-        // 3. Calculate Buffer
-        const exitTime = trade.closeTime ? new Date(trade.closeTime).getTime() : Date.now();
-        let bufferMs = 0;
-        
-        switch (timeframe) {
-            case '1m': bufferMs = 60 * 1000 * 60 * 2; break; 
-            case '5m': bufferMs = 60 * 1000 * 60 * 5; break; 
-            case '15m': bufferMs = 60 * 1000 * 60 * 12; break; 
-            case '1h': bufferMs = 60 * 1000 * 60 * 48; break; 
-            case '4h': bufferMs = 60 * 1000 * 60 * 24 * 7; break; 
-            case '1d': bufferMs = 60 * 1000 * 60 * 24 * 30; break; 
-            default: bufferMs = 60 * 1000 * 60 * 48; 
-        }
-        
-        const entryTime = new Date(trade.openTime).getTime();
-        const startTime = new Date(entryTime - bufferMs);
-        const endTime = new Date(exitTime + bufferMs);
-        
-        let data: any[] = [];
-
-        // 4. Try Massive/Polygon (Primary - Strategy A)
-        this.logger.debug(`Strategy A: Fetching from Massive (Polygon) for ${trade.symbol}...`);
-        try {
-            data = await this.massiveService.getCandles(
-                trade.symbol,
-                timeframe,
-                startTime,
-                endTime
-            );
-            this.logger.debug(`Massive returned ${data?.length || 0} candles`);
-        } catch (e) {
-            this.logger.warn(`Massive Strategy failed: ${e.message}`);
+        // 3. Return execution candles if available (auto-fetched from MT5)
+        if (trade.executionCandles && trade.executionCandles.length > 0) {
+            this.logger.debug(`Returning ${trade.executionCandles.length} execution candles from DB`);
+            
+            // Cache for future requests if trade is CLOSED
+            if (trade.status === TradeStatus.CLOSED) {
+                try {
+                    await this.tradeCandleRepository.save({
+                        tradeId: trade.id,
+                        symbol: trade.symbol,
+                        timeframe,
+                        data: trade.executionCandles
+                    });
+                } catch (cacheError) {
+                    this.logger.error(`Failed to cache candles: ${cacheError.message}`);
+                }
+            }
+            
+            return trade.executionCandles;
         }
 
-        // 5. Try Yahoo Finance (Secondary - Strategy B)
-        if (!data || data.length === 0) {
-            this.logger.debug(`Strategy B: Fallback to Yahoo Finance for ${trade.symbol}...`);
-            try {
-                data = await this.yahooFinanceService.getCandles(
-                    trade.symbol,
-                    timeframe,
-                    startTime,
-                    endTime
-                );
-                this.logger.debug(`Yahoo Finance returned ${data?.length || 0} candles`);
-            } catch (e) {
-                this.logger.warn(`Yahoo Finance Strategy failed: ${e.message}`);
+        // 4. Candles not yet available - return pending status
+        // (Candles are auto-fetched when trade closes via processTrades)
+        if (trade.status === TradeStatus.OPEN) {
+            return [{ status: 'pending', message: 'Candles will be fetched when trade closes' }];
+        }
+
+        // 5. Trade is closed but no candles - may need manual trigger or re-sync
+        if (trade.externalId && trade.accountId) {
+            const terminal = await this.terminalFarmService.findTerminalForAccount(trade.accountId);
+            if (terminal && terminal.status === 'RUNNING') {
+                // Calculate time range
+                const entryTime = new Date(trade.openTime).getTime();
+                const exitTime = trade.closeTime ? new Date(trade.closeTime).getTime() : Date.now();
+                const bufferMs = 2 * 60 * 60 * 1000; // 2 hours
+
+                const startTime = new Date(entryTime - bufferMs);
+                const endTime = new Date(exitTime + bufferMs);
+
+                const startStr = startTime.toISOString().replace('T', ' ').substring(0, 19);
+                const endStr = endTime.toISOString().replace('T', ' ').substring(0, 19);
+                const payload = `${trade.symbol},1m,${startStr},${endStr},${trade.id}`;
+
+                this.terminalFarmService.queueCommand(terminal.id, 'FETCH_CANDLES', payload);
+                
+                return [{ status: 'queued', message: 'Request sent to MT5 Terminal. Refresh in 30s.' }];
             }
         }
 
-        // 6. Strategy C: MT5 Native (If External ID and no data found yet)
-        if ((!data || data.length === 0) && trade.externalId) {
-             this.logger.debug(`Strategy C: Requesting from MT5 Terminal...`);
-             
-             // Check if we already have execution candles saved
-             if (trade.executionCandles && trade.executionCandles.length > 0) {
-                 this.logger.debug(`Returning saved execution candles from DB`);
-                 return trade.executionCandles;
-             }
-
-             // Find Active Terminal
-             if (trade.accountId) {
-                 const terminal = await this.terminalFarmService.findTerminalForAccount(trade.accountId);
-                 if (terminal && terminal.status === 'RUNNING') {
-                     // Queue Command
-                     const startStr = new Date(startTime).toISOString().replace('T', ' ').substring(0, 19);
-                     const endStr = new Date(endTime).toISOString().replace('T', ' ').substring(0, 19);
-                     // Payload: SYMBOL,TIMEFRAME,START,END,TRADEID
-                     const payload = `${trade.symbol},${timeframe},${startStr},${endStr},${trade.id}`;
-                     
-                     this.terminalFarmService.queueCommand(terminal.id, 'FETCH_CANDLES', payload);
-                     
-                     return [{ status: 'queued', message: 'Request sent to MT5 Terminal. Please wait...' }];
-                 } else {
-                     this.logger.warn(`No running terminal found for account ${trade.accountId}`);
-                 }
-             }
-        }
-
-        // 7. Cache result if trade is CLOSED and we found data
-        if (trade.status === TradeStatus.CLOSED && data && data.length > 0) {
-            this.logger.debug(`Caching result for trade ${tradeId}`);
-            try {
-                await this.tradeCandleRepository.save({
-                    tradeId: trade.id,
-                    symbol: trade.symbol,
-                    timeframe,
-                    data
-                });
-            } catch (cacheError) {
-                this.logger.error(`Failed to cache candles: ${cacheError.message}`);
-            }
-        }
-
-        return data || [];
+        // No terminal or not an MT5 trade
+        return [{ status: 'unavailable', message: 'Candle data not available for this trade' }];
     } catch (error) {
         this.logger.error(`Error in getTradeCandles: ${error.message}`, error.stack);
         throw error;

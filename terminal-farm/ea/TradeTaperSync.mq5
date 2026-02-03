@@ -21,6 +21,17 @@ datetime lastSync = 0;
 int lastDealCount = 0;
 bool isInitialized = false;
 
+//--- Trade Discipline / Gating variables
+bool g_tradingUnlocked = false;        // Is trading currently allowed?
+datetime g_unlockExpiry = 0;           // When does the unlock expire?
+string g_approvedSymbol = "";          // Symbol allowed to trade
+int g_approvedDirection = 0;           // 0=none, 1=BUY, 2=SELL
+double g_maxLotSize = 0.01;            // Maximum lot size allowed
+double g_requiredSL = 0;               // Required stop loss price
+double g_requiredTP = 0;               // Required take profit price
+string g_approvalId = "";              // Approval UUID from backend
+double g_maxRiskPercent = 1.0;         // Maximum risk per trade (1%)
+
 //+------------------------------------------------------------------+
 //| Expert initialization function                                     |
 //+------------------------------------------------------------------+
@@ -63,6 +74,18 @@ void OnDeinit(const int reason)
 void OnTimer()
 {
     datetime now = TimeCurrent();
+    
+    // Check unlock expiry
+    if(g_tradingUnlocked && now >= g_unlockExpiry)
+    {
+        g_tradingUnlocked = false;
+        g_approvedSymbol = "";
+        g_approvedDirection = 0;
+        g_approvalId = "";
+        Print("🔒 Trading lock EXPIRED. Complete checklist for next trade.");
+        WriteLog("Trading lock expired at " + TimeToString(now));
+        Comment("🔒 TRADING LOCKED\nComplete checklist in TradeTaper app to unlock");
+    }
     
     // Heartbeat
     if(now - lastHeartbeat >= HeartbeatInterval)
@@ -242,6 +265,41 @@ void SendHeartbeat()
             else
             {
                 WriteLog("Error: Invalid FETCH_CANDLES args count: " + IntegerToString(count));
+            }
+        }
+        else if(command == "UNLOCK_TRADING")
+        {
+            // Payload format: SYMBOL,DIRECTION,LOT_SIZE,SL,TP,APPROVAL_ID
+            string payload = GetJsonValue(result, "payload");
+            WriteLog("Received Command: UNLOCK_TRADING. Args: " + payload);
+            
+            string args[];
+            int count = StringSplit(payload, ',', args);
+            
+            if(count >= 6)
+            {
+                g_approvedSymbol = args[0];
+                g_approvedDirection = (args[1] == "BUY") ? 1 : 2;
+                g_maxLotSize = StringToDouble(args[2]);
+                g_requiredSL = StringToDouble(args[3]);
+                g_requiredTP = StringToDouble(args[4]);
+                g_approvalId = args[5];
+                g_unlockExpiry = TimeCurrent() + 60; // 60 second unlock window
+                g_tradingUnlocked = true;
+                
+                Print("🔓 Trading UNLOCKED for ", g_approvedSymbol, " ", args[1], " Max Lot: ", g_maxLotSize);
+                WriteLog("Trading UNLOCKED: " + g_approvedSymbol + " " + args[1] + " ExpireAt: " + TimeToString(g_unlockExpiry));
+                
+                // Show alert on chart
+                Comment("✅ TRADING UNLOCKED\n",
+                        "Symbol: ", g_approvedSymbol, "\n",
+                        "Direction: ", args[1], "\n",
+                        "Max Lot: ", DoubleToString(g_maxLotSize, 2), "\n",
+                        "Expires: ", TimeToString(g_unlockExpiry, TIME_MINUTES));
+            }
+            else
+            {
+                WriteLog("Error: Invalid UNLOCK_TRADING args count: " + IntegerToString(count));
             }
         }
     }
@@ -460,4 +518,111 @@ string SendRequest(string url, string jsonData)
     string result = CharArrayToString(resultData);
     return result;
 }
+
+//+------------------------------------------------------------------+
+//| Calculate risk in account currency for a trade                    |
+//+------------------------------------------------------------------+
+double CalculateTradeRisk(string symbol, double lotSize, double entryPrice, double slPrice)
+{
+    if(slPrice == 0) return 0;
+    
+    double pointValue = SymbolInfoDouble(symbol, SYMBOL_TRADE_TICK_VALUE);
+    double pointSize = SymbolInfoDouble(symbol, SYMBOL_POINT);
+    
+    if(pointValue == 0 || pointSize == 0) return 0;
+    
+    double pipDiff = MathAbs(entryPrice - slPrice) / pointSize;
+    double riskAmount = pipDiff * pointValue * lotSize;
+    
+    return riskAmount;
+}
+
+//+------------------------------------------------------------------+
+//| Calculate max lot size for given risk percentage                  |
+//+------------------------------------------------------------------+
+double CalculateMaxLotForRisk(string symbol, double riskPercent, double entryPrice, double slPrice)
+{
+    double accountBalance = AccountInfoDouble(ACCOUNT_BALANCE);
+    double maxRiskAmount = accountBalance * (riskPercent / 100.0);
+    
+    double pointValue = SymbolInfoDouble(symbol, SYMBOL_TRADE_TICK_VALUE);
+    double pointSize = SymbolInfoDouble(symbol, SYMBOL_POINT);
+    
+    if(pointValue == 0 || pointSize == 0 || slPrice == 0) return 0.01;
+    
+    double pipDiff = MathAbs(entryPrice - slPrice) / pointSize;
+    if(pipDiff == 0) return 0.01;
+    
+    double maxLot = maxRiskAmount / (pipDiff * pointValue);
+    
+    // Normalize to lot step
+    double lotStep = SymbolInfoDouble(symbol, SYMBOL_VOLUME_STEP);
+    double minLot = SymbolInfoDouble(symbol, SYMBOL_VOLUME_MIN);
+    double maxLotSymbol = SymbolInfoDouble(symbol, SYMBOL_VOLUME_MAX);
+    
+    maxLot = MathFloor(maxLot / lotStep) * lotStep;
+    maxLot = MathMax(minLot, MathMin(maxLot, maxLotSymbol));
+    
+    return maxLot;
+}
+
+//+------------------------------------------------------------------+
+//| Report trade execution to backend (for approval tracking)         |
+//+------------------------------------------------------------------+
+void ReportTradeExecuted(ulong ticket, string approvalId)
+{
+    if(StringLen(approvalId) == 0) return;
+    
+    string url = APIEndpoint + "/webhook/terminal/trade-executed";
+    
+    string json = "{";
+    json += "\"terminalId\":\"" + TerminalId + "\",";
+    json += "\"approvalId\":\"" + approvalId + "\",";
+    json += "\"ticket\":" + IntegerToString(ticket);
+    json += "}";
+    
+    SendRequest(url, json);
+    WriteLog("Reported trade execution: Ticket=" + IntegerToString(ticket) + " ApprovalId=" + approvalId);
+}
+
+//+------------------------------------------------------------------+
+//| Check if current trade attempt is authorized                      |
+//+------------------------------------------------------------------+
+bool IsTradeAuthorized(string symbol, int direction, double lotSize)
+{
+    if(!g_tradingUnlocked)
+    {
+        Alert("⛔ Trading is LOCKED. Complete checklist in TradeTaper app first!");
+        return false;
+    }
+    
+    if(TimeCurrent() >= g_unlockExpiry)
+    {
+        Alert("⏰ Unlock window EXPIRED. Request new approval.");
+        g_tradingUnlocked = false;
+        return false;
+    }
+    
+    if(symbol != g_approvedSymbol)
+    {
+        Alert("❌ Wrong symbol! Approved: " + g_approvedSymbol + ", Attempted: " + symbol);
+        return false;
+    }
+    
+    if(direction != g_approvedDirection)
+    {
+        string dirStr = (g_approvedDirection == 1) ? "BUY" : "SELL";
+        Alert("❌ Wrong direction! Approved: " + dirStr);
+        return false;
+    }
+    
+    if(lotSize > g_maxLotSize)
+    {
+        Alert("⚠️ Lot size " + DoubleToString(lotSize, 2) + " exceeds max allowed " + DoubleToString(g_maxLotSize, 2));
+        return false;
+    }
+    
+    return true;
+}
+
 //+------------------------------------------------------------------+

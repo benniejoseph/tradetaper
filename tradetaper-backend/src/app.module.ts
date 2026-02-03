@@ -27,6 +27,7 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { BacktestingModule } from './backtesting/backtesting.module';
 import { StatementParserModule } from './statement-parser/statement-parser.module';
 import { TerminalFarmModule } from './terminal-farm/terminal-farm.module';
+import { DisciplineModule } from './discipline/discipline.module';
 
 @Module({
   imports: [
@@ -57,6 +58,7 @@ import { TerminalFarmModule } from './terminal-farm/terminal-farm.module';
     BacktestingModule, // Strategy backtesting framework
     StatementParserModule, // MT4/MT5 statement file upload and parsing
     TerminalFarmModule, // MT5 terminal auto-sync infrastructure
+    DisciplineModule, // Trade discipline, gamification, pre-trade approvals
   ],
   controllers: [AppController],
   providers: [AppService],
