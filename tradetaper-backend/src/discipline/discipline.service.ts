@@ -72,6 +72,19 @@ export class DisciplineService {
     return discipline;
   }
 
+  async updateDisciplineScore(userId: string, delta: number): Promise<TraderDiscipline> {
+    const discipline = await this.getOrCreateDiscipline(userId);
+    discipline.disciplineScore = Math.max(0, Math.min(100, discipline.disciplineScore + delta));
+    
+    // Track violations for negative deltas
+    if (delta < 0) {
+      discipline.totalRuleViolations += 1;
+    }
+    
+    await this.disciplineRepo.save(discipline);
+    return discipline;
+  }
+
   private calculateLevel(xp: number): number {
     for (let i = LEVEL_THRESHOLDS.length - 1; i >= 0; i--) {
       if (xp >= LEVEL_THRESHOLDS[i]) {
@@ -144,10 +157,13 @@ export class DisciplineService {
   // ============== TRADE APPROVALS ==============
 
   async createApproval(userId: string, dto: CreateApprovalDto): Promise<TradeApproval> {
-    // Check for active cooldown
+    // Check for active cooldown - ADVISORY: warn but allow with penalty
     const activeCooldown = await this.getActiveCooldown(userId);
-    if (activeCooldown) {
-      throw new BadRequestException(`You are in a cooldown period. ${activeCooldown.durationMinutes} minutes remaining.`);
+    let cooldownPenalty = false;
+    if (activeCooldown && !activeCooldown.isCompleted && !activeCooldown.isSkipped) {
+      // Advisory mode: allow trading but apply penalty
+      cooldownPenalty = true;
+      await this.updateDisciplineScore(userId, -5); // 5 point penalty
     }
 
     // Verify all checklist items are checked
@@ -156,16 +172,30 @@ export class DisciplineService {
       throw new BadRequestException('All checklist items must be checked before approval');
     }
 
+    // AUTO-APPROVAL: When checklist is complete, automatically approve
     const approval = this.approvalRepo.create({
       userId,
       ...dto,
-      status: ApprovalStatus.PENDING,
+      status: ApprovalStatus.APPROVED, // Auto-approved since checklist is complete
+      approvedAt: new Date(),
+      expiresAt: new Date(Date.now() + 60 * 1000), // 60 second unlock window
+      metadata: {
+        cooldownBypass: cooldownPenalty,
+        autoApproved: true,
+      },
     });
 
     await this.approvalRepo.save(approval);
     
     // Award XP for completing checklist
     await this.addXp(userId, XP_REWARDS.CHECKLIST_COMPLETE, 'checklist_complete');
+    
+    // Send unlock command to MT5 immediately (auto-approval)
+    if (dto.accountId && approval.calculatedLotSize) {
+      approval.stopLoss = dto.stopLoss ?? 0;
+      approval.takeProfit = dto.takeProfit ?? 0;
+      await this.sendUnlockCommand(approval);
+    }
     
     return approval;
   }

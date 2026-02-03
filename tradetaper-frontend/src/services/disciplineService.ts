@@ -72,6 +72,10 @@ export interface CreateApprovalDto {
   direction: 'Long' | 'Short';
   riskPercent: number;
   checklistResponses: ChecklistResponse[];
+  // Auto-approval fields (optional - for immediate unlock)
+  calculatedLotSize?: number;
+  stopLoss?: number;
+  takeProfit?: number;
 }
 
 export interface ApproveTradeDto {

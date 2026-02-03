@@ -40,6 +40,11 @@ export class CreateApprovalDto {
 
   @IsNumber()
   @IsOptional()
+  @Min(0.01)
+  calculatedLotSize?: number;
+
+  @IsNumber()
+  @IsOptional()
   stopLoss?: number;
 
   @IsNumber()

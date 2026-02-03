@@ -75,6 +75,9 @@ export class TradeApproval {
   @Column({ nullable: true })
   rejectionReason: string;
 
+  @Column({ type: 'jsonb', default: {}, nullable: true })
+  metadata: Record<string, any>;
+
   @CreateDateColumn()
   createdAt: Date;
 }
