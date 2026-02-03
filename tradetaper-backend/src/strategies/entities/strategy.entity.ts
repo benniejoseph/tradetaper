@@ -39,6 +39,9 @@ export class Strategy {
   @Column({ default: true })
   isActive: boolean;
 
+  @Column({ type: 'decimal', precision: 5, scale: 2, default: 1.0 })
+  maxRiskPercent: number; // Maximum risk per trade for this strategy (1.0 = 1%)
+
   @Column({ type: 'varchar', length: 7, default: '#3B82F6' })
   color: string; // Hex color for UI display
 

@@ -287,8 +287,8 @@ export class TerminalFarmService {
                     closeTime: trade.openTime, // MT5 "Time" is the event time
                     closePrice: trade.openPrice, // MT5 Deal Price is the execution price
                     profitOrLoss: trade.profit,  // Final profit is on the exit deal
-                    commission: (existingTrade.commission || 0) + (trade.commission || 0), // Accumulate
-                    swap: (existingTrade.swap || 0) + (trade.swap || 0),         // Accumulate
+                    commission: parseFloat(String(existingTrade.commission || 0)) + (trade.commission || 0), // Accumulate
+                    swap: parseFloat(String(existingTrade.swap || 0)) + (trade.swap || 0),         // Accumulate
                     contractSize: trade.contractSize,
                     // We typically don't update SL/TP on close, but we could if the exit deal has it (unlikely helpful vs entry)
                   },
@@ -296,6 +296,21 @@ export class TerminalFarmService {
                   { id: terminal.account.userId } as any
                 );
                 imported++;
+
+                // Queue FETCH_CANDLES command for this closed trade (2h before entry, 2h after exit)
+                const entryTime = existingTrade.openTime ? new Date(existingTrade.openTime) : new Date();
+                const exitTime = trade.openTime ? new Date(trade.openTime) : new Date();
+                const bufferMs = 2 * 60 * 60 * 1000; // 2 hours
+
+                const startTime = new Date(entryTime.getTime() - bufferMs);
+                const endTime = new Date(exitTime.getTime() + bufferMs);
+
+                const startStr = startTime.toISOString().replace('T', ' ').substring(0, 19);
+                const endStr = endTime.toISOString().replace('T', ' ').substring(0, 19);
+                const payload = `${trade.symbol},1m,${startStr},${endStr},${existingTrade.id}`;
+
+                this.queueCommand(terminal.id, 'FETCH_CANDLES', payload);
+                this.logger.debug(`Queued FETCH_CANDLES for closed trade ${existingTrade.id}`);
               } else {
                 skipped++; // Already closed
               }
