@@ -10,8 +10,7 @@ import { PaginatedResponseDto } from '../common/dto/paginated-response.dto';
 import { AccountsService } from '../users/accounts.service';
 import { MT5AccountsService } from '../users/mt5-accounts.service';
 import { TradeCandle } from './entities/trade-candle.entity';
-import { YahooFinanceService } from '../integrations/yahoo-finance/yahoo-finance.service';
-import { MassiveService } from '../integrations/massive/massive.service';
+import { TerminalFarmService } from '../terminal-farm/terminal-farm.service';
 export declare class TradesService {
     private readonly tradesRepository;
     private readonly tradeCandleRepository;
@@ -20,11 +19,11 @@ export declare class TradesService {
     private readonly geminiVisionService;
     private readonly accountsService;
     private readonly mt5AccountsService;
-    private readonly yahooFinanceService;
-    private readonly massiveService;
+    private readonly terminalFarmService;
     private readonly logger;
-    constructor(tradesRepository: Repository<Trade>, tradeCandleRepository: Repository<TradeCandle>, tagRepository: Repository<Tag>, tradesGateway: SimpleTradesGateway, geminiVisionService: GeminiVisionService, accountsService: AccountsService, mt5AccountsService: MT5AccountsService, yahooFinanceService: YahooFinanceService, massiveService: MassiveService);
+    constructor(tradesRepository: Repository<Trade>, tradeCandleRepository: Repository<TradeCandle>, tagRepository: Repository<Tag>, tradesGateway: SimpleTradesGateway, geminiVisionService: GeminiVisionService, accountsService: AccountsService, mt5AccountsService: MT5AccountsService, terminalFarmService: TerminalFarmService);
     getTradeCandles(tradeId: string, timeframe: string, userContext: UserResponseDto): Promise<any[]>;
+    saveExecutionCandles(tradeId: string, candles: any[]): Promise<void>;
     private _populateAccountDetails;
     private findOrCreateTags;
     create(createTradeDto: CreateTradeDto, userContext: UserResponseDto): Promise<Trade>;

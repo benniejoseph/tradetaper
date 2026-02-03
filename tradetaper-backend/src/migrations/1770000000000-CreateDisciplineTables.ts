@@ -4,9 +4,13 @@ export class CreateDisciplineTables1770000000000 implements MigrationInterface {
   name = 'CreateDisciplineTables1770000000000';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
-    // Create trade_approvals table
+    // Create trade_approvals enum IF NOT EXISTS
     await queryRunner.query(`
-      CREATE TYPE "public"."trade_approvals_status_enum" AS ENUM('pending', 'approved', 'executed', 'expired', 'rejected')
+      DO $$ BEGIN
+        CREATE TYPE "public"."trade_approvals_status_enum" AS ENUM('pending', 'approved', 'executed', 'expired', 'rejected');
+      EXCEPTION
+        WHEN duplicate_object THEN null;
+      END $$
     `);
 
     await queryRunner.query(`
@@ -59,7 +63,11 @@ export class CreateDisciplineTables1770000000000 implements MigrationInterface {
 
     // Create cooldown_sessions table
     await queryRunner.query(`
-      CREATE TYPE "public"."cooldown_sessions_trigger_enum" AS ENUM('loss_streak', 'overtrading', 'revenge_trade', 'unauthorized_trade', 'outside_hours', 'manual')
+      DO $$ BEGIN
+        CREATE TYPE "public"."cooldown_sessions_trigger_enum" AS ENUM('loss_streak', 'overtrading', 'revenge_trade', 'unauthorized_trade', 'outside_hours', 'manual');
+      EXCEPTION
+        WHEN duplicate_object THEN null;
+      END $$
     `);
 
     await queryRunner.query(`

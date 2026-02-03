@@ -41,6 +41,7 @@ class CreateTradeDto {
     externalId;
     externalDealId;
     mt5Magic;
+    contractSize;
 }
 exports.CreateTradeDto = CreateTradeDto;
 __decorate([
@@ -193,4 +194,9 @@ __decorate([
     (0, class_validator_1.IsNumber)(),
     __metadata("design:type", Number)
 ], CreateTradeDto.prototype, "mt5Magic", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Number)
+], CreateTradeDto.prototype, "contractSize", void 0);
 //# sourceMappingURL=create-trade.dto.js.map

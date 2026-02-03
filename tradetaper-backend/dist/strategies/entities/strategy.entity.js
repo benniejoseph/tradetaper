@@ -19,6 +19,7 @@ let Strategy = class Strategy {
     checklist;
     tradingSession;
     isActive;
+    maxRiskPercent;
     color;
     tags;
     createdAt;
@@ -54,6 +55,10 @@ __decorate([
     (0, typeorm_1.Column)({ default: true }),
     __metadata("design:type", Boolean)
 ], Strategy.prototype, "isActive", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'decimal', precision: 5, scale: 2, default: 1.0 }),
+    __metadata("design:type", Number)
+], Strategy.prototype, "maxRiskPercent", void 0);
 __decorate([
     (0, typeorm_1.Column)({ type: 'varchar', length: 7, default: '#3B82F6' }),
     __metadata("design:type", String)

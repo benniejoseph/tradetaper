@@ -51,9 +51,13 @@ let Trade = class Trade {
     externalId;
     externalDealId;
     mt5Magic;
+    contractSize;
+    executionCandles;
     createdAt;
     updatedAt;
     getContractSize() {
+        if (this.contractSize)
+            return this.contractSize;
         if (!this.symbol)
             return 1;
         const s = this.symbol.toUpperCase();
@@ -63,6 +67,8 @@ let Trade = class Trade {
             return 5000;
         if (this.assetType === enums_1.AssetType.FOREX)
             return 100000;
+        if (this.assetType === enums_1.AssetType.INDICES)
+            return 1;
         return 1;
     }
     calculatePnl() {
@@ -78,7 +84,7 @@ let Trade = class Trade {
             else if (this.side === enums_1.TradeDirection.SHORT) {
                 pnl = (this.openPrice - this.closePrice) * this.quantity * contractSize;
             }
-            this.profitOrLoss = parseFloat((pnl - (this.commission || 0)).toFixed(4));
+            this.profitOrLoss = parseFloat((pnl + (this.commission || 0) + (this.swap || 0)).toFixed(4));
         }
         else {
             this.profitOrLoss = undefined;
@@ -274,6 +280,15 @@ __decorate([
     (0, typeorm_1.Column)({ type: 'bigint', nullable: true }),
     __metadata("design:type", Number)
 ], Trade.prototype, "mt5Magic", void 0);
+__decorate([
+    (0, class_transformer_1.Type)(() => Number),
+    (0, typeorm_1.Column)('decimal', { precision: 19, scale: 8, nullable: true }),
+    __metadata("design:type", Number)
+], Trade.prototype, "contractSize", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'jsonb', nullable: true }),
+    __metadata("design:type", Array)
+], Trade.prototype, "executionCandles", void 0);
 __decorate([
     (0, typeorm_1.CreateDateColumn)(),
     __metadata("design:type", Date)

@@ -28,4 +28,5 @@ export declare class CreateTradeDto {
     externalId?: string;
     externalDealId?: string;
     mt5Magic?: number;
+    contractSize?: number;
 }
