@@ -44,6 +44,7 @@ export declare class StrategiesService {
         checklist: import("./entities/strategy.entity").ChecklistItem[];
         tradingSession: import("../types/enums").TradingSession;
         isActive: boolean;
+        maxRiskPercent: number;
         color: string;
         tags: string;
         createdAt: Date;

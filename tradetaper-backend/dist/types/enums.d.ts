@@ -2,6 +2,7 @@ export declare enum AssetType {
     STOCK = "Stock",
     CRYPTO = "Crypto",
     FOREX = "Forex",
+    INDICES = "Indices",
     COMMODITIES = "Commodities",
     FUTURES = "Futures",
     OPTIONS = "Options"

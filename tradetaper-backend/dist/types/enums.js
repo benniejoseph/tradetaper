@@ -6,6 +6,7 @@ var AssetType;
     AssetType["STOCK"] = "Stock";
     AssetType["CRYPTO"] = "Crypto";
     AssetType["FOREX"] = "Forex";
+    AssetType["INDICES"] = "Indices";
     AssetType["COMMODITIES"] = "Commodities";
     AssetType["FUTURES"] = "Futures";
     AssetType["OPTIONS"] = "Options";

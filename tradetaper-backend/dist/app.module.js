@@ -33,6 +33,7 @@ const notifications_module_1 = require("./notifications/notifications.module");
 const backtesting_module_1 = require("./backtesting/backtesting.module");
 const statement_parser_module_1 = require("./statement-parser/statement-parser.module");
 const terminal_farm_module_1 = require("./terminal-farm/terminal-farm.module");
+const discipline_module_1 = require("./discipline/discipline.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -65,6 +66,7 @@ exports.AppModule = AppModule = __decorate([
             backtesting_module_1.BacktestingModule,
             statement_parser_module_1.StatementParserModule,
             terminal_farm_module_1.TerminalFarmModule,
+            discipline_module_1.DisciplineModule,
         ],
         controllers: [app_controller_1.AppController],
         providers: [app_service_1.AppService],

@@ -12,6 +12,7 @@ export declare class Strategy {
     checklist: ChecklistItem[];
     tradingSession: TradingSession;
     isActive: boolean;
+    maxRiskPercent: number;
     color: string;
     tags: string;
     createdAt: Date;

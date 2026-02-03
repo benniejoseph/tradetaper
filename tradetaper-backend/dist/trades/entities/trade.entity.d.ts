@@ -37,6 +37,8 @@ export declare class Trade {
     externalId?: string;
     externalDealId?: string;
     mt5Magic?: number;
+    contractSize?: number;
+    executionCandles?: any[];
     createdAt: Date;
     updatedAt: Date;
     getContractSize(): number;
