@@ -1,0 +1,238 @@
+'use client';
+
+import React from 'react';
+import { motion } from 'framer-motion';
+import { AnimatedCard, MetricCard, ProgressCard } from '../ui/AnimatedCard';
+import { TraderDiscipline, Badge } from '@/services/disciplineService';
+
+// Level thresholds for XP progress calculation
+const LEVEL_THRESHOLDS = [0, 100, 250, 500, 800, 1200, 1800, 2500, 3500, 5000, 7000, 10000, 15000, 22000, 30000];
+
+// Level titles
+const LEVEL_TITLES = [
+  'Novice', 'Apprentice', 'Trader', 'Skilled Trader', 'Expert',
+  'Master', 'Grandmaster', 'Legend', 'Ascendant', 'Immortal',
+  'Divine', 'Enlightened', 'Transcendent', 'Cosmic', 'Eternal'
+];
+
+interface DisciplineDashboardProps {
+  discipline: TraderDiscipline | null;
+  loading?: boolean;
+}
+
+export const DisciplineDashboard: React.FC<DisciplineDashboardProps> = ({
+  discipline,
+  loading = false,
+}) => {
+  if (loading || !discipline) {
+    return (
+      <div className="animate-pulse space-y-4">
+        <div className="h-32 bg-gray-200 dark:bg-gray-800 rounded-xl" />
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="h-24 bg-gray-200 dark:bg-gray-800 rounded-xl" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // Calculate XP progress to next level
+  const currentThreshold = LEVEL_THRESHOLDS[discipline.level - 1] || 0;
+  const nextThreshold = LEVEL_THRESHOLDS[discipline.level] || LEVEL_THRESHOLDS[LEVEL_THRESHOLDS.length - 1];
+  const xpProgress = discipline.xpTotal - currentThreshold;
+  const xpNeeded = nextThreshold - currentThreshold;
+  const xpPercentage = (xpProgress / xpNeeded) * 100;
+
+  const title = LEVEL_TITLES[discipline.level - 1] || 'Unknown';
+
+  // Score color based on value
+  const getScoreColor = (score: number) => {
+    if (score >= 80) return 'text-emerald-500';
+    if (score >= 60) return 'text-yellow-500';
+    if (score >= 40) return 'text-orange-500';
+    return 'text-red-500';
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Hero Card: Level & XP */}
+      <AnimatedCard variant="gradient" className="relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent" />
+        <div className="relative flex flex-col md:flex-row items-center gap-6">
+          {/* Level Circle */}
+          <motion.div
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+            className="relative"
+          >
+            <svg className="w-32 h-32" viewBox="0 0 100 100">
+              <circle
+                cx="50"
+                cy="50"
+                r="45"
+                fill="none"
+                stroke="rgba(255,255,255,0.2)"
+                strokeWidth="8"
+              />
+              <motion.circle
+                cx="50"
+                cy="50"
+                r="45"
+                fill="none"
+                stroke="white"
+                strokeWidth="8"
+                strokeLinecap="round"
+                strokeDasharray={`${2 * Math.PI * 45}`}
+                initial={{ strokeDashoffset: 2 * Math.PI * 45 }}
+                animate={{ strokeDashoffset: 2 * Math.PI * 45 * (1 - xpPercentage / 100) }}
+                transition={{ duration: 1.5, ease: 'easeOut' }}
+                style={{ transformOrigin: 'center', transform: 'rotate(-90deg)' }}
+              />
+            </svg>
+            <div className="absolute inset-0 flex flex-col items-center justify-center text-white">
+              <motion.span
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="text-3xl font-bold"
+              >
+                {discipline.level}
+              </motion.span>
+              <span className="text-xs opacity-80">LEVEL</span>
+            </div>
+          </motion.div>
+
+          {/* XP Info */}
+          <div className="flex-1 text-center md:text-left">
+            <motion.h2
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="text-2xl font-bold mb-1"
+            >
+              {title}
+            </motion.h2>
+            <p className="text-white/80 mb-3">
+              {discipline.xpTotal.toLocaleString()} XP Total
+            </p>
+            
+            <div className="bg-white/20 rounded-full h-3 overflow-hidden">
+              <motion.div
+                className="h-full bg-white rounded-full"
+                initial={{ width: 0 }}
+                animate={{ width: `${xpPercentage}%` }}
+                transition={{ duration: 1, ease: 'easeOut' }}
+              />
+            </div>
+            <p className="text-sm text-white/70 mt-1">
+              {xpProgress} / {xpNeeded} XP to Level {discipline.level + 1}
+            </p>
+          </div>
+
+          {/* Streak */}
+          <div className="text-center">
+            <motion.div
+              animate={{ scale: [1, 1.1, 1] }}
+              transition={{ duration: 2, repeat: Infinity }}
+              className="text-4xl"
+            >
+              🔥
+            </motion.div>
+            <div className="text-2xl font-bold">{discipline.currentStreak}</div>
+            <div className="text-xs text-white/80">Day Streak</div>
+          </div>
+        </div>
+      </AnimatedCard>
+
+      {/* Stats Grid */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <MetricCard
+          title="Discipline Score"
+          value={`${discipline.disciplineScore}%`}
+          icon={<span className={getScoreColor(discipline.disciplineScore)}>📊</span>}
+          trend={discipline.disciplineScore >= 80 ? 'up' : discipline.disciplineScore >= 60 ? 'neutral' : 'down'}
+        />
+        <MetricCard
+          title="Approved Trades"
+          value={discipline.totalApprovedTrades}
+          icon="✅"
+          trend="up"
+        />
+        <MetricCard
+          title="Executed Trades"
+          value={discipline.totalExecutedTrades}
+          icon="📈"
+          trend="up"
+        />
+        <MetricCard
+          title="Rule Violations"
+          value={discipline.totalRuleViolations}
+          icon="⚠️"
+          trend={discipline.totalRuleViolations === 0 ? 'up' : 'down'}
+        />
+      </div>
+
+      {/* Badges */}
+      <AnimatedCard variant="default" className="space-y-4">
+        <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+          🏆 Badges Earned
+          <span className="text-sm font-normal text-gray-500">
+            ({discipline.badges?.length || 0})
+          </span>
+        </h3>
+        
+        {discipline.badges && discipline.badges.length > 0 ? (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {discipline.badges.map((badge, index) => (
+              <motion.div
+                key={badge.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.1 }}
+                className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-3 text-center"
+              >
+                <div className="text-3xl mb-1">{badge.icon}</div>
+                <div className="font-medium text-sm text-gray-900 dark:text-white">
+                  {badge.name}
+                </div>
+                <div className="text-xs text-gray-500 dark:text-gray-400">
+                  {badge.description}
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-8 text-gray-500">
+            <div className="text-4xl mb-2">🎖️</div>
+            <p>Complete trades and maintain discipline to earn badges!</p>
+          </div>
+        )}
+      </AnimatedCard>
+
+      {/* Records */}
+      <div className="grid md:grid-cols-2 gap-4">
+        <ProgressCard
+          title="Best Streak"
+          progress={discipline.longestStreak}
+          target={30}
+          color="bg-orange-500"
+        />
+        <AnimatedCard variant="glass">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Last Trade</p>
+              <p className="font-bold text-gray-900 dark:text-white">
+                {discipline.lastTradeAt
+                  ? new Date(discipline.lastTradeAt).toLocaleDateString()
+                  : 'No trades yet'}
+              </p>
+            </div>
+            <div className="text-2xl">📅</div>
+          </div>
+        </AnimatedCard>
+      </div>
+    </div>
+  );
+};
+
+export default DisciplineDashboard;
