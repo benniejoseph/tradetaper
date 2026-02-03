@@ -13,6 +13,7 @@ interface AnimatedCardProps {
   duration?: number;
   onClick?: () => void;
   disabled?: boolean;
+  animate?: boolean;
 }
 
 const cardVariants = {
@@ -65,6 +66,7 @@ export const AnimatedCard: React.FC<AnimatedCardProps> = ({
   duration = 0.6,
   onClick,
   disabled = false,
+  animate = true,
 }) => {
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, amount: 0.3 });
@@ -72,7 +74,7 @@ export const AnimatedCard: React.FC<AnimatedCardProps> = ({
   const [isHovered, setIsHovered] = useState(false);
 
   useEffect(() => {
-    if (isInView) {
+    if (animate && isInView) {
       controls.start({
         x: 0,
         y: 0,
@@ -85,16 +87,53 @@ export const AnimatedCard: React.FC<AnimatedCardProps> = ({
           damping: 20,
         },
       });
+    } else if (!animate) {
+      controls.set({ x: 0, y: 0, opacity: 1 });
     }
-  }, [isInView, controls, delay, duration]);
+  }, [isInView, controls, delay, duration, animate]);
 
   const baseClasses = `
-    rounded-xl p-6 transition-all duration-300 cursor-pointer
+    rounded-xl p-6 transition-all duration-300
     ${cardVariants[variant]}
     ${disabled ? 'opacity-50 cursor-not-allowed' : ''}
     ${onClick ? 'cursor-pointer' : ''}
     ${className}
   `;
+
+  const content = (
+    <>
+      <AnimatePresence>
+        {variant === 'neon' && isHovered && (
+          <motion.div
+            initial={animate ? { opacity: 0 } : { opacity: 1 }}
+            animate={{ opacity: 1 }}
+            exit={animate ? { opacity: 0 } : { opacity: 1 }}
+            className="absolute inset-0 rounded-xl bg-cyan-400/5 pointer-events-none"
+          />
+        )}
+      </AnimatePresence>
+      
+      {variant === 'glass' && (
+        <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-white/5 to-transparent pointer-events-none" />
+      )}
+      
+      <div className="relative z-10">
+        {children}
+      </div>
+    </>
+  );
+
+  if (!animate) {
+    return (
+      <div 
+        ref={ref}
+        onClick={!disabled ? onClick : undefined}
+        className={baseClasses}
+      >
+        {content}
+      </div>
+    );
+  }
 
   return (
     <motion.div
@@ -110,24 +149,7 @@ export const AnimatedCard: React.FC<AnimatedCardProps> = ({
         transformStyle: 'preserve-3d',
       }}
     >
-      <AnimatePresence>
-        {variant === 'neon' && isHovered && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="absolute inset-0 rounded-xl bg-cyan-400/5 pointer-events-none"
-          />
-        )}
-      </AnimatePresence>
-      
-      {variant === 'glass' && (
-        <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-white/5 to-transparent pointer-events-none" />
-      )}
-      
-      <div className="relative z-10">
-        {children}
-      </div>
+      {content}
     </motion.div>
   );
 };
@@ -164,35 +186,27 @@ export const MetricCard: React.FC<{
           <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">
             {title}
           </p>
-          <motion.p 
+          <p 
             className="text-2xl font-bold text-gray-900 dark:text-white"
             key={value}
-            initial={{ scale: 0.8, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ type: 'spring', stiffness: 500, damping: 30 }}
           >
             {loading ? '...' : value}
-          </motion.p>
+          </p>
           {change !== undefined && (
-            <motion.div 
+            <div 
               className={`flex items-center text-sm mt-1 ${trendColors[trend]}`}
-              initial={{ x: -10, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              transition={{ delay: 0.2 }}
             >
               <span className="mr-1">{trendIcons[trend]}</span>
               {Math.abs(change).toFixed(2)}%
-            </motion.div>
+            </div>
           )}
         </div>
         {icon && (
-          <motion.div 
+          <div 
             className="text-2xl opacity-70"
-            whileHover={{ scale: 1.2, rotate: 360 }}
-            transition={{ duration: 0.6 }}
           >
             {icon}
-          </motion.div>
+          </div>
         )}
       </div>
     </AnimatedCard>
@@ -224,11 +238,9 @@ export const ProgressCard: React.FC<{
         </div>
         
         <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden">
-          <motion.div
+          <div
             className={`h-full rounded-full ${color}`}
-            initial={{ width: 0 }}
-            animate={{ width: `${clampedPercentage}%` }}
-            transition={{ duration: 1.5, ease: 'easeOut' }}
+            style={{ width: `${clampedPercentage}%` }}
           />
         </div>
         
@@ -265,14 +277,12 @@ export const InteractiveCard: React.FC<{
       <div className="space-y-4">
         {children}
         {onAction && (
-          <motion.button
+          <button
             onClick={onAction}
             className="w-full px-4 py-2 bg-emerald-600 text-white rounded-lg font-medium hover:bg-emerald-700 transition-colors"
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
           >
             {actionLabel}
-          </motion.button>
+          </button>
         )}
       </div>
     </AnimatedCard>

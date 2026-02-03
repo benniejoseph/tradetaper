@@ -1,7 +1,6 @@
 'use client';
 
 import React from 'react';
-import { motion } from 'framer-motion';
 import { AnimatedCard, MetricCard, ProgressCard } from '../ui/AnimatedCard';
 import { TraderDiscipline, Badge } from '@/services/disciplineService';
 
@@ -57,14 +56,11 @@ export const DisciplineDashboard: React.FC<DisciplineDashboardProps> = ({
   return (
     <div className="space-y-6">
       {/* Hero Card: Level & XP */}
-      <AnimatedCard variant="gradient" className="relative overflow-hidden">
+      <AnimatedCard animate={false} variant="gradient" className="relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent" />
         <div className="relative flex flex-col md:flex-row items-center gap-6">
           {/* Level Circle */}
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+          <div
             className="relative"
           >
             <svg className="w-32 h-32" viewBox="0 0 100 100">
@@ -76,7 +72,7 @@ export const DisciplineDashboard: React.FC<DisciplineDashboardProps> = ({
                 stroke="rgba(255,255,255,0.2)"
                 strokeWidth="8"
               />
-              <motion.circle
+              <circle
                 cx="50"
                 cy="50"
                 r="45"
@@ -85,43 +81,34 @@ export const DisciplineDashboard: React.FC<DisciplineDashboardProps> = ({
                 strokeWidth="8"
                 strokeLinecap="round"
                 strokeDasharray={`${2 * Math.PI * 45}`}
-                initial={{ strokeDashoffset: 2 * Math.PI * 45 }}
-                animate={{ strokeDashoffset: 2 * Math.PI * 45 * (1 - xpPercentage / 100) }}
-                transition={{ duration: 1.5, ease: 'easeOut' }}
+                strokeDashoffset={2 * Math.PI * 45 * (1 - xpPercentage / 100)}
                 style={{ transformOrigin: 'center', transform: 'rotate(-90deg)' }}
               />
             </svg>
             <div className="absolute inset-0 flex flex-col items-center justify-center text-white">
-              <motion.span
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
+              <span
                 className="text-3xl font-bold"
               >
                 {discipline.level}
-              </motion.span>
+              </span>
               <span className="text-xs opacity-80">LEVEL</span>
             </div>
-          </motion.div>
+          </div>
 
-          {/* XP Info */}
           <div className="flex-1 text-center md:text-left">
-            <motion.h2
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
+            <h2
               className="text-2xl font-bold mb-1"
             >
               {title}
-            </motion.h2>
+            </h2>
             <p className="text-white/80 mb-3">
               {discipline.xpTotal.toLocaleString()} XP Total
             </p>
             
             <div className="bg-white/20 rounded-full h-3 overflow-hidden">
-              <motion.div
+              <div
                 className="h-full bg-white rounded-full"
-                initial={{ width: 0 }}
-                animate={{ width: `${xpPercentage}%` }}
-                transition={{ duration: 1, ease: 'easeOut' }}
+                style={{ width: `${xpPercentage}%` }}
               />
             </div>
             <p className="text-sm text-white/70 mt-1">
@@ -131,13 +118,7 @@ export const DisciplineDashboard: React.FC<DisciplineDashboardProps> = ({
 
           {/* Streak */}
           <div className="text-center">
-            <motion.div
-              animate={{ scale: [1, 1.1, 1] }}
-              transition={{ duration: 2, repeat: Infinity }}
-              className="text-4xl"
-            >
-              🔥
-            </motion.div>
+            <div className="text-4xl" />
             <div className="text-2xl font-bold">{discipline.currentStreak}</div>
             <div className="text-xs text-white/80">Day Streak</div>
           </div>
@@ -149,33 +130,33 @@ export const DisciplineDashboard: React.FC<DisciplineDashboardProps> = ({
         <MetricCard
           title="Discipline Score"
           value={`${discipline.disciplineScore}%`}
-          icon={<span className={getScoreColor(discipline.disciplineScore)}>📊</span>}
+          icon={<span className={getScoreColor(discipline.disciplineScore)}></span>}
           trend={discipline.disciplineScore >= 80 ? 'up' : discipline.disciplineScore >= 60 ? 'neutral' : 'down'}
         />
         <MetricCard
           title="Approved Trades"
           value={discipline.totalApprovedTrades}
-          icon="✅"
+          icon=""
           trend="up"
         />
         <MetricCard
           title="Executed Trades"
           value={discipline.totalExecutedTrades}
-          icon="📈"
+          icon=""
           trend="up"
         />
         <MetricCard
           title="Rule Violations"
           value={discipline.totalRuleViolations}
-          icon="⚠️"
+          icon=""
           trend={discipline.totalRuleViolations === 0 ? 'up' : 'down'}
         />
       </div>
 
       {/* Badges */}
-      <AnimatedCard variant="default" className="space-y-4">
+      <AnimatedCard animate={false} variant="default" className="space-y-4">
         <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
-          🏆 Badges Earned
+          Badges Earned
           <span className="text-sm font-normal text-gray-500">
             ({discipline.badges?.length || 0})
           </span>
@@ -183,27 +164,23 @@ export const DisciplineDashboard: React.FC<DisciplineDashboardProps> = ({
         
         {discipline.badges && discipline.badges.length > 0 ? (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {discipline.badges.map((badge, index) => (
-              <motion.div
+            {discipline.badges.map((badge) => (
+              <div
                 key={badge.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
                 className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-3 text-center"
               >
-                <div className="text-3xl mb-1">{badge.icon}</div>
+                <div className="text-3xl mb-1" />
                 <div className="font-medium text-sm text-gray-900 dark:text-white">
                   {badge.name}
                 </div>
                 <div className="text-xs text-gray-500 dark:text-gray-400">
                   {badge.description}
                 </div>
-              </motion.div>
+              </div>
             ))}
           </div>
         ) : (
           <div className="text-center py-8 text-gray-500">
-            <div className="text-4xl mb-2">🎖️</div>
             <p>Complete trades and maintain discipline to earn badges!</p>
           </div>
         )}
@@ -217,7 +194,7 @@ export const DisciplineDashboard: React.FC<DisciplineDashboardProps> = ({
           target={30}
           color="bg-orange-500"
         />
-        <AnimatedCard variant="glass">
+        <AnimatedCard animate={false} variant="glass">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-500 dark:text-gray-400">Last Trade</p>
@@ -227,7 +204,7 @@ export const DisciplineDashboard: React.FC<DisciplineDashboardProps> = ({
                   : 'No trades yet'}
               </p>
             </div>
-            <div className="text-2xl">📅</div>
+            <div className="text-2xl" />
           </div>
         </AnimatedCard>
       </div>
