@@ -162,53 +162,62 @@ export const MetricCard: React.FC<{
   icon?: React.ReactNode;
   trend?: 'up' | 'down' | 'neutral';
   loading?: boolean;
-}> = ({ title, value, change, icon, trend = 'neutral', loading = false }) => {
-  const trendColors = {
+  animate?: boolean;
+}> = ({ title, value, change, icon, trend = 'neutral', loading = false, animate = true }) => {
+  const trendColors: Record<string, string> = {
     up: 'text-emerald-500',
     down: 'text-red-500',
     neutral: 'text-gray-500',
   };
 
-  const trendIcons = {
+  const trendIcons: Record<string, string> = {
     up: '↗',
     down: '↘',
     neutral: '→',
   };
 
   return (
-    <AnimatedCard variant="glass" hoverEffect="lift" className="relative overflow-hidden">
+    <AnimatedCard 
+      variant="glass" 
+      hoverEffect="lift" 
+      animate={animate}
+      className={`relative overflow-hidden border-0 bg-white/5 dark:bg-black/20 backdrop-blur-md ${animate ? '' : 'transition-none hover:translate-y-[-4px]'}`}
+    >
       {loading && (
-        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-pulse" />
+        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent animate-pulse" />
       )}
       
       <div className="flex items-start justify-between">
         <div className="flex-1">
-          <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">
+          <p className="text-xs font-bold tracking-wider text-gray-500 dark:text-gray-400 uppercase mb-2">
             {title}
           </p>
-          <p 
-            className="text-2xl font-bold text-gray-900 dark:text-white"
-            key={value}
-          >
-            {loading ? '...' : value}
-          </p>
-          {change !== undefined && (
-            <div 
-              className={`flex items-center text-sm mt-1 ${trendColors[trend]}`}
+          <div className="flex items-baseline gap-2">
+            <h4 
+              className="text-3xl font-black text-gray-900 dark:text-white"
             >
-              <span className="mr-1">{trendIcons[trend]}</span>
-              {Math.abs(change).toFixed(2)}%
-            </div>
-          )}
+              {loading ? '...' : value}
+            </h4>
+            {change !== undefined && (
+              <span 
+                className={`text-xs font-bold px-1.5 py-0.5 rounded ${trendColors[trend]} bg-${trend === 'up' ? 'emerald' : trend === 'down' ? 'red' : 'gray'}-500/10`}
+              >
+                {trendIcons[trend]} {Math.abs(change).toFixed(1)}%
+              </span>
+            )}
+          </div>
         </div>
         {icon && (
           <div 
-            className="text-2xl opacity-70"
+            className={`p-2 rounded-lg bg-gray-100 dark:bg-white/5 ${trendColors[trend]}`}
           >
             {icon}
           </div>
         )}
       </div>
+      
+      {/* Decorative gradient blur */}
+      <div className={`absolute -right-4 -bottom-4 w-16 h-16 blur-2xl opacity-20 rounded-full bg-${trend === 'up' ? 'emerald' : trend === 'down' ? 'red' : 'blue'}-500`} />
     </AnimatedCard>
   );
 };

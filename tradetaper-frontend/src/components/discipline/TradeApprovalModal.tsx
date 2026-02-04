@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AnimatedCard } from '../ui/AnimatedCard';
 import disciplineService, { 
@@ -9,61 +9,82 @@ import disciplineService, {
   ApproveTradeDto,
   ChecklistResponse 
 } from '@/services/disciplineService';
-
-interface Strategy {
-  id: string;
-  name: string;
-  checklist: { id: string; text: string; order: number }[];
-  maxRiskPercent?: number;
-}
+import { strategiesService } from '@/services/strategiesService';
+import { Strategy } from '@/types/strategy';
+import { MT5Account } from '@/store/features/mt5AccountsSlice';
 
 interface TradeApprovalModalProps {
   isOpen: boolean;
   onClose: () => void;
-  strategy: Strategy | null;
-  accountId?: string;
-  accountBalance?: number;
+  accounts: MT5Account[];
   onApproved?: (approval: TradeApproval) => void;
 }
 
-// Level thresholds for XP bar
-const LEVEL_THRESHOLDS = [0, 100, 250, 500, 800, 1200, 1800, 2500, 3500, 5000];
+type Step = 'select-strategy' | 'setup' | 'calculate' | 'unlocked';
 
 export const TradeApprovalModal: React.FC<TradeApprovalModalProps> = ({
   isOpen,
   onClose,
-  strategy,
-  accountId,
-  accountBalance = 10000,
+  accounts,
   onApproved,
 }) => {
-  const [step, setStep] = useState<'checklist' | 'calculate' | 'confirm' | 'unlocked'>('checklist');
+  const [step, setStep] = useState<Step>('select-strategy');
+  const [strategies, setStrategies] = useState<Strategy[]>([]);
+  const [selectedStrategy, setSelectedStrategy] = useState<Strategy | null>(null);
+  
+  // Form State
   const [checklistItems, setChecklistItems] = useState<ChecklistResponse[]>([]);
   const [symbol, setSymbol] = useState('');
   const [direction, setDirection] = useState<'Long' | 'Short'>('Long');
+  const [selectedAccountId, setSelectedAccountId] = useState<string>(accounts[0]?.id || '');
+  const [useInitialBalance, setUseInitialBalance] = useState(false);
+  
   const [stopLoss, setStopLoss] = useState<number>(0);
   const [takeProfit, setTakeProfit] = useState<number>(0);
   const [entryPrice, setEntryPrice] = useState<number>(0);
-  const [lotSize, setLotSize] = useState<number>(0.01);
   const [riskPercent, setRiskPercent] = useState<number>(1);
+  
   const [approval, setApproval] = useState<TradeApproval | null>(null);
   const [countdown, setCountdown] = useState<number>(60);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Initialize checklist when strategy changes
+  // Load strategies
   useEffect(() => {
-    if (strategy?.checklist) {
-      setChecklistItems(
-        strategy.checklist.map((item) => ({
-          itemId: item.id,
-          text: item.text,
-          checked: false,
-        }))
-      );
-      setRiskPercent(strategy.maxRiskPercent || 1);
+    if (isOpen) {
+      strategiesService.getStrategies().then(setStrategies).catch(console.error);
     }
-  }, [strategy]);
+  }, [isOpen]);
+
+  // Sync selected account when accounts change
+  useEffect(() => {
+    if (!selectedAccountId && accounts.length > 0) {
+      setSelectedAccountId(accounts[0].id);
+    }
+  }, [accounts, selectedAccountId]);
+
+  const selectedAccount = useMemo(() => 
+    accounts.find(a => a.id === selectedAccountId), 
+    [accounts, selectedAccountId]
+  );
+
+  const currentBalance = selectedAccount?.balance || 10000;
+  const initialBalance = selectedAccount?.target && selectedAccount.target > 0 ? selectedAccount.target : currentBalance;
+  const targetBalance = useInitialBalance ? initialBalance : currentBalance;
+
+  // Initialize checklist when strategy changes
+  const handleSelectStrategy = (strat: Strategy) => {
+    setSelectedStrategy(strat);
+    setChecklistItems(
+      strat.checklist.map((item: ChecklistItem) => ({
+        itemId: item.id,
+        text: item.text,
+        checked: false,
+      }))
+    );
+    // setRiskPercent(strat.maxRiskPercent || 1); // Strategy model might need maxRiskPercent update
+    setStep('setup');
+  };
 
   // Countdown timer when unlocked
   useEffect(() => {
@@ -78,12 +99,19 @@ export const TradeApprovalModal: React.FC<TradeApprovalModalProps> = ({
   // Calculate lot size based on risk
   const calculateLotSize = () => {
     if (!stopLoss || !entryPrice) return 0.01;
-    const maxRiskAmount = accountBalance * (riskPercent / 100);
-    const pipValue = 10; // Simplified, should be dynamic per symbol
-    const pipDiff = Math.abs(entryPrice - stopLoss) / 0.0001; // Assuming 4-digit pairs
-    if (pipDiff === 0) return 0.01;
-    const calculatedLot = maxRiskAmount / (pipDiff * pipValue);
-    return Math.max(0.01, Math.min(Math.floor(calculatedLot * 100) / 100, 10));
+    const maxRiskAmount = targetBalance * (riskPercent / 100);
+    const pipValue = 10; // Simplified
+    const pipDiff = Math.abs(entryPrice - stopLoss);
+    
+    // Attempting to be more accurate with pip calculation
+    // This is still a simplification but better than before
+    const isForex = symbol.length === 6 || symbol.includes('/');
+    const multiplier = (symbol.includes('JPY') || symbol.includes('XAU') || symbol.includes('XAG')) ? 0.01 : 0.0001;
+    const pips = pipDiff / multiplier;
+
+    if (pips === 0) return 0.01;
+    const calculatedLot = maxRiskAmount / (pips * pipValue);
+    return Math.max(0.01, Math.min(Math.floor(calculatedLot * 100) / 100, 50));
   };
 
   const allChecked = checklistItems.every((item) => item.checked);
@@ -96,15 +124,15 @@ export const TradeApprovalModal: React.FC<TradeApprovalModalProps> = ({
     );
   };
 
-  const handleProceedToCalculate = async () => {
-    if (!allChecked || !strategy) return;
+  const handleCreateApproval = async () => {
+    if (!allChecked || !selectedStrategy || !symbol) return;
     setLoading(true);
     setError(null);
 
     try {
       const dto: CreateApprovalDto = {
-        accountId,
-        strategyId: strategy.id,
+        accountId: selectedAccountId,
+        strategyId: selectedStrategy.id,
         symbol,
         direction,
         riskPercent,
@@ -126,7 +154,6 @@ export const TradeApprovalModal: React.FC<TradeApprovalModalProps> = ({
     setError(null);
 
     const calculatedLot = calculateLotSize();
-    setLotSize(calculatedLot);
 
     try {
       const dto: ApproveTradeDto = {
@@ -146,240 +173,281 @@ export const TradeApprovalModal: React.FC<TradeApprovalModalProps> = ({
     }
   };
 
+  const resetAndClose = () => {
+    setStep('select-strategy');
+    setSelectedStrategy(null);
+    setSymbol('');
+    setChecklistItems([]);
+    setError(null);
+    onClose();
+  };
+
   if (!isOpen) return null;
+
+  const steps = [
+    { id: 'select-strategy', label: 'Strategy' },
+    { id: 'setup', label: 'Setup' },
+    { id: 'calculate', label: 'Risk' },
+    { id: 'unlocked', label: 'Unlock' },
+  ];
 
   return (
     <div
-      className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-      onClick={onClose}
+      className="fixed inset-0 bg-black/90 backdrop-blur-md z-50 flex items-center justify-center p-4 transition-all duration-300"
+      onClick={resetAndClose}
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-lg"
+        className="w-full max-w-xl"
       >
-        <AnimatedCard animate={false} variant="glass" className="p-0 overflow-hidden bg-white dark:bg-black border-gray-200 dark:border-white/10">
+        <div className="bg-white dark:bg-black rounded-3xl overflow-hidden border border-gray-200 dark:border-white/10 shadow-2xl">
           {/* Header */}
-          <div className="bg-gradient-to-r from-emerald-600 to-cyan-600 p-4">
-            <div className="flex items-center justify-between">
+          <div className="bg-gray-50 dark:bg-white/5 border-b border-gray-100 dark:border-white/5 p-6">
+            <div className="flex items-center justify-between mb-6">
               <div>
-                <h2 className="text-xl font-bold text-white">Trade Approval</h2>
-                <p className="text-emerald-100 text-sm">{strategy?.name || 'Select Strategy'}</p>
+                <h2 className="text-2xl font-black text-gray-900 dark:text-white uppercase tracking-tight">Execute Trade</h2>
+                <p className="text-gray-500 dark:text-gray-400 text-sm font-medium">
+                  {step === 'select-strategy' ? 'Choose your trading strategy' : selectedStrategy?.name}
+                </p>
               </div>
               <button
-                onClick={onClose}
-                className="text-white/80 hover:text-white transition-colors"
+                onClick={resetAndClose}
+                className="w-10 h-10 flex items-center justify-center rounded-full bg-gray-100 dark:bg-white/10 text-gray-500 dark:text-white/60 hover:bg-gray-200 dark:hover:bg-white/20 transition-all"
               >
                 ✕
               </button>
             </div>
             
-            {/* Step indicators */}
-            <div className="flex gap-2 mt-3">
-              {['checklist', 'calculate', 'confirm', 'unlocked'].map((s, i) => (
-                <div
-                  key={s}
-                  className={`h-1 flex-1 rounded-full transition-colors ${
-                    ['checklist', 'calculate', 'confirm', 'unlocked'].indexOf(step) >= i
-                      ? 'bg-white'
-                      : 'bg-white/30'
-                  }`}
-                />
-              ))}
+            {/* Step Indicators */}
+            <div className="flex items-center gap-4">
+              {steps.map((s, i) => {
+                const isActive = step === s.id;
+                const isPast = steps.findIndex(x => x.id === step) > i;
+                return (
+                  <div key={s.id} className="flex-1 flex flex-col gap-2">
+                    <div className="flex items-center gap-2">
+                      <span className={`text-[10px] font-bold uppercase tracking-widest ${isActive || isPast ? 'text-emerald-500' : 'text-gray-400'}`}>
+                        Step {i + 1}
+                      </span>
+                    </div>
+                    <div className={`h-1.5 rounded-full transition-all duration-500 ${
+                      isActive ? 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]' : 
+                      isPast ? 'bg-emerald-500' : 
+                      'bg-gray-200 dark:bg-white/10'
+                    }`} />
+                  </div>
+                );
+              })}
             </div>
           </div>
 
-          {/* Content */}
-          <div className="p-6">
+          {/* Content Space */}
+          <div className="p-8">
             {error && (
-              <div
-                className="bg-red-500/10 border border-red-500/30 text-red-600 dark:text-red-400 p-3 rounded-lg mb-4"
-              >
+              <div className="bg-red-500/10 border border-red-500/20 text-red-500 p-4 rounded-xl mb-6 text-sm font-bold flex items-center gap-3">
+                <span className="w-5 h-5 flex items-center justify-center bg-red-500 text-white rounded-full text-[10px]">!</span>
                 {error}
               </div>
             )}
 
-            {/* Step: Checklist */}
-            {step === 'checklist' && (
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-3 mb-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                      Symbol
-                    </label>
+            {/* STEP 1: SELECT STRATEGY */}
+            {step === 'select-strategy' && (
+              <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                {strategies.length > 0 ? (
+                  strategies.filter(s => s.isActive).map((s) => (
+                    <button
+                      key={s.id}
+                      onClick={() => handleSelectStrategy(s)}
+                      className="w-full group relative flex items-center justify-between p-5 rounded-2xl bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/5 hover:border-emerald-500/50 hover:bg-emerald-500/5 transition-all duration-300"
+                    >
+                      <div className="text-left">
+                        <h4 className="font-bold text-gray-900 dark:text-white mb-1 group-hover:text-emerald-500 transition-colors uppercase tracking-wide">{s.name}</h4>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">{s.checklist?.length || 0} Rule Process</p>
+                      </div>
+                      <div className="w-10 h-10 rounded-full bg-white dark:bg-white/10 flex items-center justify-center text-gray-400 group-hover:bg-emerald-500 group-hover:text-white transition-all shadow-sm">
+                        →
+                      </div>
+                    </button>
+                  ))
+                ) : (
+                  <div className="text-center py-10">
+                    <p className="text-gray-500 dark:text-gray-400 italic">No active strategies found...</p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* STEP 2: SETUP & CHECKLIST */}
+            {step === 'setup' && (
+              <div className="space-y-6">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-xs font-black text-gray-400 uppercase tracking-widest">Symbol</label>
                     <input
                       type="text"
                       value={symbol}
                       onChange={(e) => setSymbol(e.target.value.toUpperCase())}
                       placeholder="XAUUSD"
-                      className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-gray-900 dark:text-white"
+                      className="w-full px-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/5 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-gray-900 dark:text-white font-bold transition-all"
                     />
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                      Direction
-                    </label>
-                    <div className="flex gap-2">
+                  <div className="space-y-2">
+                    <label className="text-xs font-black text-gray-400 uppercase tracking-widest">Direction</label>
+                    <div className="flex p-1 bg-gray-100 dark:bg-white/5 rounded-xl border border-gray-200 dark:border-white/5">
                       <button
                         onClick={() => setDirection('Long')}
-                        className={`flex-1 py-2 rounded-lg font-medium transition-colors ${
-                          direction === 'Long'
-                            ? 'bg-emerald-500 text-white'
-                            : 'bg-gray-100 dark:bg-gray-900 text-gray-600 dark:text-gray-400'
+                        className={`flex-1 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${
+                          direction === 'Long' ? 'bg-emerald-500 text-white shadow-lg' : 'text-gray-500 dark:text-gray-400'
                         }`}
-                      >
-                        Long
-                      </button>
+                      >Long</button>
                       <button
                         onClick={() => setDirection('Short')}
-                        className={`flex-1 py-2 rounded-lg font-medium transition-colors ${
-                          direction === 'Short'
-                            ? 'bg-red-500 text-white'
-                            : 'bg-gray-100 dark:bg-gray-900 text-gray-600 dark:text-gray-400'
+                        className={`flex-1 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${
+                          direction === 'Short' ? 'bg-red-500 text-white shadow-lg' : 'text-gray-500 dark:text-gray-400'
                         }`}
-                      >
-                        Short
-                      </button>
+                      >Short</button>
                     </div>
                   </div>
                 </div>
 
-                <div className="border-t border-gray-200 dark:border-gray-800 pt-4">
-                  <h3 className="font-semibold text-gray-900 dark:text-white mb-3">
-                    Pre-Trade Checklist
+                <div className="space-y-4">
+                  <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                    Rule Confirmation
+                    <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500 text-[10px]">
+                      {checklistItems.filter(i => i.checked).length}/{checklistItems.length}
+                    </span>
                   </h3>
-                  <div className="space-y-2 max-h-48 overflow-y-auto">
+                  <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
                     {checklistItems.map((item) => (
-                      <div
+                      <button
                         key={item.itemId}
                         onClick={() => handleToggleItem(item.itemId)}
-                        className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-all ${
-                          item.checked
-                            ? 'bg-emerald-500/10 border-emerald-500/30'
-                            : 'bg-gray-50 dark:bg-gray-900/50'
-                        } border border-gray-200 dark:border-gray-800`}
+                        className={`w-full flex items-center gap-4 p-4 rounded-2xl text-left border transition-all duration-300 ${
+                          item.checked 
+                            ? 'bg-emerald-500/5 border-emerald-500/20' 
+                            : 'bg-gray-50 dark:bg-white/5 border-gray-100 dark:border-white/5'
+                        }`}
                       >
-                        <div
-                          className={`w-5 h-5 rounded flex items-center justify-center ${
-                            item.checked
-                              ? 'bg-emerald-500 text-white'
-                              : 'border-2 border-gray-300 dark:border-gray-600'
-                          }`}
-                        >
-                          {item.checked && '✓'}
+                        <div className={`w-6 h-6 rounded-lg flex items-center justify-center transition-all ${
+                          item.checked ? 'bg-emerald-500 text-white' : 'bg-gray-200 dark:bg-white/10 text-transparent'
+                        }`}>
+                          <span className="text-sm font-bold">✓</span>
                         </div>
-                        <span className={`text-sm ${item.checked ? 'text-emerald-700 dark:text-emerald-400' : 'text-gray-700 dark:text-gray-300'}`}>
+                        <span className={`text-sm font-medium ${item.checked ? 'text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400'}`}>
                           {item.text}
                         </span>
-                      </div>
+                      </button>
                     ))}
                   </div>
                 </div>
 
-                <button
-                  onClick={handleProceedToCalculate}
-                  disabled={!allChecked || !symbol || loading}
-                  className={`w-full py-3 rounded-lg font-bold transition-all ${
-                    allChecked && symbol
-                      ? 'bg-gradient-to-r from-emerald-500 to-cyan-500 text-white hover:from-emerald-600 hover:to-cyan-600'
-                      : 'bg-gray-200 dark:bg-gray-800 text-gray-500 cursor-not-allowed'
-                  }`}
-                >
-                  {loading ? 'Creating...' : `Complete Checklist (${checklistItems.filter(i => i.checked).length}/${checklistItems.length})`}
-                </button>
+                <div className="flex gap-3 pt-4 border-t border-gray-100 dark:border-white/5">
+                  <button
+                    onClick={() => setStep('select-strategy')}
+                    className="flex-1 py-4 rounded-2xl bg-gray-100 dark:bg-white/10 text-gray-500 dark:text-gray-300 font-bold uppercase tracking-widest text-xs hover:bg-gray-200 dark:hover:bg-white/20 transition-all"
+                  >Back</button>
+                  <button
+                    disabled={!allChecked || !symbol || loading}
+                    onClick={handleCreateApproval}
+                    className="flex-[2] py-4 rounded-2xl bg-emerald-500 text-white font-black uppercase tracking-widest text-xs shadow-xl shadow-emerald-500/20 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-emerald-600 transition-all"
+                  >
+                    {loading ? 'Processing...' : 'Ready to Risk'}
+                  </button>
+                </div>
               </div>
             )}
 
-            {/* Step: Calculate */}
+            {/* STEP 3: RISK CALCULATOR */}
             {step === 'calculate' && (
-              <div className="space-y-4">
-                <div className="text-center mb-4">
-                  <h3 className="font-bold text-lg text-gray-900 dark:text-white">Risk Calculator</h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Balance: ${accountBalance.toLocaleString()}</p>
+              <div className="space-y-6">
+                <div className="space-y-2">
+                  <label className="text-xs font-black text-gray-400 uppercase tracking-widest">Select Account</label>
+                  <select
+                    value={selectedAccountId}
+                    onChange={(e) => setSelectedAccountId(e.target.value)}
+                    className="w-full px-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/5 rounded-xl text-gray-900 dark:text-white font-bold focus:ring-2 focus:ring-emerald-500"
+                  >
+                    {accounts.map(acc => (
+                      <option key={acc.id} value={acc.id} className="dark:bg-black">
+                        {acc.accountName} - {acc.currency} {acc.balance?.toLocaleString()}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
-                      Entry Price
-                    </label>
+                <div className="p-1 bg-gray-100 dark:bg-white/5 rounded-2xl border border-gray-200 dark:border-white/5 flex gap-1">
+                  <button
+                    onClick={() => setUseInitialBalance(false)}
+                    className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                      !useInitialBalance ? 'bg-white dark:bg-white/10 text-emerald-500 shadow-sm border border-gray-200 dark:border-white/10' : 'text-gray-500'
+                    }`}
+                  >Current: ${currentBalance.toLocaleString()}</button>
+                  <button
+                    onClick={() => setUseInitialBalance(true)}
+                    className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                      useInitialBalance ? 'bg-white dark:bg-white/10 text-emerald-500 shadow-sm border border-gray-200 dark:border-white/10' : 'text-gray-500'
+                    }`}
+                  >Initial: ${initialBalance.toLocaleString()}</button>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-xs font-black text-gray-400 uppercase tracking-widest">Entry Price</label>
                     <input
-                      type="number"
-                      step="0.00001"
+                      type="number" step="any"
                       value={entryPrice || ''}
                       onChange={(e) => setEntryPrice(parseFloat(e.target.value) || 0)}
-                      className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg text-sm text-gray-900 dark:text-white"
+                      className="w-full px-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/5 rounded-xl font-bold text-gray-900 dark:text-white"
                     />
                   </div>
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
-                      Stop Loss
-                    </label>
+                  <div className="space-y-2">
+                    <label className="text-xs font-black text-gray-400 uppercase tracking-widest">Stop Loss</label>
                     <input
-                      type="number"
-                      step="0.00001"
+                      type="number" step="any"
                       value={stopLoss || ''}
                       onChange={(e) => setStopLoss(parseFloat(e.target.value) || 0)}
-                      className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg text-sm text-gray-900 dark:text-white"
+                      className="w-full px-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/5 rounded-xl font-bold text-gray-900 dark:text-white"
                     />
                   </div>
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
-                      Take Profit (Optional)
-                    </label>
+                  <div className="space-y-2">
+                    <label className="text-xs font-black text-gray-400 uppercase tracking-widest">Take Profit</label>
                     <input
-                      type="number"
-                      step="0.00001"
+                      type="number" step="any"
                       value={takeProfit || ''}
                       onChange={(e) => setTakeProfit(parseFloat(e.target.value) || 0)}
-                      className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg text-sm text-gray-900 dark:text-white"
+                      className="w-full px-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/5 rounded-xl font-bold text-gray-900 dark:text-white"
                     />
                   </div>
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
-                      Risk %
-                    </label>
+                  <div className="space-y-2">
+                    <label className="text-xs font-black text-gray-400 uppercase tracking-widest">Risk %</label>
                     <input
-                      type="number"
-                      step="0.1"
-                      max={strategy?.maxRiskPercent || 1}
+                      type="number" step="0.1"
                       value={riskPercent}
-                      onChange={(e) => setRiskPercent(Math.min(parseFloat(e.target.value) || 1, strategy?.maxRiskPercent || 1))}
-                      className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg text-sm text-gray-900 dark:text-white"
+                      onChange={(e) => setRiskPercent(parseFloat(e.target.value) || 0)}
+                      className="w-full px-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/5 rounded-xl font-bold text-emerald-500"
                     />
                   </div>
                 </div>
 
-                {/* Calculated Values */}
-                <div className="bg-emerald-500/5 dark:bg-emerald-500/10 border border-emerald-500/20 rounded-lg p-4">
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-700 dark:text-gray-300">Max Risk Amount:</span>
-                    <span className="font-bold text-red-600 dark:text-red-500">
-                      ${(accountBalance * (riskPercent / 100)).toFixed(2)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center mt-2">
-                    <span className="text-gray-700 dark:text-gray-300">Calculated Lot Size:</span>
-                    <span className="font-bold text-emerald-600 dark:text-emerald-500 text-xl">
-                      {calculateLotSize().toFixed(2)} lots
-                    </span>
+                <div className="p-6 rounded-3xl bg-emerald-500 dark:bg-emerald-500/10 border border-emerald-500/20 text-center space-y-2">
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-600 dark:text-emerald-500/60">Calculated Lot Size</p>
+                  <h3 className="text-5xl font-black text-emerald-700 dark:text-emerald-500">{calculateLotSize().toFixed(2)}</h3>
+                  <div className="pt-2 flex items-center justify-center gap-2 text-xs font-bold text-gray-500 dark:text-emerald-500/50">
+                    <span>RISK: ${(targetBalance * (riskPercent / 100)).toLocaleString()}</span>
+                    <span>•</span>
+                    <span>PIPS: {Math.abs((entryPrice - stopLoss) / ((symbol.includes('JPY') || symbol.includes('XAU')) ? 0.01 : 0.0001)).toFixed(1)}</span>
                   </div>
                 </div>
 
-                <div className="flex gap-2">
+                <div className="flex gap-3 pt-4 border-t border-gray-100 dark:border-white/5">
                   <button
-                    onClick={() => setStep('checklist')}
-                    className="flex-1 py-3 rounded-lg font-medium bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-                  >
-                    Back
-                  </button>
+                    onClick={() => setStep('setup')}
+                    className="flex-1 py-4 rounded-2xl bg-gray-100 dark:bg-white/10 text-gray-500 dark:text-gray-300 font-bold uppercase tracking-widest text-xs"
+                  >Back</button>
                   <button
-                    onClick={handleApproveAndUnlock}
                     disabled={!entryPrice || !stopLoss || loading}
-                    className={`flex-1 py-3 rounded-lg font-bold transition-all ${
-                      entryPrice && stopLoss
-                        ? 'bg-gradient-to-r from-emerald-500 to-cyan-500 text-white hover:from-emerald-600 hover:to-cyan-600'
-                        : 'bg-gray-200 dark:bg-gray-800 text-gray-500 cursor-not-allowed'
-                    }`}
+                    onClick={handleApproveAndUnlock}
+                    className="flex-[2] py-4 rounded-2xl bg-emerald-500 text-white font-black uppercase tracking-widest text-xs shadow-xl shadow-emerald-500/20"
                   >
                     {loading ? 'Unlocking...' : 'Approve & Unlock'}
                   </button>
@@ -387,50 +455,80 @@ export const TradeApprovalModal: React.FC<TradeApprovalModalProps> = ({
               </div>
             )}
 
-            {/* Step: Unlocked */}
+            {/* STEP 4: UNLOCKED */}
             {step === 'unlocked' && (
-              <div
-                className="text-center space-y-4"
-              >
-                <div
-                  className="text-6xl"
-                >
+              <div className="text-center space-y-8 py-4">
+                <div className="relative inline-block">
+                  <div className="w-24 h-24 rounded-full border-4 border-emerald-500 flex items-center justify-center text-4xl shadow-[0_0_30px_rgba(16,185,129,0.3)]">
+                    🔓
+                  </div>
+                  <div className="absolute inset-0 rounded-full animate-ping border-4 border-emerald-500 scale-125 opacity-20" />
                 </div>
-                <h3 className="text-2xl font-bold text-emerald-600 dark:text-emerald-500">Trading Unlocked!</h3>
-                <p className="text-gray-700 dark:text-gray-300">
-                  Open your trade in MT5 within {countdown} seconds
-                </p>
 
-                <div className="bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-4 text-left">
-                  <div className="grid grid-cols-2 gap-2 text-sm">
-                    <div className="text-gray-500">Symbol:</div>
-                    <div className="font-bold text-gray-900 dark:text-white">{symbol}</div>
-                    <div className="text-gray-500">Direction:</div>
-                    <div className={`font-bold ${direction === 'Long' ? 'text-emerald-600 dark:text-emerald-500' : 'text-red-600 dark:text-red-500'}`}>
-                      {direction}
-                    </div>
-                    <div className="text-gray-500">Lot Size:</div>
-                    <div className="font-bold text-gray-900 dark:text-white">{calculateLotSize().toFixed(2)}</div>
-                    <div className="text-gray-500">Stop Loss:</div>
-                    <div className="font-bold text-red-600 dark:text-red-500">{stopLoss}</div>
+                <div className="space-y-2">
+                  <h3 className="text-3xl font-black text-emerald-600 dark:text-emerald-500 uppercase tracking-tighter">Trading Unlocked</h3>
+                  <p className="text-gray-500 dark:text-gray-400 font-medium italic">Execution window active. Execute your trade on MT5 now.</p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-px bg-gray-200 dark:bg-white/10 rounded-2xl overflow-hidden border border-gray-200 dark:border-white/10">
+                  <div className="bg-white dark:bg-black p-4">
+                    <p className="text-[10px] font-black text-gray-400 uppercase mb-1">Pair</p>
+                    <p className="text-lg font-bold text-gray-900 dark:text-white">{symbol}</p>
+                  </div>
+                  <div className="bg-white dark:bg-black p-4">
+                    <p className="text-[10px] font-black text-gray-400 uppercase mb-1">Direction</p>
+                    <p className={`text-lg font-bold ${direction === 'Long' ? 'text-emerald-500' : 'text-red-500'}`}>{direction}</p>
+                  </div>
+                  <div className="bg-white dark:bg-black p-4">
+                    <p className="text-[10px] font-black text-gray-400 uppercase mb-1">Lot Size</p>
+                    <p className="text-lg font-bold text-emerald-500">{calculateLotSize().toFixed(2)}</p>
+                  </div>
+                  <div className="bg-white dark:bg-black p-4">
+                    <p className="text-[10px] font-black text-gray-400 uppercase mb-1">Stop Loss</p>
+                    <p className="text-lg font-bold text-red-500">{stopLoss}</p>
                   </div>
                 </div>
 
-                {/* Countdown Bar */}
-                <div className="relative h-2 bg-gray-200 dark:bg-gray-800 rounded-full overflow-hidden">
-                  <div
-                    className="absolute inset-y-0 left-0 bg-gradient-to-r from-emerald-500 to-cyan-500"
-                    style={{ width: `${(countdown / 60) * 100}%` }}
-                  />
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between text-xs font-black text-gray-400 uppercase tracking-widest">
+                    <span>MT5 Lock Resumes in</span>
+                    <span className="text-orange-500">{countdown}s</span>
+                  </div>
+                  <div className="h-2 bg-gray-100 dark:bg-white/5 rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400 transition-all duration-1000"
+                      style={{ width: `${(countdown / 60) * 100}%` }}
+                    />
+                  </div>
                 </div>
-                <p className="text-2xl font-mono font-bold text-orange-600 dark:text-orange-500">
-                  {countdown}s
-                </p>
+
+                <button
+                  onClick={resetAndClose}
+                  className="w-full py-4 rounded-2xl bg-gray-900 dark:bg-white dark:text-black text-white font-black uppercase tracking-widest text-xs hover:opacity-80 transition-all"
+                >
+                  Close Window
+                </button>
               </div>
             )}
           </div>
-        </AnimatedCard>
+        </div>
       </div>
+      
+      <style jsx>{`
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: rgba(16, 185, 129, 0.2);
+          border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: rgba(16, 185, 129, 0.4);
+        }
+      `}</style>
     </div>
   );
 };

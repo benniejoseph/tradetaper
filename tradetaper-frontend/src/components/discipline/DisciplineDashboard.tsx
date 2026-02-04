@@ -125,27 +125,30 @@ export const DisciplineDashboard: React.FC<DisciplineDashboardProps> = ({
         </div>
       </AnimatedCard>
 
-      {/* Stats Grid */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <MetricCard
+          animate={false}
           title="Discipline Score"
           value={`${discipline.disciplineScore}%`}
           icon={<span className={getScoreColor(discipline.disciplineScore)}></span>}
           trend={discipline.disciplineScore >= 80 ? 'up' : discipline.disciplineScore >= 60 ? 'neutral' : 'down'}
         />
         <MetricCard
+          animate={false}
           title="Approved Trades"
           value={discipline.totalApprovedTrades}
           icon=""
           trend="up"
         />
         <MetricCard
+          animate={false}
           title="Executed Trades"
           value={discipline.totalExecutedTrades}
           icon=""
           trend="up"
         />
         <MetricCard
+          animate={false}
           title="Rule Violations"
           value={discipline.totalRuleViolations}
           icon=""
@@ -164,16 +167,15 @@ export const DisciplineDashboard: React.FC<DisciplineDashboardProps> = ({
         
         {discipline.badges && discipline.badges.length > 0 ? (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {discipline.badges.map((badge) => (
+            {discipline.badges.map((badge: Badge) => (
               <div
                 key={badge.id}
-                className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-3 text-center"
+                className="bg-gray-50 dark:bg-black/40 rounded-2xl p-4 text-center border border-gray-100 dark:border-white/5"
               >
-                <div className="text-3xl mb-1" />
-                <div className="font-medium text-sm text-gray-900 dark:text-white">
+                <div className="font-black text-xs text-gray-900 dark:text-white uppercase tracking-wider mb-1">
                   {badge.name}
                 </div>
-                <div className="text-xs text-gray-500 dark:text-gray-400">
+                <div className="text-[10px] text-gray-500 dark:text-gray-400 font-bold uppercase">
                   {badge.description}
                 </div>
               </div>
