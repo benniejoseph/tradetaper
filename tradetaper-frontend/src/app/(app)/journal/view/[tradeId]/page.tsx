@@ -265,7 +265,7 @@ export default function ViewTradePage() {
 
             <div className="space-y-2">
               <SidebarField label="Account" value={trade.account?.name || trade.accountName} icon={<Layers className="w-3 h-3" />} />
-              <SidebarField label="Strategy" value={(trade as any).strategy?.name || "Manual"} icon={<Brain className="w-3 h-3" />} />
+              <SidebarField label="Strategy" value={(trade as any).strategy?.name || (trade as any).strategyId || "Manual"} icon={<Brain className="w-3 h-3" />} />
               <SidebarField label="Asset" value={trade.assetType} icon={<Target className="w-3 h-3" />} />
               <SidebarField label="Entry" value={`${formatPrice(trade.entryPrice)} @ ${formatDateFns(new Date(trade.entryDate), 'MMM dd, HH:mm')}`} icon={<Clock className="w-3 h-3" />} />
               <SidebarField label="Exit" value={trade.exitDate ? `${formatPrice(trade.exitPrice)} @ ${formatDateFns(new Date(trade.exitDate), 'MMM dd, HH:mm')}` : 'Open'} icon={<Clock className="w-3 h-3" />} />
