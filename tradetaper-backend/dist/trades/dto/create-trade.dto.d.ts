@@ -1,4 +1,4 @@
-import { AssetType, TradeDirection, TradeStatus, ICTConcept, TradingSession } from '../../types/enums';
+import { AssetType, TradeDirection, TradeStatus, ICTConcept, TradingSession, EmotionalState, ExecutionGrade, MarketCondition, HTFBias, Timeframe } from '../../types/enums';
 export declare class CreateTradeDto {
     assetType: AssetType;
     symbol: string;
@@ -29,4 +29,29 @@ export declare class CreateTradeDto {
     externalDealId?: string;
     mt5Magic?: number;
     contractSize?: number;
+    emotionBefore?: EmotionalState;
+    emotionDuring?: EmotionalState;
+    emotionAfter?: EmotionalState;
+    confidenceLevel?: number;
+    followedPlan?: boolean;
+    ruleViolations?: string[];
+    plannedRR?: number;
+    maePrice?: number;
+    mfePrice?: number;
+    maePips?: number;
+    mfePips?: number;
+    slippage?: number;
+    executionGrade?: ExecutionGrade;
+    marketCondition?: MarketCondition;
+    timeframe?: Timeframe;
+    htfBias?: HTFBias;
+    newsImpact?: boolean;
+    entryReason?: string;
+    confirmations?: string[];
+    hesitated?: boolean;
+    preparedToLose?: boolean;
+    sleepQuality?: number;
+    energyLevel?: number;
+    distractionLevel?: number;
+    tradingEnvironment?: string;
 }

@@ -9,7 +9,14 @@ import { Trade, CreateTradePayload, UpdateTradePayload, AssetType, TradeDirectio
  } from '@/types/trade';
 import { Strategy } from '@/types/strategy';
 import { strategiesService } from '@/services/strategiesService';
-import { TradingSession } from '@/types/enums';
+import { 
+  TradingSession, 
+  EmotionalState, 
+  ExecutionGrade, 
+  MarketCondition, 
+  HTFBias, 
+  Timeframe 
+} from '@/types/enums';
 import { useRouter } from 'next/navigation';
 import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '@/store/store';
@@ -139,7 +146,15 @@ export default function TradeForm({ initialData, isEditMode = false, onFormSubmi
   const [selectedTags, setSelectedTags] = useState<MultiValue<TagOption>>([]);
 
   const [formData, setFormData] = useState<Omit<CreateTradePayload | UpdateTradePayload, 'tagNames' | 'strategyTag'> & 
-    { stopLoss?: number; takeProfit?: number; rMultiple?: number; session?: TradingSession; accountId?: string; isStarred?: boolean; strategyId?: string; }>
+    { stopLoss?: number; takeProfit?: number; rMultiple?: number; session?: TradingSession; accountId?: string; isStarred?: boolean; strategyId?: string;
+      // Phase 1-5 fields
+      emotionBefore?: EmotionalState; emotionDuring?: EmotionalState; emotionAfter?: EmotionalState;
+      confidenceLevel?: number; followedPlan?: boolean; ruleViolations?: string[];
+      plannedRR?: number; maePrice?: number; mfePrice?: number; maePips?: number; mfePips?: number; slippage?: number; executionGrade?: ExecutionGrade;
+      marketCondition?: MarketCondition; timeframe?: Timeframe; htfBias?: HTFBias; newsImpact?: boolean;
+      entryReason?: string; confirmations?: string[]; hesitated?: boolean; preparedToLose?: boolean;
+      sleepQuality?: number; energyLevel?: number; distractionLevel?: number; tradingEnvironment?: string;
+    }>
   ({
     accountId: initialData?.accountId || selectedAccountIdFromStore || undefined,
     assetType: initialData?.assetType || AssetType.STOCK,
@@ -163,6 +178,31 @@ export default function TradeForm({ initialData, isEditMode = false, onFormSubmi
     rMultiple: initialData?.rMultiple ?? undefined,
     isStarred: initialData?.isStarred || false,
     strategyId: initialData?.strategyId || undefined,
+    // Phase 1: Psychology
+    emotionBefore: initialData?.emotionBefore || undefined,
+    emotionDuring: initialData?.emotionDuring || undefined,
+    emotionAfter: initialData?.emotionAfter || undefined,
+    confidenceLevel: initialData?.confidenceLevel || undefined,
+    followedPlan: initialData?.followedPlan ?? undefined,
+    ruleViolations: initialData?.ruleViolations || [],
+    // Phase 2: Advanced Metrics
+    plannedRR: initialData?.plannedRR || undefined,
+    executionGrade: initialData?.executionGrade || undefined,
+    // Phase 3: Market Context
+    marketCondition: initialData?.marketCondition || undefined,
+    timeframe: initialData?.timeframe || undefined,
+    htfBias: initialData?.htfBias || undefined,
+    newsImpact: initialData?.newsImpact ?? undefined,
+    // Phase 4: Pre-Trade Checklist
+    entryReason: initialData?.entryReason || '',
+    confirmations: initialData?.confirmations || [],
+    hesitated: initialData?.hesitated ?? undefined,
+    preparedToLose: initialData?.preparedToLose ?? undefined,
+    // Phase 5: Environment
+    sleepQuality: initialData?.sleepQuality || undefined,
+    energyLevel: initialData?.energyLevel || undefined,
+    distractionLevel: initialData?.distractionLevel || undefined,
+    tradingEnvironment: initialData?.tradingEnvironment || '',
   });
 
   // State for calculated R:R - to be implemented properly later
@@ -877,7 +917,247 @@ export default function TradeForm({ initialData, isEditMode = false, onFormSubmi
             </div>
         </div>
         
-        {/* Section 6: Chart Upload */}
+        {/* Section 6: Psychology & Mindset (Collapsible) */}
+        <details className={sectionContainerClasses}>
+          <summary className="cursor-pointer list-none">
+            <h2 className={sectionTitleClasses}>
+              <div className="p-2 bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-xl">
+                <span className="text-xl">🧠</span>
+              </div>
+              <span>Psychology & Mindset</span>
+              <span className="ml-auto text-xs text-gray-400 font-normal">(Click to expand)</span>
+            </h2>
+          </summary>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-5 mt-4">
+            <div>
+              <FormSelect
+                label="Emotion Before Trade"
+                id="emotionBefore"
+                name="emotionBefore"
+                value={formData.emotionBefore || ''}
+                onChange={handleChange}
+              >
+                <option value="">Select emotion...</option>
+                {Object.values(EmotionalState).map(e => <option key={e} value={e}>{e}</option>)}
+              </FormSelect>
+            </div>
+            <div>
+              <FormSelect
+                label="Emotion During Trade"
+                id="emotionDuring"
+                name="emotionDuring"
+                value={formData.emotionDuring || ''}
+                onChange={handleChange}
+              >
+                <option value="">Select emotion...</option>
+                {Object.values(EmotionalState).map(e => <option key={e} value={e}>{e}</option>)}
+              </FormSelect>
+            </div>
+            <div>
+              <FormSelect
+                label="Emotion After Trade"
+                id="emotionAfter"
+                name="emotionAfter"
+                value={formData.emotionAfter || ''}
+                onChange={handleChange}
+              >
+                <option value="">Select emotion...</option>
+                {Object.values(EmotionalState).map(e => <option key={e} value={e}>{e}</option>)}
+              </FormSelect>
+            </div>
+            <div>
+              <FormInput
+                label="Confidence Level (1-10)"
+                type="number"
+                id="confidenceLevel"
+                name="confidenceLevel"
+                value={formData.confidenceLevel || ''}
+                onChange={handleChange}
+                placeholder="1-10"
+                min={1}
+                max={10}
+              />
+            </div>
+            <div>
+              <FormSelect
+                label="Followed Trading Plan?"
+                id="followedPlan"
+                name="followedPlan"
+                value={formData.followedPlan === undefined ? '' : formData.followedPlan ? 'true' : 'false'}
+                onChange={(e) => setFormData(prev => ({...prev, followedPlan: e.target.value === '' ? undefined : e.target.value === 'true'}))}
+              >
+                <option value="">Select...</option>
+                <option value="true">Yes</option>
+                <option value="false">No</option>
+              </FormSelect>
+            </div>
+            <div>
+              <FormSelect
+                label="Execution Grade"
+                id="executionGrade"
+                name="executionGrade"
+                value={formData.executionGrade || ''}
+                onChange={handleChange}
+              >
+                <option value="">Select grade...</option>
+                {Object.values(ExecutionGrade).map(g => <option key={g} value={g}>{g}</option>)}
+              </FormSelect>
+            </div>
+          </div>
+          <div className="mt-4">
+            <FormTextarea
+              label="Entry Reason"
+              id="entryReason"
+              name="entryReason"
+              value={formData.entryReason || ''}
+              onChange={handleChange}
+              placeholder="What was your specific reason for entering this trade?"
+            />
+          </div>
+        </details>
+
+        {/* Section 7: Market Context (Collapsible) */}
+        <details className={sectionContainerClasses}>
+          <summary className="cursor-pointer list-none">
+            <h2 className={sectionTitleClasses}>
+              <div className="p-2 bg-gradient-to-r from-blue-500/20 to-cyan-500/20 rounded-xl">
+                <span className="text-xl">📊</span>
+              </div>
+              <span>Market Context</span>
+              <span className="ml-auto text-xs text-gray-400 font-normal">(Click to expand)</span>
+            </h2>
+          </summary>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-5 mt-4">
+            <div>
+              <FormSelect
+                label="Market Condition"
+                id="marketCondition"
+                name="marketCondition"
+                value={formData.marketCondition || ''}
+                onChange={handleChange}
+              >
+                <option value="">Select condition...</option>
+                {Object.values(MarketCondition).map(c => <option key={c} value={c}>{c}</option>)}
+              </FormSelect>
+            </div>
+            <div>
+              <FormSelect
+                label="Chart Timeframe"
+                id="timeframe"
+                name="timeframe"
+                value={formData.timeframe || ''}
+                onChange={handleChange}
+              >
+                <option value="">Select timeframe...</option>
+                {Object.values(Timeframe).map(t => <option key={t} value={t}>{t}</option>)}
+              </FormSelect>
+            </div>
+            <div>
+              <FormSelect
+                label="HTF Bias"
+                id="htfBias"
+                name="htfBias"
+                value={formData.htfBias || ''}
+                onChange={handleChange}
+              >
+                <option value="">Select bias...</option>
+                {Object.values(HTFBias).map(b => <option key={b} value={b}>{b}</option>)}
+              </FormSelect>
+            </div>
+            <div>
+              <FormSelect
+                label="High-Impact News Nearby?"
+                id="newsImpact"
+                name="newsImpact"
+                value={formData.newsImpact === undefined ? '' : formData.newsImpact ? 'true' : 'false'}
+                onChange={(e) => setFormData(prev => ({...prev, newsImpact: e.target.value === '' ? undefined : e.target.value === 'true'}))}
+              >
+                <option value="">Select...</option>
+                <option value="true">Yes</option>
+                <option value="false">No</option>
+              </FormSelect>
+            </div>
+            <div>
+              <FormInput
+                label="Planned R:R"
+                type="number"
+                id="plannedRR"
+                name="plannedRR"
+                value={formData.plannedRR || ''}
+                onChange={handleChange}
+                placeholder="e.g., 2.5"
+                step="0.1"
+              />
+            </div>
+          </div>
+        </details>
+
+        {/* Section 8: Environment (Collapsible) */}
+        <details className={sectionContainerClasses}>
+          <summary className="cursor-pointer list-none">
+            <h2 className={sectionTitleClasses}>
+              <div className="p-2 bg-gradient-to-r from-green-500/20 to-teal-500/20 rounded-xl">
+                <span className="text-xl">🏠</span>
+              </div>
+              <span>Trading Environment</span>
+              <span className="ml-auto text-xs text-gray-400 font-normal">(Click to expand)</span>
+            </h2>
+          </summary>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-x-6 gap-y-5 mt-4">
+            <div>
+              <FormInput
+                label="Sleep Quality (1-5)"
+                type="number"
+                id="sleepQuality"
+                name="sleepQuality"
+                value={formData.sleepQuality || ''}
+                onChange={handleChange}
+                placeholder="1-5"
+                min={1}
+                max={5}
+              />
+            </div>
+            <div>
+              <FormInput
+                label="Energy Level (1-5)"
+                type="number"
+                id="energyLevel"
+                name="energyLevel"
+                value={formData.energyLevel || ''}
+                onChange={handleChange}
+                placeholder="1-5"
+                min={1}
+                max={5}
+              />
+            </div>
+            <div>
+              <FormInput
+                label="Distraction Level (1-5)"
+                type="number"
+                id="distractionLevel"
+                name="distractionLevel"
+                value={formData.distractionLevel || ''}
+                onChange={handleChange}
+                placeholder="1-5"
+                min={1}
+                max={5}
+              />
+            </div>
+            <div>
+              <FormInput
+                label="Environment"
+                type="text"
+                id="tradingEnvironment"
+                name="tradingEnvironment"
+                value={formData.tradingEnvironment || ''}
+                onChange={handleChange}
+                placeholder="e.g., Home Office, Mobile"
+              />
+            </div>
+          </div>
+        </details>
+
+        {/* Section 9: Chart Upload */}
         <div className={sectionContainerClasses}>
             <h2 className={sectionTitleClasses}>
               <div className="p-2 bg-gradient-to-r from-indigo-500/20 to-cyan-500/20 rounded-xl">

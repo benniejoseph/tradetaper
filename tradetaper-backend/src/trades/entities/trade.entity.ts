@@ -8,6 +8,11 @@ import {
   TradeStatus,
   ICTConcept,
   TradingSession,
+  EmotionalState,
+  ExecutionGrade,
+  MarketCondition,
+  HTFBias,
+  Timeframe,
 } from '../../types/enums';
 
 import {
@@ -198,6 +203,120 @@ export class Trade {
 
   @Column({ type: 'jsonb', nullable: true })
   executionCandles?: any[]; // Array of { time, open, high, low, close }
+
+  // ========== PHASE 1: Psychology & Emotion Tracking ==========
+  @Column({
+    type: 'enum',
+    enum: EmotionalState,
+    nullable: true,
+  })
+  emotionBefore?: EmotionalState;
+
+  @Column({
+    type: 'enum',
+    enum: EmotionalState,
+    nullable: true,
+  })
+  emotionDuring?: EmotionalState;
+
+  @Column({
+    type: 'enum',
+    enum: EmotionalState,
+    nullable: true,
+  })
+  emotionAfter?: EmotionalState;
+
+  @Column({ type: 'int', nullable: true })
+  confidenceLevel?: number; // 1-10 scale
+
+  @Column({ type: 'boolean', nullable: true })
+  followedPlan?: boolean;
+
+  @Column({ type: 'simple-array', nullable: true })
+  ruleViolations?: string[]; // e.g., ["Moved SL", "Oversized", "FOMO Entry"]
+
+  // ========== PHASE 2: Advanced Performance Metrics ==========
+  @Type(() => Number)
+  @Column('decimal', { precision: 10, scale: 4, nullable: true })
+  plannedRR?: number; // Planned reward:risk ratio
+
+  @Type(() => Number)
+  @Column('decimal', { precision: 19, scale: 8, nullable: true })
+  maePrice?: number; // Maximum Adverse Excursion price
+
+  @Type(() => Number)
+  @Column('decimal', { precision: 19, scale: 8, nullable: true })
+  mfePrice?: number; // Maximum Favorable Excursion price
+
+  @Type(() => Number)
+  @Column('decimal', { precision: 10, scale: 2, nullable: true })
+  maePips?: number; // MAE in pips
+
+  @Type(() => Number)
+  @Column('decimal', { precision: 10, scale: 2, nullable: true })
+  mfePips?: number; // MFE in pips
+
+  @Type(() => Number)
+  @Column('decimal', { precision: 10, scale: 2, nullable: true })
+  slippage?: number; // Entry slippage in pips
+
+  @Column({
+    type: 'enum',
+    enum: ExecutionGrade,
+    nullable: true,
+  })
+  executionGrade?: ExecutionGrade; // Self-graded A-F
+
+  // ========== PHASE 3: Market Context ==========
+  @Column({
+    type: 'enum',
+    enum: MarketCondition,
+    nullable: true,
+  })
+  marketCondition?: MarketCondition;
+
+  @Column({
+    type: 'enum',
+    enum: Timeframe,
+    nullable: true,
+  })
+  timeframe?: Timeframe; // Chart timeframe used
+
+  @Column({
+    type: 'enum',
+    enum: HTFBias,
+    nullable: true,
+  })
+  htfBias?: HTFBias; // Higher timeframe directional bias
+
+  @Column({ type: 'boolean', nullable: true })
+  newsImpact?: boolean; // Was high-impact news nearby?
+
+  // ========== PHASE 4: Pre-Trade Checklist ==========
+  @Column('text', { nullable: true })
+  entryReason?: string; // Specific reason for entering
+
+  @Column({ type: 'simple-array', nullable: true })
+  confirmations?: string[]; // List of confirmations checked
+
+  @Column({ type: 'boolean', nullable: true })
+  hesitated?: boolean; // Did you hesitate on a valid setup?
+
+  @Column({ type: 'boolean', nullable: true })
+  preparedToLose?: boolean; // Were you emotionally prepared to lose?
+
+  // ========== PHASE 5: Environmental Factors ==========
+  @Column({ type: 'int', nullable: true })
+  sleepQuality?: number; // 1-5 scale
+
+  @Column({ type: 'int', nullable: true })
+  energyLevel?: number; // 1-5 scale
+
+  @Column({ type: 'int', nullable: true })
+  distractionLevel?: number; // 1-5 scale
+
+  @Column({ type: 'varchar', length: 100, nullable: true })
+  tradingEnvironment?: string; // e.g., "Home Office", "Mobile", "Noisy"
 
   @CreateDateColumn()
   createdAt: Date;
