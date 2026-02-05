@@ -23,6 +23,11 @@ import {
   TradeStatus,
   ICTConcept,
   TradingSession,
+  EmotionalState,
+  ExecutionGrade,
+  MarketCondition,
+  HTFBias,
+  Timeframe,
 } from '../../types/enums';
 
 export class CreateTradeDto {
@@ -151,6 +156,118 @@ export class CreateTradeDto {
   @IsOptional()
   @IsNumber()
   contractSize?: number;
+
+  // ========== PHASE 1: Psychology & Emotion Tracking ==========
+  @IsOptional()
+  @IsEnum(EmotionalState)
+  emotionBefore?: EmotionalState;
+
+  @IsOptional()
+  @IsEnum(EmotionalState)
+  emotionDuring?: EmotionalState;
+
+  @IsOptional()
+  @IsEnum(EmotionalState)
+  emotionAfter?: EmotionalState;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  confidenceLevel?: number; // 1-10 scale
+
+  @IsOptional()
+  @IsBoolean()
+  followedPlan?: boolean;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  ruleViolations?: string[];
+
+  // ========== PHASE 2: Advanced Performance Metrics ==========
+  @IsOptional()
+  @IsNumber()
+  plannedRR?: number;
+
+  @IsOptional()
+  @IsNumber()
+  maePrice?: number;
+
+  @IsOptional()
+  @IsNumber()
+  mfePrice?: number;
+
+  @IsOptional()
+  @IsNumber()
+  maePips?: number;
+
+  @IsOptional()
+  @IsNumber()
+  mfePips?: number;
+
+  @IsOptional()
+  @IsNumber()
+  slippage?: number;
+
+  @IsOptional()
+  @IsEnum(ExecutionGrade)
+  executionGrade?: ExecutionGrade;
+
+  // ========== PHASE 3: Market Context ==========
+  @IsOptional()
+  @IsEnum(MarketCondition)
+  marketCondition?: MarketCondition;
+
+  @IsOptional()
+  @IsEnum(Timeframe)
+  timeframe?: Timeframe;
+
+  @IsOptional()
+  @IsEnum(HTFBias)
+  htfBias?: HTFBias;
+
+  @IsOptional()
+  @IsBoolean()
+  newsImpact?: boolean;
+
+  // ========== PHASE 4: Pre-Trade Checklist ==========
+  @IsOptional()
+  @IsString()
+  entryReason?: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  confirmations?: string[];
+
+  @IsOptional()
+  @IsBoolean()
+  hesitated?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  preparedToLose?: boolean;
+
+  // ========== PHASE 5: Environmental Factors ==========
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  sleepQuality?: number; // 1-5 scale
+
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  energyLevel?: number; // 1-5 scale
+
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  distractionLevel?: number; // 1-5 scale
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  tradingEnvironment?: string;
 
   // rMultiple will typically be calculated by the backend
 }

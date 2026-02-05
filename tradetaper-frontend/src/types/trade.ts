@@ -1,6 +1,14 @@
 // src/types/trade.ts
 
-import { ICTConcept, TradingSession } from './enums'; // Import new enums
+import { 
+  ICTConcept, 
+  TradingSession, 
+  EmotionalState, 
+  ExecutionGrade, 
+  MarketCondition, 
+  HTFBias, 
+  Timeframe 
+} from './enums';
 
 // RE-DEFINED AssetType, TradeDirection, TradeStatus here
 export enum AssetType {
@@ -45,8 +53,8 @@ export interface Trade {
   exitDate?: string;
   exitPrice?: number;
   quantity: number;
-  stopLoss?: number; // Ensure this is here
-  takeProfit?: number; // Ensure this is here
+  stopLoss?: number;
+  takeProfit?: number;
   commission?: number;
   notes?: string;
   profitOrLoss?: number;
@@ -61,10 +69,45 @@ export interface Trade {
   tags?: Tag[];
   createdAt: string;
   updatedAt: string;
-  accountId?: string; // Added: To link trade to an account
-  isStarred?: boolean; // New field for starring trades
-  marginUsed?: number; // Added: Margin used for the trade
-  account?: { id: string; name: string; type: string; balance?: number }; // Populated by backend
+  accountId?: string;
+  isStarred?: boolean;
+  marginUsed?: number;
+  account?: { id: string; name: string; type: string; balance?: number };
+
+  // ========== PHASE 1: Psychology & Emotion Tracking ==========
+  emotionBefore?: EmotionalState;
+  emotionDuring?: EmotionalState;
+  emotionAfter?: EmotionalState;
+  confidenceLevel?: number; // 1-10 scale
+  followedPlan?: boolean;
+  ruleViolations?: string[];
+
+  // ========== PHASE 2: Advanced Performance Metrics ==========
+  plannedRR?: number;
+  maePrice?: number;
+  mfePrice?: number;
+  maePips?: number;
+  mfePips?: number;
+  slippage?: number;
+  executionGrade?: ExecutionGrade;
+
+  // ========== PHASE 3: Market Context ==========
+  marketCondition?: MarketCondition;
+  timeframe?: Timeframe;
+  htfBias?: HTFBias;
+  newsImpact?: boolean;
+
+  // ========== PHASE 4: Pre-Trade Checklist ==========
+  entryReason?: string;
+  confirmations?: string[];
+  hesitated?: boolean;
+  preparedToLose?: boolean;
+
+  // ========== PHASE 5: Environmental Factors ==========
+  sleepQuality?: number; // 1-5 scale
+  energyLevel?: number; // 1-5 scale
+  distractionLevel?: number; // 1-5 scale
+  tradingEnvironment?: string;
 }
 
 export interface CreateTradePayload extends Omit<Partial<Trade>, 'id' | 'userId' | 'createdAt' | 'updatedAt' | 'profitOrLoss' | 'tags'> {

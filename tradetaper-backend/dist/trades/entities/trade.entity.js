@@ -53,6 +53,31 @@ let Trade = class Trade {
     mt5Magic;
     contractSize;
     executionCandles;
+    emotionBefore;
+    emotionDuring;
+    emotionAfter;
+    confidenceLevel;
+    followedPlan;
+    ruleViolations;
+    plannedRR;
+    maePrice;
+    mfePrice;
+    maePips;
+    mfePips;
+    slippage;
+    executionGrade;
+    marketCondition;
+    timeframe;
+    htfBias;
+    newsImpact;
+    entryReason;
+    confirmations;
+    hesitated;
+    preparedToLose;
+    sleepQuality;
+    energyLevel;
+    distractionLevel;
+    tradingEnvironment;
     createdAt;
     updatedAt;
     getContractSize() {
@@ -289,6 +314,140 @@ __decorate([
     (0, typeorm_1.Column)({ type: 'jsonb', nullable: true }),
     __metadata("design:type", Array)
 ], Trade.prototype, "executionCandles", void 0);
+__decorate([
+    (0, typeorm_1.Column)({
+        type: 'enum',
+        enum: enums_1.EmotionalState,
+        nullable: true,
+    }),
+    __metadata("design:type", String)
+], Trade.prototype, "emotionBefore", void 0);
+__decorate([
+    (0, typeorm_1.Column)({
+        type: 'enum',
+        enum: enums_1.EmotionalState,
+        nullable: true,
+    }),
+    __metadata("design:type", String)
+], Trade.prototype, "emotionDuring", void 0);
+__decorate([
+    (0, typeorm_1.Column)({
+        type: 'enum',
+        enum: enums_1.EmotionalState,
+        nullable: true,
+    }),
+    __metadata("design:type", String)
+], Trade.prototype, "emotionAfter", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'int', nullable: true }),
+    __metadata("design:type", Number)
+], Trade.prototype, "confidenceLevel", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'boolean', nullable: true }),
+    __metadata("design:type", Boolean)
+], Trade.prototype, "followedPlan", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'simple-array', nullable: true }),
+    __metadata("design:type", Array)
+], Trade.prototype, "ruleViolations", void 0);
+__decorate([
+    (0, class_transformer_1.Type)(() => Number),
+    (0, typeorm_1.Column)('decimal', { precision: 10, scale: 4, nullable: true }),
+    __metadata("design:type", Number)
+], Trade.prototype, "plannedRR", void 0);
+__decorate([
+    (0, class_transformer_1.Type)(() => Number),
+    (0, typeorm_1.Column)('decimal', { precision: 19, scale: 8, nullable: true }),
+    __metadata("design:type", Number)
+], Trade.prototype, "maePrice", void 0);
+__decorate([
+    (0, class_transformer_1.Type)(() => Number),
+    (0, typeorm_1.Column)('decimal', { precision: 19, scale: 8, nullable: true }),
+    __metadata("design:type", Number)
+], Trade.prototype, "mfePrice", void 0);
+__decorate([
+    (0, class_transformer_1.Type)(() => Number),
+    (0, typeorm_1.Column)('decimal', { precision: 10, scale: 2, nullable: true }),
+    __metadata("design:type", Number)
+], Trade.prototype, "maePips", void 0);
+__decorate([
+    (0, class_transformer_1.Type)(() => Number),
+    (0, typeorm_1.Column)('decimal', { precision: 10, scale: 2, nullable: true }),
+    __metadata("design:type", Number)
+], Trade.prototype, "mfePips", void 0);
+__decorate([
+    (0, class_transformer_1.Type)(() => Number),
+    (0, typeorm_1.Column)('decimal', { precision: 10, scale: 2, nullable: true }),
+    __metadata("design:type", Number)
+], Trade.prototype, "slippage", void 0);
+__decorate([
+    (0, typeorm_1.Column)({
+        type: 'enum',
+        enum: enums_1.ExecutionGrade,
+        nullable: true,
+    }),
+    __metadata("design:type", String)
+], Trade.prototype, "executionGrade", void 0);
+__decorate([
+    (0, typeorm_1.Column)({
+        type: 'enum',
+        enum: enums_1.MarketCondition,
+        nullable: true,
+    }),
+    __metadata("design:type", String)
+], Trade.prototype, "marketCondition", void 0);
+__decorate([
+    (0, typeorm_1.Column)({
+        type: 'enum',
+        enum: enums_1.Timeframe,
+        nullable: true,
+    }),
+    __metadata("design:type", String)
+], Trade.prototype, "timeframe", void 0);
+__decorate([
+    (0, typeorm_1.Column)({
+        type: 'enum',
+        enum: enums_1.HTFBias,
+        nullable: true,
+    }),
+    __metadata("design:type", String)
+], Trade.prototype, "htfBias", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'boolean', nullable: true }),
+    __metadata("design:type", Boolean)
+], Trade.prototype, "newsImpact", void 0);
+__decorate([
+    (0, typeorm_1.Column)('text', { nullable: true }),
+    __metadata("design:type", String)
+], Trade.prototype, "entryReason", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'simple-array', nullable: true }),
+    __metadata("design:type", Array)
+], Trade.prototype, "confirmations", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'boolean', nullable: true }),
+    __metadata("design:type", Boolean)
+], Trade.prototype, "hesitated", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'boolean', nullable: true }),
+    __metadata("design:type", Boolean)
+], Trade.prototype, "preparedToLose", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'int', nullable: true }),
+    __metadata("design:type", Number)
+], Trade.prototype, "sleepQuality", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'int', nullable: true }),
+    __metadata("design:type", Number)
+], Trade.prototype, "energyLevel", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'int', nullable: true }),
+    __metadata("design:type", Number)
+], Trade.prototype, "distractionLevel", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'varchar', length: 100, nullable: true }),
+    __metadata("design:type", String)
+], Trade.prototype, "tradingEnvironment", void 0);
 __decorate([
     (0, typeorm_1.CreateDateColumn)(),
     __metadata("design:type", Date)

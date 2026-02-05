@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.MarketSentiment = exports.MarketMovementType = exports.ICTConcept = exports.TradingSession = exports.TradeStatus = exports.TradeDirection = exports.AssetType = void 0;
+exports.Timeframe = exports.HTFBias = exports.MarketCondition = exports.ExecutionGrade = exports.EmotionalState = exports.MarketSentiment = exports.MarketMovementType = exports.ICTConcept = exports.TradingSession = exports.TradeStatus = exports.TradeDirection = exports.AssetType = void 0;
 var AssetType;
 (function (AssetType) {
     AssetType["STOCK"] = "Stock";
@@ -61,4 +61,56 @@ var MarketSentiment;
     MarketSentiment["BEARISH"] = "Bearish";
     MarketSentiment["NEUTRAL"] = "Neutral";
 })(MarketSentiment || (exports.MarketSentiment = MarketSentiment = {}));
+var EmotionalState;
+(function (EmotionalState) {
+    EmotionalState["CALM"] = "Calm";
+    EmotionalState["CONFIDENT"] = "Confident";
+    EmotionalState["ANXIOUS"] = "Anxious";
+    EmotionalState["FEARFUL"] = "Fearful";
+    EmotionalState["GREEDY"] = "Greedy";
+    EmotionalState["FRUSTRATED"] = "Frustrated";
+    EmotionalState["OVERCONFIDENT"] = "Overconfident";
+    EmotionalState["IMPATIENT"] = "Impatient";
+    EmotionalState["FOMO"] = "FOMO";
+    EmotionalState["REVENGE"] = "Revenge Trading";
+    EmotionalState["BORED"] = "Bored";
+    EmotionalState["FATIGUED"] = "Fatigued";
+})(EmotionalState || (exports.EmotionalState = EmotionalState = {}));
+var ExecutionGrade;
+(function (ExecutionGrade) {
+    ExecutionGrade["A"] = "A";
+    ExecutionGrade["B"] = "B";
+    ExecutionGrade["C"] = "C";
+    ExecutionGrade["D"] = "D";
+    ExecutionGrade["F"] = "F";
+})(ExecutionGrade || (exports.ExecutionGrade = ExecutionGrade = {}));
+var MarketCondition;
+(function (MarketCondition) {
+    MarketCondition["TRENDING_UP"] = "Trending Up";
+    MarketCondition["TRENDING_DOWN"] = "Trending Down";
+    MarketCondition["RANGING"] = "Ranging";
+    MarketCondition["CHOPPY"] = "Choppy";
+    MarketCondition["HIGH_VOLATILITY"] = "High Volatility";
+    MarketCondition["LOW_VOLATILITY"] = "Low Volatility";
+    MarketCondition["NEWS_DRIVEN"] = "News Driven";
+    MarketCondition["PRE_NEWS"] = "Pre-News";
+})(MarketCondition || (exports.MarketCondition = MarketCondition = {}));
+var HTFBias;
+(function (HTFBias) {
+    HTFBias["BULLISH"] = "Bullish";
+    HTFBias["BEARISH"] = "Bearish";
+    HTFBias["NEUTRAL"] = "Neutral";
+})(HTFBias || (exports.HTFBias = HTFBias = {}));
+var Timeframe;
+(function (Timeframe) {
+    Timeframe["M1"] = "1m";
+    Timeframe["M5"] = "5m";
+    Timeframe["M15"] = "15m";
+    Timeframe["M30"] = "30m";
+    Timeframe["H1"] = "1H";
+    Timeframe["H4"] = "4H";
+    Timeframe["D1"] = "1D";
+    Timeframe["W1"] = "1W";
+    Timeframe["MN"] = "1M";
+})(Timeframe || (exports.Timeframe = Timeframe = {}));
 //# sourceMappingURL=enums.js.map

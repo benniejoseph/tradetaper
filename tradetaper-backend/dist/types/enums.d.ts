@@ -51,3 +51,50 @@ export declare enum MarketSentiment {
     BEARISH = "Bearish",
     NEUTRAL = "Neutral"
 }
+export declare enum EmotionalState {
+    CALM = "Calm",
+    CONFIDENT = "Confident",
+    ANXIOUS = "Anxious",
+    FEARFUL = "Fearful",
+    GREEDY = "Greedy",
+    FRUSTRATED = "Frustrated",
+    OVERCONFIDENT = "Overconfident",
+    IMPATIENT = "Impatient",
+    FOMO = "FOMO",
+    REVENGE = "Revenge Trading",
+    BORED = "Bored",
+    FATIGUED = "Fatigued"
+}
+export declare enum ExecutionGrade {
+    A = "A",
+    B = "B",
+    C = "C",
+    D = "D",
+    F = "F"
+}
+export declare enum MarketCondition {
+    TRENDING_UP = "Trending Up",
+    TRENDING_DOWN = "Trending Down",
+    RANGING = "Ranging",
+    CHOPPY = "Choppy",
+    HIGH_VOLATILITY = "High Volatility",
+    LOW_VOLATILITY = "Low Volatility",
+    NEWS_DRIVEN = "News Driven",
+    PRE_NEWS = "Pre-News"
+}
+export declare enum HTFBias {
+    BULLISH = "Bullish",
+    BEARISH = "Bearish",
+    NEUTRAL = "Neutral"
+}
+export declare enum Timeframe {
+    M1 = "1m",
+    M5 = "5m",
+    M15 = "15m",
+    M30 = "30m",
+    H1 = "1H",
+    H4 = "4H",
+    D1 = "1D",
+    W1 = "1W",
+    MN = "1M"
+}
