@@ -64,6 +64,10 @@ import { FaUpload, FaTimesCircle, FaCalculator, FaSave, FaPaperPlane } from 'rea
 import { FormInput } from '../ui/FormInput';
 import { FormSelect } from '../ui/FormSelect';
 import { FormTextarea } from '../ui/FormTextarea';
+import { EmotionChipPicker } from '../ui/EmotionChipPicker';
+import { StarRating } from '../ui/StarRating';
+import { ToggleChip } from '../ui/ToggleChip';
+import { ChipSelector } from '../ui/ChipSelector';
 
 interface TagOption {
   readonly label: string;
@@ -917,245 +921,166 @@ export default function TradeForm({ initialData, isEditMode = false, onFormSubmi
             </div>
         </div>
         
-        {/* Section 6: Psychology & Mindset (Collapsible) */}
-        <details className={sectionContainerClasses}>
-          <summary className="cursor-pointer list-none">
-            <h2 className={sectionTitleClasses}>
-              <div className="p-2 bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-xl">
-                <span className="text-xl">🧠</span>
-              </div>
-              <span>Psychology & Mindset</span>
-              <span className="ml-auto text-xs text-gray-400 font-normal">(Click to expand)</span>
-            </h2>
-          </summary>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-5 mt-4">
-            <div>
-              <FormSelect
-                label="Emotion Before Trade"
-                id="emotionBefore"
-                name="emotionBefore"
-                value={formData.emotionBefore || ''}
-                onChange={handleChange}
-              >
-                <option value="">Select emotion...</option>
-                {Object.values(EmotionalState).map(e => <option key={e} value={e}>{e}</option>)}
-              </FormSelect>
-            </div>
-            <div>
-              <FormSelect
-                label="Emotion During Trade"
-                id="emotionDuring"
-                name="emotionDuring"
-                value={formData.emotionDuring || ''}
-                onChange={handleChange}
-              >
-                <option value="">Select emotion...</option>
-                {Object.values(EmotionalState).map(e => <option key={e} value={e}>{e}</option>)}
-              </FormSelect>
-            </div>
-            <div>
-              <FormSelect
-                label="Emotion After Trade"
-                id="emotionAfter"
-                name="emotionAfter"
-                value={formData.emotionAfter || ''}
-                onChange={handleChange}
-              >
-                <option value="">Select emotion...</option>
-                {Object.values(EmotionalState).map(e => <option key={e} value={e}>{e}</option>)}
-              </FormSelect>
-            </div>
-            <div>
-              <FormInput
-                label="Confidence Level (1-10)"
-                type="number"
-                id="confidenceLevel"
-                name="confidenceLevel"
-                value={formData.confidenceLevel || ''}
-                onChange={handleChange}
-                placeholder="1-10"
-                min={1}
-                max={10}
-              />
-            </div>
-            <div>
-              <FormSelect
-                label="Followed Trading Plan?"
-                id="followedPlan"
-                name="followedPlan"
-                value={formData.followedPlan === undefined ? '' : formData.followedPlan ? 'true' : 'false'}
-                onChange={(e) => setFormData(prev => ({...prev, followedPlan: e.target.value === '' ? undefined : e.target.value === 'true'}))}
-              >
-                <option value="">Select...</option>
-                <option value="true">Yes</option>
-                <option value="false">No</option>
-              </FormSelect>
-            </div>
-            <div>
-              <FormSelect
-                label="Execution Grade"
-                id="executionGrade"
-                name="executionGrade"
-                value={formData.executionGrade || ''}
-                onChange={handleChange}
-              >
-                <option value="">Select grade...</option>
-                {Object.values(ExecutionGrade).map(g => <option key={g} value={g}>{g}</option>)}
-              </FormSelect>
-            </div>
+        {/* Section 6: Psychology & Mindset (Compact) */}
+        <div className="bg-gradient-to-r from-purple-500/5 to-pink-500/5 dark:from-purple-500/10 dark:to-pink-500/10 rounded-2xl p-5 border border-purple-200/30 dark:border-purple-500/20">
+          <div className="flex items-center gap-2 mb-4">
+            <span className="text-xl">🧠</span>
+            <span className="text-sm font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Psychology & Mindset</span>
           </div>
-          <div className="mt-4">
-            <FormTextarea
-              label="Entry Reason"
-              id="entryReason"
-              name="entryReason"
-              value={formData.entryReason || ''}
-              onChange={handleChange}
-              placeholder="What was your specific reason for entering this trade?"
+          
+          {/* Emotions Row */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+            <EmotionChipPicker 
+              label="Before Trade" 
+              value={formData.emotionBefore} 
+              onChange={(v) => setFormData(prev => ({...prev, emotionBefore: v as any}))} 
+            />
+            <EmotionChipPicker 
+              label="During Trade" 
+              value={formData.emotionDuring} 
+              onChange={(v) => setFormData(prev => ({...prev, emotionDuring: v as any}))} 
+            />
+            <EmotionChipPicker 
+              label="After Trade" 
+              value={formData.emotionAfter} 
+              onChange={(v) => setFormData(prev => ({...prev, emotionAfter: v as any}))} 
             />
           </div>
-        </details>
+          
+          {/* Quick Metrics Row */}
+          <div className="flex flex-wrap items-center gap-6">
+            <StarRating 
+              label="Confidence" 
+              value={formData.confidenceLevel} 
+              onChange={(v) => setFormData(prev => ({...prev, confidenceLevel: v}))} 
+              max={5} 
+            />
+            <ToggleChip 
+              label="Followed Plan" 
+              value={formData.followedPlan} 
+              onChange={(v) => setFormData(prev => ({...prev, followedPlan: v}))} 
+            />
+            <ChipSelector
+              label="Grade"
+              value={formData.executionGrade}
+              onChange={(v) => setFormData(prev => ({...prev, executionGrade: v as any}))}
+              options={[
+                { value: 'A', label: 'A' },
+                { value: 'B', label: 'B' },
+                { value: 'C', label: 'C' },
+                { value: 'D', label: 'D' },
+                { value: 'F', label: 'F' },
+              ]}
+              color="purple"
+            />
+          </div>
+        </div>
 
-        {/* Section 7: Market Context (Collapsible) */}
-        <details className={sectionContainerClasses}>
-          <summary className="cursor-pointer list-none">
-            <h2 className={sectionTitleClasses}>
-              <div className="p-2 bg-gradient-to-r from-blue-500/20 to-cyan-500/20 rounded-xl">
-                <span className="text-xl">📊</span>
-              </div>
-              <span>Market Context</span>
-              <span className="ml-auto text-xs text-gray-400 font-normal">(Click to expand)</span>
-            </h2>
-          </summary>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-5 mt-4">
-            <div>
-              <FormSelect
-                label="Market Condition"
-                id="marketCondition"
-                name="marketCondition"
-                value={formData.marketCondition || ''}
-                onChange={handleChange}
-              >
-                <option value="">Select condition...</option>
-                {Object.values(MarketCondition).map(c => <option key={c} value={c}>{c}</option>)}
-              </FormSelect>
-            </div>
-            <div>
-              <FormSelect
-                label="Chart Timeframe"
-                id="timeframe"
-                name="timeframe"
-                value={formData.timeframe || ''}
-                onChange={handleChange}
-              >
-                <option value="">Select timeframe...</option>
-                {Object.values(Timeframe).map(t => <option key={t} value={t}>{t}</option>)}
-              </FormSelect>
-            </div>
-            <div>
-              <FormSelect
-                label="HTF Bias"
-                id="htfBias"
-                name="htfBias"
-                value={formData.htfBias || ''}
-                onChange={handleChange}
-              >
-                <option value="">Select bias...</option>
-                {Object.values(HTFBias).map(b => <option key={b} value={b}>{b}</option>)}
-              </FormSelect>
-            </div>
-            <div>
-              <FormSelect
-                label="High-Impact News Nearby?"
-                id="newsImpact"
-                name="newsImpact"
-                value={formData.newsImpact === undefined ? '' : formData.newsImpact ? 'true' : 'false'}
-                onChange={(e) => setFormData(prev => ({...prev, newsImpact: e.target.value === '' ? undefined : e.target.value === 'true'}))}
-              >
-                <option value="">Select...</option>
-                <option value="true">Yes</option>
-                <option value="false">No</option>
-              </FormSelect>
-            </div>
-            <div>
-              <FormInput
-                label="Planned R:R"
+        {/* Section 7: Market Context (Compact) */}
+        <div className="bg-gradient-to-r from-blue-500/5 to-cyan-500/5 dark:from-blue-500/10 dark:to-cyan-500/10 rounded-2xl p-5 border border-blue-200/30 dark:border-blue-500/20">
+          <div className="flex items-center gap-2 mb-4">
+            <span className="text-xl">📊</span>
+            <span className="text-sm font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Market Context</span>
+          </div>
+          
+          <div className="flex flex-wrap items-start gap-6">
+            <ChipSelector
+              label="Condition"
+              value={formData.marketCondition}
+              onChange={(v) => setFormData(prev => ({...prev, marketCondition: v as any}))}
+              options={[
+                { value: 'Trending Up', label: '📈 Up', emoji: '' },
+                { value: 'Trending Down', label: '📉 Down', emoji: '' },
+                { value: 'Ranging', label: '↔️ Range', emoji: '' },
+                { value: 'Choppy', label: '〰️ Chop', emoji: '' },
+                { value: 'Volatile', label: '⚡ Vol', emoji: '' },
+              ]}
+              color="blue"
+            />
+            <ChipSelector
+              label="Timeframe"
+              value={formData.timeframe}
+              onChange={(v) => setFormData(prev => ({...prev, timeframe: v as any}))}
+              options={[
+                { value: '1m', label: '1m' },
+                { value: '5m', label: '5m' },
+                { value: '15m', label: '15m' },
+                { value: '1H', label: '1H' },
+                { value: '4H', label: '4H' },
+                { value: '1D', label: 'D' },
+              ]}
+              color="blue"
+            />
+            <ChipSelector
+              label="HTF Bias"
+              value={formData.htfBias}
+              onChange={(v) => setFormData(prev => ({...prev, htfBias: v as any}))}
+              options={[
+                { value: 'Bullish', label: '🟢 Bull' },
+                { value: 'Bearish', label: '🔴 Bear' },
+                { value: 'Neutral', label: '⚪ Neutral' },
+              ]}
+              color="blue"
+            />
+            <ToggleChip 
+              label="News" 
+              value={formData.newsImpact} 
+              onChange={(v) => setFormData(prev => ({...prev, newsImpact: v}))}
+              yesLabel="📰"
+              noLabel="—"
+            />
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">R:R</span>
+              <input
                 type="number"
-                id="plannedRR"
-                name="plannedRR"
                 value={formData.plannedRR || ''}
-                onChange={handleChange}
-                placeholder="e.g., 2.5"
-                step="0.1"
+                onChange={(e) => setFormData(prev => ({...prev, plannedRR: e.target.value ? parseFloat(e.target.value) : undefined}))}
+                placeholder="2.0"
+                step="0.5"
+                className="w-16 px-2 py-1 text-sm font-bold text-center rounded-lg bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
           </div>
-        </details>
+        </div>
 
-        {/* Section 8: Environment (Collapsible) */}
-        <details className={sectionContainerClasses}>
-          <summary className="cursor-pointer list-none">
-            <h2 className={sectionTitleClasses}>
-              <div className="p-2 bg-gradient-to-r from-green-500/20 to-teal-500/20 rounded-xl">
-                <span className="text-xl">🏠</span>
-              </div>
-              <span>Trading Environment</span>
-              <span className="ml-auto text-xs text-gray-400 font-normal">(Click to expand)</span>
-            </h2>
-          </summary>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-x-6 gap-y-5 mt-4">
-            <div>
-              <FormInput
-                label="Sleep Quality (1-5)"
-                type="number"
-                id="sleepQuality"
-                name="sleepQuality"
-                value={formData.sleepQuality || ''}
-                onChange={handleChange}
-                placeholder="1-5"
-                min={1}
-                max={5}
-              />
-            </div>
-            <div>
-              <FormInput
-                label="Energy Level (1-5)"
-                type="number"
-                id="energyLevel"
-                name="energyLevel"
-                value={formData.energyLevel || ''}
-                onChange={handleChange}
-                placeholder="1-5"
-                min={1}
-                max={5}
-              />
-            </div>
-            <div>
-              <FormInput
-                label="Distraction Level (1-5)"
-                type="number"
-                id="distractionLevel"
-                name="distractionLevel"
-                value={formData.distractionLevel || ''}
-                onChange={handleChange}
-                placeholder="1-5"
-                min={1}
-                max={5}
-              />
-            </div>
-            <div>
-              <FormInput
-                label="Environment"
+        {/* Section 8: Environment (Compact) */}
+        <div className="bg-gradient-to-r from-green-500/5 to-teal-500/5 dark:from-green-500/10 dark:to-teal-500/10 rounded-2xl p-5 border border-green-200/30 dark:border-green-500/20">
+          <div className="flex items-center gap-2 mb-4">
+            <span className="text-xl">🏠</span>
+            <span className="text-sm font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Trading Environment</span>
+          </div>
+          
+          <div className="flex flex-wrap items-center gap-6">
+            <StarRating 
+              label="Sleep" 
+              value={formData.sleepQuality} 
+              onChange={(v) => setFormData(prev => ({...prev, sleepQuality: v}))} 
+              max={5} 
+            />
+            <StarRating 
+              label="Energy" 
+              value={formData.energyLevel} 
+              onChange={(v) => setFormData(prev => ({...prev, energyLevel: v}))} 
+              max={5} 
+            />
+            <StarRating 
+              label="Focus" 
+              value={formData.distractionLevel ? 6 - formData.distractionLevel : undefined} 
+              onChange={(v) => setFormData(prev => ({...prev, distractionLevel: v ? 6 - v : undefined}))} 
+              max={5} 
+            />
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Location</span>
+              <input
                 type="text"
-                id="tradingEnvironment"
-                name="tradingEnvironment"
                 value={formData.tradingEnvironment || ''}
-                onChange={handleChange}
-                placeholder="e.g., Home Office, Mobile"
+                onChange={(e) => setFormData(prev => ({...prev, tradingEnvironment: e.target.value}))}
+                placeholder="Home, Office..."
+                className="w-28 px-2 py-1 text-sm rounded-lg bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 focus:ring-2 focus:ring-green-500 focus:border-transparent"
               />
             </div>
           </div>
-        </details>
+        </div>
 
         {/* Section 9: Chart Upload */}
         <div className={sectionContainerClasses}>
