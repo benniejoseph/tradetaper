@@ -265,6 +265,7 @@ export default function ViewTradePage() {
 
             <div className="space-y-2">
               <SidebarField label="Account" value={trade.account?.name || trade.accountName} icon={<Layers className="w-3 h-3" />} />
+              <SidebarField label="Strategy" value={(trade as any).strategy?.name || "Manual"} icon={<Brain className="w-3 h-3" />} />
               <SidebarField label="Asset" value={trade.assetType} icon={<Target className="w-3 h-3" />} />
               <SidebarField label="Entry" value={`${formatPrice(trade.entryPrice)} @ ${formatDateFns(new Date(trade.entryDate), 'MMM dd, HH:mm')}`} icon={<Clock className="w-3 h-3" />} />
               <SidebarField label="Exit" value={trade.exitDate ? `${formatPrice(trade.exitPrice)} @ ${formatDateFns(new Date(trade.exitDate), 'MMM dd, HH:mm')}` : 'Open'} icon={<Clock className="w-3 h-3" />} />
@@ -304,6 +305,23 @@ export default function ViewTradePage() {
         </div>
       </div>
 
+      {/* Uploaded Chart Snapshot */}
+      {trade.imageUrl && (
+         <div className="col-span-12">
+            <div className="bg-white dark:bg-[#0A0A0A] border border-zinc-200 dark:border-white/5 rounded-2xl p-6 shadow-xl space-y-4">
+                <div className="flex items-center gap-2">
+                    <div className="p-2 bg-indigo-100 dark:bg-indigo-500/10 rounded-lg text-indigo-500">
+                      <BarChart3 className="w-4 h-4" />
+                    </div>
+                    <h3 className="text-sm font-bold text-zinc-900 dark:text-white uppercase tracking-tight">Snippet Snapshot</h3>
+                </div>
+                <div className="rounded-xl overflow-hidden border border-zinc-100 dark:border-white/5 bg-zinc-50 dark:bg-black/20">
+                    <img src={trade.imageUrl} alt="Trade Snapshot" className="max-h-[500px] w-full object-contain" />
+                </div>
+            </div>
+         </div>
+      )}
+
       {/* Notes Section */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         <div className="bg-white dark:bg-[#0A0A0A] border border-zinc-200 dark:border-white/5 rounded-2xl p-6 space-y-4 shadow-xl">
@@ -313,7 +331,15 @@ export default function ViewTradePage() {
             </div>
             <h3 className="text-sm font-bold text-zinc-900 dark:text-white uppercase tracking-tight">Analysis</h3>
           </div>
-          <div className="space-y-3">
+          <div className="space-y-4">
+            {trade.entryReason && (
+              <div>
+                <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider mb-1">Entry Reason</p>
+                <div className="bg-zinc-50 dark:bg-white/[0.02] p-4 rounded-xl border border-zinc-100 dark:border-white/5">
+                  <p className="text-zinc-700 dark:text-gray-300 text-sm leading-relaxed whitespace-pre-wrap">{trade.entryReason}</p>
+                </div>
+              </div>
+            )}
             <div>
               <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider mb-1">Notes</p>
               <div className="bg-zinc-50 dark:bg-white/[0.02] p-4 rounded-xl border border-zinc-100 dark:border-white/5">
