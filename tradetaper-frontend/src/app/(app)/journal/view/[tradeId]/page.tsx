@@ -172,6 +172,83 @@ export default function ViewTradePage() {
               <span key={i} className="px-4 py-2 bg-zinc-100 dark:bg-white/5 text-zinc-600 dark:text-gray-400 text-[10px] font-black rounded-xl border border-zinc-200 dark:border-white/10 uppercase tracking-widest">{typeof tag === 'string' ? tag : tag.name}</span>
             ))}
           </div>
+
+          {/* Psychology, Context & Environment Badges */}
+          {(trade.emotionBefore || trade.emotionDuring || trade.emotionAfter || trade.confidenceLevel || trade.marketCondition || trade.timeframe || trade.sleepQuality) && (
+            <div className="bg-white/80 dark:bg-white/5 backdrop-blur-md p-4 rounded-[2rem] border border-zinc-200 dark:border-white/5 space-y-3">
+              {/* Psychology Row */}
+              {(trade.emotionBefore || trade.emotionDuring || trade.emotionAfter || trade.confidenceLevel || trade.followedPlan !== undefined || trade.executionGrade) && (
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-sm mr-2">🧠</span>
+                  {trade.emotionBefore && (
+                    <span className="px-2 py-1 bg-purple-500/10 text-purple-600 dark:text-purple-400 text-[9px] font-bold rounded-lg">Before: {trade.emotionBefore}</span>
+                  )}
+                  {trade.emotionDuring && (
+                    <span className="px-2 py-1 bg-purple-500/10 text-purple-600 dark:text-purple-400 text-[9px] font-bold rounded-lg">During: {trade.emotionDuring}</span>
+                  )}
+                  {trade.emotionAfter && (
+                    <span className="px-2 py-1 bg-purple-500/10 text-purple-600 dark:text-purple-400 text-[9px] font-bold rounded-lg">After: {trade.emotionAfter}</span>
+                  )}
+                  {trade.confidenceLevel && (
+                    <span className="px-2 py-1 bg-amber-500/10 text-amber-600 dark:text-amber-400 text-[9px] font-bold rounded-lg">{'★'.repeat(trade.confidenceLevel)}{'☆'.repeat(5 - trade.confidenceLevel)}</span>
+                  )}
+                  {trade.followedPlan !== undefined && (
+                    <span className={`px-2 py-1 text-[9px] font-bold rounded-lg ${trade.followedPlan ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-red-500/10 text-red-600 dark:text-red-400'}`}>
+                      {trade.followedPlan ? '✓ Plan' : '✗ Plan'}
+                    </span>
+                  )}
+                  {trade.executionGrade && (
+                    <span className="px-2 py-1 bg-purple-500/20 text-purple-700 dark:text-purple-300 text-[9px] font-black rounded-lg">Grade {trade.executionGrade}</span>
+                  )}
+                </div>
+              )}
+
+              {/* Market Context Row */}
+              {(trade.marketCondition || trade.timeframe || trade.htfBias || trade.newsImpact !== undefined) && (
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-sm mr-2">📊</span>
+                  {trade.marketCondition && (
+                    <span className="px-2 py-1 bg-blue-500/10 text-blue-600 dark:text-blue-400 text-[9px] font-bold rounded-lg">{trade.marketCondition}</span>
+                  )}
+                  {trade.timeframe && (
+                    <span className="px-2 py-1 bg-blue-500/10 text-blue-600 dark:text-blue-400 text-[9px] font-bold rounded-lg">{trade.timeframe}</span>
+                  )}
+                  {trade.htfBias && (
+                    <span className={`px-2 py-1 text-[9px] font-bold rounded-lg ${trade.htfBias === 'Bullish' ? 'bg-emerald-500/10 text-emerald-600' : trade.htfBias === 'Bearish' ? 'bg-red-500/10 text-red-600' : 'bg-gray-500/10 text-gray-600'}`}>
+                      {trade.htfBias === 'Bullish' ? '🟢' : trade.htfBias === 'Bearish' ? '🔴' : '⚪'} {trade.htfBias}
+                    </span>
+                  )}
+                  {trade.newsImpact !== undefined && (
+                    <span className={`px-2 py-1 text-[9px] font-bold rounded-lg ${trade.newsImpact ? 'bg-orange-500/10 text-orange-600' : 'bg-gray-500/10 text-gray-500'}`}>
+                      {trade.newsImpact ? '📰 News' : 'No News'}
+                    </span>
+                  )}
+                  {trade.plannedRR && (
+                    <span className="px-2 py-1 bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 text-[9px] font-bold rounded-lg">R:R {trade.plannedRR}</span>
+                  )}
+                </div>
+              )}
+
+              {/* Environment Row */}
+              {(trade.sleepQuality || trade.energyLevel || trade.distractionLevel || trade.tradingEnvironment) && (
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-sm mr-2">🏠</span>
+                  {trade.sleepQuality && (
+                    <span className="px-2 py-1 bg-green-500/10 text-green-600 dark:text-green-400 text-[9px] font-bold rounded-lg">😴 {trade.sleepQuality}/5</span>
+                  )}
+                  {trade.energyLevel && (
+                    <span className="px-2 py-1 bg-green-500/10 text-green-600 dark:text-green-400 text-[9px] font-bold rounded-lg">⚡ {trade.energyLevel}/5</span>
+                  )}
+                  {trade.distractionLevel && (
+                    <span className="px-2 py-1 bg-green-500/10 text-green-600 dark:text-green-400 text-[9px] font-bold rounded-lg">🎯 {6 - trade.distractionLevel}/5</span>
+                  )}
+                  {trade.tradingEnvironment && (
+                    <span className="px-2 py-1 bg-teal-500/10 text-teal-600 dark:text-teal-400 text-[9px] font-bold rounded-lg">📍 {trade.tradingEnvironment}</span>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Workspace: 30% Desk Metadata */}
