@@ -179,80 +179,118 @@ export default function ViewTradePage() {
             ))}
           </div>
 
-          {/* Psychology/Market/Environment Badges */}
-          {(trade.emotionBefore || trade.emotionDuring || trade.emotionAfter || trade.confidenceLevel || trade.marketCondition || trade.sleepQuality) && (
-            <div className="bg-white/80 dark:bg-white/[0.02] backdrop-blur-md p-4 rounded-xl border border-zinc-200 dark:border-white/5 space-y-2">
-              {/* Psychology */}
-              {(trade.emotionBefore || trade.emotionDuring || trade.emotionAfter || trade.confidenceLevel || trade.followedPlan !== undefined || trade.executionGrade) && (
-                <div className="flex flex-wrap items-center gap-2">
-                  <Brain className="w-3.5 h-3.5 text-purple-500 mr-1" />
-                  {trade.emotionBefore && <span className="px-2 py-1 bg-purple-100 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400 text-[9px] font-semibold rounded-md">Before: {trade.emotionBefore}</span>}
-                  {trade.emotionDuring && <span className="px-2 py-1 bg-purple-100 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400 text-[9px] font-semibold rounded-md">During: {trade.emotionDuring}</span>}
-                  {trade.emotionAfter && <span className="px-2 py-1 bg-purple-100 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400 text-[9px] font-semibold rounded-md">After: {trade.emotionAfter}</span>}
-                  {trade.confidenceLevel && (
-                    <span className="px-2 py-1 bg-amber-100 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 text-[9px] font-semibold rounded-md flex items-center gap-0.5">
-                      {[...Array(trade.confidenceLevel)].map((_, i) => <Star key={i} className="w-2.5 h-2.5 fill-current" />)}
-                    </span>
-                  )}
-                  {trade.followedPlan !== undefined && (
-                    <span className={`px-2 py-1 text-[9px] font-semibold rounded-md flex items-center gap-1 ${trade.followedPlan ? 'bg-emerald-100 dark:bg-emerald-500/10 text-emerald-600' : 'bg-red-100 dark:bg-red-500/10 text-red-600'}`}>
-                      {trade.followedPlan ? <CheckCircle className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
-                      Plan
-                    </span>
-                  )}
-                  {trade.executionGrade && <span className="px-2 py-1 bg-purple-200 dark:bg-purple-500/20 text-purple-700 dark:text-purple-300 text-[9px] font-bold rounded-md">Grade {trade.executionGrade}</span>}
+          {/* Psychology/Market/Environment Grid */}
+          <div className="bg-white/80 dark:bg-white/[0.02] backdrop-blur-md p-5 rounded-xl border border-zinc-200 dark:border-white/5 space-y-6">
+            
+            {/* Psychology */}
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 mb-2">
+                <Brain className="w-3.5 h-3.5 text-purple-500" />
+                <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Psychology</span>
+              </div>
+              <div className="flex flex-wrap gap-3">
+                <div className="px-3 py-1.5 bg-zinc-50 dark:bg-white/5 rounded-lg border border-zinc-100 dark:border-white/5">
+                  <span className="text-[9px] text-zinc-400 block mb-0.5 uppercase">Before</span>
+                  <span className="text-xs font-semibold text-zinc-700 dark:text-gray-300">{trade.emotionBefore || "—"}</span>
                 </div>
-              )}
-
-              {/* Market Context */}
-              {(trade.marketCondition || trade.timeframe || trade.htfBias || trade.newsImpact !== undefined) && (
-                <div className="flex flex-wrap items-center gap-2">
-                  <BarChart3 className="w-3.5 h-3.5 text-blue-500 mr-1" />
-                  {trade.marketCondition && <span className="px-2 py-1 bg-blue-100 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 text-[9px] font-semibold rounded-md">{trade.marketCondition}</span>}
-                  {trade.timeframe && <span className="px-2 py-1 bg-blue-100 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 text-[9px] font-semibold rounded-md">{trade.timeframe}</span>}
-                  {trade.htfBias && (
-                    <span className={`px-2 py-1 text-[9px] font-semibold rounded-md ${trade.htfBias === 'Bullish' ? 'bg-emerald-100 dark:bg-emerald-500/10 text-emerald-600' : trade.htfBias === 'Bearish' ? 'bg-red-100 dark:bg-red-500/10 text-red-600' : 'bg-gray-100 dark:bg-gray-500/10 text-gray-600'}`}>
-                      {trade.htfBias}
-                    </span>
-                  )}
-                  {trade.newsImpact !== undefined && (
-                    <span className={`px-2 py-1 text-[9px] font-semibold rounded-md flex items-center gap-1 ${trade.newsImpact ? 'bg-orange-100 dark:bg-orange-500/10 text-orange-600' : 'bg-gray-100 dark:bg-gray-500/10 text-gray-500'}`}>
-                      <Newspaper className="w-3 h-3" />
-                      {trade.newsImpact ? 'News' : 'No News'}
-                    </span>
-                  )}
-                  {trade.plannedRR && <span className="px-2 py-1 bg-cyan-100 dark:bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 text-[9px] font-semibold rounded-md">R:R {trade.plannedRR}</span>}
+                <div className="px-3 py-1.5 bg-zinc-50 dark:bg-white/5 rounded-lg border border-zinc-100 dark:border-white/5">
+                  <span className="text-[9px] text-zinc-400 block mb-0.5 uppercase">During</span>
+                  <span className="text-xs font-semibold text-zinc-700 dark:text-gray-300">{trade.emotionDuring || "—"}</span>
                 </div>
-              )}
-
-              {/* Environment */}
-              {(trade.sleepQuality || trade.energyLevel || trade.distractionLevel || trade.tradingEnvironment) && (
-                <div className="flex flex-wrap items-center gap-2">
-                  <Home className="w-3.5 h-3.5 text-green-500 mr-1" />
-                  {trade.sleepQuality && (
-                    <span className="px-2 py-1 bg-green-100 dark:bg-green-500/10 text-green-600 dark:text-green-400 text-[9px] font-semibold rounded-md flex items-center gap-1">
-                      <Moon className="w-3 h-3" /> {trade.sleepQuality}/5
-                    </span>
-                  )}
-                  {trade.energyLevel && (
-                    <span className="px-2 py-1 bg-green-100 dark:bg-green-500/10 text-green-600 dark:text-green-400 text-[9px] font-semibold rounded-md flex items-center gap-1">
-                      <Zap className="w-3 h-3" /> {trade.energyLevel}/5
-                    </span>
-                  )}
-                  {trade.distractionLevel && (
-                    <span className="px-2 py-1 bg-green-100 dark:bg-green-500/10 text-green-600 dark:text-green-400 text-[9px] font-semibold rounded-md flex items-center gap-1">
-                      <Target className="w-3 h-3" /> {6 - trade.distractionLevel}/5
-                    </span>
-                  )}
-                  {trade.tradingEnvironment && (
-                    <span className="px-2 py-1 bg-teal-100 dark:bg-teal-500/10 text-teal-600 dark:text-teal-400 text-[9px] font-semibold rounded-md flex items-center gap-1">
-                      <MapPin className="w-3 h-3" /> {trade.tradingEnvironment}
-                    </span>
-                  )}
+                <div className="px-3 py-1.5 bg-zinc-50 dark:bg-white/5 rounded-lg border border-zinc-100 dark:border-white/5">
+                  <span className="text-[9px] text-zinc-400 block mb-0.5 uppercase">After</span>
+                  <span className="text-xs font-semibold text-zinc-700 dark:text-gray-300">{trade.emotionAfter || "—"}</span>
                 </div>
-              )}
+                <div className="px-3 py-1.5 bg-zinc-50 dark:bg-white/5 rounded-lg border border-zinc-100 dark:border-white/5">
+                  <span className="text-[9px] text-zinc-400 block mb-0.5 uppercase">Confidence</span>
+                  <div className="flex items-center gap-0.5 h-[18px]">
+                    {trade.confidenceLevel ? (
+                      [...Array(5)].map((_, i) => (
+                        <Star key={i} className={`w-2.5 h-2.5 ${i < trade.confidenceLevel! ? 'fill-amber-400 text-amber-400' : 'text-zinc-200 dark:text-zinc-700'}`} />
+                      ))
+                    ) : <span className="text-xs text-zinc-300">—</span>}
+                  </div>
+                </div>
+                <div className="px-3 py-1.5 bg-zinc-50 dark:bg-white/5 rounded-lg border border-zinc-100 dark:border-white/5">
+                  <span className="text-[9px] text-zinc-400 block mb-0.5 uppercase">Followed Plan</span>
+                  {trade.followedPlan !== undefined ? (
+                    <span className={`text-xs font-bold flex items-center gap-1 ${trade.followedPlan ? 'text-emerald-500' : 'text-red-500'}`}>
+                      {trade.followedPlan ? <CheckCircle className="w-3 h-3" /> : <XCircle className="w-3 h-3" />} {trade.followedPlan ? 'Yes' : 'No'}
+                    </span>
+                  ) : <span className="text-xs text-zinc-300">—</span>}
+                </div>
+                <div className="px-3 py-1.5 bg-zinc-50 dark:bg-white/5 rounded-lg border border-zinc-100 dark:border-white/5">
+                  <span className="text-[9px] text-zinc-400 block mb-0.5 uppercase">Execution</span>
+                  <span className="text-xs font-semibold text-zinc-700 dark:text-gray-300">{trade.executionGrade ? `Grade ${trade.executionGrade}` : "—"}</span>
+                </div>
+              </div>
             </div>
-          )}
+
+            {/* Market Context */}
+            <div className="pt-4 border-t border-dashed border-zinc-200 dark:border-white/5 space-y-2">
+              <div className="flex items-center gap-2 mb-2">
+                <BarChart3 className="w-3.5 h-3.5 text-blue-500" />
+                <span className="text[10px] font-bold text-zinc-400 uppercase tracking-wider">Market Context</span>
+              </div>
+              <div className="flex flex-wrap gap-3">
+                 <div className="px-3 py-1.5 bg-zinc-50 dark:bg-white/5 rounded-lg border border-zinc-100 dark:border-white/5">
+                  <span className="text-[9px] text-zinc-400 block mb-0.5 uppercase">Condition</span>
+                  <span className="text-xs font-semibold text-zinc-700 dark:text-gray-300">{trade.marketCondition || "—"}</span>
+                </div>
+                <div className="px-3 py-1.5 bg-zinc-50 dark:bg-white/5 rounded-lg border border-zinc-100 dark:border-white/5">
+                  <span className="text-[9px] text-zinc-400 block mb-0.5 uppercase">Timeframe</span>
+                  <span className="text-xs font-semibold text-zinc-700 dark:text-gray-300">{trade.timeframe || "—"}</span>
+                </div>
+                <div className="px-3 py-1.5 bg-zinc-50 dark:bg-white/5 rounded-lg border border-zinc-100 dark:border-white/5">
+                  <span className="text-[9px] text-zinc-400 block mb-0.5 uppercase">HTF Bias</span>
+                  <span className={`text-xs font-bold ${trade.htfBias === 'Bullish' ? 'text-emerald-500' : trade.htfBias === 'Bearish' ? 'text-red-500' : 'text-zinc-500'}`}>{trade.htfBias || "—"}</span>
+                </div>
+                <div className="px-3 py-1.5 bg-zinc-50 dark:bg-white/5 rounded-lg border border-zinc-100 dark:border-white/5">
+                  <span className="text-[9px] text-zinc-400 block mb-0.5 uppercase">News</span>
+                  <span className={`text-xs font-bold ${trade.newsImpact ? 'text-orange-500' : 'text-zinc-300'}`}>{trade.newsImpact ? 'Impact' : trade.newsImpact === false ? 'None' : "—"}</span>
+                </div>
+                <div className="px-3 py-1.5 bg-zinc-50 dark:bg-white/5 rounded-lg border border-zinc-100 dark:border-white/5">
+                  <span className="text-[9px] text-zinc-400 block mb-0.5 uppercase">Planned R:R</span>
+                  <span className="text-xs font-semibold text-zinc-700 dark:text-gray-300">{trade.plannedRR ? `${trade.plannedRR}R` : "—"}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Environment */}
+            <div className="pt-4 border-t border-dashed border-zinc-200 dark:border-white/5 space-y-2">
+              <div className="flex items-center gap-2 mb-2">
+                <Home className="w-3.5 h-3.5 text-green-500" />
+                <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Environment</span>
+              </div>
+              <div className="flex flex-wrap gap-3">
+                <div className="px-3 py-1.5 bg-zinc-50 dark:bg-white/5 rounded-lg border border-zinc-100 dark:border-white/5">
+                  <span className="text-[9px] text-zinc-400 block mb-0.5 uppercase">Sleep</span>
+                  <span className="text-xs font-semibold text-zinc-700 dark:text-gray-300 flex items-center gap-1">
+                    {trade.sleepQuality ? <>{trade.sleepQuality}/5 <Moon className="w-2.5 h-2.5" /></> : "—"}
+                  </span>
+                </div>
+                <div className="px-3 py-1.5 bg-zinc-50 dark:bg-white/5 rounded-lg border border-zinc-100 dark:border-white/5">
+                  <span className="text-[9px] text-zinc-400 block mb-0.5 uppercase">Energy</span>
+                  <span className="text-xs font-semibold text-zinc-700 dark:text-gray-300 flex items-center gap-1">
+                     {trade.energyLevel ? <>{trade.energyLevel}/5 <Zap className="w-2.5 h-2.5" /></> : "—"}
+                  </span>
+                </div>
+                <div className="px-3 py-1.5 bg-zinc-50 dark:bg-white/5 rounded-lg border border-zinc-100 dark:border-white/5">
+                  <span className="text-[9px] text-zinc-400 block mb-0.5 uppercase">Focus</span>
+                  <span className="text-xs font-semibold text-zinc-700 dark:text-gray-300 flex items-center gap-1">
+                    {trade.distractionLevel ? <>{6 - trade.distractionLevel}/5 <Target className="w-2.5 h-2.5" /></> : "—"}
+                  </span>
+                </div>
+                <div className="px-3 py-1.5 bg-zinc-50 dark:bg-white/5 rounded-lg border border-zinc-100 dark:border-white/5">
+                  <span className="text-[9px] text-zinc-400 block mb-0.5 uppercase">Location</span>
+                  <span className="text-xs font-semibold text-zinc-700 dark:text-gray-300 flex items-center gap-1">
+                    {trade.tradingEnvironment || "—"} <MapPin className="w-2.5 h-2.5 opacity-50" />
+                  </span>
+                </div>
+              </div>
+            </div>
+
+          </div>
         </div>
 
         {/* Sidebar */}
