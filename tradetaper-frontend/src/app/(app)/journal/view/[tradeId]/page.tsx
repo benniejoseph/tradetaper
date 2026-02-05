@@ -332,14 +332,12 @@ export default function ViewTradePage() {
             <h3 className="text-sm font-bold text-zinc-900 dark:text-white uppercase tracking-tight">Analysis</h3>
           </div>
           <div className="space-y-4">
-            {trade.entryReason && (
-              <div>
-                <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider mb-1">Entry Reason</p>
-                <div className="bg-zinc-50 dark:bg-white/[0.02] p-4 rounded-xl border border-zinc-100 dark:border-white/5">
-                  <p className="text-zinc-700 dark:text-gray-300 text-sm leading-relaxed whitespace-pre-wrap">{trade.entryReason}</p>
-                </div>
+            <div>
+              <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider mb-1">Entry Reason</p>
+              <div className="bg-zinc-50 dark:bg-white/[0.02] p-4 rounded-xl border border-zinc-100 dark:border-white/5">
+                <p className="text-zinc-700 dark:text-gray-300 text-sm leading-relaxed whitespace-pre-wrap">{trade.entryReason || "No entry reason recorded."}</p>
               </div>
-            )}
+            </div>
             <div>
               <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider mb-1">Notes</p>
               <div className="bg-zinc-50 dark:bg-white/[0.02] p-4 rounded-xl border border-zinc-100 dark:border-white/5">
