@@ -12,14 +12,31 @@ coverage
 uploads
 temp
 
-# Env files
+# ========================================
+# SENSITIVE FILES - NEVER COMMIT THESE
+# ========================================
+
+# Environment files (all variations)
 .env
 .env.*
 .env.local
+.env.production
+.env.development
 env.local
 env.production
+env.development
+
+# YAML config files with secrets
 env.yaml
 env.yaml.example
+env-vars.yaml
+*.secrets.yaml
+secrets.yaml
+
+# Firebase/GCP credentials
+firebase-adminsdk*.json
+*-credentials.json
+service-account*.json
 
 # Logs
 *.log
