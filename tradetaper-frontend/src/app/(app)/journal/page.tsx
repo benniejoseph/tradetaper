@@ -215,253 +215,136 @@ export default function JournalPage() {
 
   return (
     <div className="space-y-8">
-      {/* Header Section */}
-      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
-        <div className="space-y-2">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-emerald-500 to-emerald-600 bg-clip-text text-transparent">
-            Trading Journal
-          </h1>
-          <p className="text-gray-600 dark:text-gray-300">
-            Track and analyze your trading performance • Last updated: {format(new Date(), 'MMM dd, hh:mm a')}
-          </p>
+      {/* Compact Header */}
+      <div className="flex flex-col lg:flex-row justify-between items-center gap-4 bg-white dark:bg-[#0A0A0A] border border-zinc-200 dark:border-white/5 p-4 rounded-xl shadow-sm">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-emerald-500/10 rounded-lg">
+             <FaBookOpen className="w-5 h-5 text-emerald-600 dark:text-emerald-500" />
+          </div>
+          <div>
+            <h1 className="text-xl font-bold text-zinc-900 dark:text-white leading-tight">Trading Journal</h1>
+            <p className="text-[10px] text-zinc-500 font-medium">Last updated: {format(new Date(), 'MMM dd, HH:mm')}</p>
+          </div>
         </div>
         
-        <div className="flex items-center space-x-3">
+        <div className="flex items-center gap-2">
           <button 
             onClick={() => setShowOnlyStarred(!showOnlyStarred)}
-            className={`p-3 rounded-xl transition-all duration-200 hover:scale-105 ${
+            className={`p-2 rounded-lg border border-zinc-200 dark:border-white/5 transition-all hover:scale-105 ${
               showOnlyStarred 
-                ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400' 
-                : 'bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-950/20 dark:to-emerald-900/20 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
+                ? 'bg-yellow-50 dark:bg-yellow-900/20 text-yellow-600 border-yellow-200' 
+                : 'bg-white dark:bg-white/5 text-zinc-400 hover:text-yellow-500'
             }`}>
-            {showOnlyStarred ? <FaStarSolid /> : <FaStarOutline />}
+            {showOnlyStarred ? <FaStarSolid className="w-4 h-4" /> : <FaStarOutline className="w-4 h-4" />}
           </button>
           
-          <button className="p-3 rounded-xl bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-950/20 dark:to-emerald-900/20 hover:bg-green-500 dark:hover:bg-green-500 text-gray-600 dark:text-gray-400 hover:text-white transition-all duration-200 hover:scale-105">
-            <FaDownload className="w-4 h-4" />
-          </button>
+          <Link 
+            href="/journal/new" 
+            className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-2 px-4 rounded-lg shadow-lg hover:shadow-emerald-500/20 transition-all hover:scale-105">
+            <FaPlus className="w-3 h-3" />
+            <span>New Trade</span>
+          </Link>
         </div>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {/* Monthly Progress Card */}
-        <div className="group relative bg-gradient-to-br from-white to-emerald-50 dark:from-black dark:to-emerald-950/20 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 p-6 shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
-          <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-emerald-600/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl"></div>
-          <div className="relative z-10">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Monthly Progress</h3>
-              <div className="p-2 bg-gradient-to-r from-emerald-500/20 to-emerald-600/20 rounded-xl">
-                <FaChartLine className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-              </div>
+      {/* Compact Stats Strip */}
+      <div className="grid grid-cols-2 lg:grid-cols-6 gap-3">
+        {/* Monthly PnL */}
+        <div className="bg-white dark:bg-[#0A0A0A] border border-zinc-200 dark:border-white/5 rounded-xl p-3 shadow-sm flex flex-col justify-between">
+            <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider">Monthly P&L</span>
+            <div className={`text-lg font-black ${headerStats.monthlyPnl >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
+               <CurrencyAmount amount={headerStats.monthlyPnl} className="inline" showSign />
             </div>
-            <p className={`text-3xl font-bold mb-4 ${
-              headerStats.monthlyPnl >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
-            }`}>
-              {headerStats.monthlyPnl >= 0 ? '+' : ''}<CurrencyAmount amount={headerStats.monthlyPnl} className="inline" />
-            </p>
-            <div className="h-8 flex items-center">
-              <svg viewBox="0 0 100 30" className="w-full h-full" preserveAspectRatio="none">
-                <defs>
-                  <linearGradient id="sparklineGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                    <stop offset="0%" stopColor="#3B82F6" />
-                    <stop offset="100%" stopColor="#10B981" />
-                  </linearGradient>
-                </defs>
-                <path d="M 0 25 Q 15 20, 25 15 T 50 10 T 75 8 T 100 5" stroke="url(#sparklineGradient)" fill="none" strokeWidth="2"/>
-              </svg>
-            </div>
-          </div>
         </div>
 
-          {/* Balance Card */}
-        <div className="group relative bg-gradient-to-br from-white to-emerald-50 dark:from-black dark:to-emerald-950/20 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 p-6 shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
-          <div className="absolute inset-0 bg-gradient-to-br from-emerald-600/5 to-emerald-700/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl"></div>
-          <div className="relative z-10">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Net Balance</h3>
-              <div className="p-2 bg-gradient-to-r from-emerald-600/20 to-emerald-700/20 rounded-xl">
-                <FaBookOpen className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-              </div>
-            </div>
-            <p className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-              {(() => {
-                // Determine the currently active account ID (Manual or MT5)
-                const currentAccountId = selectedAccountId || selectedMT5AccountId;
-                
-                // If "All Accounts" is selected, show the total PnL across all accounts (or N/A for balance if mixed)
-                if (!currentAccountId) {
-                   return <CurrencyAmount amount={footerStats.totalNetPnl} className="inline" />;
-                }
-
-                // Find the specific account object from the unified list (supports both Manual and MT5)
-                const activeAccount = allAccounts.find(a => a.id === currentAccountId);
-                
-                if (!activeAccount) return 'N/A';
-                
-                const balance = Number(activeAccount.balance) || 0;
-                const commissions = Number(footerStats.totalCommissions) || 0;
-                const netPnL = Number(footerStats.totalNetPnl) || 0;
-
-                const displayBalance = activeAccount.type === 'MT5'
-                  ? balance // MT5 Balance is already net of closed trades
-                  : balance + netPnL;
-                  
-                return <CurrencyAmount amount={displayBalance} className="inline" />;
-              })()}
-            </p>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              {(() => {
-                 const currentAccountId = selectedAccountId || selectedMT5AccountId;
-                 const activeAccount = allAccounts.find(a => a.id === currentAccountId);
-                 return activeAccount?.name || 'All Accounts';
-              })()}
-              {(() => {
-                const currentAccountId = selectedAccountId || selectedMT5AccountId;
-                const activeAccount = allAccounts.find(a => a.id === currentAccountId);
-                
-                if (activeAccount) {
-                  return (
-                    <span className="block text-xs mt-1">
-                      {activeAccount.type === 'MT5' ? (
-                         <>Total P&L: <CurrencyAmount amount={footerStats.totalNetPnl} className="inline" showSign /></>
-                      ) : (
-                         <>Base: <CurrencyAmount amount={activeAccount.balance} className="inline" /> + P&L: <CurrencyAmount amount={footerStats.totalNetPnl} className="inline" showSign /></>
-                      )}
-                    </span>
-                  );
-                }
-                return null;
-              })()}
-            </p>
-
-          </div>
+        {/* Win Rate */}
+        <div className="bg-white dark:bg-[#0A0A0A] border border-zinc-200 dark:border-white/5 rounded-xl p-3 shadow-sm flex flex-col justify-between">
+             <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider">Win Rate</span>
+             <div className="flex items-baseline gap-1">
+                <span className="text-lg font-black text-zinc-900 dark:text-white">{headerStats.winRate.toFixed(1)}%</span>
+                <span className="text-[9px] text-zinc-400 font-medium">({headerStats.winningTradesCount}W / {headerStats.losingTradesCount}L)</span>
+             </div>
         </div>
 
-        {/* Win Rate Card */}
-        <div className="group relative bg-gradient-to-br from-white to-emerald-50 dark:from-black dark:to-emerald-950/20 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 p-6 shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
-          <div className="absolute inset-0 bg-gradient-to-br from-emerald-700/5 to-emerald-800/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl"></div>
-          <div className="relative z-10">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Win Rate</h3>
-              <div className="p-2 bg-gradient-to-r from-emerald-700/20 to-emerald-800/20 rounded-xl">
-                <FaArrowUp className="w-4 h-4 text-green-600 dark:text-green-400" />
-              </div>
-            </div>
-            <p className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
-              {headerStats.winRate.toFixed(1)}%
-            </p>
-            <div className="space-y-2">
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-green-600 dark:text-green-400">Wins: {headerStats.winningTradesCount}</span>
-                <span className="text-red-600 dark:text-red-400">Losses: {headerStats.losingTradesCount}</span>
-              </div>
-              <div className="w-full bg-gradient-to-r from-emerald-100 to-emerald-200 dark:from-emerald-950/30 dark:to-emerald-900/30 rounded-full h-2 overflow-hidden">
-                <div 
-                  className="bg-gradient-to-r from-green-500 to-blue-500 h-2 rounded-full transition-all duration-500"
-                  style={{ width: `${headerStats.winRate}%` }}
-                ></div>
-              </div>
-            </div>
-          </div>
+        {/* Net Balance */}
+        <div className="bg-white dark:bg-[#0A0A0A] border border-zinc-200 dark:border-white/5 rounded-xl p-3 shadow-sm flex flex-col justify-between lg:col-span-1">
+             <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider">Net Balance</span>
+             <span className="text-lg font-black text-zinc-900 dark:text-white">
+                <CurrencyAmount amount={footerStats.totalNetPnl} className="inline" />
+             </span>
         </div>
 
-        {/* Long/Short Ratio Card */}
-        <div className="group relative bg-gradient-to-br from-white to-emerald-50 dark:from-black dark:to-emerald-950/20 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 p-6 shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
-          <div className="absolute inset-0 bg-gradient-to-br from-orange-500/5 to-red-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl"></div>
-          <div className="relative z-10">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Direction Split</h3>
-              <div className="p-2 bg-gradient-to-r from-orange-500/20 to-red-500/20 rounded-xl">
-                <FaArrowDown className="w-4 h-4 text-orange-600 dark:text-orange-400" />
-              </div>
-            </div>
-            <p className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
-              {headerStats.longTrades}L / {headerStats.shortTrades}S
-            </p>
-            {headerStats.longTrades + headerStats.shortTrades > 0 && (
-              <div className="w-full h-3 flex rounded-xl overflow-hidden">
-                <div 
-                  className="bg-gradient-to-r from-emerald-500 to-emerald-600 h-full transition-all duration-500" 
-                  style={{ width: `${(headerStats.longTrades / (headerStats.longTrades + headerStats.shortTrades)) * 100}%` }}
-                ></div>
-                <div 
-                  className="bg-gradient-to-r from-emerald-600 to-emerald-700 h-full transition-all duration-500"
-                  style={{ width: `${(headerStats.shortTrades / (headerStats.longTrades + headerStats.shortTrades)) * 100}%` }}
-                ></div>
-              </div>
-            )}
-          </div>
+        {/* Avg R:R */}
+         <div className="bg-white dark:bg-[#0A0A0A] border border-zinc-200 dark:border-white/5 rounded-xl p-3 shadow-sm flex flex-col justify-between">
+             <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider">Avg R:R</span>
+             <span className="text-lg font-black text-zinc-900 dark:text-white">{footerStats.averageRR.toFixed(2)}R</span>
+        </div>
+
+        {/* Total Trades */}
+         <div className="bg-white dark:bg-[#0A0A0A] border border-zinc-200 dark:border-white/5 rounded-xl p-3 shadow-sm flex flex-col justify-between">
+             <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider">Trades</span>
+             <span className="text-lg font-black text-zinc-900 dark:text-white">{footerStats.totalTrades}</span>
+        </div>
+
+        {/* Commissions */}
+        <div className="bg-white dark:bg-[#0A0A0A] border border-zinc-200 dark:border-white/5 rounded-xl p-3 shadow-sm flex flex-col justify-between">
+             <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider">Commissions</span>
+             <span className="text-sm font-bold text-zinc-500 dark:text-zinc-400"><CurrencyAmount amount={footerStats.totalCommissions} /></span>
         </div>
       </div>
 
-      {/* Filters and Controls */}
-      <div className="bg-gradient-to-br from-white to-emerald-50 dark:from-black dark:to-emerald-950/20 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 p-6 shadow-lg">
-        <div className="flex flex-col lg:flex-row gap-6">
-          {/* Position Filters */}
-          <div className="flex items-center space-x-2">
-            <span className="text-sm font-medium text-gray-700 dark:text-gray-300 mr-2">Status:</span>
-            <div className="flex bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-950/20 dark:to-emerald-900/20 p-1 rounded-xl">
+      {/* Compact Filters Toolbar */}
+      <div className="bg-white dark:bg-[#0A0A0A] border border-zinc-200 dark:border-white/5 rounded-xl p-2 shadow-sm flex flex-wrap gap-2 items-center justify-between">
+         <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
+            {/* Status Filter */}
+            <div className="flex bg-zinc-100 dark:bg-white/5 p-1 rounded-lg">
               {(['all', 'open', 'closed'] as const).map(pos => (
                 <button 
                   key={pos}
                   onClick={() => setActivePositionFilter(pos)}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                  className={`px-3 py-1 text-[10px] font-bold uppercase rounded-md transition-all ${
                     activePositionFilter === pos 
-                      ? 'bg-gradient-to-r from-emerald-500 to-emerald-600 text-white shadow-md' 
-                      : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-emerald-100 dark:hover:bg-emerald-900/30'
+                      ? 'bg-white dark:bg-zinc-800 text-emerald-600 shadow-sm' 
+                      : 'text-zinc-400 hover:text-zinc-600 dark:text-zinc-500 dark:hover:text-zinc-300'
                   }`}>
-                  {pos.charAt(0).toUpperCase() + pos.slice(1)}
+                  {pos}
                 </button>
               ))}
             </div>
-          </div>
 
-          {/* Time Filters */}
-          <div className="flex items-center space-x-2">
-            <span className="text-sm font-medium text-gray-700 dark:text-gray-300 mr-2">Period:</span>
-            <div className="flex bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-950/20 dark:to-emerald-900/20 p-1 rounded-xl">
+            {/* Time Filter */}
+             <div className="flex bg-zinc-100 dark:bg-white/5 p-1 rounded-lg">
               {(['all', '1d', '7d', '1m'] as const).map(time => (
                 <button 
                   key={time}
                   onClick={() => setActiveTimeFilter(time)}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                   className={`px-3 py-1 text-[10px] font-bold uppercase rounded-md transition-all ${
                     activeTimeFilter === time 
-                      ? 'bg-gradient-to-r from-emerald-500 to-emerald-600 text-white shadow-md' 
-                      : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-emerald-100 dark:hover:bg-emerald-900/30'
+                      ? 'bg-white dark:bg-zinc-800 text-emerald-600 shadow-sm' 
+                      : 'text-zinc-400 hover:text-zinc-600 dark:text-zinc-500 dark:hover:text-zinc-300'
                   }`}>
-                  {time === 'all' ? 'All time' : time === '1m' ? '1 month' : time}
+                  {time === 'all' ? 'All' : time.toUpperCase()}
                 </button>
               ))}
               <button 
                 onClick={() => setIsDatePickerOpen(true)}
-                className="p-2 rounded-lg text-gray-600 dark:text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/30 transition-all duration-200">
-                <FaCalendarAlt className="h-4 w-4" />
+                className="px-2 py-1 text-zinc-400 hover:text-emerald-500 transition-colors">
+                <FaCalendarAlt className="w-3 h-3" />
               </button>
             </div>
-          </div>
+         </div>
 
-          {/* Search and Actions */}
-          <div className="flex items-center space-x-3 ml-auto">
-            <div className="relative group">
-              <input 
-                type="text" 
-                placeholder="Search trades..." 
-                className="pl-10 pr-4 py-2.5 text-sm rounded-xl border border-gray-200/50 dark:border-gray-700/50 bg-white dark:bg-gray-950 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all duration-200 w-64" 
-                value={searchQuery} 
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-              <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 group-focus-within:text-emerald-500 transition-colors duration-200" />
-            </div>
-            
-            <Link 
-              href="/journal/new" 
-              className="flex items-center space-x-2 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-semibold py-2.5 px-6 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105">
-              <FaPlus className="w-4 h-4" />
-              <span>Log Trade</span>
-            </Link>
-          </div>
-        </div>
+         {/* Search */}
+         <div className="relative w-full md:w-auto md:min-w-[200px]">
+            <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400" />
+            <input 
+              type="text" 
+              placeholder="Search symbol, notes..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-9 pr-4 py-1.5 text-xs font-medium bg-zinc-50 dark:bg-white/5 border border-zinc-200 dark:border-white/10 rounded-lg focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all placeholder:text-zinc-400"
+            />
+         </div>
       </div>
 
       {/* Loading State */}
