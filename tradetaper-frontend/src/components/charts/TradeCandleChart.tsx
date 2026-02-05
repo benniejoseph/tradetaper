@@ -356,7 +356,8 @@ const TradeCandleChart: React.FC<TradeCandleChartProps> = ({
     // --- MARKERS (Entry/Exit Arrows) ---
     const markers: any[] = [];
     
-    if (entryCandle && entryPrice) {
+    // Only add entry marker if we have a valid candle time (number, not null/undefined)
+    if (entryCandle && typeof entryCandle === 'number' && entryPrice) {
       markers.push({
         time: entryCandle,
         position: direction === 'Long' ? 'belowBar' : 'aboveBar',
@@ -366,7 +367,8 @@ const TradeCandleChart: React.FC<TradeCandleChartProps> = ({
       });
     }
 
-    if (exitCandle && exitPrice) {
+    // Only add exit marker if we have a valid candle time (number, not null/undefined)
+    if (exitCandle && typeof exitCandle === 'number' && exitPrice) {
       markers.push({
         time: exitCandle,
         position: direction === 'Long' ? 'aboveBar' : 'belowBar',
@@ -376,11 +378,16 @@ const TradeCandleChart: React.FC<TradeCandleChartProps> = ({
       });
     }
 
-    if (markers.length > 0) {
+    // Only create markers if we have valid markers with proper time values
+    if (markers.length > 0 && markers.every(m => typeof m.time === 'number' && !isNaN(m.time))) {
       // Sort markers by time
       markers.sort((a, b) => (a.time as number) - (b.time as number));
       // Use createSeriesMarkers for lightweight-charts v5+
-      createSeriesMarkers(candleSeries, markers);
+      try {
+        createSeriesMarkers(candleSeries, markers);
+      } catch (e) {
+        console.warn('Failed to create series markers:', e);
+      }
     }
 
     // Fit content
