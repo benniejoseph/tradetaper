@@ -1,3 +1,4 @@
+// src/app/(app)/journal/edit/[tradeId]/page.tsx - Compact Redesign
 "use client";
 
 import { useEffect } from 'react';
@@ -6,7 +7,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '@/store/store';
 import { fetchTradeById, setCurrentTrade } from '@/store/features/tradesSlice';
 import TradeForm from '@/components/trades/TradeForm';
-import { FaArrowLeft, FaEdit } from 'react-icons/fa';
+import { ArrowLeft, Edit3, Loader2, AlertCircle } from 'lucide-react';
 
 export default function EditTradePage() {
   const dispatch = useDispatch<AppDispatch>();
@@ -16,133 +17,97 @@ export default function EditTradePage() {
 
   const { currentTrade, isLoading, error } = useSelector((state: RootState) => state.trades);
 
-  // Effect for fetching data
   useEffect(() => {
-    if (tradeId) {
-      // Only fetch if not already loading AND (no current trade OR current trade is not the one we want)
-      if (!isLoading && (!currentTrade || currentTrade.id !== tradeId)) {
-        dispatch(fetchTradeById(tradeId));
-      }
+    if (tradeId && !isLoading && (!currentTrade || currentTrade.id !== tradeId)) {
+      dispatch(fetchTradeById(tradeId));
     } else if (!tradeId && !isLoading) {
-      // If no tradeId and not loading, redirect (e.g., if tradeId was cleared or invalid)
       router.push('/journal');
     }
-  }, [dispatch, tradeId, isLoading, currentTrade]); // Dependencies that influence fetching logic
+  }, [dispatch, tradeId, isLoading, currentTrade]);
 
-  // Effect for cleanup (runs when tradeId changes or on unmount)
   useEffect(() => {
-    return () => {
-      // Clear the currentTrade from Redux store when the relevant tradeId changes or component unmounts
-      dispatch(setCurrentTrade(null));
-    };
-  }, [dispatch, tradeId]); // Only depends on dispatch and tradeId for cleanup scope
+    return () => { dispatch(setCurrentTrade(null)); };
+  }, [dispatch, tradeId]);
 
-  const handleFormSubmitSuccess = () => {
-    router.push('/journal'); // Navigate back to journal after successful edit
-  };
-
-  const handleCancel = () => {
-    router.back(); // Or router.push('/journal');
-  };
+  const handleFormSubmitSuccess = () => router.push('/journal');
+  const handleCancel = () => router.back();
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-[60vh] flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-emerald-500 mx-auto mb-4"></div>
-          <div className="text-xl font-semibold text-gray-900 dark:text-white">Loading trade data...</div>
-          <div className="text-sm text-gray-600 dark:text-gray-400 mt-2">Preparing edit form...</div>
+          <Loader2 className="w-12 h-12 text-emerald-500 animate-spin mx-auto mb-4" />
+          <div className="text-lg font-medium text-gray-900 dark:text-white">Loading trade...</div>
         </div>
       </div>
     );
   }
 
-  if (error && !currentTrade) { // Show error only if currentTrade is not available from a previous successful fetch for this ID
+  if (error && !currentTrade) {
     return (
-      <div className="space-y-8">
-        <div className="text-center py-16">
-          <div className="w-20 h-20 bg-gradient-to-r from-red-500 to-red-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
-            <FaEdit className="w-10 h-10 text-white" />
-          </div>
-          <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Error Loading Trade</h3>
-          <p className="text-red-600 dark:text-red-400 mb-6">{error}</p>
-          <button 
-            onClick={() => router.push('/journal')} 
-            className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-semibold rounded-xl transition-all duration-200 hover:scale-105 shadow-lg hover:shadow-xl"
-          >
-            <FaArrowLeft className="mr-2 h-4 w-4" />
-            Back to Journal
-          </button>
+      <div className="max-w-md mx-auto text-center py-16">
+        <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+          <AlertCircle className="w-8 h-8 text-red-500" />
         </div>
+        <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Error Loading Trade</h3>
+        <p className="text-red-600 dark:text-red-400 mb-4 text-sm">{error}</p>
+        <button onClick={() => router.push('/journal')} 
+          className="px-4 py-2 bg-emerald-500 text-white font-semibold rounded-xl hover:bg-emerald-600 transition-all">
+          Back to Journal
+        </button>
       </div>
     );
   }
-  
-  // If currentTrade is null AND not loading and no error, it might mean tradeId was invalid and fetchTradeById rejected but set error to null.
-  // Or it could be that the trade was deleted.
+
   if (!currentTrade && !isLoading) {
     return (
-      <div className="space-y-8">
-        <div className="text-center py-16">
-          <div className="w-20 h-20 bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
-            <FaEdit className="w-10 h-10 text-white" />
-          </div>
-          <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Trade Not Found</h3>
-          <p className="text-gray-600 dark:text-gray-400 mb-6">Trade could not be loaded or was not found.</p>
-          <button 
-            onClick={() => router.push('/journal')} 
-            className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-semibold rounded-xl transition-all duration-200 hover:scale-105 shadow-lg hover:shadow-xl"
-          >
-            <FaArrowLeft className="mr-2 h-4 w-4" />
-            Back to Journal
-          </button>
+      <div className="max-w-md mx-auto text-center py-16">
+        <div className="w-16 h-16 bg-gray-100 dark:bg-white/5 rounded-full flex items-center justify-center mx-auto mb-4">
+          <Edit3 className="w-8 h-8 text-gray-400" />
         </div>
+        <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Trade Not Found</h3>
+        <p className="text-gray-500 mb-4 text-sm">This trade could not be loaded.</p>
+        <button onClick={() => router.push('/journal')} 
+          className="px-4 py-2 bg-emerald-500 text-white font-semibold rounded-xl hover:bg-emerald-600 transition-all">
+          Back to Journal
+        </button>
       </div>
     );
   }
 
   return (
-    <div className="space-y-8">
-      {/* Header Section */}
-      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
-        <div className="flex items-center space-x-6">
-          <button
-            onClick={handleCancel}
-            className="flex items-center space-x-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors p-2 rounded-xl hover:bg-emerald-100 dark:hover:bg-emerald-900/30 backdrop-blur-sm"
-          >
-            <FaArrowLeft className="h-4 w-4" />
-            <span>Back</span>
+    <div className="max-w-5xl mx-auto space-y-6">
+      {/* Compact Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <button onClick={handleCancel}
+            className="p-2 rounded-xl bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-white/10 transition-all">
+            <ArrowLeft className="w-5 h-5" />
           </button>
-          
-          <div className="flex items-center space-x-4">
-            <div className="p-3 bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-xl shadow-lg">
-              <FaEdit className="h-6 w-6 text-white" />
-            </div>
-            <div>
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-emerald-500 to-emerald-600 bg-clip-text text-transparent">
-                Edit Trade
-              </h1>
-              <p className="text-gray-600 dark:text-gray-300">
-                {currentTrade?.symbol ? `Editing ${currentTrade.symbol} trade` : 'Modify trade details and settings'}
-              </p>
-            </div>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+              <Edit3 className="w-6 h-6 text-emerald-500" />
+              Edit Trade
+            </h1>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              {currentTrade?.symbol && <span className="font-semibold text-emerald-600">{currentTrade.symbol}</span>}
+              {currentTrade?.direction && <span> • {currentTrade.direction}</span>}
+            </p>
           </div>
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="bg-gradient-to-br from-white to-emerald-50 dark:from-black dark:to-emerald-950/20 backdrop-blur-xl rounded-2xl border border-emerald-200/50 dark:border-emerald-700/30 shadow-lg hover:shadow-xl transition-all duration-200">
-        <div className="p-8">
-          {currentTrade && (
-            <TradeForm 
-              initialData={currentTrade} 
-              isEditMode={true} 
-              onFormSubmitSuccess={handleFormSubmitSuccess}
-              onCancel={handleCancel}
-            />
-          )}
-        </div>
+      {/* Form Container */}
+      <div className="bg-white dark:bg-[#0A0A0A] rounded-2xl border border-gray-200 dark:border-white/5 shadow-xl p-6">
+        {currentTrade && (
+          <TradeForm 
+            initialData={currentTrade} 
+            isEditMode={true} 
+            onFormSubmitSuccess={handleFormSubmitSuccess}
+            onCancel={handleCancel}
+          />
+        )}
       </div>
     </div>
   );
-} 
+}

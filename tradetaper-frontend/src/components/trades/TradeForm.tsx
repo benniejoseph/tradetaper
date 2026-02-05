@@ -1,66 +1,23 @@
 /* eslint-disable @next/next/no-img-element */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unused-vars */
-// src/components/trades/TradeForm.tsx
+// src/components/trades/TradeForm.tsx - Compact Tabbed Redesign
 "use client";
 import React, { useState, useEffect, FormEvent, ChangeEvent, useMemo } from 'react';
-import { Trade, CreateTradePayload, UpdateTradePayload, AssetType, TradeDirection, TradeStatus,
-  Tag as TradeTagType
- } from '@/types/trade';
+import { Trade, CreateTradePayload, UpdateTradePayload, AssetType, TradeDirection, TradeStatus, Tag as TradeTagType } from '@/types/trade';
 import { Strategy } from '@/types/strategy';
 import { strategiesService } from '@/services/strategiesService';
-import { 
-  TradingSession, 
-  EmotionalState, 
-  ExecutionGrade, 
-  MarketCondition, 
-  HTFBias, 
-  Timeframe 
-} from '@/types/enums';
+import { TradingSession, EmotionalState, ExecutionGrade, MarketCondition, HTFBias, Timeframe } from '@/types/enums';
 import { useRouter } from 'next/navigation';
 import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '@/store/store';
 import { createTrade, updateTrade } from '@/store/features/tradesSlice';
 import { selectSelectedAccountId, selectAvailableAccounts } from '@/store/features/accountSlice';
 import { selectMT5Accounts, fetchMT5Accounts, MT5Account } from '@/store/features/mt5AccountsSlice';
-import { authApiClient } from '@/services/api'; // To make direct API call for file upload
-import { useTheme } from '@/context/ThemeContext'; // Import useTheme
-
-// Define ValidationError type inline
-type ValidationError = { field: string; message: string };
-
-// Helper function to get field error
-const getFieldError = (errors: ValidationError[], fieldName: string): string | null => {
-  const error = errors.find(err => err.field === fieldName);
-  return error ? error.message : null;
-};
-
-// Simple validation function
-const validateTradeData = (data: any): { isValid: boolean; errors: ValidationError[] } => {
-  const errors: ValidationError[] = [];
-  
-  if (!data.symbol || data.symbol.trim() === '') {
-    errors.push({ field: 'symbol', message: 'Symbol is required' });
-  }
-  if (!data.entryPrice || data.entryPrice <= 0) {
-    errors.push({ field: 'entryPrice', message: 'Entry price must be greater than 0' });
-  }
-  if (!data.quantity || data.quantity <= 0) {
-    errors.push({ field: 'quantity', message: 'Quantity must be greater than 0' });
-  }
-  if (!data.entryDate) {
-    errors.push({ field: 'entryDate', message: 'Entry date is required' });
-  }
-  
-  return {
-    isValid: errors.length === 0,
-    errors
-  };
-};
-
+import { authApiClient } from '@/services/api';
+import { useTheme } from '@/context/ThemeContext';
 import CreatableSelect from 'react-select/creatable';
-import { ActionMeta, MultiValue, OnChangeValue, StylesConfig } from 'react-select';
-import { FaUpload, FaTimesCircle, FaCalculator, FaSave, FaPaperPlane } from 'react-icons/fa';
+import { MultiValue, StylesConfig } from 'react-select';
 import { FormInput } from '../ui/FormInput';
 import { FormSelect } from '../ui/FormSelect';
 import { FormTextarea } from '../ui/FormTextarea';
@@ -68,39 +25,62 @@ import { EmotionChipPicker } from '../ui/EmotionChipPicker';
 import { StarRating } from '../ui/StarRating';
 import { ToggleChip } from '../ui/ToggleChip';
 import { ChipSelector } from '../ui/ChipSelector';
+import { FormTabs, Tab } from '../ui/FormTabs';
+import { 
+  BarChart3, 
+  Target, 
+  Brain, 
+  TrendingUp, 
+  TrendingDown,
+  Upload,
+  Save,
+  Send,
+  X,
+  Clock,
+  DollarSign,
+  Tag,
+  FileText,
+  Home,
+  Zap
+} from 'lucide-react';
 
-interface TagOption {
-  readonly label: string;
-  readonly value: string; // Typically same as label for tags
-  readonly color?: string; // Optional for display
-  readonly isNew?: boolean; // For creatable
+// Types
+type ValidationError = { field: string; message: string };
+interface TagOption { readonly label: string; readonly value: string; readonly color?: string; readonly isNew?: boolean; }
+interface TradeFormProps { 
+  initialData?: Trade; 
+  isEditMode?: boolean; 
+  onFormSubmitSuccess?: (tradeId?: string) => void; 
+  onCancel?: () => void; 
 }
 
-interface TradeFormProps {
-  initialData?: Trade;
-  isEditMode?: boolean;
-  onFormSubmitSuccess?: (tradeId?: string) => void;
-  onCancel?: () => void;
-}
+// Helper functions
+const getFieldError = (errors: ValidationError[], fieldName: string): string | null => {
+  const error = errors.find(err => err.field === fieldName);
+  return error ? error.message : null;
+};
 
-// Helper function to safely get enum key for initialData
-const getEnumValue = <T extends object>(enumObj: T, value: any, defaultValue: T[keyof T]): T[keyof T] => {
-  if (value && Object.values(enumObj).includes(value as T[keyof T])) {
-    return value as T[keyof T];
-  }
-  return defaultValue;
+const validateTradeData = (data: any): { isValid: boolean; errors: ValidationError[] } => {
+  const errors: ValidationError[] = [];
+  if (!data.symbol?.trim()) errors.push({ field: 'symbol', message: 'Symbol required' });
+  if (!data.entryPrice || data.entryPrice <= 0) errors.push({ field: 'entryPrice', message: 'Entry price required' });
+  if (!data.quantity || data.quantity <= 0) errors.push({ field: 'quantity', message: 'Quantity required' });
+  if (!data.entryDate) errors.push({ field: 'entryDate', message: 'Entry date required' });
+  return { isValid: errors.length === 0, errors };
 };
 
 const formatDateForInput = (dateString?: string): string => {
-    if (!dateString) return '';
-    try {
-        const date = new Date(dateString);
-        const tzoffset = date.getTimezoneOffset() * 60000;
-        const localISOTime = (new Date(date.getTime() - tzoffset)).toISOString().slice(0, 16);
-        return localISOTime;
-    } catch (error) {
-        return '';
-    }
+  if (!dateString) return '';
+  try {
+    const date = new Date(dateString);
+    const tzoffset = date.getTimezoneOffset() * 60000;
+    return (new Date(date.getTime() - tzoffset)).toISOString().slice(0, 16);
+  } catch { return ''; }
+};
+
+const getEnumValue = <T extends object>(enumObj: T, value: any, defaultValue: T[keyof T]): T[keyof T] => {
+  if (value && Object.values(enumObj).includes(value)) return value;
+  return defaultValue;
 };
 
 export default function TradeForm({ initialData, isEditMode = false, onFormSubmitSuccess, onCancel }: TradeFormProps) {
@@ -110,56 +90,29 @@ export default function TradeForm({ initialData, isEditMode = false, onFormSubmi
   const selectedAccountIdFromStore = useSelector(selectSelectedAccountId);
   const availableAccounts = useSelector(selectAvailableAccounts);
   const mt5Accounts = useSelector(selectMT5Accounts) as MT5Account[];
-  const { theme } = useTheme(); // Get current theme for dynamic styles
+  const { theme } = useTheme();
 
-  // Merge accounts for dropdown
+  // Tab state
+  const [activeTab, setActiveTab] = useState('trade');
+  
+  // Form state
+  const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
+  const [selectedTags, setSelectedTags] = useState<MultiValue<TagOption>>([]);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(initialData?.imageUrl || null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [strategies, setStrategies] = useState<Strategy[]>([]);
+
+  // Merge accounts
   const allAccounts = useMemo(() => {
-    const manualAccountsFormatted = availableAccounts.map(acc => ({
-      id: acc.id,
-      name: acc.name,
-      balance: acc.balance,
-      currency: acc.currency,
-      type: 'Manually Added'
-    }));
-    
-    const mt5AccountsFormatted = mt5Accounts.map(acc => ({
-      id: acc.id,
-      name: acc.accountName, // Map accountName to name
-      balance: acc.balance || 0,
-      currency: acc.currency || 'USD',
-      type: 'MT5 Linked'
-    }));
-
-    return [...manualAccountsFormatted, ...mt5AccountsFormatted];
+    const manual = (availableAccounts as any[]).map(acc => ({ id: acc.id, name: acc.name, balance: acc.balance, currency: acc.currency, type: 'Manual' }));
+    const mt5 = mt5Accounts.map(acc => ({ id: acc.id, name: acc.accountName, balance: acc.balance || 0, currency: acc.currency || 'USD', type: 'MT5' }));
+    return [...manual, ...mt5];
   }, [availableAccounts, mt5Accounts]);
 
-  // Fetch MT5 accounts if needed
-  useEffect(() => {
-    if (mt5Accounts.length === 0) {
-      dispatch(fetchMT5Accounts());
-    }
-  }, [dispatch, mt5Accounts.length]);
-
-  // Add validation state
-  const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
-
-  const sectionContainerClasses = "bg-gradient-to-br from-white to-emerald-50 dark:from-black dark:to-emerald-950/20 backdrop-blur-xl p-8 rounded-2xl border border-emerald-200/50 dark:border-emerald-700/30 shadow-lg hover:shadow-xl transition-all duration-200";
-  const sectionTitleClasses = "text-2xl font-bold text-gray-900 dark:text-white mb-6 pb-3 border-b border-emerald-200/30 dark:border-emerald-700/30 flex items-center space-x-3";
-  const labelClasses = "block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2";
-
-  const [selectedTags, setSelectedTags] = useState<MultiValue<TagOption>>([]);
-
-  const [formData, setFormData] = useState<Omit<CreateTradePayload | UpdateTradePayload, 'tagNames' | 'strategyTag'> & 
-    { stopLoss?: number; takeProfit?: number; rMultiple?: number; session?: TradingSession; accountId?: string; isStarred?: boolean; strategyId?: string;
-      // Phase 1-5 fields
-      emotionBefore?: EmotionalState; emotionDuring?: EmotionalState; emotionAfter?: EmotionalState;
-      confidenceLevel?: number; followedPlan?: boolean; ruleViolations?: string[];
-      plannedRR?: number; maePrice?: number; mfePrice?: number; maePips?: number; mfePips?: number; slippage?: number; executionGrade?: ExecutionGrade;
-      marketCondition?: MarketCondition; timeframe?: Timeframe; htfBias?: HTFBias; newsImpact?: boolean;
-      entryReason?: string; confirmations?: string[]; hesitated?: boolean; preparedToLose?: boolean;
-      sleepQuality?: number; energyLevel?: number; distractionLevel?: number; tradingEnvironment?: string;
-    }>
-  ({
+  // Form data
+  const [formData, setFormData] = useState<any>({
     accountId: initialData?.accountId || selectedAccountIdFromStore || undefined,
     assetType: initialData?.assetType || AssetType.STOCK,
     symbol: initialData?.symbol || '',
@@ -182,961 +135,514 @@ export default function TradeForm({ initialData, isEditMode = false, onFormSubmi
     rMultiple: initialData?.rMultiple ?? undefined,
     isStarred: initialData?.isStarred || false,
     strategyId: initialData?.strategyId || undefined,
-    // Phase 1: Psychology
     emotionBefore: initialData?.emotionBefore || undefined,
     emotionDuring: initialData?.emotionDuring || undefined,
     emotionAfter: initialData?.emotionAfter || undefined,
     confidenceLevel: initialData?.confidenceLevel || undefined,
     followedPlan: initialData?.followedPlan ?? undefined,
     ruleViolations: initialData?.ruleViolations || [],
-    // Phase 2: Advanced Metrics
     plannedRR: initialData?.plannedRR || undefined,
     executionGrade: initialData?.executionGrade || undefined,
-    // Phase 3: Market Context
     marketCondition: initialData?.marketCondition || undefined,
     timeframe: initialData?.timeframe || undefined,
     htfBias: initialData?.htfBias || undefined,
     newsImpact: initialData?.newsImpact ?? undefined,
-    // Phase 4: Pre-Trade Checklist
     entryReason: initialData?.entryReason || '',
     confirmations: initialData?.confirmations || [],
     hesitated: initialData?.hesitated ?? undefined,
     preparedToLose: initialData?.preparedToLose ?? undefined,
-    // Phase 5: Environment
     sleepQuality: initialData?.sleepQuality || undefined,
     energyLevel: initialData?.energyLevel || undefined,
     distractionLevel: initialData?.distractionLevel || undefined,
     tradingEnvironment: initialData?.tradingEnvironment || '',
+    ictConcept: initialData?.ictConcept || '',
   });
 
-  // State for calculated R:R - to be implemented properly later
-  const [calculatedRR, setCalculatedRR] = useState<string | null>(null);
-
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(initialData?.imageUrl || null);
-  const [isUploading, setIsUploading] = useState(false);
-  const [formError, setFormError] = useState<string | null>(null);
-  const [strategies, setStrategies] = useState<Strategy[]>([]);
-
-  // Remove handleFileChange as it's now handled by ChartUploadButton
-  // const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => { ... };
-
-  // Remove selectedFile, imagePreviewUrl, isUploading states as they are now handled by ChartUploadButton
-  // const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  // const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(initialData?.imageUrl || null);
-  // const [isUploading, setIsUploading] = useState(false);
-
-  // Calculate R:R and update formData.rMultiple
-  useEffect(() => {
-    const entry = parseFloat(formData.entryPrice as any);
-    const sl = parseFloat(formData.stopLoss as any);
-    const tp = parseFloat(formData.takeProfit as any);
-
-    if (formData.direction && !isNaN(entry) && !isNaN(sl) && !isNaN(tp) && sl !== entry && tp !== entry) {
-      let riskPerUnit: number;
-      let rewardPerUnit: number;
-
-      if (formData.direction === TradeDirection.LONG) {
-        riskPerUnit = entry - sl;
-        rewardPerUnit = tp - entry;
-      } else if (formData.direction === TradeDirection.SHORT) {
-        riskPerUnit = sl - entry;
-        rewardPerUnit = entry - tp;
-      } else {
-        setFormData(prev => ({ ...prev, rMultiple: undefined }));
-        return;
-      }
-
-      if (riskPerUnit > 0 && rewardPerUnit > 0) {
-        const rr = rewardPerUnit / riskPerUnit;
-        setFormData(prev => ({ ...prev, rMultiple: parseFloat(rr.toFixed(2)) }));
-      } else {
-        setFormData(prev => ({ ...prev, rMultiple: undefined }));
-      }
-    } else {
-      setFormData(prev => ({ ...prev, rMultiple: undefined }));
-    }
-  }, [formData.entryPrice, formData.stopLoss, formData.takeProfit, formData.direction]);
-
-  // Load strategies
+  // Effects
+  useEffect(() => { if (mt5Accounts.length === 0) dispatch(fetchMT5Accounts()); }, [dispatch, mt5Accounts.length]);
+  
   useEffect(() => {
     const loadStrategies = async () => {
-      try {
-        const data = await strategiesService.getStrategies();
-        setStrategies(data);
-      } catch (error) {
-        console.error('Error loading strategies:', error);
-      }
+      try { setStrategies(await strategiesService.getStrategies()); } 
+      catch (e) { console.error('Error loading strategies:', e); }
     };
     loadStrategies();
   }, []);
 
   useEffect(() => {
     if (initialData) {
-      setFormData(prevFormData => ({
-        ...prevFormData,
-        accountId: initialData.accountId || selectedAccountIdFromStore || undefined,
-        assetType: initialData.assetType,
-        symbol: initialData.symbol,
-        direction: initialData.direction,
-        status: initialData.status,
+      setFormData((prev: any) => ({
+        ...prev,
+        ...initialData,
         entryDate: formatDateForInput(initialData.entryDate),
-        entryPrice: initialData.entryPrice,
-        stopLoss: initialData.stopLoss ?? undefined,
-        takeProfit: initialData.takeProfit ?? undefined,
         exitDate: formatDateForInput(initialData.exitDate),
-        exitPrice: initialData.exitPrice ?? undefined,
-        quantity: initialData.quantity,
-        commission: initialData.commission,
-        notes: initialData.notes || '',
-        session: getEnumValue(TradingSession, initialData?.session, TradingSession.NEW_YORK),
-        setupDetails: initialData?.setupDetails || '',
-        mistakesMade: initialData?.mistakesMade || '',
-        lessonsLearned: initialData?.lessonsLearned || '',
-        imageUrl: initialData?.imageUrl || '',
-        rMultiple: initialData?.rMultiple ?? undefined,
-        isStarred: initialData?.isStarred || false,
-        strategyId: initialData?.strategyId || undefined,
+        session: getEnumValue(TradingSession, initialData.session, TradingSession.NEW_YORK),
       }));
       setImagePreviewUrl(initialData.imageUrl || null);
-      setSelectedFile(null);
-      if (initialData.tags && initialData.tags.length > 0) {
-        setSelectedTags(initialData.tags.map(tag => ({ label: tag.name, value: tag.name, color: tag.color })));
-      } else {
-        setSelectedTags([]);
+      if (initialData.tags?.length) {
+        setSelectedTags(initialData.tags.map((tag: any) => ({ label: tag.name, value: tag.name, color: tag.color })));
       }
     }
   }, [initialData]);
 
+  // Calculate R:R
+  useEffect(() => {
+    const { entryPrice, stopLoss, takeProfit, direction } = formData;
+    if (direction && entryPrice > 0 && stopLoss > 0 && takeProfit > 0 && stopLoss !== entryPrice) {
+      const risk = direction === TradeDirection.LONG ? entryPrice - stopLoss : stopLoss - entryPrice;
+      const reward = direction === TradeDirection.LONG ? takeProfit - entryPrice : entryPrice - takeProfit;
+      if (risk > 0 && reward > 0) {
+        setFormData((prev: any) => ({ ...prev, rMultiple: parseFloat((reward / risk).toFixed(2)) }));
+      }
+    }
+  }, [formData.entryPrice, formData.stopLoss, formData.takeProfit, formData.direction]);
+
+  // Handlers
   const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
-    
     if (name === 'isStarred' && type === 'checkbox') {
-      const checked = (e.target as HTMLInputElement).checked;
-      setFormData(prev => ({ ...prev, isStarred: checked }));
+      setFormData((prev: any) => ({ ...prev, isStarred: (e.target as HTMLInputElement).checked }));
     } else {
-      let val: string | number | boolean | undefined = value; // Allow boolean for isStarred
+      let val: any = value;
       if (type === 'number') val = value === '' ? undefined : parseFloat(value);
-      setFormData(prev => ({ ...prev, [name]: val }));
+      setFormData((prev: any) => ({ ...prev, [name]: val }));
     }
   };
 
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
-    // File validation - show errors via formError instead
-    if (e.target.files && e.target.files[0]) {
+    if (e.target.files?.[0]) {
       const file = e.target.files[0];
-      if (file.size > 5 * 1024 * 1024) { // 5MB
-        setFormError("File is too large (max 5MB).");
-        return;
-      }
-      const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp'];
-      if (!allowedTypes.includes(file.type)) {
-        setFormError("Invalid file type. Please select an image (PNG, JPG, GIF, WEBP).");
-        return;
-      }
-
+      if (file.size > 5 * 1024 * 1024) { setFormError("File too large (max 5MB)"); return; }
+      const allowed = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp'];
+      if (!allowed.includes(file.type)) { setFormError("Invalid file type"); return; }
       setSelectedFile(file);
       setImagePreviewUrl(URL.createObjectURL(file));
-      setFormData(prev => ({ ...prev, imageUrl: '' }));
-      setFormError(null); // Clear any previous errors
-    } else {
-      setSelectedFile(null);
-      setImagePreviewUrl(initialData?.imageUrl || null);
+      setFormData((prev: any) => ({ ...prev, imageUrl: '' }));
+      setFormError(null);
     }
-  };
-
-  const handleTagChange = (newValue: MultiValue<TagOption>) => {
-    setSelectedTags(newValue);
   };
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setFormError(null);
-    setValidationErrors([]); // Clear previous validation errors
+    setValidationErrors([]);
 
-    // Client-side validation
-    const validationResult = validateTradeData({
-      ...formData,
-      assetType: formData.assetType as AssetType,
-      symbol: formData.symbol as string,
-      direction: formData.direction as TradeDirection,
-      entryDate: formData.entryDate as string,
-      entryPrice: formData.entryPrice as number,
-      quantity: formData.quantity as number,
-      tagNames: selectedTags.map(tagOption => tagOption.value),
-      isStarred: formData.isStarred,
-    });
-
-    if (!validationResult.isValid) {
-      setValidationErrors(validationResult.errors);
-      setFormError('Please fix the validation errors below.');
+    const validation = validateTradeData(formData);
+    if (!validation.isValid) {
+      setValidationErrors(validation.errors);
+      setFormError('Fix validation errors');
       return;
     }
 
     try {
       setIsUploading(true);
-      
-      // Upload image to GCS if a new file is selected
       let uploadedImageUrl = formData.imageUrl || '';
+      
       if (selectedFile) {
         const uploadFormData = new FormData();
         uploadFormData.append('file', selectedFile);
-        
         try {
-          const uploadResponse = await authApiClient.post('/files/upload/trade-image', uploadFormData, {
+          const res = await authApiClient.post('/files/upload/trade-image', uploadFormData, {
             headers: { 'Content-Type': 'multipart/form-data' }
           });
-          uploadedImageUrl = uploadResponse.data.url;
-        } catch (uploadError: any) {
-          setFormError(`Image upload failed: ${uploadError.response?.data?.message || uploadError.message}`);
+          uploadedImageUrl = res.data.url;
+        } catch (err: any) {
+          setFormError(`Upload failed: ${err.message}`);
           setIsUploading(false);
           return;
         }
       }
-      
-      const finalTagNames = selectedTags.map(tagOption => tagOption.value);
-      const payload: CreateTradePayload | UpdateTradePayload = {
-          ...formData,
-          session: formData.session,
-          tagNames: finalTagNames,
-          imageUrl: uploadedImageUrl,
-          assetType: formData.assetType as AssetType,
-          symbol: formData.symbol as string,
-          direction: formData.direction as TradeDirection,
-          entryDate: new Date(formData.entryDate as string).toISOString(),
-          entryPrice: formData.entryPrice as number,
-          exitDate: formData.exitDate ? new Date(formData.exitDate as string).toISOString() : undefined,
-          exitPrice: formData.exitPrice ?? undefined,
-          quantity: formData.quantity as number,
-          isStarred: formData.isStarred,
+
+      const payload = {
+        ...formData,
+        tagNames: selectedTags.map(t => t.value),
+        imageUrl: uploadedImageUrl,
+        entryDate: new Date(formData.entryDate).toISOString(),
+        exitDate: formData.exitDate ? new Date(formData.exitDate).toISOString() : undefined,
       };
+      delete payload.rMultiple;
 
-      // Remove rMultiple from payload as it should be calculated on backend
-      delete (payload as any).rMultiple;
-
-      let resultAction;
+      let result;
       if (isEditMode && initialData?.id) {
-        resultAction = await dispatch(updateTrade({ id: initialData.id, payload: payload as UpdateTradePayload }));
-        if (updateTrade.fulfilled.match(resultAction)) {
-          if (onFormSubmitSuccess) {
-            onFormSubmitSuccess(resultAction.payload.id);
-          } else {
-            router.push('/journal');
-          }
+        result = await dispatch(updateTrade({ id: initialData.id, payload }));
+        if (updateTrade.fulfilled.match(result)) {
+          onFormSubmitSuccess?.(result.payload.id) || router.push('/journal');
         }
       } else {
-        resultAction = await dispatch(createTrade(payload as CreateTradePayload));
-        if (createTrade.fulfilled.match(resultAction)) {
-          if (onFormSubmitSuccess) {
-            onFormSubmitSuccess(resultAction.payload.id);
-          } else {
-            router.push('/journal');
-          }
+        result = await dispatch(createTrade(payload));
+        if (createTrade.fulfilled.match(result)) {
+          onFormSubmitSuccess?.(result.payload.id) || router.push('/journal');
         }
       }
-      if (resultAction.meta.requestStatus === 'rejected') {
-        setFormError(resultAction.payload as string || 'Submission failed');
+      if (result.meta.requestStatus === 'rejected') {
+        setFormError((result as any).payload || 'Submission failed');
       }
-
-    } catch (error: any) { 
-      setFormError(error.message || 'An unexpected error occurred.');
+    } catch (err: any) {
+      setFormError(err.message || 'Unexpected error');
     } finally {
       setIsUploading(false);
     }
   };
 
-  // --- CUSTOM STYLES FOR REACT-SELECT (Robust Theming) ---
+  // Tab configuration
+  const tabs: Tab[] = [
+    { id: 'trade', label: 'Trade', icon: <BarChart3 className="w-4 h-4" /> },
+    { id: 'execution', label: 'Execution', icon: <Target className="w-4 h-4" /> },
+    { id: 'analysis', label: 'Analysis', icon: <Brain className="w-4 h-4" /> },
+  ];
+
+  // Compact input classes
+  const inputClass = "w-full px-3 py-2 text-sm bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all";
+  const labelClass = "text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1 block";
+  const cardClass = "bg-white/50 dark:bg-white/[0.02] rounded-2xl border border-gray-200/50 dark:border-white/5 p-4";
+
+  // React Select styles
   const selectStyles: StylesConfig<TagOption, true> = {
-    control: (provided, state) => ({
-      ...provided,
-      backgroundColor: 'var(--bg-secondary)', // Use CSS variables
-      borderColor: state.isFocused ? 'var(--accent)' : 'var(--border)',
-      boxShadow: state.isFocused ? '0 0 0 2px var(--shadow-md)' : 'none', 
-      borderRadius: '0.75rem', 
-      minHeight: '46px', 
-      transition: 'border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out',
-      '&:hover': {
-        borderColor: state.isFocused ? 'var(--accent)' : 'var(--border-hover)',
-      },
-    }),
-    valueContainer: (provided) => ({
-      ...provided,
-      padding: '2px 8px',
-    }),
-    input: (provided) => ({
-      ...provided,
-      color: 'var(--text-primary)',
-      margin: '0px',
-      padding: '0px',
-    }),
-    placeholder: (provided) => ({
-      ...provided,
-      color: 'var(--text-tertiary)',
-    }),
-    singleValue: (provided) => ({
-      ...provided,
-      color: 'var(--text-primary)',
-    }),
-    multiValue: (provided) => ({
-      ...provided,
-      backgroundColor: 'var(--bg-tertiary)',
-      borderRadius: '0.375rem',
-      border: '1px solid var(--border)',
-    }),
-    multiValueLabel: (provided) => ({
-      ...provided,
-      color: 'var(--text-secondary)',
-      fontSize: '0.875rem',
-      fontWeight: 500,
-    }),
-    multiValueRemove: (provided) => ({
-      ...provided,
-      color: 'var(--text-tertiary)',
-      '&:hover': {
-        backgroundColor: 'var(--error-light)',
-        color: 'var(--error)',
-      },
-      borderTopRightRadius: '0.375rem',
-      borderBottomRightRadius: '0.375rem',
-    }),
-    menu: (provided) => ({
-      ...provided,
-      backgroundColor: 'var(--bg-primary)',
-      borderColor: 'var(--border)',
-      borderWidth: '1px',
-      borderRadius: '0.75rem',
-      boxShadow: 'var(--shadow-lg)',
-      zIndex: 9999, 
-    }),
-    menuPortal: (provided) => ({
-      ...provided,
-      zIndex: 9999,
-    }),
-    option: (provided, state) => ({
-      ...provided,
-      backgroundColor: state.isSelected ? 'var(--accent)' : state.isFocused ? 'var(--bg-secondary)' : 'transparent',
-      color: state.isSelected ? 'white' : 'var(--text-primary)',
-      fontSize: '0.875rem',
-      cursor: 'pointer',
-      '&:active': {
-        backgroundColor: 'var(--accent-hover)',
-      },
-    }),
-    indicatorSeparator: () => ({ display: 'none' }),
-    dropdownIndicator: (provided) => ({
-        ...provided,
-        color: 'var(--text-tertiary)',
-        '&:hover': {
-            color: 'var(--text-secondary)',
-        }
-    }),
-    clearIndicator: (provided) => ({
-        ...provided,
-        color: 'var(--text-tertiary)',
-        '&:hover': {
-            color: 'var(--text-secondary)',
-        }
-    }),
+    control: (p, s) => ({ ...p, backgroundColor: 'transparent', borderColor: s.isFocused ? 'rgb(16 185 129)' : 'rgb(229 231 235)', borderRadius: '0.75rem', minHeight: '38px' }),
+    menu: (p) => ({ ...p, backgroundColor: 'var(--bg-primary)', borderRadius: '0.75rem', zIndex: 50 }),
+    option: (p, s) => ({ ...p, backgroundColor: s.isSelected ? 'rgb(16 185 129)' : s.isFocused ? 'rgba(16,185,129,0.1)' : 'transparent', color: s.isSelected ? 'white' : 'inherit' }),
+    multiValue: (p) => ({ ...p, backgroundColor: 'rgba(16,185,129,0.1)', borderRadius: '0.5rem' }),
+    multiValueLabel: (p) => ({ ...p, color: 'rgb(16 185 129)', fontWeight: 500 }),
   };
-  // --- END CUSTOM STYLES FOR REACT-SELECT ---
-
-  const calculatedRRColor = () => {
-    if (formData.rMultiple === undefined || formData.rMultiple === null) return 'text-gray-600 dark:text-gray-400';
-    if (formData.rMultiple >= 2) return 'text-green-600 dark:text-green-400'; 
-    if (formData.rMultiple >= 1) return 'text-yellow-600 dark:text-yellow-400'; 
-    if (formData.rMultiple > 0) return 'text-orange-600 dark:text-orange-400';
-    return 'text-red-600 dark:text-red-400';
-  };
-
-  // Helper function to render field validation errors
-  const renderFieldError = (fieldName: string) => {
-    const error = getFieldError(validationErrors, fieldName);
-    if (!error) return null;
-    
-    return (
-      <p className="mt-1 text-sm text-red-600 dark:text-red-400">
-        {error}
-      </p>
-    );
-  };
-
-  const buttonBaseClasses = "flex items-center justify-center space-x-2 px-6 py-3 font-semibold rounded-xl transition-all duration-200 shadow-lg focus:outline-none focus:ring-2 focus:ring-opacity-70";
-  const primaryButtonClasses = `bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white focus:ring-emerald-500 hover:scale-105 hover:shadow-xl`;
-  const secondaryButtonClasses = 
-    `bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-950/20 dark:to-emerald-900/20 hover:bg-emerald-500 dark:hover:bg-emerald-500 text-gray-600 dark:text-gray-400 hover:text-white focus:ring-emerald-500 hover:scale-105 backdrop-blur-sm`;
-  
-  // Option theme classes for standard select
-  const optionThemeClass = "bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 font-medium";
 
   return (
-    <div className="w-full space-y-8">
-      {/* Global Form Error Messages */}
-      {formError && (
-        <div className="p-4 bg-red-50/90 dark:bg-red-900/20 border border-red-200/50 dark:border-red-800/50 text-red-700 dark:text-red-400 rounded-xl text-sm backdrop-blur-sm">
-          {formError}
-        </div>
-      )}
-      {tradeSubmitError && (
-        <div className="p-4 bg-red-50/90 dark:bg-red-900/20 border border-red-200/50 dark:border-red-800/50 text-red-700 dark:text-red-400 rounded-xl text-sm backdrop-blur-sm">
-          Submission Error: {tradeSubmitError}
+    <div className="w-full">
+      {/* Error Display */}
+      {(formError || tradeSubmitError) && (
+        <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl text-red-700 dark:text-red-400 text-sm">
+          {formError || tradeSubmitError}
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-8">
-        {/* Section 1: Core Details */}
-        {/* Section 1: Core Details */}
-        <div className={sectionContainerClasses}>
-          <h2 className={sectionTitleClasses}>
-            <div className="p-2 bg-gradient-to-r from-emerald-500/20 to-emerald-600/20 rounded-xl">
-              <FaCalculator className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
-            </div>
-            <span>Core Trade Information</span>
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
-            <div className="md:col-span-2">
-              <FormSelect
-                label="Account"
-                id="accountId" 
-                name="accountId" 
-                value={formData.accountId || ''} 
-                onChange={handleChange} 
-                required
-                error={getFieldError(validationErrors, 'accountId')}
-              >
-                  <option value="" disabled>Select an account</option>
-                  {allAccounts.map(account => (
-                    <option key={account.id} value={account.id}>
-                      {account.name} ({account.type}) - {account.currency} {Number(account.balance).toFixed(2)}
+      <form onSubmit={handleSubmit}>
+        {/* Tabbed Content */}
+        <FormTabs tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab}>
+          
+          {/* === TAB 1: TRADE === */}
+          {activeTab === 'trade' && (
+            <div className="space-y-4">
+              {/* Account Selection */}
+              <div className={cardClass}>
+                <label className={labelClass}>Trading Account</label>
+                <select
+                  name="accountId"
+                  value={formData.accountId || ''}
+                  onChange={handleChange}
+                  className={inputClass}
+                  required
+                >
+                  <option value="">Select account...</option>
+                  {allAccounts.map(acc => (
+                    <option key={acc.id} value={acc.id}>
+                      {acc.name} ({acc.type}) – {acc.currency} {Number(acc.balance).toFixed(0)}
                     </option>
                   ))}
-              </FormSelect>
-              {allAccounts.length === 0 && (
-                <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-xl p-4 mt-2">
-                  <p className="text-sm text-yellow-800 dark:text-yellow-200 mb-2">
-                    <strong>No accounts available.</strong> You need to create a trading account first.
-                  </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
-                    Go to <strong>Settings → Manage Accounts</strong> to add your first trading account.
-                  </p>
-                </div>
-              )}
-            </div>
-            <div>
-              <FormSelect
-                label="Asset Type"
-                id="assetType" 
-                name="assetType" 
-                value={formData.assetType} 
-                onChange={handleChange} 
-                required
-              >
-                {Object.values(AssetType).map(type => <option key={type} value={type}>{type}</option>)}
-              </FormSelect>
-            </div>
-            <div>
-              <FormInput
-                label="Symbol / Pair"
-                type="text" 
-                id="symbol" 
-                name="symbol" 
-                value={formData.symbol} 
-                onChange={handleChange} 
-                required 
-                placeholder="e.g., AAPL, EURUSD, BTCUSDT"
-                error={getFieldError(validationErrors, 'symbol')}
-              />
-            </div>
-            <div>
-              <FormSelect
-                label="Direction"
-                id="direction" 
-                name="direction" 
-                value={formData.direction} 
-                onChange={handleChange} 
-                required
-              >
-                {Object.values(TradeDirection).map(dir => <option key={dir} value={dir}>{dir}</option>)}
-              </FormSelect>
-            </div>
-            <div>
-              <FormSelect
-                label="Status"
-                id="status" 
-                name="status" 
-                value={formData.status} 
-                onChange={handleChange} 
-                required
-              >
-                {Object.values(TradeStatus).map(stat => <option key={stat} value={stat}>{stat}</option>)}
-              </FormSelect>
-            </div>
-            <div className="md:col-span-2 flex items-center space-x-2 mt-2">
-              <input
-                type="checkbox"
-                id="isStarred"
-                name="isStarred"
-                checked={!!formData.isStarred}
-                onChange={handleChange}
-                className="h-4 w-4 rounded border-emerald-300 text-emerald-600 focus:ring-emerald-500 dark:bg-emerald-950/20 dark:border-emerald-600/30"
-              />
-              <label htmlFor="isStarred" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-0">
-                Mark as Starred
-              </label>
-            </div>
-          </div>
-        </div>
-
-        {/* Section 2: Entry & Exit */}
-        <div className={sectionContainerClasses}>
-          <h2 className={sectionTitleClasses}>
-            <div className="p-2 bg-gradient-to-r from-emerald-500/20 to-emerald-600/20 rounded-xl">
-              <FaPaperPlane className="w-5 h-5 text-green-600 dark:text-green-400" />
-            </div>
-            <span>Entry & Exit Details</span>
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
-            <div>
-              <FormInput
-                label="Entry Date & Time"
-                type="datetime-local" 
-                id="entryDate" 
-                name="entryDate" 
-                value={formData.entryDate} 
-                onChange={handleChange} 
-                required 
-                error={getFieldError(validationErrors, 'entryDate')}
-              />
-            </div>
-            <div>
-              <FormInput
-                label="Entry Price"
-                type="number" 
-                id="entryPrice" 
-                name="entryPrice" 
-                value={formData.entryPrice || ''} 
-                onChange={handleChange} 
-                required 
-                placeholder="0.00" 
-                step="any"
-                error={getFieldError(validationErrors, 'entryPrice')}
-              />
-            </div>
-            <div>
-               <FormInput
-                label="Exit Date & Time"
-                type="datetime-local" 
-                id="exitDate" 
-                name="exitDate" 
-                value={formData.exitDate || ''} 
-                onChange={handleChange} 
-                error={getFieldError(validationErrors, 'exitDate')}
-              />
-            </div>
-            <div>
-              <FormInput
-                label="Exit Price"
-                type="number" 
-                id="exitPrice" 
-                name="exitPrice" 
-                value={formData.exitPrice || ''} 
-                onChange={handleChange} 
-                placeholder="0.00" 
-                step="any"
-                error={getFieldError(validationErrors, 'exitPrice')}
-              />
-            </div>
-          </div>
-        </div>
-        
-        {/* Section 3: Risk & Quantity */}
-        <div className={sectionContainerClasses}>
-            <h2 className={sectionTitleClasses}>
-              <div className="p-2 bg-gradient-to-r from-red-500/20 to-orange-500/20 rounded-xl">
-                <FaCalculator className="w-5 h-5 text-red-600 dark:text-red-400" />
+                </select>
               </div>
-              <span>Risk, Reward & Quantity</span>
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
-                <div>
-                    <FormInput
-                        label="Stop Loss"
-                        type="number" 
-                        id="stopLoss" 
-                        name="stopLoss" 
-                        value={formData.stopLoss || ''} 
-                        onChange={handleChange} 
-                        placeholder="0.00" 
-                        step="any"
-                        error={getFieldError(validationErrors, 'stopLoss')}
-                    />
-                </div>
-                <div>
-                     <FormInput
-                        label="Take Profit"
-                        type="number" 
-                        id="takeProfit" 
-                        name="takeProfit" 
-                        value={formData.takeProfit || ''} 
-                        onChange={handleChange} 
-                        placeholder="0.00" 
-                        step="any"
-                        error={getFieldError(validationErrors, 'takeProfit')}
-                    />
-                </div>
-                <div>
-                    <FormInput
-                        label="Lots"
-                        type="number" 
-                        id="quantity" 
-                        name="quantity" 
-                        value={formData.quantity || ''} 
-                        onChange={handleChange} 
-                        required 
-                        placeholder="e.g., 100, 0.01" 
-                        step="any"
-                        error={getFieldError(validationErrors, 'quantity')}
-                    />
-                </div>
-                <div>
-                    <FormInput
-                        label="Commission"
-                        type="number" 
-                        id="commission" 
-                        name="commission" 
-                        value={formData.commission || ''} 
-                        onChange={handleChange} 
-                        placeholder="0.00" 
-                        step="any"
-                        error={getFieldError(validationErrors, 'commission')}
-                    />
-                </div>
-                {formData.rMultiple !== undefined && (
-                    <div className="md:col-span-2">
-                        <p className={`text-sm font-medium ${calculatedRRColor()}`}>
-                            Calculated R:R: {formData.rMultiple.toFixed(2)}R
-                        </p>
+
+              {/* Core Trade Grid */}
+              <div className={cardClass}>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <div>
+                    <label className={labelClass}>Asset Type</label>
+                    <select name="assetType" value={formData.assetType} onChange={handleChange} className={inputClass}>
+                      {Object.values(AssetType).map(t => <option key={t} value={t}>{t}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className={labelClass}>Symbol</label>
+                    <input type="text" name="symbol" value={formData.symbol} onChange={handleChange} placeholder="EURUSD" className={inputClass} required />
+                  </div>
+                  <div>
+                    <label className={labelClass}>Direction</label>
+                    <div className="flex gap-1">
+                      <button type="button" onClick={() => setFormData((p: any) => ({ ...p, direction: TradeDirection.LONG }))}
+                        className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold flex items-center justify-center gap-1 transition-all
+                          ${formData.direction === TradeDirection.LONG ? 'bg-emerald-500 text-white' : 'bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-400'}`}>
+                        <TrendingUp className="w-3 h-3" /> Long
+                      </button>
+                      <button type="button" onClick={() => setFormData((p: any) => ({ ...p, direction: TradeDirection.SHORT }))}
+                        className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold flex items-center justify-center gap-1 transition-all
+                          ${formData.direction === TradeDirection.SHORT ? 'bg-red-500 text-white' : 'bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-400'}`}>
+                        <TrendingDown className="w-3 h-3" /> Short
+                      </button>
                     </div>
-                )}
-            </div>
-        </div>
-        
-        {/* Section 4: Strategy & Tags */}
-        <div className={sectionContainerClasses}>
-            <h2 className={sectionTitleClasses}>
-              <div className="p-2 bg-gradient-to-r from-purple-500/20 to-indigo-500/20 rounded-xl">
-                <FaCalculator className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                  </div>
+                  <div>
+                    <label className={labelClass}>Quantity</label>
+                    <input type="number" name="quantity" value={formData.quantity || ''} onChange={handleChange} placeholder="0.01" step="any" className={inputClass} required />
+                  </div>
+                </div>
               </div>
-              <span>Strategy & Analysis</span>
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
-                <div>
-                     <FormSelect
-                        label="Trading Strategy"
-                        id="strategyId" 
-                        name="strategyId" 
-                        value={formData.strategyId || ''} 
-                        onChange={handleChange}
-                    >
-                        <option value="">No strategy selected</option>
-                        {strategies.filter(s => s.isActive).map(strategy => (
-                            <option key={strategy.id} value={strategy.id}>
-                                {strategy.name}
-                            </option>
-                        ))}
-                    </FormSelect>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                        Link this trade to a specific trading strategy for performance tracking
-                    </p>
-                </div>
-                <div>
-                    <FormSelect
-                        label="Trading Session"
-                        id="session" 
-                        name="session" 
-                        value={formData.session} 
-                        onChange={handleChange}
-                    >
-                        {Object.values(TradingSession).map(sess => <option key={sess} value={sess}>{sess}</option>)}
-                    </FormSelect>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                        Market session when this trade was executed
-                    </p>
-                </div>
-                <div className="md:col-span-2">
-                    <label htmlFor="tags" className={labelClasses}>Tags</label>
-                    <CreatableSelect
-                        isMulti
-                        name="tags"
-                        options={[]} // You might want to load existing tags as suggestions here
-                        value={selectedTags}
-                        onChange={handleTagChange}
-                        placeholder="Type to add tags (e.g., Scalp, Breakout, Reversal)"
-                        classNamePrefix="react-select"
-                        styles={selectStyles} 
-                    />
-                </div>
-            </div>
-            
-            <div className="space-y-5 mt-6 pt-6 border-t border-emerald-100/50 dark:border-emerald-800/30">
-                <div>
-                     <FormTextarea
-                        label="Setup Details"
-                        id="setupDetails" 
-                        name="setupDetails" 
-                        value={formData.setupDetails || ''} 
-                        onChange={handleChange} 
-                        placeholder="Describe your trade setup, confluence factors, etc."
-                    />
-                </div>
-                <div>
-                     <FormTextarea
-                        label="Mistakes Made"
-                        id="mistakesMade" 
-                        name="mistakesMade" 
-                        value={formData.mistakesMade || ''} 
-                        onChange={handleChange} 
-                        placeholder="Any deviations from your plan or execution errors?"
-                    />
-                </div>
-                <div>
-                     <FormTextarea
-                        label="Lessons Learned"
-                        id="lessonsLearned" 
-                        name="lessonsLearned" 
-                        value={formData.lessonsLearned || ''} 
-                        onChange={handleChange} 
-                        placeholder="What can you take away from this trade?"
-                    />
-                </div>
-                <div>
-                     <FormTextarea
-                        label="General Notes"
-                        id="notes" 
-                        name="notes" 
-                        value={formData.notes || ''} 
-                        onChange={handleChange} 
-                        placeholder="Any other observations or comments..."
-                    />
-                </div>
-            </div>
-        </div>
-        
-        {/* Section 6: Psychology & Mindset (Compact) */}
-        <div className="bg-gradient-to-r from-purple-500/5 to-pink-500/5 dark:from-purple-500/10 dark:to-pink-500/10 rounded-2xl p-5 border border-purple-200/30 dark:border-purple-500/20">
-          <div className="flex items-center gap-2 mb-4">
-            <span className="text-xl">🧠</span>
-            <span className="text-sm font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Psychology & Mindset</span>
-          </div>
-          
-          {/* Emotions Row */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-            <EmotionChipPicker 
-              label="Before Trade" 
-              value={formData.emotionBefore} 
-              onChange={(v) => setFormData(prev => ({...prev, emotionBefore: v as any}))} 
-            />
-            <EmotionChipPicker 
-              label="During Trade" 
-              value={formData.emotionDuring} 
-              onChange={(v) => setFormData(prev => ({...prev, emotionDuring: v as any}))} 
-            />
-            <EmotionChipPicker 
-              label="After Trade" 
-              value={formData.emotionAfter} 
-              onChange={(v) => setFormData(prev => ({...prev, emotionAfter: v as any}))} 
-            />
-          </div>
-          
-          {/* Quick Metrics Row */}
-          <div className="flex flex-wrap items-center gap-6">
-            <StarRating 
-              label="Confidence" 
-              value={formData.confidenceLevel} 
-              onChange={(v) => setFormData(prev => ({...prev, confidenceLevel: v}))} 
-              max={5} 
-            />
-            <ToggleChip 
-              label="Followed Plan" 
-              value={formData.followedPlan} 
-              onChange={(v) => setFormData(prev => ({...prev, followedPlan: v}))} 
-            />
-            <ChipSelector
-              label="Grade"
-              value={formData.executionGrade}
-              onChange={(v) => setFormData(prev => ({...prev, executionGrade: v as any}))}
-              options={[
-                { value: 'A', label: 'A' },
-                { value: 'B', label: 'B' },
-                { value: 'C', label: 'C' },
-                { value: 'D', label: 'D' },
-                { value: 'F', label: 'F' },
-              ]}
-              color="purple"
-            />
-          </div>
-        </div>
 
-        {/* Section 7: Market Context (Compact) */}
-        <div className="bg-gradient-to-r from-blue-500/5 to-cyan-500/5 dark:from-blue-500/10 dark:to-cyan-500/10 rounded-2xl p-5 border border-blue-200/30 dark:border-blue-500/20">
-          <div className="flex items-center gap-2 mb-4">
-            <span className="text-xl">📊</span>
-            <span className="text-sm font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Market Context</span>
-          </div>
-          
-          <div className="flex flex-wrap items-start gap-6">
-            <ChipSelector
-              label="Condition"
-              value={formData.marketCondition}
-              onChange={(v) => setFormData(prev => ({...prev, marketCondition: v as any}))}
-              options={[
-                { value: 'Trending Up', label: '📈 Up', emoji: '' },
-                { value: 'Trending Down', label: '📉 Down', emoji: '' },
-                { value: 'Ranging', label: '↔️ Range', emoji: '' },
-                { value: 'Choppy', label: '〰️ Chop', emoji: '' },
-                { value: 'Volatile', label: '⚡ Vol', emoji: '' },
-              ]}
-              color="blue"
-            />
-            <ChipSelector
-              label="Timeframe"
-              value={formData.timeframe}
-              onChange={(v) => setFormData(prev => ({...prev, timeframe: v as any}))}
-              options={[
-                { value: '1m', label: '1m' },
-                { value: '5m', label: '5m' },
-                { value: '15m', label: '15m' },
-                { value: '1H', label: '1H' },
-                { value: '4H', label: '4H' },
-                { value: '1D', label: 'D' },
-              ]}
-              color="blue"
-            />
-            <ChipSelector
-              label="HTF Bias"
-              value={formData.htfBias}
-              onChange={(v) => setFormData(prev => ({...prev, htfBias: v as any}))}
-              options={[
-                { value: 'Bullish', label: '🟢 Bull' },
-                { value: 'Bearish', label: '🔴 Bear' },
-                { value: 'Neutral', label: '⚪ Neutral' },
-              ]}
-              color="blue"
-            />
-            <ToggleChip 
-              label="News" 
-              value={formData.newsImpact} 
-              onChange={(v) => setFormData(prev => ({...prev, newsImpact: v}))}
-              yesLabel="📰"
-              noLabel="—"
-            />
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">R:R</span>
-              <input
-                type="number"
-                value={formData.plannedRR || ''}
-                onChange={(e) => setFormData(prev => ({...prev, plannedRR: e.target.value ? parseFloat(e.target.value) : undefined}))}
-                placeholder="2.0"
-                step="0.5"
-                className="w-16 px-2 py-1 text-sm font-bold text-center rounded-lg bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Section 8: Environment (Compact) */}
-        <div className="bg-gradient-to-r from-green-500/5 to-teal-500/5 dark:from-green-500/10 dark:to-teal-500/10 rounded-2xl p-5 border border-green-200/30 dark:border-green-500/20">
-          <div className="flex items-center gap-2 mb-4">
-            <span className="text-xl">🏠</span>
-            <span className="text-sm font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Trading Environment</span>
-          </div>
-          
-          <div className="flex flex-wrap items-center gap-6">
-            <StarRating 
-              label="Sleep" 
-              value={formData.sleepQuality} 
-              onChange={(v) => setFormData(prev => ({...prev, sleepQuality: v}))} 
-              max={5} 
-            />
-            <StarRating 
-              label="Energy" 
-              value={formData.energyLevel} 
-              onChange={(v) => setFormData(prev => ({...prev, energyLevel: v}))} 
-              max={5} 
-            />
-            <StarRating 
-              label="Focus" 
-              value={formData.distractionLevel ? 6 - formData.distractionLevel : undefined} 
-              onChange={(v) => setFormData(prev => ({...prev, distractionLevel: v ? 6 - v : undefined}))} 
-              max={5} 
-            />
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Location</span>
-              <input
-                type="text"
-                value={formData.tradingEnvironment || ''}
-                onChange={(e) => setFormData(prev => ({...prev, tradingEnvironment: e.target.value}))}
-                placeholder="Home, Office..."
-                className="w-28 px-2 py-1 text-sm rounded-lg bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 focus:ring-2 focus:ring-green-500 focus:border-transparent"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Section 9: Chart Upload */}
-        <div className={sectionContainerClasses}>
-            <h2 className={sectionTitleClasses}>
-              <div className="p-2 bg-gradient-to-r from-indigo-500/20 to-cyan-500/20 rounded-xl">
-                <FaUpload className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
-              </div>
-              <span>Chart Snapshot</span>
-            </h2>
-            <div className="flex flex-col items-center space-y-6">
-                <label htmlFor="file-upload" 
-                    className={`w-full max-w-md flex flex-col items-center px-6 py-8 rounded-xl shadow-lg tracking-wide uppercase border-2 border-dashed cursor-pointer transition-all duration-200 backdrop-blur-sm
-                                ${selectedFile || imagePreviewUrl ? 'border-emerald-500 bg-emerald-50/80 dark:bg-emerald-900/20' : 'border-emerald-300 dark:border-emerald-600/30 bg-emerald-50/80 dark:bg-emerald-950/10'} 
-                                text-gray-700 dark:text-gray-300 
-                                hover:bg-emerald-100/80 dark:hover:bg-emerald-900/30 
-                                hover:border-emerald-400 dark:hover:border-emerald-500`}>
-                    <FaUpload className={`text-4xl mb-3 ${selectedFile || imagePreviewUrl ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-500 dark:text-gray-400'}`} />
-                    <span className="text-sm font-medium leading-normal">{selectedFile ? selectedFile.name : (imagePreviewUrl ? "Change Chart" : "Upload Chart")}</span>
-                    <span className="text-xs text-gray-500 dark:text-gray-400 mt-1">PNG, JPG, GIF up to 10MB</span>
-                    <input id="file-upload" name="imageUrl" type="file" className="hidden" onChange={handleFileChange} accept="image/png, image/jpeg, image/jpg, image/gif, image/webp"/>
-                </label>
-                {imagePreviewUrl && (
-                    <div className="relative group max-w-md w-full">
-                        <img src={imagePreviewUrl} alt="Selected chart preview" className="w-full h-auto rounded-2xl shadow-lg object-contain max-h-96 border border-emerald-200/50 dark:border-emerald-700/30" />
-                        <button 
-                            type="button" 
-                            onClick={() => { setSelectedFile(null); setImagePreviewUrl(initialData?.imageUrl || null); setFormData(prev => ({...prev, imageUrl: initialData?.imageUrl || ''}))}}
-                            className="absolute top-3 right-3 p-2 bg-black/50 backdrop-blur-sm rounded-full text-white hover:bg-red-500 hover:bg-opacity-90 transition-all duration-200 opacity-0 group-hover:opacity-100 shadow-lg"
-                            aria-label="Remove image">
-                            <FaTimesCircle className="h-5 w-5" />
-                        </button>
+              {/* Entry & Exit */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className={cardClass}>
+                  <h4 className="text-xs font-bold text-emerald-600 dark:text-emerald-400 mb-3 flex items-center gap-1">
+                    <TrendingUp className="w-3 h-3" /> Entry
+                  </h4>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className={labelClass}>Price</label>
+                      <input type="number" name="entryPrice" value={formData.entryPrice || ''} onChange={handleChange} step="any" className={inputClass} required />
                     </div>
-                )}
-            </div>
-        </div>
+                    <div>
+                      <label className={labelClass}>Date & Time</label>
+                      <input type="datetime-local" name="entryDate" value={formData.entryDate} onChange={handleChange} className={inputClass} required />
+                    </div>
+                  </div>
+                </div>
+                <div className={cardClass}>
+                  <h4 className="text-xs font-bold text-gray-500 dark:text-gray-400 mb-3 flex items-center gap-1">
+                    <TrendingDown className="w-3 h-3" /> Exit (Optional)
+                  </h4>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className={labelClass}>Price</label>
+                      <input type="number" name="exitPrice" value={formData.exitPrice || ''} onChange={handleChange} step="any" className={inputClass} />
+                    </div>
+                    <div>
+                      <label className={labelClass}>Date & Time</label>
+                      <input type="datetime-local" name="exitDate" value={formData.exitDate || ''} onChange={handleChange} className={inputClass} />
+                    </div>
+                  </div>
+                </div>
+              </div>
 
-        {/* Submission and Error Handling Section */}
-        <div className={sectionContainerClasses}>
-          <div className="flex flex-col sm:flex-row justify-end items-center gap-4 pt-6 border-t border-emerald-200/30 dark:border-emerald-700/30">
-              {onCancel && (
-                  <button 
-                      type="button"
-                      onClick={onCancel}
-                      className={`${buttonBaseClasses} ${secondaryButtonClasses}`}
-                  >
-                      Cancel
-                  </button>
-              )}
-              <button 
-                  type="submit" 
-                  disabled={tradeSubmitLoading || isUploading}
-                  className={`${buttonBaseClasses} ${primaryButtonClasses} disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100`}
-              >
-                  {tradeSubmitLoading || isUploading ? 'Saving...' : (isEditMode ? <><FaSave className="mr-2" /> Update Trade</> : <><FaPaperPlane className="mr-2" /> Log Trade</>)}
-              </button>
-          </div>
+              {/* Risk Management */}
+              <div className={cardClass}>
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                  <div>
+                    <label className={labelClass}>Stop Loss</label>
+                    <input type="number" name="stopLoss" value={formData.stopLoss || ''} onChange={handleChange} step="any" className={inputClass} />
+                  </div>
+                  <div>
+                    <label className={labelClass}>Take Profit</label>
+                    <input type="number" name="takeProfit" value={formData.takeProfit || ''} onChange={handleChange} step="any" className={inputClass} />
+                  </div>
+                  <div>
+                    <label className={labelClass}>Commission</label>
+                    <input type="number" name="commission" value={formData.commission || ''} onChange={handleChange} step="any" className={inputClass} />
+                  </div>
+                  <div>
+                    <label className={labelClass}>Status</label>
+                    <select name="status" value={formData.status} onChange={handleChange} className={inputClass}>
+                      {Object.values(TradeStatus).map(s => <option key={s} value={s}>{s}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className={labelClass}>R:R</label>
+                    <div className={`${inputClass} flex items-center justify-center font-bold ${formData.rMultiple >= 2 ? 'text-emerald-600' : formData.rMultiple >= 1 ? 'text-amber-600' : 'text-gray-500'}`}>
+                      {formData.rMultiple ? `${formData.rMultiple}R` : '—'}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* === TAB 2: EXECUTION === */}
+          {activeTab === 'execution' && (
+            <div className="space-y-4">
+              {/* Strategy & ICT */}
+              <div className={cardClass}>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className={labelClass}>Strategy</label>
+                    <select name="strategyId" value={formData.strategyId || ''} onChange={handleChange} className={inputClass}>
+                      <option value="">Select...</option>
+                      {strategies.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className={labelClass}>ICT Concept</label>
+                    <input type="text" name="ictConcept" value={formData.ictConcept || ''} onChange={handleChange} placeholder="FVG, OB, BMS..." className={inputClass} />
+                  </div>
+                  <div>
+                    <label className={labelClass}>Session</label>
+                    <select name="session" value={formData.session} onChange={handleChange} className={inputClass}>
+                      {Object.values(TradingSession).map(s => <option key={s} value={s}>{s}</option>)}
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Tags */}
+              <div className={cardClass}>
+                <label className={labelClass}>Tags</label>
+                <CreatableSelect
+                  isMulti
+                  value={selectedTags}
+                  onChange={(val) => setSelectedTags(val)}
+                  placeholder="Add tags..."
+                  styles={selectStyles}
+                  classNamePrefix="select"
+                />
+              </div>
+
+              {/* Market Context */}
+              <div className={cardClass}>
+                <h4 className="text-xs font-bold text-blue-600 dark:text-blue-400 mb-3 flex items-center gap-1">
+                  <BarChart3 className="w-3 h-3" /> Market Context
+                </h4>
+                <div className="flex flex-wrap items-start gap-4">
+                  <ChipSelector
+                    label="Condition"
+                    value={formData.marketCondition}
+                    onChange={(v) => setFormData((p: any) => ({ ...p, marketCondition: v }))}
+                    options={Object.values(MarketCondition).map(c => ({ value: c, label: c }))}
+                    color="blue"
+                  />
+                  <ChipSelector
+                    label="Timeframe"
+                    value={formData.timeframe}
+                    onChange={(v) => setFormData((p: any) => ({ ...p, timeframe: v }))}
+                    options={Object.values(Timeframe).map(t => ({ value: t, label: t }))}
+                    color="blue"
+                  />
+                  <ChipSelector
+                    label="HTF Bias"
+                    value={formData.htfBias}
+                    onChange={(v) => setFormData((p: any) => ({ ...p, htfBias: v }))}
+                    options={Object.values(HTFBias).map(b => ({ value: b, label: b }))}
+                    color="blue"
+                  />
+                  <ToggleChip
+                    label="News"
+                    value={formData.newsImpact}
+                    onChange={(v) => setFormData((p: any) => ({ ...p, newsImpact: v }))}
+                  />
+                  <div>
+                    <label className={labelClass}>Planned R:R</label>
+                    <input type="number" value={formData.plannedRR || ''} onChange={(e) => setFormData((p: any) => ({ ...p, plannedRR: e.target.value ? parseFloat(e.target.value) : undefined }))}
+                      placeholder="2.0" step="0.5" className="w-16 px-2 py-1.5 text-sm text-center rounded-lg bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Chart Upload */}
+              <div className={cardClass}>
+                <h4 className="text-xs font-bold text-indigo-600 dark:text-indigo-400 mb-3 flex items-center gap-1">
+                  <Upload className="w-3 h-3" /> Chart Snapshot
+                </h4>
+                <div className="flex items-center gap-4">
+                  <label className="flex-1 flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-gray-300 dark:border-white/10 rounded-xl cursor-pointer hover:border-emerald-500 transition-colors">
+                    <Upload className="w-4 h-4 text-gray-400" />
+                    <span className="text-sm text-gray-500">{selectedFile ? selectedFile.name : 'Upload chart'}</span>
+                    <input type="file" className="hidden" onChange={handleFileChange} accept="image/*" />
+                  </label>
+                  {imagePreviewUrl && (
+                    <div className="relative w-20 h-20">
+                      <img src={imagePreviewUrl} alt="Preview" className="w-full h-full object-cover rounded-lg" />
+                      <button type="button" onClick={() => { setSelectedFile(null); setImagePreviewUrl(null); }}
+                        className="absolute -top-2 -right-2 p-1 bg-red-500 rounded-full text-white">
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* === TAB 3: ANALYSIS === */}
+          {activeTab === 'analysis' && (
+            <div className="space-y-4">
+              {/* Psychology */}
+              <div className={cardClass}>
+                <h4 className="text-xs font-bold text-purple-600 dark:text-purple-400 mb-3 flex items-center gap-1">
+                  <Brain className="w-3 h-3" /> Psychology & Mindset
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                  <EmotionChipPicker label="Before" value={formData.emotionBefore} onChange={(v) => setFormData((p: any) => ({ ...p, emotionBefore: v }))} />
+                  <EmotionChipPicker label="During" value={formData.emotionDuring} onChange={(v) => setFormData((p: any) => ({ ...p, emotionDuring: v }))} />
+                  <EmotionChipPicker label="After" value={formData.emotionAfter} onChange={(v) => setFormData((p: any) => ({ ...p, emotionAfter: v }))} />
+                </div>
+                <div className="flex flex-wrap items-center gap-6">
+                  <StarRating label="Confidence" value={formData.confidenceLevel} onChange={(v) => setFormData((p: any) => ({ ...p, confidenceLevel: v }))} max={5} />
+                  <ToggleChip label="Followed Plan" value={formData.followedPlan} onChange={(v) => setFormData((p: any) => ({ ...p, followedPlan: v }))} />
+                  <ChipSelector
+                    label="Grade"
+                    value={formData.executionGrade}
+                    onChange={(v) => setFormData((p: any) => ({ ...p, executionGrade: v }))}
+                    options={Object.values(ExecutionGrade).map(g => ({ value: g, label: g }))}
+                    color="purple"
+                  />
+                </div>
+              </div>
+
+              {/* Environment */}
+              <div className={cardClass}>
+                <h4 className="text-xs font-bold text-green-600 dark:text-green-400 mb-3 flex items-center gap-1">
+                  <Home className="w-3 h-3" /> Trading Environment
+                </h4>
+                <div className="flex flex-wrap items-center gap-6">
+                  <StarRating label="Sleep" value={formData.sleepQuality} onChange={(v) => setFormData((p: any) => ({ ...p, sleepQuality: v }))} max={5} />
+                  <StarRating label="Energy" value={formData.energyLevel} onChange={(v) => setFormData((p: any) => ({ ...p, energyLevel: v }))} max={5} />
+                  <StarRating label="Focus" value={formData.distractionLevel ? 6 - formData.distractionLevel : undefined} 
+                    onChange={(v) => setFormData((p: any) => ({ ...p, distractionLevel: v ? 6 - v : undefined }))} max={5} />
+                  <div>
+                    <label className={labelClass}>Location</label>
+                    <input type="text" value={formData.tradingEnvironment || ''} onChange={(e) => setFormData((p: any) => ({ ...p, tradingEnvironment: e.target.value }))}
+                      placeholder="Home, Office..." className="w-28 px-2 py-1.5 text-sm rounded-lg bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Notes */}
+              <div className={cardClass}>
+                <h4 className="text-xs font-bold text-amber-600 dark:text-amber-400 mb-3 flex items-center gap-1">
+                  <FileText className="w-3 h-3" /> Notes & Reflections
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div>
+                    <label className={labelClass}>Entry Reason</label>
+                    <textarea name="entryReason" value={formData.entryReason || ''} onChange={handleChange} rows={2}
+                      placeholder="Why did you enter?" className={inputClass} />
+                  </div>
+                  <div>
+                    <label className={labelClass}>Setup Details</label>
+                    <textarea name="setupDetails" value={formData.setupDetails || ''} onChange={handleChange} rows={2}
+                      placeholder="Describe your setup..." className={inputClass} />
+                  </div>
+                  <div>
+                    <label className={labelClass}>Mistakes</label>
+                    <textarea name="mistakesMade" value={formData.mistakesMade || ''} onChange={handleChange} rows={2}
+                      placeholder="What could be improved?" className={inputClass} />
+                  </div>
+                  <div>
+                    <label className={labelClass}>Lessons Learned</label>
+                    <textarea name="lessonsLearned" value={formData.lessonsLearned || ''} onChange={handleChange} rows={2}
+                      placeholder="Key takeaways..." className={inputClass} />
+                  </div>
+                </div>
+                <div className="mt-3">
+                  <label className={labelClass}>General Notes</label>
+                  <textarea name="notes" value={formData.notes || ''} onChange={handleChange} rows={3}
+                    placeholder="Any other observations..." className={inputClass} />
+                </div>
+              </div>
+            </div>
+          )}
+        </FormTabs>
+
+        {/* Submit Buttons - Fixed at Bottom */}
+        <div className="mt-6 flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-white/10">
+          {onCancel && (
+            <button type="button" onClick={onCancel}
+              className="px-5 py-2.5 text-sm font-semibold rounded-xl bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-white/10 transition-all">
+              Cancel
+            </button>
+          )}
+          <button type="submit" disabled={tradeSubmitLoading || isUploading}
+            className="px-6 py-2.5 text-sm font-bold rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 text-white shadow-lg shadow-emerald-500/25 hover:shadow-xl hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
+            {tradeSubmitLoading || isUploading ? 'Saving...' : (
+              <>
+                {isEditMode ? <Save className="w-4 h-4" /> : <Send className="w-4 h-4" />}
+                {isEditMode ? 'Update Trade' : 'Log Trade'}
+              </>
+            )}
+          </button>
         </div>
       </form>
     </div>
