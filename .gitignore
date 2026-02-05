@@ -56,8 +56,11 @@ Thumbs.db
 .env.local
 .env.production
 .env.yaml
+env-vars.yaml
+*.secrets.yaml
 tradetaper-backend/.env
 tradetaper-backend/.env.*
+tradetaper-backend/env-vars.yaml
 tradetaper-frontend/.env
 tradetaper-frontend/.env.*
 tradetaper-admin/.env
