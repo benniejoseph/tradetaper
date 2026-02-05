@@ -196,23 +196,22 @@ export default function TradesTable({ trades, accounts, onRowClick, isLoading, i
     return <div className="text-center py-10">No trades to display.</div>;
   }
 
-  const thClasses = "px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider whitespace-nowrap";
-  const tdClasses = "px-6 py-4 whitespace-nowrap text-sm";
+  const thClasses = "px-3 py-2 text-left text-[10px] font-bold text-zinc-400 uppercase tracking-wider whitespace-nowrap";
+  const tdClasses = "px-3 py-2 whitespace-nowrap text-xs";
 
   return (
     <div className="bg-gradient-to-br from-white to-emerald-50 dark:from-black dark:to-emerald-950/20 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 shadow-lg overflow-hidden">
       {/* Pagination Controls - Top */}
       {pagination.totalPages > 1 && (
-        <div className="px-6 py-4 border-b border-gray-200/30 dark:border-gray-700/30 flex justify-between items-center bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-950/20 dark:to-emerald-900/20">
-          <div className="text-sm text-gray-600 dark:text-gray-400">
-            Showing {((pagination.currentPage - 1) * pagination.itemsPerPage) + 1} to{' '}
-            {Math.min(pagination.currentPage * pagination.itemsPerPage, trades.length)} of {trades.length} trades
+        <div className="px-4 py-2 border-b border-gray-200/30 dark:border-gray-700/30 flex justify-between items-center bg-zinc-50 dark:bg-white/[0.02]">
+          <div className="text-xs text-zinc-500 font-medium">
+            Showing <span className="font-bold text-zinc-700 dark:text-zinc-300">{((pagination.currentPage - 1) * pagination.itemsPerPage) + 1}-{Math.min(pagination.currentPage * pagination.itemsPerPage, trades.length)}</span> of {trades.length}
           </div>
           <div className="flex items-center space-x-2">
             <button
               onClick={pagination.previousPage}
               disabled={!pagination.hasPreviousPage}
-              className="p-2 rounded-xl bg-gradient-to-r from-white to-emerald-50 dark:from-black dark:to-emerald-950/20 hover:bg-emerald-500 dark:hover:bg-emerald-500 text-gray-600 dark:text-gray-400 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 hover:scale-105 backdrop-blur-sm"
+              className="p-1.5 rounded-lg border border-zinc-200 dark:border-white/10 hover:bg-emerald-500 hover:text-white disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-current transition-all"
             >
               <FaChevronLeft className="h-4 w-4" />
             </button>
@@ -222,7 +221,7 @@ export default function TradesTable({ trades, accounts, onRowClick, isLoading, i
             <button
               onClick={pagination.nextPage}
               disabled={!pagination.hasNextPage}
-              className="p-2 rounded-xl bg-gradient-to-r from-white to-emerald-50 dark:from-black dark:to-emerald-950/20 hover:bg-emerald-500 dark:hover:bg-emerald-500 text-gray-600 dark:text-gray-400 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 hover:scale-105 backdrop-blur-sm"
+              className="p-1.5 rounded-lg border border-zinc-200 dark:border-white/10 hover:bg-emerald-500 hover:text-white disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-current transition-all"
             >
               <FaChevronRight className="h-4 w-4" />
             </button>
@@ -231,7 +230,7 @@ export default function TradesTable({ trades, accounts, onRowClick, isLoading, i
       )}
       {/* Bulk Action Bar */}
       {selectedIds.size > 0 && (
-        <div className="bg-emerald-50 dark:bg-emerald-900/20 px-6 py-2 flex flex-col gap-2 border-b border-emerald-100 dark:border-emerald-900/30 transition-all animate-in fade-in slide-in-from-top-2">
+        <div className="bg-emerald-50 dark:bg-emerald-900/20 px-4 py-1.5 flex flex-col gap-2 border-b border-emerald-100 dark:border-emerald-900/30 transition-all animate-in fade-in slide-in-from-top-2">
            <div className="flex items-center justify-between">
               <span className="text-sm font-medium text-emerald-800 dark:text-emerald-200">
                 {selectedIds.size} trade{selectedIds.size > 1 ? 's' : ''} selected
@@ -352,7 +351,7 @@ export default function TradesTable({ trades, accounts, onRowClick, isLoading, i
         <table className="min-w-full">
           <thead className="bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-950/20 dark:to-emerald-900/20 backdrop-blur-sm">
             <tr className="border-b border-gray-200/30 dark:border-gray-700/30">
-              <th className="px-4 py-4 w-10">
+              <th className="px-3 py-2 w-8">
                  <input 
                    type="checkbox" 
                    checked={allPageIdsSelected}
@@ -391,7 +390,7 @@ export default function TradesTable({ trades, accounts, onRowClick, isLoading, i
                           : 'hover:bg-gradient-to-r hover:from-emerald-50 hover:to-emerald-100 dark:hover:from-emerald-900/30 dark:hover:to-emerald-800/30 cursor-pointer hover:shadow-md'
                     }`}
                 >
-                  <td className="px-4 py-4" onClick={(e) => e.stopPropagation()}>
+                  <td className="px-3 py-2" onClick={(e) => e.stopPropagation()}>
                     <input 
                       type="checkbox"
                       checked={selectedIds.has(trade.id)}
