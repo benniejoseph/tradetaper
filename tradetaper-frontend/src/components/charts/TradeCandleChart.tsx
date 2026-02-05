@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from 'react';
-import { createChart, ColorType, CandlestickData, Time, UTCTimestamp, IChartApi, CandlestickSeries } from 'lightweight-charts';
+import { createChart, ColorType, CandlestickData, Time, UTCTimestamp, IChartApi, CandlestickSeries, createSeriesMarkers } from 'lightweight-charts';
 import api from '@/services/api'; // Assuming you have an axios instance
 import { FaSpinner, FaChartLine } from 'react-icons/fa';
 
@@ -379,7 +379,8 @@ const TradeCandleChart: React.FC<TradeCandleChartProps> = ({
     if (markers.length > 0) {
       // Sort markers by time
       markers.sort((a, b) => (a.time as number) - (b.time as number));
-      candleSeries.setMarkers(markers);
+      // Use createSeriesMarkers for lightweight-charts v5+
+      createSeriesMarkers(candleSeries, markers);
     }
 
     // Fit content
