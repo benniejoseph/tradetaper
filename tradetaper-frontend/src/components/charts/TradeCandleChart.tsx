@@ -353,42 +353,9 @@ const TradeCandleChart: React.FC<TradeCandleChartProps> = ({
       });
     }
 
-    // --- MARKERS (Entry/Exit Arrows) ---
+    // --- MARKERS REMOVED ---
+    // User requested to keep only horizontal lines
     const markers: any[] = [];
-    
-    // Only add entry marker if we have a valid candle time (number, not null/undefined)
-    if (entryCandle && typeof entryCandle === 'number' && entryPrice) {
-      markers.push({
-        time: entryCandle,
-        position: direction === 'Long' ? 'belowBar' : 'aboveBar',
-        color: '#3b82f6', // blue
-        shape: direction === 'Long' ? 'arrowUp' : 'arrowDown',
-        text: 'Entry',
-      });
-    }
-
-    // Only add exit marker if we have a valid candle time (number, not null/undefined)
-    if (exitCandle && typeof exitCandle === 'number' && exitPrice) {
-      markers.push({
-        time: exitCandle,
-        position: direction === 'Long' ? 'aboveBar' : 'belowBar',
-        color: '#f59e0b', // orange
-        shape: direction === 'Long' ? 'arrowDown' : 'arrowUp',
-        text: 'Exit',
-      });
-    }
-
-    // Only create markers if we have valid markers with proper time values
-    if (markers.length > 0 && markers.every(m => typeof m.time === 'number' && !isNaN(m.time))) {
-      // Sort markers by time
-      markers.sort((a, b) => (a.time as number) - (b.time as number));
-      // Use createSeriesMarkers for lightweight-charts v5+
-      try {
-        createSeriesMarkers(candleSeries, markers);
-      } catch (e) {
-        console.warn('Failed to create series markers:', e);
-      }
-    }
 
     // Fit content
     chart.timeScale().fitContent();
@@ -481,13 +448,13 @@ const TradeCandleChart: React.FC<TradeCandleChartProps> = ({
         <div className="absolute bottom-4 right-4 pointer-events-none flex gap-3 bg-white/80 dark:bg-black/60 backdrop-blur-md p-2 rounded-lg border border-gray-200/50 dark:border-white/10">
           {entryPrice && (
             <div className="flex items-center gap-1.5">
-              <div className="w-2 h-2 rounded-full bg-blue-500" />
+              <div className="w-2 h-0.5 bg-blue-500" />
               <span className="text-[9px] font-bold text-gray-600 dark:text-gray-400">ENTRY</span>
             </div>
           )}
           {exitPrice && (
             <div className="flex items-center gap-1.5">
-              <div className="w-2 h-2 rounded-full bg-orange-500" />
+              <div className="w-2 h-0.5 bg-orange-500" />
               <span className="text-[9px] font-bold text-gray-600 dark:text-gray-400">EXIT</span>
             </div>
           )}
