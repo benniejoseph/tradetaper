@@ -16,9 +16,10 @@ export const terminalService = {
   /**
    * Enable auto-sync for an MT5 account
    */
-  async enableAutoSync(accountId: string): Promise<TerminalStatus> {
+  async enableAutoSync(accountId: string, credentials?: { server: string; login: string; password: string }): Promise<TerminalStatus> {
     const response = await authApiClient.post<TerminalStatus>(
-      `/mt5-accounts/${accountId}/enable-autosync`
+      `/mt5-accounts/${accountId}/enable-autosync`,
+      credentials
     );
     return response.data;
   },

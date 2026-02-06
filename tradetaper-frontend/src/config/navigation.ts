@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 // src/config/navigation.ts
 import { IconType } from 'react-icons';
-import { FaTachometerAlt, FaListAlt, FaChartBar, FaPenSquare, FaCog, FaBook, FaCalendarAlt, FaChartPie, FaBalanceScale, FaUsers, FaCreditCard, FaDollarSign, FaBullseye, FaStickyNote, FaBrain, FaChartLine, FaFlask, FaBell, FaTrophy } from 'react-icons/fa';
+import { FaTachometerAlt, FaListAlt, FaChartBar, FaPenSquare, FaCog, FaBook, FaCalendarAlt, FaChartPie, FaBalanceScale, FaUsers, FaCreditCard, FaDollarSign, FaBullseye, FaStickyNote, FaBrain, FaChartLine, FaFlask, FaBell, FaTrophy, FaServer } from 'react-icons/fa';
 
 export interface NavItem {
   label: string;
@@ -28,6 +28,7 @@ export const userNavItems: NavItem[] = [
 
 export const settingsNavItems: NavItem[] = [
   { label: 'Manage Accounts', href: '/settings/accounts', icon: FaUsers },
+  { label: 'Connect MT5', href: '/settings/mt5-accounts', icon: FaServer }, 
   { label: 'Billing', href: '/billing', icon: FaCreditCard }, // Moved Billing here
 ];
 

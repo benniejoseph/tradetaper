@@ -15,8 +15,8 @@ import {
 import { MT5Account } from '@/types/mt5Account';
 import { 
   FaPlus, FaEdit, FaTrash, FaSync, FaExclamationTriangle,
-  FaServer, FaUser, FaMoneyBill, FaCheck, FaTimes, FaCalendarAlt,
-  FaSpinner
+  FaServer, FaUser, FaMoneyBill, FaChevronDown, FaChevronUp,
+  FaSpinner, FaCircle
 } from 'react-icons/fa';
 import MT5AccountForm from './MT5AccountForm';
 import TerminalStatusCard from './TerminalStatusCard';
@@ -30,6 +30,7 @@ const MT5AccountsList: React.FC = () => {
   const [editingAccount, setEditingAccount] = useState<MT5Account | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [syncingAccount, setSyncingAccount] = useState<string | null>(null);
+  const [expandedAccountId, setExpandedAccountId] = useState<string | null>(null);
 
   useEffect(() => {
     dispatch(fetchMT5Accounts());
@@ -60,7 +61,8 @@ const MT5AccountsList: React.FC = () => {
     }
   };
 
-  const handleSyncAccount = async (id: string) => {
+  const handleSyncAccount = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
     try {
       setSyncingAccount(id);
       await dispatch(syncMT5Account(id)).unwrap();
@@ -70,6 +72,10 @@ const MT5AccountsList: React.FC = () => {
     } finally {
       setSyncingAccount(null);
     }
+  };
+
+  const toggleExpand = (id: string) => {
+    setExpandedAccountId(expandedAccountId === id ? null : id);
   };
 
   const handleSaveAccount = async (formData: any) => {
@@ -90,170 +96,180 @@ const MT5AccountsList: React.FC = () => {
     }
   };
 
-  const formatDate = (dateString?: string) => {
-    if (!dateString) return 'Never';
-    const date = new Date(dateString);
-    return new Intl.DateTimeFormat('en-US', {
-      month: 'short', day: 'numeric', year: 'numeric',
-      hour: '2-digit', minute: '2-digit'
-    }).format(date);
-  };
-
   return (
-    <div className="space-y-8">
-      {/* Add/Edit Account Form */}
-      {showForm && (
-        <MT5AccountForm 
-          account={editingAccount}
-          onSubmit={handleSaveAccount}
-          onCancel={handleCancelForm}
-          isSubmitting={isLoading}
-        />
-      )}
-
-      {/* MT5 Accounts List */}
-      <div className="space-y-4">
-        <div className="flex justify-between items-center">
-          <div className="flex items-center space-x-3">
-            <div className="p-2 bg-gradient-to-r from-blue-500/20 to-green-500/20 rounded-xl">
-              <FaServer className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
-            </div>
-            <div>
-              <h3 className="text-xl font-semibold text-gray-900 dark:text-white">MT5 Accounts</h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                {accounts.length} account{accounts.length !== 1 ? 's' : ''} connected
-              </p>
-            </div>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex justify-between items-center bg-white dark:bg-gray-900 p-4 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm">
+        <div className="flex items-center space-x-3">
+          <div className="p-2 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg">
+            <FaServer className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
           </div>
-          
-          {!showForm && (
-            <button 
-              onClick={handleAddAccount}
-              className="flex items-center space-x-2 bg-gradient-to-r from-blue-500 to-green-500 hover:from-blue-600 hover:to-green-600 text-white px-6 py-3 rounded-xl font-medium transition-all duration-200 hover:scale-105 shadow-lg"
-            >
-              <FaPlus className="w-4 h-4" />
-              <span>Add Account</span>
-            </button>
-          )}
+          <div>
+            <h3 className="text-lg font-bold text-gray-900 dark:text-white leading-tight">MT5 Accounts</h3>
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+               Manage connections to your MetaTrader 5 terminals
+            </p>
+          </div>
         </div>
-
-        {isLoading && accounts.length === 0 ? (
-          <div className="flex justify-center py-10">
-            <FaSpinner className="animate-spin h-10 w-10 text-emerald-500" />
-          </div>
-        ) : accounts.length === 0 && !showForm ? (
-          <div className="text-center py-16 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 shadow-lg">
-            <div className="max-w-md mx-auto space-y-6">
-              <div className="w-20 h-20 bg-gradient-to-r from-blue-500 to-green-500 rounded-full flex items-center justify-center mx-auto">
-                <FaServer className="w-10 h-10 text-white" />
-              </div>
-              <div>
-                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">No MT5 accounts connected</h3>
-                <p className="text-gray-600 dark:text-gray-400">Connect your MT5 accounts to sync your trading data.</p>
-              </div>
-              <button 
-                onClick={handleAddAccount}
-                className="inline-flex items-center space-x-2 bg-gradient-to-r from-blue-500 to-green-500 hover:from-blue-600 hover:to-green-600 text-white font-semibold py-3 px-6 rounded-xl"
-              >
-                <FaPlus className="w-4 h-4" />
-                <span>Add Your First Account</span>
-              </button>
-            </div>
-          </div>
-        ) : (
-          <div className="grid gap-6">
-            {accounts.map((account) => (
-              <div 
-                key={account.id} 
-                className="group relative bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 p-6 transition-all duration-300 hover:shadow-2xl"
-              >
-                {/* Delete Confirmation */}
-                {confirmDelete === account.id && (
-                  <div className="absolute inset-0 bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm rounded-2xl flex items-center justify-center z-10 p-6">
-                    <div className="text-center space-y-4 max-w-md">
-                      <div className="mx-auto w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center">
-                        <FaExclamationTriangle className="w-8 h-8 text-red-500" />
-                      </div>
-                      <h4 className="text-xl font-bold text-gray-900 dark:text-white">Delete Account?</h4>
-                      <p className="text-gray-600 dark:text-gray-400">This will remove "{account.accountName}".</p>
-                      <div className="flex space-x-3 justify-center">
-                        <button onClick={() => setConfirmDelete(null)} className="px-5 py-2 bg-gray-200 dark:bg-gray-700 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 font-medium">Cancel</button>
-                        <button onClick={() => handleDeleteAccount(account.id)} className="px-5 py-2 bg-red-500 hover:bg-red-600 rounded-lg text-white font-medium">Delete</button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-                
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                  <div className="flex-grow">
-                    <div className="flex items-center space-x-4 mb-3">
-                      <div className="p-3 rounded-xl bg-gradient-to-r from-blue-500/20 to-green-500/20">
-                        <FaServer className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-                      </div>
-                      <div>
-                        <h4 className="text-xl font-semibold text-gray-900 dark:text-white">{account.accountName}</h4>
-                        <div className="flex items-center space-x-3 text-sm text-gray-500 dark:text-gray-400">
-                          <span className="flex items-center"><FaUser className="mr-1 w-3 h-3" /> {account.login}</span>
-                          <span>|</span>
-                          <span>{account.server}</span>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="flex flex-wrap items-center gap-x-6 gap-y-2 mt-2">
-                      <div className="flex items-center space-x-2">
-                        <FaMoneyBill className="w-4 h-4 text-emerald-500" />
-                        <span className="text-lg font-semibold text-gray-900 dark:text-white">
-                          {(account.balance ?? 0).toLocaleString(undefined, { 
-                            style: 'currency', 
-                            currency: account.currency || 'USD'
-                          })}
-                        </span>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <FaCalendarAlt className="w-4 h-4 text-emerald-500" />
-                        <span className="text-sm text-gray-500 dark:text-gray-400">Last sync: {formatDate(account.lastSyncAt)}</span>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center space-x-2">
-                    <button
-                      onClick={() => handleSyncAccount(account.id)}
-                      disabled={syncingAccount === account.id}
-                      className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/20 text-emerald-500 hover:bg-emerald-100 dark:hover:bg-emerald-900/30 transition-colors"
-                      title="Sync Account"
-                    >
-                      <FaSync className={`w-5 h-5 ${syncingAccount === account.id ? 'animate-spin' : ''}`} />
-                    </button>
-                    <button
-                      onClick={() => handleEditAccount(account)}
-                      className="p-3 rounded-xl bg-blue-50 dark:bg-blue-950/20 text-blue-500 hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
-                      title="Edit Account"
-                    >
-                      <FaEdit className="w-5 h-5" />
-                    </button>
-                    <button
-                      onClick={() => setConfirmDelete(account.id)}
-                      className="p-3 rounded-xl bg-red-50 dark:bg-red-900/20 text-red-500 hover:bg-red-100 dark:hover:bg-red-800/30 transition-colors"
-                      title="Delete Account"
-                    >
-                      <FaTrash className="w-5 h-5" />
-                    </button>
-                  </div>
-                </div>
-
-                <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
-                  <TerminalStatusCard 
-                    accountId={account.id} 
-                    accountName={account.accountName} 
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
+        
+        {!showForm && (
+          <button 
+            onClick={handleAddAccount}
+            className="flex items-center space-x-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm"
+          >
+            <FaPlus className="w-3 h-3" />
+            <span>Add Account</span>
+          </button>
         )}
       </div>
+
+      {/* Add/Edit Form */}
+      {showForm && (
+        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-6 shadow-sm">
+          <h4 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">
+            {editingAccount ? 'Edit Account' : 'Connect New Account'}
+          </h4>
+          <MT5AccountForm 
+            account={editingAccount}
+            onSubmit={handleSaveAccount}
+            onCancel={handleCancelForm}
+            isSubmitting={isLoading}
+          />
+        </div>
+      )}
+
+      {/* Initial Loading */}
+      {isLoading && accounts.length === 0 && (
+         <div className="flex justify-center py-10">
+           <FaSpinner className="animate-spin h-8 w-8 text-emerald-500" />
+         </div>
+      )}
+
+      {/* Empty State */}
+      {!isLoading && accounts.length === 0 && !showForm && (
+        <div className="text-center py-12 rounded-xl border-2 border-dashed border-gray-200 dark:border-gray-800">
+          <FaServer className="w-10 h-10 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
+          <h3 className="text-gray-900 dark:text-white font-medium">No accounts connected</h3>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Add an MT5 account to start syncing trades.</p>
+          <button 
+            onClick={handleAddAccount}
+            className="text-emerald-600 hover:text-emerald-700 font-medium text-sm"
+          >
+            Connect Account
+          </button>
+        </div>
+      )}
+
+      {/* Compact Table */}
+      {accounts.length > 0 && !showForm && (
+        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden shadow-sm">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead className="bg-gray-50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-800">
+                <tr>
+                   <th className="px-5 py-3 font-medium text-gray-500 dark:text-gray-400">Account</th>
+                   <th className="px-5 py-3 font-medium text-gray-500 dark:text-gray-400">Server</th>
+                   <th className="px-5 py-3 font-medium text-gray-500 dark:text-gray-400">Balance</th>
+                   <th className="px-5 py-3 font-medium text-gray-500 dark:text-gray-400 text-center">Auto-Sync</th>
+                   <th className="px-5 py-3 font-medium text-gray-500 dark:text-gray-400 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100 dark:divide-gray-800/50">
+                {accounts.map((account) => (
+                  <React.Fragment key={account.id}>
+                    <tr 
+                      className={`
+                        hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors cursor-pointer
+                        ${expandedAccountId === account.id ? 'bg-gray-50 dark:bg-gray-800/30' : ''}
+                      `}
+                      onClick={() => toggleExpand(account.id)}
+                    >
+                      <td className="px-5 py-3">
+                         <div className="font-medium text-gray-900 dark:text-white flex items-center space-x-2">
+                           {account.accountName}
+                         </div>
+                         <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center mt-0.5">
+                            <FaUser className="w-3 h-3 mr-1 opacity-70" /> {account.login}
+                         </div>
+                      </td>
+                      <td className="px-5 py-3 text-gray-600 dark:text-gray-300">
+                        {account.server}
+                      </td>
+                      <td className="px-5 py-3 font-mono font-medium text-gray-900 dark:text-white">
+                        {account.currency} {(account.balance ?? 0).toLocaleString()}
+                      </td>
+                      <td className="px-5 py-3 text-center" onClick={(e) => e.stopPropagation()}>
+                        {/* We use the TerminalStatusCard for the actual logic, but here acts as a preview or we just rely on expanding */}
+                        {/* For compactness, we just show "Click to Manage" or a status dot if we had it in the account object (we don't right now without fetching) */}
+                        <div className="inline-flex items-center justify-center px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-800 text-xs text-gray-500 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700" onClick={() => toggleExpand(account.id)}>
+                           Click to Manage
+                           {expandedAccountId === account.id ? <FaChevronUp className="ml-1 w-3 h-3" /> : <FaChevronDown className="ml-1 w-3 h-3" />}
+                        </div>
+                      </td>
+                      <td className="px-5 py-3 text-right space-x-2" onClick={(e) => e.stopPropagation()}>
+                        {confirmDelete === account.id ? (
+                           <div className="flex items-center justify-end space-x-2 animate-fadeIn">
+                             <span className="text-xs text-red-500 font-medium mr-1">Sure?</span>
+                             <button 
+                               onClick={() => handleDeleteAccount(account.id)}
+                               className="text-xs bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded transition-colors"
+                             >
+                               Yes
+                             </button>
+                             <button 
+                               onClick={() => setConfirmDelete(null)}
+                               className="text-xs bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-2 py-1 rounded transition-colors hover:bg-gray-300"
+                             >
+                               No
+                             </button>
+                           </div>
+                        ) : (
+                          <>
+                            <button
+                              onClick={(e) => handleSyncAccount(account.id, e)}
+                              disabled={syncingAccount === account.id}
+                              className="p-1.5 text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded transition-colors"
+                              title="Sync Account Now"
+                            >
+                              <FaSync className={`w-4 h-4 ${syncingAccount === account.id ? 'animate-spin' : ''}`} />
+                            </button>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); handleEditAccount(account); }}
+                              className="p-1.5 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors"
+                              title="Edit Account"
+                            >
+                              <FaEdit className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); setConfirmDelete(account.id); }}
+                              className="p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+                              title="Delete Account"
+                            >
+                              <FaTrash className="w-4 h-4" />
+                            </button>
+                          </>
+                        )}
+                      </td>
+                    </tr>
+                    
+                    {/* Expanded Row for Terminal Status */}
+                    {expandedAccountId === account.id && (
+                      <tr>
+                        <td colSpan={5} className="bg-gray-50/50 dark:bg-gray-800/20 p-4 border-b border-gray-100 dark:border-gray-800 animate-slideDown">
+                          <TerminalStatusCard 
+                             accountId={account.id} 
+                             accountName={account.accountName} 
+                          />
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

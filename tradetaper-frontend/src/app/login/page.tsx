@@ -91,28 +91,28 @@ export default function LoginPage() {
     }
   };
 
+  // Forgot Password Modal/View
   if (showForgotPassword) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-black via-emerald-950 to-emerald-900 flex items-center justify-center p-4 relative overflow-hidden">
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4 relative overflow-hidden">
         {/* Animated Background Elements */}
-        <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute -top-1/2 -left-1/2 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl animate-pulse"></div>
-          <div className="absolute -bottom-1/2 -right-1/2 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }}></div>
-          <div className="absolute top-1/4 left-1/4 w-48 h-48 bg-cyan-500/5 rounded-full blur-2xl animate-pulse" style={{ animationDelay: '1s' }}></div>
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+           <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-emerald-500/10 rounded-full blur-[100px] animate-float"></div>
+           <div className="absolute bottom-1/4 right-1/4 w-[30rem] h-[30rem] bg-teal-500/10 rounded-full blur-[100px] animate-float delay-1000"></div>
         </div>
 
         <div className="relative z-10 w-full max-w-md">
-          <div className="bg-white/[0.02] backdrop-blur-xl rounded-3xl p-8 border border-white/10 shadow-2xl">
+          <div className="glass-card rounded-3xl p-8 border border-white/10 shadow-2xl">
             <div className="text-center mb-8">
               <div className="flex items-center justify-center mb-6">
-                <div className="p-3 bg-gradient-to-r from-emerald-500/20 to-emerald-600/20 rounded-2xl backdrop-blur-sm border border-white/10">
+                <div className="p-3 bg-emerald-500/10 rounded-2xl border border-emerald-500/20">
                   <FaLock className="h-8 w-8 text-emerald-400" />
                 </div>
               </div>
-              <h2 className="text-3xl font-bold bg-gradient-to-r from-white to-emerald-200 bg-clip-text text-transparent mb-2">
+              <h2 className="text-3xl font-bold text-white mb-2">
                 Reset Password
               </h2>
-              <p className="text-slate-300">Enter your email to receive reset instructions</p>
+              <p className="text-slate-400">Enter your email to receive reset instructions</p>
             </div>
 
             {forgotEmailSent ? (
@@ -126,7 +126,7 @@ export default function LoginPage() {
                     setForgotEmailSent(false);
                     setForgotEmail('');
                   }}
-                  className="w-full bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-semibold py-4 px-6 rounded-2xl transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl"
+                  className="w-full btn-3d btn-primary-3d"
                 >
                   Back to Login
                 </button>
@@ -139,15 +139,15 @@ export default function LoginPage() {
                   </div>
                 )}
 
-                <div className="relative">
-                  <FaEnvelope className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400" />
+                <div className="relative group">
+                  <FaEnvelope className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-500 group-focus-within:text-emerald-400 transition-colors" />
                   <input
                     type="email"
                     value={forgotEmail}
                     onChange={(e) => setForgotEmail(e.target.value)}
                     placeholder="Enter your email address"
                     required
-                    className="w-full pl-12 pr-4 py-4 bg-white/[0.03] border border-white/10 rounded-2xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent transition-all duration-300 backdrop-blur-sm"
+                    className="w-full pl-12 pr-4 py-4 bg-slate-900/50 border border-white/10 rounded-2xl text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all"
                   />
                 </div>
 
@@ -158,13 +158,13 @@ export default function LoginPage() {
                       setShowForgotPassword(false);
                       setFormError(null);
                     }}
-                    className="flex-1 bg-white/[0.03] hover:bg-white/[0.08] border border-white/10 text-white font-semibold py-4 px-6 rounded-2xl transition-all duration-300"
+                    className="flex-1 btn-3d btn-secondary-3d"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white font-semibold py-4 px-6 rounded-2xl transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl"
+                    className="flex-1 btn-3d btn-primary-3d"
                   >
                     Send Reset Link
                   </button>
@@ -178,32 +178,33 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-black via-emerald-950 to-emerald-900 flex relative overflow-hidden">
-      {/* Animated Background Elements */}
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute -top-1/2 -left-1/2 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute -bottom-1/2 -right-1/2 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }}></div>
-        <div className="absolute top-1/4 left-1/4 w-48 h-48 bg-emerald-500/5 rounded-full blur-2xl animate-pulse" style={{ animationDelay: '1s' }}></div>
-        <div className="absolute bottom-1/3 left-1/3 w-32 h-32 bg-emerald-500/5 rounded-full blur-xl animate-pulse" style={{ animationDelay: '3s' }}></div>
+    <div className="min-h-screen bg-slate-950 flex relative overflow-hidden font-sans text-white">
+      {/* 3D Background Elements */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+         {/* Grid Floor */}
+         <div className="absolute inset-0 bg-[linear-gradient(rgba(16,185,129,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(16,185,129,0.03)_1px,transparent_1px)] bg-[size:100px_100px] [transform:perspective(1000px)_rotateX(60deg)_translateY(-100px)_scale(3)] origin-top opacity-50"></div>
+         
+         <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-emerald-500/10 rounded-full blur-[100px] animate-float"></div>
+         <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-teal-500/10 rounded-full blur-[100px] animate-float delay-1000"></div>
       </div>
 
-      {/* Left Side - Benefits */}
-      <div className="hidden lg:flex lg:w-1/2 relative z-10 p-12 flex-col justify-center">
-        <div className="max-w-lg">
+      {/* Left Side - 3D Visual & Benefits */}
+      <div className="hidden lg:flex lg:w-1/2 relative z-10 p-12 flex-col justify-center border-r border-white/5 bg-slate-900/40 backdrop-blur-sm">
+        <div className="max-w-lg mx-auto">
           <div className="mb-12">
-            <div className="flex items-center mb-8">
-              <div className="p-3 bg-gradient-to-r from-blue-500/20 to-indigo-500/20 rounded-2xl backdrop-blur-sm border border-white/10 mr-4">
-                <FaChartLine className="h-10 w-10 text-white" />
+            <Link href="/" className="flex items-center mb-8 group">
+              <div className="p-3 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl shadow-lg shadow-emerald-500/20 mr-4 group-hover:scale-110 transition-transform">
+                <FaChartLine className="h-8 w-8 text-white" />
               </div>
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-white to-emerald-200 bg-clip-text text-transparent">
+              <h1 className="text-3xl font-bold text-white">
                 TradeTaper
               </h1>
-            </div>
-            <h2 className="text-4xl font-bold text-white mb-4 leading-tight">
-              Master Your Trading Journey
+            </Link>
+            <h2 className="text-4xl font-bold text-white mb-6 leading-tight">
+              Master the Markets with <span className="text-gradient-emerald">Precision</span>
             </h2>
-            <p className="text-xl text-slate-300 mb-8 leading-relaxed">
-              Join thousands of traders who've transformed their performance with our advanced analytics platform.
+            <p className="text-lg text-slate-400 mb-8 leading-relaxed">
+              Access your institutional-grade trading journal and start refining your edge today.
             </p>
           </div>
 
@@ -211,40 +212,40 @@ export default function LoginPage() {
             {[
               {
                 icon: FaTrendingUp,
-                title: "Performance Analytics",
-                description: "Deep insights into your trading patterns with advanced metrics and visualizations"
+                title: "Neural Analytics",
+                description: "AI that learns your trading patterns"
               },
               {
                 icon: FaShield,
-                title: "Risk Management",
-                description: "Smart position sizing and risk-reward optimization tools"
+                title: "Risk Engine",
+                description: "Pro-grade position sizing & controls"
               },
               {
                 icon: FaRocket,
-                title: "Growth Tracking",
-                description: "Monitor your progress with comprehensive performance dashboards"
+                title: "Performance Tracking",
+                description: "Real-time P&L and growth metrics"
               }
             ].map((benefit, index) => (
-              <div key={index} className="flex items-start space-x-4 group">
-                <div className="flex-shrink-0 p-3 bg-white/[0.05] backdrop-blur-sm rounded-2xl border border-white/10 group-hover:bg-white/[0.1] transition-all duration-300">
-                  <benefit.icon className="text-xl text-emerald-400" />
+              <div key={index} className="flex items-center space-x-4 p-4 rounded-xl border border-white/5 bg-white/[0.02] hover:bg-white/[0.05] transition-colors">
+                <div className="flex-shrink-0 p-3 bg-emerald-500/10 rounded-lg">
+                  <benefit.icon className="text-lg text-emerald-400" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-lg mb-2 text-white">{benefit.title}</h3>
-                  <p className="text-slate-300 text-sm leading-relaxed">{benefit.description}</p>
+                  <h3 className="font-bold text-white text-sm">{benefit.title}</h3>
+                  <p className="text-slate-400 text-xs">{benefit.description}</p>
                 </div>
               </div>
             ))}
           </div>
 
-          <div className="mt-12 p-6 bg-white/[0.03] backdrop-blur-xl rounded-3xl border border-white/10">
-            <div className="flex items-center mb-4">
-              <FaSparkles className="text-yellow-400 text-2xl mr-3" />
-              <div>
-                <h4 className="font-semibold text-lg text-white">Trusted by 10,000+ Traders</h4>
-                <p className="text-slate-300 text-sm">Average 23% improvement in trading performance</p>
-              </div>
-            </div>
+          {/* 3D Floating Element */}
+          <div className="mt-16 relative h-32 perspective-1000">
+             <div className="absolute inset-0 bg-emerald-500/5 border border-emerald-500/20 rounded-2xl transform rotate-x-12 rotate-y-6 flex items-center justify-center backdrop-blur-md">
+                <div className="text-center">
+                    <div className="text-4xl font-bold text-white mb-1">10k+</div>
+                    <div className="text-emerald-400 text-xs uppercase tracking-wider font-bold">Active Traders</div>
+                </div>
+             </div>
           </div>
         </div>
       </div>
@@ -253,99 +254,92 @@ export default function LoginPage() {
       <div className="w-full lg:w-1/2 flex items-center justify-center p-8 relative z-10">
         <div className="w-full max-w-md">
           {/* Mobile Logo */}
-          <div className="lg:hidden text-center mb-8">
-            <div className="flex items-center justify-center mb-6">
-              <div className="p-3 bg-gradient-to-r from-emerald-500/20 to-emerald-600/20 rounded-2xl backdrop-blur-sm border border-white/10 mr-3">
-                <FaChartLine className="h-8 w-8 text-emerald-400" />
+          <div className="lg:hidden text-center mb-10">
+            <Link href="/" className="inline-flex items-center justify-center mb-6">
+              <div className="p-3 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl shadow-lg shadow-emerald-500/20 mr-3">
+                <FaChartLine className="h-6 w-6 text-white" />
               </div>
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-white to-emerald-200 bg-clip-text text-transparent">
+              <h1 className="text-2xl font-bold text-white">
                 TradeTaper
               </h1>
-            </div>
-            <p className="text-slate-300">Welcome back, trader!</p>
+            </Link>
           </div>
 
-          <div className={`bg-white/[0.02] backdrop-blur-xl rounded-3xl p-8 border border-white/10 shadow-2xl transition-all duration-500 ${
-            isFormFocused ? 'shadow-blue-500/20 border-blue-500/20' : ''
-          }`}>
-            <div className="hidden lg:block text-center mb-8">
-              <h2 className="text-3xl font-bold bg-gradient-to-r from-white to-emerald-200 bg-clip-text text-transparent mb-2">
-                Welcome Back
-              </h2>
-              <p className="text-slate-300">Sign in to your trading dashboard</p>
+          <div className="glass-card p-8 rounded-3xl border border-white/10 relative">
+            {/* Top Glow */}
+             <div className="absolute -top-10 left-1/2 -translate-x-1/2 w-20 h-20 bg-emerald-500/20 rounded-full blur-xl pointer-events-none"></div>
+
+            <div className="text-center mb-8">
+              <h2 className="text-2xl font-bold text-white mb-2">Welcome Back</h2>
+              <p className="text-slate-400 text-sm">Sign in to your dashboard</p>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-5">
               {showRegistrationSuccess && (
-                <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-2xl p-4 text-emerald-300 text-sm">
-                  Account created successfully! Please sign in with your credentials.
+                <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4 flex items-center gap-3">
+                  <FaSparkles className="text-emerald-400 flex-shrink-0" />
+                  <p className="text-emerald-300 text-sm">Account created! Please sign in.</p>
                 </div>
               )}
               
               {(error || formError) && (
-                <div className="bg-red-500/10 border border-red-500/20 rounded-2xl p-4 text-red-300 text-sm">
+                <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 text-red-300 text-sm">
                   {error || formError}
                 </div>
               )}
 
-              <div className="space-y-4">
-                {/* Google Sign In */}
-                <button 
-                  type="button"
-                  onClick={() => GoogleAuthService.initiateGoogleLogin()}
-                  className="w-full flex items-center justify-center space-x-3 bg-white/[0.03] hover:bg-white/[0.08] border border-white/10 rounded-2xl py-4 px-6 transition-all duration-300 text-white hover:border-white/20 group"
-                >
-                  <FaGoogle className="text-lg group-hover:scale-110 transition-transform duration-300" />
-                  <span className="font-medium">Continue with Google</span>
-                </button>
+              {/* Google Sign In */}
+              <button 
+                type="button"
+                onClick={() => GoogleAuthService.initiateGoogleLogin()}
+                className="w-full flex items-center justify-center space-x-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl py-3.5 px-6 transition-all text-white hover:border-white/20 group"
+              >
+                <FaGoogle className="text-lg group-hover:scale-110 transition-transform" />
+                <span className="font-medium text-sm">Continue with Google</span>
+              </button>
 
-                <div className="relative">
-                  <div className="absolute inset-0 flex items-center">
-                    <div className="w-full border-t border-white/10"></div>
-                  </div>
-                  <div className="relative flex justify-center text-sm">
-                    <span className="px-4 bg-gradient-to-r from-slate-900 via-blue-900 to-indigo-900 text-slate-400">
-                      Or continue with email
-                    </span>
-                  </div>
+              <div className="relative py-2">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-white/10"></div>
                 </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="px-4 bg-slate-900/50 backdrop-blur-xl text-slate-500">Or continue with email</span>
+                </div>
+              </div>
 
-                {/* Email Input */}
-                <div className="relative">
-                  <FaEnvelope className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400" />
+              <div className="space-y-4">
+                <div className="relative group">
+                  <FaEnvelope className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-500 group-focus-within:text-emerald-400 transition-colors" />
                   <input
                     type="email"
-                    id="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     onFocus={() => setIsFormFocused(true)}
                     onBlur={() => setIsFormFocused(false)}
-                    placeholder="Enter your email"
+                    placeholder="Email address"
                     autoComplete="email"
                     required
-                    className="w-full pl-12 pr-4 py-4 bg-white/[0.03] border border-white/10 rounded-2xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent transition-all duration-300 backdrop-blur-sm"
+                    className="w-full pl-12 pr-4 py-3.5 bg-slate-900/50 border border-white/10 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all text-sm"
                   />
                 </div>
 
-                {/* Password Input */}
-                <div className="relative">
-                  <FaLock className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400" />
+                <div className="relative group">
+                  <FaLock className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-500 group-focus-within:text-emerald-400 transition-colors" />
                   <input
                     type={showPassword ? "text" : "password"}
-                    id="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     onFocus={() => setIsFormFocused(true)}
                     onBlur={() => setIsFormFocused(false)}
-                    placeholder="Enter your password"
+                    placeholder="Password"
                     autoComplete="current-password"
                     required
-                    className="w-full pl-12 pr-12 py-4 bg-white/[0.03] border border-white/10 rounded-2xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent transition-all duration-300 backdrop-blur-sm"
+                    className="w-full pl-12 pr-12 py-3.5 bg-slate-900/50 border border-white/10 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all text-sm"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-4 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-white transition-colors"
+                    className="absolute right-4 top-1/2 transform -translate-y-1/2 text-slate-500 hover:text-white transition-colors"
                   >
                     {showPassword ? <FaEyeSlash /> : <FaEye />}
                   </button>
@@ -353,19 +347,19 @@ export default function LoginPage() {
               </div>
 
               <div className="flex items-center justify-between text-sm">
-                <label className="flex items-center text-slate-300 cursor-pointer group">
+                <label className="flex items-center text-slate-400 cursor-pointer hover:text-slate-300">
                   <input 
                     type="checkbox" 
                     checked={rememberMe}
                     onChange={(e) => setRememberMe(e.target.checked)}
-                    className="rounded border-white/20 text-emerald-500 bg-white/5 focus:ring-emerald-500/50 focus:ring-2 focus:ring-offset-0 mr-2" 
+                    className="rounded border-white/20 text-emerald-500 bg-white/5 focus:ring-emerald-500/50 focus:ring-offset-0 mr-2" 
                   />
-                  <span className="group-hover:text-white transition-colors">Remember me</span>
+                  <span>Remember me</span>
                 </label>
                 <button
                   type="button"
                   onClick={() => setShowForgotPassword(true)}
-                  className="text-emerald-400 hover:text-emerald-300 transition-colors font-medium"
+                  className="text-emerald-400 hover:text-emerald-300 transition-colors font-medium text-xs hover:underline"
                 >
                   Forgot password?
                 </button>
@@ -374,36 +368,36 @@ export default function LoginPage() {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 disabled:from-slate-500 disabled:to-slate-600 text-white font-semibold py-4 px-6 rounded-2xl transition-all duration-300 transform hover:scale-105 disabled:scale-100 shadow-lg hover:shadow-xl flex items-center justify-center space-x-2 group"
+                className="w-full btn-3d btn-primary-3d flex items-center justify-center space-x-2 group disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isLoading ? (
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                  <div className="animate-spin rounded-full h-5 w-5 border-2 border-white/30 border-t-white"></div>
                 ) : (
                   <>
                     <span>Sign In</span>
-                    <FaArrowRight className="group-hover:translate-x-1 transition-transform duration-300" />
+                    <FaArrowRight className="group-hover:translate-x-1 transition-transform" />
                   </>
                 )}
               </button>
             </form>
 
-            <p className="text-center mt-8 text-slate-300">
+            <div className="mt-8 text-center text-sm text-slate-400">
               Don&apos;t have an account?{' '}
-              <Link href="/register" className="text-blue-400 hover:text-blue-300 transition-colors font-medium">
-                Create one here
+              <Link href="/register" className="text-emerald-400 hover:text-emerald-300 font-bold transition-colors">
+                Create Account
               </Link>
-            </p>
+            </div>
           </div>
-
-          <div className="text-center mt-8">
+          
+           <div className="text-center mt-6">
             <Link 
               href="/" 
-              className="text-slate-400 hover:text-white transition-colors text-sm flex items-center justify-center space-x-1 group"
+              className="text-slate-500 hover:text-white transition-colors text-xs inline-flex items-center gap-1"
             >
-              <span className="group-hover:-translate-x-1 transition-transform duration-300">←</span>
-              <span>Back to home</span>
+              <span>← Back to home</span>
             </Link>
           </div>
+
         </div>
       </div>
     </div>

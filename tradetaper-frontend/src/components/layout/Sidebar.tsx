@@ -80,7 +80,7 @@ export default function Sidebar({ isOpen, toggleSidebar, isMobile, onExpandChang
       {/* Sidebar */}
       <aside 
         className={`${isExpanded ? 'w-72' : 'w-20'} flex flex-col h-screen 
-                        bg-white/90 dark:bg-black/90 backdrop-blur-xls
+                        bg-white/90 dark:bg-black backdrop-blur-xls
                         border-r border-gray-200/50 dark:border-gray-700/50
                         fixed top-0 left-0 z-50 
                         transition-all duration-500 ease-out md:translate-x-0
@@ -188,9 +188,11 @@ export default function Sidebar({ isOpen, toggleSidebar, isMobile, onExpandChang
               })}
             </div>
           </div>
+        </nav>
 
-          {/* User Navigation */}
-          <div className="mb-6">
+        {/* User Navigation - Moved outside scrolling nav to allow tooltips to overflow */}
+        <div className="p-3 sm:p-4 space-y-2 flex-shrink-0">
+          <div className="mb-2">
             <h2 className={`text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-3 px-3 transition-all duration-500 overflow-hidden ${isExpanded ? 'opacity-100 h-auto' : 'opacity-0 h-0'}`}>
               Account
             </h2>
@@ -224,45 +226,54 @@ export default function Sidebar({ isOpen, toggleSidebar, isMobile, onExpandChang
                         </div>
                       </Link>
                       
-                      {/* Tooltip for collapsed state */}
-                      {!isExpanded && (
-                        <div className="absolute left-16 top-1/2 transform -translate-y-1/2 bg-gray-900 dark:bg-gray-700 text-white text-sm px-3 py-2 rounded-lg shadow-lg opacity-0 group-hover/tooltip:opacity-100 transition-opacity duration-200 pointer-events-none z-50 whitespace-nowrap">
-                          {item.label}
-                          <div className="absolute left-0 top-1/2 transform -translate-y-1/2 -translate-x-1 w-2 h-2 bg-gray-900 dark:bg-gray-700 rotate-45"></div>
-                        </div>
-                      )}
-                    </div>
-                    
-                    {/* Settings Subnav - only show when expanded */}
-                    {isExpanded && item.href === '/settings' && pathname.startsWith('/settings') && (
-                      <div className="mt-2 ml-4 space-y-1 border-l-2 border-gradient-to-b from-purple-500 to-pink-500 pl-4">
-                        {settingsNavItems.map(subItem => {
-                          const isSubActive = pathname === subItem.href || pathname.startsWith(subItem.href + '/');
-                          return (
+                    {/* Tooltip for collapsed state */}
+                    {!isExpanded && (
+                      <div className="absolute left-16 top-1/2 transform -translate-y-1/2 bg-gray-900 dark:bg-gray-700 text-white text-sm px-3 py-2 rounded-lg shadow-lg opacity-0 group-hover/tooltip:opacity-100 transition-opacity duration-200 pointer-events-none z-50 whitespace-nowrap">
+                        {item.label}
+                        <div className="absolute left-0 top-1/2 transform -translate-y-1/2 -translate-x-1 w-2 h-2 bg-gray-900 dark:bg-gray-700 rotate-45"></div>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Settings Subnav - Show even when collapsed if active */}
+                  {item.href === '/settings' && pathname.startsWith('/settings') && (
+                    <div className={`${isExpanded ? 'mt-2 ml-4 space-y-1 border-l-2 border-gradient-to-b from-purple-500 to-pink-500 pl-4' : 'mt-2 space-y-2 flex flex-col items-center'}`}>
+                      {settingsNavItems.map(subItem => {
+                        const isSubActive = pathname === subItem.href || pathname.startsWith(subItem.href + '/');
+                        return (
+                          <div key={subItem.label} className="relative group/subtooltip">
                             <Link
-                              key={subItem.label}
                               href={subItem.href}
                               onClick={handleLinkClick}
-                              className={`group flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200
+                              className={`group flex items-center ${isExpanded ? 'space-x-3 px-3 py-2' : 'justify-center p-2'} rounded-lg text-sm font-medium transition-all duration-200
                                 ${isSubActive 
                                   ? 'bg-emerald-100 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300' 
                                   : 'text-gray-500 dark:text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-gray-50 dark:hover:bg-[#0A0A0A]/50'
                                 }`}>
                               {subItem.icon && (
-                                <subItem.icon className="h-4 w-4" />
+                                <subItem.icon className={`${isExpanded ? 'h-4 w-4' : 'h-4 w-4'}`} />
                               )}
-                              <span>{subItem.label}</span>
+                              {isExpanded && <span>{subItem.label}</span>}
                             </Link>
-                          );
-                        })}
-                      </div>
-                    )}
+
+                            {/* Sub-item Tooltip for collapsed state */}
+                            {!isExpanded && (
+                              <div className="absolute left-14 top-1/2 transform -translate-y-1/2 bg-gray-900 dark:bg-gray-700 text-white text-xs px-2 py-1.5 rounded shadow-lg opacity-0 group-hover/subtooltip:opacity-100 transition-opacity duration-200 pointer-events-none z-50 whitespace-nowrap">
+                                {subItem.label}
+                                <div className="absolute left-0 top-1/2 transform -translate-y-1/2 -translate-x-1 w-1.5 h-1.5 bg-gray-900 dark:bg-gray-700 rotate-45"></div>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                   </div>
                 );
               })}
             </div>
           </div>
-        </nav>
+        </div>
 
         {/* Footer Section */}
         <div className="p-4 border-t border-gray-200/50 dark:border-gray-700/50">

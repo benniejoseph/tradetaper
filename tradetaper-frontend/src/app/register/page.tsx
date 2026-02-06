@@ -70,14 +70,14 @@ export default function RegisterPage() {
   }, [isAuthenticated, router]);
 
   const handleInputChange = (field: keyof FormData, value: string | boolean | string[]) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData((prev: FormData) => ({ ...prev, [field]: value }));
   };
 
   const handleMarketToggle = (market: string) => {
-    setFormData(prev => ({
+    setFormData((prev: FormData) => ({
       ...prev,
       primaryMarkets: prev.primaryMarkets.includes(market)
-        ? prev.primaryMarkets.filter(m => m !== market)
+        ? prev.primaryMarkets.filter((m: string) => m !== market)
         : [...prev.primaryMarkets, market]
     }));
   };
@@ -91,7 +91,8 @@ export default function RegisterPage() {
                formData.password.length >= 8 && 
                formData.password === formData.confirmPassword;
       case 'preferences':
-        return formData.agreeToTerms;
+        // Ensure user selected an experience level and agreed to terms
+        return formData.tradingExperience !== '' && formData.agreeToTerms;
       default:
         return false;
     }
@@ -157,31 +158,32 @@ export default function RegisterPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-indigo-900 flex relative overflow-hidden">
-      {/* Animated Background Elements */}
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute -top-1/2 -left-1/2 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute -bottom-1/2 -right-1/2 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }}></div>
-        <div className="absolute top-1/4 left-1/4 w-48 h-48 bg-cyan-500/5 rounded-full blur-2xl animate-pulse" style={{ animationDelay: '1s' }}></div>
-        <div className="absolute bottom-1/3 right-1/4 w-32 h-32 bg-pink-500/5 rounded-full blur-xl animate-pulse" style={{ animationDelay: '3s' }}></div>
+    <div className="min-h-screen bg-slate-950 flex relative overflow-hidden font-sans text-white text-sm">
+      {/* 3D Background Elements */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {/* Grid Floor */}
+         <div className="absolute inset-0 bg-[linear-gradient(rgba(16,185,129,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(16,185,129,0.03)_1px,transparent_1px)] bg-[size:100px_100px] [transform:perspective(1000px)_rotateX(60deg)_translateY(-100px)_scale(3)] origin-top opacity-50"></div>
+         
+         <div className="absolute top-[-20%] right-[-10%] w-[50%] h-[50%] bg-emerald-500/10 rounded-full blur-[100px] animate-float"></div>
+         <div className="absolute bottom-[-10%] left-[-10%] w-[50%] h-[50%] bg-teal-500/10 rounded-full blur-[100px] animate-float delay-1000"></div>
       </div>
 
-      {/* Left Side - Branding & Benefits */}
-      <div className="hidden lg:flex lg:w-1/2 relative z-10 p-12 flex-col justify-center">
-        <div className="max-w-lg">
+      {/* Left Side - 3D Visual & Benefits */}
+      <div className="hidden lg:flex lg:w-1/2 relative z-10 p-12 flex-col justify-center border-r border-white/5 bg-slate-900/40 backdrop-blur-sm">
+        <div className="max-w-lg mx-auto">
           <div className="mb-12">
-            <div className="flex items-center mb-8">
-              <div className="p-3 bg-gradient-to-r from-purple-500/20 to-indigo-500/20 rounded-2xl backdrop-blur-sm border border-white/10 mr-4">
-                <FaChartLine className="h-10 w-10 text-white" />
+            <Link href="/" className="flex items-center mb-8 group">
+              <div className="p-3 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl shadow-lg shadow-emerald-500/20 mr-4 group-hover:scale-110 transition-transform">
+                <FaChartLine className="h-8 w-8 text-white" />
               </div>
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-white to-purple-200 bg-clip-text text-transparent">
+              <h1 className="text-3xl font-bold text-white">
                 TradeTaper
               </h1>
-            </div>
-            <h2 className="text-4xl font-bold text-white mb-4 leading-tight">
-              Join 10,000+ Successful Traders
+            </Link>
+            <h2 className="text-4xl font-bold text-white mb-6 leading-tight">
+              Join 10,000+ <span className="text-gradient-emerald">Successful Traders</span>
             </h2>
-            <p className="text-xl text-slate-300 mb-8 leading-relaxed">
+            <p className="text-lg text-slate-400 mb-8 leading-relaxed">
               Start your trading journal journey with the most advanced platform designed for serious traders.
             </p>
           </div>
@@ -191,110 +193,105 @@ export default function RegisterPage() {
               {
                 icon: FaRocket,
                 title: "Quick Setup",
-                description: "Get started in under 2 minutes with our streamlined onboarding process"
+                description: "Get started in under 2 minutes"
               },
               {
                 icon: FaShieldAlt,
                 title: "Bank-Level Security",
-                description: "Your trading data is protected with enterprise-grade encryption"
+                description: "Enterprise-grade encryption"
               },
               {
                 icon: FaCrown,
                 title: "Premium Features",
-                description: "Access advanced analytics, AI insights, and professional-grade tools"
+                description: "Access advanced AI insights"
               }
             ].map((benefit, index) => (
-              <div key={index} className="flex items-start space-x-4 group">
-                <div className="flex-shrink-0 p-3 bg-white/[0.05] backdrop-blur-sm rounded-2xl border border-white/10 group-hover:bg-white/[0.1] transition-all duration-300">
-                  <benefit.icon className="text-xl text-purple-400" />
+              <div key={index} className="flex items-center space-x-4 p-4 rounded-xl border border-white/5 bg-white/[0.02] hover:bg-white/[0.05] transition-colors">
+                <div className="flex-shrink-0 p-3 bg-emerald-500/10 rounded-lg">
+                  <benefit.icon className="text-lg text-emerald-400" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-lg mb-2 text-white">{benefit.title}</h3>
-                  <p className="text-slate-300 text-sm leading-relaxed">{benefit.description}</p>
+                  <h3 className="font-bold text-white text-sm">{benefit.title}</h3>
+                  <p className="text-slate-400 text-xs">{benefit.description}</p>
                 </div>
               </div>
             ))}
           </div>
 
-          <div className="mt-12 p-6 bg-white/[0.03] backdrop-blur-xl rounded-3xl border border-white/10">
-            <div className="flex items-center mb-4">
-              <FaSparkles className="text-yellow-400 text-2xl mr-3" />
-              <div>
-                <h4 className="font-semibold text-lg text-white">Free 30-Day Trial</h4>
-                <p className="text-slate-300 text-sm">No credit card required • Cancel anytime</p>
-              </div>
+          {/* 3D Visual Element */}
+          <div className="mt-16 relative">
+            <div className="absolute inset-0 bg-emerald-500/10 blur-3xl rounded-full"></div>
+            <div className="relative glass-card p-6 flex items-center justify-between">
+                <div>
+                    <div className="text-2xl font-bold text-white">30-Day Trial</div>
+                    <div className="text-slate-400 text-xs">Full access. No credit card required.</div>
+                </div>
+                <FaSparkles className="text-yellow-400 text-3xl animate-pulse" />
             </div>
           </div>
         </div>
       </div>
 
       {/* Right Side - Registration Form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 relative z-10">
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 relative z-10 transition-all duration-500">
         <div className="w-full max-w-md">
-          {/* Mobile Logo */}
-          <div className="lg:hidden text-center mb-8">
-            <div className="flex items-center justify-center mb-6">
-              <div className="p-3 bg-gradient-to-r from-purple-500/20 to-indigo-500/20 rounded-2xl backdrop-blur-sm border border-white/10 mr-3">
-                <FaChartLine className="h-8 w-8 text-purple-400" />
-              </div>
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-white to-purple-200 bg-clip-text text-transparent">
-                TradeTaper
-              </h1>
-            </div>
-            <p className="text-slate-300">Start your trading journey!</p>
-          </div>
+           
+           {/* Mobile Header */}
+           <div className="lg:hidden text-center mb-8">
+               <Link href="/" className="inline-flex items-center gap-2 mb-4">
+                  <FaChartLine className="text-emerald-500 text-2xl" />
+                  <span className="text-xl font-bold text-white">TradeTaper</span>
+               </Link>
+               <h2 className="text-2xl font-bold text-white">Create Account</h2>
+           </div>
 
-          <div className={`bg-white/[0.02] backdrop-blur-xl rounded-3xl p-8 border border-white/10 shadow-2xl transition-all duration-500 ${
-            isFormFocused ? 'shadow-purple-500/20 border-purple-500/20' : ''
-          }`}>
-            <div className="hidden lg:block text-center mb-8">
-              <h2 className="text-3xl font-bold bg-gradient-to-r from-white to-purple-200 bg-clip-text text-transparent mb-2">
-                Create Account
-              </h2>
-              <p className="text-slate-300">Join thousands of successful traders</p>
-            </div>
+          <div className="glass-card p-6 md:p-8 rounded-3xl border border-white/10 relative">
+             {/* Progress Stepper */}
+             <div className="flex items-center justify-between mb-8 relative">
+                 {/* Progress Line Background */}
+                 <div className="absolute top-1/2 left-0 w-full h-0.5 bg-slate-800 -z-10"></div>
+                 {/* Active Progress Line */}
+                 <div 
+                    className="absolute top-1/2 left-0 h-0.5 bg-gradient-to-r from-emerald-500 to-teal-500 -z-10 transition-all duration-500"
+                    style={{ width: `${(currentStepIndex / (steps.length - 1)) * 100}%` }}
+                 ></div>
 
-            {/* Progress Indicators */}
-            <div className="flex items-center justify-between mb-8">
-              {steps.map((step, index) => (
-                <div key={step.id} className="flex items-center">
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold transition-all duration-300 ${
-                    index <= currentStepIndex 
-                      ? 'bg-gradient-to-r from-purple-500 to-indigo-500 text-white shadow-lg' 
-                      : 'bg-white/[0.05] text-slate-400 border border-white/10'
-                  }`}>
-                    {step.number}
-                  </div>
-                  {index < steps.length - 1 && (
-                    <div className={`w-8 h-0.5 mx-2 transition-all duration-300 ${
-                      index < currentStepIndex ? 'bg-purple-500' : 'bg-white/10'
-                    }`}></div>
-                  )}
-                </div>
-              ))}
-            </div>
+                 {steps.map((step, index) => (
+                    <div key={step.id} className="relative group">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 border-2 ${
+                            index <= currentStepIndex 
+                                ? 'bg-slate-900 border-emerald-500 text-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.5)]' 
+                                : 'bg-slate-900 border-slate-700 text-slate-500'
+                        }`}>
+                            {index < currentStepIndex ? <FaCheck /> : step.number}
+                        </div>
+                        <div className={`absolute -bottom-6 left-1/2 -translate-x-1/2 text-[10px] font-medium whitespace-nowrap transition-colors ${
+                            index === currentStepIndex ? 'text-emerald-400' : 'text-slate-500'
+                        }`}>
+                            {step.label}
+                        </div>
+                    </div>
+                 ))}
+             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-6 mt-8">
               {(error || formError) && (
-                <div className="bg-red-500/10 border border-red-500/20 rounded-2xl p-4 text-red-300 text-sm">
+                <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 text-red-300 text-xs">
                   {error || formError}
                 </div>
               )}
 
               {/* Step 1: Personal Information */}
               {currentStep === 'personal' && (
-                <div className="space-y-6">
-                  <div className="text-center mb-6">
-                    <div className="p-3 bg-gradient-to-r from-purple-500/20 to-indigo-500/20 rounded-2xl backdrop-blur-sm border border-white/10 inline-block mb-4">
-                      <FaUser className="h-6 w-6 text-purple-400" />
-                    </div>
-                    <h3 className="text-xl font-semibold text-white mb-2">Personal Information</h3>
-                    <p className="text-slate-400 text-sm">Tell us about yourself</p>
-                  </div>
-
+                <div className="space-y-5 animate-fade-in-up">
+                   <div className="text-center mb-4">
+                       <h3 className="text-lg font-bold text-white">Personal Information</h3>
+                       <p className="text-slate-400 text-xs">Let's get to know you</p>
+                   </div>
+                  
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="relative">
-                      <FaUser className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400" />
+                    <div className="relative group">
+                      <FaUser className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-500 group-focus-within:text-emerald-400 transition-colors" />
                       <input
                         type="text"
                         placeholder="First Name"
@@ -303,11 +300,11 @@ export default function RegisterPage() {
                         onFocus={() => setIsFormFocused(true)}
                         onBlur={() => setIsFormFocused(false)}
                         required
-                        className="w-full pl-12 pr-4 py-4 bg-white/[0.03] border border-white/10 rounded-2xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-transparent transition-all duration-300 backdrop-blur-sm"
+                        className="w-full pl-10 pr-4 py-3 bg-slate-900/50 border border-white/10 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all text-sm"
                       />
                     </div>
-                    <div className="relative">
-                      <FaUser className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400" />
+                    <div className="relative group">
+                      <FaUser className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-500 group-focus-within:text-emerald-400 transition-colors" />
                       <input
                         type="text"
                         placeholder="Last Name"
@@ -316,134 +313,118 @@ export default function RegisterPage() {
                         onFocus={() => setIsFormFocused(true)}
                         onBlur={() => setIsFormFocused(false)}
                         required
-                        className="w-full pl-12 pr-4 py-4 bg-white/[0.03] border border-white/10 rounded-2xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-transparent transition-all duration-300 backdrop-blur-sm"
+                        className="w-full pl-10 pr-4 py-3 bg-slate-900/50 border border-white/10 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all text-sm"
                       />
                     </div>
                   </div>
 
-                  <div className="space-y-4">
-                    <div className="relative">
-                      <div className="absolute inset-0 flex items-center">
+                  <div className="relative py-2">
+                    <div className="absolute inset-0 flex items-center">
                         <div className="w-full border-t border-white/10"></div>
-                      </div>
-                      <div className="relative flex justify-center text-sm">
-                        <span className="px-4 bg-gradient-to-r from-slate-900 via-purple-900 to-indigo-900 text-slate-400">
-                          Or sign up with
-                        </span>
-                      </div>
                     </div>
-
-                    <button 
-                      type="button"
-                      onClick={() => GoogleAuthService.initiateGoogleLogin()}
-                      className="w-full flex items-center justify-center space-x-3 bg-white/[0.03] hover:bg-white/[0.08] border border-white/10 rounded-2xl py-4 px-6 transition-all duration-300 text-white hover:border-white/20 group"
-                    >
-                      <FaGoogle className="text-lg group-hover:scale-110 transition-transform duration-300" />
-                      <span className="font-medium">Continue with Google</span>
-                    </button>
+                    <div className="relative flex justify-center text-xs uppercase">
+                        <span className="px-4 bg-slate-900/50 backdrop-blur-xl text-slate-500">Or sign up with</span>
+                    </div>
                   </div>
+
+                  <button 
+                    type="button"
+                    onClick={() => GoogleAuthService.initiateGoogleLogin()}
+                    className="w-full flex items-center justify-center space-x-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl py-3 transition-all text-white hover:border-white/20 group"
+                  >
+                    <FaGoogle className="text-base group-hover:scale-110 transition-transform" />
+                    <span className="font-medium text-sm">Google</span>
+                  </button>
 
                   <button
                     type="button"
                     onClick={nextStep}
                     disabled={!validateStep('personal')}
-                    className="w-full bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 disabled:from-slate-500 disabled:to-slate-600 text-white font-semibold py-4 px-6 rounded-2xl transition-all duration-300 transform hover:scale-105 disabled:scale-100 shadow-lg hover:shadow-xl flex items-center justify-center space-x-2 group"
+                    className="w-full btn-3d btn-primary-3d flex items-center justify-center gap-2 mt-4"
                   >
-                    <span>Continue</span>
-                    <FaArrowRight className="group-hover:translate-x-1 transition-transform duration-300" />
+                    Continue <FaArrowRight />
                   </button>
                 </div>
               )}
 
               {/* Step 2: Account Details */}
               {currentStep === 'account' && (
-                <div className="space-y-6">
-                  <div className="text-center mb-6">
-                    <div className="p-3 bg-gradient-to-r from-purple-500/20 to-indigo-500/20 rounded-2xl backdrop-blur-sm border border-white/10 inline-block mb-4">
-                      <FaLock className="h-6 w-6 text-purple-400" />
-                    </div>
-                    <h3 className="text-xl font-semibold text-white mb-2">Account Details</h3>
-                    <p className="text-slate-400 text-sm">Secure your account</p>
-                  </div>
+                <div className="space-y-5 animate-fade-in-up">
+                   <div className="text-center mb-4">
+                       <h3 className="text-lg font-bold text-white">Account Security</h3>
+                       <p className="text-slate-400 text-xs">Create your credentials</p>
+                   </div>
 
-                  <div className="relative">
-                    <FaEnvelope className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400" />
+                  <div className="relative group">
+                    <FaEnvelope className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-500 group-focus-within:text-emerald-400 transition-colors" />
                     <input
                       type="email"
                       placeholder="Email Address"
                       value={formData.email}
                       onChange={(e) => handleInputChange('email', e.target.value)}
-                      onFocus={() => setIsFormFocused(true)}
-                      onBlur={() => setIsFormFocused(false)}
                       required
-                      className="w-full pl-12 pr-4 py-4 bg-white/[0.03] border border-white/10 rounded-2xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-transparent transition-all duration-300 backdrop-blur-sm"
+                      className="w-full pl-10 pr-4 py-3 bg-slate-900/50 border border-white/10 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all text-sm"
                     />
                   </div>
 
-                  <div className="relative">
-                    <FaLock className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400" />
+                  <div className="relative group">
+                    <FaLock className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-500 group-focus-within:text-emerald-400 transition-colors" />
                     <input
                       type={showPassword ? "text" : "password"}
-                      placeholder="Password (min. 8 characters)"
+                      placeholder="Password (min. 8 chars)"
                       value={formData.password}
                       onChange={(e) => handleInputChange('password', e.target.value)}
-                      onFocus={() => setIsFormFocused(true)}
-                      onBlur={() => setIsFormFocused(false)}
                       required
                       minLength={8}
-                      className="w-full pl-12 pr-12 py-4 bg-white/[0.03] border border-white/10 rounded-2xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-transparent transition-all duration-300 backdrop-blur-sm"
+                      className="w-full pl-10 pr-10 py-3 bg-slate-900/50 border border-white/10 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all text-sm"
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-4 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-white transition-colors"
+                      className="absolute right-4 top-1/2 transform -translate-y-1/2 text-slate-500 hover:text-white transition-colors"
                     >
                       {showPassword ? <FaEyeSlash /> : <FaEye />}
                     </button>
                   </div>
 
-                  <div className="relative">
-                    <FaLock className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400" />
+                  <div className="relative group">
+                    <FaLock className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-500 group-focus-within:text-emerald-400 transition-colors" />
                     <input
                       type={showConfirmPassword ? "text" : "password"}
                       placeholder="Confirm Password"
                       value={formData.confirmPassword}
                       onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
-                      onFocus={() => setIsFormFocused(true)}
-                      onBlur={() => setIsFormFocused(false)}
                       required
-                      className="w-full pl-12 pr-12 py-4 bg-white/[0.03] border border-white/10 rounded-2xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-transparent transition-all duration-300 backdrop-blur-sm"
+                      className="w-full pl-10 pr-10 py-3 bg-slate-900/50 border border-white/10 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all text-sm"
                     />
                     <button
                       type="button"
                       onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      className="absolute right-4 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-white transition-colors"
+                      className="absolute right-4 top-1/2 transform -translate-y-1/2 text-slate-500 hover:text-white transition-colors"
                     >
                       {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
                     </button>
                   </div>
 
                   {formData.password && formData.confirmPassword && formData.password !== formData.confirmPassword && (
-                    <p className="text-red-400 text-sm">Passwords do not match</p>
+                    <p className="text-red-400 text-xs text-center">Passwords do not match</p>
                   )}
 
-                  <div className="flex space-x-4">
+                  <div className="flex space-x-3 pt-4">
                     <button
                       type="button"
                       onClick={prevStep}
-                      className="flex-1 bg-white/[0.03] hover:bg-white/[0.08] border border-white/10 text-white font-semibold py-4 px-6 rounded-2xl transition-all duration-300 flex items-center justify-center space-x-2"
+                      className="flex-1 btn-3d btn-secondary-3d flex items-center justify-center gap-2"
                     >
-                      <FaArrowLeft />
-                      <span>Back</span>
+                      <FaArrowLeft /> Back
                     </button>
                     <button
                       type="button"
                       onClick={nextStep}
                       disabled={!validateStep('account')}
-                      className="flex-1 bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 disabled:from-slate-500 disabled:to-slate-600 text-white font-semibold py-4 px-6 rounded-2xl transition-all duration-300 transform hover:scale-105 disabled:scale-100 shadow-lg hover:shadow-xl flex items-center justify-center space-x-2 group"
+                      className="flex-1 btn-3d btn-primary-3d flex items-center justify-center gap-2"
                     >
-                      <span>Continue</span>
-                      <FaArrowRight className="group-hover:translate-x-1 transition-transform duration-300" />
+                      Next <FaArrowRight />
                     </button>
                   </div>
                 </div>
@@ -451,21 +432,24 @@ export default function RegisterPage() {
 
               {/* Step 3: Trading Preferences */}
               {currentStep === 'preferences' && (
-                <div className="space-y-6">
-                  <div className="text-center mb-6">
-                    <div className="p-3 bg-gradient-to-r from-purple-500/20 to-indigo-500/20 rounded-2xl backdrop-blur-sm border border-white/10 inline-block mb-4">
-                      <FaUserFriends className="h-6 w-6 text-purple-400" />
-                    </div>
-                    <h3 className="text-xl font-semibold text-white mb-2">Trading Profile</h3>
-                    <p className="text-slate-400 text-sm">Help us personalize your experience</p>
-                  </div>
+                <div className="space-y-6 animate-fade-in-up">
+                   <div className="text-center mb-4">
+                       <h3 className="text-lg font-bold text-white">Trading Profile</h3>
+                       <p className="text-slate-400 text-xs">Customize your experience</p>
+                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-slate-300 mb-4">Trading Experience</label>
-                    <div className="space-y-3">
+                    <label className="block text-xs font-medium text-slate-400 mb-3 uppercase tracking-wider">Experience Level</label>
+                    <div className="grid grid-cols-2 gap-3">
                       {tradingExperiences.map((exp) => (
-                        <label key={exp.value} className="flex items-center cursor-pointer group">
-                          <div className="relative">
+                        <label 
+                            key={exp.value} 
+                            className={`cursor-pointer group flex flex-col p-3 rounded-xl border transition-all ${
+                                formData.tradingExperience === exp.value 
+                                    ? 'bg-emerald-500/10 border-emerald-500/50 shadow-[0_0_15px_rgba(16,185,129,0.1)]' 
+                                    : 'bg-slate-900/50 border-white/5 hover:bg-slate-800'
+                            }`}
+                        >
                             <input
                               type="radio"
                               name="experience"
@@ -474,94 +458,73 @@ export default function RegisterPage() {
                               onChange={(e) => handleInputChange('tradingExperience', e.target.value)}
                               className="sr-only"
                             />
-                            <div className={`w-5 h-5 rounded-full border-2 transition-all duration-300 flex items-center justify-center ${
-                              formData.tradingExperience === exp.value 
-                                ? 'border-purple-500 bg-purple-500' 
-                                : 'border-white/20 group-hover:border-purple-400'
-                            }`}>
-                              {formData.tradingExperience === exp.value && (
-                                <div className="w-2 h-2 rounded-full bg-white"></div>
-                              )}
-                            </div>
-                          </div>
-                          <div className="ml-3">
-                            <span className="text-white font-medium">{exp.label}</span>
-                            <span className="text-slate-400 text-sm ml-2">({exp.subtitle})</span>
-                          </div>
+                            <span className={`text-sm font-bold mb-1 ${formData.tradingExperience === exp.value ? 'text-emerald-400' : 'text-white'}`}>
+                                {exp.label}
+                            </span>
+                             <span className="text-xs text-slate-500">{exp.subtitle}</span>
                         </label>
                       ))}
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-slate-300 mb-4">Primary Markets (optional)</label>
-                    <div className="grid grid-cols-2 gap-3">
+                    <label className="block text-xs font-medium text-slate-400 mb-3 uppercase tracking-wider">Primary Markets (Optional)</label>
+                    <div className="grid grid-cols-3 gap-2">
                       {markets.map((market) => (
                         <button
                           key={market.value}
                           type="button"
                           onClick={() => handleMarketToggle(market.value)}
-                          className={`p-4 rounded-2xl border transition-all duration-300 flex items-center space-x-3 group ${
+                          className={`p-2 rounded-lg border transition-all flex flex-col items-center justify-center gap-1 ${
                             formData.primaryMarkets.includes(market.value)
-                              ? 'bg-purple-500/20 border-purple-500/50 text-white shadow-lg'
-                              : 'bg-white/[0.03] border-white/10 text-slate-300 hover:bg-white/[0.08] hover:border-white/20'
+                              ? 'bg-teal-500/20 border-teal-500/50 text-teal-300'
+                              : 'bg-slate-900/50 border-white/5 text-slate-400 hover:text-white hover:bg-slate-800'
                           }`}
                         >
                           <span className="text-lg">{market.icon}</span>
-                          <span className="text-sm font-medium">{market.label}</span>
+                          <span className="text-[10px] font-medium">{market.label}</span>
                         </button>
                       ))}
                     </div>
                   </div>
 
-                  <div className="bg-white/[0.03] border border-white/10 rounded-2xl p-4">
-                    <label className="flex items-start cursor-pointer group">
-                      <div className="relative mt-1">
-                        <input
-                          type="checkbox"
-                          checked={formData.agreeToTerms}
-                          onChange={(e) => handleInputChange('agreeToTerms', e.target.checked)}
-                          className="sr-only"
-                        />
-                        <div className={`w-5 h-5 rounded border-2 transition-all duration-300 flex items-center justify-center ${
-                          formData.agreeToTerms 
-                            ? 'border-purple-500 bg-purple-500' 
-                            : 'border-white/20 group-hover:border-purple-400'
-                        }`}>
-                          {formData.agreeToTerms && (
-                            <FaCheck className="text-white text-xs" />
-                          )}
-                        </div>
-                      </div>
-                      <span className="text-slate-300 text-sm ml-3 leading-relaxed">
-                        I agree to the{' '}
-                        <a href="#" className="text-purple-400 hover:text-purple-300 font-medium">Terms of Service</a>
-                        {' '}and{' '}
-                        <a href="#" className="text-purple-400 hover:text-purple-300 font-medium">Privacy Policy</a>
-                      </span>
+                  <div className="bg-slate-900/50 border border-white/5 rounded-xl p-4 flex items-start gap-3">
+                    <div className="relative mt-1">
+                         <input
+                           type="checkbox"
+                           checked={formData.agreeToTerms}
+                           onChange={(e) => handleInputChange('agreeToTerms', e.target.checked)}
+                           className="sr-only peer"
+                           id="terms"
+                         />
+                         <div className="w-5 h-5 rounded border border-white/20 peer-checked:bg-emerald-500 peer-checked:border-emerald-500 flex items-center justify-center transition-all cursor-pointer bg-white/5">
+                            {formData.agreeToTerms && <FaCheck className="text-white text-xs" />}
+                         </div>
+                         <label htmlFor="terms" className="absolute inset-0 cursor-pointer"></label>
+                    </div>
+                    <label htmlFor="terms" className="text-xs text-slate-400 leading-relaxed cursor-pointer select-none">
+                        I agree to the <span className="text-emerald-400 hover:underline">Terms of Service</span> and <span className="text-emerald-400 hover:underline">Privacy Policy</span>.
                     </label>
                   </div>
 
-                  <div className="flex space-x-4">
+                  <div className="flex space-x-3 pt-2">
                     <button
                       type="button"
                       onClick={prevStep}
-                      className="flex-1 bg-white/[0.03] hover:bg-white/[0.08] border border-white/10 text-white font-semibold py-4 px-6 rounded-2xl transition-all duration-300 flex items-center justify-center space-x-2"
+                      className="flex-1 btn-3d btn-secondary-3d flex items-center justify-center gap-2"
                     >
-                      <FaArrowLeft />
-                      <span>Back</span>
+                      <FaArrowLeft /> Back
                     </button>
                     <button
                       type="submit"
                       disabled={!validateStep('preferences') || isLoading}
-                      className="flex-1 bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 disabled:from-slate-500 disabled:to-slate-600 text-white font-semibold py-4 px-6 rounded-2xl transition-all duration-300 transform hover:scale-105 disabled:scale-100 shadow-lg hover:shadow-xl flex items-center justify-center space-x-2 group"
-                    >
+                      className="flex-1 btn-3d btn-primary-3d flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                     >
                       {isLoading ? (
-                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-white/30 border-t-white"></div>
                       ) : (
                         <>
-                          <span>Create Account</span>
-                          <FaSparkles className="group-hover:scale-110 transition-transform duration-300" />
+                          Create Account <FaSparkles />
                         </>
                       )}
                     </button>
@@ -570,21 +533,20 @@ export default function RegisterPage() {
               )}
             </form>
 
-            <p className="text-center mt-8 text-slate-300">
+            <div className="mt-8 text-center text-xs text-slate-500">
               Already have an account?{' '}
-              <Link href="/login" className="text-purple-400 hover:text-purple-300 transition-colors font-medium">
+              <Link href="/login" className="text-emerald-400 hover:text-emerald-300 transition-colors font-bold">
                 Sign in here
               </Link>
-            </p>
+            </div>
           </div>
-
-          <div className="text-center mt-8">
+          
+           <div className="text-center mt-6">
             <Link 
               href="/" 
-              className="text-slate-400 hover:text-white transition-colors text-sm flex items-center justify-center space-x-1 group"
+              className="text-slate-500 hover:text-white transition-colors text-xs inline-flex items-center gap-1"
             >
-              <span className="group-hover:-translate-x-1 transition-transform duration-300">←</span>
-              <span>Back to home</span>
+              <span>← Back to home</span>
             </Link>
           </div>
         </div>
