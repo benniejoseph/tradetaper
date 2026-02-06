@@ -2,7 +2,7 @@ import { store } from '../store/store';
 import { authSuccess } from '../store/features/authSlice';
 
 // Use NEXT_PUBLIC_API_URL which already includes /api/v1
-const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL || 'https://tradetaper-backend-326520250422.us-central1.run.app/api/v1').trim();
+const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL || 'https://api.tradetaper.com/api/v1').trim();
 
 export class GoogleAuthService {
   static initiateGoogleLogin(): void {
