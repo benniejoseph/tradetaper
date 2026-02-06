@@ -50,8 +50,7 @@ export default function ContactPage() {
                         </div>
                         <div>
                             <h3 className="text-lg font-bold text-white">HQ</h3>
-                            <p className="text-slate-400">123 Neural Network Blvd</p>
-                            <p className="text-slate-400">San Francisco, CA 94105</p>
+                            <p className="text-slate-400">Rayasandra, Bengaluru 560099, India</p>
                         </div>
                     </div>
                 </div>
