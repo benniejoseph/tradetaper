@@ -20,12 +20,12 @@ export const PRICING_TIERS: PricingTier[] = [
     ],
   },
   {
-    id: 'starter',
-    name: 'Starter',
+    id: 'essential',
+    name: 'Essential',
     description: 'Ideal for individual traders',
     price: 9.99,
     interval: 'month',
-    stripePriceId: 'price_starter_monthly', // Will be created in Stripe
+    stripePriceId: 'price_essential_monthly', 
     tradeLimit: 100,
     accountLimit: 3,
     features: [
@@ -40,12 +40,12 @@ export const PRICING_TIERS: PricingTier[] = [
     ],
   },
   {
-    id: 'professional',
-    name: 'Professional',
+    id: 'premium',
+    name: 'Premium',
     description: 'Best for serious traders',
     price: 19.99,
     interval: 'month',
-    stripePriceId: 'price_professional_monthly',
+    stripePriceId: 'price_premium_monthly',
     recommended: true,
     tradeLimit: 500,
     accountLimit: 10,
@@ -62,28 +62,6 @@ export const PRICING_TIERS: PricingTier[] = [
       'Bulk trade import',
     ],
   },
-  {
-    id: 'enterprise',
-    name: 'Enterprise',
-    description: 'For trading teams and professionals',
-    price: 49.99,
-    interval: 'month',
-    stripePriceId: 'price_enterprise_monthly',
-    features: [
-      'Unlimited trades',
-      'Unlimited accounts',
-      'Team collaboration',
-      'Advanced reporting suite',
-      'Custom integrations',
-      'White-label options',
-      'Dedicated account manager',
-      'Phone support',
-      'SLA guarantee',
-      'Advanced API access',
-      'Custom analytics dashboard',
-      'Regulatory compliance tools',
-    ],
-  },
 ];
 
 // Annual pricing with discount
@@ -95,19 +73,13 @@ export const PRICING_TIERS_ANNUAL: PricingTier[] = [
     ...PRICING_TIERS[1],
     price: 99.99, // 2 months free
     interval: 'year',
-    stripePriceId: 'price_starter_yearly',
+    stripePriceId: 'price_essential_yearly',
   },
   {
     ...PRICING_TIERS[2],
     price: 199.99, // 2 months free
     interval: 'year',
-    stripePriceId: 'price_professional_yearly',
-  },
-  {
-    ...PRICING_TIERS[3],
-    price: 499.99, // 2 months free
-    interval: 'year',
-    stripePriceId: 'price_enterprise_yearly',
+    stripePriceId: 'price_premium_yearly',
   },
 ];
 
