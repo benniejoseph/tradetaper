@@ -326,7 +326,8 @@ export default function LandingPage() {
       </section>
  
       {/* Footer */}
-      <footer className="bg-slate-950 pt-20 pb-10 border-t border-white/5">
+      {/* Footer */}
+      <footer className="bg-slate-950 pt-20 pb-10 border-t border-white/5 relative z-50">
         <div className="max-w-7xl mx-auto px-6">
           <div className="grid md:grid-cols-4 gap-12 mb-16">
             <div className="col-span-2">
@@ -349,20 +350,18 @@ export default function LandingPage() {
             <div>
               <h4 className="font-bold text-white mb-6">Product</h4>
               <ul className="space-y-3 text-sm text-slate-400">
-                <li><a href="#" className="hover:text-emerald-400 transition-colors">Features</a></li>
-                <li><a href="#" className="hover:text-emerald-400 transition-colors">Pricing</a></li>
-                <li><a href="#" className="hover:text-emerald-400 transition-colors">Download</a></li>
-                <li><a href="#" className="hover:text-emerald-400 transition-colors">Changelog</a></li>
+                <li><Link href="/#features" className="hover:text-emerald-400 transition-colors">Features</Link></li>
+                <li><Link href="/pricing" className="hover:text-emerald-400 transition-colors">Pricing</Link></li>
+                <li><Link href="/register" className="hover:text-emerald-400 transition-colors">Get Started</Link></li>
               </ul>
             </div>
             
             <div>
               <h4 className="font-bold text-white mb-6">Company</h4>
               <ul className="space-y-3 text-sm text-slate-400">
-                <li><a href="#" className="hover:text-emerald-400 transition-colors">About Us</a></li>
-                <li><a href="#" className="hover:text-emerald-400 transition-colors">Careers</a></li>
-                <li><a href="#" className="hover:text-emerald-400 transition-colors">Legal</a></li>
-                <li><a href="#" className="hover:text-emerald-400 transition-colors">Contact</a></li>
+                <li><Link href="/about" className="hover:text-emerald-400 transition-colors">About Us</Link></li>
+                <li><Link href="/contact" className="hover:text-emerald-400 transition-colors">Contact</Link></li>
+                <li><Link href="/support" className="hover:text-emerald-400 transition-colors">Support</Link></li>
               </ul>
             </div>
           </div>
@@ -370,8 +369,8 @@ export default function LandingPage() {
           <div className="pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between items-center text-sm text-slate-500">
             <p>&copy; {new Date().getFullYear()} TradeTaper Inc. All rights reserved.</p>
             <div className="flex space-x-6 mt-4 md:mt-0">
-               <a href="#" className="hover:text-white transition-colors">Privacy Policy</a>
-               <a href="#" className="hover:text-white transition-colors">Terms of Service</a>
+               <Link href="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link>
+               <Link href="/terms" className="hover:text-white transition-colors">Terms of Service</Link>
             </div>
           </div>
         </div>
