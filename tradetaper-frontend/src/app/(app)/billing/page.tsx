@@ -188,7 +188,7 @@ export default function BillingPage() {
               {/* Action Buttons */}
               <div className="flex flex-wrap gap-4">
                 <Link
-                  href="/pricing"
+                  href="/plans"
                   className="inline-flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-semibold rounded-xl transition-all duration-200 hover:scale-105 shadow-lg"
                 >
                   <FaEdit className="w-4 h-4" />
@@ -233,7 +233,7 @@ export default function BillingPage() {
                 You&apos;re currently on the free plan. Upgrade to unlock premium features.
               </p>
               <Link
-                href="/pricing"
+                href="/plans"
                 className="inline-flex items-center space-x-2 px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-semibold rounded-xl transition-all duration-200 hover:scale-105 shadow-lg"
               >
                 <FaCreditCard className="w-4 h-4" />

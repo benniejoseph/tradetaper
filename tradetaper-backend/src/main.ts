@@ -1,7 +1,7 @@
 // trading-journal-backend/src/main.ts
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { ValidationPipe } from '@nestjs/common';
+import { ValidationPipe, BadRequestException } from '@nestjs/common';
 import { CorsOptions } from '@nestjs/common/interfaces/external/cors-options.interface';
 
 async function bootstrap() {
@@ -49,7 +49,7 @@ async function bootstrap() {
             errors: Object.values(error.constraints || {}),
           }));
           console.error('🚨 Validation failed:', JSON.stringify(messages, null, 2));
-          return new Error(`Validation failed: ${JSON.stringify(messages)}`);
+          return new BadRequestException(messages);
         },
       }),
     );

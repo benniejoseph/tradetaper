@@ -21,9 +21,8 @@ export enum SubscriptionStatus {
 
 export enum SubscriptionTier {
   FREE = 'free',
-  STARTER = 'starter',
-  PROFESSIONAL = 'professional',
-  ENTERPRISE = 'enterprise',
+  ESSENTIAL = 'essential',
+  PREMIUM = 'premium',
 }
 
 @Entity('subscriptions')
@@ -46,6 +45,16 @@ export class Subscription {
 
   @Column({ nullable: true })
   stripePriceId: string;
+
+  // Razorpay Fields
+  @Column({ nullable: true })
+  razorpayCustomerId: string;
+
+  @Column({ nullable: true })
+  razorpaySubscriptionId: string;
+
+  @Column({ nullable: true })
+  razorpayPlanId: string;
 
   @Column({
     type: 'enum',

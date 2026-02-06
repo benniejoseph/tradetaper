@@ -12,6 +12,7 @@ import {
   TerminalPositionsDto,
   TerminalResponseDto,
   TerminalCandlesSyncDto,
+  EnableAutoSyncDto,
 } from './dto/terminal.dto';
 import { TradesService } from '../trades/trades.service';
 import { TradeStatus, TradeDirection, AssetType } from '../types/enums';
@@ -46,46 +47,51 @@ export class TerminalFarmService {
   /**
    * Enable auto-sync for an account (provision a terminal)
    */
-  async enableAutoSync(accountId: string, userId: string): Promise<TerminalResponseDto> {
-    this.logger.log(`Enabling auto-sync for account ${accountId}`);
+  async enableAutoSync(accountId: string, userId: string, dto: EnableAutoSyncDto): Promise<TerminalResponseDto> {
+    try {
+      this.logger.log(`Enabling auto-sync for account ${accountId}`);
 
-    // Verify account ownership
-    const account = await this.mt5AccountRepository.findOne({
-      where: { id: accountId, userId },
-    });
-
-    if (!account) {
-      throw new NotFoundException('Account not found');
-    }
-
-    // Check if terminal already exists
-    let terminal = await this.terminalRepository.findOne({
-      where: { accountId },
-    });
-
-    if (terminal) {
-      if (terminal.status === TerminalStatus.RUNNING) {
-        throw new BadRequestException('Auto-sync is already enabled');
-      }
-      // Restart stopped terminal
-      terminal.status = TerminalStatus.PENDING;
-      terminal.errorMessage = null as any; // Clear error on restart
-    } else {
-      // Create new terminal instance
-      terminal = this.terminalRepository.create({
-        accountId,
-        status: TerminalStatus.PENDING,
+      // Verify account ownership
+      const account = await this.mt5AccountRepository.findOne({
+        where: { id: accountId, userId },
       });
+
+      if (!account) {
+        throw new NotFoundException('Account not found');
+      }
+
+      // Check if terminal already exists
+      let terminal = await this.terminalRepository.findOne({
+        where: { accountId },
+      });
+
+      if (terminal) {
+        if (terminal.status === TerminalStatus.RUNNING) {
+          throw new BadRequestException('Auto-sync is already enabled');
+        }
+        // Restart stopped terminal
+        terminal.status = TerminalStatus.PENDING;
+        terminal.errorMessage = null as any; // Clear error on restart
+      } else {
+        // Create new terminal instance
+        terminal = this.terminalRepository.create({
+          accountId,
+          status: TerminalStatus.PENDING,
+        });
+      }
+
+      await this.terminalRepository.save(terminal);
+
+      // Trigger terminal provisioning (async)
+      this.provisionTerminal(terminal.id, account, dto).catch(err => {
+        this.logger.error(`Failed to provision terminal: ${err.message}`);
+      });
+
+      return this.mapToResponse(terminal, account);
+    } catch (error) {
+       this.logger.error(`enableAutoSync FAILED: ${error.message}`, error.stack);
+       throw error;
     }
-
-    await this.terminalRepository.save(terminal);
-
-    // Trigger terminal provisioning (async)
-    this.provisionTerminal(terminal.id, account).catch(err => {
-      this.logger.error(`Failed to provision terminal: ${err.message}`);
-    });
-
-    return this.mapToResponse(terminal, account);
   }
 
   /**
@@ -450,8 +456,12 @@ export class TerminalFarmService {
   /**
    * Provision a new terminal container
    */
-  private async provisionTerminal(terminalId: string, account: MT5Account): Promise<void> {
+  private async provisionTerminal(terminalId: string, account: MT5Account, credentials?: EnableAutoSyncDto): Promise<void> {
     this.logger.log(`Provisioning terminal ${terminalId} for account ${account.id}`);
+    
+    if (credentials) {
+      this.logger.log(`Using provided credentials for Server: ${credentials.server}, Login: ${credentials.login}`);
+    }
 
     const terminal = await this.terminalRepository.findOne({
       where: { id: terminalId },

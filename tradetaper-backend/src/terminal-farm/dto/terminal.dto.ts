@@ -7,6 +7,17 @@ export class CreateTerminalDto {
   accountId: string;
 }
 
+export class EnableAutoSyncDto {
+  @IsString()
+  server: string;
+
+  @IsString()
+  login: string;
+
+  @IsString()
+  password: string;
+}
+
 export class UpdateTerminalStatusDto {
   @IsEnum(TerminalStatus)
   status: TerminalStatus;

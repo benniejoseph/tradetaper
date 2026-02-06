@@ -36,7 +36,7 @@ async function bootstrap() {
                     errors: Object.values(error.constraints || {}),
                 }));
                 console.error('🚨 Validation failed:', JSON.stringify(messages, null, 2));
-                return new Error(`Validation failed: ${JSON.stringify(messages)}`);
+                return new common_1.BadRequestException(messages);
             },
         }));
         console.log(`🔧 Starting server on port ${port}...`);

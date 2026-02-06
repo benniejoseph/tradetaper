@@ -1,4 +1,4 @@
-import { Injectable, Logger, HttpException, HttpStatus } from '@nestjs/common';
+import { Injectable, Logger, HttpException, HttpStatus, BadRequestException, NotFoundException, InternalServerErrorException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
@@ -10,23 +10,34 @@ import {
 import { StripeService } from './stripe.service';
 // import { Usage } from '../entities/usage.entity';
 import { User } from '../../users/entities/user.entity';
+import { RazorpayService } from './razorpay.service';
 
 export interface PricingPlan {
-  id: string;
+  id: string; // 'free' | 'essential' | 'premium'
   name: string;
   displayName: string;
   description: string;
-  features: string[];
+  features: string[]; // List of features to display
   priceMonthly: number;
   priceYearly: number;
   stripePriceMonthlyId: string;
   stripePriceYearlyId: string;
   stripeProductId: string;
+  razorpayPlanMonthlyId: string; // Added fields
+  razorpayPlanYearlyId: string;
   limits: {
+    manualAccounts: number | 'unlimited';
+    mt5Accounts: number | 'unlimited';
     trades: number | 'unlimited';
-    accounts: number | 'unlimited';
-    marketData: boolean;
-    analytics: 'basic' | 'advanced' | 'premium';
+    strategies: number | 'unlimited';
+    notes: number | 'unlimited';
+    storage: string;
+    marketIntelligence: 'basic' | 'full'; 
+    discipline: boolean;
+    backtesting: 'restricted' | 'full';
+    psychology: boolean; // false = restricted
+    reports: boolean;
+    aiAnalysis: boolean;
   };
 }
 
@@ -40,7 +51,9 @@ export interface BillingInfo {
 
 export interface SubscriptionUsage {
   trades: number;
-  accounts: number;
+  manualAccounts: number;
+  mt5Accounts: number;
+  notes: number;
   periodStart: Date;
   periodEnd: Date;
 }
@@ -57,97 +70,130 @@ export class SubscriptionService {
     private userRepository: Repository<User>,
     private configService: ConfigService,
     private stripeService: StripeService,
+    private razorpayService: RazorpayService,
   ) {
-    // Initialize pricing plans with environment variables
+    // Initialize pricing plans
     this.pricingPlans = [
       {
-        id: 'starter',
-        name: 'starter',
-        displayName: 'TradeTaper Starter',
-        description: 'Essential trading journal for beginners',
+        id: 'free',
+        name: 'free',
+        displayName: 'Free',
+        description: 'Get started with basic journaling.',
         features: [
-          'Up to 100 trades per month',
-          '3 trading accounts',
-          'Basic analytics',
-          'Trade performance tracking',
-          'Email support',
+          '1 Manual Account',
+          '50 Trade Records',
+          '3 Strategies',
+          'Minimum Storage',
+          'Economic Chart & News Hub',
+          'Restriction on Discipline Page',
+          'Restriction on Notes Page',
+          'Restriction on Backtesting',
+          'Restriction on Psychology',
+          'No MetaTrader Connect',
+          'No Live Chart & AI Analysis',
+          'No Reports'
         ],
-        priceMonthly: 999, // $9.99
-        priceYearly: 9999, // $99.99
-        stripePriceMonthlyId:
-          this.configService.get<string>('STRIPE_PRICE_STARTER_MONTHLY') || '',
-        stripePriceYearlyId:
-          this.configService.get<string>('STRIPE_PRICE_STARTER_YEARLY') || '',
-        stripeProductId:
-          this.configService.get<string>('STRIPE_PRODUCT_STARTER') || '',
+        priceMonthly: 0,
+        priceYearly: 0,
+        stripePriceMonthlyId: '',
+        stripePriceYearlyId: '',
+        stripeProductId: '',
+        razorpayPlanMonthlyId: '',
+        razorpayPlanYearlyId: '',
         limits: {
-          trades: 100,
-          accounts: 3,
-          marketData: false,
-          analytics: 'basic',
+          manualAccounts: 1,
+          mt5Accounts: 0,
+          trades: 50,
+          strategies: 3,
+          notes: 0, 
+          storage: 'Minimum',
+          marketIntelligence: 'basic',
+          discipline: false,
+          backtesting: 'restricted',
+          psychology: false,
+          reports: false,
+          aiAnalysis: false
         },
       },
       {
-        id: 'professional',
-        name: 'professional',
-        displayName: 'TradeTaper Professional',
-        description: 'Advanced trading journal for serious traders',
+        id: 'essential',
+        name: 'essential',
+        displayName: 'Essential',
+        description: 'Perfect for growing traders.',
         features: [
-          'Unlimited trades',
-          'Unlimited trading accounts',
-          'Advanced analytics & metrics',
-          'Real-time market data',
-          'ICT concepts tracking',
-          'Export capabilities',
-          'Priority support',
+          '3 Manual Accounts',
+          'Connect 2 MetaTrader Accounts',
+          '500 Trade Records',
+          '7 Strategies',
+          '1GB Storage',
+          'Economic Chart & News Hub',
+          'Access to Discipline Page',
+          '50 Notes',
+          'Restriction on Pattern Discovery',
+          'Restriction on Psychology',
+          'No Live Chart & AI Analysis',
+          'No Reports'
         ],
-        priceMonthly: 2999, // $29.99
-        priceYearly: 29999, // $299.99
-        stripePriceMonthlyId:
-          this.configService.get<string>('STRIPE_PRICE_PROFESSIONAL_MONTHLY') ||
-          '',
-        stripePriceYearlyId:
-          this.configService.get<string>('STRIPE_PRICE_PROFESSIONAL_YEARLY') ||
-          '',
-        stripeProductId:
-          this.configService.get<string>('STRIPE_PRODUCT_PROFESSIONAL') || '',
+        priceMonthly: 1999, // Example price $19.99
+        priceYearly: 19999,
+        stripePriceMonthlyId: this.configService.get<string>('STRIPE_PRICE_ESSENTIAL_MONTHLY') || '',
+        stripePriceYearlyId: this.configService.get<string>('STRIPE_PRICE_ESSENTIAL_YEARLY') || '',
+        stripeProductId: this.configService.get<string>('STRIPE_PRODUCT_ESSENTIAL') || '',
+        razorpayPlanMonthlyId: this.configService.get<string>('RAZORPAY_PLAN_ESSENTIAL_MONTHLY') || '',
+        razorpayPlanYearlyId: this.configService.get<string>('RAZORPAY_PLAN_ESSENTIAL_YEARLY') || '',
         limits: {
-          trades: 'unlimited',
-          accounts: 'unlimited',
-          marketData: true,
-          analytics: 'advanced',
+          manualAccounts: 3,
+          mt5Accounts: 2,
+          trades: 500,
+          strategies: 7,
+          notes: 50,
+          storage: '1GB',
+          marketIntelligence: 'basic',
+          discipline: true,
+          backtesting: 'restricted', // Pattern discovery restricted
+          psychology: false,
+          reports: false,
+          aiAnalysis: false
         },
       },
       {
-        id: 'enterprise',
-        name: 'enterprise',
-        displayName: 'TradeTaper Enterprise',
-        description:
-          'Premium solution for professional traders and institutions',
+        id: 'premium',
+        name: 'premium',
+        displayName: 'Premium',
+        description: 'Unlimited access for pros.',
         features: [
-          'Everything in Professional',
-          'White-label options',
-          'API access',
-          'Custom integrations',
-          'Dedicated account manager',
-          'SLA guarantees',
-          '24/7 priority support',
+          'Unlimited Manual Accounts',
+          'Unlimited MetaTrader Accounts',
+          'Unlimited Trade Records',
+          'Unlimited Strategies',
+          'Unlimited Notes',
+          '5GB Storage',
+          'Full Market Intelligence',
+          'Full Discipline Access',
+          'Full Backtesting Access',
+          'AI Psychology Insights',
+          'Weekly & Monthly Reports'
         ],
-        priceMonthly: 9999, // $99.99
-        priceYearly: 99999, // $999.99
-        stripePriceMonthlyId:
-          this.configService.get<string>('STRIPE_PRICE_ENTERPRISE_MONTHLY') ||
-          '',
-        stripePriceYearlyId:
-          this.configService.get<string>('STRIPE_PRICE_ENTERPRISE_YEARLY') ||
-          '',
-        stripeProductId:
-          this.configService.get<string>('STRIPE_PRODUCT_ENTERPRISE') || '',
+        priceMonthly: 4999, // Example price $49.99
+        priceYearly: 49999,
+        stripePriceMonthlyId: this.configService.get<string>('STRIPE_PRICE_PREMIUM_MONTHLY') || '',
+        stripePriceYearlyId: this.configService.get<string>('STRIPE_PRICE_PREMIUM_YEARLY') || '',
+        stripeProductId: this.configService.get<string>('STRIPE_PRODUCT_PREMIUM') || '',
+        razorpayPlanMonthlyId: this.configService.get<string>('RAZORPAY_PLAN_PREMIUM_MONTHLY') || '',
+        razorpayPlanYearlyId: this.configService.get<string>('RAZORPAY_PLAN_PREMIUM_YEARLY') || '',
         limits: {
+          manualAccounts: 'unlimited',
+          mt5Accounts: 'unlimited',
           trades: 'unlimited',
-          accounts: 'unlimited',
-          marketData: true,
-          analytics: 'premium',
+          strategies: 'unlimited',
+          notes: 'unlimited',
+          storage: '5GB',
+          marketIntelligence: 'full',
+          discipline: true,
+          backtesting: 'full',
+          psychology: true,
+          reports: true,
+          aiAnalysis: true
         },
       },
     ];
@@ -215,7 +261,9 @@ export class SubscriptionService {
     // Return default usage during migration
     return {
       trades: 0,
-      accounts: 0,
+      manualAccounts: 0,
+      mt5Accounts: 0,
+      notes: 0,
       periodStart: startOfMonth,
       periodEnd: endOfMonth,
     };
@@ -454,17 +502,32 @@ export class SubscriptionService {
     if (!plan) return false;
 
     switch (feature) {
-      case 'market_data':
-        return plan.limits.marketData;
+      case 'discipline':
+        return plan.limits.discipline;
+      // case 'market_intelligence_full': // If you want to check full access
+      //   return plan.limits.marketIntelligence === 'full';
+      // Mapped to existing checks or new ones?
+      // Let's implement generic Limit checker or specific existing ones
+      case 'market_data': 
+         // Old feature key, map to new logic? 
+         // Essential/Premium have it (Economic Chart). Free has it too.
+         // 'Live Chart' is restricted on Free/Essential.
+         // Let's assume 'market_data' means basic access which they all have.
+         return true; 
+      
       case 'unlimited_trades':
         return plan.limits.trades === 'unlimited';
-      case 'advanced_analytics':
-        return (
-          plan.limits.analytics === 'advanced' ||
-          plan.limits.analytics === 'premium'
-        );
-      case 'premium_analytics':
-        return plan.limits.analytics === 'premium';
+      
+      case 'advanced_analytics': 
+        // Map to aiAnalysis?
+        return plan.limits.aiAnalysis; // Only Premium has AI Analysis
+
+      // New Features
+      case 'psychology':
+        return plan.limits.psychology;
+      case 'reports':
+        return plan.limits.reports;
+      
       default:
         return false;
     }
@@ -472,7 +535,7 @@ export class SubscriptionService {
 
   async checkUsageLimit(
     userId: string,
-    feature: 'trades' | 'accounts',
+    feature: 'trades' | 'accounts' | 'mt5Accounts' | 'manualAccounts' | 'notes',
   ): Promise<boolean> {
     const subscription = await this.getCurrentSubscription(userId);
     const plan = this.getPricingPlan(subscription.currentPlan);
@@ -482,12 +545,21 @@ export class SubscriptionService {
       return false;
     }
 
-    const limit = plan.limits[feature];
+    // Map 'accounts' to 'manualAccounts' for backward compatibility
+    const limitKey = feature === 'accounts' ? 'manualAccounts' : feature;
+    const limit = plan.limits[limitKey];
+
     if (limit === 'unlimited') {
       return true;
     }
 
-    const usage = subscription.usage[feature];
+    // Map usage key similarly
+    const usageKey = feature === 'accounts' ? 'manualAccounts' : feature;
+    const usage = subscription.usage[usageKey];
+    
+    // Safety check if usage is defined
+    if (typeof usage === 'undefined') return true;
+
     return usage < limit;
   }
 
@@ -599,6 +671,67 @@ export class SubscriptionService {
         `Failed to create payment link: ${error.message}`,
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
+    }
+  }
+
+  // Create Razorpay Subscription
+  async createRazorpaySubscription(
+    userId: string,
+    planId: string, // 'starter', 'professional', etc.
+    period: 'monthly' | 'yearly',
+  ) {
+    this.logger.log(`Creating Razorpay subscription for user ${userId}, plan: ${planId}, period: ${period}`);
+    
+    // 1. Get Plan Details
+    const planConfig = this.getPricingPlan(planId);
+    if (!planConfig) throw new BadRequestException('Invalid plan ID');
+    
+    const razorpayPlanId = period === 'monthly' ? planConfig.razorpayPlanMonthlyId : planConfig.razorpayPlanYearlyId;
+    if (!razorpayPlanId) throw new BadRequestException('Razorpay plan not configured for this tier');
+
+    // 2. Get User & Subscription
+    const subscription = await this.getOrCreateSubscription(userId);
+    let customerId = subscription.razorpayCustomerId;
+
+    // 3. Create Customer if needed
+    if (!customerId) {
+        const user = await this.userRepository.findOne({ where: { id: userId } });
+        if(!user) throw new NotFoundException('User not found');
+        
+        try {
+            const customer = await this.razorpayService.createCustomer(
+                user.email, 
+                user.firstName ? `${user.firstName} ${user.lastName}` : user.email
+            );
+            customerId = customer.id;
+            subscription.razorpayCustomerId = customerId;
+            await this.subscriptionRepository.save(subscription);
+        } catch (e) {
+            this.logger.error('Failed to create Razorpay customer', e);
+            throw new InternalServerErrorException('Payment initialization failed');
+        }
+    }
+
+    // 4. Create Subscription
+    try {
+        const sub = await this.razorpayService.createSubscription(razorpayPlanId);
+        
+        // Save sub ID
+        subscription.razorpaySubscriptionId = sub.id;
+        // logic to handle pending status? Razorpay subs are 'created' until authorized.
+        await this.subscriptionRepository.save(subscription);
+
+        return {
+            subscriptionId: sub.id,
+            key: this.configService.get<string>('RAZORPAY_KEY_ID'),
+            currency: 'INR', // Default for Indian Bus.
+            name: 'TradeTaper',
+            description: `${planConfig.displayName} (${period})`,
+            customer_id: customerId, // Useful for prefill
+        };
+    } catch (e) {
+        this.logger.error('Failed to create Razorpay subscription', e);
+        throw new InternalServerErrorException('Failed to initiate subscription');
     }
   }
 }

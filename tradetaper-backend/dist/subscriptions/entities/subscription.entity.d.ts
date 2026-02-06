@@ -10,9 +10,8 @@ export declare enum SubscriptionStatus {
 }
 export declare enum SubscriptionTier {
     FREE = "free",
-    STARTER = "starter",
-    PROFESSIONAL = "professional",
-    ENTERPRISE = "enterprise"
+    ESSENTIAL = "essential",
+    PREMIUM = "premium"
 }
 export declare class Subscription {
     id: string;
@@ -21,6 +20,9 @@ export declare class Subscription {
     stripeCustomerId: string;
     stripeSubscriptionId: string;
     stripePriceId: string;
+    razorpayCustomerId: string;
+    razorpaySubscriptionId: string;
+    razorpayPlanId: string;
     status: SubscriptionStatus;
     tier: SubscriptionTier;
     plan: string;
