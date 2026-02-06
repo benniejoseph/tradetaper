@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { FiTag, FiX } from 'react-icons/fi';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://tradetaper-backend-326520250422.us-central1.run.app/api/v1';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.tradetaper.com/api/v1';
 
 interface TagAutocompleteProps {
   tags: string[];

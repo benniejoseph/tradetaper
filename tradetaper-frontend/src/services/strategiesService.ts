@@ -1,6 +1,6 @@
 import { Strategy, CreateStrategyDto, UpdateStrategyDto, StrategyStats } from '@/types/strategy';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://tradetaper-backend-326520250422.us-central1.run.app/api/v1';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.tradetaper.com/api/v1';
 
 class StrategiesService {
   private async getAuthHeaders() {
