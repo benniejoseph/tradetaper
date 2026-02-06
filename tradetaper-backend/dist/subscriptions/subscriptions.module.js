@@ -16,6 +16,7 @@ const user_entity_1 = require("../users/entities/user.entity");
 const subscription_service_1 = require("./services/subscription.service");
 const stripe_service_1 = require("./services/stripe.service");
 const stripe_validation_service_1 = require("./services/stripe-validation.service");
+const razorpay_service_1 = require("./services/razorpay.service");
 const subscriptions_controller_1 = require("./subscriptions.controller");
 const webhooks_controller_1 = require("./webhooks.controller");
 let SubscriptionsModule = class SubscriptionsModule {
@@ -28,8 +29,8 @@ exports.SubscriptionsModule = SubscriptionsModule = __decorate([
             typeorm_1.TypeOrmModule.forFeature([subscription_entity_1.Subscription, usage_entity_1.Usage, user_entity_1.User]),
         ],
         controllers: [subscriptions_controller_1.SubscriptionsController, webhooks_controller_1.WebhooksController],
-        providers: [subscription_service_1.SubscriptionService, stripe_service_1.StripeService, stripe_validation_service_1.StripeValidationService],
-        exports: [subscription_service_1.SubscriptionService, stripe_service_1.StripeService, stripe_validation_service_1.StripeValidationService],
+        providers: [subscription_service_1.SubscriptionService, stripe_service_1.StripeService, stripe_validation_service_1.StripeValidationService, razorpay_service_1.RazorpayService],
+        exports: [subscription_service_1.SubscriptionService, stripe_service_1.StripeService, stripe_validation_service_1.StripeValidationService, razorpay_service_1.RazorpayService],
     })
 ], SubscriptionsModule);
 //# sourceMappingURL=subscriptions.module.js.map

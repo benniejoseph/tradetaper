@@ -25,9 +25,8 @@ var SubscriptionStatus;
 var SubscriptionTier;
 (function (SubscriptionTier) {
     SubscriptionTier["FREE"] = "free";
-    SubscriptionTier["STARTER"] = "starter";
-    SubscriptionTier["PROFESSIONAL"] = "professional";
-    SubscriptionTier["ENTERPRISE"] = "enterprise";
+    SubscriptionTier["ESSENTIAL"] = "essential";
+    SubscriptionTier["PREMIUM"] = "premium";
 })(SubscriptionTier || (exports.SubscriptionTier = SubscriptionTier = {}));
 let Subscription = class Subscription {
     id;
@@ -36,6 +35,9 @@ let Subscription = class Subscription {
     stripeCustomerId;
     stripeSubscriptionId;
     stripePriceId;
+    razorpayCustomerId;
+    razorpaySubscriptionId;
+    razorpayPlanId;
     status;
     tier;
     plan;
@@ -76,6 +78,18 @@ __decorate([
     (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", String)
 ], Subscription.prototype, "stripePriceId", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], Subscription.prototype, "razorpayCustomerId", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], Subscription.prototype, "razorpaySubscriptionId", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], Subscription.prototype, "razorpayPlanId", void 0);
 __decorate([
     (0, typeorm_1.Column)({
         type: 'enum',

@@ -12,7 +12,7 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.SubscriptionsController = exports.CreatePaymentLinkDto = exports.CreatePortalSessionDto = void 0;
+exports.SubscriptionsController = exports.CreateRazorpaySubscriptionDto = exports.CreatePaymentLinkDto = exports.CreatePortalSessionDto = void 0;
 const common_1 = require("@nestjs/common");
 const class_validator_1 = require("class-validator");
 const jwt_auth_guard_1 = require("../auth/guards/jwt-auth.guard");
@@ -37,6 +37,21 @@ __decorate([
     (0, class_validator_1.IsNotEmpty)(),
     __metadata("design:type", String)
 ], CreatePaymentLinkDto.prototype, "priceId", void 0);
+class CreateRazorpaySubscriptionDto {
+    planId;
+    period;
+}
+exports.CreateRazorpaySubscriptionDto = CreateRazorpaySubscriptionDto;
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsNotEmpty)(),
+    __metadata("design:type", String)
+], CreateRazorpaySubscriptionDto.prototype, "planId", void 0);
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsNotEmpty)(),
+    __metadata("design:type", String)
+], CreateRazorpaySubscriptionDto.prototype, "period", void 0);
 let SubscriptionsController = class SubscriptionsController {
     subscriptionService;
     constructor(subscriptionService) {
@@ -65,6 +80,9 @@ let SubscriptionsController = class SubscriptionsController {
             throw new Error('User ID not found on request');
         }
         return this.subscriptionService.createPaymentLink(userId, createPaymentLinkDto.priceId);
+    }
+    async createRazorpaySubscription(dto, req) {
+        return this.subscriptionService.createRazorpaySubscription(req.user.userId, dto.planId, dto.period);
     }
     async getCurrentSubscription(req) {
         const userId = req.user.userId;
@@ -127,6 +145,16 @@ __decorate([
     __metadata("design:paramtypes", [CreatePaymentLinkDto, Object]),
     __metadata("design:returntype", Promise)
 ], SubscriptionsController.prototype, "createPaymentLink", null);
+__decorate([
+    (0, common_1.Post)('create-razorpay-subscription'),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    __param(0, (0, common_1.Body)()),
+    __param(1, (0, common_1.Req)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [CreateRazorpaySubscriptionDto, Object]),
+    __metadata("design:returntype", Promise)
+], SubscriptionsController.prototype, "createRazorpaySubscription", null);
 __decorate([
     (0, common_1.Get)('current'),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),

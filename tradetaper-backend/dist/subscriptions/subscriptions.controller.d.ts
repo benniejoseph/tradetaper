@@ -7,6 +7,10 @@ export declare class CreatePortalSessionDto {
 export declare class CreatePaymentLinkDto {
     priceId: string;
 }
+export declare class CreateRazorpaySubscriptionDto {
+    planId: string;
+    period: 'monthly' | 'yearly';
+}
 export declare class SubscriptionsController {
     private readonly subscriptionService;
     constructor(subscriptionService: SubscriptionService);
@@ -21,6 +25,14 @@ export declare class SubscriptionsController {
     createPaymentLink(createPaymentLinkDto: CreatePaymentLinkDto, req: AuthenticatedRequest): Promise<{
         paymentLinkId: string;
         url: string;
+    }>;
+    createRazorpaySubscription(dto: CreateRazorpaySubscriptionDto, req: AuthenticatedRequest): Promise<{
+        subscriptionId: any;
+        key: string | undefined;
+        currency: string;
+        name: string;
+        description: string;
+        customer_id: string;
     }>;
     getCurrentSubscription(req: AuthenticatedRequest): Promise<BillingInfo>;
     getUsage(req: AuthenticatedRequest): SubscriptionUsage;

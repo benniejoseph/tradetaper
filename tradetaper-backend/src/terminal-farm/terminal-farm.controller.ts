@@ -9,10 +9,11 @@ import {
   Request,
   HttpCode,
   HttpStatus,
+  Body,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { TerminalFarmService } from './terminal-farm.service';
-import { TerminalResponseDto } from './dto/terminal.dto';
+import { TerminalResponseDto, EnableAutoSyncDto } from './dto/terminal.dto';
 
 /**
  * Controller for user-facing terminal management operations
@@ -28,9 +29,10 @@ export class TerminalFarmController {
   @Post(':accountId/enable-autosync')
   async enableAutoSync(
     @Param('accountId') accountId: string,
+    @Body() dto: EnableAutoSyncDto,
     @Request() req,
   ): Promise<TerminalResponseDto> {
-    return this.terminalFarmService.enableAutoSync(accountId, req.user.id);
+    return this.terminalFarmService.enableAutoSync(accountId, req.user.id, dto);
   }
 
   /**

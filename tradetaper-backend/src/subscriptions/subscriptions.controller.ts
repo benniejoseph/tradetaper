@@ -33,6 +33,16 @@ export class CreatePaymentLinkDto {
   priceId: string;
 }
 
+export class CreateRazorpaySubscriptionDto {
+    @IsString()
+    @IsNotEmpty()
+    planId: string;
+
+    @IsString()
+    @IsNotEmpty()
+    period: 'monthly' | 'yearly';
+}
+
 @Controller('subscriptions')
 export class SubscriptionsController {
   constructor(private readonly subscriptionService: SubscriptionService) {}
@@ -92,6 +102,20 @@ export class SubscriptionsController {
     return this.subscriptionService.createPaymentLink(
       userId,
       createPaymentLinkDto.priceId,
+    );
+  }
+
+  @Post('create-razorpay-subscription')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async createRazorpaySubscription(
+    @Body() dto: CreateRazorpaySubscriptionDto,
+    @Req() req: AuthenticatedRequest,
+  ) { 
+    return this.subscriptionService.createRazorpaySubscription(
+        req.user.userId,
+        dto.planId,
+        dto.period
     );
   }
 
