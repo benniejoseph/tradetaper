@@ -39,6 +39,15 @@ export default function PricingCard({ tier, isPopular = false, currentTier, onUp
           tier.interval as 'monthly' | 'yearly'
       );
 
+      console.log('Order created:', orderData);
+
+      if (!(window as any).Razorpay) {
+        console.error('Razorpay SDK not loaded');
+        alert('Payment system is loading. Please try again in a moment.');
+        setIsLoading(false);
+        return;
+      }
+
       // 2. Open Razorpay Checkout
       const options = {
         key: orderData.key,
@@ -48,22 +57,21 @@ export default function PricingCard({ tier, isPopular = false, currentTier, onUp
         currency: orderData.currency,
         customer_id: orderData.customer_id,
         handler: function (response: any) {
-             // Handle success - maybe redirect to a success page or show a toast
-             // console.log(response.razorpay_payment_id);
-             // console.log(response.razorpay_subscription_id);
-             // console.log(response.razorpay_signature);
-             router.push('/billing/success'); // Simple redirect for now
+             console.log('Payment successful:', response);
+             router.push('/billing/success'); 
         },
         theme: {
-            color: "#3B82F6" // Blue-500
+            color: "#3B82F6" 
         },
         modal: {
             ondismiss: function() {
+                console.log('Checkout dismissed');
                 setIsLoading(false);
             }
         }
       };
 
+      console.log('Opening Razorpay with options:', { ...options, key: '***' });
       const razorpay = new (window as any).Razorpay(options);
       razorpay.open();
 
