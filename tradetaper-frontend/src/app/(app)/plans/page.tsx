@@ -1,7 +1,6 @@
 "use client";
 import React, { useState, useEffect } from 'react';
-import { Elements } from '@stripe/react-stripe-js';
-import { stripePromise } from '@/lib/stripe';
+
 import PricingCard from '@/components/pricing/PricingCard';
 import { PRICING_TIERS, PRICING_TIERS_ANNUAL, getDiscountPercentage } from '@/config/pricing';
 import { useSelector, useDispatch } from 'react-redux';
@@ -25,7 +24,7 @@ export default function PricingPage() {
   const discountPercentage = getDiscountPercentage(19.99, 199.99); // Professional tier discount
 
   return (
-    <Elements stripe={stripePromise}>
+    <>
       <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
         {/* Header Section */}
         <div className="relative overflow-hidden">
@@ -215,7 +214,7 @@ export default function PricingPage() {
                   What payment methods do you accept?
                 </h3>
                 <p className="text-gray-600 dark:text-gray-400">
-                  We accept all major credit cards (Visa, MasterCard, American Express) and PayPal through our secure Stripe payment processor.
+                  We accept major credit cards (Visa, MasterCard, American Express) and PayPal through our secure Razorpay payment processor.
                 </p>
               </div>
               
@@ -240,6 +239,6 @@ export default function PricingPage() {
           </div>
         </div>
       </div>
-    </Elements>
+    </>
   );
 } 

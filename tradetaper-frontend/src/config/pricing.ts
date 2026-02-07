@@ -7,7 +7,6 @@ export const PRICING_TIERS: PricingTier[] = [
     description: 'Perfect for getting started with trading journals',
     price: 0,
     interval: 'month',
-    stripePriceId: '', // Free tier doesn't need Stripe price ID
     tradeLimit: 10,
     accountLimit: 1,
     features: [
@@ -25,7 +24,6 @@ export const PRICING_TIERS: PricingTier[] = [
     description: 'Ideal for individual traders',
     price: 9.99,
     interval: 'month',
-    stripePriceId: 'price_essential_monthly', 
     tradeLimit: 100,
     accountLimit: 3,
     features: [
@@ -45,7 +43,6 @@ export const PRICING_TIERS: PricingTier[] = [
     description: 'Best for serious traders',
     price: 19.99,
     interval: 'month',
-    stripePriceId: 'price_premium_monthly',
     recommended: true,
     tradeLimit: 500,
     accountLimit: 10,
@@ -73,24 +70,18 @@ export const PRICING_TIERS_ANNUAL: PricingTier[] = [
     ...PRICING_TIERS[1],
     price: 99.99, // 2 months free
     interval: 'year',
-    stripePriceId: 'price_essential_yearly',
   },
   {
     ...PRICING_TIERS[2],
     price: 199.99, // 2 months free
     interval: 'year',
-    stripePriceId: 'price_premium_yearly',
   },
 ];
+
 
 export const getPricingTier = (tierId: string, interval: 'month' | 'year' = 'month'): PricingTier | undefined => {
   const tiers = interval === 'year' ? PRICING_TIERS_ANNUAL : PRICING_TIERS;
   return tiers.find(tier => tier.id === tierId);
-};
-
-export const getPricingTierByPriceId = (priceId: string): PricingTier | undefined => {
-  const allTiers = [...PRICING_TIERS, ...PRICING_TIERS_ANNUAL];
-  return allTiers.find(tier => tier.stripePriceId === priceId);
 };
 
 export const getDiscountPercentage = (monthlyPrice: number, yearlyPrice: number): number => {

@@ -5,19 +5,16 @@ import { Subscription } from './entities/subscription.entity';
 import { Usage } from './entities/usage.entity';
 import { User } from '../users/entities/user.entity';
 import { SubscriptionService } from './services/subscription.service';
-import { StripeService } from './services/stripe.service';
-import { StripeValidationService } from './services/stripe-validation.service';
 import { RazorpayService } from './services/razorpay.service';
 import { SubscriptionsController } from './subscriptions.controller';
-import { WebhooksController } from './webhooks.controller';
 
 @Module({
   imports: [
     ConfigModule,
     TypeOrmModule.forFeature([Subscription, Usage, User]),
   ],
-  controllers: [SubscriptionsController, WebhooksController],
-  providers: [SubscriptionService, StripeService, StripeValidationService, RazorpayService],
-  exports: [SubscriptionService, StripeService, StripeValidationService, RazorpayService],
+  controllers: [SubscriptionsController],
+  providers: [SubscriptionService, RazorpayService],
+  exports: [SubscriptionService, RazorpayService],
 })
 export class SubscriptionsModule {}

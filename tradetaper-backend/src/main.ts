@@ -23,8 +23,12 @@ async function bootstrap() {
         'http://localhost:3001',
         'http://localhost:3002',
         'https://tradetaper-frontend-benniejosephs-projects.vercel.app',
+        'https://tradetaper-frontend.vercel.app',
         'https://tradetaper-admin.vercel.app',
-        'https://tradetaper-backend-326520250422.us-central1.run.app',
+        'https://api.tradetaper.com',
+        'https://tradetaper.com',
+        'https://www.tradetaper.com',
+        'https://api.tradetaper.com',
         process.env.FRONTEND_URL || 'https://tradetaper.com', // Provide a sensible default
       ],
       methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],

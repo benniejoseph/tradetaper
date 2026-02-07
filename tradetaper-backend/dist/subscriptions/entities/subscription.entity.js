@@ -32,9 +32,6 @@ let Subscription = class Subscription {
     id;
     userId;
     user;
-    stripeCustomerId;
-    stripeSubscriptionId;
-    stripePriceId;
     razorpayCustomerId;
     razorpaySubscriptionId;
     razorpayPlanId;
@@ -66,18 +63,6 @@ __decorate([
     (0, typeorm_1.JoinColumn)({ name: 'userId' }),
     __metadata("design:type", user_entity_1.User)
 ], Subscription.prototype, "user", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ nullable: true }),
-    __metadata("design:type", String)
-], Subscription.prototype, "stripeCustomerId", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ nullable: true }),
-    __metadata("design:type", String)
-], Subscription.prototype, "stripeSubscriptionId", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ nullable: true }),
-    __metadata("design:type", String)
-], Subscription.prototype, "stripePriceId", void 0);
 __decorate([
     (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", String)
