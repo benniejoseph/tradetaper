@@ -228,6 +228,15 @@ export default function BillingPage() {
             <div className="absolute bottom-0 right-1/4 w-[30rem] h-[30rem] bg-indigo-500/10 rounded-full blur-[100px]"></div>
         </div>
 
+        {/* Loading Overlay */}
+        {(actionLoading === 'upgrade' || initUpgrade) && (
+            <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[100] flex items-center justify-center flex-col">
+                <div className="w-16 h-16 border-4 border-emerald-500/30 border-t-emerald-500 rounded-full animate-spin mb-4"></div>
+                <h3 className="text-2xl font-bold text-white mb-2">Initializing Payment</h3>
+                <p className="text-slate-400">Please wait while we connect to Razorpay secure gateway...</p>
+            </div>
+        )}
+
         <div className="max-w-7xl mx-auto space-y-8 relative z-10">
             {/* Header */}
             <div className="flex items-center justify-between">
@@ -246,23 +255,6 @@ export default function BillingPage() {
                 <Link href="/pricing" className="hidden md:flex items-center gap-2 px-6 py-2.5 rounded-xl bg-slate-900 border border-slate-800 hover:border-emerald-500/50 hover:bg-slate-800 transition-all font-medium text-emerald-400">
                     <FaCrown /> View All Plans
                 </Link>
-                <button 
-                    onClick={() => {
-                        const plan = searchParams.get('plan');
-                        alert(JSON.stringify({
-                            isRazorpayLoaded,
-                            hasSubscription: !!currentSubscription,
-                            planId: plan || 'none',
-                            actionLoading: actionLoading || 'none',
-                            windowRazorpay: !!window.Razorpay,
-                            NODE_ENV: process.env.NODE_ENV,
-                            API_URL: process.env.NEXT_PUBLIC_API_URL
-                        }, null, 2));
-                    }}
-                    className="md:flex hidden bg-red-500/20 text-red-400 px-4 py-2 rounded-lg text-sm font-bold border border-red-500/30 hover:bg-red-500/30"
-                >
-                    Debug Info
-                </button>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
