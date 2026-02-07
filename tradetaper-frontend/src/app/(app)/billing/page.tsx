@@ -31,6 +31,7 @@ import {
 } from 'react-icons/fa';
 import { format } from 'date-fns';
 import Link from 'next/link';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 const formatDate = (date: string | Date | undefined | null) => {
   if (!date) return 'N/A';
