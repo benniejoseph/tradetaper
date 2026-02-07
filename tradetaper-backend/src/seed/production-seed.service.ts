@@ -99,8 +99,7 @@ export class ProductionSeedService {
     const requiredVars = [
       'DATABASE_URL',
       'JWT_SECRET',
-      'STRIPE_SECRET_KEY',
-      'STRIPE_PUBLISHABLE_KEY',
+
       'FRONTEND_URL',
     ];
 

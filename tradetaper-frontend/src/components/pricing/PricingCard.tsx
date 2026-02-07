@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { PricingTier } from '@/types/pricing';
 import { FaCheck, FaStar, FaSpinner } from 'react-icons/fa';
-import { getStripeInstance } from '@/lib/stripe';
+
 import { pricingApi } from '@/services/pricingApi';
 import { useSelector } from 'react-redux';
 import { RootState } from '@/store/store';

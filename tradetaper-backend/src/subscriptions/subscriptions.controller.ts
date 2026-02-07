@@ -12,26 +12,12 @@ import {
 import { Request } from 'express';
 import { IsString, IsNotEmpty, IsUrl } from 'class-validator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { AuthenticatedRequest } from '../types/authenticated-request.interface';
 import {
   SubscriptionService,
   BillingInfo,
   SubscriptionUsage,
 } from './services/subscription.service';
-import { CreateCheckoutSessionDto } from './dto/create-checkout-session.dto';
-import { AuthenticatedRequest } from '../types/authenticated-request.interface';
-
-export class CreatePortalSessionDto {
-  @IsString()
-  @IsNotEmpty()
-  @IsUrl()
-  returnUrl: string;
-}
-
-export class CreatePaymentLinkDto {
-  @IsString()
-  @IsNotEmpty()
-  priceId: string;
-}
 
 export class CreateRazorpaySubscriptionDto {
     @IsString()
@@ -50,59 +36,6 @@ export class SubscriptionsController {
   @Get('pricing-plans')
   getPricingPlans() {
     return this.subscriptionService.getPricingPlans();
-  }
-
-  @Post('create-checkout-session')
-  @UseGuards(JwtAuthGuard)
-  @HttpCode(HttpStatus.OK)
-  async createCheckoutSession(
-    @Body() createCheckoutSessionDto: CreateCheckoutSessionDto,
-    @Req() req: AuthenticatedRequest,
-  ) {
-    const userId = req.user.userId;
-    if (!userId) {
-      throw new Error('User ID not found on request');
-    }
-    return this.subscriptionService.createCheckoutSession(
-      userId,
-      createCheckoutSessionDto.priceId,
-      createCheckoutSessionDto.successUrl,
-      createCheckoutSessionDto.cancelUrl,
-    );
-  }
-
-  @Post('create-portal-session')
-  @UseGuards(JwtAuthGuard)
-  @HttpCode(HttpStatus.OK)
-  async createPortalSession(
-    @Body() createPortalSessionDto: CreatePortalSessionDto,
-    @Req() req: AuthenticatedRequest,
-  ) {
-    const userId = req.user.userId;
-    if (!userId) {
-      throw new Error('User ID not found on request');
-    }
-    return this.subscriptionService.createPortalSession(
-      userId,
-      createPortalSessionDto.returnUrl,
-    );
-  }
-
-  @Post('create-payment-link')
-  @UseGuards(JwtAuthGuard)
-  @HttpCode(HttpStatus.OK)
-  async createPaymentLink(
-    @Body() createPaymentLinkDto: CreatePaymentLinkDto,
-    @Req() req: AuthenticatedRequest,
-  ) {
-    const userId = req.user.userId;
-    if (!userId) {
-      throw new Error('User ID not found on request');
-    }
-    return this.subscriptionService.createPaymentLink(
-      userId,
-      createPaymentLinkDto.priceId,
-    );
   }
 
   @Post('create-razorpay-subscription')

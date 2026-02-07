@@ -109,9 +109,7 @@ export class SecretsService {
   /**
    * Get Stripe secret key
    */
-  getStripeSecretKey(): string | null {
-    return this.getSecret('STRIPE_SECRET_KEY', { cache: true, ttl: 3600 });
-  }
+
 
   /**
    * Invalidate cached secrets (call after rotation)

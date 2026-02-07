@@ -19,22 +19,19 @@ const typeorm_1 = require("@nestjs/typeorm");
 const typeorm_2 = require("typeorm");
 const config_1 = require("@nestjs/config");
 const subscription_entity_1 = require("../entities/subscription.entity");
-const stripe_service_1 = require("./stripe.service");
 const user_entity_1 = require("../../users/entities/user.entity");
 const razorpay_service_1 = require("./razorpay.service");
 let SubscriptionService = SubscriptionService_1 = class SubscriptionService {
     subscriptionRepository;
     userRepository;
     configService;
-    stripeService;
     razorpayService;
     logger = new common_1.Logger(SubscriptionService_1.name);
     pricingPlans;
-    constructor(subscriptionRepository, userRepository, configService, stripeService, razorpayService) {
+    constructor(subscriptionRepository, userRepository, configService, razorpayService) {
         this.subscriptionRepository = subscriptionRepository;
         this.userRepository = userRepository;
         this.configService = configService;
-        this.stripeService = stripeService;
         this.razorpayService = razorpayService;
         this.pricingPlans = [
             {
@@ -58,9 +55,6 @@ let SubscriptionService = SubscriptionService_1 = class SubscriptionService {
                 ],
                 priceMonthly: 0,
                 priceYearly: 0,
-                stripePriceMonthlyId: '',
-                stripePriceYearlyId: '',
-                stripeProductId: '',
                 razorpayPlanMonthlyId: '',
                 razorpayPlanYearlyId: '',
                 limits: {
@@ -99,9 +93,6 @@ let SubscriptionService = SubscriptionService_1 = class SubscriptionService {
                 ],
                 priceMonthly: 1999,
                 priceYearly: 19999,
-                stripePriceMonthlyId: this.configService.get('STRIPE_PRICE_ESSENTIAL_MONTHLY') || '',
-                stripePriceYearlyId: this.configService.get('STRIPE_PRICE_ESSENTIAL_YEARLY') || '',
-                stripeProductId: this.configService.get('STRIPE_PRODUCT_ESSENTIAL') || '',
                 razorpayPlanMonthlyId: this.configService.get('RAZORPAY_PLAN_ESSENTIAL_MONTHLY') || '',
                 razorpayPlanYearlyId: this.configService.get('RAZORPAY_PLAN_ESSENTIAL_YEARLY') || '',
                 limits: {
@@ -139,9 +130,6 @@ let SubscriptionService = SubscriptionService_1 = class SubscriptionService {
                 ],
                 priceMonthly: 4999,
                 priceYearly: 49999,
-                stripePriceMonthlyId: this.configService.get('STRIPE_PRICE_PREMIUM_MONTHLY') || '',
-                stripePriceYearlyId: this.configService.get('STRIPE_PRICE_PREMIUM_YEARLY') || '',
-                stripeProductId: this.configService.get('STRIPE_PRODUCT_PREMIUM') || '',
                 razorpayPlanMonthlyId: this.configService.get('RAZORPAY_PLAN_PREMIUM_MONTHLY') || '',
                 razorpayPlanYearlyId: this.configService.get('RAZORPAY_PLAN_PREMIUM_YEARLY') || '',
                 limits: {
@@ -211,153 +199,6 @@ let SubscriptionService = SubscriptionService_1 = class SubscriptionService {
             periodEnd: endOfMonth,
         };
     }
-    async createCheckoutSession(userId, priceId, successUrl, cancelUrl) {
-        try {
-            this.logger.log(`🔍 Creating checkout session for user ${userId}, price: ${priceId}`);
-            const subscription = await this.getOrCreateSubscription(userId);
-            this.logger.log(`✅ Retrieved subscription for user ${userId}`);
-            let customerId = subscription.stripeCustomerId;
-            if (!customerId) {
-                this.logger.log(`🆕 Creating new Stripe customer for user ${userId}`);
-                try {
-                    const user = await this.userRepository.findOne({
-                        where: { id: userId },
-                    });
-                    if (!user) {
-                        throw new Error(`User not found for id ${userId}`);
-                    }
-                    const name = user.firstName && user.lastName
-                        ? `${user.firstName} ${user.lastName}`
-                        : undefined;
-                    const customer = await this.stripeService.createCustomer(user.email, name);
-                    customerId = customer.id;
-                    this.logger.log(`✅ Created Stripe customer: ${customerId}`);
-                    subscription.stripeCustomerId = customerId;
-                    await this.subscriptionRepository.save(subscription);
-                    this.logger.log(`✅ Updated subscription with customer ID`);
-                }
-                catch (customerError) {
-                    this.logger.error(`❌ Failed to create Stripe customer:`, {
-                        error: customerError.message,
-                        code: customerError.code,
-                        type: customerError.type,
-                        userId,
-                    });
-                    throw customerError;
-                }
-            }
-            else {
-                this.logger.log(`✅ Using existing Stripe customer: ${customerId}`);
-            }
-            this.logger.log(`🛒 Creating Stripe checkout session...`);
-            const session = await this.stripeService.createCheckoutSession(priceId, customerId, successUrl, cancelUrl, userId);
-            this.logger.log(`✅ Checkout session created: ${session.id}`);
-            return {
-                sessionId: session.id,
-                url: session.url || '',
-            };
-        }
-        catch (error) {
-            this.logger.error(`❌ Stripe checkout session creation failed:`, {
-                error: error.message,
-                code: error.code,
-                type: error.type,
-                requestId: error.requestId,
-                statusCode: error.statusCode,
-                userId,
-                priceId,
-                stack: error.stack,
-            });
-            throw new common_1.HttpException(`Failed to create checkout session: ${error.message}`, common_1.HttpStatus.INTERNAL_SERVER_ERROR);
-        }
-    }
-    async createPortalSession(userId, returnUrl) {
-        try {
-            const subscription = await this.getOrCreateSubscription(userId);
-            if (!subscription.stripeCustomerId) {
-                throw new common_1.HttpException('No active subscription found', common_1.HttpStatus.NOT_FOUND);
-            }
-            const session = await this.stripeService.createBillingPortalSession(subscription.stripeCustomerId, returnUrl);
-            return { url: session.url };
-        }
-        catch (error) {
-            this.logger.error('Failed to create portal session:', error);
-            throw new common_1.HttpException('Failed to create portal session', common_1.HttpStatus.INTERNAL_SERVER_ERROR);
-        }
-    }
-    async handleWebhookEvent(event) {
-        this.logger.log(`Processing webhook event: ${event.type}`);
-        try {
-            switch (event.type) {
-                case 'customer.subscription.created':
-                case 'customer.subscription.updated':
-                    await this.handleSubscriptionUpdate(event.data.object);
-                    break;
-                case 'customer.subscription.deleted':
-                    await this.handleSubscriptionCancellation(event.data.object);
-                    break;
-                case 'invoice.payment_succeeded':
-                    this.handlePaymentSucceeded(event.data.object);
-                    break;
-                case 'invoice.payment_failed':
-                    this.handlePaymentFailed(event.data.object);
-                    break;
-                default:
-                    this.logger.log(`Unhandled webhook event type: ${event.type}`);
-            }
-        }
-        catch (error) {
-            this.logger.error(`Error processing webhook event ${event.type}:`, error);
-            throw error;
-        }
-    }
-    async handleSubscriptionUpdate(stripeSubscription) {
-        const userId = stripeSubscription.metadata?.userId;
-        if (!userId) {
-            this.logger.warn('No userId found in subscription metadata');
-            return;
-        }
-        const subscription = await this.getOrCreateSubscription(userId);
-        const priceId = stripeSubscription.items.data[0]?.price?.id;
-        const plan = this.getPlanFromPriceId(priceId);
-        subscription.stripeSubscriptionId = stripeSubscription.id;
-        subscription.stripeCustomerId = stripeSubscription.customer;
-        subscription.plan = plan;
-        subscription.status = stripeSubscription.status;
-        subscription.currentPeriodStart = new Date(stripeSubscription.current_period_start * 1000);
-        subscription.currentPeriodEnd = new Date(stripeSubscription.current_period_end * 1000);
-        subscription.cancelAtPeriodEnd = stripeSubscription.cancel_at_period_end;
-        await this.subscriptionRepository.save(subscription);
-        this.logger.log(`Updated subscription for user ${userId}: ${plan}`);
-    }
-    async handleSubscriptionCancellation(stripeSubscription) {
-        const userId = stripeSubscription.metadata?.userId;
-        if (!userId) {
-            this.logger.warn('No userId found in subscription metadata');
-            return;
-        }
-        const subscription = await this.getOrCreateSubscription(userId);
-        subscription.status = subscription_entity_1.SubscriptionStatus.CANCELED;
-        subscription.plan = 'free';
-        subscription.cancelAtPeriodEnd = false;
-        await this.subscriptionRepository.save(subscription);
-        this.logger.log(`Canceled subscription for user ${userId}`);
-    }
-    handlePaymentSucceeded(invoice) {
-        this.logger.log(`Payment succeeded for invoice ${invoice.id}`);
-    }
-    handlePaymentFailed(invoice) {
-        this.logger.log(`Payment failed for invoice ${invoice.id}`);
-    }
-    getPlanFromPriceId(priceId) {
-        for (const plan of this.pricingPlans) {
-            if (plan.stripePriceMonthlyId === priceId ||
-                plan.stripePriceYearlyId === priceId) {
-                return plan.name;
-            }
-        }
-        return 'free';
-    }
     async hasFeatureAccess(userId, feature) {
         const subscription = await this.getOrCreateSubscription(userId);
         const plan = this.getPricingPlan(subscription.plan);
@@ -417,46 +258,6 @@ let SubscriptionService = SubscriptionService_1 = class SubscriptionService {
             this.logger.log(`Incrementing usage for user ${userId}, feature: ${feature}`);
         }
     }
-    async createPaymentLink(userId, priceId) {
-        try {
-            this.logger.log(`🔗 Creating payment link for user ${userId}, price: ${priceId}`);
-            const subscription = await this.getOrCreateSubscription(userId);
-            let customerId = subscription.stripeCustomerId;
-            if (!customerId) {
-                this.logger.log(`🆕 Creating new Stripe customer for payment link`);
-                const user = await this.userRepository.findOne({
-                    where: { id: userId },
-                });
-                if (!user) {
-                    throw new Error(`User not found for id ${userId}`);
-                }
-                const name = user.firstName && user.lastName
-                    ? `${user.firstName} ${user.lastName}`
-                    : undefined;
-                const customer = await this.stripeService.createCustomer(user.email, name);
-                customerId = customer.id;
-                subscription.stripeCustomerId = customerId;
-                await this.subscriptionRepository.save(subscription);
-                this.logger.log(`✅ Created customer for payment link: ${customerId}`);
-            }
-            const paymentLink = await this.stripeService.createPaymentLink(userId, priceId, customerId);
-            this.logger.log(`✅ Payment link created: ${paymentLink.paymentLinkId}`);
-            return {
-                paymentLinkId: paymentLink.paymentLinkId,
-                url: paymentLink.url,
-            };
-        }
-        catch (error) {
-            this.logger.error(`❌ Payment link creation failed:`, {
-                error: error.message,
-                code: error.code,
-                type: error.type,
-                userId,
-                priceId,
-            });
-            throw new common_1.HttpException(`Failed to create payment link: ${error.message}`, common_1.HttpStatus.INTERNAL_SERVER_ERROR);
-        }
-    }
     async createRazorpaySubscription(userId, planId, period) {
         this.logger.log(`Creating Razorpay subscription for user ${userId}, plan: ${planId}, period: ${period}`);
         const planConfig = this.getPricingPlan(planId);
@@ -509,7 +310,6 @@ exports.SubscriptionService = SubscriptionService = SubscriptionService_1 = __de
     __metadata("design:paramtypes", [typeorm_2.Repository,
         typeorm_2.Repository,
         config_1.ConfigService,
-        stripe_service_1.StripeService,
         razorpay_service_1.RazorpayService])
 ], SubscriptionService);
 //# sourceMappingURL=subscription.service.js.map

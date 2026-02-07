@@ -214,7 +214,7 @@ class AdminApi {
 
   constructor() {
     // Ensure we always have a valid API URL, prioritizing environment variable
-    this.baseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://tradetaper-backend-326520250422.us-central1.run.app/api/v1';
+    this.baseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.tradetaper.com/api/v1';
     console.log('AdminApi initialized with baseUrl:', this.baseUrl);
     this.initializeAxios();
   }

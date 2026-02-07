@@ -55,7 +55,7 @@ exports.TradesGateway = TradesGateway = __decorate([
                 'http://localhost:3001',
                 'https://tradetaper-frontend-benniejosephs-projects.vercel.app',
                 'https://tradetaper-admin.vercel.app',
-                'https://tradetaper-backend-326520250422.us-central1.run.app',
+                'https://api.tradetaper.com',
                 process.env.FRONTEND_URL || 'http://localhost:3000',
             ],
             methods: ['GET', 'POST'],

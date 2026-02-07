@@ -37,15 +37,6 @@ export class Subscription {
   @JoinColumn({ name: 'userId' })
   user: User;
 
-  @Column({ nullable: true })
-  stripeCustomerId: string;
-
-  @Column({ nullable: true })
-  stripeSubscriptionId: string;
-
-  @Column({ nullable: true })
-  stripePriceId: string;
-
   // Razorpay Fields
   @Column({ nullable: true })
   razorpayCustomerId: string;

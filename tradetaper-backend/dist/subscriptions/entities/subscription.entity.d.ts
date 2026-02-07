@@ -17,9 +17,6 @@ export declare class Subscription {
     id: string;
     userId: string;
     user: User;
-    stripeCustomerId: string;
-    stripeSubscriptionId: string;
-    stripePriceId: string;
     razorpayCustomerId: string;
     razorpaySubscriptionId: string;
     razorpayPlanId: string;
