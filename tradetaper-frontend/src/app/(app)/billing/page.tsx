@@ -246,6 +246,23 @@ export default function BillingPage() {
                 <Link href="/pricing" className="hidden md:flex items-center gap-2 px-6 py-2.5 rounded-xl bg-slate-900 border border-slate-800 hover:border-emerald-500/50 hover:bg-slate-800 transition-all font-medium text-emerald-400">
                     <FaCrown /> View All Plans
                 </Link>
+                <button 
+                    onClick={() => {
+                        const plan = searchParams.get('plan');
+                        alert(JSON.stringify({
+                            isRazorpayLoaded,
+                            hasSubscription: !!currentSubscription,
+                            planId: plan || 'none',
+                            actionLoading: actionLoading || 'none',
+                            windowRazorpay: !!window.Razorpay,
+                            NODE_ENV: process.env.NODE_ENV,
+                            API_URL: process.env.NEXT_PUBLIC_API_URL
+                        }, null, 2));
+                    }}
+                    className="md:flex hidden bg-red-500/20 text-red-400 px-4 py-2 rounded-lg text-sm font-bold border border-red-500/30 hover:bg-red-500/30"
+                >
+                    Debug Info
+                </button>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

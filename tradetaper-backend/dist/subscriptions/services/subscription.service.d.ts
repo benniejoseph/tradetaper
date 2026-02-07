@@ -64,6 +64,8 @@ export declare class SubscriptionService {
     getPricingPlans(): PricingPlan[];
     getPricingPlan(planId: string): PricingPlan | null;
     getOrCreateSubscription(userId: string): Promise<Subscription>;
+    forceUpdateSubscriptionPlan(userId: string, planId: string): Promise<Subscription>;
+    upgradeUserByEmail(email: string, planId: string): Promise<Subscription>;
     getCurrentSubscription(userId: string): Promise<BillingInfo>;
     getCurrentUsage(userId: string): Promise<SubscriptionUsage>;
     hasFeatureAccess(userId: string, feature: string): Promise<boolean>;

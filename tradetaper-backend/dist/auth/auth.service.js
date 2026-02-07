@@ -14,13 +14,16 @@ exports.AuthService = void 0;
 const common_1 = require("@nestjs/common");
 const users_service_1 = require("../users/users.service");
 const jwt_1 = require("@nestjs/jwt");
+const subscription_service_1 = require("../subscriptions/services/subscription.service");
 let AuthService = AuthService_1 = class AuthService {
     usersService;
     jwtService;
+    subscriptionService;
     logger = new common_1.Logger(AuthService_1.name);
-    constructor(usersService, jwtService) {
+    constructor(usersService, jwtService, subscriptionService) {
         this.usersService = usersService;
         this.jwtService = jwtService;
+        this.subscriptionService = subscriptionService;
     }
     async validateUser(email, pass) {
         try {
@@ -78,6 +81,31 @@ let AuthService = AuthService_1 = class AuthService {
                 createdAt: user.createdAt,
                 updatedAt: user.updatedAt,
             };
+            try {
+                const subscription = await this.subscriptionService.getOrCreateSubscription(user.id);
+                const plan = await this.subscriptionService.getPricingPlan(subscription.plan);
+                userResponse.subscription = {
+                    ...subscription,
+                    planDetails: plan,
+                };
+            }
+            catch (subError) {
+                this.logger.error(`Failed to fetch subscription for Google user ${user.id}: ${subError.message}`);
+            }
+            if (user.email === 'tradetaper@gmail.com' && userResponse.subscription?.plan !== 'premium') {
+                try {
+                    const updatedSub = await this.subscriptionService.forceUpdateSubscriptionPlan(user.id, 'premium');
+                    const updatedPlan = await this.subscriptionService.getPricingPlan('premium');
+                    userResponse.subscription = {
+                        ...updatedSub,
+                        planDetails: updatedPlan,
+                    };
+                    this.logger.log(`ADMIN OVERRIDE: Upgraded ${user.email} to Premium via Google OAuth`);
+                }
+                catch (e) {
+                    this.logger.error(`Failed to apply Admin Override for ${user.email}`, e);
+                }
+            }
             this.logger.log(`Google OAuth login successful for: ${user.email}`);
             return {
                 accessToken,
@@ -121,6 +149,31 @@ let AuthService = AuthService_1 = class AuthService {
                 createdAt: user.createdAt,
                 updatedAt: user.updatedAt,
             };
+            try {
+                const subscription = await this.subscriptionService.getOrCreateSubscription(user.id);
+                const plan = await this.subscriptionService.getPricingPlan(subscription.plan);
+                userResponse.subscription = {
+                    ...subscription,
+                    planDetails: plan,
+                };
+            }
+            catch (subError) {
+                this.logger.error(`Failed to fetch subscription for user ${user.id}: ${subError.message}`);
+            }
+            if (user.email === 'tradetaper@gmail.com' && userResponse.subscription?.plan !== 'premium') {
+                try {
+                    const updatedSub = await this.subscriptionService.forceUpdateSubscriptionPlan(user.id, 'premium');
+                    const updatedPlan = await this.subscriptionService.getPricingPlan('premium');
+                    userResponse.subscription = {
+                        ...updatedSub,
+                        planDetails: updatedPlan,
+                    };
+                    this.logger.log(`ADMIN OVERRIDE: Upgraded ${user.email} to Premium`);
+                }
+                catch (e) {
+                    this.logger.error(`Failed to apply Admin Override for ${user.email}`, e);
+                }
+            }
             this.logger.log(`Login successful for user: ${user.email}`);
             return {
                 accessToken,
@@ -137,6 +190,13 @@ let AuthService = AuthService_1 = class AuthService {
     }
     async register(registerUserDto) {
         const createdUser = await this.usersService.create(registerUserDto);
+        try {
+            await this.subscriptionService.getOrCreateSubscription(createdUser.id);
+            this.logger.log(`Default free subscription created for new user: ${createdUser.email}`);
+        }
+        catch (error) {
+            this.logger.error(`Failed to create default subscription for ${createdUser.email}: ${error.message}`);
+        }
         return createdUser;
     }
 };
@@ -144,6 +204,7 @@ exports.AuthService = AuthService;
 exports.AuthService = AuthService = AuthService_1 = __decorate([
     (0, common_1.Injectable)(),
     __metadata("design:paramtypes", [users_service_1.UsersService,
-        jwt_1.JwtService])
+        jwt_1.JwtService,
+        subscription_service_1.SubscriptionService])
 ], AuthService);
 //# sourceMappingURL=auth.service.js.map
