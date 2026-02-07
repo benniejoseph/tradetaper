@@ -75,11 +75,11 @@ export default function PricingPage() {
                 className={`relative group rounded-[2rem] p-8 backdrop-blur-xl border transition-all duration-500 flex flex-col
                   ${tier.recommended 
                     ? 'bg-slate-900/60 border-emerald-500/50 shadow-2xl shadow-emerald-500/10 z-10 scale-[1.02]' 
-                    : 'bg-black/40 border-white/10 hover:border-white/20 hover:bg-slate-900/40'
+                    : 'bg-slate-900/50 border-white/5 hover:border-white/20 hover:bg-slate-900/60'
                   }`}
               >
                 {/* Glow Effect on Hover */}
-                <div className="absolute inset-0 rounded-[2rem] bg-gradient-to-b from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"></div>
+                <div className="absolute inset-0 rounded-[2rem] bg-gradient-to-b from-emerald-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"></div>
 
                 <div className="mb-8">
                     <h3 className="text-xl font-medium text-white mb-2">{tier.name}</h3>
@@ -118,7 +118,7 @@ export default function PricingPage() {
                         href={isAuthenticated ? `/billing?plan=${tier.id}&interval=${billingPeriod}` : `/register?plan=${tier.id}`}
                         className={`w-full py-3.5 rounded-full font-bold text-center transition-all duration-300 transform group-hover:scale-[1.02] ${
                             tier.recommended 
-                                ? 'bg-white text-black hover:bg-emerald-50 shadow-lg shadow-white/5' 
+                                ? 'bg-emerald-500 text-white hover:bg-emerald-400 shadow-lg shadow-emerald-500/20' 
                                 : 'bg-white/10 text-white hover:bg-white/20 border border-white/5'
                         }`}
                     >
