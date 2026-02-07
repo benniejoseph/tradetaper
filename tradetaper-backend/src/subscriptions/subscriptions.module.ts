@@ -12,6 +12,7 @@ import { Strategy } from '../strategies/entities/strategy.entity';
 import { SubscriptionService } from './services/subscription.service';
 import { RazorpayService } from './services/razorpay.service';
 import { SubscriptionsController } from './subscriptions.controller';
+import { SubscriptionsWebhookController } from './subscriptions.webhook.controller';
 
 @Module({
   imports: [
@@ -27,7 +28,7 @@ import { SubscriptionsController } from './subscriptions.controller';
       Strategy
     ]),
   ],
-  controllers: [SubscriptionsController],
+  controllers: [SubscriptionsController, SubscriptionsWebhookController],
   providers: [SubscriptionService, RazorpayService],
   exports: [SubscriptionService, RazorpayService],
 })
