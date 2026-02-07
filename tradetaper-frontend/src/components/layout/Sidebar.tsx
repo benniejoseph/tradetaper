@@ -8,7 +8,7 @@ import { usePathname } from 'next/navigation';
 import { mainNavItems, userNavItems, settingsNavItems } from '@/config/navigation';
 import { 
   FaSignOutAlt, FaUserCircle, FaTimes, FaChartLine, FaChevronLeft, 
-  FaChevronRight, FaBars, FaCog, FaExpand, FaCompress
+  FaChevronRight, FaBars, FaCog, FaExpand, FaCompress, FaCrown
 } from 'react-icons/fa';
 import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '@/store/store';
@@ -108,7 +108,7 @@ export default function Sidebar({ isOpen, toggleSidebar, isMobile, onExpandChang
               </div>
             </Link>
             
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-2 mt-5">
               {!isMobile && (
                 <button 
                   onClick={toggleExpanded}
@@ -287,9 +287,21 @@ export default function Sidebar({ isOpen, toggleSidebar, isMobile, onExpandChang
                 </div>
               )}
               <div className={`transition-all duration-500 overflow-hidden ${isExpanded ? 'opacity-100 w-auto' : 'opacity-0 w-0'}`}>
-                <p className="text-sm font-medium text-gray-900 dark:text-white whitespace-nowrap">
-                  {user?.firstName || user?.email?.split('@')[0] || 'User'}
-                </p>
+                <div className="flex items-center gap-2">
+                  <p className="text-sm font-medium text-gray-900 dark:text-white whitespace-nowrap">
+                    {user?.firstName || user?.email?.split('@')[0] || 'User'}
+                  </p>
+                  {user?.subscription?.plan === 'premium' && (
+                    <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-gradient-to-r from-amber-400 to-amber-600 text-white shadow-sm flex items-center gap-1">
+                      <FaCrown className="w-2.5 h-2.5" /> PRO
+                    </span>
+                  )}
+                   {user?.subscription?.plan === 'essential' && (
+                    <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-gradient-to-r from-blue-400 to-blue-600 text-white shadow-sm">
+                      PLUS
+                    </span>
+                  )}
+                </div>
                 <p className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
                   {user?.email || 'user@example.com'}
                 </p>

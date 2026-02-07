@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
-import { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '@/store/store';
 import { fetchTrades } from '@/store/features/tradesSlice';
@@ -42,6 +42,8 @@ import AccountHealthGauge from '@/components/dashboard/visuals/AccountHealthGaug
 import PairsPerformanceTable from '@/components/dashboard/PairsPerformanceTable';
 import AdvancedPerformanceChart from '@/components/dashboard/AdvancedPerformanceChart';
 import { FaBrain, FaClock, FaHourglassHalf, FaGlobeAmericas, FaChartPie, FaTachometerAlt } from 'react-icons/fa';
+import LongShortAnalysisCard from '@/components/dashboard/LongShortAnalysisCard';
+import { FeatureGate } from '@/components/common/FeatureGate';
 
 // Time range mapping
 const timeRangeDaysMapping: { [key: string]: number } = {
@@ -431,7 +433,7 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-white dark:bg-black">
-      <div className="space-y-8 relative z-10">
+      <div className="space-y-4 relative z-10">
         
         {/* Quick Action Cards */}
         <QuickActionCards />
@@ -464,7 +466,7 @@ export default function DashboardPage() {
         <KillZoneBanner />
 
         {/* Main Dashboard Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
           
           {/* Portfolio Balance */}
           <PortfolioBalanceCard
@@ -519,6 +521,7 @@ export default function DashboardPage() {
           />
 
           {/* Trade Statistics */}
+          {/* Trade Statistics */}
           <TradeStatisticsCard
             closedTrades={dashboardStats?.closedTrades || 0}
             winningTrades={dashboardStats?.winningTrades || 0}
@@ -534,50 +537,62 @@ export default function DashboardPage() {
             <TopTradesByReturn trades={filteredTrades || []} topN={5} />
           </DashboardCard>
 
-          {/* Advanced Performance Chart */}
-          <div className="lg:col-span-6">
-            <AdvancedPerformanceChart data={chartData} />
-          </div>
+          {/* Long vs Short Analysis */}
+          <LongShortAnalysisCard trades={filteredTrades || []} />
 
-          {/* Pairs Performance Table */}
-          <div className="lg:col-span-6">
-            <PairsPerformanceTable data={pairsPerformance} />
-          </div>
-
-          {/* Calendar */}
+          {/* Calendar - Moved Above */}
           <DashboardCard title="P&L Calendar" icon={FaCalendarDay} gridSpan="lg:col-span-6" showInfoIcon>
             <DashboardPnlCalendar trades={filteredTrades || []} />
           </DashboardCard>
-          
-          {/* --- DEEP DIVE ANALYTICS SECTION --- */}
-          {analyticsData && (
-            <>
-              <div className="lg:col-span-6 flex items-center gap-2 mt-4 mb-2">
-                 <FaBrain className="text-indigo-500 w-5 h-5" />
-                 <h2 className="text-xl font-bold text-gray-900 dark:text-white">Deep Dive Analytics</h2>
+
+          {/* ADVANCED ANALYTICS SECTION - GATED */}
+          <div className="lg:col-span-6 contents">
+            <FeatureGate feature="advancedAnalytics" blur={true} className="lg:col-span-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4 lg:col-span-6 w-full">
+                
+                {/* Advanced Performance Chart */}
+                <div className="lg:col-span-6">
+                  <AdvancedPerformanceChart data={chartData} />
+                </div>
+
+                {/* Pairs Performance Table */}
+                <div className="lg:col-span-6">
+                  <PairsPerformanceTable data={pairsPerformance} />
+                </div>
+                
+                {/* --- DEEP DIVE ANALYTICS SECTION --- */}
+                {analyticsData && (
+                  <>
+                    <div className="lg:col-span-6 flex items-center gap-2 mt-4 mb-2">
+                       <FaBrain className="text-indigo-500 w-5 h-5" />
+                       <h2 className="text-xl font-bold text-gray-900 dark:text-white">Deep Dive Analytics</h2>
+                    </div>
+
+                    {/* Hourly Performance */}
+                    <DashboardCard title="Performance by Hour" icon={FaClock} gridSpan="lg:col-span-6">
+                       <HourlyPerformanceChart data={analyticsData.hourlyPerformance} />
+                    </DashboardCard>
+
+                    {/* Session Breakdown */}
+                    <DashboardCard title="Session Performance" icon={FaGlobeAmericas} gridSpan="lg:col-span-3">
+                       <SessionBreakdownChart data={analyticsData.sessionPerformance} />
+                    </DashboardCard>
+
+                    {/* Holding Time Analysis */}
+                    <DashboardCard title="Holding Time vs PnL" icon={FaHourglassHalf} gridSpan="lg:col-span-3">
+                       <HoldingTimeScatter data={analyticsData.holdingTimeAnalysis} />
+                    </DashboardCard>
+                  </>
+                )}
+                
+                {/* Trading Activity Heatmap */}
+                <DashboardCard title="Trading Activity Heatmap" icon={FaCalendarAlt} gridSpan="lg:col-span-6">
+                  <TradesCalendarHeatmap trades={filteredTrades || []} onDateClick={handleHeatmapDateClick} />
+                </DashboardCard>
+
               </div>
-
-              {/* Hourly Performance */}
-              <DashboardCard title="Performance by Hour" icon={FaClock} gridSpan="lg:col-span-6">
-                 <HourlyPerformanceChart data={analyticsData.hourlyPerformance} />
-              </DashboardCard>
-
-              {/* Session Breakdown */}
-              <DashboardCard title="Session Performance" icon={FaGlobeAmericas} gridSpan="lg:col-span-3">
-                 <SessionBreakdownChart data={analyticsData.sessionPerformance} />
-              </DashboardCard>
-
-              {/* Holding Time Analysis */}
-              <DashboardCard title="Holding Time vs PnL" icon={FaHourglassHalf} gridSpan="lg:col-span-3">
-                 <HoldingTimeScatter data={analyticsData.holdingTimeAnalysis} />
-              </DashboardCard>
-            </>
-          )}
-          
-          {/* Trading Activity Heatmap */}
-          <DashboardCard title="Trading Activity Heatmap" icon={FaCalendarAlt} gridSpan="lg:col-span-6">
-            <TradesCalendarHeatmap trades={filteredTrades || []} onDateClick={handleHeatmapDateClick} />
-          </DashboardCard>
+            </FeatureGate>
+          </div>
         </div>
 
         {/* No Trades Message */}

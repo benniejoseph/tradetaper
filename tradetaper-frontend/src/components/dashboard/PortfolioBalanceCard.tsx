@@ -5,7 +5,7 @@ import DashboardCard from './DashboardCard';
 import { CurrencyAmount } from '@/components/common/CurrencyAmount';
 import { FaWallet } from 'react-icons/fa';
 import { 
-  ResponsiveContainer, LineChart, Line, Tooltip, Area 
+  ResponsiveContainer, LineChart, Line, Tooltip, Area, YAxis 
 } from 'recharts';
 import { useTheme } from 'next-themes';
 
@@ -43,7 +43,7 @@ export default function PortfolioBalanceCard({
       <div className="space-y-4">
         <div>
           <div className="flex items-baseline space-x-3">
-            <div className="text-3xl font-bold text-gray-900 dark:text-white">
+            <div className="text-2xl font-bold text-gray-900 dark:text-white">
               <CurrencyAmount amount={currentBalance} />
             </div>
             <span className={`px-2 py-1 rounded-lg text-sm font-medium ${
@@ -63,6 +63,7 @@ export default function PortfolioBalanceCard({
         <div className="h-24">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={equityCurve} margin={{ top: 5, right: 0, left: 0, bottom: 5 }}>
+              <YAxis domain={['auto', 'auto']} hide />
               <defs>
                 <linearGradient id="balanceGradient" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.3}/>

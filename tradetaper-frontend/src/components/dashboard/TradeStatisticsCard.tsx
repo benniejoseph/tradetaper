@@ -14,6 +14,8 @@ interface TradeStatisticsCardProps {
   onTimeRangeChange: (range: string) => void;
 }
 
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
+
 export default function TradeStatisticsCard({
   closedTrades,
   winningTrades,
@@ -23,13 +25,25 @@ export default function TradeStatisticsCard({
   timeRange,
   onTimeRangeChange,
 }: TradeStatisticsCardProps) {
-  const statItems = [
-    { label: 'Total Trades', value: closedTrades, color: 'text-gray-900 dark:text-white' },
-    { label: 'Winning Trades', value: winningTrades, color: 'text-green-600 dark:text-green-400' },
-    { label: 'Losing Trades', value: losingTrades, color: 'text-red-600 dark:text-red-400' },
-    { label: 'Breakeven Trades', value: breakevenTrades, color: 'text-gray-900 dark:text-white' },
-    { label: 'Avg Trades per Day', value: avgTradesPerDay.toFixed(2), color: 'text-gray-900 dark:text-white' },
-  ];
+  
+  const data = [
+    { name: 'Winning', value: winningTrades, color: '#10B981' }, // emerald-500
+    { name: 'Losing', value: losingTrades, color: '#EF4444' }, // red-500
+    { name: 'Breakeven', value: breakevenTrades, color: '#6B7280' }, // gray-500
+  ].filter(item => item.value > 0);
+
+  const CustomTooltip = ({ active, payload }: any) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="bg-white dark:bg-gray-800 p-2 border border-gray-100 dark:border-gray-700 shadow-lg rounded-lg text-xs">
+          <p className="font-semibold" style={{ color: payload[0].payload.color }}>
+            {payload[0].name}: {payload[0].value}
+          </p>
+        </div>
+      );
+    }
+    return null;
+  };
 
   return (
     <DashboardCard 
@@ -41,13 +55,54 @@ export default function TradeStatisticsCard({
       onTimeRangeChange={onTimeRangeChange} 
       showInfoIcon
     >
-      <div className="space-y-4">
-        {statItems.map((item, index) => (
-          <div key={index} className="flex justify-between items-center p-3 bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-950/20 dark:to-emerald-900/20 rounded-xl hover:from-emerald-100 hover:to-emerald-200 dark:hover:from-emerald-900/30 dark:hover:to-emerald-800/30 transition-colors">
-            <span className="text-sm font-medium text-gray-600 dark:text-gray-400">{item.label}</span>
-            <span className={`text-sm font-bold ${item.color}`}>{item.value}</span>
+      <div className="flex flex-col sm:flex-row items-center justify-between h-full gap-4 px-2">
+        {/* Donut Chart Section */}
+        <div className="relative w-40 h-40 flex-shrink-0">
+          <ResponsiveContainer width="100%" height="100%">
+            <PieChart>
+              <Pie
+                data={data}
+                cx="50%"
+                cy="50%"
+                innerRadius={60}
+                outerRadius={80}
+                paddingAngle={2}
+                dataKey="value"
+                stroke="none"
+              >
+                {data.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={entry.color} />
+                ))}
+              </Pie>
+              <Tooltip content={<CustomTooltip />} />
+            </PieChart>
+          </ResponsiveContainer>
+          {/* Centered Total */}
+          <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+            <span className="text-2xl font-bold text-gray-900 dark:text-white leading-none">{closedTrades}</span>
+            <span className="text-[10px] text-gray-500 dark:text-gray-400 mt-1">Total</span>
           </div>
-        ))}
+        </div>
+
+        {/* Stats Grid */}
+        <div className="flex-1 grid grid-cols-2 gap-3 w-full">
+            <div className="bg-emerald-50 dark:bg-emerald-900/10 p-2 rounded-lg flex flex-col items-center justify-center">
+                <span className="text-xs text-gray-500 dark:text-gray-400">Winning</span>
+                <span className="text-lg font-bold text-emerald-600 dark:text-emerald-400">{winningTrades}</span>
+            </div>
+            <div className="bg-red-50 dark:bg-red-900/10 p-2 rounded-lg flex flex-col items-center justify-center">
+                <span className="text-xs text-gray-500 dark:text-gray-400">Losing</span>
+                <span className="text-lg font-bold text-red-600 dark:text-red-400">{losingTrades}</span>
+            </div>
+             <div className="bg-gray-50 dark:bg-gray-800/50 p-2 rounded-lg flex flex-col items-center justify-center">
+                <span className="text-xs text-gray-500 dark:text-gray-400">Breakeven</span>
+                <span className="text-lg font-bold text-gray-700 dark:text-gray-300">{breakevenTrades}</span>
+            </div>
+            <div className="bg-blue-50 dark:bg-blue-900/10 p-2 rounded-lg flex flex-col items-center justify-center">
+                <span className="text-xs text-gray-500 dark:text-gray-400">Avg / Day</span>
+                <span className="text-lg font-bold text-blue-600 dark:text-blue-400">{avgTradesPerDay.toFixed(1)}</span>
+            </div>
+        </div>
       </div>
     </DashboardCard>
   );
