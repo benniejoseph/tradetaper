@@ -86,7 +86,7 @@ export default function PricingPage() {
                 key={tier.id}
                 tier={tier}
                 isPopular={tier.recommended}
-                currentTier={currentSubscription?.tier.id}
+                currentTier={currentSubscription?.currentPlan}
               />
             ))}
           </div>
