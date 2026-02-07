@@ -45,16 +45,86 @@ const formatDate = (date: string | Date | undefined | null) => {
 
 export default function BillingPage() {
   const dispatch = useDispatch<AppDispatch>();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const currentSubscription = useSelector(selectCurrentSubscription);
   const billingInfo = useSelector(selectBillingInfo);
   const usage = useSelector(selectUsage);
   const isLoading = useSelector(selectSubscriptionLoading);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  // Load Razorpay Script
+  const [isRazorpayLoaded, setIsRazorpayLoaded] = useState(false);
+  const [initUpgrade, setInitUpgrade] = useState(false);
+
+  useEffect(() => {
+    const loadRazorpayScript = () => {
+        const script = document.createElement('script');
+        script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+        script.onload = () => {
+            setIsRazorpayLoaded(true);
+            console.log("Razorpay SDK loaded.");
+        };
+        script.onerror = () => {
+            console.error("Failed to load Razorpay SDK.");
+            setIsRazorpayLoaded(false);
+        };
+        document.body.appendChild(script);
+    };
+
+    if (!window.Razorpay) {
+        loadRazorpayScript();
+    } else {
+        setIsRazorpayLoaded(true);
+    }
+  }, []);
 
   useEffect(() => {
     dispatch(fetchBillingInfo());
     dispatch(fetchUsage());
   }, [dispatch]);
+
+  // Handle URL Query Params for Upgrade
+  useEffect(() => {
+    const planId = searchParams.get('plan');
+    const interval = searchParams.get('interval') as 'monthly' | 'yearly' || 'monthly';
+
+    if (!planId) return;
+
+    // Set initializing state
+    setInitUpgrade(true);
+
+    const tryUpgrade = () => {
+        console.log("Attempting upgrade...", {
+            planId,
+            isRazorpayLoaded,
+            actionLoading,
+            currentSubscriptionLoaded: !!currentSubscription,
+            currentPlan: currentSubscription?.planId
+        });
+
+        if (isRazorpayLoaded && !actionLoading && currentSubscription) {
+            // Check if already on plan
+            if (currentSubscription.planId === planId) {
+                console.log("Already on this plan.");
+                setInitUpgrade(false);
+                alert("You are already subscribed to this plan.");
+                // Remove params
+                router.replace('/billing');
+                return;
+            }
+
+            console.log("Triggering upgrade flow...");
+            handleUpgrade(planId, interval);
+        } else {
+             console.log("Waiting for dependencies...");
+        }
+    }
+
+    tryUpgrade();
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, isRazorpayLoaded, currentSubscription]); // Monitor these changes
+
 
   const handleCancelSubscription = async () => {
     if (!currentSubscription || currentSubscription.cancelAtPeriodEnd) return;
@@ -83,17 +153,66 @@ export default function BillingPage() {
   const handleManageBilling = async () => {
     setActionLoading('portal');
     try {
-      const { url } = await pricingApi.createPortalSession(window.location.href);
-      window.location.href = url;
+      // For Razorpay, we might not have a portal, but keeping for legacy or if implemented
+      // If Razorpay, usually management is via their email or custom flow.
+      alert("Please contact support to manage payment methods directly for now, or start a new subscription to update card.");
     } catch (error) {
-      console.error('Failed to create portal session:', error);
+      console.error('Failed to manage billing:', error);
     } finally {
       setActionLoading(null);
     }
   };
 
+  const handleUpgrade = async (planId: string, period: 'monthly' | 'yearly') => {
+      setActionLoading('upgrade');
+      setInitUpgrade(false); // Stop init loading, switch to action loading
+
+      try {
+          console.log("Calling API createRazorpaySubscription...");
+          const data = await pricingApi.createRazorpaySubscription(planId, period);
+          console.log("Subscription created, opening Razorpay...", data);
+
+          if (!window.Razorpay) {
+              alert("Razorpay SDK failed to load. Please refresh.");
+              setActionLoading(null);
+              return;
+          }
+
+          const options = {
+              key: data.key,
+              amount: 0, // Subscription auth amount usually, or formatted
+              currency: data.currency,
+              name: "TradeTaper",
+              description: data.description,
+              subscription_id: data.subscriptionId,
+              handler: async function (response: any) {
+                  console.log("Payment successful", response);
+                  setActionLoading(null);
+                  router.push('/dashboard?payment_success=true');
+                  dispatch(fetchCurrentSubscription()); // Refresh state
+              },
+              modal: {
+                  ondismiss: function() {
+                      console.log("Payment modal dismissed");
+                      setActionLoading(null);
+                  }
+              },
+              theme: {
+                  color: "#10B981"
+              }
+          };
+
+          const rzp1 = new window.Razorpay(options);
+          rzp1.open();
+      } catch (error) {
+          console.error("Upgrade failed:", error);
+          alert("Failed to initiate upgrade. Please try again.");
+          setActionLoading(null);
+      }
+  };
+
   // Helper to determine plan name safely
-  const planName = currentSubscription?.planId 
+  const planName = currentSubscription?.planId
     ? (PRICING_TIERS.find(t => t.id === currentSubscription.planId)?.name || currentSubscription.planId)
     : 'Free';
 
@@ -121,7 +240,7 @@ export default function BillingPage() {
                         <p className="text-slate-400 font-medium">Manage your subscription and usage</p>
                     </div>
                 </div>
-                
+
                 <Link href="/pricing" className="hidden md:flex items-center gap-2 px-6 py-2.5 rounded-xl bg-slate-900 border border-slate-800 hover:border-emerald-500/50 hover:bg-slate-800 transition-all font-medium text-emerald-400">
                     <FaCrown /> View All Plans
                 </Link>
