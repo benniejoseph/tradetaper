@@ -103,9 +103,9 @@ export default function BillingPage() {
             currentPlan: currentSubscription?.planId
         });
 
-        if (isRazorpayLoaded && !actionLoading && currentSubscription) {
-            // Check if already on plan
-            if (currentSubscription.planId === planId) {
+        if (isRazorpayLoaded && !actionLoading) {
+            // Check if already on plan (only if we have subscription data)
+            if (currentSubscription && currentSubscription.planId === planId) {
                 console.log("Already on this plan.");
                 setInitUpgrade(false);
                 alert("You are already subscribed to this plan.");
@@ -113,7 +113,7 @@ export default function BillingPage() {
                 router.replace('/billing');
                 return;
             }
-
+            
             console.log("Triggering upgrade flow...");
             handleUpgrade(planId, interval);
         } else {
