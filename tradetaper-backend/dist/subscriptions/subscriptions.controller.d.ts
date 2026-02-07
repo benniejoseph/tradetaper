@@ -17,7 +17,7 @@ export declare class SubscriptionsController {
         customer_id: string;
     }>;
     getCurrentSubscription(req: AuthenticatedRequest): Promise<BillingInfo>;
-    getUsage(req: AuthenticatedRequest): SubscriptionUsage;
+    getUsage(req: AuthenticatedRequest): Promise<SubscriptionUsage>;
     checkFeatureAccess(req: AuthenticatedRequest, feature: string): Promise<{
         hasAccess: boolean;
     }>;

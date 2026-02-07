@@ -41,24 +41,24 @@ let SubscriptionsController = class SubscriptionsController {
         return this.subscriptionService.getPricingPlans();
     }
     async createRazorpaySubscription(dto, req) {
-        return this.subscriptionService.createRazorpaySubscription(req.user.userId, dto.planId, dto.period);
+        return this.subscriptionService.createRazorpaySubscription(req.user.id, dto.planId, dto.period);
     }
     async getCurrentSubscription(req) {
-        const userId = req.user.userId;
+        const userId = req.user.id;
         if (!userId) {
             throw new Error('User ID not found on request');
         }
         return this.subscriptionService.getCurrentSubscription(userId);
     }
-    getUsage(req) {
-        const userId = req.user.userId;
+    async getUsage(req) {
+        const userId = req.user.id;
         if (!userId) {
             throw new Error('User ID not found on request');
         }
         return this.subscriptionService.getCurrentUsage(userId);
     }
     async checkFeatureAccess(req, feature) {
-        const userId = req.user.userId;
+        const userId = req.user.id;
         if (!userId) {
             throw new Error('User ID not found on request');
         }
@@ -98,7 +98,7 @@ __decorate([
     __param(0, (0, common_1.Req)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object]),
-    __metadata("design:returntype", Object)
+    __metadata("design:returntype", Promise)
 ], SubscriptionsController.prototype, "getUsage", null);
 __decorate([
     (0, common_1.Get)('feature-access/:feature'),

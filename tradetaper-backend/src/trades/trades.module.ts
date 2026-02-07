@@ -14,6 +14,7 @@ import { Note } from '../notes/entities/note.entity';
 import { TradeCandle } from './entities/trade-candle.entity';
 
 import { TerminalFarmModule } from '../terminal-farm/terminal-farm.module';
+import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { TerminalFarmModule } from '../terminal-farm/terminal-farm.module';
     CacheModule.register({
       ttl: 60 * 60 * 1000, // 1 hour
     }),
+    SubscriptionsModule,
   ],
   providers: [TradesService, GeminiVisionService, TradeJournalSyncService],
   controllers: [TradesController],

@@ -19,6 +19,7 @@ const mt5_accounts_service_1 = require("./mt5-accounts.service");
 const mt5_account_dto_1 = require("./dto/mt5-account.dto");
 const trade_history_parser_service_1 = require("./trade-history-parser.service");
 const trades_service_1 = require("../trades/trades.service");
+const usage_limit_guard_1 = require("../subscriptions/guards/usage-limit.guard");
 let MT5AccountsController = class MT5AccountsController {
     mt5AccountsService;
     tradeHistoryParserService;
@@ -105,6 +106,8 @@ let MT5AccountsController = class MT5AccountsController {
 exports.MT5AccountsController = MT5AccountsController;
 __decorate([
     (0, common_1.Post)('create'),
+    (0, common_1.UseGuards)(usage_limit_guard_1.UsageLimitGuard),
+    (0, usage_limit_guard_1.UsageFeature)('mt5Accounts'),
     __param(0, (0, common_1.Request)()),
     __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
@@ -113,6 +116,8 @@ __decorate([
 ], MT5AccountsController.prototype, "create", null);
 __decorate([
     (0, common_1.Post)('manual'),
+    (0, common_1.UseGuards)(usage_limit_guard_1.UsageLimitGuard),
+    (0, usage_limit_guard_1.UsageFeature)('mt5Accounts'),
     __param(0, (0, common_1.Request)()),
     __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),

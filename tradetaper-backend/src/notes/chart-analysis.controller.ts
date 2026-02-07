@@ -8,10 +8,12 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { FeatureAccessGuard, RequireFeature } from '../subscriptions/guards/feature-access.guard';
 import { ChartAnalysisService } from './chart-analysis.service';
 
 @Controller('notes/chart-analysis')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, FeatureAccessGuard)
+@RequireFeature('aiAnalysis')
 export class ChartAnalysisController {
   constructor(private readonly chartAnalysisService: ChartAnalysisService) {}
 

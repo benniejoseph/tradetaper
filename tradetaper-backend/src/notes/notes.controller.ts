@@ -13,9 +13,10 @@ import {
   ParseIntPipe,
   HttpCode,
   HttpStatus,
-  Logger, // Added Logger
+  Logger,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { UsageLimitGuard, UsageFeature } from '../subscriptions/guards/usage-limit.guard';
 import { NotesService } from './notes.service';
 import { PsychologicalInsightsService } from './psychological-insights.service';
 import { CreateNoteDto } from './dto/create-note.dto';
@@ -35,6 +36,8 @@ export class NotesController {
   ) {}
 
   @Post()
+  @UseGuards(UsageLimitGuard)
+  @UsageFeature('notes')
   async create(
     @Body() createNoteDto: CreateNoteDto,
     @Request() req: any,

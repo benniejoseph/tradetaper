@@ -11,6 +11,7 @@ const common_1 = require("@nestjs/common");
 const typeorm_1 = require("@nestjs/typeorm");
 const platform_express_1 = require("@nestjs/platform-express");
 const config_1 = require("@nestjs/config");
+const subscriptions_module_1 = require("../subscriptions/subscriptions.module");
 const note_entity_1 = require("./entities/note.entity");
 const note_block_entity_1 = require("./entities/note-block.entity");
 const note_media_entity_1 = require("./entities/note-media.entity");
@@ -49,6 +50,7 @@ exports.NotesModule = NotesModule = __decorate([
                 },
             }),
             config_1.ConfigModule,
+            subscriptions_module_1.SubscriptionsModule,
         ],
         controllers: [
             notes_controller_1.NotesController,

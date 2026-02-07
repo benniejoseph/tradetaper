@@ -23,6 +23,7 @@ import {
 } from './dto/mt5-account.dto';
 import { TradeHistoryParserService } from './trade-history-parser.service';
 import { TradesService } from '../trades/trades.service';
+import { UsageLimitGuard, UsageFeature } from '../subscriptions/guards/usage-limit.guard';
 
 @Controller('mt5-accounts')
 @UseGuards(JwtAuthGuard)
@@ -35,6 +36,8 @@ export class MT5AccountsController {
   ) {}
 
   @Post('create')
+  @UseGuards(UsageLimitGuard)
+  @UsageFeature('mt5Accounts')
   async create(
     @Request() req,
     @Body() createMT5AccountDto: CreateMT5AccountDto,
@@ -46,6 +49,8 @@ export class MT5AccountsController {
   }
 
   @Post('manual')
+  @UseGuards(UsageLimitGuard)
+  @UsageFeature('mt5Accounts')
   async createManual(
     @Request() req,
     @Body() createMT5AccountDto: CreateManualMT5AccountDto,

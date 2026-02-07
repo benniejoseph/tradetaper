@@ -46,7 +46,7 @@ export class SubscriptionsController {
     @Req() req: AuthenticatedRequest,
   ) { 
     return this.subscriptionService.createRazorpaySubscription(
-        req.user.userId,
+        req.user.id,
         dto.planId,
         dto.period
     );
@@ -57,7 +57,7 @@ export class SubscriptionsController {
   async getCurrentSubscription(
     @Req() req: AuthenticatedRequest,
   ): Promise<BillingInfo> {
-    const userId = req.user.userId;
+    const userId = req.user.id;
     if (!userId) {
       throw new Error('User ID not found on request');
     }
@@ -66,8 +66,8 @@ export class SubscriptionsController {
 
   @Get('usage')
   @UseGuards(JwtAuthGuard)
-  getUsage(@Req() req: AuthenticatedRequest): SubscriptionUsage {
-    const userId = req.user.userId;
+  async getUsage(@Req() req: AuthenticatedRequest): Promise<SubscriptionUsage> {
+    const userId = req.user.id;
     if (!userId) {
       throw new Error('User ID not found on request');
     }
@@ -80,7 +80,7 @@ export class SubscriptionsController {
     @Req() req: AuthenticatedRequest,
     @Param('feature') feature: string,
   ) {
-    const userId = req.user.userId;
+    const userId = req.user.id;
     if (!userId) {
       throw new Error('User ID not found on request');
     }

@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { MulterModule } from '@nestjs/platform-express';
 import { ConfigModule } from '@nestjs/config';
+import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
 
 // Entities
 import { Note } from './entities/note.entity';
@@ -46,6 +47,7 @@ import {
       },
     }),
     ConfigModule,
+    SubscriptionsModule,
   ],
   controllers: [
     NotesController,

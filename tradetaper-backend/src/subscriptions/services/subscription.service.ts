@@ -9,7 +9,13 @@ import {
 } from '../entities/subscription.entity';
 // import { Usage } from '../entities/usage.entity';
 import { User } from '../../users/entities/user.entity';
+import { Trade } from '../../trades/entities/trade.entity';
+import { Account } from '../../users/entities/account.entity';
+import { MT5Account } from '../../users/entities/mt5-account.entity';
+import { Note } from '../../notes/entities/note.entity';
+import { Strategy } from '../../strategies/entities/strategy.entity';
 import { RazorpayService } from './razorpay.service';
+import { Between } from 'typeorm';
 
 export interface PricingPlan {
   id: string; // 'free' | 'essential' | 'premium'
@@ -65,6 +71,16 @@ export class SubscriptionService {
     private subscriptionRepository: Repository<Subscription>,
     @InjectRepository(User)
     private userRepository: Repository<User>,
+    @InjectRepository(Trade)
+    private tradeRepository: Repository<Trade>,
+    @InjectRepository(Account)
+    private accountRepository: Repository<Account>,
+    @InjectRepository(MT5Account)
+    private mt5AccountRepository: Repository<MT5Account>,
+    @InjectRepository(Note)
+    private noteRepository: Repository<Note>,
+    @InjectRepository(Strategy)
+    private strategyRepository: Repository<Strategy>,
     private configService: ConfigService,
     private razorpayService: RazorpayService,
   ) {
@@ -223,10 +239,39 @@ export class SubscriptionService {
     return subscription;
   }
 
+  // Force update subscription plan (Admin/System override)
+  async forceUpdateSubscriptionPlan(userId: string, planId: string): Promise<Subscription> {
+    const subscription = await this.getOrCreateSubscription(userId);
+    
+    // Validate plan exists
+    const plan = this.getPricingPlan(planId);
+    if (!plan) {
+        throw new Error(`Invalid plan ID: ${planId}`);
+    }
+
+    if (subscription.plan !== planId) {
+        subscription.plan = planId;
+        // Reset limits or handle expiration if needed, but for now just switching plan
+        // You might want to update billing details here too if integrated deeply
+        await this.subscriptionRepository.save(subscription);
+        this.logger.log(`Forced subscription update for user ${userId} to ${planId}`);
+    }
+    return subscription;
+  }
+
+  async upgradeUserByEmail(email: string, planId: string): Promise<Subscription> {
+      const user = await this.userRepository.findOne({ where: { email } });
+      if (!user) {
+          throw new NotFoundException(`User with email ${email} not found`);
+      }
+      return this.forceUpdateSubscriptionPlan(user.id, planId);
+  }
+
   // Get current subscription with billing info
   async getCurrentSubscription(userId: string): Promise<BillingInfo> {
     const subscription = await this.getOrCreateSubscription(userId);
-    const usage = this.getCurrentUsage(userId);
+    // getCurrentUsage is now async
+    const usage = await this.getCurrentUsage(userId);
 
     return {
       currentPlan: subscription.plan,
@@ -238,22 +283,62 @@ export class SubscriptionService {
   }
 
   // Get current usage for user
-  getCurrentUsage(userId: string): SubscriptionUsage {
+  // Get current usage for user
+  async getCurrentUsage(userId: string): Promise<SubscriptionUsage> {
     if (!userId) {
       throw new Error('User ID is required to get usage');
     }
+    
+    // Get current subscription to determine period
+    const subscription = await this.getOrCreateSubscription(userId);
     const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    
+    // Fallback if subscription period is invalid
+    const periodStart = subscription.currentPeriodStart || new Date(now.getFullYear(), now.getMonth(), 1);
+    const periodEnd = subscription.currentPeriodEnd || new Date(now.getFullYear(), now.getMonth() + 1, 0);
 
-    // Return default usage during migration
+    // 1. Count Trades in current period
+    const tradesCount = await this.tradeRepository.count({
+      where: {
+        userId,
+        openTime: Between(periodStart, periodEnd),
+      },
+    });
+
+    // 2. Count Active Manual Accounts (Total)
+    const manualAccountsCount = await this.accountRepository.count({
+      where: {
+        userId,
+        isActive: true,
+      },
+    });
+
+    // 3. Count Active MT5 Accounts (Total)
+    const mt5AccountsCount = await this.mt5AccountRepository.count({
+      where: {
+        userId,
+        isActive: true,
+      },
+    });
+
+    // 4. Count Notes (Total)
+    const notesCount = await this.noteRepository.count({
+      where: {
+        userId,
+        // deletedAt is handled by TypeORM automatic soft-delete check if @DeleteDateColumn is used
+      },
+    });
+
+    // 5. Count Strategies (Total) - not in SubscriptionUsage interface yet but good to have
+    // const strategiesCount = await this.strategyRepository.count({ where: { userId } });
+
     return {
-      trades: 0,
-      manualAccounts: 0,
-      mt5Accounts: 0,
-      notes: 0,
-      periodStart: startOfMonth,
-      periodEnd: endOfMonth,
+      trades: tradesCount,
+      manualAccounts: manualAccountsCount,
+      mt5Accounts: mt5AccountsCount,
+      notes: notesCount,
+      periodStart,
+      periodEnd,
     };
   }
 
@@ -298,7 +383,7 @@ export class SubscriptionService {
 
   async checkUsageLimit(
     userId: string,
-    feature: 'trades' | 'accounts' | 'mt5Accounts' | 'manualAccounts' | 'notes',
+    feature: 'trades' | 'accounts' | 'mt5Accounts' | 'manualAccounts' | 'notes' | 'strategies',
   ): Promise<boolean> {
     const subscription = await this.getCurrentSubscription(userId);
     const plan = this.getPricingPlan(subscription.currentPlan);

@@ -6,5 +6,5 @@ export class UserResponseDto {
   lastName?: string;
   createdAt: Date;
   updatedAt: Date;
-  // Add other fields you want to expose, e.g., subscription status later
+  subscription?: any; // We'll type this properly if needed, but 'any' is safe for DTO flexibility for now
 }
