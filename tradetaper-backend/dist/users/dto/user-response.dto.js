@@ -8,6 +8,7 @@ class UserResponseDto {
     lastName;
     createdAt;
     updatedAt;
+    subscription;
 }
 exports.UserResponseDto = UserResponseDto;
 //# sourceMappingURL=user-response.dto.js.map

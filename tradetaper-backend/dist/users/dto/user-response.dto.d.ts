@@ -5,4 +5,5 @@ export declare class UserResponseDto {
     lastName?: string;
     createdAt: Date;
     updatedAt: Date;
+    subscription?: any;
 }

@@ -188,6 +188,26 @@ let SubscriptionService = SubscriptionService_1 = class SubscriptionService {
         }
         return subscription;
     }
+    async forceUpdateSubscriptionPlan(userId, planId) {
+        const subscription = await this.getOrCreateSubscription(userId);
+        const plan = this.getPricingPlan(planId);
+        if (!plan) {
+            throw new Error(`Invalid plan ID: ${planId}`);
+        }
+        if (subscription.plan !== planId) {
+            subscription.plan = planId;
+            await this.subscriptionRepository.save(subscription);
+            this.logger.log(`Forced subscription update for user ${userId} to ${planId}`);
+        }
+        return subscription;
+    }
+    async upgradeUserByEmail(email, planId) {
+        const user = await this.userRepository.findOne({ where: { email } });
+        if (!user) {
+            throw new common_1.NotFoundException(`User with email ${email} not found`);
+        }
+        return this.forceUpdateSubscriptionPlan(user.id, planId);
+    }
     async getCurrentSubscription(userId) {
         const subscription = await this.getOrCreateSubscription(userId);
         const usage = await this.getCurrentUsage(userId);
