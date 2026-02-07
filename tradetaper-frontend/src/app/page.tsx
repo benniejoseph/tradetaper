@@ -277,33 +277,42 @@ export default function LandingPage() {
             </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+          <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
             {PRICING_TIERS.map((tier) => (
               <div 
                 key={tier.id}
-                className={`relative rounded-2xl p-8 border ${tier.recommended ? 'bg-slate-800/80 border-emerald-500 shadow-2xl shadow-emerald-900/20 transform scale-105 z-10' : 'bg-slate-900/40 border-white/10 hover:border-white/20'} transition-all duration-300`}
+                className={`relative rounded-[2rem] p-8 border backdrop-blur-xl transition-all duration-300 flex flex-col group
+                  ${tier.recommended 
+                    ? 'bg-slate-900/60 border-emerald-500/50 shadow-2xl shadow-emerald-500/10 scale-105 z-10' 
+                    : 'bg-slate-900/50 border-white/10 hover:bg-slate-900/60 hover:border-white/20'}`}
               >
+                 {/* Glow Effect on Hover */}
+                 <div className="absolute inset-0 rounded-[2rem] bg-gradient-to-b from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"></div>
+
                 {tier.recommended && (
-                  <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-emerald-500 text-slate-950 font-bold px-4 py-1 rounded-full text-xs uppercase tracking-wider">
+                  <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-bold px-5 py-1.5 rounded-full text-xs uppercase tracking-wider shadow-lg">
                     Most Popular
                   </div>
                 )}
                 
-                <h3 className="text-xl font-bold text-white mb-2">{tier.name}</h3>
-                <div className="flex items-baseline mb-6">
-                  <span className="text-4xl font-bold text-white">${tier.price}</span>
-                  <span className="text-slate-400 ml-2">/month</span>
+                <h3 className="text-xl font-medium text-white mb-2">{tier.name}</h3>
+                <div className="flex items-baseline mb-6 gap-1">
+                  <span className="text-5xl font-bold text-white tracking-tight">${tier.price}</span>
+                  <span className="text-slate-500 text-lg font-medium">/mo</span>
                 </div>
+                <p className="text-slate-400 text-sm mb-8 leading-relaxed h-10">{tier.description}</p>
                 
-                <ul className="space-y-4 mb-8">
+                <ul className="space-y-4 mb-10 flex-grow">
                   {tier.features.slice(0, 5).map((feature, idx) => (
-                     <li key={idx} className="flex items-start">
-                       <FaCheck className="text-emerald-400 mt-1 mr-3 text-sm flex-shrink-0" />
+                     <li key={idx} className="flex items-start gap-3">
+                        <div className="mt-1 w-5 h-5 rounded-full bg-emerald-500/20 flex items-center justify-center flex-shrink-0">
+                             <FaCheck className="text-[10px] text-emerald-400" />
+                        </div>
                        <span className="text-slate-300 text-sm">{feature}</span>
                      </li>
                   ))}
                    {tier.features.length > 5 && (
-                    <li className="text-xs text-slate-500 italic pl-7">
+                    <li className="text-xs text-slate-500 italic pl-8">
                         + {tier.features.length - 5} more features
                     </li>
                    )}
@@ -311,10 +320,10 @@ export default function LandingPage() {
 
                 <Link
                   href="/register"
-                  className={`block w-full py-3 px-4 rounded-xl text-center font-bold text-sm transition-all ${
+                  className={`block w-full py-3.5 rounded-full font-bold text-center transition-all ${
                     tier.recommended 
-                      ? 'bg-emerald-500 text-slate-900 hover:bg-emerald-400 shadow-lg shadow-emerald-500/20' 
-                      : 'bg-white/10 text-white hover:bg-white/20'
+                      ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-900/20' 
+                      : 'bg-white/10 text-white hover:bg-white/20 border border-white/5'
                   }`}
                 >
                   {tier.price === 0 ? 'Start Free' : 'Choose Plan'}
