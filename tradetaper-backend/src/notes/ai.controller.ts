@@ -9,10 +9,12 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { FeatureAccessGuard, RequireFeature } from '../subscriptions/guards/feature-access.guard';
 import { AIService } from './ai.service';
 
 @Controller('notes/ai')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, FeatureAccessGuard)
+@RequireFeature('aiAnalysis')
 export class AIController {
   constructor(private readonly aiService: AIService) {}
 

@@ -20,6 +20,7 @@ const trade_journal_sync_service_1 = require("./services/trade-journal-sync.serv
 const note_entity_1 = require("../notes/entities/note.entity");
 const trade_candle_entity_1 = require("./entities/trade-candle.entity");
 const terminal_farm_module_1 = require("../terminal-farm/terminal-farm.module");
+const subscriptions_module_1 = require("../subscriptions/subscriptions.module");
 let TradesModule = class TradesModule {
 };
 exports.TradesModule = TradesModule;
@@ -33,6 +34,7 @@ exports.TradesModule = TradesModule = __decorate([
             cache_manager_1.CacheModule.register({
                 ttl: 60 * 60 * 1000,
             }),
+            subscriptions_module_1.SubscriptionsModule,
         ],
         providers: [trades_service_1.TradesService, gemini_vision_service_1.GeminiVisionService, trade_journal_sync_service_1.TradeJournalSyncService],
         controllers: [trades_controller_1.TradesController],

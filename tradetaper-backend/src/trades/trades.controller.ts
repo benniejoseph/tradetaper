@@ -20,6 +20,7 @@ import { UpdateTradeDto } from './dto/update-trade.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { Trade } from './entities/trade.entity';
 import { PaginatedResponseDto } from '../common/dto/paginated-response.dto';
+import { UsageLimitGuard, UsageFeature } from '../subscriptions/guards/usage-limit.guard';
 
 @UseGuards(JwtAuthGuard)
 @Controller('trades')
@@ -28,6 +29,8 @@ export class TradesController {
   constructor(private readonly tradesService: TradesService) {}
 
   @Post()
+  @UseGuards(UsageLimitGuard)
+  @UsageFeature('trades')
   @HttpCode(HttpStatus.CREATED)
   create(
     @Body() createTradeDto: CreateTradeDto,
@@ -106,6 +109,8 @@ export class TradesController {
   }
 
   @Post('bulk/import')
+  @UseGuards(UsageLimitGuard)
+  @UsageFeature('trades')
   @HttpCode(HttpStatus.CREATED)
   bulkImport(
     @Body() body: { trades: CreateTradeDto[] },

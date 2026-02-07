@@ -16,6 +16,7 @@ exports.AIController = void 0;
 const common_1 = require("@nestjs/common");
 const platform_express_1 = require("@nestjs/platform-express");
 const jwt_auth_guard_1 = require("../auth/guards/jwt-auth.guard");
+const feature_access_guard_1 = require("../subscriptions/guards/feature-access.guard");
 const ai_service_1 = require("./ai.service");
 let AIController = class AIController {
     aiService;
@@ -87,7 +88,8 @@ __decorate([
 ], AIController.prototype, "generateNoteSuggestions", null);
 exports.AIController = AIController = __decorate([
     (0, common_1.Controller)('notes/ai'),
-    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, feature_access_guard_1.FeatureAccessGuard),
+    (0, feature_access_guard_1.RequireFeature)('aiAnalysis'),
     __metadata("design:paramtypes", [ai_service_1.AIService])
 ], AIController);
 //# sourceMappingURL=ai.controller.js.map

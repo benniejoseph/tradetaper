@@ -17,6 +17,7 @@ const common_1 = require("@nestjs/common");
 const jwt_auth_guard_1 = require("../auth/guards/jwt-auth.guard");
 const accounts_service_1 = require("./accounts.service");
 const account_dto_1 = require("./dto/account.dto");
+const usage_limit_guard_1 = require("../subscriptions/guards/usage-limit.guard");
 let AccountsController = class AccountsController {
     accountsService;
     constructor(accountsService) {
@@ -53,6 +54,8 @@ let AccountsController = class AccountsController {
 exports.AccountsController = AccountsController;
 __decorate([
     (0, common_1.Post)(),
+    (0, common_1.UseGuards)(usage_limit_guard_1.UsageLimitGuard),
+    (0, usage_limit_guard_1.UsageFeature)('accounts'),
     __param(0, (0, common_1.Request)()),
     __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),

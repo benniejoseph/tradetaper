@@ -13,6 +13,11 @@ const config_1 = require("@nestjs/config");
 const subscription_entity_1 = require("./entities/subscription.entity");
 const usage_entity_1 = require("./entities/usage.entity");
 const user_entity_1 = require("../users/entities/user.entity");
+const trade_entity_1 = require("../trades/entities/trade.entity");
+const account_entity_1 = require("../users/entities/account.entity");
+const mt5_account_entity_1 = require("../users/entities/mt5-account.entity");
+const note_entity_1 = require("../notes/entities/note.entity");
+const strategy_entity_1 = require("../strategies/entities/strategy.entity");
 const subscription_service_1 = require("./services/subscription.service");
 const razorpay_service_1 = require("./services/razorpay.service");
 const subscriptions_controller_1 = require("./subscriptions.controller");
@@ -23,7 +28,16 @@ exports.SubscriptionsModule = SubscriptionsModule = __decorate([
     (0, common_1.Module)({
         imports: [
             config_1.ConfigModule,
-            typeorm_1.TypeOrmModule.forFeature([subscription_entity_1.Subscription, usage_entity_1.Usage, user_entity_1.User]),
+            typeorm_1.TypeOrmModule.forFeature([
+                subscription_entity_1.Subscription,
+                usage_entity_1.Usage,
+                user_entity_1.User,
+                trade_entity_1.Trade,
+                account_entity_1.Account,
+                mt5_account_entity_1.MT5Account,
+                note_entity_1.Note,
+                strategy_entity_1.Strategy
+            ]),
         ],
         controllers: [subscriptions_controller_1.SubscriptionsController],
         providers: [subscription_service_1.SubscriptionService, razorpay_service_1.RazorpayService],

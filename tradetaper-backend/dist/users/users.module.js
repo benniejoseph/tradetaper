@@ -21,6 +21,7 @@ const mt5_accounts_controller_1 = require("./mt5-accounts.controller");
 const trade_history_parser_service_1 = require("./trade-history-parser.service");
 const cache_manager_1 = require("@nestjs/cache-manager");
 const trades_module_1 = require("../trades/trades.module");
+const subscriptions_module_1 = require("../subscriptions/subscriptions.module");
 let UsersModule = class UsersModule {
 };
 exports.UsersModule = UsersModule;
@@ -34,6 +35,7 @@ exports.UsersModule = UsersModule = __decorate([
                 max: 100,
             }),
             (0, common_1.forwardRef)(() => trades_module_1.TradesModule),
+            subscriptions_module_1.SubscriptionsModule,
         ],
         providers: [
             users_service_1.UsersService,

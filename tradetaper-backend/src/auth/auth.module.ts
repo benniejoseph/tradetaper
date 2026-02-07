@@ -3,6 +3,7 @@ import { Module } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { UsersModule } from '../users/users.module'; // Import UsersModule
+import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
 import { PassportModule } from '@nestjs/passport';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
@@ -13,6 +14,7 @@ import { JwtStrategy } from './strategies/jwt.strategy';
 @Module({
   imports: [
     UsersModule, // To use UsersService
+    SubscriptionsModule,
     PassportModule,
     ConfigModule, // To use ConfigService for JWT_SECRET
     CacheModule.register({

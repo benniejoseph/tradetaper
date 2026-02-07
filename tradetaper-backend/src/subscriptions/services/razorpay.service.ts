@@ -43,7 +43,7 @@ export class RazorpayService {
 
   async createSubscription(
     planId: string,
-    totalCount: number = 120, // 10 years by default
+    totalCount: number = 60, // 5 years by default (Razorpay max is 100)
     quantity: number = 1,
     startAt?: number,
     expireBy?: number,

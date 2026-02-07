@@ -19,6 +19,7 @@ const trades_service_1 = require("./trades.service");
 const create_trade_dto_1 = require("./dto/create-trade.dto");
 const update_trade_dto_1 = require("./dto/update-trade.dto");
 const jwt_auth_guard_1 = require("../auth/guards/jwt-auth.guard");
+const usage_limit_guard_1 = require("../subscriptions/guards/usage-limit.guard");
 let TradesController = TradesController_1 = class TradesController {
     tradesService;
     logger = new common_1.Logger(TradesController_1.name);
@@ -59,6 +60,8 @@ let TradesController = TradesController_1 = class TradesController {
 exports.TradesController = TradesController;
 __decorate([
     (0, common_1.Post)(),
+    (0, common_1.UseGuards)(usage_limit_guard_1.UsageLimitGuard),
+    (0, usage_limit_guard_1.UsageFeature)('trades'),
     (0, common_1.HttpCode)(common_1.HttpStatus.CREATED),
     __param(0, (0, common_1.Body)()),
     __param(1, (0, common_1.Request)()),
@@ -131,6 +134,8 @@ __decorate([
 ], TradesController.prototype, "bulkUpdate", null);
 __decorate([
     (0, common_1.Post)('bulk/import'),
+    (0, common_1.UseGuards)(usage_limit_guard_1.UsageLimitGuard),
+    (0, usage_limit_guard_1.UsageFeature)('trades'),
     (0, common_1.HttpCode)(common_1.HttpStatus.CREATED),
     __param(0, (0, common_1.Body)()),
     __param(1, (0, common_1.Request)()),

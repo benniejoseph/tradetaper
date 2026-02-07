@@ -20,17 +20,33 @@ const typeorm_2 = require("typeorm");
 const config_1 = require("@nestjs/config");
 const subscription_entity_1 = require("../entities/subscription.entity");
 const user_entity_1 = require("../../users/entities/user.entity");
+const trade_entity_1 = require("../../trades/entities/trade.entity");
+const account_entity_1 = require("../../users/entities/account.entity");
+const mt5_account_entity_1 = require("../../users/entities/mt5-account.entity");
+const note_entity_1 = require("../../notes/entities/note.entity");
+const strategy_entity_1 = require("../../strategies/entities/strategy.entity");
 const razorpay_service_1 = require("./razorpay.service");
+const typeorm_3 = require("typeorm");
 let SubscriptionService = SubscriptionService_1 = class SubscriptionService {
     subscriptionRepository;
     userRepository;
+    tradeRepository;
+    accountRepository;
+    mt5AccountRepository;
+    noteRepository;
+    strategyRepository;
     configService;
     razorpayService;
     logger = new common_1.Logger(SubscriptionService_1.name);
     pricingPlans;
-    constructor(subscriptionRepository, userRepository, configService, razorpayService) {
+    constructor(subscriptionRepository, userRepository, tradeRepository, accountRepository, mt5AccountRepository, noteRepository, strategyRepository, configService, razorpayService) {
         this.subscriptionRepository = subscriptionRepository;
         this.userRepository = userRepository;
+        this.tradeRepository = tradeRepository;
+        this.accountRepository = accountRepository;
+        this.mt5AccountRepository = mt5AccountRepository;
+        this.noteRepository = noteRepository;
+        this.strategyRepository = strategyRepository;
         this.configService = configService;
         this.razorpayService = razorpayService;
         this.pricingPlans = [
@@ -174,7 +190,7 @@ let SubscriptionService = SubscriptionService_1 = class SubscriptionService {
     }
     async getCurrentSubscription(userId) {
         const subscription = await this.getOrCreateSubscription(userId);
-        const usage = this.getCurrentUsage(userId);
+        const usage = await this.getCurrentUsage(userId);
         return {
             currentPlan: subscription.plan,
             status: subscription.status,
@@ -183,20 +199,44 @@ let SubscriptionService = SubscriptionService_1 = class SubscriptionService {
             usage,
         };
     }
-    getCurrentUsage(userId) {
+    async getCurrentUsage(userId) {
         if (!userId) {
             throw new Error('User ID is required to get usage');
         }
+        const subscription = await this.getOrCreateSubscription(userId);
         const now = new Date();
-        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-        const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+        const periodStart = subscription.currentPeriodStart || new Date(now.getFullYear(), now.getMonth(), 1);
+        const periodEnd = subscription.currentPeriodEnd || new Date(now.getFullYear(), now.getMonth() + 1, 0);
+        const tradesCount = await this.tradeRepository.count({
+            where: {
+                userId,
+                openTime: (0, typeorm_3.Between)(periodStart, periodEnd),
+            },
+        });
+        const manualAccountsCount = await this.accountRepository.count({
+            where: {
+                userId,
+                isActive: true,
+            },
+        });
+        const mt5AccountsCount = await this.mt5AccountRepository.count({
+            where: {
+                userId,
+                isActive: true,
+            },
+        });
+        const notesCount = await this.noteRepository.count({
+            where: {
+                userId,
+            },
+        });
         return {
-            trades: 0,
-            manualAccounts: 0,
-            mt5Accounts: 0,
-            notes: 0,
-            periodStart: startOfMonth,
-            periodEnd: endOfMonth,
+            trades: tradesCount,
+            manualAccounts: manualAccountsCount,
+            mt5Accounts: mt5AccountsCount,
+            notes: notesCount,
+            periodStart,
+            periodEnd,
         };
     }
     async hasFeatureAccess(userId, feature) {
@@ -307,7 +347,17 @@ exports.SubscriptionService = SubscriptionService = SubscriptionService_1 = __de
     (0, common_1.Injectable)(),
     __param(0, (0, typeorm_1.InjectRepository)(subscription_entity_1.Subscription)),
     __param(1, (0, typeorm_1.InjectRepository)(user_entity_1.User)),
+    __param(2, (0, typeorm_1.InjectRepository)(trade_entity_1.Trade)),
+    __param(3, (0, typeorm_1.InjectRepository)(account_entity_1.Account)),
+    __param(4, (0, typeorm_1.InjectRepository)(mt5_account_entity_1.MT5Account)),
+    __param(5, (0, typeorm_1.InjectRepository)(note_entity_1.Note)),
+    __param(6, (0, typeorm_1.InjectRepository)(strategy_entity_1.Strategy)),
     __metadata("design:paramtypes", [typeorm_2.Repository,
+        typeorm_2.Repository,
+        typeorm_2.Repository,
+        typeorm_2.Repository,
+        typeorm_2.Repository,
+        typeorm_2.Repository,
         typeorm_2.Repository,
         config_1.ConfigService,
         razorpay_service_1.RazorpayService])

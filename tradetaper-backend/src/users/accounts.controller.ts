@@ -17,6 +17,7 @@ import {
   UpdateAccountDto,
   AccountResponseDto,
 } from './dto/account.dto';
+import { UsageLimitGuard, UsageFeature } from '../subscriptions/guards/usage-limit.guard';
 
 @Controller('users/accounts')
 @UseGuards(JwtAuthGuard)
@@ -24,6 +25,8 @@ export class AccountsController {
   constructor(private readonly accountsService: AccountsService) {}
 
   @Post()
+  @UseGuards(UsageLimitGuard)
+  @UsageFeature('accounts')
   async create(
     @Request() req,
     @Body() createAccountDto: CreateAccountDto,

@@ -10,9 +10,11 @@ import {
 import { DisciplineService } from './discipline.service';
 import { CreateApprovalDto, ApproveTradeDto, CompleteExerciseDto } from './dto/discipline.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { FeatureAccessGuard, RequireFeature } from '../subscriptions/guards/feature-access.guard';
 
 @Controller('discipline')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, FeatureAccessGuard)
+@RequireFeature('discipline')
 export class DisciplineController {
   constructor(private readonly disciplineService: DisciplineService) {}
 

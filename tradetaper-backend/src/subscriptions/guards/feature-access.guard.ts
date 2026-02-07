@@ -1,33 +1,33 @@
 import {
-  Injectable,
   CanActivate,
   ExecutionContext,
-  ForbiddenException,
+  Injectable,
   SetMetadata,
+  ForbiddenException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { SubscriptionService } from '../services/subscription.service';
 
-export const USAGE_FEATURE_KEY = 'usageFeature';
+export const FEATURE_ACCESS_KEY = 'featureAccess';
 
-export const UsageFeature = (feature: 'trades' | 'accounts' | 'mt5Accounts' | 'notes' | 'strategies') =>
-  SetMetadata(USAGE_FEATURE_KEY, feature);
+export const RequireFeature = (feature: string) =>
+  SetMetadata(FEATURE_ACCESS_KEY, feature);
 
 @Injectable()
-export class UsageLimitGuard implements CanActivate {
+export class FeatureAccessGuard implements CanActivate {
   constructor(
     private reflector: Reflector,
     private subscriptionService: SubscriptionService,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const feature = this.reflector.getAllAndOverride<'trades' | 'accounts' | 'mt5Accounts' | 'notes' | 'strategies'>(
-      USAGE_FEATURE_KEY,
+    const feature = this.reflector.getAllAndOverride<string>(
+      FEATURE_ACCESS_KEY,
       [context.getHandler(), context.getClass()],
     );
 
     if (!feature) {
-      return true; // No usage limit specified
+      return true;
     }
 
     const request = context.switchToHttp().getRequest();
@@ -37,14 +37,14 @@ export class UsageLimitGuard implements CanActivate {
       throw new ForbiddenException('User not authenticated');
     }
 
-    const canUse = await this.subscriptionService.checkUsageLimit(
+    const hasAccess = await this.subscriptionService.hasFeatureAccess(
       userId,
       feature,
     );
 
-    if (!canUse) {
+    if (!hasAccess) {
       throw new ForbiddenException(
-        `Usage limit exceeded for ${feature}. Please upgrade your subscription.`,
+        `Your plan does not have access to ${feature} feature. Please upgrade your subscription.`,
       );
     }
 
