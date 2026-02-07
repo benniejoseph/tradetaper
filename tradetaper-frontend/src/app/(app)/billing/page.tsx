@@ -1,4 +1,5 @@
 "use client";
+
 import React, { useEffect, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { AppDispatch } from '@/store/store';
@@ -13,7 +14,7 @@ import {
   reactivateSubscription 
 } from '@/store/features/subscriptionSlice';
 import { pricingApi } from '@/services/pricingApi';
-import { PRICING_TIERS, PRICING_TIERS_ANNUAL } from '@/config/pricing';
+import { PRICING_TIERS } from '@/config/pricing';
 import { 
   FaCreditCard, 
   FaHistory, 
@@ -23,10 +24,24 @@ import {
   FaSpinner,
   FaEdit,
   FaTimes,
-  FaDownload
+  FaDownload,
+  FaCrown,
+  FaShieldAlt,
+  FaBolt
 } from 'react-icons/fa';
 import { format } from 'date-fns';
 import Link from 'next/link';
+
+const formatDate = (date: string | Date | undefined | null) => {
+  if (!date) return 'N/A';
+  try {
+    const d = new Date(date);
+    if (isNaN(d.getTime())) return 'Invalid Date';
+    return format(d, 'MMM dd, yyyy');
+  } catch (e) {
+    return 'Invalid Date';
+  }
+};
 
 export default function BillingPage() {
   const dispatch = useDispatch<AppDispatch>();
@@ -43,7 +58,6 @@ export default function BillingPage() {
 
   const handleCancelSubscription = async () => {
     if (!currentSubscription || currentSubscription.cancelAtPeriodEnd) return;
-    
     setActionLoading('cancel');
     try {
       await dispatch(cancelSubscription()).unwrap();
@@ -56,7 +70,6 @@ export default function BillingPage() {
 
   const handleReactivateSubscription = async () => {
     if (!currentSubscription || !currentSubscription.cancelAtPeriodEnd) return;
-    
     setActionLoading('reactivate');
     try {
       await dispatch(reactivateSubscription()).unwrap();
@@ -79,252 +92,216 @@ export default function BillingPage() {
     }
   };
 
-  const getCurrentTier = () => {
-    if (!currentSubscription) return null;
-    const allTiers = [...PRICING_TIERS, ...PRICING_TIERS_ANNUAL];
-    return allTiers.find(tier => tier.stripePriceId === currentSubscription.stripePriceId);
-  };
+  // Helper to determine plan name safely
+  const planName = currentSubscription?.planId 
+    ? (PRICING_TIERS.find(t => t.id === currentSubscription.planId)?.name || currentSubscription.planId)
+    : 'Free';
 
-  const getUsagePercentage = (used: number, limit: number) => {
-    if (limit === 0) return 0;
-    return Math.min((used / limit) * 100, 100);
-  };
-
-  const currentTier = getCurrentTier();
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 p-6">
-        <div className="max-w-4xl mx-auto">
-          <div className="flex items-center justify-center py-24">
-            <FaSpinner className="w-8 h-8 text-blue-500 animate-spin" />
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const isPremium = planName.toLowerCase() === 'premium';
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 p-6">
-      <div className="max-w-4xl mx-auto space-y-8">
-        {/* Header */}
-        <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border border-gray-200/50 dark:border-gray-700/50 rounded-2xl p-8 shadow-lg">
-          <div className="flex items-center space-x-3 mb-6">
-            <div className="p-2 bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-xl">
-              <FaCreditCard className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-            </div>
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Billing & Subscription</h1>
-              <p className="text-gray-600 dark:text-gray-400">Manage your subscription and billing settings</p>
-            </div>
-          </div>
+    <div className="min-h-screen bg-slate-950 text-white selection:bg-emerald-500/30 p-4 md:p-8 font-sans">
+        {/* Background Gradients */}
+        <div className="fixed inset-0 pointer-events-none">
+            <div className="absolute top-0 left-1/4 w-96 h-96 bg-emerald-500/10 rounded-full blur-[100px]"></div>
+            <div className="absolute bottom-0 right-1/4 w-[30rem] h-[30rem] bg-indigo-500/10 rounded-full blur-[100px]"></div>
         </div>
 
-        {/* Current Subscription */}
-        <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border border-gray-200/50 dark:border-gray-700/50 rounded-2xl p-8 shadow-lg">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Current Plan</h2>
-          
-          {currentSubscription ? (
-            <div className="space-y-6">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-4">
-                  <div className={`p-3 rounded-xl ${currentTier?.recommended ? 'bg-gradient-to-r from-blue-500/20 to-purple-500/20' : 'bg-gray-100 dark:bg-gray-800'}`}>
-                    <FaCheckCircle className={`w-6 h-6 ${currentTier?.recommended ? 'text-blue-600 dark:text-blue-400' : 'text-gray-600 dark:text-gray-400'}`} />
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-bold text-gray-900 dark:text-white">
-                      {currentTier?.name || 'Unknown Plan'}
-                    </h3>
-                    <p className="text-gray-600 dark:text-gray-400">
-                      ${currentTier?.price || 0}/{currentTier?.interval || 'month'}
-                    </p>
-                  </div>
+        <div className="max-w-7xl mx-auto space-y-8 relative z-10">
+            {/* Header */}
+            <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                    <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-500/20">
+                        <FaCreditCard className="text-white text-2xl" />
+                    </div>
+                    <div>
+                        <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">
+                            Billing & Plans
+                        </h1>
+                        <p className="text-slate-400 font-medium">Manage your subscription and usage</p>
+                    </div>
                 </div>
                 
-                <div className="flex items-center space-x-3">
-                  <span className={`px-3 py-1.5 text-sm font-semibold rounded-xl ${
-                    currentSubscription.status === 'active' 
-                      ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
-                      : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'
-                  }`}>
-                    {currentSubscription.status.charAt(0).toUpperCase() + currentSubscription.status.slice(1)}
-                  </span>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="bg-gray-50/80 dark:bg-gray-800/40 backdrop-blur-sm rounded-xl p-4">
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Current Period</p>
-                  <p className="text-lg font-semibold text-gray-900 dark:text-white">
-                    {format(new Date(currentSubscription.currentPeriodStart), 'MMM dd')} - {format(new Date(currentSubscription.currentPeriodEnd), 'MMM dd, yyyy')}
-                  </p>
-                </div>
-
-                {billingInfo?.upcomingInvoice && (
-                  <div className="bg-gray-50/80 dark:bg-gray-800/40 backdrop-blur-sm rounded-xl p-4">
-                    <p className="text-sm text-gray-600 dark:text-gray-400">Next Payment</p>
-                    <p className="text-lg font-semibold text-gray-900 dark:text-white">
-                      ${billingInfo.upcomingInvoice.amount} on {format(new Date(billingInfo.upcomingInvoice.date), 'MMM dd, yyyy')}
-                    </p>
-                  </div>
-                )}
-              </div>
-
-              {currentSubscription.cancelAtPeriodEnd && (
-                <div className="bg-yellow-50/80 dark:bg-yellow-900/20 border border-yellow-200/50 dark:border-yellow-800/50 rounded-xl p-4">
-                  <div className="flex items-start space-x-3">
-                    <FaExclamationTriangle className="w-5 h-5 text-yellow-600 dark:text-yellow-400 mt-0.5" />
-                    <div>
-                      <h4 className="font-semibold text-yellow-800 dark:text-yellow-300">Subscription Scheduled for Cancellation</h4>
-                      <p className="text-sm text-yellow-700 dark:text-yellow-400 mt-1">
-                        Your subscription will end on {format(new Date(currentSubscription.currentPeriodEnd), 'MMM dd, yyyy')}. 
-                        You&apos;ll continue to have access until then.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Action Buttons */}
-              <div className="flex flex-wrap gap-4">
-                <Link
-                  href="/plans"
-                  className="inline-flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-semibold rounded-xl transition-all duration-200 hover:scale-105 shadow-lg"
-                >
-                  <FaEdit className="w-4 h-4" />
-                  <span>Change Plan</span>
+                <Link href="/pricing" className="hidden md:flex items-center gap-2 px-6 py-2.5 rounded-xl bg-slate-900 border border-slate-800 hover:border-emerald-500/50 hover:bg-slate-800 transition-all font-medium text-emerald-400">
+                    <FaCrown /> View All Plans
                 </Link>
-
-                <button
-                  onClick={handleManageBilling}
-                  disabled={actionLoading === 'portal'}
-                  className="inline-flex items-center space-x-2 px-4 py-2 bg-white/80 dark:bg-gray-800/80 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white font-semibold rounded-xl transition-all duration-200 hover:scale-105 shadow-lg hover:bg-gray-50 dark:hover:bg-gray-700/80 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {actionLoading === 'portal' ? <FaSpinner className="w-4 h-4 animate-spin" /> : <FaCreditCard className="w-4 h-4" />}
-                  <span>Manage Payment Methods</span>
-                </button>
-
-                {currentSubscription.cancelAtPeriodEnd ? (
-                  <button
-                    onClick={handleReactivateSubscription}
-                    disabled={actionLoading === 'reactivate'}
-                    className="inline-flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-semibold rounded-xl transition-all duration-200 hover:scale-105 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {actionLoading === 'reactivate' ? <FaSpinner className="w-4 h-4 animate-spin" /> : <FaCheckCircle className="w-4 h-4" />}
-                    <span>Reactivate Subscription</span>
-                  </button>
-                ) : (
-                  <button
-                    onClick={handleCancelSubscription}
-                    disabled={actionLoading === 'cancel'}
-                    className="inline-flex items-center space-x-2 px-4 py-2 bg-red-500 hover:bg-red-600 text-white font-semibold rounded-xl transition-all duration-200 hover:scale-105 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {actionLoading === 'cancel' ? <FaSpinner className="w-4 h-4 animate-spin" /> : <FaTimes className="w-4 h-4" />}
-                    <span>Cancel Subscription</span>
-                  </button>
-                )}
-              </div>
             </div>
-          ) : (
-            <div className="text-center py-12">
-              <FaExclamationTriangle className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">No Active Subscription</h3>
-              <p className="text-gray-600 dark:text-gray-400 mb-6">
-                You&apos;re currently on the free plan. Upgrade to unlock premium features.
-              </p>
-              <Link
-                href="/plans"
-                className="inline-flex items-center space-x-2 px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-semibold rounded-xl transition-all duration-200 hover:scale-105 shadow-lg"
-              >
-                <FaCreditCard className="w-4 h-4" />
-                <span>View Plans</span>
-              </Link>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                
+                {/* Main Subscription Card */}
+                <div className="lg:col-span-2 space-y-8">
+                    <div className="relative overflow-hidden rounded-3xl bg-slate-900/60 backdrop-blur-xl border border-slate-800 p-8 shadow-2xl">
+                         <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl -mr-32 -mt-32 pointer-events-none"></div>
+                         
+                         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4 relative z-10">
+                            <div>
+                                <h2 className="text-xl font-bold text-white mb-1">Current Plan</h2>
+                                <div className="flex items-center gap-3">
+                                    <span className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-400 capitalize">
+                                        {planName}
+                                    </span>
+                                    {currentSubscription?.status === 'active' && (
+                                        <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 text-xs font-bold border border-emerald-500/30 flex items-center gap-1">
+                                            <FaCheckCircle /> ACTIVE
+                                        </span>
+                                    )}
+                                </div>
+                            </div>
+                            
+                            <div className="text-right">
+                                <p className="text-slate-400 text-sm mb-1">Next Payment</p>
+                                <p className="text-xl font-bold text-white">
+                                    {billingInfo?.upcomingInvoice ? `$${billingInfo.upcomingInvoice.amount/100}` : '$0.00'}
+                                </p>
+                                <p className="text-xs text-slate-500">
+                                    on {billingInfo?.upcomingInvoice ? formatDate(billingInfo.upcomingInvoice.date) : 'N/A'}
+                                </p>
+                            </div>
+                         </div>
+
+                         {/* Subscription Dates */}
+                         <div className="bg-slate-950/50 rounded-2xl p-6 border border-slate-800 mb-8 relative z-10">
+                            <div className="grid md:grid-cols-2 gap-6">
+                                <div>
+                                    <p className="text-slate-500 text-xs uppercase tracking-wider font-bold mb-2">Billing Period</p>
+                                    <p className="text-white font-medium flex items-center gap-2">
+                                        <FaHistory className="text-slate-600" />
+                                        {currentSubscription ? `${formatDate(currentSubscription.currentPeriodStart)} - ${formatDate(currentSubscription.currentPeriodEnd)}` : 'N/A'}
+                                    </p>
+                                </div>
+                                <div>
+                                    <p className="text-slate-500 text-xs uppercase tracking-wider font-bold mb-2">Renews On</p>
+                                    <p className="text-white font-medium flex items-center gap-2">
+                                        <FaBolt className="text-amber-500" />
+                                        {currentSubscription ? formatDate(currentSubscription.currentPeriodEnd) : 'N/A'}
+                                    </p>
+                                </div>
+                            </div>
+                         </div>
+
+                         {/* Actions */}
+                         <div className="flex flex-wrap gap-4 relative z-10">
+                             <Link href="/pricing" className="px-6 py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-bold shadow-lg shadow-emerald-500/20 transition-all flex items-center gap-2">
+                                <FaCrown /> Upgrade Plan
+                             </Link>
+                             
+                             <button 
+                                onClick={handleManageBilling}
+                                disabled={actionLoading === 'portal'}
+                                className="px-6 py-3 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-white font-medium transition-all flex items-center gap-2"
+                             >
+                                {actionLoading === 'portal' ? <FaSpinner className="animate-spin" /> : <FaCreditCard />}
+                                Manage Payment Method
+                             </button>
+
+                             {currentSubscription?.cancelAtPeriodEnd ? (
+                                <button 
+                                    onClick={handleReactivateSubscription}
+                                    disabled={actionLoading === 'reactivate'}
+                                    className="px-6 py-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20 font-medium transition-all flex items-center gap-2 ml-auto"
+                                >
+                                    {actionLoading === 'reactivate' ? <FaSpinner className="animate-spin" /> : <FaCheckCircle />}
+                                    Reactivate
+                                </button>
+                             ) : (
+                                <button 
+                                    onClick={handleCancelSubscription}
+                                    disabled={actionLoading === 'cancel'}
+                                    className="px-6 py-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 hover:bg-red-500/20 font-medium transition-all flex items-center gap-2 ml-auto"
+                                >
+                                    {actionLoading === 'cancel' ? <FaSpinner className="animate-spin" /> : <FaTimes />}
+                                    Cancel
+                                </button>
+                             )}
+                         </div>
+                    </div>
+
+                    {/* Billing History */}
+                    <div className="rounded-3xl bg-slate-900/60 backdrop-blur-xl border border-slate-800 p-8">
+                        <div className="flex items-center justify-between mb-6">
+                            <h3 className="text-xl font-bold text-white">Billing History</h3>
+                            <button className="text-sm text-emerald-400 hover:text-emerald-300 font-medium flex items-center gap-1">
+                                <FaDownload /> Download All
+                            </button>
+                        </div>
+                        
+                        <div className="text-center py-12 border-2 border-dashed border-slate-800 rounded-2xl">
+                             <div className="w-16 h-16 bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-600">
+                                <FaHistory className="text-2xl" />
+                             </div>
+                             <p className="text-slate-400 font-medium">No invoices found for this period.</p>
+                             <p className="text-slate-600 text-sm mt-1">Previous billing cycles will appear here.</p>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Usage Stats (Side Panel) */}
+                <div className="space-y-8">
+                    <div className="rounded-3xl bg-slate-900/60 backdrop-blur-xl border border-slate-800 p-6 pt-8">
+                        <div className="flex items-center gap-3 mb-6">
+                             <div className="p-3 bg-indigo-500/10 rounded-xl text-indigo-400">
+                                <FaChartBar className="text-xl" />
+                             </div>
+                             <h3 className="text-xl font-bold text-white">Monthly Usage</h3>
+                        </div>
+
+                        {usage ? (
+                            <div className="space-y-6">
+                                {/* Trades */}
+                                <div>
+                                    <div className="flex justify-between text-sm mb-2">
+                                        <span className="text-slate-400">Trades</span>
+                                        <span className="text-white font-medium">{usage.currentPeriodTrades} / {usage.tradeLimit === 0 ? '∞' : usage.tradeLimit}</span>
+                                    </div>
+                                    <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
+                                        <div 
+                                            className="h-full bg-emerald-500 rounded-full transition-all duration-500"
+                                            style={{ width: `${Math.min((usage.tradeLimit > 0 ? (usage.currentPeriodTrades / usage.tradeLimit) * 100 : 0), 100)}%` }}
+                                        ></div>
+                                    </div>
+                                </div>
+
+                                {/* Accounts */}
+                                <div>
+                                    <div className="flex justify-between text-sm mb-2">
+                                        <span className="text-slate-400">Accounts</span>
+                                        <span className="text-white font-medium">{usage.accountsUsed} / {usage.accountLimit === 0 ? '∞' : usage.accountLimit}</span>
+                                    </div>
+                                    <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
+                                        <div 
+                                            className="h-full bg-blue-500 rounded-full transition-all duration-500"
+                                            style={{ width: `${Math.min((usage.accountLimit > 0 ? (usage.accountsUsed / usage.accountLimit) * 100 : 0), 100)}%` }}
+                                        ></div>
+                                    </div>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="text-center py-8 text-slate-500">
+                                <FaSpinner className="animate-spin mx-auto mb-2" />
+                                <p>Loading usage data...</p>
+                            </div>
+                        )}
+
+                        {!isPremium && (
+                            <div className="mt-8 pt-6 border-t border-slate-800">
+                                <div className="bg-gradient-to-br from-indigo-600 to-violet-600 rounded-xl p-5 text-white relative overflow-hidden">
+                                    <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full blur-2xl -mr-8 -mt-8 pointer-events-none"></div>
+                                    <h4 className="font-bold mb-1 relative z-10 flex items-center gap-2">
+                                        <FaShieldAlt /> Go Premium
+                                    </h4>
+                                    <p className="text-indigo-100 text-xs mb-3 relative z-10">Get unlimited trades, AI analysis, and priority support.</p>
+                                    <Link href="/pricing" className="block w-full py-2 bg-white text-indigo-700 font-bold text-xs text-center rounded-lg hover:bg-indigo-50 transition-colors relative z-10">
+                                        Upgrade Now
+                                    </Link>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+
             </div>
-          )}
         </div>
-
-        {/* Usage Statistics */}
-        {usage && (
-          <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border border-gray-200/50 dark:border-gray-700/50 rounded-2xl p-8 shadow-lg">
-            <div className="flex items-center space-x-3 mb-6">
-              <div className="p-2 bg-gradient-to-r from-green-500/20 to-blue-500/20 rounded-xl">
-                <FaChartBar className="w-5 h-5 text-green-600 dark:text-green-400" />
-              </div>
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Usage This Period</h2>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="bg-gray-50/80 dark:bg-gray-800/40 backdrop-blur-sm rounded-xl p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Trades</h3>
-                  <span className="text-sm text-gray-600 dark:text-gray-400">
-                    {usage.currentPeriodTrades} / {usage.tradeLimit === 0 ? '∞' : usage.tradeLimit}
-                  </span>
-                </div>
-                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 overflow-hidden">
-                  <div 
-                    className={`h-full transition-all duration-300 ${
-                      getUsagePercentage(usage.currentPeriodTrades, usage.tradeLimit) >= 90 
-                        ? 'bg-gradient-to-r from-red-500 to-red-600'
-                        : getUsagePercentage(usage.currentPeriodTrades, usage.tradeLimit) >= 75
-                        ? 'bg-gradient-to-r from-yellow-500 to-yellow-600'
-                        : 'bg-gradient-to-r from-green-500 to-green-600'
-                    }`}
-                    style={{ width: `${usage.tradeLimit === 0 ? 0 : getUsagePercentage(usage.currentPeriodTrades, usage.tradeLimit)}%` }}
-                  />
-                </div>
-              </div>
-
-              <div className="bg-gray-50/80 dark:bg-gray-800/40 backdrop-blur-sm rounded-xl p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Accounts</h3>
-                  <span className="text-sm text-gray-600 dark:text-gray-400">
-                    {usage.accountsUsed} / {usage.accountLimit === 0 ? '∞' : usage.accountLimit}
-                  </span>
-                </div>
-                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 overflow-hidden">
-                  <div 
-                    className={`h-full transition-all duration-300 ${
-                      getUsagePercentage(usage.accountsUsed, usage.accountLimit) >= 90 
-                        ? 'bg-gradient-to-r from-red-500 to-red-600'
-                        : getUsagePercentage(usage.accountsUsed, usage.accountLimit) >= 75
-                        ? 'bg-gradient-to-r from-yellow-500 to-yellow-600'
-                        : 'bg-gradient-to-r from-green-500 to-green-600'
-                    }`}
-                    style={{ width: `${usage.accountLimit === 0 ? 0 : getUsagePercentage(usage.accountsUsed, usage.accountLimit)}%` }}
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Billing History */}
-        <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border border-gray-200/50 dark:border-gray-700/50 rounded-2xl p-8 shadow-lg">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center space-x-3">
-              <div className="p-2 bg-gradient-to-r from-purple-500/20 to-indigo-500/20 rounded-xl">
-                <FaHistory className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-              </div>
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Billing History</h2>
-            </div>
-            <button className="inline-flex items-center space-x-2 px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
-              <FaDownload className="w-4 h-4" />
-              <span>Download All</span>
-            </button>
-          </div>
-
-          <div className="text-center py-12">
-            <FaHistory className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-600 dark:text-gray-400">
-              Billing history will appear here once you have transactions.
-            </p>
-            <p className="text-sm text-gray-500 dark:text-gray-500 mt-2">
-              You can also access detailed invoices through the billing portal.
-            </p>
-          </div>
-        </div>
-      </div>
     </div>
   );
 } 

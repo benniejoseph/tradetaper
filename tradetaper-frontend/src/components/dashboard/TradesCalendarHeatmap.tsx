@@ -85,21 +85,16 @@ export default function TradesCalendarHeatmap({ trades, onDateClick }: TradesCal
     if (value.count === 1) intensityLevel = 1;
     if (value.count === 0) intensityLevel = 0;
 
-    if (value.totalPnl > 0) return `color-scale-green-${intensityLevel}`;
-    if (value.totalPnl < 0) return `color-scale-red-${intensityLevel}`;
-    return `color-scale-neutral-${intensityLevel}`;
+    if (value.totalPnl > 0) return `color-scale-green-${Math.min(intensityLevel, 4)}`;
+    if (value.totalPnl < 0) return `color-scale-red-${Math.min(intensityLevel, 4)}`;
+    return `color-scale-neutral-${Math.min(intensityLevel, 4)}`;
   };
 
   return (
-    <div className="relative p-1 sm:p-3 h-full flex flex-col rounded-lg min-h-[180px] sm:min-h-[200px] bg-gradient-to-br from-emerald-50 via-emerald-100 to-emerald-50 dark:from-emerald-950/20 dark:via-emerald-900/30 dark:to-emerald-950/20">
-      {/* Subtle pattern overlay */}
-      <div className="absolute inset-0 opacity-30 dark:opacity-10 pointer-events-none">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-emerald-400/20 to-transparent rounded-full blur-3xl"></div>
-        <div className="absolute bottom-0 left-0 w-64 h-64 bg-gradient-to-tr from-emerald-500/20 to-transparent rounded-full blur-3xl"></div>
-      </div>
+    <div className="relative p-2 sm:p-4 h-full flex flex-col rounded-xl bg-white dark:bg-black border border-gray-100 dark:border-gray-800 shadow-sm">
       
-      {/* Calendar content with white text */}
-      <div className="relative z-10 [&_.react-calendar-heatmap-month-label]:!text-white [&_.react-calendar-heatmap-small-text]:!text-white/90 [&_text]:!fill-white">
+      {/* Calendar content */}
+      <div className="relative z-10 flex-1">
         <CalendarHeatmap
           startDate={oneYearAgo}
           endDate={today}
@@ -107,6 +102,7 @@ export default function TradesCalendarHeatmap({ trades, onDateClick }: TradesCal
           classForValue={classForValue}
           showWeekdayLabels={true}
           monthLabels={['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']}
+          titleForValue={(value: any) => value && value.date ? `${value.date}: ${value.count} trades, $${value.totalPnl?.toFixed(2)}` : ''}
           onClick={(valueArg) => {
             const value = valueArg as (CustomHeatmapValue & ReactCalendarHeatmapValue<string>) | undefined;
             if (value && value.date && value.totalPnl !== undefined && value.count > 0 && onDateClick) {
@@ -114,9 +110,49 @@ export default function TradesCalendarHeatmap({ trades, onDateClick }: TradesCal
               onDateClick(value, tradesForDate);
             }
           }}
-          gutterSize={2}
+          gutterSize={3}
         />
       </div>
+        
+      {/* Legend */}
+      <div className="flex items-center justify-end gap-2 mt-4 text-xs text-gray-500 dark:text-gray-400">
+        <span>Less</span>
+        <div className="flex gap-1">
+          <div className="w-3 h-3 rounded-sm bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700" title="No Trades"></div>
+          <div className="w-3 h-3 rounded-sm bg-emerald-200 dark:bg-emerald-900/40" title="Low Profit"></div>
+          <div className="w-3 h-3 rounded-sm bg-emerald-400 dark:bg-emerald-700/60" title="Medium Profit"></div>
+          <div className="w-3 h-3 rounded-sm bg-emerald-600 dark:bg-emerald-500" title="High Profit"></div>
+        </div>
+        <span>More</span>
+      </div>
+
+      <style jsx global>{`
+        .react-calendar-heatmap rect { rx: 2px; }
+        .react-calendar-heatmap text { font-size: 10px; fill: #9CA3AF; }
+        
+        .color-empty { fill: #f3f4f6; }
+        .dark .color-empty { fill: #1f2937; }
+
+        .color-scale-green-1 { fill: #d1fae5; }
+        .color-scale-green-2 { fill: #6ee7b7; }
+        .color-scale-green-3 { fill: #34d399; }
+        .color-scale-green-4 { fill: #10b981; }
+
+        .dark .color-scale-green-1 { fill: rgba(16, 185, 129, 0.2); }
+        .dark .color-scale-green-2 { fill: rgba(16, 185, 129, 0.4); }
+        .dark .color-scale-green-3 { fill: rgba(16, 185, 129, 0.6); }
+        .dark .color-scale-green-4 { fill: rgba(16, 185, 129, 0.9); }
+
+        .color-scale-red-1 { fill: #fee2e2; }
+        .color-scale-red-2 { fill: #fca5a5; }
+        .color-scale-red-3 { fill: #f87171; }
+        .color-scale-red-4 { fill: #ef4444; }
+
+        .dark .color-scale-red-1 { fill: rgba(239, 68, 68, 0.2); }
+        .dark .color-scale-red-2 { fill: rgba(239, 68, 68, 0.4); }
+        .dark .color-scale-red-3 { fill: rgba(239, 68, 68, 0.6); }
+        .dark .color-scale-red-4 { fill: rgba(239, 68, 68, 0.9); }
+      `}</style>
     </div>
   );
 } 

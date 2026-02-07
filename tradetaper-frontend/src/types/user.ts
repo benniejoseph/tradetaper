@@ -1,3 +1,5 @@
+import { PlanDetails } from './pricing';
+
 export interface UserResponseDto {
     id: string;
     email: string;
@@ -6,4 +8,9 @@ export interface UserResponseDto {
     role?: string;
     createdAt?: string;
     updatedAt?: string;
+    subscription?: {
+        plan: string;
+        status: string;
+        planDetails?: PlanDetails;
+    };
 }

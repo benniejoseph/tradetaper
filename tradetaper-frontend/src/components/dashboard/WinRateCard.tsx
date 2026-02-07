@@ -34,15 +34,15 @@ export default function WinRateCard({
       onTimeRangeChange={onTimeRangeChange}
       gridSpan="sm:col-span-2 lg:col-span-3"
     >
-      <div className="flex flex-col items-center justify-center space-y-6 h-full">
-        <div className="relative w-48 h-48">
+      <div className="flex flex-col items-center justify-center space-y-4 h-full pb-4">
+        <div className="relative w-56 h-56">
           <ResponsiveContainer width="100%" height="100%">
             <RadialBarChart 
               cx="50%" 
               cy="50%" 
-              innerRadius="95%"
-              outerRadius="130%"
-              barSize={16}
+              innerRadius="80%"
+              outerRadius="110%"
+              barSize={20}
               data={winrateChartData} 
               startAngle={90}
               endAngle={-270}
@@ -50,7 +50,7 @@ export default function WinRateCard({
               <PolarAngleAxis type="number" domain={[0, 100]} angleAxisId={0} tick={false} />
               <RadialBar 
                 dataKey='value' 
-                cornerRadius={8}
+                cornerRadius={10}
                 angleAxisId={0}
                 fill="url(#winrateGradient)"
               />
@@ -66,13 +66,13 @@ export default function WinRateCard({
             <div className="text-4xl font-bold text-gray-900 dark:text-white">
               {winRate.toFixed(1)}%
             </div>
-            <div className="text-sm text-gray-500 dark:text-gray-400">
+            <div className="text-sm text-gray-500 dark:text-gray-400 font-medium">
               Win Rate
             </div>
           </div>
         </div>
 
-        <div className="w-full max-w-xs">
+        <div className="w-full max-w-sm px-4">
           <div className="flex justify-between items-center mb-2">
             <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Risk-Reward Ratio</span>
             <span className="text-sm font-bold text-gray-900 dark:text-white">{averageRR.toFixed(2)}</span>
@@ -83,7 +83,7 @@ export default function WinRateCard({
               style={{ width: `${Math.min((averageRR / 5) * 100, 100)}%`}}
             ></div>
           </div>
-          <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mt-1">
+          <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mt-1.5">
             <span>0</span>
             <span>2.5</span>
             <span>5</span>

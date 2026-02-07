@@ -4,9 +4,14 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { PRICING_TIERS } from '@/config/pricing';
 import { FaCheck, FaTimes, FaQuestionCircle, FaStar, FaCrown } from 'react-icons/fa';
+import { useSelector } from 'react-redux';
+import { RootState } from '@/store/store';
 
 export default function PricingPage() {
   const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'yearly'>('monthly');
+  const { isAuthenticated, user } = useSelector((state: RootState) => state.auth);
+  
+  const currentPlanId = user?.subscription?.plan || 'free';
 
   return (
     <div className="min-h-screen bg-slate-950 text-white selection:bg-emerald-500/30 font-sans">
@@ -16,16 +21,24 @@ export default function PricingPage() {
           <div className="absolute bottom-0 right-1/4 w-[30rem] h-[30rem] bg-teal-500/10 rounded-full blur-[100px]"></div>
       </div>
 
-      {/* Navigation (Simplified for sub-pages) */}
+      {/* Navigation */}
       <nav className="relative z-50 p-6 flex justify-between items-center max-w-7xl mx-auto">
          <Link href="/" className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 to-teal-400">
             TradeTaper
          </Link>
-         <div className="space-x-4">
-            <Link href="/login" className="text-slate-400 hover:text-white transition-colors">Log In</Link>
-            <Link href="/register" className="bg-emerald-500/10 text-emerald-400 px-4 py-2 rounded-lg border border-emerald-500/20 hover:bg-emerald-500/20 transition-all">
-                Get Started
-            </Link>
+         <div className="space-x-4 flex items-center">
+            {isAuthenticated ? (
+               <Link href="/dashboard" className="bg-emerald-500/10 text-emerald-400 px-4 py-2 rounded-lg border border-emerald-500/20 hover:bg-emerald-500/20 transition-all font-medium">
+                  Go to Dashboard
+               </Link>
+            ) : (
+               <>
+                 <Link href="/login" className="text-slate-400 hover:text-white transition-colors">Log In</Link>
+                 <Link href="/register" className="bg-emerald-500/10 text-emerald-400 px-4 py-2 rounded-lg border border-emerald-500/20 hover:bg-emerald-500/20 transition-all">
+                    Get Started
+                 </Link>
+               </>
+            )}
          </div>
       </nav>
 
@@ -58,61 +71,78 @@ export default function PricingPage() {
       {/* Pricing Cards */}
       <div className="max-w-7xl mx-auto px-6 pb-32 relative z-10">
         <div className="grid md:grid-cols-3 gap-8 items-start">
-          {PRICING_TIERS.map((tier) => (
-            <div 
-              key={tier.id}
-              className={`relative rounded-3xl p-8 border backdrop-blur-xl transition-all duration-300 group
-                ${tier.recommended 
-                  ? 'bg-slate-900/60 border-emerald-500 shadow-2xl shadow-emerald-500/10 scale-105 z-10' 
-                  : 'bg-slate-900/40 border-white/5 hover:border-white/10 hover:bg-slate-900/50'
-                }`}
-            >
-              {tier.recommended && (
-                <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                   <span className="bg-gradient-to-r from-emerald-500 to-teal-500 text-white px-4 py-1 rounded-full text-xs font-bold uppercase tracking-wider shadow-lg flex items-center gap-1">
-                     <FaCrown className="text-yellow-300" /> Recommended
-                   </span>
-                </div>
-              )}
-
-              <div className="text-center mb-8">
-                <h3 className="text-xl font-bold text-white mb-2">{tier.name}</h3>
-                <div className="flex items-baseline justify-center">
-                  <span className="text-4xl font-bold text-white">
-                    ${billingPeriod === 'monthly' ? tier.price : Math.floor(tier.price * 10)}
-                  </span>
-                  <span className="text-slate-500 ml-1 text-sm">/{billingPeriod === 'monthly' ? 'mo' : 'yr'}</span>
-                </div>
-                <p className="text-slate-400 text-sm mt-4">{tier.description || "Perfect for getting started"}</p>
-              </div>
-
-              <div className="space-y-4 mb-8">
-                {tier.features.map((feature, i) => (
-                  <div key={i} className="flex items-start">
-                    {feature.startsWith('No ') || feature.startsWith('Restriction') ? (
-                       <FaTimes className="text-slate-600 mt-1 mr-3 text-xs flex-shrink-0" />
-                    ) : (
-                       <FaCheck className="text-emerald-400 mt-1 mr-3 text-xs flex-shrink-0" />
-                    )}
-                    <span className={`text-sm ${feature.startsWith('No ') ? 'text-slate-600' : 'text-slate-300'}`}>
-                      {feature}
-                    </span>
-                  </div>
-                ))}
-              </div>
-
-              <Link 
-                href="/register"
-                className={`block w-full py-4 rounded-xl text-center font-bold transition-all ${
-                  tier.recommended
-                    ? 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white shadow-lg shadow-emerald-900/20'
-                    : 'bg-white/5 hover:bg-white/10 border border-white/10 text-white'
-                }`}
+          {PRICING_TIERS.map((tier) => {
+            const isCurrentPlan = currentPlanId === tier.id;
+            return (
+              <div 
+                key={tier.id}
+                className={`relative rounded-3xl p-8 border backdrop-blur-xl transition-all duration-300 group
+                  ${tier.recommended || isCurrentPlan
+                    ? 'bg-slate-900/60 border-emerald-500 shadow-2xl shadow-emerald-500/10 scale-105 z-10' 
+                    : 'bg-slate-900/40 border-white/5 hover:border-white/10 hover:bg-slate-900/50'
+                  }`}
               >
-                {tier.price === 0 ? 'Start Free' : 'Get Started'}
-              </Link>
-            </div>
-          ))}
+                {(tier.recommended || isCurrentPlan) && (
+                  <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
+                     <span className="bg-gradient-to-r from-emerald-500 to-teal-500 text-white px-4 py-1 rounded-full text-xs font-bold uppercase tracking-wider shadow-lg flex items-center gap-1">
+                       {isCurrentPlan ? (
+                         <><FaCheck className="text-white" /> Current Plan</>
+                       ) : (
+                         <><FaCrown className="text-yellow-300" /> Recommended</>
+                       )}
+                     </span>
+                  </div>
+                )}
+
+                <div className="text-center mb-8">
+                  <h3 className="text-xl font-bold text-white mb-2">{tier.name}</h3>
+                  <div className="flex items-baseline justify-center">
+                    <span className="text-4xl font-bold text-white">
+                      ${billingPeriod === 'monthly' ? tier.price : Math.floor(tier.price * 10)}
+                    </span>
+                    <span className="text-slate-500 ml-1 text-sm">/{billingPeriod === 'monthly' ? 'mo' : 'yr'}</span>
+                  </div>
+                  <p className="text-slate-400 text-sm mt-4">{tier.description || "Perfect for getting started"}</p>
+                </div>
+
+                <div className="space-y-4 mb-8">
+                  {tier.features.map((feature, i) => (
+                    <div key={i} className="flex items-start">
+                      {feature.startsWith('No ') || feature.startsWith('Restriction') ? (
+                         <FaTimes className="text-slate-600 mt-1 mr-3 text-xs flex-shrink-0" />
+                      ) : (
+                         <FaCheck className="text-emerald-400 mt-1 mr-3 text-xs flex-shrink-0" />
+                      )}
+                      <span className={`text-sm ${feature.startsWith('No ') ? 'text-slate-600' : 'text-slate-300'}`}>
+                        {feature}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Dynamic Button Action */}
+                {isCurrentPlan ? (
+                  <button 
+                    disabled
+                    className="block w-full py-4 rounded-xl text-center font-bold transition-all bg-emerald-900/20 border border-emerald-500/30 text-emerald-400 cursor-default"
+                  >
+                    Current Plan
+                  </button>
+                ) : (
+                  <Link 
+                    href={isAuthenticated ? `/billing?plan=${tier.id}&interval=${billingPeriod}` : `/register?plan=${tier.id}`}
+                    className={`block w-full py-4 rounded-xl text-center font-bold transition-all ${
+                      tier.recommended
+                        ? 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white shadow-lg shadow-emerald-900/20'
+                        : 'bg-white/5 hover:bg-white/10 border border-white/10 text-white'
+                    }`}
+                  >
+                    {tier.price === 0 ? (isAuthenticated ? 'Downgrade' : 'Start Free') : (isAuthenticated ? 'Switch Plan' : 'Get Started')}
+                  </Link>
+                )}
+              </div>
+            );
+          })}
         </div>
       </div>
 

@@ -44,16 +44,16 @@ export default function TotalReturnCard({
       onTimeRangeChange={onTimeRangeChange}
       gridSpan="sm:col-span-1 lg:col-span-2" 
     >
-      <div className="space-y-4">
+      <div className="space-y-3">
         <div className="flex items-baseline space-x-3">
-          <div className={`text-3xl font-bold ${
+          <div className={`text-2xl font-bold ${
             (stats?.totalNetPnl || 0) >= 0 
               ? 'text-green-600 dark:text-green-400' 
               : 'text-red-600 dark:text-red-400'
           }`}>
             {(stats?.totalNetPnl || 0) >= 0 ? '+' : ''}<CurrencyAmount amount={stats?.totalNetPnl || 0} className="inline" />
           </div>
-          <span className={`px-2 py-1 rounded-lg text-sm font-medium ${
+          <span className={`px-2 py-0.5 rounded-md text-xs font-medium ${
             roiPercentage >= 0 
               ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' 
               : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
@@ -62,11 +62,11 @@ export default function TotalReturnCard({
           </span>
         </div>
         
-        <div className="space-y-3">
+        <div className="space-y-1">
           {returnItems.map(item => (
-            <div key={item.label} className="flex justify-between items-center py-2 border-b border-gray-100 dark:border-gray-700 last:border-b-0">
-              <span className="text-sm text-gray-600 dark:text-gray-400">{item.label}</span>
-              <span className={`text-sm font-semibold ${
+            <div key={item.label} className="flex justify-between items-center py-1.5 border-b border-gray-100 dark:border-gray-700 last:border-b-0">
+              <span className="text-xs text-gray-600 dark:text-gray-400">{item.label}</span>
+              <span className={`text-xs font-semibold ${
                 item.isPositive 
                   ? 'text-green-600 dark:text-green-400' 
                   : 'text-red-600 dark:text-red-400'
@@ -78,15 +78,15 @@ export default function TotalReturnCard({
           ))}
         </div>
         
-        <div className="bg-emerald-50 dark:bg-emerald-900/20 rounded-xl p-3">
-          <p className="text-sm text-emerald-700 dark:text-emerald-300 flex items-center">
-            <FaInfoCircle className="mr-2 flex-shrink-0" />
-            Profit factor: {stats?.profitFactor?.toFixed(2) || 'N/A'}
+        <div className="bg-emerald-50 dark:bg-emerald-900/20 rounded-lg p-2">
+          <p className="text-xs text-emerald-700 dark:text-emerald-300 flex items-center">
+            <FaInfoCircle className="mr-1.5 w-3 h-3 flex-shrink-0" />
+            PF: {stats?.profitFactor?.toFixed(2) || 'N/A'}
             {stats?.profitFactor && (
-              <span className="ml-1">
+              <span className="ml-1 opacity-80">
                 {stats.profitFactor >= 1 
-                  ? ` • You earn $${stats.profitFactor.toFixed(2)} per $1 lost` 
-                  : ` • You lose $${(1/stats.profitFactor).toFixed(2)} per $1 earned`}
+                  ? `(Earn $${stats.profitFactor.toFixed(2)} / $1 lost)` 
+                  : `(Lose $${(1/stats.profitFactor).toFixed(2)} / $1 earned)`}
               </span>
             )}
           </p>
