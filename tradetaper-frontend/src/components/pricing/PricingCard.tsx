@@ -27,31 +27,50 @@ export default function PricingCard({ tier, isPopular = false, currentTier, onUp
     }
 
     if (tier.id === 'free') {
-      // Free tier doesn't require payment
       onUpgrade?.(tier.id);
       return;
     }
 
     setIsLoading(true);
     try {
-      const { sessionId } = await pricingApi.createCheckoutSession({
-        priceId: tier.stripePriceId,
-        successUrl: `${window.location.origin}/billing/success?session_id={CHECKOUT_SESSION_ID}`,
-        cancelUrl: `${window.location.origin}/pricing`,
-      });
+      // 1. Create Subscription Order on Backend
+      const orderData = await pricingApi.createRazorpaySubscription(
+          tier.id, 
+          tier.interval as 'monthly' | 'yearly'
+      );
 
-      const stripe = await getStripeInstance();
-      const { error } = await stripe.redirectToCheckout({ sessionId });
+      // 2. Open Razorpay Checkout
+      const options = {
+        key: orderData.key,
+        subscription_id: orderData.subscriptionId,
+        name: orderData.name,
+        description: orderData.description,
+        currency: orderData.currency,
+        customer_id: orderData.customer_id,
+        handler: function (response: any) {
+             // Handle success - maybe redirect to a success page or show a toast
+             // console.log(response.razorpay_payment_id);
+             // console.log(response.razorpay_subscription_id);
+             // console.log(response.razorpay_signature);
+             router.push('/billing/success'); // Simple redirect for now
+        },
+        theme: {
+            color: "#3B82F6" // Blue-500
+        },
+        modal: {
+            ondismiss: function() {
+                setIsLoading(false);
+            }
+        }
+      };
 
-      if (error) {
-        console.error('Stripe error:', error);
-        // Handle error appropriately
-      }
+      const razorpay = new (window as any).Razorpay(options);
+      razorpay.open();
+
     } catch (error) {
       console.error('Checkout error:', error);
-      // Handle error appropriately
-    } finally {
-      setIsLoading(false);
+      setIsLoading(false); 
+      // Handle error UI if needed
     }
   };
 
