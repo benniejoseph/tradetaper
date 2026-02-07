@@ -205,9 +205,10 @@ export default function BillingPage() {
 
           const rzp1 = new window.Razorpay(options);
           rzp1.open();
-      } catch (error) {
+      } catch (error: any) {
           console.error("Upgrade failed:", error);
-          alert("Failed to initiate upgrade. Please try again.");
+          const errorMessage = error?.response?.data?.message || error?.message || "Failed to initiate upgrade. Please try again.";
+          alert(`Upgrade Error: ${errorMessage}`);
           setActionLoading(null);
       }
   };
