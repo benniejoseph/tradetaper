@@ -6,6 +6,7 @@ import { ConfigService } from '@nestjs/config';
 import {
   Subscription,
   SubscriptionStatus,
+  SubscriptionTier,
 } from '../entities/subscription.entity';
 // import { Usage } from '../entities/usage.entity';
 import { User } from '../../users/entities/user.entity';
@@ -502,5 +503,118 @@ export class SubscriptionService {
         this.logger.error('Failed to create Razorpay subscription', e);
         throw new InternalServerErrorException('Failed to initiate subscription');
     }
+  }
+
+  // Handle Razorpay Webhooks
+  async handleRazorpayWebhook(event: any) {
+    const { event: eventType, payload } = event;
+    const subscriptionEntity = payload.subscription ? payload.subscription.entity : null;
+    const paymentEntity = payload.payment ? payload.payment.entity : null;
+
+    this.logger.log(`Received Webhook: ${eventType}`);
+
+    if (!subscriptionEntity && !paymentEntity) {
+        this.logger.warn('Webhook payload missing subscription or payment entity');
+        return;
+    }
+
+    const razorpaySubscriptionId = subscriptionEntity ? subscriptionEntity.id : null;
+    
+    // Find subscription by Razorpay ID (if exists)
+    let subscription: Subscription | null = null;
+    if (razorpaySubscriptionId) {
+        subscription = await this.subscriptionRepository.findOne({
+            where: { razorpaySubscriptionId: razorpaySubscriptionId },
+        });
+    }
+
+    // Attempt to match by customer email if subscription ID not found (fallback)
+    if (!subscription && paymentEntity && paymentEntity.email) {
+         // Using custom query to join user
+         subscription = await this.subscriptionRepository.createQueryBuilder("sub")
+            .leftJoinAndSelect("sub.user", "user")
+            .where("user.email = :email", { email: paymentEntity.email })
+            .getOne();
+    }
+
+    if (!subscription) {
+        this.logger.error(`Subscription not found for webhook event: ${eventType}`);
+         // Optionally create one, but usually we expect it to exist from 'createSubscription' step
+        return; 
+    }
+
+    switch (eventType) {
+        case 'subscription.authenticated':
+            this.logger.log(`Subscription authenticated for user ${subscription.userId}`);
+            subscription.status = SubscriptionStatus.ACTIVE;
+            // Activate plan logic
+            await this.updateSubscriptionFromRazorpay(subscription, subscriptionEntity);
+            break;
+
+        case 'subscription.charged':
+            this.logger.log(`Subscription charged for user ${subscription.userId}`);
+            subscription.status = SubscriptionStatus.ACTIVE;
+            await this.updateSubscriptionFromRazorpay(subscription, subscriptionEntity);
+            break;
+
+        case 'subscription.cancelled':
+            this.logger.log(`Subscription cancelled for user ${subscription.userId}`);
+            subscription.cancelAtPeriodEnd = true;
+            // logic to set end date?
+            if (subscriptionEntity.end_at) {
+                subscription.currentPeriodEnd = new Date(subscriptionEntity.end_at * 1000);
+            }
+            break;
+            
+        case 'payment.captured':
+            // Sometimes happens before subscription logic
+            this.logger.log(`Payment captured for user ${subscription.userId}`);
+            break;
+
+        case 'payment.failed':
+             this.logger.warn(`Payment failed for user ${subscription.userId}`);
+             // Notify user?
+             break;
+    }
+
+    await this.subscriptionRepository.save(subscription);
+  }
+
+  private async updateSubscriptionFromRazorpay(subscription: Subscription, entity: any) {
+      if (!entity) return;
+      
+      // Update config
+      if (entity.plan_id) {
+          // Map Razorpay Plan ID back to internal Plan ID
+          const plan = this.pricingPlans.find(p => 
+            p.razorpayPlanMonthlyId === entity.plan_id || 
+            p.razorpayPlanYearlyId === entity.plan_id
+          );
+          
+          if (plan) {
+              subscription.plan = plan.id;
+              
+              // Set tier
+              if (plan.id === 'premium') subscription.tier = SubscriptionTier.PREMIUM;
+              else if (plan.id === 'essential') subscription.tier = SubscriptionTier.ESSENTIAL;
+              else subscription.tier = SubscriptionTier.FREE;
+
+              // Set Interval
+              subscription.interval = (p => p.razorpayPlanYearlyId === entity.plan_id ? 'year' : 'month')(plan);
+          }
+      }
+
+      // Update Dates
+      if (entity.current_start) {
+          subscription.currentPeriodStart = new Date(entity.current_start * 1000);
+      }
+      if (entity.current_end) {
+          subscription.currentPeriodEnd = new Date(entity.current_end * 1000);
+      }
+      
+      // Other fields
+      subscription.razorpaySubscriptionId = entity.id;
+      subscription.status = SubscriptionStatus.ACTIVE;
+      subscription.cancelAtPeriodEnd = false; // Reset cancellation if renewed
   }
 }
