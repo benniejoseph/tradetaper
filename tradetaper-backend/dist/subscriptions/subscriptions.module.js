@@ -21,6 +21,8 @@ const strategy_entity_1 = require("../strategies/entities/strategy.entity");
 const subscription_service_1 = require("./services/subscription.service");
 const razorpay_service_1 = require("./services/razorpay.service");
 const subscriptions_controller_1 = require("./subscriptions.controller");
+const subscriptions_webhook_controller_1 = require("./subscriptions.webhook.controller");
+const coupons_module_1 = require("../coupons/coupons.module");
 let SubscriptionsModule = class SubscriptionsModule {
 };
 exports.SubscriptionsModule = SubscriptionsModule;
@@ -28,6 +30,7 @@ exports.SubscriptionsModule = SubscriptionsModule = __decorate([
     (0, common_1.Module)({
         imports: [
             config_1.ConfigModule,
+            coupons_module_1.CouponsModule,
             typeorm_1.TypeOrmModule.forFeature([
                 subscription_entity_1.Subscription,
                 usage_entity_1.Usage,
@@ -39,7 +42,7 @@ exports.SubscriptionsModule = SubscriptionsModule = __decorate([
                 strategy_entity_1.Strategy
             ]),
         ],
-        controllers: [subscriptions_controller_1.SubscriptionsController],
+        controllers: [subscriptions_controller_1.SubscriptionsController, subscriptions_webhook_controller_1.SubscriptionsWebhookController],
         providers: [subscription_service_1.SubscriptionService, razorpay_service_1.RazorpayService],
         exports: [subscription_service_1.SubscriptionService, razorpay_service_1.RazorpayService],
     })

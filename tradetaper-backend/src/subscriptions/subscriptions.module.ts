@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule } from '@nestjs/config';
 import { Subscription } from './entities/subscription.entity';
@@ -13,10 +13,12 @@ import { SubscriptionService } from './services/subscription.service';
 import { RazorpayService } from './services/razorpay.service';
 import { SubscriptionsController } from './subscriptions.controller';
 import { SubscriptionsWebhookController } from './subscriptions.webhook.controller';
+import { CouponsModule } from '../coupons/coupons.module';
 
 @Module({
   imports: [
     ConfigModule,
+    CouponsModule,
     TypeOrmModule.forFeature([
       Subscription, 
       Usage, 

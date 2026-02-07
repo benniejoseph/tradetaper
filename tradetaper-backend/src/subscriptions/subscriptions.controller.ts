@@ -10,7 +10,7 @@ import {
   Param,
 } from '@nestjs/common';
 import { Request } from 'express';
-import { IsString, IsNotEmpty, IsUrl } from 'class-validator';
+import { IsString, IsNotEmpty, IsUrl, IsOptional } from 'class-validator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { AuthenticatedRequest } from '../types/authenticated-request.interface';
 import {
@@ -27,6 +27,10 @@ export class CreateRazorpaySubscriptionDto {
     @IsString()
     @IsNotEmpty()
     period: 'monthly' | 'yearly';
+
+    @IsOptional()
+    @IsString()
+    couponCode?: string;
 }
 
 @Controller('subscriptions')
@@ -48,7 +52,8 @@ export class SubscriptionsController {
     return this.subscriptionService.createRazorpaySubscription(
         req.user.id,
         dto.planId,
-        dto.period
+        dto.period,
+        dto.couponCode
     );
   }
 

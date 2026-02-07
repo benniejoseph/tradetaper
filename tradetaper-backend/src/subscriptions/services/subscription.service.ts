@@ -17,6 +17,7 @@ import { Note } from '../../notes/entities/note.entity';
 import { Strategy } from '../../strategies/entities/strategy.entity';
 import { RazorpayService } from './razorpay.service';
 import { Between } from 'typeorm';
+import { CouponsService } from '../../coupons/services/coupons.service';
 
 export interface PricingPlan {
   id: string; // 'free' | 'essential' | 'premium'
@@ -84,6 +85,7 @@ export class SubscriptionService {
     private strategyRepository: Repository<Strategy>,
     private configService: ConfigService,
     private razorpayService: RazorpayService,
+    private couponsService: CouponsService,
   ) {
     // Initialize pricing plans
     this.pricingPlans = [
@@ -449,8 +451,9 @@ export class SubscriptionService {
     userId: string,
     planId: string, // 'starter', 'professional', etc.
     period: 'monthly' | 'yearly',
+    couponCode?: string,
   ) {
-    this.logger.log(`Creating Razorpay subscription for user ${userId}, plan: ${planId}, period: ${period}`);
+    this.logger.log(`Creating Razorpay subscription for user ${userId}, plan: ${planId}, period: ${period}, coupon: ${couponCode}`);
     
     // 1. Get Plan Details
     const planConfig = this.getPricingPlan(planId);
@@ -458,6 +461,21 @@ export class SubscriptionService {
     
     const razorpayPlanId = period === 'monthly' ? planConfig.razorpayPlanMonthlyId : planConfig.razorpayPlanYearlyId;
     if (!razorpayPlanId) throw new BadRequestException('Razorpay plan not configured for this tier');
+
+    let offerId: string | undefined = undefined;
+    if (couponCode) {
+        try {
+            const coupon = await this.couponsService.validateCoupon(couponCode);
+            if (coupon.razorpayOfferId) {
+                offerId = coupon.razorpayOfferId;
+                await this.couponsService.incrementUsage(couponCode);
+            }
+        } catch (e) {
+            this.logger.warn(`Invalid coupon code provided: ${couponCode}`);
+            // Depending on requirements, we can throw error or just ignore invalid coupon
+            throw new BadRequestException(`Invalid or expired coupon: ${e.message}`);
+        }
+    }
 
     // 2. Get User & Subscription
     const subscription = await this.getOrCreateSubscription(userId);
@@ -484,7 +502,7 @@ export class SubscriptionService {
 
     // 4. Create Subscription
     try {
-        const sub = await this.razorpayService.createSubscription(razorpayPlanId);
+        const sub = await this.razorpayService.createSubscription(razorpayPlanId, undefined, undefined, undefined, undefined, undefined, offerId);
         
         // Save sub ID
         subscription.razorpaySubscriptionId = sub.id;
@@ -497,7 +515,8 @@ export class SubscriptionService {
             currency: 'INR', // Default for Indian Bus.
             name: 'TradeTaper',
             description: `${planConfig.displayName} (${period})`,
-            customer_id: customerId, // Useful for prefill
+            customer_id: customerId!, // Useful for prefill
+            offer_id: offerId, 
         };
     } catch (e) {
         this.logger.error('Failed to create Razorpay subscription', e);

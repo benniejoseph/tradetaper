@@ -14,9 +14,9 @@ import {
   ChevronLeft,
   ChevronRight,
   LogOut,
-  TestTube,
   Terminal,
   HardDrive,
+  Ticket,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import toast from 'react-hot-toast';
@@ -45,6 +45,7 @@ const menuItems = [
     section: 'Revenue Management',
     items: [
       { icon: DollarSign, label: 'Revenue & Billing', href: '/billing' },
+      { icon: Ticket, label: 'Coupons', href: '/coupons' },
     ],
   },
   {

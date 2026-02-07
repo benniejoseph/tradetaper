@@ -9,6 +9,7 @@ import { RootState } from '@/store/store';
 
 export default function PricingPage() {
   const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'yearly'>('monthly');
+  const [coupon, setCoupon] = useState('');
   const { isAuthenticated, user } = useSelector((state: RootState) => state.auth);
   
   const currentPlanId = user?.subscription?.plan || 'free';
@@ -58,9 +59,20 @@ export default function PricingPage() {
              <h1 className="text-5xl md:text-6xl font-bold text-white mb-6 tracking-tight">
                 Simple, transparent pricing
              </h1>
-             <p className="text-slate-400 text-lg max-w-2xl mx-auto">
+             <p className="text-slate-400 text-lg max-w-2xl mx-auto mb-8">
                 No hidden fees. Cancel anytime. Choose the plan that fits your trading style.
              </p>
+             
+             {/* Coupon Input */}
+             <div className="max-w-xs mx-auto relative">
+                <input 
+                    type="text" 
+                    placeholder="Have a coupon code?" 
+                    value={coupon}
+                    onChange={(e) => setCoupon(e.target.value.toUpperCase())}
+                    className="w-full bg-slate-900/50 border border-white/10 rounded-full py-2 px-4 text-center text-sm text-emerald-400 placeholder-slate-600 focus:outline-none focus:border-emerald-500/50 transition-colors uppercase"
+                />
+             </div>
         </div>
 
         {/* Pricing Cards */}
@@ -115,8 +127,10 @@ export default function PricingPage() {
                     </button>
                 ) : (
                     <Link 
-                        href={isAuthenticated ? `/billing?plan=${tier.id}&interval=${billingPeriod}` : `/register?plan=${tier.id}`}
-                        className={`w-full py-3.5 rounded-full font-bold text-center transition-all duration-300 transform group-hover:scale-[1.02] ${
+                        href={isAuthenticated 
+                            ? `/billing?plan=${tier.id}&interval=${billingPeriod}${coupon ? `&coupon=${coupon}` : ''}` 
+                            : `/register?plan=${tier.id}${coupon ? `&coupon=${coupon}` : ''}`}
+                        className={`w-full py-3.5 rounded-full font-bold text-center transition-all duration-400 transform group-hover:scale-[1.02] ${
                             tier.recommended 
                                 ? 'bg-emerald-500 text-white hover:bg-emerald-400 shadow-lg shadow-emerald-500/20' 
                                 : 'bg-white/10 text-white hover:bg-white/20 border border-white/5'

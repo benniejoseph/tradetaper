@@ -17,6 +17,14 @@ const common_1 = require("@nestjs/common");
 const typeorm_1 = require("@nestjs/typeorm");
 const typeorm_2 = require("typeorm");
 const user_entity_1 = require("./entities/user.entity");
+function generateReferralCode(length = 8) {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let result = '';
+    for (let i = 0; i < length; i++) {
+        result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return result;
+}
 let UsersService = class UsersService {
     usersRepository;
     constructor(usersRepository) {
@@ -28,11 +36,26 @@ let UsersService = class UsersService {
         if (existingUser) {
             throw new common_1.ConflictException('Email already exists');
         }
+        let newReferralCode = generateReferralCode();
+        while (await this.usersRepository.findOneBy({ referralCode: newReferralCode })) {
+            newReferralCode = generateReferralCode();
+        }
+        let referredBy = undefined;
+        if (registerUserDto.referralCode) {
+            const referrer = await this.usersRepository.findOneBy({ referralCode: registerUserDto.referralCode });
+            if (referrer) {
+                referredBy = referrer.referralCode;
+                referrer.referralCount = (referrer.referralCount || 0) + 1;
+                await this.usersRepository.save(referrer);
+            }
+        }
         let user = this.usersRepository.create({
             email,
             password,
             firstName,
             lastName,
+            referralCode: newReferralCode,
+            referredBy,
         });
         user = await this.usersRepository.save(user);
         const response = {
@@ -51,10 +74,25 @@ let UsersService = class UsersService {
         if (existingUser) {
             throw new common_1.ConflictException('Email already exists');
         }
+        let newReferralCode = generateReferralCode();
+        while (await this.usersRepository.findOneBy({ referralCode: newReferralCode })) {
+            newReferralCode = generateReferralCode();
+        }
+        let referredBy = undefined;
+        if (googleUserDto.referralCode) {
+            const referrer = await this.usersRepository.findOneBy({ referralCode: googleUserDto.referralCode });
+            if (referrer) {
+                referredBy = referrer.referralCode;
+                referrer.referralCount = (referrer.referralCount || 0) + 1;
+                await this.usersRepository.save(referrer);
+            }
+        }
         const user = this.usersRepository.create({
             email,
             firstName,
             lastName,
+            referralCode: newReferralCode,
+            referredBy,
         });
         const savedUser = await this.usersRepository.save(user);
         return savedUser;

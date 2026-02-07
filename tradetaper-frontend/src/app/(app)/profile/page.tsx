@@ -3,7 +3,7 @@
 import React from 'react';
 import { useSelector } from 'react-redux';
 import { RootState } from '@/store/store';
-import { FaUserCircle, FaCrown, FaEnvelope, FaCalendarAlt, FaChartLine, FaServer, FaCheckCircle, FaExclamationTriangle } from 'react-icons/fa';
+import { FaUserCircle, FaCrown, FaEnvelope, FaCalendarAlt, FaChartLine, FaServer, FaCheckCircle, FaExclamationTriangle, FaUserFriends } from 'react-icons/fa';
 import Link from 'next/link';
 import { format } from 'date-fns';
 
@@ -147,6 +147,52 @@ export default function ProfilePage() {
                         <p className="text-xs text-gray-500">Last changed 3 months ago</p>
                     </div>
                     <button className="text-sm text-emerald-500 hover:text-emerald-400 font-medium">Update</button>
+                </div>
+           </div>
+
+           {/* Referral Program */}
+           <div className="bg-white dark:bg-zinc-900/50 backdrop-blur-xl border border-gray-200 dark:border-zinc-800 rounded-2xl p-6 relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-48 h-48 bg-purple-500/5 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none"></div>
+                
+                <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4 relative z-10 flex items-center gap-2">
+                    <FaUserFriends className="text-purple-500" /> Referral Program
+                </h2>
+                
+                <div className="flex flex-col md:flex-row gap-6 items-center relative z-10">
+                    <div className="flex-1">
+                        <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                            Invite friends to TradeTaper and earn rewards. Share your unique referral code below.
+                        </p>
+                        
+                        <div className="flex items-center gap-3">
+                            <div className="bg-gray-100 dark:bg-zinc-800 px-4 py-3 rounded-xl border border-dashed border-gray-300 dark:border-zinc-700 font-mono text-lg font-bold text-gray-900 dark:text-white tracking-wider select-all">
+                                {user?.referralCode || 'Generate Code'}
+                            </div>
+                            <button 
+                                onClick={() => {
+                                    if(user?.referralCode) {
+                                        navigator.clipboard.writeText(user.referralCode);
+                                        alert("Referral code copied!");
+                                    }
+                                }}
+                                disabled={!user?.referralCode}
+                                className="px-4 py-3 rounded-xl bg-purple-500 hover:bg-purple-600 text-white font-medium transition-colors shadow-lg shadow-purple-500/20"
+                            >
+                                Copy
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="bg-purple-50 dark:bg-zinc-800/50 rounded-xl p-4 border border-purple-100 dark:border-zinc-700/50 w-full md:w-auto min-w-[200px]">
+                        <div className="text-center">
+                            <span className="block text-3xl font-bold text-purple-600 dark:text-purple-400 mb-1">
+                                {user?.referralCount || 0}
+                            </span>
+                            <span className="text-xs uppercase tracking-wider font-bold text-purple-400 dark:text-purple-500">
+                                Friends Referred
+                            </span>
+                        </div>
+                    </div>
                 </div>
            </div>
         </div>

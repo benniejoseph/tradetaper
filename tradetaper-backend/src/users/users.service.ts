@@ -10,6 +10,16 @@ interface CreateGoogleUserDto {
   email: string;
   firstName: string;
   lastName: string;
+  referralCode?: string;
+}
+
+function generateReferralCode(length = 8) {
+   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+   let result = '';
+   for (let i = 0; i < length; i++) {
+      result += chars.charAt(Math.floor(Math.random() * chars.length));
+   }
+   return result;
 }
 
 @Injectable()
@@ -28,12 +38,32 @@ export class UsersService {
       throw new ConflictException('Email already exists');
     }
 
+    // Generate unique referral code
+    let newReferralCode = generateReferralCode();
+    // Simple collision check (in prod, use a loop or better ID gen)
+    while (await this.usersRepository.findOneBy({ referralCode: newReferralCode })) {
+        newReferralCode = generateReferralCode();
+    }
+
+    let referredBy: string | undefined = undefined;
+    if (registerUserDto.referralCode) {
+        const referrer = await this.usersRepository.findOneBy({ referralCode: registerUserDto.referralCode });
+        if (referrer) {
+            referredBy = referrer.referralCode;
+            // Increment referral count
+            referrer.referralCount = (referrer.referralCount || 0) + 1;
+            await this.usersRepository.save(referrer);
+        }
+    }
+
     let user = this.usersRepository.create({
       // 'user' is of type User here
       email,
       password,
       firstName,
       lastName,
+      referralCode: newReferralCode,
+      referredBy,
     });
 
     user = await this.usersRepository.save(user); // 'user' is still of type User
@@ -58,11 +88,29 @@ export class UsersService {
       throw new ConflictException('Email already exists');
     }
 
+    // Generate unique referral code
+    let newReferralCode = generateReferralCode();
+    while (await this.usersRepository.findOneBy({ referralCode: newReferralCode })) {
+        newReferralCode = generateReferralCode();
+    }
+    
+    let referredBy: string | undefined = undefined;
+    if (googleUserDto.referralCode) {
+         const referrer = await this.usersRepository.findOneBy({ referralCode: googleUserDto.referralCode });
+         if (referrer) {
+             referredBy = referrer.referralCode;
+             referrer.referralCount = (referrer.referralCount || 0) + 1;
+             await this.usersRepository.save(referrer);
+         }
+    }
+
     const user = this.usersRepository.create({
       email,
       // Don't set password field for Google OAuth users - leave it undefined
       firstName,
       lastName,
+      referralCode: newReferralCode,
+      referredBy,
     });
 
     const savedUser = await this.usersRepository.save(user);

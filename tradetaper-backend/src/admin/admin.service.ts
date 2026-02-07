@@ -232,6 +232,49 @@ export class AdminService {
     }
   }
 
+  async createRow(table: string, data: any) {
+    try {
+      const keys = Object.keys(data);
+      const values = Object.values(data);
+      if (keys.length === 0) throw new Error('No data provided');
+
+      const placeholders = values.map((_, i) => `$${i + 1}`).join(',');
+      const query = `INSERT INTO "${table}" (${keys.map(k => `"${k}"`).join(',')}) VALUES (${placeholders}) RETURNING *`;
+      const result = await this.dataSource.query(query, values);
+      return result[0];
+    } catch (error) {
+      console.error(`Error creating row in ${table}:`, error);
+      throw error;
+    }
+  }
+
+  async updateRow(table: string, id: string, data: any) {
+    try {
+      const keys = Object.keys(data);
+      const values = Object.values(data);
+      if (keys.length === 0) throw new Error('No data provided');
+
+      const setClause = keys.map((k, i) => `"${k}" = $${i + 1}`).join(',');
+      const query = `UPDATE "${table}" SET ${setClause} WHERE id = $${values.length + 1} RETURNING *`;
+      const result = await this.dataSource.query(query, [...values, id]);
+      return result[0];
+    } catch (error) {
+      console.error(`Error updating row in ${table}:`, error);
+      throw error;
+    }
+  }
+
+  async deleteRow(table: string, id: string) {
+    try {
+      const query = `DELETE FROM "${table}" WHERE id = $1 RETURNING *`;
+      const result = await this.dataSource.query(query, [id]);
+      return result[0];
+    } catch (error) {
+      console.error(`Error deleting row from ${table}:`, error);
+      throw error;
+    }
+  }
+
   private getDaysFromTimeRange(timeRange: string): number {
     switch (timeRange) {
       case '7d':

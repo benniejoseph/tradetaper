@@ -48,10 +48,11 @@ export class RazorpayService {
     startAt?: number,
     expireBy?: number,
     notes?: any,
+    offerId?: string,
   ) {
     if (!this.razorpay) throw new Error('Razorpay client not initialized');
     try {
-      const subscription = await this.razorpay.subscriptions.create({
+      const payload: any = {
         plan_id: planId,
         total_count: totalCount,
         quantity,
@@ -59,7 +60,13 @@ export class RazorpayService {
         start_at: startAt,
         expire_by: expireBy,
         notes,
-      });
+      };
+
+      if (offerId) {
+          payload.offer_id = offerId;
+      }
+
+      const subscription = await this.razorpay.subscriptions.create(payload);
       return subscription;
     } catch (error) {
       this.logger.error('Error creating subscription', error);

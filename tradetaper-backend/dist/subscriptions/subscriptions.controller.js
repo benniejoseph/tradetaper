@@ -20,6 +20,7 @@ const subscription_service_1 = require("./services/subscription.service");
 class CreateRazorpaySubscriptionDto {
     planId;
     period;
+    couponCode;
 }
 exports.CreateRazorpaySubscriptionDto = CreateRazorpaySubscriptionDto;
 __decorate([
@@ -32,6 +33,11 @@ __decorate([
     (0, class_validator_1.IsNotEmpty)(),
     __metadata("design:type", String)
 ], CreateRazorpaySubscriptionDto.prototype, "period", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], CreateRazorpaySubscriptionDto.prototype, "couponCode", void 0);
 let SubscriptionsController = class SubscriptionsController {
     subscriptionService;
     constructor(subscriptionService) {
@@ -41,7 +47,7 @@ let SubscriptionsController = class SubscriptionsController {
         return this.subscriptionService.getPricingPlans();
     }
     async createRazorpaySubscription(dto, req) {
-        return this.subscriptionService.createRazorpaySubscription(req.user.id, dto.planId, dto.period);
+        return this.subscriptionService.createRazorpaySubscription(req.user.id, dto.planId, dto.period, dto.couponCode);
     }
     async getCurrentSubscription(req) {
         const userId = req.user.id;

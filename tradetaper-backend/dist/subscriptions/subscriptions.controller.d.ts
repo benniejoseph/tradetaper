@@ -3,6 +3,7 @@ import { SubscriptionService, BillingInfo, SubscriptionUsage } from './services/
 export declare class CreateRazorpaySubscriptionDto {
     planId: string;
     period: 'monthly' | 'yearly';
+    couponCode?: string;
 }
 export declare class SubscriptionsController {
     private readonly subscriptionService;
@@ -15,6 +16,7 @@ export declare class SubscriptionsController {
         name: string;
         description: string;
         customer_id: string;
+        offer_id: string | undefined;
     }>;
     getCurrentSubscription(req: AuthenticatedRequest): Promise<BillingInfo>;
     getUsage(req: AuthenticatedRequest): Promise<SubscriptionUsage>;

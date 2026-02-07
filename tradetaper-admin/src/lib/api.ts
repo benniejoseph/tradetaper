@@ -144,6 +144,19 @@ export interface Activity {
   };
 }
 
+export interface Coupon {
+  id: string;
+  code: string;
+  type: 'PERCENTAGE' | 'FLAT';
+  value: number;
+  razorpayOfferId?: string;
+  maxUses: number;
+  usedCount: number;
+  isActive: boolean;
+  validUntil?: string;
+  createdAt: string;
+}
+
 export interface LogEntry {
   id: string;
   level: 'error' | 'warn' | 'info' | 'debug';
@@ -279,6 +292,24 @@ class AdminApi {
   ): Promise<{ data: Record<string, unknown>[]; total: number; page: number; limit: number; totalPages: number }> {
     const axiosInstance = this.ensureAxiosInstance();
     const response = await axiosInstance.get(`/admin/database/rows/${table}?page=${page}&limit=${limit}`);
+    return response.data;
+  }
+
+  async createDatabaseRow(table: string, data: any): Promise<any> {
+    const axiosInstance = this.ensureAxiosInstance();
+    const response = await axiosInstance.post(`/admin/database/row/${table}`, data);
+    return response.data;
+  }
+
+  async updateDatabaseRow(table: string, id: string, data: any): Promise<any> {
+    const axiosInstance = this.ensureAxiosInstance();
+    const response = await axiosInstance.put(`/admin/database/row/${table}/${id}`, data);
+    return response.data;
+  }
+
+  async deleteDatabaseRow(table: string, id: string): Promise<any> {
+    const axiosInstance = this.ensureAxiosInstance();
+    const response = await axiosInstance.delete(`/admin/database/row/${table}/${id}`);
     return response.data;
   }
 
@@ -612,6 +643,25 @@ class AdminApi {
   }> {
     const axiosInstance = this.ensureAxiosInstance();
     const response = await axiosInstance.delete(`/admin/database/clear-all-tables?confirm=${confirm}&doubleConfirm=${doubleConfirm}`);
+    return response.data;
+  }
+  // --- Coupon Methods ---
+  async getCoupons(): Promise<Coupon[]> {
+    const axiosInstance = this.ensureAxiosInstance();
+    const response = await axiosInstance.get('/coupons');
+    return response.data;
+  }
+
+  async createCoupon(data: {
+    code: string;
+    type: 'PERCENTAGE' | 'FLAT';
+    value: number;
+    razorpayOfferId?: string;
+    maxUses?: number;
+    validUntil?: string;
+  }): Promise<Coupon> {
+    const axiosInstance = this.ensureAxiosInstance();
+    const response = await axiosInstance.post('/coupons', data);
     return response.data;
   }
 }

@@ -27,6 +27,7 @@ const note_entity_1 = require("../../notes/entities/note.entity");
 const strategy_entity_1 = require("../../strategies/entities/strategy.entity");
 const razorpay_service_1 = require("./razorpay.service");
 const typeorm_3 = require("typeorm");
+const coupons_service_1 = require("../../coupons/services/coupons.service");
 let SubscriptionService = SubscriptionService_1 = class SubscriptionService {
     subscriptionRepository;
     userRepository;
@@ -37,9 +38,10 @@ let SubscriptionService = SubscriptionService_1 = class SubscriptionService {
     strategyRepository;
     configService;
     razorpayService;
+    couponsService;
     logger = new common_1.Logger(SubscriptionService_1.name);
     pricingPlans;
-    constructor(subscriptionRepository, userRepository, tradeRepository, accountRepository, mt5AccountRepository, noteRepository, strategyRepository, configService, razorpayService) {
+    constructor(subscriptionRepository, userRepository, tradeRepository, accountRepository, mt5AccountRepository, noteRepository, strategyRepository, configService, razorpayService, couponsService) {
         this.subscriptionRepository = subscriptionRepository;
         this.userRepository = userRepository;
         this.tradeRepository = tradeRepository;
@@ -49,6 +51,7 @@ let SubscriptionService = SubscriptionService_1 = class SubscriptionService {
         this.strategyRepository = strategyRepository;
         this.configService = configService;
         this.razorpayService = razorpayService;
+        this.couponsService = couponsService;
         this.pricingPlans = [
             {
                 id: 'free',
@@ -318,14 +321,28 @@ let SubscriptionService = SubscriptionService_1 = class SubscriptionService {
             this.logger.log(`Incrementing usage for user ${userId}, feature: ${feature}`);
         }
     }
-    async createRazorpaySubscription(userId, planId, period) {
-        this.logger.log(`Creating Razorpay subscription for user ${userId}, plan: ${planId}, period: ${period}`);
+    async createRazorpaySubscription(userId, planId, period, couponCode) {
+        this.logger.log(`Creating Razorpay subscription for user ${userId}, plan: ${planId}, period: ${period}, coupon: ${couponCode}`);
         const planConfig = this.getPricingPlan(planId);
         if (!planConfig)
             throw new common_1.BadRequestException('Invalid plan ID');
         const razorpayPlanId = period === 'monthly' ? planConfig.razorpayPlanMonthlyId : planConfig.razorpayPlanYearlyId;
         if (!razorpayPlanId)
             throw new common_1.BadRequestException('Razorpay plan not configured for this tier');
+        let offerId = undefined;
+        if (couponCode) {
+            try {
+                const coupon = await this.couponsService.validateCoupon(couponCode);
+                if (coupon.razorpayOfferId) {
+                    offerId = coupon.razorpayOfferId;
+                    await this.couponsService.incrementUsage(couponCode);
+                }
+            }
+            catch (e) {
+                this.logger.warn(`Invalid coupon code provided: ${couponCode}`);
+                throw new common_1.BadRequestException(`Invalid or expired coupon: ${e.message}`);
+            }
+        }
         const subscription = await this.getOrCreateSubscription(userId);
         let customerId = subscription.razorpayCustomerId;
         if (!customerId) {
@@ -344,7 +361,7 @@ let SubscriptionService = SubscriptionService_1 = class SubscriptionService {
             }
         }
         try {
-            const sub = await this.razorpayService.createSubscription(razorpayPlanId);
+            const sub = await this.razorpayService.createSubscription(razorpayPlanId, undefined, undefined, undefined, undefined, undefined, offerId);
             subscription.razorpaySubscriptionId = sub.id;
             await this.subscriptionRepository.save(subscription);
             return {
@@ -354,12 +371,93 @@ let SubscriptionService = SubscriptionService_1 = class SubscriptionService {
                 name: 'TradeTaper',
                 description: `${planConfig.displayName} (${period})`,
                 customer_id: customerId,
+                offer_id: offerId,
             };
         }
         catch (e) {
             this.logger.error('Failed to create Razorpay subscription', e);
             throw new common_1.InternalServerErrorException('Failed to initiate subscription');
         }
+    }
+    async handleRazorpayWebhook(event) {
+        const { event: eventType, payload } = event;
+        const subscriptionEntity = payload.subscription ? payload.subscription.entity : null;
+        const paymentEntity = payload.payment ? payload.payment.entity : null;
+        this.logger.log(`Received Webhook: ${eventType}`);
+        if (!subscriptionEntity && !paymentEntity) {
+            this.logger.warn('Webhook payload missing subscription or payment entity');
+            return;
+        }
+        const razorpaySubscriptionId = subscriptionEntity ? subscriptionEntity.id : null;
+        let subscription = null;
+        if (razorpaySubscriptionId) {
+            subscription = await this.subscriptionRepository.findOne({
+                where: { razorpaySubscriptionId: razorpaySubscriptionId },
+            });
+        }
+        if (!subscription && paymentEntity && paymentEntity.email) {
+            subscription = await this.subscriptionRepository.createQueryBuilder("sub")
+                .leftJoinAndSelect("sub.user", "user")
+                .where("user.email = :email", { email: paymentEntity.email })
+                .getOne();
+        }
+        if (!subscription) {
+            this.logger.error(`Subscription not found for webhook event: ${eventType}`);
+            return;
+        }
+        switch (eventType) {
+            case 'subscription.authenticated':
+                this.logger.log(`Subscription authenticated for user ${subscription.userId}`);
+                subscription.status = subscription_entity_1.SubscriptionStatus.ACTIVE;
+                await this.updateSubscriptionFromRazorpay(subscription, subscriptionEntity);
+                break;
+            case 'subscription.charged':
+                this.logger.log(`Subscription charged for user ${subscription.userId}`);
+                subscription.status = subscription_entity_1.SubscriptionStatus.ACTIVE;
+                await this.updateSubscriptionFromRazorpay(subscription, subscriptionEntity);
+                break;
+            case 'subscription.cancelled':
+                this.logger.log(`Subscription cancelled for user ${subscription.userId}`);
+                subscription.cancelAtPeriodEnd = true;
+                if (subscriptionEntity.end_at) {
+                    subscription.currentPeriodEnd = new Date(subscriptionEntity.end_at * 1000);
+                }
+                break;
+            case 'payment.captured':
+                this.logger.log(`Payment captured for user ${subscription.userId}`);
+                break;
+            case 'payment.failed':
+                this.logger.warn(`Payment failed for user ${subscription.userId}`);
+                break;
+        }
+        await this.subscriptionRepository.save(subscription);
+    }
+    async updateSubscriptionFromRazorpay(subscription, entity) {
+        if (!entity)
+            return;
+        if (entity.plan_id) {
+            const plan = this.pricingPlans.find(p => p.razorpayPlanMonthlyId === entity.plan_id ||
+                p.razorpayPlanYearlyId === entity.plan_id);
+            if (plan) {
+                subscription.plan = plan.id;
+                if (plan.id === 'premium')
+                    subscription.tier = subscription_entity_1.SubscriptionTier.PREMIUM;
+                else if (plan.id === 'essential')
+                    subscription.tier = subscription_entity_1.SubscriptionTier.ESSENTIAL;
+                else
+                    subscription.tier = subscription_entity_1.SubscriptionTier.FREE;
+                subscription.interval = (p => p.razorpayPlanYearlyId === entity.plan_id ? 'year' : 'month')(plan);
+            }
+        }
+        if (entity.current_start) {
+            subscription.currentPeriodStart = new Date(entity.current_start * 1000);
+        }
+        if (entity.current_end) {
+            subscription.currentPeriodEnd = new Date(entity.current_end * 1000);
+        }
+        subscription.razorpaySubscriptionId = entity.id;
+        subscription.status = subscription_entity_1.SubscriptionStatus.ACTIVE;
+        subscription.cancelAtPeriodEnd = false;
     }
 };
 exports.SubscriptionService = SubscriptionService;
@@ -380,6 +478,7 @@ exports.SubscriptionService = SubscriptionService = SubscriptionService_1 = __de
         typeorm_2.Repository,
         typeorm_2.Repository,
         config_1.ConfigService,
-        razorpay_service_1.RazorpayService])
+        razorpay_service_1.RazorpayService,
+        coupons_service_1.CouponsService])
 ], SubscriptionService);
 //# sourceMappingURL=subscription.service.js.map

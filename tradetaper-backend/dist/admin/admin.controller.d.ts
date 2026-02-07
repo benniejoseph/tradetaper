@@ -71,6 +71,9 @@ export declare class AdminController {
         limit: number;
         totalPages: number;
     }>;
+    createRow(table: string, data: any): Promise<any>;
+    updateRow(table: string, id: string, data: any): Promise<any>;
+    deleteRow(table: string, id: string): Promise<any>;
     seedSampleData(): Promise<{
         success: boolean;
         message: string;

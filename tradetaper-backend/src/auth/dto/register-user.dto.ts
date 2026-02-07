@@ -28,5 +28,13 @@ export class RegisterUserDto {
   @IsString()
   @MaxLength(100)
   @IsNotEmpty() // Optional: make it required
+  @IsString()
+  @MaxLength(100)
+  @IsNotEmpty() // Optional: make it required
   lastName?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(10)
+  referralCode?: string;
 }

@@ -10,6 +10,7 @@ interface RegisterPayload {
   password: string;
   firstName?: string;
   lastName?: string;
+  referralCode?: string;
 }
 
 interface LoginPayload {

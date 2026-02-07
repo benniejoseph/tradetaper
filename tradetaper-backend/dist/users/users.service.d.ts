@@ -6,6 +6,7 @@ interface CreateGoogleUserDto {
     email: string;
     firstName: string;
     lastName: string;
+    referralCode?: string;
 }
 export declare class UsersService {
     private usersRepository;

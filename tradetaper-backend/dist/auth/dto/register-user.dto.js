@@ -16,6 +16,7 @@ class RegisterUserDto {
     password;
     firstName;
     lastName;
+    referralCode;
 }
 exports.RegisterUserDto = RegisterUserDto;
 __decorate([
@@ -41,6 +42,15 @@ __decorate([
     (0, class_validator_1.IsString)(),
     (0, class_validator_1.MaxLength)(100),
     (0, class_validator_1.IsNotEmpty)(),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.MaxLength)(100),
+    (0, class_validator_1.IsNotEmpty)(),
     __metadata("design:type", String)
 ], RegisterUserDto.prototype, "lastName", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.MaxLength)(10),
+    __metadata("design:type", String)
+], RegisterUserDto.prototype, "referralCode", void 0);
 //# sourceMappingURL=register-user.dto.js.map

@@ -77,6 +77,9 @@ export declare class AdminService {
         limit: number;
         totalPages: number;
     }>;
+    createRow(table: string, data: any): Promise<any>;
+    updateRow(table: string, id: string, data: any): Promise<any>;
+    deleteRow(table: string, id: string): Promise<any>;
     private getDaysFromTimeRange;
     seedSampleData(): Promise<{
         success: boolean;

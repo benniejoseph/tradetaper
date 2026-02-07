@@ -39,6 +39,7 @@ interface FormData {
   tradingExperience: string;
   primaryMarkets: string[];
   agreeToTerms: boolean;
+  referralCode?: string;
 }
 
 export default function RegisterPage() {
@@ -60,7 +61,8 @@ export default function RegisterPage() {
     confirmPassword: '',
     tradingExperience: '',
     primaryMarkets: [],
-    agreeToTerms: false
+    agreeToTerms: false,
+    referralCode: ''
   });
 
   useEffect(() => {
@@ -124,7 +126,8 @@ export default function RegisterPage() {
         email: formData.email,
         password: formData.password,
         firstName: formData.firstName,
-        lastName: formData.lastName
+        lastName: formData.lastName,
+        referralCode: formData.referralCode
       }));
       // After successful registration, redirect to login page
       router.push('/login?registered=true');
@@ -505,6 +508,20 @@ export default function RegisterPage() {
                     <label htmlFor="terms" className="text-xs text-slate-400 leading-relaxed cursor-pointer select-none">
                         I agree to the <span className="text-emerald-400 hover:underline">Terms of Service</span> and <span className="text-emerald-400 hover:underline">Privacy Policy</span>.
                     </label>
+                  </div>
+
+                  <div>
+                     <label className="block text-xs font-medium text-slate-400 mb-3 uppercase tracking-wider">Referral Code (Optional)</label>
+                     <div className="relative group">
+                        <FaUserFriends className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-500 group-focus-within:text-emerald-400 transition-colors" />
+                        <input
+                            type="text"
+                            placeholder="Enter Referral Code"
+                            value={formData.referralCode || ''}
+                            onChange={(e) => handleInputChange('referralCode', e.target.value)}
+                            className="w-full pl-10 pr-4 py-3 bg-slate-900/50 border border-white/10 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all text-sm uppercase"
+                        />
+                     </div>
                   </div>
 
                   <div className="flex space-x-3 pt-2">

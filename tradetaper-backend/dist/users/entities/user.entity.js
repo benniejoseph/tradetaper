@@ -55,6 +55,9 @@ let User = class User {
     lastLoginAt;
     createdAt;
     updatedAt;
+    referralCode;
+    referredBy;
+    referralCount;
     psychologicalInsights;
     async hashPassword() {
         if (this.password) {
@@ -102,6 +105,18 @@ __decorate([
     (0, typeorm_1.UpdateDateColumn)(),
     __metadata("design:type", Date)
 ], User.prototype, "updatedAt", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ unique: true, length: 10, nullable: true }),
+    __metadata("design:type", String)
+], User.prototype, "referralCode", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], User.prototype, "referredBy", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ default: 0 }),
+    __metadata("design:type", Number)
+], User.prototype, "referralCount", void 0);
 __decorate([
     (0, typeorm_1.OneToMany)(() => psychological_insight_entity_1.PsychologicalInsight, (psychologicalInsight) => psychologicalInsight.user),
     __metadata("design:type", Array)

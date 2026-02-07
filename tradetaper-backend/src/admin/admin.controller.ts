@@ -4,6 +4,7 @@ import {
   Query,
   Param,
   Post,
+  Put,
   Delete,
   Body,
 } from '@nestjs/common';
@@ -92,6 +93,25 @@ export class AdminController {
       parseInt(page),
       parseInt(limit),
     );
+  }
+
+  @Post('database/row/:table')
+  async createRow(@Param('table') table: string, @Body() data: any) {
+    return this.adminService.createRow(table, data);
+  }
+
+  @Put('database/row/:table/:id')
+  async updateRow(
+    @Param('table') table: string,
+    @Param('id') id: string,
+    @Body() data: any,
+  ) {
+    return this.adminService.updateRow(table, id, data);
+  }
+
+  @Delete('database/row/:table/:id')
+  async deleteRow(@Param('table') table: string, @Param('id') id: string) {
+    return this.adminService.deleteRow(table, id);
   }
 
   @Post('seed-sample-data')

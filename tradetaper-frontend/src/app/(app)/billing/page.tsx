@@ -88,6 +88,7 @@ export default function BillingPage() {
   useEffect(() => {
     const planId = searchParams.get('plan');
     const interval = searchParams.get('interval') as 'monthly' | 'yearly' || 'monthly';
+    const coupon = searchParams.get('coupon') || undefined;
 
     if (!planId) return;
 
@@ -115,7 +116,7 @@ export default function BillingPage() {
             }
             
             console.log("Triggering upgrade flow...");
-            handleUpgrade(planId, interval);
+            handleUpgrade(planId, interval, coupon);
         } else {
              console.log("Waiting for dependencies...");
         }
@@ -164,13 +165,13 @@ export default function BillingPage() {
     }
   };
 
-  const handleUpgrade = async (planId: string, period: 'monthly' | 'yearly') => {
+  const handleUpgrade = async (planId: string, period: 'monthly' | 'yearly', couponCode?: string) => {
       setActionLoading('upgrade');
       setInitUpgrade(false); // Stop init loading, switch to action loading
 
       try {
-          console.log("Calling API createRazorpaySubscription...");
-          const data = await pricingApi.createRazorpaySubscription(planId, period);
+          console.log("Calling API createRazorpaySubscription...", { planId, period, couponCode });
+          const data = await pricingApi.createRazorpaySubscription(planId, period, couponCode);
           console.log("Subscription created, opening Razorpay...", data);
 
           if (!window.Razorpay) {
@@ -186,6 +187,11 @@ export default function BillingPage() {
               name: "TradeTaper",
               description: data.description,
               subscription_id: data.subscriptionId,
+              // If offer_id is present, it's applied automatically by Razorpay if passed in creation? 
+              // Wait, Razorpay subscription creation backend handled the offer_id. 
+              // The frontend checkout options usually don't need offer_id for subscriptions unless it's a standard payment.
+              // For subscriptions, the offer is linked to the subscription ID on backend creation.
+              // So we just open the options as returned.
               handler: async function (response: any) {
                   console.log("Payment successful", response);
                   setActionLoading(null);

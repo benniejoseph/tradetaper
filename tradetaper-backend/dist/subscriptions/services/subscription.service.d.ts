@@ -8,6 +8,7 @@ import { MT5Account } from '../../users/entities/mt5-account.entity';
 import { Note } from '../../notes/entities/note.entity';
 import { Strategy } from '../../strategies/entities/strategy.entity';
 import { RazorpayService } from './razorpay.service';
+import { CouponsService } from '../../coupons/services/coupons.service';
 export interface PricingPlan {
     id: string;
     name: string;
@@ -58,9 +59,10 @@ export declare class SubscriptionService {
     private strategyRepository;
     private configService;
     private razorpayService;
+    private couponsService;
     private readonly logger;
     private readonly pricingPlans;
-    constructor(subscriptionRepository: Repository<Subscription>, userRepository: Repository<User>, tradeRepository: Repository<Trade>, accountRepository: Repository<Account>, mt5AccountRepository: Repository<MT5Account>, noteRepository: Repository<Note>, strategyRepository: Repository<Strategy>, configService: ConfigService, razorpayService: RazorpayService);
+    constructor(subscriptionRepository: Repository<Subscription>, userRepository: Repository<User>, tradeRepository: Repository<Trade>, accountRepository: Repository<Account>, mt5AccountRepository: Repository<MT5Account>, noteRepository: Repository<Note>, strategyRepository: Repository<Strategy>, configService: ConfigService, razorpayService: RazorpayService, couponsService: CouponsService);
     getPricingPlans(): PricingPlan[];
     getPricingPlan(planId: string): PricingPlan | null;
     getOrCreateSubscription(userId: string): Promise<Subscription>;
@@ -71,12 +73,15 @@ export declare class SubscriptionService {
     hasFeatureAccess(userId: string, feature: string): Promise<boolean>;
     checkUsageLimit(userId: string, feature: 'trades' | 'accounts' | 'mt5Accounts' | 'manualAccounts' | 'notes' | 'strategies'): Promise<boolean>;
     incrementUsage(userId: string, feature: 'AI_NOTES' | 'TRADES' | 'STRATEGIES'): Promise<void>;
-    createRazorpaySubscription(userId: string, planId: string, period: 'monthly' | 'yearly'): Promise<{
+    createRazorpaySubscription(userId: string, planId: string, period: 'monthly' | 'yearly', couponCode?: string): Promise<{
         subscriptionId: any;
         key: string | undefined;
         currency: string;
         name: string;
         description: string;
         customer_id: string;
+        offer_id: string | undefined;
     }>;
+    handleRazorpayWebhook(event: any): Promise<void>;
+    private updateSubscriptionFromRazorpay;
 }

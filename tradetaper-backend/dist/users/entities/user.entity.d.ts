@@ -8,6 +8,9 @@ export declare class User {
     lastLoginAt?: Date;
     createdAt: Date;
     updatedAt: Date;
+    referralCode: string;
+    referredBy: string;
+    referralCount: number;
     psychologicalInsights: PsychologicalInsight[];
     hashPassword(): Promise<void>;
     validatePassword(password: string): Promise<boolean>;

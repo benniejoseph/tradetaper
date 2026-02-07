@@ -59,6 +59,15 @@ let AdminController = class AdminController {
     async getDatabaseRows(table, page = '1', limit = '20') {
         return this.adminService.getDatabaseRows(table, parseInt(page), parseInt(limit));
     }
+    async createRow(table, data) {
+        return this.adminService.createRow(table, data);
+    }
+    async updateRow(table, id, data) {
+        return this.adminService.updateRow(table, id, data);
+    }
+    async deleteRow(table, id) {
+        return this.adminService.deleteRow(table, id);
+    }
     async seedSampleData() {
         return this.adminService.seedSampleData();
     }
@@ -209,6 +218,31 @@ __decorate([
     __metadata("design:paramtypes", [String, String, String]),
     __metadata("design:returntype", Promise)
 ], AdminController.prototype, "getDatabaseRows", null);
+__decorate([
+    (0, common_1.Post)('database/row/:table'),
+    __param(0, (0, common_1.Param)('table')),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:returntype", Promise)
+], AdminController.prototype, "createRow", null);
+__decorate([
+    (0, common_1.Put)('database/row/:table/:id'),
+    __param(0, (0, common_1.Param)('table')),
+    __param(1, (0, common_1.Param)('id')),
+    __param(2, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String, Object]),
+    __metadata("design:returntype", Promise)
+], AdminController.prototype, "updateRow", null);
+__decorate([
+    (0, common_1.Delete)('database/row/:table/:id'),
+    __param(0, (0, common_1.Param)('table')),
+    __param(1, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String]),
+    __metadata("design:returntype", Promise)
+], AdminController.prototype, "deleteRow", null);
 __decorate([
     (0, common_1.Post)('seed-sample-data'),
     __metadata("design:type", Function),

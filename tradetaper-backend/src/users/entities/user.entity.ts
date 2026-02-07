@@ -38,6 +38,15 @@ export class User {
   @UpdateDateColumn()
   updatedAt: Date;
 
+  @Column({ unique: true, length: 10, nullable: true })
+  referralCode: string;
+
+  @Column({ nullable: true })
+  referredBy: string; // The referral code of the user who referred this user
+
+  @Column({ default: 0 })
+  referralCount: number;
+
   // Relations
   // strategies relationship temporarily commented out
   // @OneToMany('Strategy', 'user')

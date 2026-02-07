@@ -35,17 +35,19 @@ export const pricingApi = {
   },
 
   // Create Razorpay subscription
-  createRazorpaySubscription: async (planId: string, period: 'monthly' | 'yearly'): Promise<{
+  createRazorpaySubscription: async (planId: string, period: 'monthly' | 'yearly', couponCode?: string): Promise<{
       subscriptionId: string;
       key: string;
       currency: string;
       name: string;
       description: string;
       customer_id: string;
+      offer_id?: string;
   }> => {
       const response = await authApiClient.post('/subscriptions/create-razorpay-subscription', {
           planId,
-          period
+          period,
+          couponCode
       });
       return response.data;
   }
