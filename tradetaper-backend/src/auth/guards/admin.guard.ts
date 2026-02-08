@@ -1,9 +1,18 @@
-import { Injectable, CanActivate, ExecutionContext } from '@nestjs/common';
+import {
+  Injectable,
+  CanActivate,
+  ExecutionContext,
+  UnauthorizedException,
+  ForbiddenException,
+  Logger,
+} from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { JwtAuthGuard } from './jwt-auth.guard';
 
 @Injectable()
 export class AdminGuard extends JwtAuthGuard implements CanActivate {
+  private readonly logger = new Logger(AdminGuard.name);
+
   constructor(private reflector: Reflector) {
     super();
   }
@@ -11,39 +20,42 @@ export class AdminGuard extends JwtAuthGuard implements CanActivate {
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
 
-    // TEMPORARY: Allow admin access for development/demo purposes
-    // Check if this is an admin panel request (no user auth required for now)
-    const authHeader = request.headers.authorization;
-    const isAdminPanelRequest =
-      authHeader === 'Bearer mock-admin-token' || !authHeader;
-
-    if (isAdminPanelRequest) {
-      console.log('🔓 Admin panel access granted for demo/development');
-      return true;
+    // First, verify JWT authentication
+    const isAuthenticated = await super.canActivate(context);
+    if (!isAuthenticated) {
+      this.logger.warn('Admin access denied: User not authenticated');
+      throw new UnauthorizedException('Authentication required for admin access');
     }
 
-    // Production: Check if user is authenticated
-    try {
-      const isAuthenticated = await super.canActivate(context);
-      if (!isAuthenticated) {
-        return false;
-      }
+    // Get the authenticated user from request
+    const user = request.user;
 
-      // Get the user from request
-      const user = request.user;
+    if (!user) {
+      this.logger.warn('Admin access denied: No user found in request');
+      throw new UnauthorizedException('User not found in request');
+    }
 
-      // Check if user has admin role
-      const adminEmails = [
+    // Check if user has admin role
+    // SECURITY: Admin emails should be stored in environment variables or database
+    const adminEmails = process.env.ADMIN_EMAILS?.split(',').map(email => email.trim().toLowerCase()) || [];
+
+    // Fallback to hardcoded list only in development
+    if (adminEmails.length === 0 && process.env.NODE_ENV === 'development') {
+      this.logger.warn('Using fallback admin emails - configure ADMIN_EMAILS in production');
+      adminEmails.push(
         'tradetaper@gmail.com',
         'benniejoseph.r@gmail.com',
-        'admin@tradetaper.com',
-      ];
-
-      return adminEmails.includes(user.email?.toLowerCase());
-    } catch (error) {
-      // If JWT validation fails, allow admin panel access for now
-      console.log('🔓 Admin guard bypassed due to auth error:', error.message);
-      return true;
+      );
     }
+
+    const isAdmin = adminEmails.includes(user.email?.toLowerCase());
+
+    if (!isAdmin) {
+      this.logger.warn(`Admin access denied for user: ${user.email}`);
+      throw new ForbiddenException('Admin privileges required');
+    }
+
+    this.logger.log(`Admin access granted for user: ${user.email}`);
+    return true;
   }
 }

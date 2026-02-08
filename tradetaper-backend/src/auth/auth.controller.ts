@@ -139,11 +139,31 @@ export class AuthController {
 
       console.log('User authenticated successfully:', result.user.email);
 
-      // Redirect to frontend with success
+      // SECURITY FIX: Set token as HTTP-only cookie instead of URL parameter
       const frontendUrl =
         this.configService.get<string>('FRONTEND_URL') ||
         'http://localhost:3000';
-      const redirectUrl = `${frontendUrl}/auth/google/callback?token=${result.accessToken}&user=${encodeURIComponent(JSON.stringify(result.user))}`;
+
+      // Set auth token as HTTP-only cookie
+      res.cookie('auth_token', result.accessToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production', // HTTPS only in production
+        sameSite: 'lax',
+        maxAge: 24 * 60 * 60 * 1000, // 24 hours
+        path: '/',
+      });
+
+      // Set user data as separate cookie (not HTTP-only for client access)
+      res.cookie('user_data', JSON.stringify(result.user), {
+        httpOnly: false,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 24 * 60 * 60 * 1000,
+        path: '/',
+      });
+
+      // Redirect without sensitive data in URL
+      const redirectUrl = `${frontendUrl}/auth/google/callback?success=true`;
 
       return res.redirect(redirectUrl);
     } catch (error) {
@@ -233,12 +253,26 @@ export class AuthController {
     };
   }
 
+  /**
+   * SECURITY WARNING: This endpoint has been DISABLED due to hardcoded credentials.
+   * Admin users should use the regular /auth/login endpoint with their database credentials.
+   * Admin access is controlled via the AdminGuard which checks the ADMIN_EMAILS environment variable.
+   *
+   * REMOVED: Hardcoded admin credentials (admin@tradetaper.com / admin123)
+   */
   @Post('admin/login')
   @HttpCode(HttpStatus.OK)
   async adminLogin(
     @Body() loginDto: { email: string; password: string },
   ): Promise<{ accessToken: string; user: any }> {
-    // Demo admin credentials
+    // SECURITY: Hardcoded admin login endpoint has been disabled
+    throw new BadRequestException(
+      'This endpoint has been disabled for security reasons. ' +
+      'Admin users should use the regular /auth/login endpoint. ' +
+      'Admin access is granted based on ADMIN_EMAILS environment variable.'
+    );
+
+    /* DISABLED CODE - Hardcoded admin credentials removed for security
     const adminCredentials = {
       email: 'admin@tradetaper.com',
       password: 'admin123',
@@ -251,7 +285,6 @@ export class AuthController {
       throw new UnauthorizedException('Invalid admin credentials');
     }
 
-    // Create a JWT token for the admin user
     const payload = {
       email: adminCredentials.email,
       sub: 'admin-user-id',
@@ -272,6 +305,7 @@ export class AuthController {
         updatedAt: new Date().toISOString(),
       },
     };
+    */
   }
 
   @UseGuards(JwtAuthGuard)

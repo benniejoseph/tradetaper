@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import { User } from '../users/entities/user.entity';
@@ -13,6 +13,35 @@ import { TradeDirection, TradeStatus, AssetType } from '../types/enums';
 
 @Injectable()
 export class AdminService {
+  private readonly logger = new Logger(AdminService.name);
+
+  // SECURITY: Whitelist of allowed tables for direct database operations
+  // Only these tables can be accessed via admin CRUD endpoints
+  private readonly ALLOWED_TABLES = [
+    'users',
+    'accounts',
+    'mt5_accounts',
+    'trades',
+    'trade_candles',
+    'subscriptions',
+    'strategies',
+    'notes',
+    'note_blocks',
+    'note_media',
+    'tags',
+    'trade_tags',
+    'notifications',
+    'notification_preferences',
+    'terminal_instances',
+    'statement_uploads',
+    'coupons',
+    'trader_discipline',
+    'cooldown_sessions',
+    'trade_approvals',
+    'prop_firm_accounts',
+    'psychological_insights',
+  ];
+
   constructor(
     @InjectRepository(User)
     private userRepository: Repository<User>,
@@ -24,6 +53,21 @@ export class AdminService {
     private subscriptionRepository: Repository<Subscription>,
     private dataSource: DataSource,
   ) {}
+
+  /**
+   * SECURITY: Validates table name against whitelist to prevent SQL injection
+   * @param tableName The table name to validate
+   * @throws BadRequestException if table name is not in whitelist
+   */
+  private validateTableName(tableName: string): void {
+    if (!this.ALLOWED_TABLES.includes(tableName)) {
+      this.logger.warn(`Attempted access to unauthorized table: ${tableName}`);
+      throw new BadRequestException(
+        `Table '${tableName}' is not accessible via admin API. ` +
+        `Allowed tables: ${this.ALLOWED_TABLES.join(', ')}`
+      );
+    }
+  }
 
   async getDashboardStats() {
     // Get real counts from database
@@ -202,75 +246,136 @@ export class AdminService {
     limit: number = 20,
   ) {
     try {
-      const offset = (page - 1) * limit;
+      // SECURITY: Validate table name against whitelist
+      this.validateTableName(tableName);
 
-      // Get total count
+      const offset = (page - 1) * limit;
+      const safeLimit = Math.min(limit, 1000); // Cap at 1000 rows
+
+      // Get total count using parameterized query
       const countQuery = `SELECT COUNT(*) as count FROM "${tableName}";`;
       const countResult = await this.dataSource.query(countQuery);
       const total = parseInt(countResult[0].count);
 
-      // Get paginated data
+      // Get paginated data with parameterized limit and offset
       const dataQuery = `SELECT * FROM "${tableName}" LIMIT $1 OFFSET $2;`;
-      const data = await this.dataSource.query(dataQuery, [limit, offset]);
+      const data = await this.dataSource.query(dataQuery, [safeLimit, offset]);
+
+      this.logger.log(`Fetched ${data.length} rows from ${tableName} (page ${page})`);
 
       return {
         data,
         total,
         page,
-        limit,
-        totalPages: Math.ceil(total / limit),
+        limit: safeLimit,
+        totalPages: Math.ceil(total / safeLimit),
       };
     } catch (error) {
-      console.error(`Error fetching rows from ${tableName}:`, error);
+      this.logger.error(`Error fetching rows from ${tableName}:`, error);
+      if (error instanceof BadRequestException) {
+        throw error; // Re-throw validation errors
+      }
       return {
         data: [],
         total: 0,
         page,
         limit,
         totalPages: 0,
+        error: error.message,
       };
     }
   }
 
   async createRow(table: string, data: any) {
     try {
+      // SECURITY: Validate table name against whitelist
+      this.validateTableName(table);
+
       const keys = Object.keys(data);
       const values = Object.values(data);
-      if (keys.length === 0) throw new Error('No data provided');
+
+      if (keys.length === 0) {
+        throw new BadRequestException('No data provided for row creation');
+      }
+
+      // Validate column names (alphanumeric and underscore only)
+      const invalidKeys = keys.filter(k => !/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(k));
+      if (invalidKeys.length > 0) {
+        throw new BadRequestException(`Invalid column names: ${invalidKeys.join(', ')}`);
+      }
 
       const placeholders = values.map((_, i) => `$${i + 1}`).join(',');
       const query = `INSERT INTO "${table}" (${keys.map(k => `"${k}"`).join(',')}) VALUES (${placeholders}) RETURNING *`;
       const result = await this.dataSource.query(query, values);
+
+      this.logger.log(`Created row in ${table} with ${keys.length} fields`);
       return result[0];
     } catch (error) {
-      console.error(`Error creating row in ${table}:`, error);
+      this.logger.error(`Error creating row in ${table}:`, error);
       throw error;
     }
   }
 
   async updateRow(table: string, id: string, data: any) {
     try {
+      // SECURITY: Validate table name against whitelist
+      this.validateTableName(table);
+
       const keys = Object.keys(data);
       const values = Object.values(data);
-      if (keys.length === 0) throw new Error('No data provided');
+
+      if (keys.length === 0) {
+        throw new BadRequestException('No data provided for row update');
+      }
+
+      // Validate column names (alphanumeric and underscore only)
+      const invalidKeys = keys.filter(k => !/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(k));
+      if (invalidKeys.length > 0) {
+        throw new BadRequestException(`Invalid column names: ${invalidKeys.join(', ')}`);
+      }
+
+      // Validate ID format (UUID or numeric)
+      if (!id || (!/^[a-f0-9-]{36}$/i.test(id) && !/^\d+$/.test(id))) {
+        throw new BadRequestException('Invalid ID format');
+      }
 
       const setClause = keys.map((k, i) => `"${k}" = $${i + 1}`).join(',');
       const query = `UPDATE "${table}" SET ${setClause} WHERE id = $${values.length + 1} RETURNING *`;
       const result = await this.dataSource.query(query, [...values, id]);
+
+      if (!result[0]) {
+        throw new BadRequestException(`Row with id ${id} not found in ${table}`);
+      }
+
+      this.logger.log(`Updated row ${id} in ${table} with ${keys.length} fields`);
       return result[0];
     } catch (error) {
-      console.error(`Error updating row in ${table}:`, error);
+      this.logger.error(`Error updating row in ${table}:`, error);
       throw error;
     }
   }
 
   async deleteRow(table: string, id: string) {
     try {
+      // SECURITY: Validate table name against whitelist
+      this.validateTableName(table);
+
+      // Validate ID format (UUID or numeric)
+      if (!id || (!/^[a-f0-9-]{36}$/i.test(id) && !/^\d+$/.test(id))) {
+        throw new BadRequestException('Invalid ID format');
+      }
+
       const query = `DELETE FROM "${table}" WHERE id = $1 RETURNING *`;
       const result = await this.dataSource.query(query, [id]);
+
+      if (!result[0]) {
+        throw new BadRequestException(`Row with id ${id} not found in ${table}`);
+      }
+
+      this.logger.log(`Deleted row ${id} from ${table}`);
       return result[0];
     } catch (error) {
-      console.error(`Error deleting row from ${table}:`, error);
+      this.logger.error(`Error deleting row from ${table}:`, error);
       throw error;
     }
   }
@@ -616,22 +721,39 @@ export class AdminService {
     }
   }
 
+  /**
+   * SECURITY WARNING: This method allows arbitrary SQL execution and should be removed
+   * in production environments. It poses a critical security risk.
+   *
+   * DISABLED: This method has been disabled for security reasons.
+   * If you need to run SQL queries, use the database client directly with proper
+   * authorization and audit logging.
+   */
   async runSql(
     sql: string,
   ): Promise<{ success: boolean; result?: any; error?: string }> {
+    // SECURITY: Arbitrary SQL execution is disabled
+    this.logger.error('Attempted to execute arbitrary SQL - OPERATION BLOCKED');
+    throw new BadRequestException(
+      'Arbitrary SQL execution is disabled for security reasons. ' +
+      'Use specific admin endpoints or database migrations instead.'
+    );
+
+    /* DISABLED CODE - Remove comment block to re-enable (NOT RECOMMENDED)
     try {
-      console.log('Executing SQL:', sql);
+      this.logger.warn('Executing arbitrary SQL:', sql);
       const result = await this.dataSource.query(sql);
       return {
         success: true,
         result,
       };
     } catch (error) {
-      console.error('SQL execution error:', error);
+      this.logger.error('SQL execution error:', error);
       return {
         success: false,
         error: error.message,
       };
     }
+    */
   }
 }
