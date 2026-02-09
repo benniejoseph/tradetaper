@@ -32,6 +32,7 @@ import { JwtService } from '@nestjs/jwt';
 import { AuthGuard } from '@nestjs/passport';
 import { ConfigService } from '@nestjs/config';
 import { Throttle } from '@nestjs/throttler';
+import { DevOnlyGuard } from '../common/guards/dev-only.guard';
 
 @Controller('auth') // Route prefix /api/v1/auth
 export class AuthController {
@@ -240,7 +241,9 @@ export class AuthController {
     }
   }
 
+  // SECURITY: Only available in development mode
   @Get('debug/google-config')
+  @UseGuards(DevOnlyGuard)
   async debugGoogleConfig() {
     return {
       hasClientId: !!this.configService.get<string>('GOOGLE_CLIENT_ID'),
@@ -250,7 +253,9 @@ export class AuthController {
     };
   }
 
+  // SECURITY: Only available in development mode
   @Get('test-route')
+  @UseGuards(DevOnlyGuard)
   async testRoute() {
     return {
       message: 'Test route working',
@@ -320,7 +325,9 @@ export class AuthController {
     return req.user;
   }
 
+  // SECURITY: Only available in development mode
   @Get('test-oauth-routes')
+  @UseGuards(DevOnlyGuard)
   async testOauthRoutes() {
     return {
       message: 'OAuth routes test',

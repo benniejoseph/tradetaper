@@ -7,9 +7,11 @@ import {
   Put,
   Delete,
   Body,
+  UseGuards,
 } from '@nestjs/common';
 import { AdminService } from './admin.service';
 import { TestUserSeedService } from '../seed/test-user-seed.service';
+import { DevOnlyGuard } from '../common/guards/dev-only.guard';
 
 @Controller('admin')
 export class AdminController {
@@ -119,7 +121,9 @@ export class AdminController {
     return this.adminService.seedSampleData();
   }
 
+  // SECURITY: Only available in development mode
   @Post('test-user/create')
+  @UseGuards(DevOnlyGuard)
   async createTestUser() {
     const result = await this.testUserSeedService.createTestUser();
     return {
@@ -134,7 +138,9 @@ export class AdminController {
     };
   }
 
+  // SECURITY: Only available in development mode
   @Delete('test-user/delete')
+  @UseGuards(DevOnlyGuard)
   async deleteTestUser() {
     await this.testUserSeedService.deleteTestUser();
     return {
