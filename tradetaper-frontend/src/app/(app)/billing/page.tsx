@@ -257,8 +257,8 @@ export default function BillingPage() {
                 
                 {/* Main Subscription Card */}
                 <div className="lg:col-span-2 space-y-8">
-                    <div className="relative overflow-hidden rounded-3xl glass-card p-8">
-                         <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full blur-3xl -mr-32 -mt-32 pointer-events-none"></div>
+                    <div className="relative overflow-hidden rounded-3xl border border-border bg-card/50 backdrop-blur-xl p-8 shadow-sm">
+                         <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -mr-32 -mt-32 pointer-events-none"></div>
                          
                          <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4 relative z-10">
                             <div>
@@ -344,7 +344,7 @@ export default function BillingPage() {
                     </div>
 
                     {/* Billing History */}
-                    <div className="rounded-3xl glass-card p-8">
+                    <div className="rounded-3xl border border-border bg-card/50 backdrop-blur-xl p-8 shadow-sm">
                         <div className="flex items-center justify-between mb-6">
                             <h3 className="text-xl font-bold text-foreground">Billing History</h3>
                             <button className="text-sm text-primary hover:text-primary/80 font-medium flex items-center gap-1">
@@ -364,7 +364,7 @@ export default function BillingPage() {
 
                 {/* Usage Stats (Side Panel) */}
                 <div className="space-y-8">
-                    <div className="rounded-3xl glass-card p-6 pt-8">
+                    <div className="rounded-3xl border border-border bg-card/50 backdrop-blur-xl p-6 pt-8 shadow-sm">
                         <div className="flex items-center gap-3 mb-6">
                              <div className="p-3 bg-indigo-500/10 rounded-xl text-indigo-500">
                                 <FaChartBar className="text-xl" />

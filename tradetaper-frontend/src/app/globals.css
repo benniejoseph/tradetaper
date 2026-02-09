@@ -11,28 +11,71 @@
 
 @layer base {
   :root {
-    /* Emerald Theme Colors */
-    --bg-primary: #020617; /* Slate 950 - Deepest Background */
-    --bg-secondary: #0f172a; /* Slate 900 */
-    --bg-tertiary: #1e293b; /* Slate 800 */
+    /* light mode defaults */
+    --background: 248 250 252; /* Slate 50 */
+    --foreground: 2 6 23; /* Slate 950 */
+
+    --card: 255 255 255;
+    --card-foreground: 2 6 23;
     
-    --text-primary: #F8FAFC; /* Slate 50 */
-    --text-secondary: #94A3B8; /* Slate 400 */
-    --text-muted: #64748B; /* Slate 500 */
+    --popover: 255 255 255;
+    --popover-foreground: 2 6 23;
     
-    --accent-emerald: #10B981;
-    --accent-teal: #14B8A6;
-    --accent-lime: #84CC16;
+    --primary: 16 185 129; /* Emerald 500 */
+    --primary-foreground: 255 255 255;
     
-    --glow-emerald: rgba(16, 185, 129, 0.5);
+    --secondary: 241 245 249; /* Slate 100 */
+    --secondary-foreground: 15 23 42; /* Slate 900 */
+    
+    --muted: 241 245 249; /* Slate 100 */
+    --muted-foreground: 100 116 139; /* Slate 500 */
+    
+    --accent: 241 245 249; /* Slate 100 */
+    --accent-foreground: 15 23 42; /* Slate 900 */
+    
+    --destructive: 239 68 68;
+    --destructive-foreground: 248 250 252;
+
+    --border: 226 232 240; /* Slate 200 */
+    --input: 226 232 240;
+    --ring: 16 185 129;
     
     --radius-xl: 1.5rem;
     --radius-2xl: 2rem;
   }
 
+  .dark {
+    --background: 2 6 23; /* Slate 950 */
+    --foreground: 248 250 252; /* Slate 50 */
+
+    --card: 15 23 42; /* Slate 900 */
+    --card-foreground: 248 250 252;
+    
+    --popover: 2 6 23;
+    --popover-foreground: 248 250 252;
+    
+    --primary: 16 185 129;
+    --primary-foreground: 255 255 255;
+    
+    --secondary: 30 41 59; /* Slate 800 */
+    --secondary-foreground: 248 250 252;
+    
+    --muted: 30 41 59;
+    --muted-foreground: 148 163 184;
+    
+    --accent: 30 41 59;
+    --accent-foreground: 248 250 252;
+    
+    --destructive: 127 29 29;
+    --destructive-foreground: 248 250 252;
+
+    --border: 30 41 59;
+    --input: 30 41 59;
+    --ring: 16 185 129;
+  }
+
   html {
-    background-color: var(--bg-primary);
-    color: var(--text-primary);
+    @apply bg-background text-foreground;
     font-family: 'Poppins', sans-serif;
     scroll-behavior: smooth;
   }
@@ -41,7 +84,7 @@
 @layer components {
   /* 3D Glass Card */
   .glass-card {
-    @apply bg-slate-900/40 backdrop-blur-xl border border-white/10 shadow-2xl transition-all duration-500;
+    @apply bg-card/40 backdrop-blur-xl border border-border shadow-xl transition-all duration-500;
   }
 
   .glass-card:hover {
