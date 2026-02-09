@@ -17,6 +17,7 @@ console.log('🔧 API Configuration:', {
 // Default instance for public routes
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
+  withCredentials: true, // Ensure cookies (like CSRF) are sent/received
   headers: {
     'Content-Type': 'application/json',
   },
@@ -25,6 +26,7 @@ export const apiClient = axios.create({
 // Instance for authenticated routes
 export const authApiClient = axios.create({
   baseURL: API_BASE_URL,
+  withCredentials: true, // Ensure cookies (like CSRF) are sent/received
   headers: {
     'Content-Type': 'application/json',
   },
