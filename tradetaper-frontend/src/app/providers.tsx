@@ -5,15 +5,20 @@ import { useEffect } from 'react';
 import { store } from '@/store/store';
 import { CurrencyProvider } from '@/context/CurrencyContext';
 import { loadUserFromStorage } from '@/store/features/authSlice';
-import { setupAuthInterceptors } from '@/services/api';
+import { setupAuthInterceptors, initializeApiSecurity } from '@/services/api';
 
 function ReduxProviderWithInit({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     // Load user from storage on app initialization
     store.dispatch(loadUserFromStorage());
-    
+
     // Setup auth interceptors to attach JWT token to requests
     setupAuthInterceptors(() => store.getState());
+
+    // SECURITY: Initialize CSRF protection
+    initializeApiSecurity().catch((error) => {
+      console.error('Failed to initialize API security:', error);
+    });
   }, []);
 
   return (

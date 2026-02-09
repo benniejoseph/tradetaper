@@ -1,12 +1,13 @@
 // src/services/api.ts
 import axios from 'axios';
 import { RootState } from '@/store/store';
+import { csrfService } from './csrf';
 
 // Use environment variable with fallback to GCP backend
-const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL || 
+const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL ||
   'https://api.tradetaper.com/api/v1').trim();
 
-console.log('🔧 API Configuration:', { 
+console.log('🔧 API Configuration:', {
   env: process.env.NODE_ENV,
   apiUrl: API_BASE_URL,
   envVar: process.env.NEXT_PUBLIC_API_URL,
@@ -32,6 +33,10 @@ export const authApiClient = axios.create({
   // SECURITY: Enable sending cookies with requests for HTTP-only auth tokens
   withCredentials: true,
 });
+
+// SECURITY: Setup CSRF protection interceptors
+csrfService.setupInterceptors(apiClient);
+csrfService.setupInterceptors(authApiClient);
 
 export default authApiClient;
 
@@ -82,4 +87,21 @@ export function setupAuthInterceptors(getState: () => RootState) { // removed un
         }
     );
     console.log('[API.TS] Auth interceptors configured.');
+}
+
+/**
+ * Initialize CSRF protection
+ * Should be called on app startup
+ */
+export async function initializeApiSecurity(): Promise<void> {
+    try {
+        await csrfService.initialize();
+        console.log('✅ API security initialized (CSRF protection ready)');
+    } catch (error) {
+        console.error('❌ Failed to initialize API security:', error);
+        // Don't throw in development mode to allow local testing
+        if (process.env.NODE_ENV === 'production') {
+            throw error;
+        }
+    }
 }
