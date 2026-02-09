@@ -1,3 +1,5 @@
+"use client";
+
 import React, { PropsWithChildren, useState } from 'react';
 
 interface TabsProps extends PropsWithChildren<{ defaultValue: string; className?: string }>{}

@@ -84,8 +84,12 @@ export class CreateTerminalInstances1770400000000 implements MigrationInterface 
 
     public async down(queryRunner: QueryRunner): Promise<void> {
         const table = await queryRunner.getTable("terminal_instances");
-        const foreignKey = table.foreignKeys.find(fk => fk.columnNames.indexOf("accountId") !== -1);
-        await queryRunner.dropForeignKey("terminal_instances", foreignKey);
-        await queryRunner.dropTable("terminal_instances");
+        if (table) {
+            const foreignKey = table.foreignKeys.find(fk => fk.columnNames.indexOf("accountId") !== -1);
+            if (foreignKey) {
+                await queryRunner.dropForeignKey("terminal_instances", foreignKey);
+            }
+            await queryRunner.dropTable("terminal_instances");
+        }
     }
 }

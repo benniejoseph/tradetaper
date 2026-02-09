@@ -1,9 +1,9 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@100;300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@100;300;400;500;600;700&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap');
 
 /* 
   TradeTaper Centralized Theme System - 3D Emerald Edition
@@ -11,28 +11,73 @@
 
 @layer base {
   :root {
-    /* Emerald Theme Colors */
-    --bg-primary: #020617; /* Slate 950 - Deepest Background */
-    --bg-secondary: #0f172a; /* Slate 900 */
-    --bg-tertiary: #1e293b; /* Slate 800 */
+     /* Light Mode Variables */
+    --background: #ffffff;
+    --foreground: #020617; /* Slate 950 */
     
-    --text-primary: #F8FAFC; /* Slate 50 */
-    --text-secondary: #94A3B8; /* Slate 400 */
-    --text-muted: #64748B; /* Slate 500 */
-    
-    --accent-emerald: #10B981;
-    --accent-teal: #14B8A6;
-    --accent-lime: #84CC16;
-    
-    --glow-emerald: rgba(16, 185, 129, 0.5);
-    
+    --card: #ffffff;
+    --card-foreground: #020617;
+ 
+    --popover: #ffffff;
+    --popover-foreground: #020617;
+ 
+    --primary: #10B981; /* Emerald 500 */
+    --primary-foreground: #ffffff;
+ 
+    --secondary: #f1f5f9; /* Slate 100 */
+    --secondary-foreground: #0f172a; /* Slate 900 */
+ 
+    --muted: #f8fafc; /* Slate 50 */
+    --muted-foreground: #64748B; /* Slate 500 */
+ 
+    --accent: #f1f5f9; /* Slate 100 */
+    --accent-foreground: #0f172a; /* Slate 900 */
+ 
+    --destructive: #ef4444; /* Red 500 */
+    --destructive-foreground: #ffffff;
+ 
+    --border: #e2e8f0; /* Slate 200 */
+    --input: #e2e8f0; /* Slate 200 */
+    --ring: #10B981; /* Emerald 500 */
+
     --radius-xl: 1.5rem;
     --radius-2xl: 2rem;
   }
+ 
+  .dark {
+    /* Dark Mode Variables - Pure Black Basis */
+    --background: #000000;
+    --foreground: #f8fafc; /* Slate 50 */
+ 
+    --card: #0A0A0A; /* Very Dark Gray */
+    --card-foreground: #f8fafc;
+ 
+    --popover: #0A0A0A;
+    --popover-foreground: #f8fafc;
+ 
+    --primary: #10B981; /* Emerald 500 */
+    --primary-foreground: #ffffff;
+ 
+    --secondary: #171717; /* Neutral 900 */
+    --secondary-foreground: #f8fafc;
+ 
+    --muted: #171717; /* Neutral 900 */
+    --muted-foreground: #94A3B8; /* Slate 400 */
+ 
+    --accent: #171717; /* Neutral 900 */
+    --accent-foreground: #f8fafc;
+ 
+    --destructive: #7f1d1d; /* Red 900 */
+    --destructive-foreground: #f8fafc;
+ 
+    --border: #262626; /* Neutral 800 */
+    --input: #262626; /* Neutral 800 */
+    --ring: #059669; /* Emerald 600 */
+  }
 
   html {
-    background-color: var(--bg-primary);
-    color: var(--text-primary);
+    background-color: var(--background);
+    color: var(--foreground);
     font-family: 'Poppins', sans-serif;
     scroll-behavior: smooth;
   }
@@ -40,18 +85,21 @@
 
 @layer components {
   /* 3D Glass Card */
+  /* 3D Glass Card */
   .glass-card {
-    @apply bg-slate-900/40 backdrop-blur-xl border border-white/10 shadow-2xl transition-all duration-500;
+    @apply backdrop-blur-xl border border-border shadow-2xl transition-all duration-500;
+    background-color: color-mix(in srgb, var(--card) 40%, transparent);
   }
 
   .glass-card:hover {
-    @apply border-emerald-500/30 shadow-[0_0_30px_rgba(16,185,129,0.2)];
+    @apply shadow-lg;
+    border-color: color-mix(in srgb, var(--primary) 30%, transparent);
     transform: translateY(-5px) scale(1.01);
   }
 
   /* Neon Text Gradient */
   .text-gradient-emerald {
-    @apply bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 via-teal-400 to-lime-400;
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 via-teal-400 to-lime-400 dark:from-emerald-400 dark:via-teal-400 dark:to-lime-400 from-emerald-600 via-teal-600 to-lime-600;
   }
 
   /* 3D Button */
@@ -60,11 +108,18 @@
   }
 
   .btn-primary-3d {
-    @apply bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-emerald-900/20 hover:shadow-emerald-500/40;
+    @apply bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-lg;
+    --tw-shadow-color: color-mix(in srgb, #064E3B 20%, transparent);
+  }
+  .btn-primary-3d:hover {
+    --tw-shadow-color: color-mix(in srgb, #10B981 40%, transparent);
   }
 
   .btn-secondary-3d {
-    @apply bg-white/5 border border-white/10 text-white hover:bg-white/10 hover:border-emerald-500/30;
+    @apply bg-secondary border border-input text-secondary-foreground hover:bg-muted;
+  }
+  .btn-secondary-3d:hover {
+    border-color: color-mix(in srgb, var(--primary) 30%, transparent);
   }
 }
 

@@ -161,32 +161,32 @@ export default function RegisterPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-slate-950 flex relative overflow-hidden font-sans text-white text-sm">
+    <div className="min-h-screen bg-background flex relative overflow-hidden font-sans text-foreground text-sm">
       {/* 3D Background Elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         {/* Grid Floor */}
-         <div className="absolute inset-0 bg-[linear-gradient(rgba(16,185,129,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(16,185,129,0.03)_1px,transparent_1px)] bg-[size:100px_100px] [transform:perspective(1000px)_rotateX(60deg)_translateY(-100px)_scale(3)] origin-top opacity-50"></div>
+         <div className="absolute inset-0 bg-[linear-gradient(rgba(16,185,129,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(16,185,129,0.03)_1px,transparent_1px)] bg-[size:100px_100px] [transform:perspective(1000px)_rotateX(60deg)_translateY(-100px)_scale(3)] origin-top opacity-50 dark:opacity-50 opacity-20"></div>
          
          <div className="absolute top-[-20%] right-[-10%] w-[50%] h-[50%] bg-emerald-500/10 rounded-full blur-[100px] animate-float"></div>
          <div className="absolute bottom-[-10%] left-[-10%] w-[50%] h-[50%] bg-teal-500/10 rounded-full blur-[100px] animate-float delay-1000"></div>
       </div>
 
       {/* Left Side - 3D Visual & Benefits */}
-      <div className="hidden lg:flex lg:w-1/2 relative z-10 p-12 flex-col justify-center border-r border-white/5 bg-slate-900/40 backdrop-blur-sm">
+      <div className="hidden lg:flex lg:w-1/2 relative z-10 p-12 flex-col justify-center border-r border-border bg-card/30 backdrop-blur-sm">
         <div className="max-w-lg mx-auto">
           <div className="mb-12">
             <Link href="/" className="flex items-center mb-8 group">
               <div className="p-3 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl shadow-lg shadow-emerald-500/20 mr-4 group-hover:scale-110 transition-transform">
                 <FaChartLine className="h-8 w-8 text-white" />
               </div>
-              <h1 className="text-3xl font-bold text-white">
+              <h1 className="text-3xl font-bold text-foreground">
                 TradeTaper
               </h1>
             </Link>
-            <h2 className="text-4xl font-bold text-white mb-6 leading-tight">
+            <h2 className="text-4xl font-bold text-foreground mb-6 leading-tight">
               Join 10,000+ <span className="text-gradient-emerald">Successful Traders</span>
             </h2>
-            <p className="text-lg text-slate-400 mb-8 leading-relaxed">
+            <p className="text-lg text-muted-foreground mb-8 leading-relaxed">
               Start your trading journal journey with the most advanced platform designed for serious traders.
             </p>
           </div>
@@ -209,13 +209,13 @@ export default function RegisterPage() {
                 description: "Access advanced AI insights"
               }
             ].map((benefit, index) => (
-              <div key={index} className="flex items-center space-x-4 p-4 rounded-xl border border-white/5 bg-white/[0.02] hover:bg-white/[0.05] transition-colors">
-                <div className="flex-shrink-0 p-3 bg-emerald-500/10 rounded-lg">
-                  <benefit.icon className="text-lg text-emerald-400" />
+              <div key={index} className="flex items-center space-x-4 p-4 rounded-xl border border-border bg-card/40 hover:bg-card/60 transition-colors">
+                <div className="flex-shrink-0 p-3 bg-primary/10 rounded-lg">
+                  <benefit.icon className="text-lg text-primary" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-white text-sm">{benefit.title}</h3>
-                  <p className="text-slate-400 text-xs">{benefit.description}</p>
+                  <h3 className="font-bold text-foreground text-sm">{benefit.title}</h3>
+                  <p className="text-muted-foreground text-xs">{benefit.description}</p>
                 </div>
               </div>
             ))}
@@ -223,11 +223,11 @@ export default function RegisterPage() {
 
           {/* 3D Visual Element */}
           <div className="mt-16 relative">
-            <div className="absolute inset-0 bg-emerald-500/10 blur-3xl rounded-full"></div>
+            <div className="absolute inset-0 bg-primary/10 blur-3xl rounded-full"></div>
             <div className="relative glass-card p-6 flex items-center justify-between">
                 <div>
-                    <div className="text-2xl font-bold text-white">30-Day Trial</div>
-                    <div className="text-slate-400 text-xs">Full access. No credit card required.</div>
+                    <div className="text-2xl font-bold text-foreground">30-Day Trial</div>
+                    <div className="text-muted-foreground text-xs">Full access. No credit card required.</div>
                 </div>
                 <FaSparkles className="text-yellow-400 text-3xl animate-pulse" />
             </div>
@@ -242,17 +242,17 @@ export default function RegisterPage() {
            {/* Mobile Header */}
            <div className="lg:hidden text-center mb-8">
                <Link href="/" className="inline-flex items-center gap-2 mb-4">
-                  <FaChartLine className="text-emerald-500 text-2xl" />
-                  <span className="text-xl font-bold text-white">TradeTaper</span>
+                  <FaChartLine className="text-primary text-2xl" />
+                  <span className="text-xl font-bold text-foreground">TradeTaper</span>
                </Link>
-               <h2 className="text-2xl font-bold text-white">Create Account</h2>
+               <h2 className="text-2xl font-bold text-foreground">Create Account</h2>
            </div>
 
-          <div className="glass-card p-6 md:p-8 rounded-3xl border border-white/10 relative">
+          <div className="glass-card p-6 md:p-8 rounded-3xl border border-border relative bg-card/50">
              {/* Progress Stepper */}
              <div className="flex items-center justify-between mb-8 relative">
                  {/* Progress Line Background */}
-                 <div className="absolute top-1/2 left-0 w-full h-0.5 bg-slate-800 -z-10"></div>
+                 <div className="absolute top-1/2 left-0 w-full h-0.5 bg-border -z-10"></div>
                  {/* Active Progress Line */}
                  <div 
                     className="absolute top-1/2 left-0 h-0.5 bg-gradient-to-r from-emerald-500 to-teal-500 -z-10 transition-all duration-500"
@@ -263,13 +263,13 @@ export default function RegisterPage() {
                     <div key={step.id} className="relative group">
                         <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 border-2 ${
                             index <= currentStepIndex 
-                                ? 'bg-slate-900 border-emerald-500 text-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.5)]' 
-                                : 'bg-slate-900 border-slate-700 text-slate-500'
+                                ? 'bg-background border-primary text-primary shadow-lg shadow-primary/20' 
+                                : 'bg-background border-muted text-muted-foreground'
                         }`}>
                             {index < currentStepIndex ? <FaCheck /> : step.number}
                         </div>
                         <div className={`absolute -bottom-6 left-1/2 -translate-x-1/2 text-[10px] font-medium whitespace-nowrap transition-colors ${
-                            index === currentStepIndex ? 'text-emerald-400' : 'text-slate-500'
+                            index === currentStepIndex ? 'text-primary' : 'text-muted-foreground'
                         }`}>
                             {step.label}
                         </div>
@@ -279,7 +279,7 @@ export default function RegisterPage() {
 
             <form onSubmit={handleSubmit} className="space-y-6 mt-8">
               {(error || formError) && (
-                <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 text-red-300 text-xs">
+                <div className="bg-destructive/10 border border-destructive/20 rounded-xl p-4 text-destructive text-xs">
                   {error || formError}
                 </div>
               )}
@@ -288,13 +288,13 @@ export default function RegisterPage() {
               {currentStep === 'personal' && (
                 <div className="space-y-5 animate-fade-in-up">
                    <div className="text-center mb-4">
-                       <h3 className="text-lg font-bold text-white">Personal Information</h3>
-                       <p className="text-slate-400 text-xs">Let's get to know you</p>
+                       <h3 className="text-lg font-bold text-foreground">Personal Information</h3>
+                       <p className="text-muted-foreground text-xs">Let's get to know you</p>
                    </div>
                   
                   <div className="grid grid-cols-2 gap-4">
                     <div className="relative group">
-                      <FaUser className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-500 group-focus-within:text-emerald-400 transition-colors" />
+                      <FaUser className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors" />
                       <input
                         type="text"
                         placeholder="First Name"
@@ -303,11 +303,11 @@ export default function RegisterPage() {
                         onFocus={() => setIsFormFocused(true)}
                         onBlur={() => setIsFormFocused(false)}
                         required
-                        className="w-full pl-10 pr-4 py-3 bg-slate-900/50 border border-white/10 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all text-sm"
+                        className="w-full pl-10 pr-4 py-3 bg-input/50 border border-border rounded-xl text-foreground placeholder-muted-foreground focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all text-sm"
                       />
                     </div>
                     <div className="relative group">
-                      <FaUser className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-500 group-focus-within:text-emerald-400 transition-colors" />
+                      <FaUser className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors" />
                       <input
                         type="text"
                         placeholder="Last Name"
@@ -316,24 +316,24 @@ export default function RegisterPage() {
                         onFocus={() => setIsFormFocused(true)}
                         onBlur={() => setIsFormFocused(false)}
                         required
-                        className="w-full pl-10 pr-4 py-3 bg-slate-900/50 border border-white/10 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all text-sm"
+                        className="w-full pl-10 pr-4 py-3 bg-input/50 border border-border rounded-xl text-foreground placeholder-muted-foreground focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all text-sm"
                       />
                     </div>
                   </div>
 
                   <div className="relative py-2">
                     <div className="absolute inset-0 flex items-center">
-                        <div className="w-full border-t border-white/10"></div>
+                        <div className="w-full border-t border-border"></div>
                     </div>
                     <div className="relative flex justify-center text-xs uppercase">
-                        <span className="px-4 bg-slate-900/50 backdrop-blur-xl text-slate-500">Or sign up with</span>
+                        <span className="px-4 bg-background backdrop-blur-xl text-muted-foreground">Or sign up with</span>
                     </div>
                   </div>
 
                   <button 
                     type="button"
                     onClick={() => GoogleAuthService.initiateGoogleLogin()}
-                    className="w-full flex items-center justify-center space-x-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl py-3 transition-all text-white hover:border-white/20 group"
+                    className="w-full flex items-center justify-center space-x-3 bg-card border border-border hover:bg-muted rounded-xl py-3 transition-all text-foreground group"
                   >
                     <FaGoogle className="text-base group-hover:scale-110 transition-transform" />
                     <span className="font-medium text-sm">Google</span>
@@ -354,24 +354,24 @@ export default function RegisterPage() {
               {currentStep === 'account' && (
                 <div className="space-y-5 animate-fade-in-up">
                    <div className="text-center mb-4">
-                       <h3 className="text-lg font-bold text-white">Account Security</h3>
-                       <p className="text-slate-400 text-xs">Create your credentials</p>
+                       <h3 className="text-lg font-bold text-foreground">Account Security</h3>
+                       <p className="text-muted-foreground text-xs">Create your credentials</p>
                    </div>
 
                   <div className="relative group">
-                    <FaEnvelope className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-500 group-focus-within:text-emerald-400 transition-colors" />
+                    <FaEnvelope className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors" />
                     <input
                       type="email"
                       placeholder="Email Address"
                       value={formData.email}
                       onChange={(e) => handleInputChange('email', e.target.value)}
                       required
-                      className="w-full pl-10 pr-4 py-3 bg-slate-900/50 border border-white/10 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all text-sm"
+                      className="w-full pl-10 pr-4 py-3 bg-input/50 border border-border rounded-xl text-foreground placeholder-muted-foreground focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all text-sm"
                     />
                   </div>
 
                   <div className="relative group">
-                    <FaLock className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-500 group-focus-within:text-emerald-400 transition-colors" />
+                    <FaLock className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors" />
                     <input
                       type={showPassword ? "text" : "password"}
                       placeholder="Password (min. 8 chars)"
@@ -379,38 +379,38 @@ export default function RegisterPage() {
                       onChange={(e) => handleInputChange('password', e.target.value)}
                       required
                       minLength={8}
-                      className="w-full pl-10 pr-10 py-3 bg-slate-900/50 border border-white/10 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all text-sm"
+                      className="w-full pl-10 pr-10 py-3 bg-input/50 border border-border rounded-xl text-foreground placeholder-muted-foreground focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all text-sm"
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-4 top-1/2 transform -translate-y-1/2 text-slate-500 hover:text-white transition-colors"
+                      className="absolute right-4 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                     >
                       {showPassword ? <FaEyeSlash /> : <FaEye />}
                     </button>
                   </div>
 
                   <div className="relative group">
-                    <FaLock className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-500 group-focus-within:text-emerald-400 transition-colors" />
+                    <FaLock className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors" />
                     <input
                       type={showConfirmPassword ? "text" : "password"}
                       placeholder="Confirm Password"
                       value={formData.confirmPassword}
                       onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
                       required
-                      className="w-full pl-10 pr-10 py-3 bg-slate-900/50 border border-white/10 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all text-sm"
+                      className="w-full pl-10 pr-10 py-3 bg-input/50 border border-border rounded-xl text-foreground placeholder-muted-foreground focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all text-sm"
                     />
                     <button
                       type="button"
                       onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      className="absolute right-4 top-1/2 transform -translate-y-1/2 text-slate-500 hover:text-white transition-colors"
+                      className="absolute right-4 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                     >
                       {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
                     </button>
                   </div>
 
                   {formData.password && formData.confirmPassword && formData.password !== formData.confirmPassword && (
-                    <p className="text-red-400 text-xs text-center">Passwords do not match</p>
+                    <p className="text-destructive text-xs text-center">Passwords do not match</p>
                   )}
 
                   <div className="flex space-x-3 pt-4">
@@ -437,20 +437,20 @@ export default function RegisterPage() {
               {currentStep === 'preferences' && (
                 <div className="space-y-6 animate-fade-in-up">
                    <div className="text-center mb-4">
-                       <h3 className="text-lg font-bold text-white">Trading Profile</h3>
-                       <p className="text-slate-400 text-xs">Customize your experience</p>
+                       <h3 className="text-lg font-bold text-foreground">Trading Profile</h3>
+                       <p className="text-muted-foreground text-xs">Customize your experience</p>
                    </div>
 
                   <div>
-                    <label className="block text-xs font-medium text-slate-400 mb-3 uppercase tracking-wider">Experience Level</label>
+                    <label className="block text-xs font-medium text-muted-foreground mb-3 uppercase tracking-wider">Experience Level</label>
                     <div className="grid grid-cols-2 gap-3">
                       {tradingExperiences.map((exp) => (
                         <label 
                             key={exp.value} 
                             className={`cursor-pointer group flex flex-col p-3 rounded-xl border transition-all ${
                                 formData.tradingExperience === exp.value 
-                                    ? 'bg-emerald-500/10 border-emerald-500/50 shadow-[0_0_15px_rgba(16,185,129,0.1)]' 
-                                    : 'bg-slate-900/50 border-white/5 hover:bg-slate-800'
+                                    ? 'bg-primary/10 border-primary/50 shadow-[0_0_15px_rgba(16,185,129,0.1)]' 
+                                    : 'bg-card/50 border-border hover:bg-card'
                             }`}
                         >
                             <input
@@ -461,17 +461,17 @@ export default function RegisterPage() {
                               onChange={(e) => handleInputChange('tradingExperience', e.target.value)}
                               className="sr-only"
                             />
-                            <span className={`text-sm font-bold mb-1 ${formData.tradingExperience === exp.value ? 'text-emerald-400' : 'text-white'}`}>
+                            <span className={`text-sm font-bold mb-1 ${formData.tradingExperience === exp.value ? 'text-primary' : 'text-foreground'}`}>
                                 {exp.label}
                             </span>
-                             <span className="text-xs text-slate-500">{exp.subtitle}</span>
+                             <span className="text-xs text-muted-foreground">{exp.subtitle}</span>
                         </label>
                       ))}
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-xs font-medium text-slate-400 mb-3 uppercase tracking-wider">Primary Markets (Optional)</label>
+                    <label className="block text-xs font-medium text-muted-foreground mb-3 uppercase tracking-wider">Primary Markets (Optional)</label>
                     <div className="grid grid-cols-3 gap-2">
                       {markets.map((market) => (
                         <button
@@ -480,8 +480,8 @@ export default function RegisterPage() {
                           onClick={() => handleMarketToggle(market.value)}
                           className={`p-2 rounded-lg border transition-all flex flex-col items-center justify-center gap-1 ${
                             formData.primaryMarkets.includes(market.value)
-                              ? 'bg-teal-500/20 border-teal-500/50 text-teal-300'
-                              : 'bg-slate-900/50 border-white/5 text-slate-400 hover:text-white hover:bg-slate-800'
+                              ? 'bg-primary/20 border-primary/50 text-primary'
+                              : 'bg-card/50 border-border text-muted-foreground hover:text-foreground hover:bg-card'
                           }`}
                         >
                           <span className="text-lg">{market.icon}</span>
@@ -491,7 +491,7 @@ export default function RegisterPage() {
                     </div>
                   </div>
 
-                  <div className="bg-slate-900/50 border border-white/5 rounded-xl p-4 flex items-start gap-3">
+                  <div className="bg-card/50 border border-border rounded-xl p-4 flex items-start gap-3">
                     <div className="relative mt-1">
                          <input
                            type="checkbox"
@@ -500,26 +500,26 @@ export default function RegisterPage() {
                            className="sr-only peer"
                            id="terms"
                          />
-                         <div className="w-5 h-5 rounded border border-white/20 peer-checked:bg-emerald-500 peer-checked:border-emerald-500 flex items-center justify-center transition-all cursor-pointer bg-white/5">
+                         <div className="w-5 h-5 rounded border border-input peer-checked:bg-primary peer-checked:border-primary flex items-center justify-center transition-all cursor-pointer bg-card">
                             {formData.agreeToTerms && <FaCheck className="text-white text-xs" />}
                          </div>
                          <label htmlFor="terms" className="absolute inset-0 cursor-pointer"></label>
                     </div>
-                    <label htmlFor="terms" className="text-xs text-slate-400 leading-relaxed cursor-pointer select-none">
-                        I agree to the <span className="text-emerald-400 hover:underline">Terms of Service</span> and <span className="text-emerald-400 hover:underline">Privacy Policy</span>.
+                    <label htmlFor="terms" className="text-xs text-muted-foreground leading-relaxed cursor-pointer select-none">
+                        I agree to the <span className="text-primary hover:underline">Terms of Service</span> and <span className="text-primary hover:underline">Privacy Policy</span>.
                     </label>
                   </div>
 
                   <div>
-                     <label className="block text-xs font-medium text-slate-400 mb-3 uppercase tracking-wider">Referral Code (Optional)</label>
+                     <label className="block text-xs font-medium text-muted-foreground mb-3 uppercase tracking-wider">Referral Code (Optional)</label>
                      <div className="relative group">
-                        <FaUserFriends className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-500 group-focus-within:text-emerald-400 transition-colors" />
+                        <FaUserFriends className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors" />
                         <input
                             type="text"
                             placeholder="Enter Referral Code"
                             value={formData.referralCode || ''}
                             onChange={(e) => handleInputChange('referralCode', e.target.value)}
-                            className="w-full pl-10 pr-4 py-3 bg-slate-900/50 border border-white/10 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all text-sm uppercase"
+                            className="w-full pl-10 pr-4 py-3 bg-input/50 border border-border rounded-xl text-foreground placeholder-muted-foreground focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all text-sm uppercase"
                         />
                      </div>
                   </div>
@@ -550,9 +550,9 @@ export default function RegisterPage() {
               )}
             </form>
 
-            <div className="mt-8 text-center text-xs text-slate-500">
+            <div className="mt-8 text-center text-xs text-muted-foreground">
               Already have an account?{' '}
-              <Link href="/login" className="text-emerald-400 hover:text-emerald-300 transition-colors font-bold">
+              <Link href="/login" className="text-primary hover:text-primary/80 transition-colors font-bold">
                 Sign in here
               </Link>
             </div>
@@ -561,7 +561,7 @@ export default function RegisterPage() {
            <div className="text-center mt-6">
             <Link 
               href="/" 
-              className="text-slate-500 hover:text-white transition-colors text-xs inline-flex items-center gap-1"
+              className="text-muted-foreground hover:text-foreground transition-colors text-xs inline-flex items-center gap-1"
             >
               <span>← Back to home</span>
             </Link>

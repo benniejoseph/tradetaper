@@ -3,10 +3,11 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe, BadRequestException } from '@nestjs/common';
 import { CorsOptions } from '@nestjs/common/interfaces/external/cors-options.interface';
-import * as cookieParser from 'cookie-parser';
+import cookieParser from 'cookie-parser';
+import { doubleCsrf } from 'csrf-csrf';
+
 import helmet from 'helmet';
 import { WsJwtAdapter } from './websocket/ws-jwt.adapter';
-import { doubleCsrf } from 'csrf-csrf';
 
 async function bootstrap() {
   try {
@@ -55,7 +56,9 @@ async function bootstrap() {
         },
         size: 64,
         ignoredMethods: ['GET', 'HEAD', 'OPTIONS'],
-        getTokenFromRequest: (req) => {
+
+        getSessionIdentifier: (req) => req.cookies?.['session_id'] || '', // Add session identifier logic
+        getCsrfTokenFromRequest: (req) => {
           return (
             req.headers['x-csrf-token'] ||
             req.headers['csrf-token'] ||
