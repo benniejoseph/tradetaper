@@ -27,6 +27,8 @@ import {
 import { TradesService } from '../trades/trades.service';
 import { TradeStatus, TradeDirection, AssetType } from '../types/enums';
 import { TerminalCommandsQueue } from './queue/terminal-commands.queue';
+import { TerminalFailedTradesQueue } from './queue/terminal-failed-trades.queue';
+import { TerminalTokenService } from './terminal-token.service';
 
 @Injectable()
 export class TerminalFarmService {
@@ -43,6 +45,8 @@ export class TerminalFarmService {
     @Inject(forwardRef(() => TradesService))
     private readonly tradesService: TradesService,
     private readonly terminalCommandsQueue: TerminalCommandsQueue,
+    private readonly terminalFailedTradesQueue: TerminalFailedTradesQueue,
+    private readonly terminalTokenService: TerminalTokenService,
   ) {}
 
   /**
@@ -169,6 +173,30 @@ export class TerminalFarmService {
     return this.mapToResponse(terminal, account);
   }
 
+  async getTerminalAuthToken(
+    accountId: string,
+    userId: string,
+  ): Promise<{ token: string }> {
+    const account = await this.mt5AccountRepository.findOne({
+      where: { id: accountId, userId },
+    });
+
+    if (!account) {
+      throw new NotFoundException('Account not found');
+    }
+
+    const terminal = await this.terminalRepository.findOne({
+      where: { accountId },
+    });
+
+    if (!terminal) {
+      throw new NotFoundException('Auto-sync is not enabled');
+    }
+
+    const token = this.terminalTokenService.signTerminalToken(terminal.id);
+    return { token };
+  }
+
   /**
    * Queue a command for a terminal
    * UPDATED: Now uses persistent Redis queue via TerminalCommandsQueue
@@ -283,6 +311,7 @@ export class TerminalFarmService {
       );
     }
 
+    const duplicateCache = new Set<string>();
     for (const trade of data.trades) {
       try {
         // --- 1. Position-Based Logic (New) ---
@@ -440,6 +469,13 @@ export class TerminalFarmService {
 
         // --- 2. Legacy Ticket-Based Logic (Fallback) ---
         // Check for duplicate by ticket
+        const duplicateKey = `${trade.ticket}:${trade.symbol}:${trade.openTime || ''}`;
+        if (duplicateCache.has(duplicateKey)) {
+          skipped++;
+          continue;
+        }
+        duplicateCache.add(duplicateKey);
+
         const existing = await this.tradesService.findDuplicate(
           terminal.account.userId,
           trade.symbol,
@@ -479,6 +515,11 @@ export class TerminalFarmService {
           error.stack,
         );
         failed++;
+        await this.terminalFailedTradesQueue.queueFailedTrade(
+          terminal.id,
+          trade,
+          error.message,
+        );
       }
     }
 
@@ -568,28 +609,54 @@ export class TerminalFarmService {
       terminal.status = TerminalStatus.STARTING;
       await this.terminalRepository.save(terminal);
 
-      // In a full implementation, this would:
-      // 1. Call Docker API to create a new container
-      // 2. Pass account credentials as environment variables
-      // 3. Wait for container to start
-      // 4. Store container ID
-
-      // For now, we'll simulate the process
+      // Orchestrator integration (if configured) or fallback to simulation.
       const orchestratorUrl = this.configService.get(
         'TERMINAL_ORCHESTRATOR_URL',
       );
 
       if (orchestratorUrl) {
-        // Call orchestrator API (to be implemented)
-        // const response = await fetch(`${orchestratorUrl}/terminals`, {
-        //   method: 'POST',
-        //   body: JSON.stringify({ terminalId, accountId: account.id }),
-        // });
-        // const result = await response.json();
-        // terminal.containerId = result.containerId;
+        try {
+          const response = await fetch(`${orchestratorUrl}/terminals`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              terminalId,
+              accountId: account.id,
+              server: credentials?.server,
+              login: credentials?.login,
+              password: credentials?.password,
+            }),
+          });
+
+          if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(
+              `Orchestrator error ${response.status}: ${errorText}`,
+            );
+          }
+
+          const result = await response.json();
+          terminal.containerId = result.containerId || result.container_id;
+          terminal.status = TerminalStatus.RUNNING;
+          terminal.lastHeartbeat = new Date();
+          await this.terminalRepository.save(terminal);
+
+          this.logger.log(
+            `Terminal ${terminalId} provisioned via orchestrator`,
+          );
+          return;
+        } catch (error) {
+          this.logger.error(
+            `Orchestrator provisioning failed: ${error.message}`,
+            error.stack,
+          );
+          throw error;
+        }
       }
 
-      // Simulate successful start for dev
+      // Fallback: simulate successful start for dev environments
       terminal.status = TerminalStatus.RUNNING;
       terminal.containerId = `sim-${Date.now()}`;
       terminal.lastHeartbeat = new Date();
@@ -623,10 +690,16 @@ export class TerminalFarmService {
       );
 
       if (orchestratorUrl && terminal.containerId) {
-        // Call orchestrator API
-        // await fetch(`${orchestratorUrl}/terminals/${terminal.containerId}`, {
-        //   method: 'DELETE',
-        // });
+        const response = await fetch(
+          `${orchestratorUrl}/terminals/${terminal.containerId}`,
+          { method: 'DELETE' },
+        );
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(
+            `Orchestrator teardown error ${response.status}: ${errorText}`,
+          );
+        }
       }
 
       terminal.status = TerminalStatus.STOPPED;

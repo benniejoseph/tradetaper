@@ -12,6 +12,7 @@
 input string   APIEndpoint = "https://api.tradetaper.io";  // TradeTaper API URL
 input string   APIKey = "";                                 // API Key (provided by TradeTaper)
 input string   TerminalId = "";                             // Terminal ID (auto-generated)
+input string   AuthToken = "";                              // Per-terminal JWT (preferred)
 input int      HeartbeatInterval = 30;                      // Heartbeat interval (seconds)
 input int      SyncInterval = 60;                           // Trade sync interval (seconds)
 
@@ -161,6 +162,10 @@ void FetchCandles(string symbol, string timeframeStr, string startStr, string en
     {
         string json = "{";
         json += "\"terminalId\":\"" + TerminalId + "\",";
+        if(StringLen(AuthToken) > 0)
+        {
+            json += "\"authToken\":\"" + AuthToken + "\",";
+        }
         json += "\"tradeId\":\"" + tradeId + "\",";
         json += "\"symbol\":\"" + symbol + "\",";
         json += "\"candles\":[";
@@ -233,6 +238,10 @@ void SendHeartbeat()
     // Build JSON payload
     string json = "{";
     json += "\"terminalId\":\"" + TerminalId + "\",";
+    if(StringLen(AuthToken) > 0)
+    {
+        json += "\"authToken\":\"" + AuthToken + "\",";
+    }
     json += "\"accountInfo\":{";
     json += "\"balance\":" + DoubleToString(AccountInfoDouble(ACCOUNT_BALANCE), 2) + ",";
     json += "\"equity\":" + DoubleToString(AccountInfoDouble(ACCOUNT_EQUITY), 2) + ",";
@@ -399,6 +408,10 @@ void SyncDealHistory()
     // Build final JSON
     string json = "{";
     json += "\"terminalId\":\"" + TerminalId + "\",";
+    if(StringLen(AuthToken) > 0)
+    {
+        json += "\"authToken\":\"" + AuthToken + "\",";
+    }
     json += "\"trades\":" + tradesJson;
     json += "}";
     
@@ -463,6 +476,10 @@ void SyncPositions()
     // Build final JSON
     string json = "{";
     json += "\"terminalId\":\"" + TerminalId + "\",";
+    if(StringLen(AuthToken) > 0)
+    {
+        json += "\"authToken\":\"" + AuthToken + "\",";
+    }
     json += "\"positions\":" + positionsJson;
     json += "}";
     
@@ -577,6 +594,10 @@ void ReportTradeExecuted(ulong ticket, string approvalId)
     
     string json = "{";
     json += "\"terminalId\":\"" + TerminalId + "\",";
+    if(StringLen(AuthToken) > 0)
+    {
+        json += "\"authToken\":\"" + AuthToken + "\",";
+    }
     json += "\"approvalId\":\"" + approvalId + "\",";
     json += "\"ticket\":" + IntegerToString(ticket);
     json += "}";

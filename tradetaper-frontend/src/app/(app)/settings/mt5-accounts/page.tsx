@@ -3,9 +3,10 @@
 import React, { useState } from 'react';
 import MT5AccountsList from '@/components/settings/MT5AccountsList';
 import { StatementUpload } from '@/components/settings/StatementUpload';
-import { FaServer, FaUpload, FaList } from 'react-icons/fa';
+import { FaServer, FaUpload, FaList, FaBookOpen } from 'react-icons/fa';
+import MT5SetupGuide from '@/components/settings/MT5SetupGuide';
 
-type TabType = 'accounts' | 'upload';
+type TabType = 'accounts' | 'upload' | 'guide';
 
 export default function MT5AccountsPage() {
   const [activeTab, setActiveTab] = useState<TabType>('accounts');
@@ -51,6 +52,19 @@ export default function MT5AccountsPage() {
         >
           <FaUpload className="w-4 h-4" />
           Import Trades
+        </button>
+        <button
+          onClick={() => setActiveTab('guide')}
+          className={`
+            flex items-center gap-2 px-4 py-3 font-medium transition-colors
+            ${activeTab === 'guide'
+              ? 'text-emerald-400 border-b-2 border-emerald-400'
+              : 'text-gray-400 hover:text-gray-300'
+            }
+          `}
+        >
+          <FaBookOpen className="w-4 h-4" />
+          Setup Guide
         </button>
       </div>
 
@@ -108,6 +122,10 @@ export default function MT5AccountsPage() {
             <StatementUpload />
           </div>
         </div>
+      )}
+
+      {activeTab === 'guide' && (
+        <MT5SetupGuide />
       )}
     </div>
   );

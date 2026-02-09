@@ -40,4 +40,14 @@ export const terminalService = {
     );
     return response.data;
   },
+
+  /**
+   * Get per-terminal auth token (JWT) for webhook authentication
+   */
+  async getTerminalToken(accountId: string): Promise<{ token: string }> {
+    const response = await authApiClient.get<{ token: string }>(
+      `/mt5-accounts/${accountId}/terminal-token`
+    );
+    return response.data;
+  },
 };

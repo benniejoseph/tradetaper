@@ -44,6 +44,10 @@ export class TerminalHeartbeatDto {
   terminalId: string;
 
   @IsOptional()
+  @IsString()
+  authToken?: string;
+
+  @IsOptional()
   accountInfo?: {
     balance: number;
     equity: number;
@@ -131,6 +135,10 @@ export class TerminalSyncDto {
   @IsString()
   terminalId: string;
 
+  @IsOptional()
+  @IsString()
+  authToken?: string;
+
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => TerminalTradeDto)
@@ -166,6 +174,10 @@ export class TerminalPositionDto {
 export class TerminalPositionsDto {
   @IsString()
   terminalId: string;
+
+  @IsOptional()
+  @IsString()
+  authToken?: string;
 
   @IsArray()
   @ValidateNested({ each: true })
@@ -208,6 +220,10 @@ export class TerminalCandleDto {
 export class TerminalCandlesSyncDto {
   @IsString()
   terminalId: string;
+
+  @IsOptional()
+  @IsString()
+  authToken?: string;
 
   @IsString()
   tradeId: string;

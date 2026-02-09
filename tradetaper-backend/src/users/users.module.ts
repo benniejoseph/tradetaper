@@ -13,6 +13,7 @@ import { MT5AccountsController } from './mt5-accounts.controller';
 import { TradeHistoryParserService } from './trade-history-parser.service';
 import { TradesModule } from '../trades/trades.module';
 import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
+import { MetaApiService } from './metaapi.service';
 // We might add UsersController later if we need direct user management endpoints
 
 @Module({
@@ -27,6 +28,7 @@ import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
     AccountsService,
     MT5AccountsService,
     TradeHistoryParserService,
+    MetaApiService,
   ],
   exports: [
     UsersService,

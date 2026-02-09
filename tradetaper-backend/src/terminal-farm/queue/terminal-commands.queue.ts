@@ -27,6 +27,8 @@ export class TerminalCommandsQueue implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(TerminalCommandsQueue.name);
   private queue: Queue<TerminalCommand>;
   private connection: Redis;
+  private readonly inMemoryQueue = new Map<string, TerminalCommand[]>();
+  private useInMemory = false;
 
   constructor(private readonly configService: ConfigService) {}
 
@@ -38,6 +40,7 @@ export class TerminalCommandsQueue implements OnModuleInit, OnModuleDestroy {
         'REDIS_URL not configured. Using fallback in-memory queue. ' +
         'Configure REDIS_URL for production persistence.',
       );
+      this.useInMemory = true;
       return;
     }
 
@@ -80,6 +83,7 @@ export class TerminalCommandsQueue implements OnModuleInit, OnModuleDestroy {
         error.stack,
       );
       this.logger.warn('Falling back to in-memory queue (NOT RECOMMENDED FOR PRODUCTION)');
+      this.useInMemory = true;
     }
   }
 
@@ -92,6 +96,7 @@ export class TerminalCommandsQueue implements OnModuleInit, OnModuleDestroy {
       await this.connection.quit();
       this.logger.log('Redis connection closed');
     }
+    this.inMemoryQueue.clear();
   }
 
   /**
@@ -103,9 +108,23 @@ export class TerminalCommandsQueue implements OnModuleInit, OnModuleDestroy {
     command: string,
     payload: string,
   ): Promise<void> {
+    if (!this.queue && this.useInMemory) {
+      const queue = this.inMemoryQueue.get(terminalId) ?? [];
+      queue.push({
+        terminalId,
+        command,
+        payload,
+        timestamp: new Date(),
+      });
+      this.inMemoryQueue.set(terminalId, queue);
+      this.logger.debug(
+        `Queued command ${command} for terminal ${terminalId} (in-memory)`,
+      );
+      return;
+    }
     if (!this.queue) {
       this.logger.warn(
-        `Cannot queue command ${command} for terminal ${terminalId} - Redis not available`,
+        `Cannot queue command ${command} for terminal ${terminalId} - queue not initialized`,
       );
       return;
     }
@@ -143,6 +162,22 @@ export class TerminalCommandsQueue implements OnModuleInit, OnModuleDestroy {
    * Returns null if no commands pending
    */
   async getNextCommand(terminalId: string): Promise<TerminalCommand | null> {
+    if (!this.queue && this.useInMemory) {
+      const queue = this.inMemoryQueue.get(terminalId);
+      if (!queue || queue.length === 0) {
+        return null;
+      }
+      const command = queue.shift()!;
+      if (queue.length === 0) {
+        this.inMemoryQueue.delete(terminalId);
+      } else {
+        this.inMemoryQueue.set(terminalId, queue);
+      }
+      this.logger.debug(
+        `Dispatched command ${command.command} to terminal ${terminalId} (in-memory)`,
+      );
+      return command;
+    }
     if (!this.queue) {
       return null;
     }
@@ -158,8 +193,8 @@ export class TerminalCommandsQueue implements OnModuleInit, OnModuleDestroy {
         return null;
       }
 
-      // Mark job as completed (command dispatched to terminal)
-      await job.moveToCompleted('dispatched', job.token || '');
+      // Remove job once dispatched (we are the consumer)
+      await job.remove();
 
       this.logger.debug(
         `Dispatched command ${job.data.command} to terminal ${terminalId}`,
@@ -184,6 +219,13 @@ export class TerminalCommandsQueue implements OnModuleInit, OnModuleDestroy {
     completed: number;
     failed: number;
   }> {
+    if (!this.queue && this.useInMemory) {
+      const waiting = Array.from(this.inMemoryQueue.values()).reduce(
+        (count, queue) => count + queue.length,
+        0,
+      );
+      return { waiting, active: 0, completed: 0, failed: 0 };
+    }
     if (!this.queue) {
       return { waiting: 0, active: 0, completed: 0, failed: 0 };
     }
@@ -202,6 +244,18 @@ export class TerminalCommandsQueue implements OnModuleInit, OnModuleDestroy {
    * Clear all commands for a terminal
    */
   async clearTerminalCommands(terminalId: string): Promise<number> {
+    if (!this.queue && this.useInMemory) {
+      const queue = this.inMemoryQueue.get(terminalId);
+      if (!queue) {
+        return 0;
+      }
+      const cleared = queue.length;
+      this.inMemoryQueue.delete(terminalId);
+      this.logger.log(
+        `Cleared ${cleared} commands for terminal ${terminalId} (in-memory)`,
+      );
+      return cleared;
+    }
     if (!this.queue) {
       return 0;
     }

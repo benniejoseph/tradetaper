@@ -9,6 +9,8 @@ import { TerminalWebhookController } from './terminal-webhook.controller';
 import { MT5Account } from '../users/entities/mt5-account.entity';
 import { TradesModule } from '../trades/trades.module';
 import { TerminalCommandsQueue } from './queue/terminal-commands.queue';
+import { TerminalFailedTradesQueue } from './queue/terminal-failed-trades.queue';
+import { TerminalTokenService } from './terminal-token.service';
 import { TerminalHealthController } from './terminal-health.controller';
 
 @Module({
@@ -22,7 +24,17 @@ import { TerminalHealthController } from './terminal-health.controller';
     TerminalWebhookController,
     TerminalHealthController,
   ],
-  providers: [TerminalFarmService, TerminalCommandsQueue],
-  exports: [TerminalFarmService, TerminalCommandsQueue],
+  providers: [
+    TerminalFarmService,
+    TerminalCommandsQueue,
+    TerminalFailedTradesQueue,
+    TerminalTokenService,
+  ],
+  exports: [
+    TerminalFarmService,
+    TerminalCommandsQueue,
+    TerminalFailedTradesQueue,
+    TerminalTokenService,
+  ],
 })
 export class TerminalFarmModule {}

@@ -14,6 +14,8 @@ export default function TerminalStatusCard({ accountId, accountName }: TerminalS
   const [actionLoading, setActionLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [token, setToken] = useState<string | null>(null);
+  const [tokenLoading, setTokenLoading] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const handleConnect = async (credentials: { server: string; login: string; password: string }) => {
@@ -82,6 +84,19 @@ export default function TerminalStatusCard({ accountId, accountName }: TerminalS
     navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleLoadToken = async () => {
+    try {
+      setTokenLoading(true);
+      const response = await terminalService.getTerminalToken(accountId);
+      setToken(response.token);
+      setError(null);
+    } catch (err: any) {
+      setError(err.message || 'Failed to fetch terminal token');
+    } finally {
+      setTokenLoading(false);
+    }
   };
 
   if (loading) {
@@ -164,6 +179,34 @@ export default function TerminalStatusCard({ accountId, accountName }: TerminalS
               >
                 {copied ? <CircleCheck className="h-4 w-4 text-green-600" /> : <Copy className="h-4 w-4" />}
               </button>
+            </div>
+          </div>
+
+          <div className="bg-gray-50 p-3 rounded-md border border-gray-200">
+            <label className="block text-xs font-medium text-gray-500 mb-1 uppercase tracking-wider">
+              Auth Token (Copy to EA Inputs)
+            </label>
+            <div className="flex items-center space-x-2">
+              <code className="text-sm font-mono bg-white px-2 py-1 rounded border border-gray-200 flex-1 overflow-hidden overflow-ellipsis">
+                {token ? token : 'Click “Load Token” to view'}
+              </code>
+              {token ? (
+                <button
+                  onClick={() => copyToClipboard(token)}
+                  className="p-1.5 hover:bg-gray-200 rounded-md text-gray-600 transition-colors"
+                  title="Copy Token"
+                >
+                  {copied ? <CircleCheck className="h-4 w-4 text-green-600" /> : <Copy className="h-4 w-4" />}
+                </button>
+              ) : (
+                <button
+                  onClick={handleLoadToken}
+                  disabled={tokenLoading}
+                  className="px-3 py-1.5 text-xs rounded-md bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-60"
+                >
+                  {tokenLoading ? 'Loading...' : 'Load Token'}
+                </button>
+              )}
             </div>
           </div>
 

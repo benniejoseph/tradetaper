@@ -61,4 +61,18 @@ export class TerminalFarmController {
     );
     return status || { enabled: false };
   }
+
+  /**
+   * Get per-terminal auth token (JWT) for webhook authentication
+   */
+  @Get(':accountId/terminal-token')
+  async getTerminalToken(
+    @Param('accountId') accountId: string,
+    @Request() req,
+  ): Promise<{ token: string }> {
+    return this.terminalFarmService.getTerminalAuthToken(
+      accountId,
+      req.user.id,
+    );
+  }
 }

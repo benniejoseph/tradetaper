@@ -12,6 +12,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { TerminalFarmService } from './terminal-farm.service';
+import { TerminalTokenService } from './terminal-token.service';
 import {
   TerminalHeartbeatDto,
   TerminalSyncDto,
@@ -36,16 +37,28 @@ export class TerminalWebhookController {
   constructor(
     private readonly terminalFarmService: TerminalFarmService,
     private readonly configService: ConfigService,
+    private readonly terminalTokenService: TerminalTokenService,
   ) {}
 
   /**
    * Validate API key from terminal EA
    * SECURITY: Fails closed if TERMINAL_WEBHOOK_SECRET not configured
    */
-  private validateApiKey(apiKey: string): boolean {
-    const expectedKey = this.configService.get('TERMINAL_WEBHOOK_SECRET');
+  private validateAuth(
+    apiKey: string,
+    authToken: string | undefined,
+    terminalId: string,
+  ): boolean {
+    if (authToken) {
+      const payload = this.terminalTokenService.verifyTerminalToken(authToken);
+      if (!payload || payload.terminalId !== terminalId) {
+        this.logger.warn('Invalid terminal auth token provided');
+        return false;
+      }
+      return true;
+    }
 
-    // FAIL CLOSED: Reject if webhook secret not configured
+    const expectedKey = this.configService.get('TERMINAL_WEBHOOK_SECRET');
     if (!expectedKey) {
       this.logger.error(
         'TERMINAL_WEBHOOK_SECRET not configured! Rejecting webhook request.',
@@ -55,7 +68,6 @@ export class TerminalWebhookController {
       );
     }
 
-    // Validate API key
     if (!apiKey || apiKey !== expectedKey) {
       this.logger.warn('Invalid API key provided for webhook request');
       return false;
@@ -83,7 +95,7 @@ export class TerminalWebhookController {
     @Body() data: TerminalHeartbeatDto,
     @Headers('x-api-key') apiKey: string,
   ): Promise<any> {
-    if (!this.validateApiKey(apiKey)) {
+    if (!this.validateAuth(apiKey, data.authToken, data.terminalId)) {
       throw new UnauthorizedException('Invalid API key');
     }
 
@@ -108,7 +120,7 @@ export class TerminalWebhookController {
     @Body() data: TerminalCandlesSyncDto,
     @Headers('x-api-key') apiKey: string,
   ): Promise<{ success: boolean }> {
-    if (!this.validateApiKey(apiKey)) {
+    if (!this.validateAuth(apiKey, data.authToken, data.terminalId)) {
       throw new UnauthorizedException('Invalid API key');
     }
 
@@ -134,8 +146,8 @@ export class TerminalWebhookController {
   async syncTrades(
     @Body() data: TerminalSyncDto,
     @Headers('x-api-key') apiKey: string,
-  ): Promise<{ success: boolean; imported: number; skipped: number }> {
-    if (!this.validateApiKey(apiKey)) {
+  ): Promise<{ success: boolean; imported: number; skipped: number; failed: number }> {
+    if (!this.validateAuth(apiKey, data.authToken, data.terminalId)) {
       throw new UnauthorizedException('Invalid API key');
     }
 
@@ -144,6 +156,7 @@ export class TerminalWebhookController {
       success: true,
       imported: result.imported,
       skipped: result.skipped,
+      failed: result.failed,
     };
   }
 
@@ -166,7 +179,7 @@ export class TerminalWebhookController {
     @Body() data: TerminalPositionsDto,
     @Headers('x-api-key') apiKey: string,
   ): Promise<{ success: boolean }> {
-    if (!this.validateApiKey(apiKey)) {
+    if (!this.validateAuth(apiKey, data.authToken, data.terminalId)) {
       throw new UnauthorizedException('Invalid API key');
     }
 
