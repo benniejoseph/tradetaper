@@ -11,7 +11,6 @@ import { MT5Account } from './entities/mt5-account.entity';
 import { MT5AccountsService } from './mt5-accounts.service';
 import { MT5AccountsController } from './mt5-accounts.controller';
 import { TradeHistoryParserService } from './trade-history-parser.service';
-import { CacheModule } from '@nestjs/cache-manager';
 import { TradesModule } from '../trades/trades.module';
 import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
 // We might add UsersController later if we need direct user management endpoints
@@ -20,11 +19,6 @@ import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
   imports: [
     TypeOrmModule.forFeature([User, Account, MT5Account]),
     ConfigModule,
-    CacheModule.register({
-      ttl: 24 * 60 * 60 * 1000, // 24 hours
-      max: 100, // maximum number of items in cache
-    }),
-
     forwardRef(() => TradesModule),
     SubscriptionsModule,
   ],

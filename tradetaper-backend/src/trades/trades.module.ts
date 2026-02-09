@@ -7,7 +7,6 @@ import { GeminiVisionService } from '../notes/gemini-vision.service';
 import { TradesController } from './trades.controller';
 import { UsersModule } from '../users/users.module';
 import { TagsModule } from '../tags/tags.module';
-import { CacheModule } from '@nestjs/cache-manager';
 import { TradeJournalSyncService } from './services/trade-journal-sync.service';
 import { Note } from '../notes/entities/note.entity';
 
@@ -22,9 +21,6 @@ import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
     forwardRef(() => UsersModule),
     forwardRef(() => TerminalFarmModule),
     TagsModule,
-    CacheModule.register({
-      ttl: 60 * 60 * 1000, // 1 hour
-    }),
     SubscriptionsModule,
   ],
   providers: [TradesService, GeminiVisionService, TradeJournalSyncService],

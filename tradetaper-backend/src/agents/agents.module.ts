@@ -1,6 +1,5 @@
 import { Global, Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { CacheModule } from '@nestjs/cache-manager';
 
 // Core Services
 import { AgentRegistry } from './core/agent-registry.service';
@@ -20,34 +19,30 @@ import { SecretsModule } from '../common/secrets/secrets.module';
 
 /**
  * Agents Module
- * 
+ *
  * Central module for the multi-agent orchestration system.
  * Registers all agents, core services, and LLM infrastructure.
- * 
+ *
  * This module is marked as @Global so all agents and services
  * are available throughout the application without explicit imports.
  */
 @Global()
 @Module({
-  imports: [
-    ConfigModule,
-    CacheModule.register(),
-    SecretsModule,
-  ],
+  imports: [ConfigModule, SecretsModule],
   providers: [
     // Core Infrastructure
     AgentRegistry,
     MessageBusService,
     ConsensusOrchestratorService,
-    
+
     // LLM Services
     LLMCostManagerService,
     SemanticCacheService,
     MultiModelOrchestratorService,
-    
+
     // Trading Agents
     MarketSentimentAgent,
-    
+
     // Agent Initialization Provider
     {
       provide: 'AGENT_INITIALIZER',
@@ -58,13 +53,13 @@ import { SecretsModule } from '../common/secrets/secrets.module';
       ) => {
         // Register all agents with the registry
         registry.registerAgent(marketSentimentAgent);
-        
+
         // TODO: Register additional agents:
         // registry.registerAgent(technicalAnalysisAgent);
         // registry.registerAgent(riskManagementAgent);
         // registry.registerAgent(economicEventsAgent);
         // registry.registerAgent(tradePredictionAgent);
-        
+
         return registry;
       },
       inject: [
@@ -85,4 +80,3 @@ import { SecretsModule } from '../common/secrets/secrets.module';
   ],
 })
 export class AgentsModule {}
-

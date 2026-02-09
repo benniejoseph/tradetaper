@@ -1,7 +1,6 @@
 import { Module } from '@nestjs/common';
 import { HttpModule } from '@nestjs/axios';
 import { ConfigModule } from '@nestjs/config';
-import { CacheModule } from '@nestjs/cache-manager';
 import { MarketIntelligenceController } from './market-intelligence.controller';
 import { MarketIntelligenceService } from './market-intelligence.service';
 import { NewsAnalysisService } from './news-analysis.service';
@@ -17,15 +16,10 @@ import { TradingViewAdvancedService } from './tradingview/tradingview-advanced.s
 import { TradingViewAdvancedController } from './tradingview/tradingview-advanced.controller';
 import { GeminiInsightsService } from './gemini-insights.service';
 
-
 @Module({
   imports: [
     HttpModule,
     ConfigModule,
-    CacheModule.register({
-      ttl: 30000, // 30 seconds cache for real-time data
-      max: 1000,
-    }),
     FreeDataSourcesModule, // FREE data sources (Yahoo Finance, Binance, CoinGecko, RSS, Reddit)
     ICTModule, // NEW ICT (Inner Circle Trader) strategies
   ],

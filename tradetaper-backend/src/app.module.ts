@@ -2,8 +2,11 @@
 import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { CacheModule } from '@nestjs/cache-manager';
+import Keyv from 'keyv';
+import KeyvRedis from '@keyv/redis';
 import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
 import { TradesModule } from './trades/trades.module';
@@ -34,6 +37,32 @@ import { SubscriptionsModule } from './subscriptions/subscriptions.module';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
+    }),
+    CacheModule.registerAsync({
+      isGlobal: true,
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: async (configService: ConfigService) => {
+        const redisUrl = configService.get<string>('REDIS_URL');
+
+        // If Redis URL is provided, use Redis; otherwise fall back to in-memory
+        if (redisUrl) {
+          const keyv = new Keyv({
+            store: new KeyvRedis(redisUrl),
+            namespace: 'tradetaper',
+          });
+
+          return {
+            store: keyv as any,
+            ttl: 600, // 10 minutes default TTL
+          };
+        }
+
+        // Fallback to in-memory cache if Redis not configured
+        return {
+          ttl: 600,
+        };
+      },
     }),
     AgentOrchestratorModule, // Multi-agent coordination layer
     DatabaseModule,
@@ -66,5 +95,3 @@ import { SubscriptionsModule } from './subscriptions/subscriptions.module';
   providers: [AppService],
 })
 export class AppModule {}
-
-
