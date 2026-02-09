@@ -8,6 +8,8 @@ import { TerminalFarmController } from './terminal-farm.controller';
 import { TerminalWebhookController } from './terminal-webhook.controller';
 import { MT5Account } from '../users/entities/mt5-account.entity';
 import { TradesModule } from '../trades/trades.module';
+import { TerminalCommandsQueue } from './queue/terminal-commands.queue';
+import { TerminalHealthController } from './terminal-health.controller';
 
 @Module({
   imports: [
@@ -15,8 +17,12 @@ import { TradesModule } from '../trades/trades.module';
     ConfigModule,
     forwardRef(() => TradesModule),
   ],
-  controllers: [TerminalFarmController, TerminalWebhookController],
-  providers: [TerminalFarmService],
-  exports: [TerminalFarmService],
+  controllers: [
+    TerminalFarmController,
+    TerminalWebhookController,
+    TerminalHealthController,
+  ],
+  providers: [TerminalFarmService, TerminalCommandsQueue],
+  exports: [TerminalFarmService, TerminalCommandsQueue],
 })
 export class TerminalFarmModule {}

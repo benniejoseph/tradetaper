@@ -274,6 +274,17 @@ let TradesService = TradesService_1 = class TradesService {
             where: { userId, externalId },
         });
     }
+    async findManyByExternalIds(userId, externalIds) {
+        if (!externalIds || externalIds.length === 0) {
+            return [];
+        }
+        return await this.tradesRepository.find({
+            where: {
+                userId,
+                externalId: (0, typeorm_2.In)(externalIds),
+            },
+        });
+    }
     async findOne(id, userContext) {
         this.logger.log(`User ${userContext.id} fetching trade with ID ${id}`);
         try {

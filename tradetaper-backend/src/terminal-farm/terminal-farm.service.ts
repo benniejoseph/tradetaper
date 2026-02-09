@@ -26,6 +26,7 @@ import {
 } from './dto/terminal.dto';
 import { TradesService } from '../trades/trades.service';
 import { TradeStatus, TradeDirection, AssetType } from '../types/enums';
+import { TerminalCommandsQueue } from './queue/terminal-commands.queue';
 
 @Injectable()
 export class TerminalFarmService {
@@ -41,6 +42,7 @@ export class TerminalFarmService {
     private readonly configService: ConfigService,
     @Inject(forwardRef(() => TradesService))
     private readonly tradesService: TradesService,
+    private readonly terminalCommandsQueue: TerminalCommandsQueue,
   ) {}
 
   /**
@@ -167,18 +169,16 @@ export class TerminalFarmService {
     return this.mapToResponse(terminal, account);
   }
 
-  // In-memory command queue: TerminalID -> Command Object
-  private commandQueue: Map<string, { command: string; payload: string }[]> =
-    new Map();
-
   /**
    * Queue a command for a terminal
+   * UPDATED: Now uses persistent Redis queue via TerminalCommandsQueue
    */
-  queueCommand(terminalId: string, command: string, payload: string) {
-    if (!this.commandQueue.has(terminalId)) {
-      this.commandQueue.set(terminalId, []);
-    }
-    this.commandQueue.get(terminalId)!.push({ command, payload });
+  async queueCommand(
+    terminalId: string,
+    command: string,
+    payload: string,
+  ): Promise<void> {
+    await this.terminalCommandsQueue.queueCommand(terminalId, command, payload);
     this.logger.debug(`Queued command ${command} for terminal ${terminalId}`);
   }
 
@@ -215,16 +215,20 @@ export class TerminalFarmService {
       });
     }
 
-    // Check for queued commands
-    const queue = this.commandQueue.get(data.terminalId);
-    if (queue && queue.length > 0) {
-      const nextCmd = queue.shift(); // FIFO
-      if (nextCmd) {
-        this.logger.log(
-          `Dispatching command ${nextCmd.command} to terminal ${data.terminalId}`,
-        );
-        return { success: true, ...nextCmd };
-      }
+    // Check for queued commands (now from Redis queue)
+    const nextCmd = await this.terminalCommandsQueue.getNextCommand(
+      data.terminalId,
+    );
+
+    if (nextCmd) {
+      this.logger.log(
+        `Dispatching command ${nextCmd.command} to terminal ${data.terminalId}`,
+      );
+      return {
+        success: true,
+        command: nextCmd.command,
+        payload: nextCmd.payload,
+      };
     }
 
     return { success: true };
@@ -232,10 +236,11 @@ export class TerminalFarmService {
 
   /**
    * Process trade sync from terminal EA
+   * OPTIMIZED: Uses batch queries to prevent N+1 problem
    */
   async processTrades(
     data: TerminalSyncDto,
-  ): Promise<{ imported: number; skipped: number }> {
+  ): Promise<{ imported: number; skipped: number; failed: number }> {
     this.logger.log(
       `Trade sync from terminal ${data.terminalId}: ${data.trades.length} trades`,
     );
@@ -251,6 +256,32 @@ export class TerminalFarmService {
 
     let imported = 0;
     let skipped = 0;
+    let failed = 0;
+
+    // OPTIMIZATION: Batch fetch all external IDs upfront to prevent N+1 queries
+    const positionIds = data.trades
+      .filter((t) => t.positionId)
+      .map((t) => t.positionId!.toString());
+
+    const existingTradesMap = new Map<string, any>();
+
+    if (positionIds.length > 0) {
+      const existingTrades = await this.tradesService.findManyByExternalIds(
+        terminal.account.userId,
+        positionIds,
+      );
+
+      // Create a map for O(1) lookup
+      existingTrades.forEach((trade) => {
+        if (trade.externalId) {
+          existingTradesMap.set(trade.externalId, trade);
+        }
+      });
+
+      this.logger.debug(
+        `Fetched ${existingTrades.length} existing trades for batch processing`,
+      );
+    }
 
     for (const trade of data.trades) {
       try {
@@ -258,12 +289,8 @@ export class TerminalFarmService {
         if (trade.positionId) {
           const positionIdString = trade.positionId.toString();
 
-          // Try to find existing trade by Position ID
-          // We look for any trade with this externalId
-          const existingTrade = await this.tradesService.findOneByExternalId(
-            terminal.account.userId,
-            positionIdString,
-          );
+          // Use pre-fetched map instead of individual query
+          const existingTrade = existingTradesMap.get(positionIdString);
 
           const isEntry = trade.entryType === 0; // DEAL_ENTRY_IN
           const isExit = trade.entryType === 1; // DEAL_ENTRY_OUT
@@ -447,10 +474,11 @@ export class TerminalFarmService {
 
         imported++;
       } catch (error) {
-        this.logger.warn(
+        this.logger.error(
           `Failed to import trade ${trade.ticket}: ${error.message}`,
+          error.stack,
         );
-        skipped++;
+        failed++;
       }
     }
 
@@ -458,7 +486,11 @@ export class TerminalFarmService {
     terminal.lastSyncAt = new Date();
     await this.terminalRepository.save(terminal);
 
-    return { imported, skipped };
+    this.logger.log(
+      `Trade sync complete: ${imported} imported, ${skipped} skipped, ${failed} failed`,
+    );
+
+    return { imported, skipped, failed };
   }
 
   /**

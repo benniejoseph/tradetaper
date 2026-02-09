@@ -31,6 +31,7 @@ export declare class TradesService {
     findAll(userContext: UserResponseDto, accountId?: string, options?: FindManyOptions<Trade>, page?: number, limit?: number): Promise<PaginatedResponseDto<Trade>>;
     findDuplicate(userId: string, symbol: string, entryDate: Date, externalId?: string): Promise<Trade | null>;
     findOneByExternalId(userId: string, externalId: string): Promise<Trade | null>;
+    findManyByExternalIds(userId: string, externalIds: string[]): Promise<Trade[]>;
     findOne(id: string, userContext: UserResponseDto): Promise<Trade>;
     update(id: string, updateTradeDto: UpdateTradeDto, userContext: UserResponseDto): Promise<Trade>;
     remove(id: string, userContext: UserResponseDto): Promise<void>;

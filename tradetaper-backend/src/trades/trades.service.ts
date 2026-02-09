@@ -411,6 +411,26 @@ export class TradesService {
     });
   }
 
+  /**
+   * Batch fetch trades by external IDs (for optimized sync)
+   * Prevents N+1 query problem during trade sync
+   */
+  async findManyByExternalIds(
+    userId: string,
+    externalIds: string[],
+  ): Promise<Trade[]> {
+    if (!externalIds || externalIds.length === 0) {
+      return [];
+    }
+
+    return await this.tradesRepository.find({
+      where: {
+        userId,
+        externalId: In(externalIds),
+      },
+    });
+  }
+
   async findOne(id: string, userContext: UserResponseDto): Promise<Trade> {
     this.logger.log(`User ${userContext.id} fetching trade with ID ${id}`);
     try {
