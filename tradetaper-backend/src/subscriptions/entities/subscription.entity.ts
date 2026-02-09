@@ -6,6 +6,7 @@ import {
   UpdateDateColumn,
   ManyToOne,
   JoinColumn,
+  Index,
 } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
 
@@ -26,6 +27,10 @@ export enum SubscriptionTier {
 }
 
 @Entity('subscriptions')
+@Index(['userId']) // PERFORMANCE: Index for user queries
+@Index(['status']) // PERFORMANCE: Index for status filtering
+@Index(['razorpaySubscriptionId']) // PERFORMANCE: Index for Razorpay lookups
+@Index(['userId', 'status']) // PERFORMANCE: Composite index for common query pattern
 export class Subscription {
   @PrimaryGeneratedColumn('uuid')
   id: string;

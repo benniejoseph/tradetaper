@@ -4,6 +4,7 @@ import {
   Column,
   CreateDateColumn,
   UpdateDateColumn,
+  Index,
 } from 'typeorm';
 // Forward references to avoid circular imports
 import { TradingSession } from '../../types/enums';
@@ -16,6 +17,9 @@ export interface ChecklistItem {
 }
 
 @Entity('strategies')
+@Index(['userId']) // PERFORMANCE: Index for user queries
+@Index(['isActive']) // PERFORMANCE: Index for active strategy filtering
+@Index(['userId', 'isActive']) // PERFORMANCE: Composite index for common query pattern
 export class Strategy {
   @PrimaryGeneratedColumn('uuid')
   id: string;

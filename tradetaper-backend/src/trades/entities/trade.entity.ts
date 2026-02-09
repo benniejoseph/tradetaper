@@ -29,7 +29,13 @@ import {
 } from 'typeorm';
 
 @Entity('trades')
-@Index(['user', 'openTime']) // Example index for querying user's trades by date
+@Index(['user', 'openTime']) // Index for querying user's trades by date
+@Index(['userId']) // PERFORMANCE: Index for user queries
+@Index(['accountId']) // PERFORMANCE: Index for account filtering
+@Index(['strategyId']) // PERFORMANCE: Index for strategy queries
+@Index(['status']) // PERFORMANCE: Index for status filtering
+@Index(['userId', 'status']) // PERFORMANCE: Composite index for common query pattern
+@Index(['userId', 'accountId']) // PERFORMANCE: Composite index for user + account queries
 export class Trade {
   @PrimaryGeneratedColumn('uuid')
   id: string;
