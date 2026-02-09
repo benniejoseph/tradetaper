@@ -31,6 +31,7 @@ import { EnhancedValidationPipe } from '../common/pipes/validation.pipe';
 import { JwtService } from '@nestjs/jwt';
 import { AuthGuard } from '@nestjs/passport';
 import { ConfigService } from '@nestjs/config';
+import { Throttle } from '@nestjs/throttler';
 
 @Controller('auth') // Route prefix /api/v1/auth
 export class AuthController {
@@ -40,7 +41,9 @@ export class AuthController {
     private configService: ConfigService,
   ) {}
 
+  // SECURITY: Strict rate limiting on registration (5 per hour per IP)
   @Post('register')
+  @Throttle({ default: { limit: 5, ttl: 3600000 } })
   @HttpCode(HttpStatus.CREATED)
   async register(
     @Body() registerUserDto: RegisterUserDto,
@@ -48,7 +51,9 @@ export class AuthController {
     return this.authService.register(registerUserDto);
   }
 
+  // SECURITY: Strict rate limiting on login (5 per minute per IP to prevent brute force)
   @Post('login')
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   @HttpCode(HttpStatus.OK)
   async login(
     @Body() loginUserDto: LoginUserDto,

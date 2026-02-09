@@ -4,6 +4,8 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { APP_GUARD } from '@nestjs/core';
 import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
 import { TradesModule } from './trades/trades.module';
@@ -35,6 +37,11 @@ import { SubscriptionsModule } from './subscriptions/subscriptions.module';
     ConfigModule.forRoot({
       isGlobal: true,
     }),
+    // SECURITY: Rate limiting to prevent brute force attacks
+    ThrottlerModule.forRoot([{
+      ttl: 60000, // 60 seconds
+      limit: 10, // 10 requests per minute (global default)
+    }]),
     AgentOrchestratorModule, // Multi-agent coordination layer
     DatabaseModule,
     UsersModule,
@@ -63,7 +70,14 @@ import { SubscriptionsModule } from './subscriptions/subscriptions.module';
     SubscriptionsModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    // SECURITY: Apply rate limiting globally
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
+  ],
 })
 export class AppModule {}
 

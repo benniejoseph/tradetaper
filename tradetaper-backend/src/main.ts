@@ -4,6 +4,7 @@ import { AppModule } from './app.module';
 import { ValidationPipe, BadRequestException } from '@nestjs/common';
 import { CorsOptions } from '@nestjs/common/interfaces/external/cors-options.interface';
 import * as cookieParser from 'cookie-parser';
+import helmet from 'helmet';
 
 async function bootstrap() {
   try {
@@ -13,6 +14,21 @@ async function bootstrap() {
     );
 
     const app = await NestFactory.create(AppModule);
+
+    // SECURITY: Add security headers to protect against common attacks
+    app.use(helmet({
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          styleSrc: ["'self'", "'unsafe-inline'"], // Allow inline styles for Tailwind
+          scriptSrc: ["'self'"],
+          imgSrc: ["'self'", 'data:', 'https:'],
+          connectSrc: ["'self'", 'https://api.tradetaper.com'],
+        },
+      },
+      crossOriginEmbedderPolicy: false, // Allow embedding for OAuth
+    }));
+    console.log('🛡️  Security headers enabled (Helmet.js)');
 
     // SECURITY: Enable cookie parsing for HTTP-only auth cookies
     app.use(cookieParser());
