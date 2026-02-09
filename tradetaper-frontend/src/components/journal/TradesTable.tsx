@@ -3,7 +3,7 @@
 import { Trade, AssetType, TradeDirection, TradeStatus } from '@/types/trade';
 import { Account } from '@/store/features/accountSlice'; // Assuming Account type is exported or define here
 import { format, parseISO, differenceInMinutes, differenceInHours, differenceInDays } from 'date-fns';
-import React, { useState, useMemo } from 'react'; // Import React for React.ReactNode
+import React, { useState, useMemo, useCallback } from 'react'; // Added useCallback
 import { useDispatch } from 'react-redux';
 import { updateTrade, deleteTrades, bulkUpdateTrades } from '@/store/features/tradesSlice';
 import { FaChevronLeft, FaChevronRight, FaEdit, FaCheck, FaTimes, FaTrash, FaPen } from 'react-icons/fa'; // Import icons for pagination
@@ -69,7 +69,7 @@ export default function TradesTable({ trades, accounts, onRowClick, isLoading, i
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(itemsPerPage || 25);
   
-  const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>, currentData: Trade[]) => {
+  const handleSelectAll = useCallback((e: React.ChangeEvent<HTMLInputElement>, currentData: Trade[]) => {
     if (e.target.checked) {
       const newSelected = new Set(selectedIds);
       currentData.forEach(trade => newSelected.add(trade.id));
@@ -79,9 +79,9 @@ export default function TradesTable({ trades, accounts, onRowClick, isLoading, i
       currentData.forEach(trade => newSelected.delete(trade.id));
       setSelectedIds(newSelected);
     }
-  };
+  }, [selectedIds]);
 
-  const handleSelectRow = (tradeId: string) => {
+  const handleSelectRow = useCallback((tradeId: string) => {
     const newSelected = new Set(selectedIds);
     if (newSelected.has(tradeId)) {
       newSelected.delete(tradeId);
@@ -89,11 +89,11 @@ export default function TradesTable({ trades, accounts, onRowClick, isLoading, i
       newSelected.add(tradeId);
     }
     setSelectedIds(newSelected);
-  };
+  }, [selectedIds]);
 
-  const handleBulkDelete = async () => {
+  const handleBulkDelete = useCallback(async () => {
     if (selectedIds.size === 0) return;
-    
+
     if (confirm(`Are you sure you want to delete ${selectedIds.size} trades?`)) {
       try {
         await dispatch(deleteTrades(Array.from(selectedIds))).unwrap();
@@ -103,13 +103,13 @@ export default function TradesTable({ trades, accounts, onRowClick, isLoading, i
         alert('Failed to delete some trades. Please try again.');
       }
     }
-  };
+  }, [selectedIds, dispatch]);
 
-  
+
   /* Bulk Edit Logic */
-  const handleBulkUpdate = async () => {
+  const handleBulkUpdate = useCallback(async () => {
     if (selectedIds.size === 0 || Object.keys(bulkUpdates).length === 0) return;
-    
+
     if (confirm(`Are you sure you want to update ${Object.keys(bulkUpdates).length} fields for ${selectedIds.size} trades?`)) {
       try {
         await dispatch(bulkUpdateTrades({
@@ -124,9 +124,9 @@ export default function TradesTable({ trades, accounts, onRowClick, isLoading, i
         alert('Failed to update some trades. Please try again.');
       }
     }
-  };
+  }, [selectedIds, bulkUpdates, dispatch]);
 
-  const handleEditClick = (trade: Trade, e: React.MouseEvent) => {
+  const handleEditClick = useCallback((trade: Trade, e: React.MouseEvent) => {
     e.stopPropagation();
     setEditingId(trade.id);
     setEditForm({
@@ -138,27 +138,27 @@ export default function TradesTable({ trades, accounts, onRowClick, isLoading, i
       direction: trade.direction,
       status: trade.status
     });
-  };
+  }, []);
 
-  const handleCancel = (e: React.MouseEvent) => {
+  const handleCancel = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
     setEditingId(null);
     setEditForm({});
-  };
+  }, []);
 
-  const handleSave = async (tradeId: string) => {
+  const handleSave = useCallback(async (tradeId: string) => {
     if (!tradeId) return;
     try {
-      await dispatch(updateTrade({ 
-        id: tradeId, 
-        payload: editForm 
+      await dispatch(updateTrade({
+        id: tradeId,
+        payload: editForm
       })).unwrap();
       setEditingId(null);
       setEditForm({});
     } catch (error) {
       console.error('Failed to update trade:', error);
     }
-  };
+  }, [dispatch, editForm]);
 
   const pagination = useMemo(() => {
     const totalItems = trades.length;
