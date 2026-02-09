@@ -7,7 +7,6 @@ import { Trade } from '../trades/entities/trade.entity';
 import {
   Subscription,
   SubscriptionStatus,
-  SubscriptionTier,
 } from '../subscriptions/entities/subscription.entity';
 import { TradeDirection, TradeStatus, AssetType } from '../types/enums';
 
@@ -44,7 +43,7 @@ export class AdminService {
     };
   }
 
-  async getUserAnalytics(timeRange: string) {
+  getUserAnalytics(timeRange: string) {
     // Generate sample data points for the chart
     const days = this.getDaysFromTimeRange(timeRange);
     const data: Array<{ date: string; users: number }> = [];
@@ -65,7 +64,7 @@ export class AdminService {
     };
   }
 
-  async getRevenueAnalytics(timeRange: string) {
+  getRevenueAnalytics(timeRange: string) {
     // Generate sample data points for the chart
     const days = this.getDaysFromTimeRange(timeRange);
     const data: Array<{ date: string; revenue: number }> = [];
@@ -86,7 +85,7 @@ export class AdminService {
     };
   }
 
-  async getSystemHealth() {
+  getSystemHealth() {
     return {
       status: 'healthy',
       uptime: 99.9,
@@ -98,7 +97,7 @@ export class AdminService {
     };
   }
 
-  async getActivityFeed(limit: number = 5) {
+  getActivityFeed(_limit: number = 5) {
     // Return empty array since we don't have activity tracking yet
     return [];
   }
@@ -405,29 +404,8 @@ export class AdminService {
         }
       }
 
-      // Create sample subscriptions
-      const sampleSubscriptions = [
-        {
-          user: createdUsers[0],
-          plan: 'premium',
-          status: SubscriptionStatus.ACTIVE,
-          createdAt: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000),
-        },
-        {
-          user: createdUsers[1],
-          plan: 'basic',
-          status: SubscriptionStatus.ACTIVE,
-          createdAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000),
-        },
-        {
-          user: createdUsers[2],
-          plan: 'premium',
-          status: SubscriptionStatus.CANCELED,
-          createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
-        },
-      ];
-
       // Skip subscriptions for now due to schema mismatch
+      // Sample subscriptions would be created here when schema is fixed
       const createdSubscriptions = 0;
       // TODO: Fix subscription entity/database schema mismatch
       console.log('Skipping subscription seeding due to schema mismatch');

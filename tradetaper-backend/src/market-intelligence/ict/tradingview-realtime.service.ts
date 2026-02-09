@@ -1,5 +1,10 @@
 import { safeToFixed } from './ict-utils';
-import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  OnModuleInit,
+  OnModuleDestroy,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 const TradingView = require('@mathieuc/tradingview');
 
@@ -19,12 +24,14 @@ export interface TradingViewIndicator {
 }
 
 @Injectable()
-export class TradingViewRealtimeService implements OnModuleInit, OnModuleDestroy {
+export class TradingViewRealtimeService
+  implements OnModuleInit, OnModuleDestroy
+{
   private readonly logger = new Logger(TradingViewRealtimeService.name);
   private tvClient: any;
   private charts = new Map<string, any>();
-  private dataCallbacks = new Map<string, Function[]>();
-  
+  private dataCallbacks = new Map<string, Array<(data: any) => void>>();
+
   // Cache for latest candles
   private candleCache = new Map<string, RealtimeCandle[]>();
   private readonly MAX_CANDLES = 500; // Keep last 500 candles in memory
@@ -45,13 +52,16 @@ export class TradingViewRealtimeService implements OnModuleInit, OnModuleDestroy
   private async initializeTradingView() {
     try {
       this.logger.log('Initializing TradingView client...');
-      
+
       // Initialize the TradingView WebSocket client
       this.tvClient = new TradingView.Client();
 
       this.logger.log('✅ TradingView client initialized successfully!');
     } catch (error) {
-      this.logger.error('Failed to initialize TradingView client:', error.message);
+      this.logger.error(
+        'Failed to initialize TradingView client:',
+        error.message,
+      );
     }
   }
 
@@ -75,9 +85,9 @@ export class TradingViewRealtimeService implements OnModuleInit, OnModuleDestroy
       // Convert symbol format (XAUUSD -> OANDA:XAUUSD or FX:XAUUSD)
       const tvSymbol = this.convertToTradingViewSymbol(symbol);
       const tvTimeframe = this.convertTimeframe(timeframe);
-      
+
       const cacheKey = `${tvSymbol}_${tvTimeframe}`;
-      
+
       // Check cache first (1 minute cache)
       const cached = this.candleCache.get(cacheKey);
       if (cached && cached.length > 0) {
@@ -85,12 +95,14 @@ export class TradingViewRealtimeService implements OnModuleInit, OnModuleDestroy
         return cached.slice(-limit);
       }
 
-      this.logger.log(`Fetching real-time data from TradingView: ${tvSymbol} ${tvTimeframe}`);
+      this.logger.log(
+        `Fetching real-time data from TradingView: ${tvSymbol} ${tvTimeframe}`,
+      );
 
       // Create chart if not exists
       if (!this.charts.has(cacheKey)) {
         const chart = new this.tvClient.Session.Chart();
-        
+
         chart.onError((...err) => {
           this.logger.error(`TradingView chart error for ${cacheKey}:`, ...err);
         });
@@ -108,13 +120,15 @@ export class TradingViewRealtimeService implements OnModuleInit, OnModuleDestroy
         chart.onUpdate(() => {
           const periods = chart.periods;
           if (periods && periods.length > 0) {
-            this.logger.debug(`Received ${periods.length} candles for ${cacheKey}`);
+            this.logger.debug(
+              `Received ${periods.length} candles for ${cacheKey}`,
+            );
             const candles = this.convertTradingViewData(periods);
             this.candleCache.set(cacheKey, candles);
-            
+
             // Call registered callbacks
             const callbacks = this.dataCallbacks.get(cacheKey) || [];
-            callbacks.forEach(cb => cb(candles));
+            callbacks.forEach((cb) => cb(candles));
           }
         });
 
@@ -125,22 +139,25 @@ export class TradingViewRealtimeService implements OnModuleInit, OnModuleDestroy
       let retries = 0;
       const maxRetries = 5;
       while (retries < maxRetries) {
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+
         const candles = this.candleCache.get(cacheKey);
         if (candles && candles.length > 0) {
-          this.logger.log(`Successfully fetched ${candles.length} candles for ${tvSymbol}`);
+          this.logger.log(
+            `Successfully fetched ${candles.length} candles for ${tvSymbol}`,
+          );
           return candles.slice(-limit);
         }
-        
+
         retries++;
         this.logger.debug(`Waiting for data... retry ${retries}/${maxRetries}`);
       }
 
       // Fallback if no data received
-      this.logger.warn(`No data received from TradingView after ${maxRetries} retries, using fallback`);
+      this.logger.warn(
+        `No data received from TradingView after ${maxRetries} retries, using fallback`,
+      );
       return this.getFallbackData(symbol, limit);
-      
     } catch (error) {
       this.logger.error(`Error fetching TradingView data: ${error.message}`);
       return this.getFallbackData(symbol, limit);
@@ -162,12 +179,12 @@ export class TradingViewRealtimeService implements OnModuleInit, OnModuleDestroy
     if (!this.dataCallbacks.has(cacheKey)) {
       this.dataCallbacks.set(cacheKey, []);
     }
-    
+
     this.dataCallbacks.get(cacheKey)!.push(callback);
-    
+
     // Initialize chart if not exists
     this.getRealtimeCandles(symbol, timeframe, 100);
-    
+
     this.logger.log(`Subscribed to ${tvSymbol} ${tvTimeframe}`);
     return cacheKey;
   }
@@ -177,7 +194,7 @@ export class TradingViewRealtimeService implements OnModuleInit, OnModuleDestroy
    */
   unsubscribeFromSymbol(subscriptionId: string) {
     this.dataCallbacks.delete(subscriptionId);
-    
+
     const chart = this.charts.get(subscriptionId);
     if (chart) {
       try {
@@ -187,7 +204,7 @@ export class TradingViewRealtimeService implements OnModuleInit, OnModuleDestroy
       }
       this.charts.delete(subscriptionId);
     }
-    
+
     this.logger.log(`Unsubscribed from ${subscriptionId}`);
   }
 
@@ -222,7 +239,7 @@ export class TradingViewRealtimeService implements OnModuleInit, OnModuleDestroy
    * Convert TradingView periods to our candle format
    */
   private convertTradingViewData(periods: any[]): RealtimeCandle[] {
-    return periods.map(period => ({
+    return periods.map((period) => ({
       timestamp: new Date(period.time * 1000),
       open: period.open,
       high: period.high,
@@ -239,16 +256,16 @@ export class TradingViewRealtimeService implements OnModuleInit, OnModuleDestroy
   private convertToTradingViewSymbol(symbol: string): string {
     // Remove any existing exchange prefix
     const cleanSymbol = symbol.replace(/^[A-Z]+:/, '');
-    
+
     // Map to TradingView exchanges
     const symbolMap: Record<string, string> = {
-      'XAUUSD': 'OANDA:XAUUSD',  // Gold
-      'XAGUSD': 'OANDA:XAGUSD',  // Silver
-      'EURUSD': 'FX:EURUSD',
-      'GBPUSD': 'FX:GBPUSD',
-      'USDJPY': 'FX:USDJPY',
-      'BTCUSD': 'BINANCE:BTCUSDT',
-      'ETHUSD': 'BINANCE:ETHUSDT',
+      XAUUSD: 'OANDA:XAUUSD', // Gold
+      XAGUSD: 'OANDA:XAGUSD', // Silver
+      EURUSD: 'FX:EURUSD',
+      GBPUSD: 'FX:GBPUSD',
+      USDJPY: 'FX:USDJPY',
+      BTCUSD: 'BINANCE:BTCUSDT',
+      ETHUSD: 'BINANCE:ETHUSDT',
     };
 
     return symbolMap[cleanSymbol] || `FX:${cleanSymbol}`;
@@ -284,7 +301,7 @@ export class TradingViewRealtimeService implements OnModuleInit, OnModuleDestroy
    */
   private getFallbackData(symbol: string, limit: number): RealtimeCandle[] {
     this.logger.warn(`Generating fallback data for ${symbol}`);
-    
+
     const basePrice = this.getBasePrice(symbol);
     const data: RealtimeCandle[] = [];
     let currentPrice = basePrice;
@@ -295,7 +312,7 @@ export class TradingViewRealtimeService implements OnModuleInit, OnModuleDestroy
       const close = currentPrice + change;
       const high = Math.max(open, close) + Math.random() * (basePrice * 0.001);
       const low = Math.min(open, close) - Math.random() * (basePrice * 0.001);
-      
+
       data.push({
         timestamp: new Date(Date.now() - (limit - i) * 3600000), // Hourly
         open,
@@ -316,15 +333,15 @@ export class TradingViewRealtimeService implements OnModuleInit, OnModuleDestroy
    */
   private getBasePrice(symbol: string): number {
     const prices: Record<string, number> = {
-      'XAUUSD': 4107.00,  // Updated to current Gold price
-      'XAGUSD': 31.50,
-      'EURUSD': 1.0850,
-      'GBPUSD': 1.2750,
-      'USDJPY': 149.50,
-      'BTCUSD': 43500.00,
-      'ETHUSD': 2300.00,
+      XAUUSD: 4107.0, // Updated to current Gold price
+      XAGUSD: 31.5,
+      EURUSD: 1.085,
+      GBPUSD: 1.275,
+      USDJPY: 149.5,
+      BTCUSD: 43500.0,
+      ETHUSD: 2300.0,
     };
-    return prices[symbol] || 1.0000;
+    return prices[symbol] || 1.0;
   }
 
   /**
@@ -332,7 +349,7 @@ export class TradingViewRealtimeService implements OnModuleInit, OnModuleDestroy
    */
   private disconnectAll() {
     this.logger.log('Disconnecting all TradingView charts...');
-    
+
     this.charts.forEach((chart, key) => {
       try {
         chart.delete();
@@ -340,11 +357,11 @@ export class TradingViewRealtimeService implements OnModuleInit, OnModuleDestroy
         // Ignore
       }
     });
-    
+
     this.charts.clear();
     this.dataCallbacks.clear();
     this.candleCache.clear();
-    
+
     this.logger.log('✅ All charts disconnected');
   }
 
@@ -367,4 +384,3 @@ export class TradingViewRealtimeService implements OnModuleInit, OnModuleDestroy
     };
   }
 }
-

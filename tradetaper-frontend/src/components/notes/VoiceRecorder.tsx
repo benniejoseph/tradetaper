@@ -317,7 +317,7 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
     }
   };
 
-  const useTranscription = (transcript: string) => {
+  const handleUseTranscription = (transcript: string) => {
     onTranscriptionComplete(transcript);
     onClose();
   };
@@ -487,7 +487,7 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
 
                           {recording.transcript && (
                             <AnimatedButton
-                              onClick={() => useTranscription(recording.transcript!)}
+                              onClick={() => handleUseTranscription(recording.transcript!)}
                               variant="gradient"
                               size="sm"
                               className="bg-gradient-to-r from-green-500 to-green-600"
