@@ -14,7 +14,7 @@ export function generateMockData(count: number = 500): CandleData[] {
   const data: CandleData[] = [];
   let price = 150.0;
   // Start from 2023-01-01
-  let date = new Date('2023-01-01T09:30:00Z');
+  const date = new Date('2023-01-01T09:30:00Z');
 
   for (let i = 0; i < count; i++) {
     const volatility = 0.5;
