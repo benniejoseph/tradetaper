@@ -82,3 +82,10 @@ firebase*.json
 verify_notifications.js
 .env*.local
 *.zip
+tradetaper-backend/deploy-cloudrun-quick.sh
+tradetaper-backend/env-vars.yaml
+tradetaper-backend/cloudbuild.yaml
+tradetaper-backend/DEPLOYMENT_GUIDE.md.backup
+deploy-gcp.sh
+tradetaper-backend/deploy-cloudrun.sh
+tradetaper-backend/production.env
