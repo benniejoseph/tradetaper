@@ -221,19 +221,19 @@ export default function BillingPage() {
   const isPremium = planName.toLowerCase() === 'premium';
 
   return (
-    <div className="min-h-screen bg-slate-950 text-white selection:bg-emerald-500/30 p-4 md:p-8 font-sans">
+    <div className="min-h-screen bg-background text-foreground selection:bg-primary/30 p-4 md:p-8 font-sans">
         {/* Background Gradients */}
         <div className="fixed inset-0 pointer-events-none">
-            <div className="absolute top-0 left-1/4 w-96 h-96 bg-emerald-500/10 rounded-full blur-[100px]"></div>
-            <div className="absolute bottom-0 right-1/4 w-[30rem] h-[30rem] bg-indigo-500/10 rounded-full blur-[100px]"></div>
+            <div className="absolute top-0 left-1/4 w-96 h-96 bg-primary/5 rounded-full blur-[100px]"></div>
+            <div className="absolute bottom-0 right-1/4 w-[30rem] h-[30rem] bg-indigo-500/5 rounded-full blur-[100px]"></div>
         </div>
 
         {/* Loading Overlay */}
         {(actionLoading === 'upgrade' || initUpgrade) && (
-            <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[100] flex items-center justify-center flex-col">
-                <div className="w-16 h-16 border-4 border-emerald-500/30 border-t-emerald-500 rounded-full animate-spin mb-4"></div>
-                <h3 className="text-2xl font-bold text-white mb-2">Initializing Payment</h3>
-                <p className="text-slate-400">Please wait while we connect to Razorpay secure gateway...</p>
+            <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-[100] flex items-center justify-center flex-col">
+                <div className="w-16 h-16 border-4 border-primary/30 border-t-primary rounded-full animate-spin mb-4"></div>
+                <h3 className="text-2xl font-bold text-foreground mb-2">Initializing Payment</h3>
+                <p className="text-muted-foreground">Please wait while we connect to Razorpay secure gateway...</p>
             </div>
         )}
 
@@ -245,34 +245,30 @@ export default function BillingPage() {
                         <FaCreditCard className="text-white text-2xl" />
                     </div>
                     <div>
-                        <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">
+                        <h1 className="text-3xl font-bold text-foreground">
                             Billing & Plans
                         </h1>
-                        <p className="text-slate-400 font-medium">Manage your subscription and usage</p>
+                        <p className="text-muted-foreground font-medium">Manage your subscription and usage</p>
                     </div>
                 </div>
-
-                <Link href="/pricing" className="hidden md:flex items-center gap-2 px-6 py-2.5 rounded-xl bg-slate-900 border border-slate-800 hover:border-emerald-500/50 hover:bg-slate-800 transition-all font-medium text-emerald-400">
-                    <FaCrown /> View All Plans
-                </Link>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 
                 {/* Main Subscription Card */}
                 <div className="lg:col-span-2 space-y-8">
-                    <div className="relative overflow-hidden rounded-3xl bg-slate-900/60 backdrop-blur-xl border border-slate-800 p-8 shadow-2xl">
-                         <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl -mr-32 -mt-32 pointer-events-none"></div>
+                    <div className="relative overflow-hidden rounded-3xl glass-card p-8">
+                         <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full blur-3xl -mr-32 -mt-32 pointer-events-none"></div>
                          
                          <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4 relative z-10">
                             <div>
-                                <h2 className="text-xl font-bold text-white mb-1">Current Plan</h2>
+                                <h2 className="text-xl font-bold text-foreground mb-1">Current Plan</h2>
                                 <div className="flex items-center gap-3">
-                                    <span className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-400 capitalize">
+                                    <span className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-500 to-teal-500 capitalize">
                                         {planName}
                                     </span>
                                     {currentSubscription?.status === 'active' && (
-                                        <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 text-xs font-bold border border-emerald-500/30 flex items-center gap-1">
+                                        <span className="px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs font-bold border border-emerald-500/30 flex items-center gap-1">
                                             <FaCheckCircle /> ACTIVE
                                         </span>
                                     )}
@@ -280,29 +276,29 @@ export default function BillingPage() {
                             </div>
                             
                             <div className="text-right">
-                                <p className="text-slate-400 text-sm mb-1">Next Payment</p>
-                                <p className="text-xl font-bold text-white">
+                                <p className="text-muted-foreground text-sm mb-1">Next Payment</p>
+                                <p className="text-xl font-bold text-foreground">
                                     {billingInfo?.upcomingInvoice ? `$${billingInfo.upcomingInvoice.amount/100}` : '$0.00'}
                                 </p>
-                                <p className="text-xs text-slate-500">
+                                <p className="text-xs text-muted-foreground">
                                     on {billingInfo?.upcomingInvoice ? formatDate(billingInfo.upcomingInvoice.date) : 'N/A'}
                                 </p>
                             </div>
                          </div>
 
                          {/* Subscription Dates */}
-                         <div className="bg-slate-950/50 rounded-2xl p-6 border border-slate-800 mb-8 relative z-10">
+                         <div className="bg-secondary/50 rounded-2xl p-6 border border-border mb-8 relative z-10">
                             <div className="grid md:grid-cols-2 gap-6">
                                 <div>
-                                    <p className="text-slate-500 text-xs uppercase tracking-wider font-bold mb-2">Billing Period</p>
-                                    <p className="text-white font-medium flex items-center gap-2">
-                                        <FaHistory className="text-slate-600" />
+                                    <p className="text-muted-foreground text-xs uppercase tracking-wider font-bold mb-2">Billing Period</p>
+                                    <p className="text-foreground font-medium flex items-center gap-2">
+                                        <FaHistory className="text-muted-foreground" />
                                         {currentSubscription ? `${formatDate(currentSubscription.currentPeriodStart)} - ${formatDate(currentSubscription.currentPeriodEnd)}` : 'N/A'}
                                     </p>
                                 </div>
                                 <div>
-                                    <p className="text-slate-500 text-xs uppercase tracking-wider font-bold mb-2">Renews On</p>
-                                    <p className="text-white font-medium flex items-center gap-2">
+                                    <p className="text-muted-foreground text-xs uppercase tracking-wider font-bold mb-2">Renews On</p>
+                                    <p className="text-foreground font-medium flex items-center gap-2">
                                         <FaBolt className="text-amber-500" />
                                         {currentSubscription ? formatDate(currentSubscription.currentPeriodEnd) : 'N/A'}
                                     </p>
@@ -319,7 +315,7 @@ export default function BillingPage() {
                              <button 
                                 onClick={handleManageBilling}
                                 disabled={actionLoading === 'portal'}
-                                className="px-6 py-3 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-white font-medium transition-all flex items-center gap-2"
+                                className="px-6 py-3 rounded-xl bg-secondary border border-border hover:bg-secondary/80 text-foreground font-medium transition-all flex items-center gap-2"
                              >
                                 {actionLoading === 'portal' ? <FaSpinner className="animate-spin" /> : <FaCreditCard />}
                                 Manage Payment Method
@@ -329,7 +325,7 @@ export default function BillingPage() {
                                 <button 
                                     onClick={handleReactivateSubscription}
                                     disabled={actionLoading === 'reactivate'}
-                                    className="px-6 py-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20 font-medium transition-all flex items-center gap-2 ml-auto"
+                                    className="px-6 py-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 font-medium transition-all flex items-center gap-2 ml-auto"
                                 >
                                     {actionLoading === 'reactivate' ? <FaSpinner className="animate-spin" /> : <FaCheckCircle />}
                                     Reactivate
@@ -338,7 +334,7 @@ export default function BillingPage() {
                                 <button 
                                     onClick={handleCancelSubscription}
                                     disabled={actionLoading === 'cancel'}
-                                    className="px-6 py-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 hover:bg-red-500/20 font-medium transition-all flex items-center gap-2 ml-auto"
+                                    className="px-6 py-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-600 dark:text-red-400 hover:bg-red-500/20 font-medium transition-all flex items-center gap-2 ml-auto"
                                 >
                                     {actionLoading === 'cancel' ? <FaSpinner className="animate-spin" /> : <FaTimes />}
                                     Cancel
@@ -348,32 +344,32 @@ export default function BillingPage() {
                     </div>
 
                     {/* Billing History */}
-                    <div className="rounded-3xl bg-slate-900/60 backdrop-blur-xl border border-slate-800 p-8">
+                    <div className="rounded-3xl glass-card p-8">
                         <div className="flex items-center justify-between mb-6">
-                            <h3 className="text-xl font-bold text-white">Billing History</h3>
-                            <button className="text-sm text-emerald-400 hover:text-emerald-300 font-medium flex items-center gap-1">
+                            <h3 className="text-xl font-bold text-foreground">Billing History</h3>
+                            <button className="text-sm text-primary hover:text-primary/80 font-medium flex items-center gap-1">
                                 <FaDownload /> Download All
                             </button>
                         </div>
                         
-                        <div className="text-center py-12 border-2 border-dashed border-slate-800 rounded-2xl">
-                             <div className="w-16 h-16 bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-600">
+                        <div className="text-center py-12 border-2 border-dashed border-border rounded-2xl">
+                             <div className="w-16 h-16 bg-secondary rounded-full flex items-center justify-center mx-auto mb-4 text-muted-foreground">
                                 <FaHistory className="text-2xl" />
                              </div>
-                             <p className="text-slate-400 font-medium">No invoices found for this period.</p>
-                             <p className="text-slate-600 text-sm mt-1">Previous billing cycles will appear here.</p>
+                             <p className="text-muted-foreground font-medium">No invoices found for this period.</p>
+                             <p className="text-muted-foreground text-sm mt-1">Previous billing cycles will appear here.</p>
                         </div>
                     </div>
                 </div>
 
                 {/* Usage Stats (Side Panel) */}
                 <div className="space-y-8">
-                    <div className="rounded-3xl bg-slate-900/60 backdrop-blur-xl border border-slate-800 p-6 pt-8">
+                    <div className="rounded-3xl glass-card p-6 pt-8">
                         <div className="flex items-center gap-3 mb-6">
-                             <div className="p-3 bg-indigo-500/10 rounded-xl text-indigo-400">
+                             <div className="p-3 bg-indigo-500/10 rounded-xl text-indigo-500">
                                 <FaChartBar className="text-xl" />
                              </div>
-                             <h3 className="text-xl font-bold text-white">Monthly Usage</h3>
+                             <h3 className="text-xl font-bold text-foreground">Monthly Usage</h3>
                         </div>
 
                         {usage ? (
@@ -381,12 +377,12 @@ export default function BillingPage() {
                                 {/* Trades */}
                                 <div>
                                     <div className="flex justify-between text-sm mb-2">
-                                        <span className="text-slate-400">Trades</span>
-                                        <span className="text-white font-medium">{usage.currentPeriodTrades} / {usage.tradeLimit === 0 ? '∞' : usage.tradeLimit}</span>
+                                        <span className="text-muted-foreground">Trades</span>
+                                        <span className="text-foreground font-medium">{usage.currentPeriodTrades} / {usage.tradeLimit === 0 ? '∞' : usage.tradeLimit}</span>
                                     </div>
-                                    <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
+                                    <div className="h-2 bg-secondary rounded-full overflow-hidden">
                                         <div 
-                                            className="h-full bg-emerald-500 rounded-full transition-all duration-500"
+                                            className="h-full bg-primary rounded-full transition-all duration-500"
                                             style={{ width: `${Math.min((usage.tradeLimit > 0 ? (usage.currentPeriodTrades / usage.tradeLimit) * 100 : 0), 100)}%` }}
                                         ></div>
                                     </div>
@@ -395,10 +391,10 @@ export default function BillingPage() {
                                 {/* Accounts */}
                                 <div>
                                     <div className="flex justify-between text-sm mb-2">
-                                        <span className="text-slate-400">Accounts</span>
-                                        <span className="text-white font-medium">{usage.accountsUsed} / {usage.accountLimit === 0 ? '∞' : usage.accountLimit}</span>
+                                        <span className="text-muted-foreground">Accounts</span>
+                                        <span className="text-foreground font-medium">{usage.accountsUsed} / {usage.accountLimit === 0 ? '∞' : usage.accountLimit}</span>
                                     </div>
-                                    <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
+                                    <div className="h-2 bg-secondary rounded-full overflow-hidden">
                                         <div 
                                             className="h-full bg-blue-500 rounded-full transition-all duration-500"
                                             style={{ width: `${Math.min((usage.accountLimit > 0 ? (usage.accountsUsed / usage.accountLimit) * 100 : 0), 100)}%` }}
@@ -407,14 +403,14 @@ export default function BillingPage() {
                                 </div>
                             </div>
                         ) : (
-                            <div className="text-center py-8 text-slate-500">
+                            <div className="text-center py-8 text-muted-foreground">
                                 <FaSpinner className="animate-spin mx-auto mb-2" />
                                 <p>Loading usage data...</p>
                             </div>
                         )}
 
                         {!isPremium && (
-                            <div className="mt-8 pt-6 border-t border-slate-800">
+                            <div className="mt-8 pt-6 border-t border-border">
                                 <div className="bg-gradient-to-br from-indigo-600 to-violet-600 rounded-xl p-5 text-white relative overflow-hidden">
                                     <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full blur-2xl -mr-8 -mt-8 pointer-events-none"></div>
                                     <h4 className="font-bold mb-1 relative z-10 flex items-center gap-2">
