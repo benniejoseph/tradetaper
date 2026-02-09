@@ -108,10 +108,12 @@ export class CreateTerminalInstances1770400000000
 
   public async down(queryRunner: QueryRunner): Promise<void> {
     const table = await queryRunner.getTable('terminal_instances');
-    const foreignKey = table.foreignKeys.find(
+    const foreignKey = table?.foreignKeys.find(
       (fk) => fk.columnNames.indexOf('accountId') !== -1,
     );
-    await queryRunner.dropForeignKey('terminal_instances', foreignKey);
+    if (foreignKey) {
+      await queryRunner.dropForeignKey('terminal_instances', foreignKey);
+    }
     await queryRunner.dropTable('terminal_instances');
   }
 }
