@@ -89,18 +89,54 @@ trade_approvals, prop_firm_accounts, psychological_insights
 
 ---
 
-### 5. ✅ CVE-5: JWT Tokens in URL Parameters - FIXED
+### 5. ✅ CVE-5: JWT Tokens in URL Parameters - FULLY IMPLEMENTED
 
 **Issue:** Google OAuth callback exposed JWT tokens in URL parameters
-**File:** `tradetaper-backend/src/auth/auth.controller.ts`
+**Status:** 🟢 COMPLETE - Backend and Frontend fully migrated to cookie-based auth
 
-**Changes:**
-- ✅ Auth token now set as HTTP-only cookie
-- ✅ Removed token from URL parameters
-- ✅ Added secure, sameSite, httpOnly cookie attributes
-- ✅ User data in separate non-HTTP-only cookie
+**Backend Changes:**
 
-**Frontend Migration Required:**
+1. **`tradetaper-backend/src/auth/auth.controller.ts`**
+   - ✅ Auth token now set as HTTP-only cookie
+   - ✅ Removed token from URL parameters
+   - ✅ Added secure, sameSite, httpOnly cookie attributes
+   - ✅ User data in separate non-HTTP-only cookie
+
+2. **`tradetaper-backend/src/auth/strategies/jwt.strategy.ts`**
+   - ✅ Added custom `cookieExtractor()` function
+   - ✅ Extracts JWT from HTTP-only `auth_token` cookie
+   - ✅ Falls back to Authorization header for backwards compatibility
+   - ✅ Logs extraction method for debugging
+
+3. **`tradetaper-backend/src/main.ts`**
+   - ✅ Installed `cookie-parser` middleware
+   - ✅ Enabled cookie parsing for all requests
+   - ✅ Added to dependencies: `cookie-parser` and `@types/cookie-parser`
+
+**Frontend Changes:**
+
+1. **`tradetaper-frontend/src/services/api.ts`**
+   - ✅ Enabled `withCredentials: true` on both `apiClient` and `authApiClient`
+   - ✅ Allows automatic cookie transmission with requests
+   - ✅ Updated auth interceptor to handle cookie-based auth
+
+2. **`tradetaper-frontend/src/services/googleAuthService.ts`**
+   - ✅ Added `getCookie()` utility function
+   - ✅ Updated to read user data from `user_data` cookie
+   - ✅ Changed to check for `success=true` parameter instead of token
+   - ✅ No longer stores token in localStorage
+
+3. **`tradetaper-frontend/src/app/auth/google/callback/page.tsx`**
+   - ✅ Updated to check for `success` parameter
+   - ✅ Removed token extraction from URL
+   - ✅ Simplified callback flow
+
+4. **`tradetaper-frontend/src/store/features/authSlice.ts`**
+   - ✅ Only stores user data in localStorage (not token)
+   - ✅ Uses placeholder token value ('cookie') for state management
+   - ✅ Removed token cleanup from logout (handled by backend)
+
+**Migration Summary:**
 ```typescript
 // OLD (INSECURE):
 const token = searchParams.get('token');
@@ -108,12 +144,18 @@ localStorage.setItem('token', token);
 
 // NEW (SECURE):
 // Token is automatically set as HTTP-only cookie by backend
-// Frontend should read from cookie automatically via Axios interceptor
+// Frontend reads user data from cookie, token is never exposed to JavaScript
 ```
 
 **Cookie Names:**
 - `auth_token` - HTTP-only cookie with JWT (not accessible to JavaScript)
 - `user_data` - Regular cookie with user info (accessible to JavaScript)
+
+**Security Benefits:**
+- ✅ JWT token no longer in URL (not in browser history, logs, or referrer headers)
+- ✅ Token protected from XSS attacks (HTTP-only flag)
+- ✅ Token automatically sent with API requests
+- ✅ Backwards compatible with Authorization header for gradual migration
 
 ---
 
