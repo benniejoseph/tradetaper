@@ -20,13 +20,13 @@ import {
 } from './services/subscription.service';
 
 export class CreateRazorpaySubscriptionDto {
-    @IsString()
-    @IsNotEmpty()
-    planId: string;
+  @IsString()
+  @IsNotEmpty()
+  planId: string;
 
-    @IsString()
-    @IsNotEmpty()
-    period: 'monthly' | 'yearly';
+  @IsString()
+  @IsNotEmpty()
+  period: 'monthly' | 'yearly';
 }
 
 @Controller('subscriptions')
@@ -44,11 +44,11 @@ export class SubscriptionsController {
   async createRazorpaySubscription(
     @Body() dto: CreateRazorpaySubscriptionDto,
     @Req() req: AuthenticatedRequest,
-  ) { 
+  ) {
     return this.subscriptionService.createRazorpaySubscription(
-        req.user.id,
-        dto.planId,
-        dto.period
+      req.user.id,
+      dto.planId,
+      dto.period,
     );
   }
 

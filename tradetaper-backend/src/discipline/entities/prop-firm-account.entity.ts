@@ -15,13 +15,13 @@ export enum PropFirmPhase {
 
 // Prop firm provider presets
 export interface PropFirmRules {
-  dailyDrawdownPercent: number;      // Max daily loss (e.g., 5%)
-  totalDrawdownPercent: number;      // Max total loss (e.g., 10%)
-  profitTargetPercent?: number;      // Required profit target (e.g., 8%)
-  minTradingDays?: number;           // Minimum trading days
-  maxPositionSize?: number;          // Max lots per trade
-  newsRestriction?: boolean;         // No trading during news
-  weekendHoldingAllowed?: boolean;   // Can hold over weekend
+  dailyDrawdownPercent: number; // Max daily loss (e.g., 5%)
+  totalDrawdownPercent: number; // Max total loss (e.g., 10%)
+  profitTargetPercent?: number; // Required profit target (e.g., 8%)
+  minTradingDays?: number; // Minimum trading days
+  maxPositionSize?: number; // Max lots per trade
+  newsRestriction?: boolean; // No trading during news
+  weekendHoldingAllowed?: boolean; // Can hold over weekend
 }
 
 // Common prop firm presets
@@ -130,16 +130,27 @@ export class PropFirmAccount {
 
   // Computed properties (not stored)
   get dailyDrawdownRemaining(): number {
-    return Math.max(0, this.rules.dailyDrawdownPercent - this.dailyDrawdownUsed);
+    return Math.max(
+      0,
+      this.rules.dailyDrawdownPercent - this.dailyDrawdownUsed,
+    );
   }
 
   get totalDrawdownRemaining(): number {
-    return Math.max(0, this.rules.totalDrawdownPercent - this.totalDrawdownUsed);
+    return Math.max(
+      0,
+      this.rules.totalDrawdownPercent - this.totalDrawdownUsed,
+    );
   }
 
   get profitProgress(): number {
     if (!this.rules.profitTargetPercent) return 0;
-    const profitPercent = ((this.currentBalance - this.startingBalance) / this.startingBalance) * 100;
-    return Math.min(100, (profitPercent / this.rules.profitTargetPercent) * 100);
+    const profitPercent =
+      ((this.currentBalance - this.startingBalance) / this.startingBalance) *
+      100;
+    return Math.min(
+      100,
+      (profitPercent / this.rules.profitTargetPercent) * 100,
+    );
   }
 }

@@ -7,10 +7,10 @@ import { v4 as uuidv4 } from 'uuid';
 
 /**
  * Agent Message Bus Service
- * 
+ *
  * Provides event-driven communication between agents.
  * Uses in-memory EventEmitter for now, can be upgraded to Redis Pub/Sub or RabbitMQ.
- * 
+ *
  * Features:
  * - Publish/Subscribe messaging
  * - Point-to-point messaging
@@ -26,12 +26,10 @@ export class MessageBusService implements OnModuleDestroy {
   private readonly messageHistory = new Map<string, AgentMessage[]>();
   private readonly maxHistorySize = 1000;
 
-  constructor(
-    @Inject(CACHE_MANAGER) private cacheManager: Cache,
-  ) {
+  constructor(@Inject(CACHE_MANAGER) private cacheManager: Cache) {
     // Set max listeners to prevent memory leaks with many agents
     this.eventEmitter.setMaxListeners(100);
-    
+
     this.logger.log('Message Bus initialized');
   }
 
@@ -47,7 +45,7 @@ export class MessageBusService implements OnModuleDestroy {
       type?: 'request' | 'response' | 'broadcast' | 'notification';
       correlationId?: string;
       priority?: TaskPriority;
-    } = {}
+    } = {},
   ): Promise<string> {
     const message: AgentMessage = {
       id: uuidv4(),
@@ -60,28 +58,28 @@ export class MessageBusService implements OnModuleDestroy {
       correlationId: options.correlationId,
       priority: options.priority || TaskPriority.MEDIUM,
     };
-    
+
     // Store message in history
     this.addToHistory(channel, message);
-    
+
     // Persist important messages
     if (message.priority && message.priority >= TaskPriority.HIGH) {
       await this.persistMessage(message);
     }
-    
+
     // Emit event
     this.eventEmitter.emit(channel, message);
-    
+
     // If point-to-point, emit to specific agent channel
     if (typeof message.to === 'string' && message.to !== '*') {
       const agentChannel = `agent:${message.to}`;
       this.eventEmitter.emit(agentChannel, message);
     }
-    
+
     this.logger.debug(
-      `Published message ${message.id} to ${channel} (from: ${from}, to: ${message.to})`
+      `Published message ${message.id} to ${channel} (from: ${from}, to: ${message.to})`,
     );
-    
+
     return message.id;
   }
 
@@ -98,15 +96,15 @@ export class MessageBusService implements OnModuleDestroy {
       } catch (error) {
         this.logger.error(
           `Error in message handler for channel ${channel}: ${error.message}`,
-          error.stack
+          error.stack,
         );
       }
     };
-    
+
     this.eventEmitter.on(channel, wrappedHandler);
-    
+
     this.logger.debug(`Subscribed to channel: ${channel}`);
-    
+
     // Return unsubscribe function
     return () => {
       this.eventEmitter.off(channel, wrappedHandler);
@@ -136,28 +134,28 @@ export class MessageBusService implements OnModuleDestroy {
   ): Promise<T> {
     const correlationId = uuidv4();
     const responseChannel = `response:${correlationId}`;
-    
+
     return new Promise<T>(async (resolve, reject) => {
       // Set up timeout
       const timeoutId = setTimeout(() => {
         this.eventEmitter.off(responseChannel, responseHandler);
         reject(new Error(`Request timeout after ${timeout}ms`));
       }, timeout);
-      
+
       // Set up response handler
       const responseHandler = (message: AgentMessage) => {
         clearTimeout(timeoutId);
         this.eventEmitter.off(responseChannel, responseHandler);
-        
+
         if (message.data.error) {
           reject(new Error(message.data.error));
         } else {
           resolve(message.data as T);
         }
       };
-      
+
       this.eventEmitter.once(responseChannel, responseHandler);
-      
+
       // Send request
       await this.publish(channel, from, data, {
         to,
@@ -178,9 +176,9 @@ export class MessageBusService implements OnModuleDestroy {
     if (!originalMessage.correlationId) {
       throw new Error('Cannot respond to message without correlationId');
     }
-    
+
     const responseChannel = `response:${originalMessage.correlationId}`;
-    
+
     await this.publish(responseChannel, from, data, {
       to: originalMessage.from,
       type: 'response',
@@ -216,14 +214,16 @@ export class MessageBusService implements OnModuleDestroy {
    */
   getMessagesByCorrelation(correlationId: string): AgentMessage[] {
     const messages: AgentMessage[] = [];
-    
+
     for (const history of this.messageHistory.values()) {
       messages.push(
-        ...history.filter(m => m.correlationId === correlationId)
+        ...history.filter((m) => m.correlationId === correlationId),
       );
     }
-    
-    return messages.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+
+    return messages.sort(
+      (a, b) => a.timestamp.getTime() - b.timestamp.getTime(),
+    );
   }
 
   /**
@@ -233,11 +233,11 @@ export class MessageBusService implements OnModuleDestroy {
     if (!this.messageHistory.has(channel)) {
       this.messageHistory.set(channel, []);
     }
-    
+
     const history = this.messageHistory.get(channel);
     if (history) {
       history.push(message);
-      
+
       // Limit history size
       if (history.length > this.maxHistorySize) {
         history.shift();
@@ -263,12 +263,12 @@ export class MessageBusService implements OnModuleDestroy {
   getStats() {
     let totalMessages = 0;
     const channelStats = new Map<string, number>();
-    
+
     for (const [channel, messages] of this.messageHistory.entries()) {
       totalMessages += messages.length;
       channelStats.set(channel, messages.length);
     }
-    
+
     return {
       totalMessages,
       totalChannels: this.messageHistory.size,
@@ -300,4 +300,3 @@ export class MessageBusService implements OnModuleDestroy {
     this.logger.log('Message bus shut down');
   }
 }
-

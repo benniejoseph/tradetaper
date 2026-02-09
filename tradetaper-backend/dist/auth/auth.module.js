@@ -15,7 +15,6 @@ const subscriptions_module_1 = require("../subscriptions/subscriptions.module");
 const passport_1 = require("@nestjs/passport");
 const jwt_1 = require("@nestjs/jwt");
 const config_1 = require("@nestjs/config");
-const cache_manager_1 = require("@nestjs/cache-manager");
 const local_strategy_1 = require("./strategies/local.strategy");
 const jwt_strategy_1 = require("./strategies/jwt.strategy");
 let AuthModule = class AuthModule {
@@ -28,10 +27,6 @@ exports.AuthModule = AuthModule = __decorate([
             subscriptions_module_1.SubscriptionsModule,
             passport_1.PassportModule,
             config_1.ConfigModule,
-            cache_manager_1.CacheModule.register({
-                ttl: 15 * 60 * 1000,
-                max: 1000,
-            }),
             jwt_1.JwtModule.registerAsync({
                 imports: [config_1.ConfigModule],
                 inject: [config_1.ConfigService],

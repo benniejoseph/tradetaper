@@ -19,10 +19,7 @@ let StrategiesModule = class StrategiesModule {
 exports.StrategiesModule = StrategiesModule;
 exports.StrategiesModule = StrategiesModule = __decorate([
     (0, common_1.Module)({
-        imports: [
-            typeorm_1.TypeOrmModule.forFeature([strategy_entity_1.Strategy, trade_entity_1.Trade]),
-            subscriptions_module_1.SubscriptionsModule,
-        ],
+        imports: [typeorm_1.TypeOrmModule.forFeature([strategy_entity_1.Strategy, trade_entity_1.Trade]), subscriptions_module_1.SubscriptionsModule],
         controllers: [strategies_controller_1.StrategiesController],
         providers: [strategies_service_1.StrategiesService],
         exports: [strategies_service_1.StrategiesService],

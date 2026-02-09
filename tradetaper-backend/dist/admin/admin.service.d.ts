@@ -20,23 +20,23 @@ export declare class AdminService {
         successRate: number;
         monthlyGrowth: number;
     }>;
-    getUserAnalytics(timeRange: string): Promise<{
+    getUserAnalytics(timeRange: string): {
         labels: string[];
         values: number[];
         data: {
             date: string;
             users: number;
         }[];
-    }>;
-    getRevenueAnalytics(timeRange: string): Promise<{
+    };
+    getRevenueAnalytics(timeRange: string): {
         labels: string[];
         values: number[];
         data: {
             date: string;
             revenue: number;
         }[];
-    }>;
-    getSystemHealth(): Promise<{
+    };
+    getSystemHealth(): {
         status: string;
         uptime: number;
         responseTime: number;
@@ -44,8 +44,8 @@ export declare class AdminService {
         cpuUsage: number;
         cacheHitRate: number;
         timestamp: string;
-    }>;
-    getActivityFeed(limit?: number): Promise<never[]>;
+    };
+    getActivityFeed(_limit?: number): never[];
     getUsers(page?: number, limit?: number): Promise<{
         data: User[];
         total: number;

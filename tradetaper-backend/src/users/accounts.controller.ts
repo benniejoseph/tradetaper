@@ -17,7 +17,10 @@ import {
   UpdateAccountDto,
   AccountResponseDto,
 } from './dto/account.dto';
-import { UsageLimitGuard, UsageFeature } from '../subscriptions/guards/usage-limit.guard';
+import {
+  UsageLimitGuard,
+  UsageFeature,
+} from '../subscriptions/guards/usage-limit.guard';
 
 @Controller('users/accounts')
 @UseGuards(JwtAuthGuard)

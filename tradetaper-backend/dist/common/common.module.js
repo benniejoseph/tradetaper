@@ -12,6 +12,7 @@ const config_1 = require("@nestjs/config");
 const logger_service_1 = require("./services/logger.service");
 const global_exception_filter_1 = require("./filters/global-exception.filter");
 const logging_interceptor_1 = require("./interceptors/logging.interceptor");
+const csrf_controller_1 = require("./controllers/csrf.controller");
 let CommonModule = class CommonModule {
 };
 exports.CommonModule = CommonModule;
@@ -19,6 +20,7 @@ exports.CommonModule = CommonModule = __decorate([
     (0, common_1.Global)(),
     (0, common_1.Module)({
         imports: [config_1.ConfigModule],
+        controllers: [csrf_controller_1.CsrfController],
         providers: [
             logger_service_1.ProductionLoggerService,
             global_exception_filter_1.GlobalExceptionFilter,

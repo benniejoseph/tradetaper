@@ -1,366 +1,931 @@
-import { MigrationInterface, QueryRunner } from "typeorm";
+import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class AddPsychologicalInsights1752188313602 implements MigrationInterface {
-    name = 'AddPsychologicalInsights1752188313602'
+export class AddPsychologicalInsights1752188313602
+  implements MigrationInterface
+{
+  name = 'AddPsychologicalInsights1752188313602';
 
-    public async up(queryRunner: QueryRunner): Promise<void> {
-        await queryRunner.query(`ALTER TABLE "trades" DROP CONSTRAINT "FK_32e0533214130eccd5cc8de165d"`);
-        await queryRunner.query(`ALTER TABLE "notes" DROP CONSTRAINT "FK_notes_user_id"`);
-        await queryRunner.query(`ALTER TABLE "notes" DROP CONSTRAINT "FK_notes_account_id"`);
-        await queryRunner.query(`ALTER TABLE "notes" DROP CONSTRAINT "FK_notes_trade_id"`);
-        await queryRunner.query(`ALTER TABLE "subscriptions" DROP CONSTRAINT "FK_fbdba4e2ac694cf8c9cecf4dc84"`);
-        await queryRunner.query(`ALTER TABLE "usage_tracking" DROP CONSTRAINT "FK_5d8df20d681cd50fcde4db2db32"`);
-        await queryRunner.query(`ALTER TABLE "strategies" DROP CONSTRAINT "FK_15a08affc5afadffc9b6ddc6024"`);
-        await queryRunner.query(`ALTER TABLE "note_blocks" DROP CONSTRAINT "FK_note_blocks_note_id"`);
-        await queryRunner.query(`ALTER TABLE "note_media" DROP CONSTRAINT "FK_note_media_note_id"`);
-        await queryRunner.query(`ALTER TABLE "trade_tags" DROP CONSTRAINT "FK_c47b2141763c5c8da682df7a781"`);
-        await queryRunner.query(`ALTER TABLE "trade_tags" DROP CONSTRAINT "FK_5bb2f6a31ee18a3ed811c066533"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_accounts_userId"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_accounts_isActive"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_trades_user_openTime"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_trades_symbol"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_trades_status"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_notes_user_id"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_notes_account_id"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_notes_trade_id"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_notes_created_at"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_notes_updated_at"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_notes_tags"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_notes_visibility"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_notes_is_pinned"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_mt5_accounts_userId"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_mt5_accounts_server_login"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_mt5_accounts_isActive"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_usage_tracking_user_period"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_note_blocks_note_id"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_note_blocks_position"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_note_blocks_type"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_note_media_note_id"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_note_media_file_type"`);
-        await queryRunner.query(`DROP INDEX "public"."PK_trade_tags"`);
-        await queryRunner.query(`CREATE TABLE "psychological_insights" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "userId" uuid NOT NULL, "noteId" uuid, "insightType" character varying NOT NULL, "sentiment" character varying NOT NULL, "confidenceScore" double precision NOT NULL, "extractedText" text NOT NULL, "analysisDate" TIMESTAMP NOT NULL DEFAULT now(), "rawGeminiResponse" jsonb, CONSTRAINT "PK_79e714fddfc8f63be20693b2db3" PRIMARY KEY ("id"))`);
-        await queryRunner.query(`ALTER TABLE "trades" ADD "chart_image_url" character varying(2048)`);
-        await queryRunner.query(`ALTER TABLE "notes" ADD "chart_image_url" text`);
-        await queryRunner.query(`ALTER TABLE "notes" ADD "chart_analysis_data" jsonb`);
-        await queryRunner.query(`ALTER TABLE "notes" ADD "psychological_tags" text`);
-        await queryRunner.query(`ALTER TABLE "mt5_accounts" ADD "metaApiAccountId" character varying(255)`);
-        await queryRunner.query(`ALTER TABLE "mt5_accounts" ADD "provisioningProfileId" character varying(255)`);
-        await queryRunner.query(`ALTER TABLE "mt5_accounts" ADD "deploymentState" character varying(50) NOT NULL DEFAULT 'UNDEPLOYED'`);
-        await queryRunner.query(`ALTER TABLE "mt5_accounts" ADD "connectionState" character varying(50) NOT NULL DEFAULT 'DISCONNECTED'`);
-        await queryRunner.query(`ALTER TABLE "mt5_accounts" ADD "isRealAccount" boolean NOT NULL DEFAULT false`);
-        await queryRunner.query(`ALTER TABLE "mt5_accounts" ADD "equity" numeric(19,2) NOT NULL DEFAULT '0'`);
-        await queryRunner.query(`ALTER TABLE "mt5_accounts" ADD "margin" numeric(19,2) NOT NULL DEFAULT '0'`);
-        await queryRunner.query(`ALTER TABLE "mt5_accounts" ADD "marginFree" numeric(19,2) NOT NULL DEFAULT '0'`);
-        await queryRunner.query(`ALTER TABLE "mt5_accounts" ADD "profit" numeric(19,2) NOT NULL DEFAULT '0'`);
-        await queryRunner.query(`ALTER TABLE "mt5_accounts" ADD "leverage" integer NOT NULL DEFAULT '1'`);
-        await queryRunner.query(`ALTER TABLE "mt5_accounts" ADD "connectionStatus" character varying(20) NOT NULL DEFAULT 'DISCONNECTED'`);
-        await queryRunner.query(`ALTER TABLE "mt5_accounts" ADD "lastHeartbeatAt" TIMESTAMP`);
-        await queryRunner.query(`ALTER TABLE "mt5_accounts" ADD "isStreamingActive" boolean NOT NULL DEFAULT false`);
-        await queryRunner.query(`ALTER TABLE "mt5_accounts" ADD "accountInfo" jsonb DEFAULT '{}'`);
-        await queryRunner.query(`ALTER TABLE "mt5_accounts" ADD "region" character varying(100)`);
-        await queryRunner.query(`ALTER TABLE "subscriptions" ADD "stripePriceId" character varying`);
-        await queryRunner.query(`CREATE TYPE "public"."subscriptions_tier_enum" AS ENUM('free', 'starter', 'professional', 'enterprise')`);
-        await queryRunner.query(`ALTER TABLE "subscriptions" ADD "tier" "public"."subscriptions_tier_enum" NOT NULL DEFAULT 'free'`);
-        await queryRunner.query(`ALTER TABLE "subscriptions" ADD "price" numeric(10,2) NOT NULL DEFAULT '0'`);
-        await queryRunner.query(`ALTER TABLE "subscriptions" ADD "interval" character varying NOT NULL DEFAULT 'month'`);
-        await queryRunner.query(`ALTER TABLE "subscriptions" ADD "cancelAtPeriodEnd" boolean NOT NULL DEFAULT false`);
-        await queryRunner.query(`ALTER TABLE "subscriptions" ADD "canceledAt" TIMESTAMP`);
-        await queryRunner.query(`ALTER TABLE "subscriptions" ADD "trialStart" TIMESTAMP`);
-        await queryRunner.query(`ALTER TABLE "subscriptions" ADD "trialEnd" TIMESTAMP`);
-        await queryRunner.query(`ALTER TABLE "trade_tags" ADD CONSTRAINT "PK_341eb4c9158909a5142f936fd47" PRIMARY KEY ("tradeId", "tagId")`);
-        await queryRunner.query(`ALTER TABLE "accounts" ALTER COLUMN "createdAt" SET DEFAULT now()`);
-        await queryRunner.query(`ALTER TABLE "accounts" ALTER COLUMN "updatedAt" SET DEFAULT now()`);
-        await queryRunner.query(`ALTER TABLE "tags" ALTER COLUMN "color" SET NOT NULL`);
-        await queryRunner.query(`ALTER TABLE "tags" ALTER COLUMN "color" SET DEFAULT '#cccccc'`);
-        await queryRunner.query(`ALTER TABLE "tags" DROP COLUMN "createdAt"`);
-        await queryRunner.query(`ALTER TABLE "tags" ADD "createdAt" TIMESTAMP NOT NULL DEFAULT now()`);
-        await queryRunner.query(`ALTER TABLE "tags" DROP COLUMN "updatedAt"`);
-        await queryRunner.query(`ALTER TABLE "tags" ADD "updatedAt" TIMESTAMP NOT NULL DEFAULT now()`);
-        await queryRunner.query(`ALTER TABLE "trades" DROP COLUMN "strategyId"`);
-        await queryRunner.query(`ALTER TABLE "trades" ADD "strategyId" character varying`);
-        await queryRunner.query(`ALTER TYPE "public"."trades_assettype_enum" RENAME TO "trades_assettype_enum_old"`);
-        await queryRunner.query(`CREATE TYPE "public"."trades_assettype_enum" AS ENUM('Stock', 'Crypto', 'Forex', 'Commodities', 'Futures', 'Options')`);
-        await queryRunner.query(`ALTER TABLE "trades" ALTER COLUMN "assetType" DROP DEFAULT`);
-        await queryRunner.query(`ALTER TABLE "trades" ALTER COLUMN "assetType" TYPE "public"."trades_assettype_enum" USING "assetType"::"text"::"public"."trades_assettype_enum"`);
-        await queryRunner.query(`ALTER TABLE "trades" ALTER COLUMN "assetType" SET DEFAULT 'Stock'`);
-        await queryRunner.query(`DROP TYPE "public"."trades_assettype_enum_old"`);
-        await queryRunner.query(`ALTER TABLE "trades" DROP COLUMN "createdAt"`);
-        await queryRunner.query(`ALTER TABLE "trades" ADD "createdAt" TIMESTAMP NOT NULL DEFAULT now()`);
-        await queryRunner.query(`ALTER TABLE "trades" DROP COLUMN "updatedAt"`);
-        await queryRunner.query(`ALTER TABLE "trades" ADD "updatedAt" TIMESTAMP NOT NULL DEFAULT now()`);
-        await queryRunner.query(`ALTER TABLE "notes" DROP COLUMN "created_at"`);
-        await queryRunner.query(`ALTER TABLE "notes" ADD "created_at" TIMESTAMP NOT NULL DEFAULT now()`);
-        await queryRunner.query(`ALTER TABLE "notes" DROP COLUMN "updated_at"`);
-        await queryRunner.query(`ALTER TABLE "notes" ADD "updated_at" TIMESTAMP NOT NULL DEFAULT now()`);
-        await queryRunner.query(`ALTER TABLE "notes" DROP COLUMN "deleted_at"`);
-        await queryRunner.query(`ALTER TABLE "notes" ADD "deleted_at" TIMESTAMP`);
-        await queryRunner.query(`ALTER TABLE "users" DROP COLUMN "lastLoginAt"`);
-        await queryRunner.query(`ALTER TABLE "users" ADD "lastLoginAt" TIMESTAMP`);
-        await queryRunner.query(`ALTER TABLE "users" DROP COLUMN "createdAt"`);
-        await queryRunner.query(`ALTER TABLE "users" ADD "createdAt" TIMESTAMP NOT NULL DEFAULT now()`);
-        await queryRunner.query(`ALTER TABLE "users" DROP COLUMN "updatedAt"`);
-        await queryRunner.query(`ALTER TABLE "users" ADD "updatedAt" TIMESTAMP NOT NULL DEFAULT now()`);
-        await queryRunner.query(`ALTER TABLE "mt5_accounts" ALTER COLUMN "isActive" SET DEFAULT false`);
-        await queryRunner.query(`ALTER TABLE "mt5_accounts" DROP COLUMN "lastSyncAt"`);
-        await queryRunner.query(`ALTER TABLE "mt5_accounts" ADD "lastSyncAt" TIMESTAMP`);
-        await queryRunner.query(`ALTER TABLE "mt5_accounts" DROP COLUMN "lastSyncErrorAt"`);
-        await queryRunner.query(`ALTER TABLE "mt5_accounts" ADD "lastSyncErrorAt" TIMESTAMP`);
-        await queryRunner.query(`ALTER TABLE "mt5_accounts" DROP COLUMN "lastKnownIp"`);
-        await queryRunner.query(`ALTER TABLE "mt5_accounts" ADD "lastKnownIp" character varying(20)`);
-        await queryRunner.query(`ALTER TABLE "mt5_accounts" DROP COLUMN "createdAt"`);
-        await queryRunner.query(`ALTER TABLE "mt5_accounts" ADD "createdAt" TIMESTAMP NOT NULL DEFAULT now()`);
-        await queryRunner.query(`ALTER TABLE "mt5_accounts" DROP COLUMN "updatedAt"`);
-        await queryRunner.query(`ALTER TABLE "mt5_accounts" ADD "updatedAt" TIMESTAMP NOT NULL DEFAULT now()`);
-        await queryRunner.query(`ALTER TABLE "subscriptions" DROP COLUMN "stripeCustomerId"`);
-        await queryRunner.query(`ALTER TABLE "subscriptions" ADD "stripeCustomerId" character varying`);
-        await queryRunner.query(`ALTER TABLE "subscriptions" DROP COLUMN "stripeSubscriptionId"`);
-        await queryRunner.query(`ALTER TABLE "subscriptions" ADD "stripeSubscriptionId" character varying`);
-        await queryRunner.query(`ALTER TABLE "subscriptions" DROP COLUMN "status"`);
-        await queryRunner.query(`CREATE TYPE "public"."subscriptions_status_enum" AS ENUM('active', 'canceled', 'incomplete', 'incomplete_expired', 'past_due', 'trialing', 'unpaid')`);
-        await queryRunner.query(`ALTER TABLE "subscriptions" ADD "status" "public"."subscriptions_status_enum" NOT NULL DEFAULT 'active'`);
-        await queryRunner.query(`ALTER TABLE "subscriptions" DROP COLUMN "plan"`);
-        await queryRunner.query(`ALTER TABLE "subscriptions" ADD "plan" character varying NOT NULL DEFAULT 'free'`);
-        await queryRunner.query(`ALTER TABLE "subscriptions" DROP COLUMN "currentPeriodStart"`);
-        await queryRunner.query(`ALTER TABLE "subscriptions" ADD "currentPeriodStart" TIMESTAMP`);
-        await queryRunner.query(`ALTER TABLE "subscriptions" DROP COLUMN "currentPeriodEnd"`);
-        await queryRunner.query(`ALTER TABLE "subscriptions" ADD "currentPeriodEnd" TIMESTAMP`);
-        await queryRunner.query(`ALTER TABLE "subscriptions" DROP COLUMN "createdAt"`);
-        await queryRunner.query(`ALTER TABLE "subscriptions" ADD "createdAt" TIMESTAMP NOT NULL DEFAULT now()`);
-        await queryRunner.query(`ALTER TABLE "subscriptions" DROP COLUMN "updatedAt"`);
-        await queryRunner.query(`ALTER TABLE "subscriptions" ADD "updatedAt" TIMESTAMP NOT NULL DEFAULT now()`);
-        await queryRunner.query(`ALTER TABLE "usage_tracking" DROP COLUMN "periodStart"`);
-        await queryRunner.query(`ALTER TABLE "usage_tracking" ADD "periodStart" TIMESTAMP NOT NULL`);
-        await queryRunner.query(`ALTER TABLE "usage_tracking" DROP COLUMN "periodEnd"`);
-        await queryRunner.query(`ALTER TABLE "usage_tracking" ADD "periodEnd" TIMESTAMP NOT NULL`);
-        await queryRunner.query(`ALTER TABLE "usage_tracking" DROP COLUMN "createdAt"`);
-        await queryRunner.query(`ALTER TABLE "usage_tracking" ADD "createdAt" TIMESTAMP NOT NULL DEFAULT now()`);
-        await queryRunner.query(`ALTER TABLE "usage_tracking" DROP COLUMN "updatedAt"`);
-        await queryRunner.query(`ALTER TABLE "usage_tracking" ADD "updatedAt" TIMESTAMP NOT NULL DEFAULT now()`);
-        await queryRunner.query(`ALTER TABLE "strategies" DROP COLUMN "tradingSession"`);
-        await queryRunner.query(`CREATE TYPE "public"."strategies_tradingsession_enum" AS ENUM('London', 'New York', 'Asia', 'London-NY Overlap', 'Other')`);
-        await queryRunner.query(`ALTER TABLE "strategies" ADD "tradingSession" "public"."strategies_tradingsession_enum"`);
-        await queryRunner.query(`ALTER TABLE "strategies" ALTER COLUMN "isActive" SET NOT NULL`);
-        await queryRunner.query(`ALTER TABLE "strategies" ALTER COLUMN "color" SET NOT NULL`);
-        await queryRunner.query(`ALTER TABLE "strategies" DROP COLUMN "createdAt"`);
-        await queryRunner.query(`ALTER TABLE "strategies" ADD "createdAt" TIMESTAMP NOT NULL DEFAULT now()`);
-        await queryRunner.query(`ALTER TABLE "strategies" DROP COLUMN "updatedAt"`);
-        await queryRunner.query(`ALTER TABLE "strategies" ADD "updatedAt" TIMESTAMP NOT NULL DEFAULT now()`);
-        await queryRunner.query(`ALTER TABLE "strategies" DROP COLUMN "userId"`);
-        await queryRunner.query(`ALTER TABLE "strategies" ADD "userId" character varying NOT NULL`);
-        await queryRunner.query(`ALTER TABLE "note_blocks" DROP COLUMN "note_id"`);
-        await queryRunner.query(`ALTER TABLE "note_blocks" ADD "note_id" character varying NOT NULL`);
-        await queryRunner.query(`ALTER TABLE "note_blocks" DROP COLUMN "created_at"`);
-        await queryRunner.query(`ALTER TABLE "note_blocks" ADD "created_at" TIMESTAMP NOT NULL DEFAULT now()`);
-        await queryRunner.query(`ALTER TABLE "note_blocks" DROP COLUMN "updated_at"`);
-        await queryRunner.query(`ALTER TABLE "note_blocks" ADD "updated_at" TIMESTAMP NOT NULL DEFAULT now()`);
-        await queryRunner.query(`ALTER TABLE "note_media" DROP COLUMN "note_id"`);
-        await queryRunner.query(`ALTER TABLE "note_media" ADD "note_id" character varying NOT NULL`);
-        await queryRunner.query(`ALTER TABLE "note_media" DROP COLUMN "created_at"`);
-        await queryRunner.query(`ALTER TABLE "note_media" ADD "created_at" TIMESTAMP NOT NULL DEFAULT now()`);
-        await queryRunner.query(`CREATE UNIQUE INDEX "IDX_0daf7567fa18bf86b777c5a9d8" ON "tags" ("userId", "name") `);
-        await queryRunner.query(`CREATE INDEX "IDX_acb0f691ae40917b6029c9eac0" ON "trades" ("userId", "openTime") `);
-        await queryRunner.query(`CREATE INDEX "IDX_7708dcb62ff332f0eaf9f0743a" ON "notes" ("user_id") `);
-        await queryRunner.query(`CREATE INDEX "IDX_216d98067d764c901b77d281e1" ON "notes" ("is_pinned") `);
-        await queryRunner.query(`CREATE INDEX "IDX_1ee2b8b3fb60d7ee0bf70843fc" ON "notes" ("visibility") `);
-        await queryRunner.query(`CREATE INDEX "IDX_4f6ba27a5706830c50194bb316" ON "notes" ("tags") `);
-        await queryRunner.query(`CREATE INDEX "IDX_976bf301e423205c29bd0f6504" ON "notes" ("trade_id") `);
-        await queryRunner.query(`CREATE INDEX "IDX_f02c15d5e61d2d2fb4ebd76165" ON "notes" ("account_id") `);
-        await queryRunner.query(`CREATE INDEX "IDX_daeed3defb8cd4e41a59fe2aa3" ON "notes" ("user_id", "created_at") `);
-        await queryRunner.query(`CREATE INDEX "IDX_38f001f2b1ef5b0d67dfa3531d" ON "mt5_accounts" ("userId") `);
-        await queryRunner.query(`CREATE UNIQUE INDEX "IDX_6bfece49def4cc27f8606c05aa" ON "usage_tracking" ("userId", "periodStart") `);
-        await queryRunner.query(`CREATE INDEX "IDX_92d14693dc55928a7b52095f1e" ON "note_media" ("note_id") `);
-        await queryRunner.query(`CREATE INDEX "IDX_968f8dbed6678779a78bf02cd1" ON "note_media" ("file_type") `);
-        await queryRunner.query(`CREATE INDEX "IDX_c47b2141763c5c8da682df7a78" ON "trade_tags" ("tradeId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_5bb2f6a31ee18a3ed811c06653" ON "trade_tags" ("tagId") `);
-        await queryRunner.query(`ALTER TABLE "notes" ADD CONSTRAINT "FK_7708dcb62ff332f0eaf9f0743a7" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "notes" ADD CONSTRAINT "FK_f02c15d5e61d2d2fb4ebd761655" FOREIGN KEY ("account_id") REFERENCES "accounts"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "notes" ADD CONSTRAINT "FK_976bf301e423205c29bd0f65046" FOREIGN KEY ("trade_id") REFERENCES "trades"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "psychological_insights" ADD CONSTRAINT "FK_8391b8835b9adedf5ecbd5817f9" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "psychological_insights" ADD CONSTRAINT "FK_68cd4a48e396ffec26ca1390d3f" FOREIGN KEY ("noteId") REFERENCES "notes"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "subscriptions" ADD CONSTRAINT "FK_fbdba4e2ac694cf8c9cecf4dc84" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "usage_tracking" ADD CONSTRAINT "FK_5d8df20d681cd50fcde4db2db32" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "trade_tags" ADD CONSTRAINT "FK_c47b2141763c5c8da682df7a781" FOREIGN KEY ("tradeId") REFERENCES "trades"("id") ON DELETE CASCADE ON UPDATE CASCADE`);
-        await queryRunner.query(`ALTER TABLE "trade_tags" ADD CONSTRAINT "FK_5bb2f6a31ee18a3ed811c066533" FOREIGN KEY ("tagId") REFERENCES "tags"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
-    }
+  public async up(queryRunner: QueryRunner): Promise<void> {
+    await queryRunner.query(
+      `ALTER TABLE "trades" DROP CONSTRAINT "FK_32e0533214130eccd5cc8de165d"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "notes" DROP CONSTRAINT "FK_notes_user_id"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "notes" DROP CONSTRAINT "FK_notes_account_id"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "notes" DROP CONSTRAINT "FK_notes_trade_id"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "subscriptions" DROP CONSTRAINT "FK_fbdba4e2ac694cf8c9cecf4dc84"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "usage_tracking" DROP CONSTRAINT "FK_5d8df20d681cd50fcde4db2db32"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "strategies" DROP CONSTRAINT "FK_15a08affc5afadffc9b6ddc6024"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "note_blocks" DROP CONSTRAINT "FK_note_blocks_note_id"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "note_media" DROP CONSTRAINT "FK_note_media_note_id"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "trade_tags" DROP CONSTRAINT "FK_c47b2141763c5c8da682df7a781"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "trade_tags" DROP CONSTRAINT "FK_5bb2f6a31ee18a3ed811c066533"`,
+    );
+    await queryRunner.query(`DROP INDEX "public"."IDX_accounts_userId"`);
+    await queryRunner.query(`DROP INDEX "public"."IDX_accounts_isActive"`);
+    await queryRunner.query(`DROP INDEX "public"."IDX_trades_user_openTime"`);
+    await queryRunner.query(`DROP INDEX "public"."IDX_trades_symbol"`);
+    await queryRunner.query(`DROP INDEX "public"."IDX_trades_status"`);
+    await queryRunner.query(`DROP INDEX "public"."IDX_notes_user_id"`);
+    await queryRunner.query(`DROP INDEX "public"."IDX_notes_account_id"`);
+    await queryRunner.query(`DROP INDEX "public"."IDX_notes_trade_id"`);
+    await queryRunner.query(`DROP INDEX "public"."IDX_notes_created_at"`);
+    await queryRunner.query(`DROP INDEX "public"."IDX_notes_updated_at"`);
+    await queryRunner.query(`DROP INDEX "public"."IDX_notes_tags"`);
+    await queryRunner.query(`DROP INDEX "public"."IDX_notes_visibility"`);
+    await queryRunner.query(`DROP INDEX "public"."IDX_notes_is_pinned"`);
+    await queryRunner.query(`DROP INDEX "public"."IDX_mt5_accounts_userId"`);
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_mt5_accounts_server_login"`,
+    );
+    await queryRunner.query(`DROP INDEX "public"."IDX_mt5_accounts_isActive"`);
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_usage_tracking_user_period"`,
+    );
+    await queryRunner.query(`DROP INDEX "public"."IDX_note_blocks_note_id"`);
+    await queryRunner.query(`DROP INDEX "public"."IDX_note_blocks_position"`);
+    await queryRunner.query(`DROP INDEX "public"."IDX_note_blocks_type"`);
+    await queryRunner.query(`DROP INDEX "public"."IDX_note_media_note_id"`);
+    await queryRunner.query(`DROP INDEX "public"."IDX_note_media_file_type"`);
+    await queryRunner.query(`DROP INDEX "public"."PK_trade_tags"`);
+    await queryRunner.query(
+      `CREATE TABLE "psychological_insights" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "userId" uuid NOT NULL, "noteId" uuid, "insightType" character varying NOT NULL, "sentiment" character varying NOT NULL, "confidenceScore" double precision NOT NULL, "extractedText" text NOT NULL, "analysisDate" TIMESTAMP NOT NULL DEFAULT now(), "rawGeminiResponse" jsonb, CONSTRAINT "PK_79e714fddfc8f63be20693b2db3" PRIMARY KEY ("id"))`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "trades" ADD "chart_image_url" character varying(2048)`,
+    );
+    await queryRunner.query(`ALTER TABLE "notes" ADD "chart_image_url" text`);
+    await queryRunner.query(
+      `ALTER TABLE "notes" ADD "chart_analysis_data" jsonb`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "notes" ADD "psychological_tags" text`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "mt5_accounts" ADD "metaApiAccountId" character varying(255)`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "mt5_accounts" ADD "provisioningProfileId" character varying(255)`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "mt5_accounts" ADD "deploymentState" character varying(50) NOT NULL DEFAULT 'UNDEPLOYED'`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "mt5_accounts" ADD "connectionState" character varying(50) NOT NULL DEFAULT 'DISCONNECTED'`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "mt5_accounts" ADD "isRealAccount" boolean NOT NULL DEFAULT false`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "mt5_accounts" ADD "equity" numeric(19,2) NOT NULL DEFAULT '0'`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "mt5_accounts" ADD "margin" numeric(19,2) NOT NULL DEFAULT '0'`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "mt5_accounts" ADD "marginFree" numeric(19,2) NOT NULL DEFAULT '0'`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "mt5_accounts" ADD "profit" numeric(19,2) NOT NULL DEFAULT '0'`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "mt5_accounts" ADD "leverage" integer NOT NULL DEFAULT '1'`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "mt5_accounts" ADD "connectionStatus" character varying(20) NOT NULL DEFAULT 'DISCONNECTED'`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "mt5_accounts" ADD "lastHeartbeatAt" TIMESTAMP`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "mt5_accounts" ADD "isStreamingActive" boolean NOT NULL DEFAULT false`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "mt5_accounts" ADD "accountInfo" jsonb DEFAULT '{}'`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "mt5_accounts" ADD "region" character varying(100)`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "subscriptions" ADD "stripePriceId" character varying`,
+    );
+    await queryRunner.query(
+      `CREATE TYPE "public"."subscriptions_tier_enum" AS ENUM('free', 'starter', 'professional', 'enterprise')`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "subscriptions" ADD "tier" "public"."subscriptions_tier_enum" NOT NULL DEFAULT 'free'`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "subscriptions" ADD "price" numeric(10,2) NOT NULL DEFAULT '0'`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "subscriptions" ADD "interval" character varying NOT NULL DEFAULT 'month'`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "subscriptions" ADD "cancelAtPeriodEnd" boolean NOT NULL DEFAULT false`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "subscriptions" ADD "canceledAt" TIMESTAMP`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "subscriptions" ADD "trialStart" TIMESTAMP`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "subscriptions" ADD "trialEnd" TIMESTAMP`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "trade_tags" ADD CONSTRAINT "PK_341eb4c9158909a5142f936fd47" PRIMARY KEY ("tradeId", "tagId")`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "accounts" ALTER COLUMN "createdAt" SET DEFAULT now()`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "accounts" ALTER COLUMN "updatedAt" SET DEFAULT now()`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "tags" ALTER COLUMN "color" SET NOT NULL`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "tags" ALTER COLUMN "color" SET DEFAULT '#cccccc'`,
+    );
+    await queryRunner.query(`ALTER TABLE "tags" DROP COLUMN "createdAt"`);
+    await queryRunner.query(
+      `ALTER TABLE "tags" ADD "createdAt" TIMESTAMP NOT NULL DEFAULT now()`,
+    );
+    await queryRunner.query(`ALTER TABLE "tags" DROP COLUMN "updatedAt"`);
+    await queryRunner.query(
+      `ALTER TABLE "tags" ADD "updatedAt" TIMESTAMP NOT NULL DEFAULT now()`,
+    );
+    await queryRunner.query(`ALTER TABLE "trades" DROP COLUMN "strategyId"`);
+    await queryRunner.query(
+      `ALTER TABLE "trades" ADD "strategyId" character varying`,
+    );
+    await queryRunner.query(
+      `ALTER TYPE "public"."trades_assettype_enum" RENAME TO "trades_assettype_enum_old"`,
+    );
+    await queryRunner.query(
+      `CREATE TYPE "public"."trades_assettype_enum" AS ENUM('Stock', 'Crypto', 'Forex', 'Commodities', 'Futures', 'Options')`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "trades" ALTER COLUMN "assetType" DROP DEFAULT`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "trades" ALTER COLUMN "assetType" TYPE "public"."trades_assettype_enum" USING "assetType"::"text"::"public"."trades_assettype_enum"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "trades" ALTER COLUMN "assetType" SET DEFAULT 'Stock'`,
+    );
+    await queryRunner.query(`DROP TYPE "public"."trades_assettype_enum_old"`);
+    await queryRunner.query(`ALTER TABLE "trades" DROP COLUMN "createdAt"`);
+    await queryRunner.query(
+      `ALTER TABLE "trades" ADD "createdAt" TIMESTAMP NOT NULL DEFAULT now()`,
+    );
+    await queryRunner.query(`ALTER TABLE "trades" DROP COLUMN "updatedAt"`);
+    await queryRunner.query(
+      `ALTER TABLE "trades" ADD "updatedAt" TIMESTAMP NOT NULL DEFAULT now()`,
+    );
+    await queryRunner.query(`ALTER TABLE "notes" DROP COLUMN "created_at"`);
+    await queryRunner.query(
+      `ALTER TABLE "notes" ADD "created_at" TIMESTAMP NOT NULL DEFAULT now()`,
+    );
+    await queryRunner.query(`ALTER TABLE "notes" DROP COLUMN "updated_at"`);
+    await queryRunner.query(
+      `ALTER TABLE "notes" ADD "updated_at" TIMESTAMP NOT NULL DEFAULT now()`,
+    );
+    await queryRunner.query(`ALTER TABLE "notes" DROP COLUMN "deleted_at"`);
+    await queryRunner.query(`ALTER TABLE "notes" ADD "deleted_at" TIMESTAMP`);
+    await queryRunner.query(`ALTER TABLE "users" DROP COLUMN "lastLoginAt"`);
+    await queryRunner.query(`ALTER TABLE "users" ADD "lastLoginAt" TIMESTAMP`);
+    await queryRunner.query(`ALTER TABLE "users" DROP COLUMN "createdAt"`);
+    await queryRunner.query(
+      `ALTER TABLE "users" ADD "createdAt" TIMESTAMP NOT NULL DEFAULT now()`,
+    );
+    await queryRunner.query(`ALTER TABLE "users" DROP COLUMN "updatedAt"`);
+    await queryRunner.query(
+      `ALTER TABLE "users" ADD "updatedAt" TIMESTAMP NOT NULL DEFAULT now()`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "mt5_accounts" ALTER COLUMN "isActive" SET DEFAULT false`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "mt5_accounts" DROP COLUMN "lastSyncAt"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "mt5_accounts" ADD "lastSyncAt" TIMESTAMP`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "mt5_accounts" DROP COLUMN "lastSyncErrorAt"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "mt5_accounts" ADD "lastSyncErrorAt" TIMESTAMP`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "mt5_accounts" DROP COLUMN "lastKnownIp"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "mt5_accounts" ADD "lastKnownIp" character varying(20)`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "mt5_accounts" DROP COLUMN "createdAt"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "mt5_accounts" ADD "createdAt" TIMESTAMP NOT NULL DEFAULT now()`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "mt5_accounts" DROP COLUMN "updatedAt"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "mt5_accounts" ADD "updatedAt" TIMESTAMP NOT NULL DEFAULT now()`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "subscriptions" DROP COLUMN "stripeCustomerId"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "subscriptions" ADD "stripeCustomerId" character varying`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "subscriptions" DROP COLUMN "stripeSubscriptionId"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "subscriptions" ADD "stripeSubscriptionId" character varying`,
+    );
+    await queryRunner.query(`ALTER TABLE "subscriptions" DROP COLUMN "status"`);
+    await queryRunner.query(
+      `CREATE TYPE "public"."subscriptions_status_enum" AS ENUM('active', 'canceled', 'incomplete', 'incomplete_expired', 'past_due', 'trialing', 'unpaid')`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "subscriptions" ADD "status" "public"."subscriptions_status_enum" NOT NULL DEFAULT 'active'`,
+    );
+    await queryRunner.query(`ALTER TABLE "subscriptions" DROP COLUMN "plan"`);
+    await queryRunner.query(
+      `ALTER TABLE "subscriptions" ADD "plan" character varying NOT NULL DEFAULT 'free'`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "subscriptions" DROP COLUMN "currentPeriodStart"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "subscriptions" ADD "currentPeriodStart" TIMESTAMP`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "subscriptions" DROP COLUMN "currentPeriodEnd"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "subscriptions" ADD "currentPeriodEnd" TIMESTAMP`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "subscriptions" DROP COLUMN "createdAt"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "subscriptions" ADD "createdAt" TIMESTAMP NOT NULL DEFAULT now()`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "subscriptions" DROP COLUMN "updatedAt"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "subscriptions" ADD "updatedAt" TIMESTAMP NOT NULL DEFAULT now()`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "usage_tracking" DROP COLUMN "periodStart"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "usage_tracking" ADD "periodStart" TIMESTAMP NOT NULL`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "usage_tracking" DROP COLUMN "periodEnd"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "usage_tracking" ADD "periodEnd" TIMESTAMP NOT NULL`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "usage_tracking" DROP COLUMN "createdAt"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "usage_tracking" ADD "createdAt" TIMESTAMP NOT NULL DEFAULT now()`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "usage_tracking" DROP COLUMN "updatedAt"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "usage_tracking" ADD "updatedAt" TIMESTAMP NOT NULL DEFAULT now()`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "strategies" DROP COLUMN "tradingSession"`,
+    );
+    await queryRunner.query(
+      `CREATE TYPE "public"."strategies_tradingsession_enum" AS ENUM('London', 'New York', 'Asia', 'London-NY Overlap', 'Other')`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "strategies" ADD "tradingSession" "public"."strategies_tradingsession_enum"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "strategies" ALTER COLUMN "isActive" SET NOT NULL`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "strategies" ALTER COLUMN "color" SET NOT NULL`,
+    );
+    await queryRunner.query(`ALTER TABLE "strategies" DROP COLUMN "createdAt"`);
+    await queryRunner.query(
+      `ALTER TABLE "strategies" ADD "createdAt" TIMESTAMP NOT NULL DEFAULT now()`,
+    );
+    await queryRunner.query(`ALTER TABLE "strategies" DROP COLUMN "updatedAt"`);
+    await queryRunner.query(
+      `ALTER TABLE "strategies" ADD "updatedAt" TIMESTAMP NOT NULL DEFAULT now()`,
+    );
+    await queryRunner.query(`ALTER TABLE "strategies" DROP COLUMN "userId"`);
+    await queryRunner.query(
+      `ALTER TABLE "strategies" ADD "userId" character varying NOT NULL`,
+    );
+    await queryRunner.query(`ALTER TABLE "note_blocks" DROP COLUMN "note_id"`);
+    await queryRunner.query(
+      `ALTER TABLE "note_blocks" ADD "note_id" character varying NOT NULL`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "note_blocks" DROP COLUMN "created_at"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "note_blocks" ADD "created_at" TIMESTAMP NOT NULL DEFAULT now()`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "note_blocks" DROP COLUMN "updated_at"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "note_blocks" ADD "updated_at" TIMESTAMP NOT NULL DEFAULT now()`,
+    );
+    await queryRunner.query(`ALTER TABLE "note_media" DROP COLUMN "note_id"`);
+    await queryRunner.query(
+      `ALTER TABLE "note_media" ADD "note_id" character varying NOT NULL`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "note_media" DROP COLUMN "created_at"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "note_media" ADD "created_at" TIMESTAMP NOT NULL DEFAULT now()`,
+    );
+    await queryRunner.query(
+      `CREATE UNIQUE INDEX "IDX_0daf7567fa18bf86b777c5a9d8" ON "tags" ("userId", "name") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_acb0f691ae40917b6029c9eac0" ON "trades" ("userId", "openTime") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_7708dcb62ff332f0eaf9f0743a" ON "notes" ("user_id") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_216d98067d764c901b77d281e1" ON "notes" ("is_pinned") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_1ee2b8b3fb60d7ee0bf70843fc" ON "notes" ("visibility") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_4f6ba27a5706830c50194bb316" ON "notes" ("tags") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_976bf301e423205c29bd0f6504" ON "notes" ("trade_id") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_f02c15d5e61d2d2fb4ebd76165" ON "notes" ("account_id") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_daeed3defb8cd4e41a59fe2aa3" ON "notes" ("user_id", "created_at") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_38f001f2b1ef5b0d67dfa3531d" ON "mt5_accounts" ("userId") `,
+    );
+    await queryRunner.query(
+      `CREATE UNIQUE INDEX "IDX_6bfece49def4cc27f8606c05aa" ON "usage_tracking" ("userId", "periodStart") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_92d14693dc55928a7b52095f1e" ON "note_media" ("note_id") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_968f8dbed6678779a78bf02cd1" ON "note_media" ("file_type") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_c47b2141763c5c8da682df7a78" ON "trade_tags" ("tradeId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_5bb2f6a31ee18a3ed811c06653" ON "trade_tags" ("tagId") `,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "notes" ADD CONSTRAINT "FK_7708dcb62ff332f0eaf9f0743a7" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "notes" ADD CONSTRAINT "FK_f02c15d5e61d2d2fb4ebd761655" FOREIGN KEY ("account_id") REFERENCES "accounts"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "notes" ADD CONSTRAINT "FK_976bf301e423205c29bd0f65046" FOREIGN KEY ("trade_id") REFERENCES "trades"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "psychological_insights" ADD CONSTRAINT "FK_8391b8835b9adedf5ecbd5817f9" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "psychological_insights" ADD CONSTRAINT "FK_68cd4a48e396ffec26ca1390d3f" FOREIGN KEY ("noteId") REFERENCES "notes"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "subscriptions" ADD CONSTRAINT "FK_fbdba4e2ac694cf8c9cecf4dc84" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "usage_tracking" ADD CONSTRAINT "FK_5d8df20d681cd50fcde4db2db32" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "trade_tags" ADD CONSTRAINT "FK_c47b2141763c5c8da682df7a781" FOREIGN KEY ("tradeId") REFERENCES "trades"("id") ON DELETE CASCADE ON UPDATE CASCADE`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "trade_tags" ADD CONSTRAINT "FK_5bb2f6a31ee18a3ed811c066533" FOREIGN KEY ("tagId") REFERENCES "tags"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`,
+    );
+  }
 
-    public async down(queryRunner: QueryRunner): Promise<void> {
-        await queryRunner.query(`ALTER TABLE "trade_tags" DROP CONSTRAINT "FK_5bb2f6a31ee18a3ed811c066533"`);
-        await queryRunner.query(`ALTER TABLE "trade_tags" DROP CONSTRAINT "FK_c47b2141763c5c8da682df7a781"`);
-        await queryRunner.query(`ALTER TABLE "usage_tracking" DROP CONSTRAINT "FK_5d8df20d681cd50fcde4db2db32"`);
-        await queryRunner.query(`ALTER TABLE "subscriptions" DROP CONSTRAINT "FK_fbdba4e2ac694cf8c9cecf4dc84"`);
-        await queryRunner.query(`ALTER TABLE "psychological_insights" DROP CONSTRAINT "FK_68cd4a48e396ffec26ca1390d3f"`);
-        await queryRunner.query(`ALTER TABLE "psychological_insights" DROP CONSTRAINT "FK_8391b8835b9adedf5ecbd5817f9"`);
-        await queryRunner.query(`ALTER TABLE "notes" DROP CONSTRAINT "FK_976bf301e423205c29bd0f65046"`);
-        await queryRunner.query(`ALTER TABLE "notes" DROP CONSTRAINT "FK_f02c15d5e61d2d2fb4ebd761655"`);
-        await queryRunner.query(`ALTER TABLE "notes" DROP CONSTRAINT "FK_7708dcb62ff332f0eaf9f0743a7"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_5bb2f6a31ee18a3ed811c06653"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_c47b2141763c5c8da682df7a78"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_968f8dbed6678779a78bf02cd1"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_92d14693dc55928a7b52095f1e"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_6bfece49def4cc27f8606c05aa"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_38f001f2b1ef5b0d67dfa3531d"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_daeed3defb8cd4e41a59fe2aa3"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_f02c15d5e61d2d2fb4ebd76165"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_976bf301e423205c29bd0f6504"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_4f6ba27a5706830c50194bb316"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_1ee2b8b3fb60d7ee0bf70843fc"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_216d98067d764c901b77d281e1"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_7708dcb62ff332f0eaf9f0743a"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_acb0f691ae40917b6029c9eac0"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_0daf7567fa18bf86b777c5a9d8"`);
-        await queryRunner.query(`ALTER TABLE "note_media" DROP COLUMN "created_at"`);
-        await queryRunner.query(`ALTER TABLE "note_media" ADD "created_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()`);
-        await queryRunner.query(`ALTER TABLE "note_media" DROP COLUMN "note_id"`);
-        await queryRunner.query(`ALTER TABLE "note_media" ADD "note_id" uuid NOT NULL`);
-        await queryRunner.query(`ALTER TABLE "note_blocks" DROP COLUMN "updated_at"`);
-        await queryRunner.query(`ALTER TABLE "note_blocks" ADD "updated_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()`);
-        await queryRunner.query(`ALTER TABLE "note_blocks" DROP COLUMN "created_at"`);
-        await queryRunner.query(`ALTER TABLE "note_blocks" ADD "created_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()`);
-        await queryRunner.query(`ALTER TABLE "note_blocks" DROP COLUMN "note_id"`);
-        await queryRunner.query(`ALTER TABLE "note_blocks" ADD "note_id" uuid NOT NULL`);
-        await queryRunner.query(`ALTER TABLE "strategies" DROP COLUMN "userId"`);
-        await queryRunner.query(`ALTER TABLE "strategies" ADD "userId" uuid NOT NULL`);
-        await queryRunner.query(`ALTER TABLE "strategies" DROP COLUMN "updatedAt"`);
-        await queryRunner.query(`ALTER TABLE "strategies" ADD "updatedAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP`);
-        await queryRunner.query(`ALTER TABLE "strategies" DROP COLUMN "createdAt"`);
-        await queryRunner.query(`ALTER TABLE "strategies" ADD "createdAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP`);
-        await queryRunner.query(`ALTER TABLE "strategies" ALTER COLUMN "color" DROP NOT NULL`);
-        await queryRunner.query(`ALTER TABLE "strategies" ALTER COLUMN "isActive" DROP NOT NULL`);
-        await queryRunner.query(`ALTER TABLE "strategies" DROP COLUMN "tradingSession"`);
-        await queryRunner.query(`DROP TYPE "public"."strategies_tradingsession_enum"`);
-        await queryRunner.query(`ALTER TABLE "strategies" ADD "tradingSession" character varying(50)`);
-        await queryRunner.query(`ALTER TABLE "usage_tracking" DROP COLUMN "updatedAt"`);
-        await queryRunner.query(`ALTER TABLE "usage_tracking" ADD "updatedAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP`);
-        await queryRunner.query(`ALTER TABLE "usage_tracking" DROP COLUMN "createdAt"`);
-        await queryRunner.query(`ALTER TABLE "usage_tracking" ADD "createdAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP`);
-        await queryRunner.query(`ALTER TABLE "usage_tracking" DROP COLUMN "periodEnd"`);
-        await queryRunner.query(`ALTER TABLE "usage_tracking" ADD "periodEnd" TIMESTAMP WITH TIME ZONE NOT NULL`);
-        await queryRunner.query(`ALTER TABLE "usage_tracking" DROP COLUMN "periodStart"`);
-        await queryRunner.query(`ALTER TABLE "usage_tracking" ADD "periodStart" TIMESTAMP WITH TIME ZONE NOT NULL`);
-        await queryRunner.query(`ALTER TABLE "subscriptions" DROP COLUMN "updatedAt"`);
-        await queryRunner.query(`ALTER TABLE "subscriptions" ADD "updatedAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP`);
-        await queryRunner.query(`ALTER TABLE "subscriptions" DROP COLUMN "createdAt"`);
-        await queryRunner.query(`ALTER TABLE "subscriptions" ADD "createdAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP`);
-        await queryRunner.query(`ALTER TABLE "subscriptions" DROP COLUMN "currentPeriodEnd"`);
-        await queryRunner.query(`ALTER TABLE "subscriptions" ADD "currentPeriodEnd" TIMESTAMP WITH TIME ZONE`);
-        await queryRunner.query(`ALTER TABLE "subscriptions" DROP COLUMN "currentPeriodStart"`);
-        await queryRunner.query(`ALTER TABLE "subscriptions" ADD "currentPeriodStart" TIMESTAMP WITH TIME ZONE`);
-        await queryRunner.query(`ALTER TABLE "subscriptions" DROP COLUMN "plan"`);
-        await queryRunner.query(`ALTER TABLE "subscriptions" ADD "plan" character varying(50) NOT NULL DEFAULT 'free'`);
-        await queryRunner.query(`ALTER TABLE "subscriptions" DROP COLUMN "status"`);
-        await queryRunner.query(`DROP TYPE "public"."subscriptions_status_enum"`);
-        await queryRunner.query(`ALTER TABLE "subscriptions" ADD "status" character varying(50) NOT NULL DEFAULT 'active'`);
-        await queryRunner.query(`ALTER TABLE "subscriptions" DROP COLUMN "stripeSubscriptionId"`);
-        await queryRunner.query(`ALTER TABLE "subscriptions" ADD "stripeSubscriptionId" character varying(255)`);
-        await queryRunner.query(`ALTER TABLE "subscriptions" DROP COLUMN "stripeCustomerId"`);
-        await queryRunner.query(`ALTER TABLE "subscriptions" ADD "stripeCustomerId" character varying(255)`);
-        await queryRunner.query(`ALTER TABLE "mt5_accounts" DROP COLUMN "updatedAt"`);
-        await queryRunner.query(`ALTER TABLE "mt5_accounts" ADD "updatedAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP`);
-        await queryRunner.query(`ALTER TABLE "mt5_accounts" DROP COLUMN "createdAt"`);
-        await queryRunner.query(`ALTER TABLE "mt5_accounts" ADD "createdAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP`);
-        await queryRunner.query(`ALTER TABLE "mt5_accounts" DROP COLUMN "lastKnownIp"`);
-        await queryRunner.query(`ALTER TABLE "mt5_accounts" ADD "lastKnownIp" character varying(45)`);
-        await queryRunner.query(`ALTER TABLE "mt5_accounts" DROP COLUMN "lastSyncErrorAt"`);
-        await queryRunner.query(`ALTER TABLE "mt5_accounts" ADD "lastSyncErrorAt" TIMESTAMP WITH TIME ZONE`);
-        await queryRunner.query(`ALTER TABLE "mt5_accounts" DROP COLUMN "lastSyncAt"`);
-        await queryRunner.query(`ALTER TABLE "mt5_accounts" ADD "lastSyncAt" TIMESTAMP WITH TIME ZONE`);
-        await queryRunner.query(`ALTER TABLE "mt5_accounts" ALTER COLUMN "isActive" SET DEFAULT true`);
-        await queryRunner.query(`ALTER TABLE "users" DROP COLUMN "updatedAt"`);
-        await queryRunner.query(`ALTER TABLE "users" ADD "updatedAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP`);
-        await queryRunner.query(`ALTER TABLE "users" DROP COLUMN "createdAt"`);
-        await queryRunner.query(`ALTER TABLE "users" ADD "createdAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP`);
-        await queryRunner.query(`ALTER TABLE "users" DROP COLUMN "lastLoginAt"`);
-        await queryRunner.query(`ALTER TABLE "users" ADD "lastLoginAt" TIMESTAMP WITH TIME ZONE`);
-        await queryRunner.query(`ALTER TABLE "notes" DROP COLUMN "deleted_at"`);
-        await queryRunner.query(`ALTER TABLE "notes" ADD "deleted_at" TIMESTAMP WITH TIME ZONE`);
-        await queryRunner.query(`ALTER TABLE "notes" DROP COLUMN "updated_at"`);
-        await queryRunner.query(`ALTER TABLE "notes" ADD "updated_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()`);
-        await queryRunner.query(`ALTER TABLE "notes" DROP COLUMN "created_at"`);
-        await queryRunner.query(`ALTER TABLE "notes" ADD "created_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()`);
-        await queryRunner.query(`ALTER TABLE "trades" DROP COLUMN "updatedAt"`);
-        await queryRunner.query(`ALTER TABLE "trades" ADD "updatedAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP`);
-        await queryRunner.query(`ALTER TABLE "trades" DROP COLUMN "createdAt"`);
-        await queryRunner.query(`ALTER TABLE "trades" ADD "createdAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP`);
-        await queryRunner.query(`CREATE TYPE "public"."trades_assettype_enum_old" AS ENUM('Stock', 'Crypto', 'Forex', 'Futures', 'Options')`);
-        await queryRunner.query(`ALTER TABLE "trades" ALTER COLUMN "assetType" DROP DEFAULT`);
-        await queryRunner.query(`ALTER TABLE "trades" ALTER COLUMN "assetType" TYPE "public"."trades_assettype_enum_old" USING "assetType"::"text"::"public"."trades_assettype_enum_old"`);
-        await queryRunner.query(`ALTER TABLE "trades" ALTER COLUMN "assetType" SET DEFAULT 'Stock'`);
-        await queryRunner.query(`DROP TYPE "public"."trades_assettype_enum"`);
-        await queryRunner.query(`ALTER TYPE "public"."trades_assettype_enum_old" RENAME TO "trades_assettype_enum"`);
-        await queryRunner.query(`ALTER TABLE "trades" DROP COLUMN "strategyId"`);
-        await queryRunner.query(`ALTER TABLE "trades" ADD "strategyId" uuid`);
-        await queryRunner.query(`ALTER TABLE "tags" DROP COLUMN "updatedAt"`);
-        await queryRunner.query(`ALTER TABLE "tags" ADD "updatedAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP`);
-        await queryRunner.query(`ALTER TABLE "tags" DROP COLUMN "createdAt"`);
-        await queryRunner.query(`ALTER TABLE "tags" ADD "createdAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP`);
-        await queryRunner.query(`ALTER TABLE "tags" ALTER COLUMN "color" DROP DEFAULT`);
-        await queryRunner.query(`ALTER TABLE "tags" ALTER COLUMN "color" DROP NOT NULL`);
-        await queryRunner.query(`ALTER TABLE "accounts" ALTER COLUMN "updatedAt" SET DEFAULT CURRENT_TIMESTAMP`);
-        await queryRunner.query(`ALTER TABLE "accounts" ALTER COLUMN "createdAt" SET DEFAULT CURRENT_TIMESTAMP`);
-        await queryRunner.query(`ALTER TABLE "trade_tags" DROP CONSTRAINT "PK_341eb4c9158909a5142f936fd47"`);
-        await queryRunner.query(`ALTER TABLE "subscriptions" DROP COLUMN "trialEnd"`);
-        await queryRunner.query(`ALTER TABLE "subscriptions" DROP COLUMN "trialStart"`);
-        await queryRunner.query(`ALTER TABLE "subscriptions" DROP COLUMN "canceledAt"`);
-        await queryRunner.query(`ALTER TABLE "subscriptions" DROP COLUMN "cancelAtPeriodEnd"`);
-        await queryRunner.query(`ALTER TABLE "subscriptions" DROP COLUMN "interval"`);
-        await queryRunner.query(`ALTER TABLE "subscriptions" DROP COLUMN "price"`);
-        await queryRunner.query(`ALTER TABLE "subscriptions" DROP COLUMN "tier"`);
-        await queryRunner.query(`DROP TYPE "public"."subscriptions_tier_enum"`);
-        await queryRunner.query(`ALTER TABLE "subscriptions" DROP COLUMN "stripePriceId"`);
-        await queryRunner.query(`ALTER TABLE "mt5_accounts" DROP COLUMN "region"`);
-        await queryRunner.query(`ALTER TABLE "mt5_accounts" DROP COLUMN "accountInfo"`);
-        await queryRunner.query(`ALTER TABLE "mt5_accounts" DROP COLUMN "isStreamingActive"`);
-        await queryRunner.query(`ALTER TABLE "mt5_accounts" DROP COLUMN "lastHeartbeatAt"`);
-        await queryRunner.query(`ALTER TABLE "mt5_accounts" DROP COLUMN "connectionStatus"`);
-        await queryRunner.query(`ALTER TABLE "mt5_accounts" DROP COLUMN "leverage"`);
-        await queryRunner.query(`ALTER TABLE "mt5_accounts" DROP COLUMN "profit"`);
-        await queryRunner.query(`ALTER TABLE "mt5_accounts" DROP COLUMN "marginFree"`);
-        await queryRunner.query(`ALTER TABLE "mt5_accounts" DROP COLUMN "margin"`);
-        await queryRunner.query(`ALTER TABLE "mt5_accounts" DROP COLUMN "equity"`);
-        await queryRunner.query(`ALTER TABLE "mt5_accounts" DROP COLUMN "isRealAccount"`);
-        await queryRunner.query(`ALTER TABLE "mt5_accounts" DROP COLUMN "connectionState"`);
-        await queryRunner.query(`ALTER TABLE "mt5_accounts" DROP COLUMN "deploymentState"`);
-        await queryRunner.query(`ALTER TABLE "mt5_accounts" DROP COLUMN "provisioningProfileId"`);
-        await queryRunner.query(`ALTER TABLE "mt5_accounts" DROP COLUMN "metaApiAccountId"`);
-        await queryRunner.query(`ALTER TABLE "notes" DROP COLUMN "psychological_tags"`);
-        await queryRunner.query(`ALTER TABLE "notes" DROP COLUMN "chart_analysis_data"`);
-        await queryRunner.query(`ALTER TABLE "notes" DROP COLUMN "chart_image_url"`);
-        await queryRunner.query(`ALTER TABLE "trades" DROP COLUMN "chart_image_url"`);
-        await queryRunner.query(`DROP TABLE "psychological_insights"`);
-        await queryRunner.query(`CREATE UNIQUE INDEX "PK_trade_tags" ON "trade_tags" ("tagId", "tradeId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_note_media_file_type" ON "note_media" ("file_type") `);
-        await queryRunner.query(`CREATE INDEX "IDX_note_media_note_id" ON "note_media" ("note_id") `);
-        await queryRunner.query(`CREATE INDEX "IDX_note_blocks_type" ON "note_blocks" ("block_type") `);
-        await queryRunner.query(`CREATE INDEX "IDX_note_blocks_position" ON "note_blocks" ("note_id", "position") `);
-        await queryRunner.query(`CREATE INDEX "IDX_note_blocks_note_id" ON "note_blocks" ("note_id") `);
-        await queryRunner.query(`CREATE UNIQUE INDEX "IDX_usage_tracking_user_period" ON "usage_tracking" ("periodStart", "userId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_mt5_accounts_isActive" ON "mt5_accounts" ("isActive") `);
-        await queryRunner.query(`CREATE INDEX "IDX_mt5_accounts_server_login" ON "mt5_accounts" ("login", "server") `);
-        await queryRunner.query(`CREATE INDEX "IDX_mt5_accounts_userId" ON "mt5_accounts" ("userId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_notes_is_pinned" ON "notes" ("is_pinned") `);
-        await queryRunner.query(`CREATE INDEX "IDX_notes_visibility" ON "notes" ("visibility") `);
-        await queryRunner.query(`CREATE INDEX "IDX_notes_tags" ON "notes" ("tags") `);
-        await queryRunner.query(`CREATE INDEX "IDX_notes_updated_at" ON "notes" ("updated_at") `);
-        await queryRunner.query(`CREATE INDEX "IDX_notes_created_at" ON "notes" ("created_at") `);
-        await queryRunner.query(`CREATE INDEX "IDX_notes_trade_id" ON "notes" ("trade_id") `);
-        await queryRunner.query(`CREATE INDEX "IDX_notes_account_id" ON "notes" ("account_id") `);
-        await queryRunner.query(`CREATE INDEX "IDX_notes_user_id" ON "notes" ("user_id") `);
-        await queryRunner.query(`CREATE INDEX "IDX_trades_status" ON "trades" ("status") `);
-        await queryRunner.query(`CREATE INDEX "IDX_trades_symbol" ON "trades" ("symbol") `);
-        await queryRunner.query(`CREATE INDEX "IDX_trades_user_openTime" ON "trades" ("openTime", "userId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_accounts_isActive" ON "accounts" ("isActive") `);
-        await queryRunner.query(`CREATE INDEX "IDX_accounts_userId" ON "accounts" ("userId") `);
-        await queryRunner.query(`ALTER TABLE "trade_tags" ADD CONSTRAINT "FK_5bb2f6a31ee18a3ed811c066533" FOREIGN KEY ("tagId") REFERENCES "tags"("id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "trade_tags" ADD CONSTRAINT "FK_c47b2141763c5c8da682df7a781" FOREIGN KEY ("tradeId") REFERENCES "trades"("id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "note_media" ADD CONSTRAINT "FK_note_media_note_id" FOREIGN KEY ("note_id") REFERENCES "notes"("id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "note_blocks" ADD CONSTRAINT "FK_note_blocks_note_id" FOREIGN KEY ("note_id") REFERENCES "notes"("id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "strategies" ADD CONSTRAINT "FK_15a08affc5afadffc9b6ddc6024" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "usage_tracking" ADD CONSTRAINT "FK_5d8df20d681cd50fcde4db2db32" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "subscriptions" ADD CONSTRAINT "FK_fbdba4e2ac694cf8c9cecf4dc84" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "notes" ADD CONSTRAINT "FK_notes_trade_id" FOREIGN KEY ("trade_id") REFERENCES "trades"("id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "notes" ADD CONSTRAINT "FK_notes_account_id" FOREIGN KEY ("account_id") REFERENCES "accounts"("id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "notes" ADD CONSTRAINT "FK_notes_user_id" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE NO ACTION`);
-        await queryRunner.query(`ALTER TABLE "trades" ADD CONSTRAINT "FK_32e0533214130eccd5cc8de165d" FOREIGN KEY ("strategyId") REFERENCES "strategies"("id") ON DELETE SET NULL ON UPDATE NO ACTION`);
-    }
-
+  public async down(queryRunner: QueryRunner): Promise<void> {
+    await queryRunner.query(
+      `ALTER TABLE "trade_tags" DROP CONSTRAINT "FK_5bb2f6a31ee18a3ed811c066533"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "trade_tags" DROP CONSTRAINT "FK_c47b2141763c5c8da682df7a781"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "usage_tracking" DROP CONSTRAINT "FK_5d8df20d681cd50fcde4db2db32"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "subscriptions" DROP CONSTRAINT "FK_fbdba4e2ac694cf8c9cecf4dc84"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "psychological_insights" DROP CONSTRAINT "FK_68cd4a48e396ffec26ca1390d3f"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "psychological_insights" DROP CONSTRAINT "FK_8391b8835b9adedf5ecbd5817f9"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "notes" DROP CONSTRAINT "FK_976bf301e423205c29bd0f65046"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "notes" DROP CONSTRAINT "FK_f02c15d5e61d2d2fb4ebd761655"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "notes" DROP CONSTRAINT "FK_7708dcb62ff332f0eaf9f0743a7"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_5bb2f6a31ee18a3ed811c06653"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_c47b2141763c5c8da682df7a78"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_968f8dbed6678779a78bf02cd1"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_92d14693dc55928a7b52095f1e"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_6bfece49def4cc27f8606c05aa"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_38f001f2b1ef5b0d67dfa3531d"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_daeed3defb8cd4e41a59fe2aa3"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_f02c15d5e61d2d2fb4ebd76165"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_976bf301e423205c29bd0f6504"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_4f6ba27a5706830c50194bb316"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_1ee2b8b3fb60d7ee0bf70843fc"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_216d98067d764c901b77d281e1"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_7708dcb62ff332f0eaf9f0743a"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_acb0f691ae40917b6029c9eac0"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_0daf7567fa18bf86b777c5a9d8"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "note_media" DROP COLUMN "created_at"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "note_media" ADD "created_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()`,
+    );
+    await queryRunner.query(`ALTER TABLE "note_media" DROP COLUMN "note_id"`);
+    await queryRunner.query(
+      `ALTER TABLE "note_media" ADD "note_id" uuid NOT NULL`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "note_blocks" DROP COLUMN "updated_at"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "note_blocks" ADD "updated_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "note_blocks" DROP COLUMN "created_at"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "note_blocks" ADD "created_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()`,
+    );
+    await queryRunner.query(`ALTER TABLE "note_blocks" DROP COLUMN "note_id"`);
+    await queryRunner.query(
+      `ALTER TABLE "note_blocks" ADD "note_id" uuid NOT NULL`,
+    );
+    await queryRunner.query(`ALTER TABLE "strategies" DROP COLUMN "userId"`);
+    await queryRunner.query(
+      `ALTER TABLE "strategies" ADD "userId" uuid NOT NULL`,
+    );
+    await queryRunner.query(`ALTER TABLE "strategies" DROP COLUMN "updatedAt"`);
+    await queryRunner.query(
+      `ALTER TABLE "strategies" ADD "updatedAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP`,
+    );
+    await queryRunner.query(`ALTER TABLE "strategies" DROP COLUMN "createdAt"`);
+    await queryRunner.query(
+      `ALTER TABLE "strategies" ADD "createdAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "strategies" ALTER COLUMN "color" DROP NOT NULL`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "strategies" ALTER COLUMN "isActive" DROP NOT NULL`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "strategies" DROP COLUMN "tradingSession"`,
+    );
+    await queryRunner.query(
+      `DROP TYPE "public"."strategies_tradingsession_enum"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "strategies" ADD "tradingSession" character varying(50)`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "usage_tracking" DROP COLUMN "updatedAt"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "usage_tracking" ADD "updatedAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "usage_tracking" DROP COLUMN "createdAt"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "usage_tracking" ADD "createdAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "usage_tracking" DROP COLUMN "periodEnd"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "usage_tracking" ADD "periodEnd" TIMESTAMP WITH TIME ZONE NOT NULL`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "usage_tracking" DROP COLUMN "periodStart"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "usage_tracking" ADD "periodStart" TIMESTAMP WITH TIME ZONE NOT NULL`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "subscriptions" DROP COLUMN "updatedAt"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "subscriptions" ADD "updatedAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "subscriptions" DROP COLUMN "createdAt"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "subscriptions" ADD "createdAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "subscriptions" DROP COLUMN "currentPeriodEnd"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "subscriptions" ADD "currentPeriodEnd" TIMESTAMP WITH TIME ZONE`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "subscriptions" DROP COLUMN "currentPeriodStart"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "subscriptions" ADD "currentPeriodStart" TIMESTAMP WITH TIME ZONE`,
+    );
+    await queryRunner.query(`ALTER TABLE "subscriptions" DROP COLUMN "plan"`);
+    await queryRunner.query(
+      `ALTER TABLE "subscriptions" ADD "plan" character varying(50) NOT NULL DEFAULT 'free'`,
+    );
+    await queryRunner.query(`ALTER TABLE "subscriptions" DROP COLUMN "status"`);
+    await queryRunner.query(`DROP TYPE "public"."subscriptions_status_enum"`);
+    await queryRunner.query(
+      `ALTER TABLE "subscriptions" ADD "status" character varying(50) NOT NULL DEFAULT 'active'`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "subscriptions" DROP COLUMN "stripeSubscriptionId"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "subscriptions" ADD "stripeSubscriptionId" character varying(255)`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "subscriptions" DROP COLUMN "stripeCustomerId"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "subscriptions" ADD "stripeCustomerId" character varying(255)`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "mt5_accounts" DROP COLUMN "updatedAt"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "mt5_accounts" ADD "updatedAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "mt5_accounts" DROP COLUMN "createdAt"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "mt5_accounts" ADD "createdAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "mt5_accounts" DROP COLUMN "lastKnownIp"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "mt5_accounts" ADD "lastKnownIp" character varying(45)`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "mt5_accounts" DROP COLUMN "lastSyncErrorAt"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "mt5_accounts" ADD "lastSyncErrorAt" TIMESTAMP WITH TIME ZONE`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "mt5_accounts" DROP COLUMN "lastSyncAt"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "mt5_accounts" ADD "lastSyncAt" TIMESTAMP WITH TIME ZONE`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "mt5_accounts" ALTER COLUMN "isActive" SET DEFAULT true`,
+    );
+    await queryRunner.query(`ALTER TABLE "users" DROP COLUMN "updatedAt"`);
+    await queryRunner.query(
+      `ALTER TABLE "users" ADD "updatedAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP`,
+    );
+    await queryRunner.query(`ALTER TABLE "users" DROP COLUMN "createdAt"`);
+    await queryRunner.query(
+      `ALTER TABLE "users" ADD "createdAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP`,
+    );
+    await queryRunner.query(`ALTER TABLE "users" DROP COLUMN "lastLoginAt"`);
+    await queryRunner.query(
+      `ALTER TABLE "users" ADD "lastLoginAt" TIMESTAMP WITH TIME ZONE`,
+    );
+    await queryRunner.query(`ALTER TABLE "notes" DROP COLUMN "deleted_at"`);
+    await queryRunner.query(
+      `ALTER TABLE "notes" ADD "deleted_at" TIMESTAMP WITH TIME ZONE`,
+    );
+    await queryRunner.query(`ALTER TABLE "notes" DROP COLUMN "updated_at"`);
+    await queryRunner.query(
+      `ALTER TABLE "notes" ADD "updated_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()`,
+    );
+    await queryRunner.query(`ALTER TABLE "notes" DROP COLUMN "created_at"`);
+    await queryRunner.query(
+      `ALTER TABLE "notes" ADD "created_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()`,
+    );
+    await queryRunner.query(`ALTER TABLE "trades" DROP COLUMN "updatedAt"`);
+    await queryRunner.query(
+      `ALTER TABLE "trades" ADD "updatedAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP`,
+    );
+    await queryRunner.query(`ALTER TABLE "trades" DROP COLUMN "createdAt"`);
+    await queryRunner.query(
+      `ALTER TABLE "trades" ADD "createdAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP`,
+    );
+    await queryRunner.query(
+      `CREATE TYPE "public"."trades_assettype_enum_old" AS ENUM('Stock', 'Crypto', 'Forex', 'Futures', 'Options')`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "trades" ALTER COLUMN "assetType" DROP DEFAULT`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "trades" ALTER COLUMN "assetType" TYPE "public"."trades_assettype_enum_old" USING "assetType"::"text"::"public"."trades_assettype_enum_old"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "trades" ALTER COLUMN "assetType" SET DEFAULT 'Stock'`,
+    );
+    await queryRunner.query(`DROP TYPE "public"."trades_assettype_enum"`);
+    await queryRunner.query(
+      `ALTER TYPE "public"."trades_assettype_enum_old" RENAME TO "trades_assettype_enum"`,
+    );
+    await queryRunner.query(`ALTER TABLE "trades" DROP COLUMN "strategyId"`);
+    await queryRunner.query(`ALTER TABLE "trades" ADD "strategyId" uuid`);
+    await queryRunner.query(`ALTER TABLE "tags" DROP COLUMN "updatedAt"`);
+    await queryRunner.query(
+      `ALTER TABLE "tags" ADD "updatedAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP`,
+    );
+    await queryRunner.query(`ALTER TABLE "tags" DROP COLUMN "createdAt"`);
+    await queryRunner.query(
+      `ALTER TABLE "tags" ADD "createdAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "tags" ALTER COLUMN "color" DROP DEFAULT`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "tags" ALTER COLUMN "color" DROP NOT NULL`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "accounts" ALTER COLUMN "updatedAt" SET DEFAULT CURRENT_TIMESTAMP`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "accounts" ALTER COLUMN "createdAt" SET DEFAULT CURRENT_TIMESTAMP`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "trade_tags" DROP CONSTRAINT "PK_341eb4c9158909a5142f936fd47"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "subscriptions" DROP COLUMN "trialEnd"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "subscriptions" DROP COLUMN "trialStart"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "subscriptions" DROP COLUMN "canceledAt"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "subscriptions" DROP COLUMN "cancelAtPeriodEnd"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "subscriptions" DROP COLUMN "interval"`,
+    );
+    await queryRunner.query(`ALTER TABLE "subscriptions" DROP COLUMN "price"`);
+    await queryRunner.query(`ALTER TABLE "subscriptions" DROP COLUMN "tier"`);
+    await queryRunner.query(`DROP TYPE "public"."subscriptions_tier_enum"`);
+    await queryRunner.query(
+      `ALTER TABLE "subscriptions" DROP COLUMN "stripePriceId"`,
+    );
+    await queryRunner.query(`ALTER TABLE "mt5_accounts" DROP COLUMN "region"`);
+    await queryRunner.query(
+      `ALTER TABLE "mt5_accounts" DROP COLUMN "accountInfo"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "mt5_accounts" DROP COLUMN "isStreamingActive"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "mt5_accounts" DROP COLUMN "lastHeartbeatAt"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "mt5_accounts" DROP COLUMN "connectionStatus"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "mt5_accounts" DROP COLUMN "leverage"`,
+    );
+    await queryRunner.query(`ALTER TABLE "mt5_accounts" DROP COLUMN "profit"`);
+    await queryRunner.query(
+      `ALTER TABLE "mt5_accounts" DROP COLUMN "marginFree"`,
+    );
+    await queryRunner.query(`ALTER TABLE "mt5_accounts" DROP COLUMN "margin"`);
+    await queryRunner.query(`ALTER TABLE "mt5_accounts" DROP COLUMN "equity"`);
+    await queryRunner.query(
+      `ALTER TABLE "mt5_accounts" DROP COLUMN "isRealAccount"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "mt5_accounts" DROP COLUMN "connectionState"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "mt5_accounts" DROP COLUMN "deploymentState"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "mt5_accounts" DROP COLUMN "provisioningProfileId"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "mt5_accounts" DROP COLUMN "metaApiAccountId"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "notes" DROP COLUMN "psychological_tags"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "notes" DROP COLUMN "chart_analysis_data"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "notes" DROP COLUMN "chart_image_url"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "trades" DROP COLUMN "chart_image_url"`,
+    );
+    await queryRunner.query(`DROP TABLE "psychological_insights"`);
+    await queryRunner.query(
+      `CREATE UNIQUE INDEX "PK_trade_tags" ON "trade_tags" ("tagId", "tradeId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_note_media_file_type" ON "note_media" ("file_type") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_note_media_note_id" ON "note_media" ("note_id") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_note_blocks_type" ON "note_blocks" ("block_type") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_note_blocks_position" ON "note_blocks" ("note_id", "position") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_note_blocks_note_id" ON "note_blocks" ("note_id") `,
+    );
+    await queryRunner.query(
+      `CREATE UNIQUE INDEX "IDX_usage_tracking_user_period" ON "usage_tracking" ("periodStart", "userId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_mt5_accounts_isActive" ON "mt5_accounts" ("isActive") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_mt5_accounts_server_login" ON "mt5_accounts" ("login", "server") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_mt5_accounts_userId" ON "mt5_accounts" ("userId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_notes_is_pinned" ON "notes" ("is_pinned") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_notes_visibility" ON "notes" ("visibility") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_notes_tags" ON "notes" ("tags") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_notes_updated_at" ON "notes" ("updated_at") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_notes_created_at" ON "notes" ("created_at") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_notes_trade_id" ON "notes" ("trade_id") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_notes_account_id" ON "notes" ("account_id") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_notes_user_id" ON "notes" ("user_id") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_trades_status" ON "trades" ("status") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_trades_symbol" ON "trades" ("symbol") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_trades_user_openTime" ON "trades" ("openTime", "userId") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_accounts_isActive" ON "accounts" ("isActive") `,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_accounts_userId" ON "accounts" ("userId") `,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "trade_tags" ADD CONSTRAINT "FK_5bb2f6a31ee18a3ed811c066533" FOREIGN KEY ("tagId") REFERENCES "tags"("id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "trade_tags" ADD CONSTRAINT "FK_c47b2141763c5c8da682df7a781" FOREIGN KEY ("tradeId") REFERENCES "trades"("id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "note_media" ADD CONSTRAINT "FK_note_media_note_id" FOREIGN KEY ("note_id") REFERENCES "notes"("id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "note_blocks" ADD CONSTRAINT "FK_note_blocks_note_id" FOREIGN KEY ("note_id") REFERENCES "notes"("id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "strategies" ADD CONSTRAINT "FK_15a08affc5afadffc9b6ddc6024" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "usage_tracking" ADD CONSTRAINT "FK_5d8df20d681cd50fcde4db2db32" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "subscriptions" ADD CONSTRAINT "FK_fbdba4e2ac694cf8c9cecf4dc84" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "notes" ADD CONSTRAINT "FK_notes_trade_id" FOREIGN KEY ("trade_id") REFERENCES "trades"("id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "notes" ADD CONSTRAINT "FK_notes_account_id" FOREIGN KEY ("account_id") REFERENCES "accounts"("id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "notes" ADD CONSTRAINT "FK_notes_user_id" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "trades" ADD CONSTRAINT "FK_32e0533214130eccd5cc8de165d" FOREIGN KEY ("strategyId") REFERENCES "strategies"("id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    );
+  }
 }

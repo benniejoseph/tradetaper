@@ -22,22 +22,26 @@ export class GeminiInsightsService {
 
   constructor(
     private configService: ConfigService,
-    private orchestrator: MultiModelOrchestratorService // Injection
+    private orchestrator: MultiModelOrchestratorService, // Injection
   ) {}
 
   async analyzeTradePatterns(trades: Trade[]): Promise<TraderCoachingReport> {
     if (trades.length < 5) {
       return {
         traderScore: 50,
-        scoreReasoning: "Insufficient data (need at least 5 trades).",
+        scoreReasoning: 'Insufficient data (need at least 5 trades).',
         insights: [
-            { type: 'FOCUS_AREA', title: 'Gather Data', description: 'Log more trades to unlock AI insights.' }
-        ]
+          {
+            type: 'FOCUS_AREA',
+            title: 'Gather Data',
+            description: 'Log more trades to unlock AI insights.',
+          },
+        ],
       };
     }
 
     // Limit to last 50 trades to respect token limits and relevance
-    const recentTrades = trades.slice(0, 100).map(t => ({
+    const recentTrades = trades.slice(0, 100).map((t) => ({
       symbol: t.symbol,
       side: t.side,
       pnl: t.profitOrLoss,
@@ -45,7 +49,7 @@ export class GeminiInsightsService {
       concept: t.ictConcept,
       session: t.session,
       mistakes: t.mistakesMade,
-      lessons: t.lessonsLearned
+      lessons: t.lessonsLearned,
     }));
 
     const prompt = `
@@ -104,30 +108,32 @@ export class GeminiInsightsService {
         modelPreference: 'gemini-2.0-flash', // Use the fast new model
         taskComplexity: 'medium',
         requireJson: true,
-        optimizeFor: 'speed'
+        optimizeFor: 'speed',
       });
-      
-      const text = response.content;
-      
-      // Clean potential markdown blocks
-      const cleanText = text.replace(/```json/g, '').replace(/```/g, '').trim();
-      return JSON.parse(cleanText);
 
+      const text = response.content;
+
+      // Clean potential markdown blocks
+      const cleanText = text
+        .replace(/```json/g, '')
+        .replace(/```/g, '')
+        .trim();
+      return JSON.parse(cleanText);
     } catch (error) {
       this.logger.error(`AI Analysis failed: ${error.message}`);
-      
+
       // Determine user-friendly error message
-      let userMessage = "AI Analysis Failed";
+      let userMessage = 'AI Analysis Failed';
       if (error.message.includes('429')) {
-         userMessage = "AI Usage Limit Exceeded (Please try again later)";
+        userMessage = 'AI Usage Limit Exceeded (Please try again later)';
       } else if (error.message.includes('404')) {
-         userMessage = "AI Model Unavailable";
+        userMessage = 'AI Model Unavailable';
       }
 
       return {
-          traderScore: 0,
-          scoreReasoning: userMessage,
-          insights: []
+        traderScore: 0,
+        scoreReasoning: userMessage,
+        insights: [],
       };
     }
   }

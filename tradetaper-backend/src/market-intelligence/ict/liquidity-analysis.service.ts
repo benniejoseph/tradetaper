@@ -39,7 +39,7 @@ export class LiquidityAnalysisService {
   analyzeLiquidity(
     symbol: string,
     priceData: any[],
-    timeframe: string = '1D'
+    timeframe: string = '1D',
   ): LiquidityPool {
     this.logger.log(`Analyzing ICT liquidity for ${symbol} on ${timeframe}`);
 
@@ -50,11 +50,11 @@ export class LiquidityAnalysisService {
     // Find nearest liquidity zones
     const nearestAbove = this.findNearestLiquidityAbove(
       buySideLiquidity,
-      currentPrice
+      currentPrice,
     );
     const nearestBelow = this.findNearestLiquidityBelow(
       sellSideLiquidity,
-      currentPrice
+      currentPrice,
     );
 
     // Detect liquidity voids
@@ -67,7 +67,7 @@ export class LiquidityAnalysisService {
       nearestAbove,
       nearestBelow,
       liquidityVoid,
-      currentPrice
+      currentPrice,
     );
 
     return {
@@ -134,7 +134,7 @@ export class LiquidityAnalysisService {
    */
   private findSwingHighs(
     priceData: any[],
-    lookback: number = 5
+    lookback: number = 5,
   ): Array<{ high: number; date: string; volume: number }> {
     const swings: Array<{ high: number; date: string; volume: number }> = [];
 
@@ -167,7 +167,7 @@ export class LiquidityAnalysisService {
    */
   private findSwingLows(
     priceData: any[],
-    lookback: number = 5
+    lookback: number = 5,
   ): Array<{ low: number; date: string; volume: number }> {
     const swings: Array<{ low: number; date: string; volume: number }> = [];
 
@@ -199,7 +199,7 @@ export class LiquidityAnalysisService {
    */
   private calculateLiquidityStrength(
     swing: any,
-    priceData: any[]
+    priceData: any[],
   ): 'high' | 'medium' | 'low' {
     // Factors:
     // 1. How many times price tested this level
@@ -223,7 +223,7 @@ export class LiquidityAnalysisService {
    */
   private findNearestLiquidityAbove(
     buySideLiquidity: LiquidityZone[],
-    currentPrice: number
+    currentPrice: number,
   ): LiquidityZone | null {
     const above = buySideLiquidity.filter((zone) => zone.price > currentPrice);
     return above.length > 0 ? above[above.length - 1] : null;
@@ -234,7 +234,7 @@ export class LiquidityAnalysisService {
    */
   private findNearestLiquidityBelow(
     sellSideLiquidity: LiquidityZone[],
-    currentPrice: number
+    currentPrice: number,
   ): LiquidityZone | null {
     const below = sellSideLiquidity.filter((zone) => zone.price < currentPrice);
     return below.length > 0 ? below[0] : null;
@@ -276,44 +276,46 @@ export class LiquidityAnalysisService {
     nearestAbove: LiquidityZone | null,
     nearestBelow: LiquidityZone | null,
     liquidityVoid: any,
-    currentPrice: number
+    currentPrice: number,
   ): string[] {
     const analysis: string[] = [];
 
     // Overall liquidity context
     analysis.push(`📊 Liquidity Analysis (ICT Concept)`);
     analysis.push(
-      `Buy-side liquidity zones: ${buySide.length} (stops above highs)`
+      `Buy-side liquidity zones: ${buySide.length} (stops above highs)`,
     );
     analysis.push(
-      `Sell-side liquidity zones: ${sellSide.length} (stops below lows)`
+      `Sell-side liquidity zones: ${sellSide.length} (stops below lows)`,
     );
 
     // Nearest targets
     if (nearestAbove) {
-      const distance = ((nearestAbove.price - currentPrice) / currentPrice) * 100;
+      const distance =
+        ((nearestAbove.price - currentPrice) / currentPrice) * 100;
       analysis.push(
-        `🎯 Nearest buy-side liquidity: ${safeToFixed(nearestAbove.price, 2)} (+${safeToFixed(distance, 2)}%)`
+        `🎯 Nearest buy-side liquidity: ${safeToFixed(nearestAbove.price, 2)} (+${safeToFixed(distance, 2)}%)`,
       );
       analysis.push(
-        `   Strength: ${nearestAbove.strength.toUpperCase()} - Institutions likely to sweep this level`
+        `   Strength: ${nearestAbove.strength.toUpperCase()} - Institutions likely to sweep this level`,
       );
     }
 
     if (nearestBelow) {
-      const distance = ((currentPrice - nearestBelow.price) / currentPrice) * 100;
+      const distance =
+        ((currentPrice - nearestBelow.price) / currentPrice) * 100;
       analysis.push(
-        `🎯 Nearest sell-side liquidity: ${safeToFixed(nearestBelow.price, 2)} (-${safeToFixed(distance, 2)}%)`
+        `🎯 Nearest sell-side liquidity: ${safeToFixed(nearestBelow.price, 2)} (-${safeToFixed(distance, 2)}%)`,
       );
       analysis.push(
-        `   Strength: ${nearestBelow.strength.toUpperCase()} - Potential stop hunt target`
+        `   Strength: ${nearestBelow.strength.toUpperCase()} - Potential stop hunt target`,
       );
     }
 
     // Liquidity void
     if (liquidityVoid.hasVoid) {
       analysis.push(
-        `⚠️ LIQUIDITY VOID DETECTED: ${safeToFixed(liquidityVoid.range.low, 2)} - ${safeToFixed(liquidityVoid.range.high, 2)}`
+        `⚠️ LIQUIDITY VOID DETECTED: ${safeToFixed(liquidityVoid.range.low, 2)} - ${safeToFixed(liquidityVoid.range.high, 2)}`,
       );
       analysis.push(`   Price likely to move quickly through this area`);
     }
@@ -327,30 +329,32 @@ export class LiquidityAnalysisService {
 
       if (aboveDistance < belowDistance) {
         analysis.push(
-          `   • Price closer to buy-side liquidity - expect upward sweep before reversal`
+          `   • Price closer to buy-side liquidity - expect upward sweep before reversal`,
         );
         analysis.push(
-          `   • Strategy: Wait for liquidity grab above ${safeToFixed(nearestAbove.price, 2)}, then look for shorts`
+          `   • Strategy: Wait for liquidity grab above ${safeToFixed(nearestAbove.price, 2)}, then look for shorts`,
         );
       } else {
         analysis.push(
-          `   • Price closer to sell-side liquidity - expect downward sweep before reversal`
+          `   • Price closer to sell-side liquidity - expect downward sweep before reversal`,
         );
         analysis.push(
-          `   • Strategy: Wait for liquidity grab below ${safeToFixed(nearestBelow.price, 2)}, then look for longs`
+          `   • Strategy: Wait for liquidity grab below ${safeToFixed(nearestBelow.price, 2)}, then look for longs`,
         );
       }
     }
 
     // High-strength zones
     const highStrengthZones = [...buySide, ...sellSide].filter(
-      (z) => z.strength === 'high'
+      (z) => z.strength === 'high',
     );
     if (highStrengthZones.length > 0) {
       analysis.push(
-        `   • ${highStrengthZones.length} HIGH-STRENGTH liquidity zones identified`
+        `   • ${highStrengthZones.length} HIGH-STRENGTH liquidity zones identified`,
       );
-      analysis.push(`   • These are prime targets for institutional manipulation`);
+      analysis.push(
+        `   • These are prime targets for institutional manipulation`,
+      );
     }
 
     return analysis;
@@ -363,7 +367,7 @@ export class LiquidityAnalysisService {
     liquidityPool: LiquidityPool,
     recentPrice: number,
     recentHigh: number,
-    recentLow: number
+    recentLow: number,
   ): {
     swept: boolean;
     type: 'buy_side' | 'sell_side' | null;
@@ -382,10 +386,10 @@ export class LiquidityAnalysisService {
         analysis.push(`   Level: ${safeToFixed(zone.price, 2)}`);
         analysis.push(`   Strength: ${zone.strength.toUpperCase()}`);
         analysis.push(
-          `   🎯 ICT SIGNAL: Stops above ${safeToFixed(zone.price, 2)} have been taken`
+          `   🎯 ICT SIGNAL: Stops above ${safeToFixed(zone.price, 2)} have been taken`,
         );
         analysis.push(
-          `   📉 Expect potential reversal (institutions now SHORT)`
+          `   📉 Expect potential reversal (institutions now SHORT)`,
         );
 
         return {
@@ -407,9 +411,11 @@ export class LiquidityAnalysisService {
         analysis.push(`   Level: ${safeToFixed(zone.price, 2)}`);
         analysis.push(`   Strength: ${zone.strength.toUpperCase()}`);
         analysis.push(
-          `   🎯 ICT SIGNAL: Stops below ${safeToFixed(zone.price, 2)} have been taken`
+          `   🎯 ICT SIGNAL: Stops below ${safeToFixed(zone.price, 2)} have been taken`,
         );
-        analysis.push(`   📈 Expect potential reversal (institutions now LONG)`);
+        analysis.push(
+          `   📈 Expect potential reversal (institutions now LONG)`,
+        );
 
         return {
           swept: true,
@@ -428,4 +434,3 @@ export class LiquidityAnalysisService {
     };
   }
 }
-

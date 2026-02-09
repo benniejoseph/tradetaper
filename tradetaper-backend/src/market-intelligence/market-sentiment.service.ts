@@ -31,16 +31,24 @@ export class MarketSentimentService {
   ) {}
 
   async generateSentimentReport(): Promise<MarketSentimentReport> {
-    const assets = ['XAUUSD', 'EURUSD', 'GBPUSD', 'USDJPY', 'USDCAD', 'AUDUSD', 'NAS100'];
-    
+    const assets = [
+      'XAUUSD',
+      'EURUSD',
+      'GBPUSD',
+      'USDJPY',
+      'USDCAD',
+      'AUDUSD',
+      'NAS100',
+    ];
+
     // 1. Fetch Real Data Context (Price, recent change)
     // We can use dataAggregator to get prices if available.
     // For now, prompt LLM to use its internal knowledge + provided price (if we have it).
     // Or just ask LLM for "current sentiment based on recent news/events" (Agents have tools?).
     // If Orchestrator has tools, it can fetch search.
-    
+
     // Simplification: We prompt LLM to act as analyst.
-    
+
     const prompt = `
       You are an expert Chief Market Analyst. Provide a comprehensive sentiment report for the following assets:
       ${assets.join(', ')}.
@@ -72,34 +80,54 @@ export class MarketSentimentService {
       const response = await this.orchestrator.complete({
         prompt,
         taskComplexity: 'medium', // Use stronger model for analysis
-        requireJson: true
+        requireJson: true,
       });
 
-      const jsonStr = response.content.replace(/```json/g, '').replace(/```/g, '').trim();
+      const jsonStr = response.content
+        .replace(/```json/g, '')
+        .replace(/```/g, '')
+        .trim();
       const data = JSON.parse(jsonStr);
 
       return {
         timestamp: new Date().toISOString(),
         globalSentiment: data.globalSentiment,
-        assets: data.assets
+        assets: data.assets,
       };
-
     } catch (error) {
-       this.logger.error('Failed to generate sentiment report', error);
-       // Return Mock Fallback
-       return this.getMockReport();
+      this.logger.error('Failed to generate sentiment report', error);
+      // Return Mock Fallback
+      return this.getMockReport();
     }
   }
 
   private getMockReport(): MarketSentimentReport {
     return {
       timestamp: new Date().toISOString(),
-      globalSentiment: { score: 50, description: 'Neutral', summary: 'Market awaits key data.' },
+      globalSentiment: {
+        score: 50,
+        description: 'Neutral',
+        summary: 'Market awaits key data.',
+      },
       assets: [
-        { symbol: 'XAUUSD', sentimentScore: 55, sentiment: 'neutral', rationale: 'Consolidating below 2050', keyLevels: [2040, 2060], trend: 'ranging' },
-        { symbol: 'EURUSD', sentimentScore: 40, sentiment: 'bearish', rationale: 'Strong dollar pressure', keyLevels: [1.0800, 1.0900], trend: 'down' },
+        {
+          symbol: 'XAUUSD',
+          sentimentScore: 55,
+          sentiment: 'neutral',
+          rationale: 'Consolidating below 2050',
+          keyLevels: [2040, 2060],
+          trend: 'ranging',
+        },
+        {
+          symbol: 'EURUSD',
+          sentimentScore: 40,
+          sentiment: 'bearish',
+          rationale: 'Strong dollar pressure',
+          keyLevels: [1.08, 1.09],
+          trend: 'down',
+        },
         // ... extend if needed
-      ]
+      ],
     };
   }
 }

@@ -1,6 +1,6 @@
 /**
  * Multi-Agent System Core Types
- * 
+ *
  * Defines the foundational types and interfaces for the multi-agent orchestration system
  */
 
@@ -165,4 +165,3 @@ export interface AgentHealthCheck {
   metrics: AgentMetrics;
   issues?: string[];
 }
-

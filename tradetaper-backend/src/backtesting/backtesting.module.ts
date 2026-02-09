@@ -13,4 +13,3 @@ import { MarketLog } from './entities/market-log.entity';
   exports: [BacktestingService, TagService],
 })
 export class BacktestingModule {}
-

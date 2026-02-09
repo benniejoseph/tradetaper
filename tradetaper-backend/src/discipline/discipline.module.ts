@@ -10,7 +10,11 @@ import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([TradeApproval, TraderDiscipline, CooldownSession]),
+    TypeOrmModule.forFeature([
+      TradeApproval,
+      TraderDiscipline,
+      CooldownSession,
+    ]),
     TerminalFarmModule,
     SubscriptionsModule,
   ],

@@ -30,9 +30,12 @@ export interface MarketDataResponse {
 @Injectable()
 export class MarketDataProviderService {
   private readonly logger = new Logger(MarketDataProviderService.name);
-  
+
   // Cache for market data (5 minutes)
-  private cache = new Map<string, { data: Candle[]; source: string; timestamp: number }>();
+  private cache = new Map<
+    string,
+    { data: Candle[]; source: string; timestamp: number }
+  >();
   private readonly CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
   constructor(
@@ -45,12 +48,14 @@ export class MarketDataProviderService {
    * Get historical price data for any symbol
    * Returns both data and source information
    */
-  async getPriceDataWithSource(request: MarketDataRequest): Promise<MarketDataResponse> {
+  async getPriceDataWithSource(
+    request: MarketDataRequest,
+  ): Promise<MarketDataResponse> {
     const { symbol, timeframe, limit = 100 } = request;
-    
+
     const cacheKey = `${symbol}_${timeframe}_${limit}`;
     const cached = this.cache.get(cacheKey);
-    
+
     // Return cached data if fresh
     if (cached && Date.now() - cached.timestamp < this.CACHE_TTL) {
       this.logger.log(`Cache hit for ${cacheKey} (source: ${cached.source})`);
@@ -71,14 +76,20 @@ export class MarketDataProviderService {
     if (this.tradingViewService.isConnected()) {
       this.logger.log(`🔴 Using TradingView REAL-TIME data for ${symbol}`);
       try {
-        data = await this.tradingViewService.getRealtimeCandles(symbol, timeframe, limit);
+        data = await this.tradingViewService.getRealtimeCandles(
+          symbol,
+          timeframe,
+          limit,
+        );
         if (data && data.length > 0) {
           source = 'tradingview';
           this.cache.set(cacheKey, { data, source, timestamp: Date.now() });
           return { data, source, symbol, timestamp: new Date() };
         }
       } catch (error) {
-        this.logger.warn(`TradingView failed, falling back to Twelve Data: ${error.message}`);
+        this.logger.warn(
+          `TradingView failed, falling back to Twelve Data: ${error.message}`,
+        );
       }
     }
 
@@ -96,11 +107,13 @@ export class MarketDataProviderService {
     }
 
     // Final fallback - generated data
-    this.logger.warn(`⚠️ All sources failed, using fallback data for ${symbol}`);
+    this.logger.warn(
+      `⚠️ All sources failed, using fallback data for ${symbol}`,
+    );
     data = this.generateFallbackData(symbol, limit);
     source = 'fallback';
     this.cache.set(cacheKey, { data, source, timestamp: Date.now() });
-    
+
     return { data, source, symbol, timestamp: new Date() };
   }
 
@@ -121,7 +134,7 @@ export class MarketDataProviderService {
     limit: number,
   ): Promise<Candle[]> {
     const apiKey = this.configService.get<string>('TWELVE_DATA_API_KEY');
-    
+
     if (!apiKey) {
       this.logger.warn('TWELVE_DATA_API_KEY not set');
       throw new Error('Twelve Data API key not configured');
@@ -131,7 +144,9 @@ export class MarketDataProviderService {
     const twelveSymbol = this.toTwelveDataSymbol(symbol);
     const interval = this.toTwelveDataInterval(timeframe);
 
-    this.logger.log(`Fetching from Twelve Data: ${twelveSymbol} (original: ${symbol})`);
+    this.logger.log(
+      `Fetching from Twelve Data: ${twelveSymbol} (original: ${symbol})`,
+    );
 
     const url = 'https://api.twelvedata.com/time_series';
     const response = await firstValueFrom(
@@ -151,19 +166,21 @@ export class MarketDataProviderService {
     }
 
     const values = response.data.values || [];
-    
+
     if (values.length === 0) {
       throw new Error('No data returned from Twelve Data');
     }
 
-    return values.map((candle: any) => ({
-      timestamp: new Date(candle.datetime),
-      open: parseFloat(candle.open),
-      high: parseFloat(candle.high),
-      low: parseFloat(candle.low),
-      close: parseFloat(candle.close),
-      volume: parseFloat(candle.volume || 0),
-    })).reverse(); // Twelve Data returns newest first, reverse it
+    return values
+      .map((candle: any) => ({
+        timestamp: new Date(candle.datetime),
+        open: parseFloat(candle.open),
+        high: parseFloat(candle.high),
+        low: parseFloat(candle.low),
+        close: parseFloat(candle.close),
+        volume: parseFloat(candle.volume || 0),
+      }))
+      .reverse(); // Twelve Data returns newest first, reverse it
   }
 
   /**
@@ -172,12 +189,12 @@ export class MarketDataProviderService {
   private toTwelveDataSymbol(symbol: string): string {
     // Commodities
     const commodityMapping: Record<string, string> = {
-      'XAUUSD': 'XAU/USD',   // Gold
-      'XAGUSD': 'XAG/USD',   // Silver
-      'XTIUSD': 'WTI/USD',   // Oil WTI
-      'XBRUSD': 'BRENT/USD', // Brent Oil
+      XAUUSD: 'XAU/USD', // Gold
+      XAGUSD: 'XAG/USD', // Silver
+      XTIUSD: 'WTI/USD', // Oil WTI
+      XBRUSD: 'BRENT/USD', // Brent Oil
     };
-    
+
     if (commodityMapping[symbol]) {
       return commodityMapping[symbol];
     }
@@ -202,7 +219,7 @@ export class MarketDataProviderService {
    */
   private generateFallbackData(symbol: string, limit: number): Candle[] {
     this.logger.warn(`Generating fallback data for ${symbol}`);
-    
+
     const basePrice = this.getBasePrice(symbol);
     const data: Candle[] = [];
     let currentPrice = basePrice;
@@ -213,7 +230,7 @@ export class MarketDataProviderService {
       const close = currentPrice + change;
       const high = Math.max(open, close) + Math.random() * (basePrice * 0.001);
       const low = Math.min(open, close) - Math.random() * (basePrice * 0.001);
-      
+
       data.push({
         timestamp: new Date(Date.now() - (limit - i) * 3600000), // Hourly candles
         open,
@@ -246,16 +263,31 @@ export class MarketDataProviderService {
   }
 
   private isCommodity(symbol: string): boolean {
-    const commodities = ['XAUUSD', 'XAGUSD', 'XTIUSD', 'XBRUSD', 'XPTUSD', 'XPDUSD'];
-    return commodities.some(comm => symbol.includes(comm));
+    const commodities = [
+      'XAUUSD',
+      'XAGUSD',
+      'XTIUSD',
+      'XBRUSD',
+      'XPTUSD',
+      'XPDUSD',
+    ];
+    return commodities.some((comm) => symbol.includes(comm));
   }
 
   private isForex(symbol: string): boolean {
     const forexPairs = [
-      'EURUSD', 'GBPUSD', 'USDJPY', 'AUDUSD', 'USDCAD', 'USDCHF', 
-      'NZDUSD', 'EURGBP', 'EURJPY', 'GBPJPY'
+      'EURUSD',
+      'GBPUSD',
+      'USDJPY',
+      'AUDUSD',
+      'USDCAD',
+      'USDCHF',
+      'NZDUSD',
+      'EURGBP',
+      'EURJPY',
+      'GBPJPY',
     ];
-    return forexPairs.some(pair => symbol.includes(pair));
+    return forexPairs.some((pair) => symbol.includes(pair));
   }
 
   private toTwelveDataInterval(timeframe: string): string {
@@ -280,19 +312,19 @@ export class MarketDataProviderService {
    */
   private getBasePrice(symbol: string): number {
     const prices: Record<string, number> = {
-      'EURUSD': 1.0420,
-      'GBPUSD': 1.2550,
-      'USDJPY': 157.50,
-      'AUDUSD': 0.6220,
-      'USDCAD': 1.4380,
-      'USDCHF': 0.9050,
-      'NZDUSD': 0.5620,
-      'XAUUSD': 2630.00,   // Gold - Updated Dec 2024
-      'XAGUSD': 29.50,      // Silver
-      'BTCUSD': 94500.00,   // Bitcoin - Updated Dec 2024
-      'ETHUSD': 3350.00,    // Ethereum
-      'SPX500': 5880.00,
-      'NASDAQ100': 21200.00,
+      EURUSD: 1.042,
+      GBPUSD: 1.255,
+      USDJPY: 157.5,
+      AUDUSD: 0.622,
+      USDCAD: 1.438,
+      USDCHF: 0.905,
+      NZDUSD: 0.562,
+      XAUUSD: 2630.0, // Gold - Updated Dec 2024
+      XAGUSD: 29.5, // Silver
+      BTCUSD: 94500.0, // Bitcoin - Updated Dec 2024
+      ETHUSD: 3350.0, // Ethereum
+      SPX500: 5880.0,
+      NASDAQ100: 21200.0,
     };
     return prices[symbol] || 100.0;
   }

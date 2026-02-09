@@ -57,8 +57,10 @@ export class KnowledgeBaseService {
         chunkOverlap: 200,
       });
       const chunks = await splitter.createDocuments([content]);
-      
-      this.logger.log(`Split into ${chunks.length} chunks. Generating embeddings...`);
+
+      this.logger.log(
+        `Split into ${chunks.length} chunks. Generating embeddings...`,
+      );
 
       // 3. Generate Embeddings & Save
       const embeddingEntities: VectorEmbedding[] = [];
@@ -76,7 +78,7 @@ export class KnowledgeBaseService {
               metadata: { loc: chunk.metadata.loc },
             });
             embeddingEntities.push(entity);
-          })
+          }),
         );
       }
 
@@ -87,7 +89,9 @@ export class KnowledgeBaseService {
       doc.chunkCount = chunks.length;
       await this.docRepo.save(doc);
 
-      this.logger.log(`Document "${title}" ready with ${chunks.length} vectors.`);
+      this.logger.log(
+        `Document "${title}" ready with ${chunks.length} vectors.`,
+      );
       return doc;
     } catch (error) {
       this.logger.error(`Ingestion failed for "${title}": ${error.message}`);
@@ -117,7 +121,7 @@ export class KnowledgeBaseService {
     // Fallback to raw query if Builder issues arise, but this is standard pattern
     return results;
   }
-  
+
   /**
    * Generate embedding for a single string with retry
    */
@@ -126,19 +130,19 @@ export class KnowledgeBaseService {
     let lastError;
 
     for (let i = 0; i < maxRetries; i++) {
-        try {
-            const result = await this.embeddingModel.embedContent(text);
-            return result.embedding.values;
-        } catch (error) {
-            lastError = error;
-            if (error.message.includes('429')) {
-                const waitTime = 1000 * Math.pow(2, i); // 1s, 2s, 4s
-                this.logger.warn(`Embedding 429, retrying in ${waitTime}ms...`);
-                await new Promise(r => setTimeout(r, waitTime));
-                continue;
-            }
-            throw error; // Rethrow non-429s immediately
+      try {
+        const result = await this.embeddingModel.embedContent(text);
+        return result.embedding.values;
+      } catch (error) {
+        lastError = error;
+        if (error.message.includes('429')) {
+          const waitTime = 1000 * Math.pow(2, i); // 1s, 2s, 4s
+          this.logger.warn(`Embedding 429, retrying in ${waitTime}ms...`);
+          await new Promise((r) => setTimeout(r, waitTime));
+          continue;
         }
+        throw error; // Rethrow non-429s immediately
+      }
     }
     throw lastError;
   }

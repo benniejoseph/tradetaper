@@ -13,10 +13,10 @@ import { v4 as uuidv4 } from 'uuid';
 
 /**
  * Consensus Orchestrator Service
- * 
+ *
  * Coordinates multi-agent consensus for trading decisions.
  * Implements voting mechanisms to ensure high-confidence predictions.
- * 
+ *
  * Features:
  * - Multi-agent voting (majority, weighted, unanimous)
  * - Confidence-based filtering
@@ -38,28 +38,28 @@ export class ConsensusOrchestratorService {
    */
   async reachConsensus(request: ConsensusRequest): Promise<ConsensusResponse> {
     const startTime = Date.now();
-    
+
     this.logger.log(
-      `Reaching consensus on: ${request.question} (strategy: ${request.votingStrategy})`
+      `Reaching consensus on: ${request.question} (strategy: ${request.votingStrategy})`,
     );
-    
+
     // 1. Create tasks for each participating agent
     const tasks = this.createTasksForAgents(request);
-    
+
     // 2. Execute tasks and collect votes
     const votes = await this.collectVotes(tasks, request.timeout);
-    
+
     // 3. Calculate consensus based on voting strategy
     const consensus = this.calculateConsensus(votes, request);
-    
+
     const duration = Date.now() - startTime;
-    
+
     this.logger.log(
       `Consensus reached: ${JSON.stringify(consensus.decision)} ` +
-      `(confidence: ${consensus.confidence.toFixed(2)}, agreement: ${(consensus.agreement * 100).toFixed(1)}%, ` +
-      `duration: ${duration}ms)`
+        `(confidence: ${consensus.confidence.toFixed(2)}, agreement: ${(consensus.agreement * 100).toFixed(1)}%, ` +
+        `duration: ${duration}ms)`,
     );
-    
+
     return {
       ...consensus,
       metadata: {
@@ -74,20 +74,20 @@ export class ConsensusOrchestratorService {
    */
   private createTasksForAgents(request: ConsensusRequest): Task[] {
     const tasks: Task[] = [];
-    
+
     for (const agentName of request.participants) {
       const agent = this.agentRegistry.getAgent(agentName);
-      
+
       if (!agent) {
         this.logger.warn(`Agent ${agentName} not found, skipping`);
         continue;
       }
-      
+
       if (!agent.canAcceptTask()) {
         this.logger.warn(`Agent ${agentName} cannot accept task, skipping`);
         continue;
       }
-      
+
       const task: Task = {
         id: uuidv4(),
         type: 'consensus-vote',
@@ -101,10 +101,10 @@ export class ConsensusOrchestratorService {
         assignedAgent: agentName,
         createdAt: new Date(),
       };
-      
+
       tasks.push(task);
     }
-    
+
     return tasks;
   }
 
@@ -114,26 +114,28 @@ export class ConsensusOrchestratorService {
   private async collectVotes(
     tasks: Task[],
     timeout: number,
-  ): Promise<Array<{
-    agent: string;
-    vote: any;
-    confidence: number;
-    reasoning: string;
-  }>> {
+  ): Promise<
+    Array<{
+      agent: string;
+      vote: any;
+      confidence: number;
+      reasoning: string;
+    }>
+  > {
     const votes: any[] = [];
-    
+
     // Execute tasks in parallel with timeout
     const votePromises = tasks.map(async (task) => {
       try {
         const agent = this.agentRegistry.getAgent(task.assignedAgent || '');
-        
+
         if (!agent) {
           return null;
         }
-        
+
         await agent.assignTask(task);
         const response = await agent.execute(task);
-        
+
         if (response.success && response.data) {
           return {
             agent: task.assignedAgent,
@@ -142,34 +144,34 @@ export class ConsensusOrchestratorService {
             reasoning: response.data.reasoning || 'No reasoning provided',
           };
         }
-        
+
         return null;
       } catch (error) {
         this.logger.error(
-          `Agent ${task.assignedAgent} vote failed: ${error.message}`
+          `Agent ${task.assignedAgent} vote failed: ${error.message}`,
         );
         return null;
       }
     });
-    
+
     // Wait for all votes with timeout
-    const results = await Promise.race([
+    const results = (await Promise.race([
       Promise.allSettled(votePromises),
       new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Consensus timeout')), timeout)
+        setTimeout(() => reject(new Error('Consensus timeout')), timeout),
       ),
-    ]) as PromiseSettledResult<any>[];
-    
+    ])) as PromiseSettledResult<any>[];
+
     for (const result of results) {
       if (result.status === 'fulfilled' && result.value) {
         votes.push(result.value);
       }
     }
-    
+
     if (votes.length === 0) {
       throw new Error('No votes collected from agents');
     }
-    
+
     return votes;
   }
 
@@ -192,7 +194,7 @@ export class ConsensusOrchestratorService {
     } else if (request.votingStrategy === 'unanimous') {
       return this.unanimousVoting(votes, request.requiredConfidence);
     }
-    
+
     // Default to weighted voting
     return this.weightedVoting(votes, request.requiredConfidence);
   }
@@ -207,36 +209,36 @@ export class ConsensusOrchestratorService {
     // Count votes for each decision
     const voteCounts = new Map<string, number>();
     const voteDetails = new Map<string, any[]>();
-    
+
     for (const vote of votes) {
       const decision = JSON.stringify(vote.vote);
       voteCounts.set(decision, (voteCounts.get(decision) || 0) + 1);
-      
+
       if (!voteDetails.has(decision)) {
         voteDetails.set(decision, []);
       }
       voteDetails.get(decision)?.push(vote);
     }
-    
+
     // Find majority
     let majority: string | null = null;
     let maxCount = 0;
-    
+
     for (const [decision, count] of voteCounts.entries()) {
       if (count > maxCount) {
         maxCount = count;
         majority = decision;
       }
     }
-    
+
     const agreement = maxCount / votes.length;
     const majorityVotes = voteDetails.get(majority || '') || [];
-    
+
     // Calculate average confidence
     const avgConfidence =
       majorityVotes.reduce((sum, v) => sum + v.confidence, 0) /
       majorityVotes.length;
-    
+
     return {
       decision: JSON.parse(majority || '{}'),
       confidence: avgConfidence,
@@ -258,7 +260,7 @@ export class ConsensusOrchestratorService {
   ): ConsensusResponse {
     // Group votes by decision
     const votesByDecision = new Map<string, any[]>();
-    
+
     for (const vote of votes) {
       const decision = JSON.stringify(vote.vote);
       if (!votesByDecision.has(decision)) {
@@ -266,35 +268,32 @@ export class ConsensusOrchestratorService {
       }
       votesByDecision.get(decision)?.push(vote);
     }
-    
+
     // Calculate weighted score for each decision
     const scores = new Map<string, number>();
     const totalWeight = votes.reduce((sum, v) => sum + v.confidence, 0);
-    
+
     for (const [decision, decisionVotes] of votesByDecision.entries()) {
-      const weight = decisionVotes.reduce(
-        (sum, v) => sum + v.confidence,
-        0
-      );
+      const weight = decisionVotes.reduce((sum, v) => sum + v.confidence, 0);
       scores.set(decision, weight / totalWeight);
     }
-    
+
     // Find highest scored decision
     let bestDecision: string | null = null;
     let bestScore = 0;
-    
+
     for (const [decision, score] of scores.entries()) {
       if (score > bestScore) {
         bestScore = score;
         bestDecision = decision;
       }
     }
-    
+
     const winningVotes = votesByDecision.get(bestDecision || '') || [];
     const avgConfidence =
       winningVotes.reduce((sum, v) => sum + v.confidence, 0) /
       winningVotes.length;
-    
+
     return {
       decision: JSON.parse(bestDecision || '{}'),
       confidence: avgConfidence,
@@ -316,13 +315,11 @@ export class ConsensusOrchestratorService {
   ): ConsensusResponse {
     // Check if all votes are the same
     const firstVote = JSON.stringify(votes[0].vote);
-    const allAgree = votes.every(
-      v => JSON.stringify(v.vote) === firstVote
-    );
-    
+    const allAgree = votes.every((v) => JSON.stringify(v.vote) === firstVote);
+
     const avgConfidence =
       votes.reduce((sum, v) => sum + v.confidence, 0) / votes.length;
-    
+
     if (allAgree && avgConfidence >= requiredConfidence) {
       return {
         decision: votes[0].vote,
@@ -366,12 +363,12 @@ export class ConsensusOrchestratorService {
     // Get all agents capable of making trading predictions
     const predictionAgents = this.agentRegistry
       .getAgentsByCapability('trade-prediction')
-      .map(a => a.getName());
-    
+      .map((a) => a.getName());
+
     if (predictionAgents.length === 0) {
       throw new Error('No prediction agents available');
     }
-    
+
     const consensusRequest: ConsensusRequest = {
       question: `What is the trading prediction for ${symbol}?`,
       context,
@@ -380,9 +377,9 @@ export class ConsensusOrchestratorService {
       participants: predictionAgents,
       timeout: options.timeout || 30000,
     };
-    
+
     const consensus = await this.reachConsensus(consensusRequest);
-    
+
     // Convert consensus to trade prediction
     const prediction: TradePrediction = {
       symbol,
@@ -395,7 +392,7 @@ export class ConsensusOrchestratorService {
         executionTime: consensus.metadata.duration,
       },
     };
-    
+
     return {
       prediction,
       consensus,
@@ -413,7 +410,7 @@ export class ConsensusOrchestratorService {
       reasoning: string;
     }>,
   ): string {
-    const reasonings = votes.map(v => `${v.agent}: ${v.reasoning}`);
+    const reasonings = votes.map((v) => `${v.agent}: ${v.reasoning}`);
     return `Multi-agent consensus:\n${reasonings.join('\n')}`;
   }
 
@@ -432,4 +429,3 @@ export class ConsensusOrchestratorService {
     }
   }
 }
-

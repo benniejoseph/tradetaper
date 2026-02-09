@@ -10,13 +10,13 @@ import { EventBusService } from '../event-bus.service';
 
 /**
  * Risk Manager Agent
- * 
+ *
  * NEW agent providing comprehensive trading risk management:
  * - Position sizing calculations
  * - Portfolio risk analysis
  * - Drawdown monitoring
  * - Risk/reward assessment
- * 
+ *
  * Capabilities:
  * - risk-calculation: Calculate position sizes and risk metrics
  * - portfolio-risk: Analyze overall portfolio risk
@@ -27,66 +27,87 @@ export class RiskManagerAgent extends BaseAgent {
   readonly agentId = 'risk-manager-agent';
   readonly name = 'Risk Manager Agent';
   readonly priority = 25; // High priority - risk is critical
-  
+
   readonly capabilities: AgentCapability[] = [
     {
       id: 'risk-calculation',
-      description: 'Calculate optimal position sizes based on account risk parameters',
-      keywords: ['position', 'size', 'lot', 'units', 'risk', 'percentage', 'calculate'],
+      description:
+        'Calculate optimal position sizes based on account risk parameters',
+      keywords: [
+        'position',
+        'size',
+        'lot',
+        'units',
+        'risk',
+        'percentage',
+        'calculate',
+      ],
     },
     {
       id: 'portfolio-risk',
       description: 'Analyze overall portfolio risk, correlation, and exposure',
-      keywords: ['portfolio', 'exposure', 'correlation', 'drawdown', 'diversification'],
+      keywords: [
+        'portfolio',
+        'exposure',
+        'correlation',
+        'drawdown',
+        'diversification',
+      ],
     },
     {
       id: 'trade-assessment',
       description: 'Assess risk/reward ratio and viability of proposed trades',
-      keywords: ['assessment', 'risk-reward', 'ratio', 'viability', 'stop-loss', 'take-profit'],
+      keywords: [
+        'assessment',
+        'risk-reward',
+        'ratio',
+        'viability',
+        'stop-loss',
+        'take-profit',
+      ],
     },
   ];
-  
+
   // Risk parameters (could be made configurable per user)
   private readonly DEFAULT_RISK_PERCENT = 1; // 1% per trade
   private readonly MAX_RISK_PERCENT = 5; // Maximum 5% per trade
   private readonly MAX_PORTFOLIO_RISK = 10; // Maximum 10% total portfolio risk
   private readonly MIN_RISK_REWARD_RATIO = 1.5; // Minimum 1:1.5 R:R
-  
-  constructor(
-    registry: AgentRegistryService,
-    eventBus: EventBusService,
-  ) {
+
+  constructor(registry: AgentRegistryService, eventBus: EventBusService) {
     super(registry, eventBus);
   }
-  
+
   /**
    * Process incoming messages
    */
-  protected async processMessage(message: AgentMessage): Promise<AgentResponse> {
+  protected async processMessage(
+    message: AgentMessage,
+  ): Promise<AgentResponse> {
     const { payload, context } = message;
-    
+
     switch (payload.action) {
       case 'calculate-position':
         return this.calculatePositionSize(payload, context);
-      
+
       case 'assess-trade':
         return this.assessTradeRisk(payload, context);
-      
+
       case 'portfolio-analysis':
         return this.analyzePortfolioRisk(payload, context);
-      
+
       case 'check-drawdown':
         return this.checkDrawdown(payload, context);
-      
+
       case 'get-risk-rules':
         return this.getRiskRules(context);
-      
+
       default:
         // Default: if we have trade parameters, assess the trade
         if (payload.entryPrice && payload.stopLoss) {
           return this.assessTradeRisk(payload, context);
         }
-        
+
         return {
           success: false,
           error: {
@@ -96,7 +117,7 @@ export class RiskManagerAgent extends BaseAgent {
         };
     }
   }
-  
+
   /**
    * Calculate optimal position size
    */
@@ -113,24 +134,28 @@ export class RiskManagerAgent extends BaseAgent {
   ): Promise<AgentResponse> {
     try {
       const { accountBalance, entryPrice, stopLoss, symbol = 'UNKNOWN' } = data;
-      const riskPercent = Math.min(data.riskPercent || this.DEFAULT_RISK_PERCENT, this.MAX_RISK_PERCENT);
-      
+      const riskPercent = Math.min(
+        data.riskPercent || this.DEFAULT_RISK_PERCENT,
+        this.MAX_RISK_PERCENT,
+      );
+
       // Calculate risk amount in account currency
       const riskAmount = accountBalance * (riskPercent / 100);
-      
+
       // Calculate stop loss distance
       const stopDistance = Math.abs(entryPrice - stopLoss);
       const stopDistancePercent = (stopDistance / entryPrice) * 100;
-      
+
       // Calculate position size
-      const pipValue = data.pipValue || this.estimatePipValue(symbol, entryPrice);
+      const pipValue =
+        data.pipValue || this.estimatePipValue(symbol, entryPrice);
       const positionSize = riskAmount / stopDistance;
-      
+
       // Calculate lots for forex (standard lot = 100,000 units)
       const standardLots = positionSize / 100000;
       const miniLots = positionSize / 10000;
       const microLots = positionSize / 1000;
-      
+
       const calculation = {
         symbol,
         accountBalance,
@@ -146,17 +171,24 @@ export class RiskManagerAgent extends BaseAgent {
           mini: parseFloat(miniLots.toFixed(2)),
           micro: parseFloat(microLots.toFixed(2)),
         },
-        recommendation: this.getPositionRecommendation(riskPercent, stopDistancePercent),
+        recommendation: this.getPositionRecommendation(
+          riskPercent,
+          stopDistancePercent,
+        ),
       };
-      
+
       // Share with other agents
-      this.emit('event', {
-        type: 'position-calculated',
-        symbol,
-        riskAmount,
-        positionSize: calculation.positionSize,
-      }, context);
-      
+      this.emit(
+        'event',
+        {
+          type: 'position-calculated',
+          symbol,
+          riskAmount,
+          positionSize: calculation.positionSize,
+        },
+        context,
+      );
+
       return {
         success: true,
         data: calculation,
@@ -166,12 +198,15 @@ export class RiskManagerAgent extends BaseAgent {
         success: false,
         error: {
           code: 'CALCULATION_FAILED',
-          message: error instanceof Error ? error.message : 'Position calculation failed',
+          message:
+            error instanceof Error
+              ? error.message
+              : 'Position calculation failed',
         },
       };
     }
   }
-  
+
   /**
    * Assess trade risk/reward
    */
@@ -189,33 +224,42 @@ export class RiskManagerAgent extends BaseAgent {
   ): Promise<AgentResponse> {
     try {
       const { entryPrice, stopLoss, takeProfit, symbol = 'UNKNOWN' } = data;
-      const direction = data.direction || (entryPrice > stopLoss ? 'buy' : 'sell');
-      
+      const direction =
+        data.direction || (entryPrice > stopLoss ? 'buy' : 'sell');
+
       // Calculate risk metrics
       const riskDistance = Math.abs(entryPrice - stopLoss);
       const riskPercent = (riskDistance / entryPrice) * 100;
-      
+
       let rewardDistance = 0;
       let riskRewardRatio = 0;
-      
+
       if (takeProfit) {
         rewardDistance = Math.abs(takeProfit - entryPrice);
         riskRewardRatio = rewardDistance / riskDistance;
       }
-      
+
       // Assess trade viability
-      const assessment = this.assessViability(riskPercent, riskRewardRatio, data.existingRisk);
-      
+      const assessment = this.assessViability(
+        riskPercent,
+        riskRewardRatio,
+        data.existingRisk,
+      );
+
       // Emit alert if trade is high risk
       if (assessment.verdict === 'reject' || assessment.verdict === 'caution') {
-        this.emitAlert({
-          type: 'trade-risk-warning',
-          message: `Trade on ${symbol} flagged: ${assessment.verdict}`,
-          reasons: assessment.warnings,
-          symbol,
-        }, context, assessment.verdict === 'reject' ? 'critical' : 'high');
+        this.emitAlert(
+          {
+            type: 'trade-risk-warning',
+            message: `Trade on ${symbol} flagged: ${assessment.verdict}`,
+            reasons: assessment.warnings,
+            symbol,
+          },
+          context,
+          assessment.verdict === 'reject' ? 'critical' : 'high',
+        );
       }
-      
+
       const result = {
         symbol,
         direction,
@@ -225,30 +269,42 @@ export class RiskManagerAgent extends BaseAgent {
         metrics: {
           riskDistance: parseFloat(riskDistance.toFixed(5)),
           riskPercent: parseFloat(riskPercent.toFixed(2)),
-          rewardDistance: takeProfit ? parseFloat(rewardDistance.toFixed(5)) : null,
-          riskRewardRatio: takeProfit ? parseFloat(riskRewardRatio.toFixed(2)) : null,
+          rewardDistance: takeProfit
+            ? parseFloat(rewardDistance.toFixed(5))
+            : null,
+          riskRewardRatio: takeProfit
+            ? parseFloat(riskRewardRatio.toFixed(2))
+            : null,
         },
         assessment,
-        suggestions: this.generateSuggestions(entryPrice, stopLoss, takeProfit, riskRewardRatio),
+        suggestions: this.generateSuggestions(
+          entryPrice,
+          stopLoss,
+          takeProfit,
+          riskRewardRatio,
+        ),
       };
-      
+
       return {
         success: true,
         data: result,
         // Share assessment with shared state
-        forwardTo: context.sharedState?.lastMarketPrediction ? undefined : undefined,
+        forwardTo: context.sharedState?.lastMarketPrediction
+          ? undefined
+          : undefined,
       };
     } catch (error) {
       return {
         success: false,
         error: {
           code: 'ASSESSMENT_FAILED',
-          message: error instanceof Error ? error.message : 'Trade assessment failed',
+          message:
+            error instanceof Error ? error.message : 'Trade assessment failed',
         },
       };
     }
   }
-  
+
   /**
    * Analyze portfolio risk exposure
    */
@@ -268,7 +324,7 @@ export class RiskManagerAgent extends BaseAgent {
   ): Promise<AgentResponse> {
     try {
       const { openTrades, accountBalance } = data;
-      
+
       if (!openTrades || openTrades.length === 0) {
         return {
           success: true,
@@ -280,19 +336,22 @@ export class RiskManagerAgent extends BaseAgent {
           },
         };
       }
-      
+
       // Calculate total risk exposure
       let totalRiskAmount = 0;
       let totalUnrealizedPnL = 0;
       const tradeRisks: any[] = [];
-      
+
       for (const trade of openTrades) {
-        const unrealizedPnL = (trade.currentPrice - trade.entryPrice) * trade.size * 
+        const unrealizedPnL =
+          (trade.currentPrice - trade.entryPrice) *
+          trade.size *
           (trade.direction === 'buy' ? 1 : -1);
         totalUnrealizedPnL += unrealizedPnL;
-        
+
         if (trade.stopLoss) {
-          const riskAmount = Math.abs(trade.entryPrice - trade.stopLoss) * trade.size;
+          const riskAmount =
+            Math.abs(trade.entryPrice - trade.stopLoss) * trade.size;
           totalRiskAmount += riskAmount;
           tradeRisks.push({
             symbol: trade.symbol,
@@ -302,10 +361,10 @@ export class RiskManagerAgent extends BaseAgent {
           });
         }
       }
-      
+
       const totalRiskPercent = (totalRiskAmount / accountBalance) * 100;
       const unrealizedPnLPercent = (totalUnrealizedPnL / accountBalance) * 100;
-      
+
       // Determine risk status
       let status: 'safe' | 'moderate' | 'high' | 'critical' = 'safe';
       if (totalRiskPercent >= this.MAX_PORTFOLIO_RISK) {
@@ -315,17 +374,21 @@ export class RiskManagerAgent extends BaseAgent {
       } else if (totalRiskPercent >= this.MAX_PORTFOLIO_RISK * 0.4) {
         status = 'moderate';
       }
-      
+
       // Emit alert if portfolio risk is too high
       if (status === 'critical' || status === 'high') {
-        this.emitAlert({
-          type: 'portfolio-risk-alert',
-          message: `Portfolio risk at ${totalRiskPercent.toFixed(1)}% - ${status}`,
-          totalRiskPercent,
-          status,
-        }, context, status === 'critical' ? 'critical' : 'high');
+        this.emitAlert(
+          {
+            type: 'portfolio-risk-alert',
+            message: `Portfolio risk at ${totalRiskPercent.toFixed(1)}% - ${status}`,
+            totalRiskPercent,
+            status,
+          },
+          context,
+          status === 'critical' ? 'critical' : 'high',
+        );
       }
-      
+
       return {
         success: true,
         data: {
@@ -338,7 +401,10 @@ export class RiskManagerAgent extends BaseAgent {
           },
           status,
           tradeRisks,
-          recommendations: this.getPortfolioRecommendations(status, totalRiskPercent),
+          recommendations: this.getPortfolioRecommendations(
+            status,
+            totalRiskPercent,
+          ),
           sharedState: {
             portfolioRisk: {
               totalRiskPercent,
@@ -353,12 +419,15 @@ export class RiskManagerAgent extends BaseAgent {
         success: false,
         error: {
           code: 'PORTFOLIO_ANALYSIS_FAILED',
-          message: error instanceof Error ? error.message : 'Portfolio analysis failed',
+          message:
+            error instanceof Error
+              ? error.message
+              : 'Portfolio analysis failed',
         },
       };
     }
   }
-  
+
   /**
    * Check account drawdown
    */
@@ -371,46 +440,58 @@ export class RiskManagerAgent extends BaseAgent {
     context: AgentMessage['context'],
   ): Promise<AgentResponse> {
     const { currentBalance, peakBalance, initialBalance } = data;
-    
+
     // Calculate drawdowns
-    const drawdownFromPeak = ((peakBalance - currentBalance) / peakBalance) * 100;
-    const drawdownFromInitial = initialBalance 
-      ? ((initialBalance - currentBalance) / initialBalance) * 100 
+    const drawdownFromPeak =
+      ((peakBalance - currentBalance) / peakBalance) * 100;
+    const drawdownFromInitial = initialBalance
+      ? ((initialBalance - currentBalance) / initialBalance) * 100
       : null;
-    
+
     // Determine severity
     let severity: 'normal' | 'warning' | 'danger' | 'critical' = 'normal';
     if (drawdownFromPeak >= 20) severity = 'critical';
     else if (drawdownFromPeak >= 10) severity = 'danger';
     else if (drawdownFromPeak >= 5) severity = 'warning';
-    
+
     // Emit alert for significant drawdown
     if (severity === 'danger' || severity === 'critical') {
-      this.emitAlert({
-        type: 'drawdown-alert',
-        message: `Account drawdown at ${drawdownFromPeak.toFixed(1)}%`,
-        drawdownFromPeak,
-        severity,
-      }, context, severity === 'critical' ? 'critical' : 'high');
+      this.emitAlert(
+        {
+          type: 'drawdown-alert',
+          message: `Account drawdown at ${drawdownFromPeak.toFixed(1)}%`,
+          drawdownFromPeak,
+          severity,
+        },
+        context,
+        severity === 'critical' ? 'critical' : 'high',
+      );
     }
-    
+
     return {
       success: true,
       data: {
         currentBalance,
         peakBalance,
         drawdownFromPeak: parseFloat(drawdownFromPeak.toFixed(2)),
-        drawdownFromInitial: drawdownFromInitial ? parseFloat(drawdownFromInitial.toFixed(2)) : null,
+        drawdownFromInitial: drawdownFromInitial
+          ? parseFloat(drawdownFromInitial.toFixed(2))
+          : null,
         severity,
-        recommendations: this.getDrawdownRecommendations(severity, drawdownFromPeak),
+        recommendations: this.getDrawdownRecommendations(
+          severity,
+          drawdownFromPeak,
+        ),
       },
     };
   }
-  
+
   /**
    * Get trading risk rules
    */
-  private async getRiskRules(context: AgentMessage['context']): Promise<AgentResponse> {
+  private async getRiskRules(
+    context: AgentMessage['context'],
+  ): Promise<AgentResponse> {
     return {
       success: true,
       data: {
@@ -430,17 +511,20 @@ export class RiskManagerAgent extends BaseAgent {
       },
     };
   }
-  
+
   // === Helper Methods ===
-  
+
   private estimatePipValue(symbol: string, price: number): number {
     // Simplified pip value estimation
     if (symbol.includes('JPY')) return 0.01;
     if (symbol === 'XAUUSD') return 0.01;
     return 0.0001;
   }
-  
-  private getPositionRecommendation(riskPercent: number, stopDistancePercent: number): string {
+
+  private getPositionRecommendation(
+    riskPercent: number,
+    stopDistancePercent: number,
+  ): string {
     if (riskPercent > 3) {
       return 'Risk is HIGH - consider reducing risk percentage';
     }
@@ -452,7 +536,7 @@ export class RiskManagerAgent extends BaseAgent {
     }
     return 'Position size within acceptable parameters';
   }
-  
+
   private assessViability(
     riskPercent: number,
     riskRewardRatio: number,
@@ -464,7 +548,7 @@ export class RiskManagerAgent extends BaseAgent {
   } {
     const warnings: string[] = [];
     let score = 100;
-    
+
     // Check risk percent
     if (riskPercent > 5) {
       warnings.push('Stop loss too wide - risk exceeds 5%');
@@ -473,7 +557,7 @@ export class RiskManagerAgent extends BaseAgent {
       warnings.push('Consider tighter stop loss');
       score -= 15;
     }
-    
+
     // Check R:R ratio
     if (riskRewardRatio > 0) {
       if (riskRewardRatio < 1) {
@@ -484,20 +568,20 @@ export class RiskManagerAgent extends BaseAgent {
         score -= 20;
       }
     }
-    
+
     // Check portfolio exposure
     if (existingRisk && existingRisk > this.MAX_PORTFOLIO_RISK * 0.6) {
       warnings.push('Adding to already elevated portfolio risk');
       score -= 25;
     }
-    
+
     let verdict: 'approve' | 'caution' | 'reject' = 'approve';
     if (score < 50) verdict = 'reject';
     else if (score < 75) verdict = 'caution';
-    
+
     return { verdict, score, warnings };
   }
-  
+
   private generateSuggestions(
     entry: number,
     sl: number,
@@ -506,20 +590,31 @@ export class RiskManagerAgent extends BaseAgent {
   ): string[] {
     const suggestions: string[] = [];
     const riskDistance = Math.abs(entry - sl);
-    
+
     if (!tp) {
       // Suggest take profit levels
-      suggestions.push(`Suggested TP (1.5 R:R): ${(entry + riskDistance * 1.5 * (entry > sl ? 1 : -1)).toFixed(5)}`);
-      suggestions.push(`Suggested TP (2.0 R:R): ${(entry + riskDistance * 2.0 * (entry > sl ? 1 : -1)).toFixed(5)}`);
+      suggestions.push(
+        `Suggested TP (1.5 R:R): ${(entry + riskDistance * 1.5 * (entry > sl ? 1 : -1)).toFixed(5)}`,
+      );
+      suggestions.push(
+        `Suggested TP (2.0 R:R): ${(entry + riskDistance * 2.0 * (entry > sl ? 1 : -1)).toFixed(5)}`,
+      );
     } else if (rrRatio < this.MIN_RISK_REWARD_RATIO) {
-      const betterTP = entry + riskDistance * this.MIN_RISK_REWARD_RATIO * (entry > sl ? 1 : -1);
-      suggestions.push(`Consider TP at ${betterTP.toFixed(5)} for ${this.MIN_RISK_REWARD_RATIO} R:R`);
+      const betterTP =
+        entry +
+        riskDistance * this.MIN_RISK_REWARD_RATIO * (entry > sl ? 1 : -1);
+      suggestions.push(
+        `Consider TP at ${betterTP.toFixed(5)} for ${this.MIN_RISK_REWARD_RATIO} R:R`,
+      );
     }
-    
+
     return suggestions;
   }
-  
-  private getPortfolioRecommendations(status: string, riskPercent: number): string[] {
+
+  private getPortfolioRecommendations(
+    status: string,
+    riskPercent: number,
+  ): string[] {
     switch (status) {
       case 'critical':
         return [
@@ -534,16 +629,16 @@ export class RiskManagerAgent extends BaseAgent {
           'Tighten stops on profitable trades',
         ];
       case 'moderate':
-        return [
-          'Monitor positions closely',
-          'Be selective with new trades',
-        ];
+        return ['Monitor positions closely', 'Be selective with new trades'];
       default:
         return ['Portfolio risk within acceptable limits'];
     }
   }
-  
-  private getDrawdownRecommendations(severity: string, drawdown: number): string[] {
+
+  private getDrawdownRecommendations(
+    severity: string,
+    drawdown: number,
+  ): string[] {
     switch (severity) {
       case 'critical':
         return [
@@ -566,7 +661,7 @@ export class RiskManagerAgent extends BaseAgent {
         return ['Drawdown within normal parameters'];
     }
   }
-  
+
   /**
    * React to events from other agents
    */
@@ -575,10 +670,12 @@ export class RiskManagerAgent extends BaseAgent {
     if (message.payload?.type === 'trade-opened') {
       this.logger.debug(`Trade opened - could validate against risk rules`);
     }
-    
+
     // React to market predictions
     if (message.payload?.type === 'market-prediction-generated') {
-      this.logger.debug(`Market prediction received for ${message.payload.symbol}`);
+      this.logger.debug(
+        `Market prediction received for ${message.payload.symbol}`,
+      );
     }
   }
 }

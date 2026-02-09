@@ -20,4 +20,4 @@ export class CreatePredictionDto {
   @IsNumber()
   @IsOptional()
   expectedDurationHours?: number;
-} 
+}

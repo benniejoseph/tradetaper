@@ -14,7 +14,10 @@ import { StrategiesService } from './strategies.service';
 import { CreateStrategyDto } from './dto/create-strategy.dto';
 import { UpdateStrategyDto } from './dto/update-strategy.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { UsageLimitGuard, UsageFeature } from '../subscriptions/guards/usage-limit.guard';
+import {
+  UsageLimitGuard,
+  UsageFeature,
+} from '../subscriptions/guards/usage-limit.guard';
 
 @Controller('strategies')
 @UseGuards(JwtAuthGuard)

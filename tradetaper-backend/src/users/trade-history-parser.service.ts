@@ -248,7 +248,7 @@ export class TradeHistoryParserService {
   }> {
     const workbook = new ExcelJS.Workbook();
     await workbook.xlsx.load(buffer);
-    
+
     const trades: ParsedTradeData[] = [];
     let accountBalance: number | undefined;
     let accountCurrency: string | undefined;
@@ -259,7 +259,7 @@ export class TradeHistoryParserService {
     for (const worksheet of workbook.worksheets) {
       const sheetName = worksheet.name;
       const sheetData: any[][] = [];
-      
+
       // Convert worksheet to 2D array format (similar to xlsx sheet_to_json with header: 1)
       worksheet.eachRow({ includeEmpty: false }, (row, rowNumber) => {
         const rowData: any[] = [];
@@ -270,7 +270,10 @@ export class TradeHistoryParserService {
             // Handle rich text, formulas, etc.
             if ('result' in value) value = value.result;
             else if ('text' in value) value = value.text;
-            else if ('richText' in value) value = (value as any).richText.map((rt: any) => rt.text).join('');
+            else if ('richText' in value)
+              value = (value as any).richText
+                .map((rt: any) => rt.text)
+                .join('');
           }
           rowData[colNumber - 1] = value;
         });
@@ -279,10 +282,13 @@ export class TradeHistoryParserService {
 
       // Extract account balance and currency from header rows (first 10 rows)
       for (let i = 0; i < Math.min(sheetData.length, 10); i++) {
-        const row = sheetData[i] as any[];
+        const row = sheetData[i];
         if (!row) continue;
 
-        const rowText = row.filter(c => c != null).join(' ').toLowerCase();
+        const rowText = row
+          .filter((c) => c != null)
+          .join(' ')
+          .toLowerCase();
         if (rowText.includes('balance') && !accountBalance) {
           // Look for balance pattern in the row
           for (let j = 0; j < row.length; j++) {
@@ -337,10 +343,13 @@ export class TradeHistoryParserService {
       const columnMap: { [key: string]: number } = {};
 
       for (let i = 0; i < Math.min(sheetData.length, 10); i++) {
-        const row = sheetData[i] as any[];
+        const row = sheetData[i];
         if (!row) continue;
 
-        const rowText = row.filter(c => c != null).join(' ').toLowerCase();
+        const rowText = row
+          .filter((c) => c != null)
+          .join(' ')
+          .toLowerCase();
         if (
           rowText.includes('position') &&
           rowText.includes('symbol') &&
@@ -393,7 +402,7 @@ export class TradeHistoryParserService {
 
         // Parse data rows
         for (let i = headerRowIndex + 1; i < sheetData.length; i++) {
-          const row = sheetData[i] as any[];
+          const row = sheetData[i];
           if (!row || row.length === 0) continue;
 
           // Use the correct column mapping based on actual XLSX structure
@@ -447,16 +456,12 @@ export class TradeHistoryParserService {
           if (!row) continue;
 
           // Look for Balance:, Total Net Profit:, Equity: labels
-          for (let j = 0; j < (row as any[]).length; j++) {
+          for (let j = 0; j < row.length; j++) {
             const cell = (row[j] || '').toString().toLowerCase().trim();
 
             if (cell === 'balance:') {
               // Look for value in adjacent cells (typically j+3 based on analysis)
-              for (
-                let k = j + 1;
-                k < Math.min(j + 5, (row as any[]).length);
-                k++
-              ) {
+              for (let k = j + 1; k < Math.min(j + 5, row.length); k++) {
                 const value = parseFloat(
                   (row[k] || '').toString().replace(/,/g, ''),
                 );
@@ -472,11 +477,7 @@ export class TradeHistoryParserService {
 
             if (cell === 'total net profit:') {
               // Look for value in adjacent cells
-              for (
-                let k = j + 1;
-                k < Math.min(j + 5, (row as any[]).length);
-                k++
-              ) {
+              for (let k = j + 1; k < Math.min(j + 5, row.length); k++) {
                 const value = parseFloat(
                   (row[k] || '').toString().replace(/,/g, ''),
                 );
@@ -492,11 +493,7 @@ export class TradeHistoryParserService {
 
             if (cell === 'equity:') {
               // Look for value in adjacent cells
-              for (
-                let k = j + 1;
-                k < Math.min(j + 5, (row as any[]).length);
-                k++
-              ) {
+              for (let k = j + 1; k < Math.min(j + 5, row.length); k++) {
                 const value = parseFloat(
                   (row[k] || '').toString().replace(/,/g, ''),
                 );

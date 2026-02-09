@@ -85,10 +85,10 @@ export class TerminalWebhookController {
     }
 
     const result = await this.terminalFarmService.processTrades(data);
-    return { 
-      success: true, 
-      imported: result.imported, 
-      skipped: result.skipped 
+    return {
+      success: true,
+      imported: result.imported,
+      skipped: result.skipped,
     };
   }
 

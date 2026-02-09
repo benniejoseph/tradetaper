@@ -21,6 +21,7 @@ const strategy_entity_1 = require("../strategies/entities/strategy.entity");
 const subscription_service_1 = require("./services/subscription.service");
 const razorpay_service_1 = require("./services/razorpay.service");
 const subscriptions_controller_1 = require("./subscriptions.controller");
+const subscriptions_webhook_controller_1 = require("./subscriptions.webhook.controller");
 let SubscriptionsModule = class SubscriptionsModule {
 };
 exports.SubscriptionsModule = SubscriptionsModule;
@@ -36,10 +37,10 @@ exports.SubscriptionsModule = SubscriptionsModule = __decorate([
                 account_entity_1.Account,
                 mt5_account_entity_1.MT5Account,
                 note_entity_1.Note,
-                strategy_entity_1.Strategy
+                strategy_entity_1.Strategy,
             ]),
         ],
-        controllers: [subscriptions_controller_1.SubscriptionsController],
+        controllers: [subscriptions_controller_1.SubscriptionsController, subscriptions_webhook_controller_1.SubscriptionsWebhookController],
         providers: [subscription_service_1.SubscriptionService, razorpay_service_1.RazorpayService],
         exports: [subscription_service_1.SubscriptionService, razorpay_service_1.RazorpayService],
     })

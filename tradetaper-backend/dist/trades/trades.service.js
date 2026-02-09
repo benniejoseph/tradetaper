@@ -49,7 +49,9 @@ let TradesService = TradesService_1 = class TradesService {
     async getTradeCandles(tradeId, timeframe, userContext) {
         this.logger.debug(`Fetching candles for trade ${tradeId}, timeframe ${timeframe}`);
         try {
-            const cached = await this.tradeCandleRepository.findOne({ where: { tradeId, timeframe } });
+            const cached = await this.tradeCandleRepository.findOne({
+                where: { tradeId, timeframe },
+            });
             if (cached) {
                 this.logger.debug(`Cache HIT for trade ${tradeId}`);
                 return cached.data;
@@ -64,7 +66,7 @@ let TradesService = TradesService_1 = class TradesService {
                             tradeId: trade.id,
                             symbol: trade.symbol,
                             timeframe,
-                            data: trade.executionCandles
+                            data: trade.executionCandles,
                         });
                     }
                     catch (cacheError) {
@@ -74,24 +76,47 @@ let TradesService = TradesService_1 = class TradesService {
                 return trade.executionCandles;
             }
             if (trade.status === enums_1.TradeStatus.OPEN) {
-                return [{ status: 'pending', message: 'Candles will be fetched when trade closes' }];
+                return [
+                    {
+                        status: 'pending',
+                        message: 'Candles will be fetched when trade closes',
+                    },
+                ];
             }
             if (trade.externalId && trade.accountId) {
                 const terminal = await this.terminalFarmService.findTerminalForAccount(trade.accountId);
                 if (terminal && terminal.status === 'RUNNING') {
                     const entryTime = new Date(trade.openTime).getTime();
-                    const exitTime = trade.closeTime ? new Date(trade.closeTime).getTime() : Date.now();
+                    const exitTime = trade.closeTime
+                        ? new Date(trade.closeTime).getTime()
+                        : Date.now();
                     const bufferMs = 2 * 60 * 60 * 1000;
                     const startTime = new Date(entryTime - bufferMs);
                     const endTime = new Date(exitTime + bufferMs);
-                    const startStr = startTime.toISOString().replace('T', ' ').substring(0, 19);
-                    const endStr = endTime.toISOString().replace('T', ' ').substring(0, 19);
+                    const startStr = startTime
+                        .toISOString()
+                        .replace('T', ' ')
+                        .substring(0, 19);
+                    const endStr = endTime
+                        .toISOString()
+                        .replace('T', ' ')
+                        .substring(0, 19);
                     const payload = `${trade.symbol},1m,${startStr},${endStr},${trade.id}`;
                     this.terminalFarmService.queueCommand(terminal.id, 'FETCH_CANDLES', payload);
-                    return [{ status: 'queued', message: 'Request sent to MT5 Terminal. Refresh in 30s.' }];
+                    return [
+                        {
+                            status: 'queued',
+                            message: 'Request sent to MT5 Terminal. Refresh in 30s.',
+                        },
+                    ];
                 }
             }
-            return [{ status: 'unavailable', message: 'Candle data not available for this trade' }];
+            return [
+                {
+                    status: 'unavailable',
+                    message: 'Candle data not available for this trade',
+                },
+            ];
         }
         catch (error) {
             this.logger.error(`Error in getTradeCandles: ${error.message}`, error.stack);
@@ -99,7 +124,9 @@ let TradesService = TradesService_1 = class TradesService {
         }
     }
     async saveExecutionCandles(tradeId, candles) {
-        const trade = await this.tradesRepository.findOne({ where: { id: tradeId } });
+        const trade = await this.tradesRepository.findOne({
+            where: { id: tradeId },
+        });
         if (trade) {
             trade.executionCandles = candles;
             await this.tradesRepository.save(trade);
@@ -109,7 +136,9 @@ let TradesService = TradesService_1 = class TradesService {
     async _populateAccountDetails(trades, userId) {
         if (!trades.length)
             return trades;
-        const accountIds = [...new Set(trades.map(t => t.accountId).filter(id => id))];
+        const accountIds = [
+            ...new Set(trades.map((t) => t.accountId).filter((id) => id)),
+        ];
         if (accountIds.length === 0)
             return trades;
         const [manualAccounts, mt5Accounts] = await Promise.all([
@@ -117,9 +146,9 @@ let TradesService = TradesService_1 = class TradesService {
             this.mt5AccountsService.findAllByUser(userId),
         ]);
         const accountMap = new Map();
-        manualAccounts.forEach(a => accountMap.set(a.id, { id: a.id, name: a.name, type: 'manual' }));
-        mt5Accounts.forEach(a => accountMap.set(a.id, { id: a.id, name: a.accountName, type: 'mt5' }));
-        return trades.map(trade => {
+        manualAccounts.forEach((a) => accountMap.set(a.id, { id: a.id, name: a.name, type: 'manual' }));
+        mt5Accounts.forEach((a) => accountMap.set(a.id, { id: a.id, name: a.accountName, type: 'mt5' }));
+        return trades.map((trade) => {
             if (trade.accountId) {
                 const account = accountMap.get(trade.accountId);
                 if (account) {
@@ -223,7 +252,8 @@ let TradesService = TradesService_1 = class TradesService {
         };
     }
     async findDuplicate(userId, symbol, entryDate, externalId) {
-        const queryBuilder = this.tradesRepository.createQueryBuilder('trade')
+        const queryBuilder = this.tradesRepository
+            .createQueryBuilder('trade')
             .where('trade.userId = :userId', { userId })
             .andWhere('trade.accountId IS NOT NULL');
         if (externalId) {
@@ -234,7 +264,7 @@ let TradesService = TradesService_1 = class TradesService {
                 .andWhere('trade.symbol = :symbol', { symbol })
                 .andWhere('trade.openTime BETWEEN :start AND :end', {
                 start: new Date(entryDate.getTime() - 60000),
-                end: new Date(entryDate.getTime() + 60000)
+                end: new Date(entryDate.getTime() + 60000),
             });
         }
         return await queryBuilder.getOne();

@@ -13,4 +13,4 @@ import { ConfigModule } from '@nestjs/config';
   providers: [PredictiveTradesService, GeminiPredictionService],
   exports: [GeminiPredictionService], // Export for agent usage
 })
-export class PredictiveTradesModule {} 
+export class PredictiveTradesModule {}

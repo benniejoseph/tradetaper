@@ -1,4 +1,12 @@
-import { IsOptional, IsString, IsUUID, IsEnum, IsArray, ValidateNested, IsNumber } from 'class-validator';
+import {
+  IsOptional,
+  IsString,
+  IsUUID,
+  IsEnum,
+  IsArray,
+  ValidateNested,
+  IsNumber,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 import { TerminalStatus } from '../entities/terminal-instance.entity';
 

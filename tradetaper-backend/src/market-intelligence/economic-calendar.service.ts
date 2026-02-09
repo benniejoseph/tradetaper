@@ -28,7 +28,6 @@ export interface EconomicEvent {
   isNewsDerived?: boolean; // New flag
 }
 
-
 export interface EconomicImpactAnalysis {
   eventId: string;
   preEventAnalysis: {
@@ -154,12 +153,15 @@ export class EconomicCalendarService {
           events.push(...newsEvents);
         }
       } catch (newsError) {
-        this.logger.warn('Failed to fetch news-based economic events', newsError);
+        this.logger.warn(
+          'Failed to fetch news-based economic events',
+          newsError,
+        );
       }
-      
+
       // Fallback to Mock if both fail
       if (events.length === 0) {
-         // Generate events for the next 7 days (Mock)
+        // Generate events for the next 7 days (Mock)
         for (let i = 0; i < 7; i++) {
           const eventDate = new Date(currentDate);
           eventDate.setDate(currentDate.getDate() + i);
@@ -181,7 +183,7 @@ export class EconomicCalendarService {
     try {
       const url = 'https://nfs.faireconomy.media/ff_calendar_thisweek.xml';
       console.log(`Fetching FF Calendar from ${url}`);
-      
+
       const response = await this.httpService.axiosRef.get(url);
       const xmlData = response.data;
 
@@ -197,71 +199,75 @@ export class EconomicCalendarService {
         rawEvents = [rawEvents];
       }
 
-      return rawEvents.map((e: any) => {
-         const dateStr = e.date; // MM-DD-YYYY
-         const timeStr = e.time; // 1:30pm
-         
-         let eventDate = new Date();
-         try {
-             // 1. Handle "All Day" / "Tentative"
-             if (timeStr.toLowerCase().includes('day') || timeStr.toLowerCase().includes('tentative')) {
-                const [m, d, y] = dateStr.split('-').map(Number);
-                eventDate = new Date(Date.UTC(y, m-1, d, 0, 0));
-             } else {
-                 // 2. Parse standard time "MM-DD-YYYY h:mma"
-                 // Cloud Run is UTC. 
-                 // parse("01-15-2026 1:30pm", ...) -> Date object acting as 13:30 UTC.
-                 // This corresponds to 19:00 IST.
-                 const dateTimeStr = `${dateStr} ${timeStr}`;
-                 eventDate = parse(dateTimeStr, 'MM-dd-yyyy h:mma', new Date());
-             }
-         } catch (err) {
-             console.error('Date parse error', err);
-             // Fallback to today if parse fails
-         }
+      return rawEvents
+        .map((e: any) => {
+          const dateStr = e.date; // MM-DD-YYYY
+          const timeStr = e.time; // 1:30pm
 
-         return {
-           id: `ff-${e.title}-${eventDate.getTime()}`,
-           title: e.title,
-           country: e.country,
-           currency: e.country,
-           date: eventDate,
-           time: e.time,
-           importance: e.impact.toLowerCase(),
-           actual: e.actual,
-           forecast: e.forecast,
-           previous: e.previous,
-           description: `${e.title} (${e.impact} Impact)`,
-           impact: {
-             expected: 'neutral',
-             explanation: 'Real-time economic event from ForexFactory',
-             affectedSymbols: this.mapCurrencyToSymbols(e.country),
-             volatilityRating: e.impact === 'High' ? 8 : (e.impact === 'Medium' ? 5 : 2),
-           },
-           isNewsDerived: false, 
-         };
-      }).filter(e => e !== null) as EconomicEvent[];
+          let eventDate = new Date();
+          try {
+            // 1. Handle "All Day" / "Tentative"
+            if (
+              timeStr.toLowerCase().includes('day') ||
+              timeStr.toLowerCase().includes('tentative')
+            ) {
+              const [m, d, y] = dateStr.split('-').map(Number);
+              eventDate = new Date(Date.UTC(y, m - 1, d, 0, 0));
+            } else {
+              // 2. Parse standard time "MM-DD-YYYY h:mma"
+              // Cloud Run is UTC.
+              // parse("01-15-2026 1:30pm", ...) -> Date object acting as 13:30 UTC.
+              // This corresponds to 19:00 IST.
+              const dateTimeStr = `${dateStr} ${timeStr}`;
+              eventDate = parse(dateTimeStr, 'MM-dd-yyyy h:mma', new Date());
+            }
+          } catch (err) {
+            console.error('Date parse error', err);
+            // Fallback to today if parse fails
+          }
 
+          return {
+            id: `ff-${e.title}-${eventDate.getTime()}`,
+            title: e.title,
+            country: e.country,
+            currency: e.country,
+            date: eventDate,
+            time: e.time,
+            importance: e.impact.toLowerCase(),
+            actual: e.actual,
+            forecast: e.forecast,
+            previous: e.previous,
+            description: `${e.title} (${e.impact} Impact)`,
+            impact: {
+              expected: 'neutral',
+              explanation: 'Real-time economic event from ForexFactory',
+              affectedSymbols: this.mapCurrencyToSymbols(e.country),
+              volatilityRating:
+                e.impact === 'High' ? 8 : e.impact === 'Medium' ? 5 : 2,
+            },
+            isNewsDerived: false,
+          };
+        })
+        .filter((e) => e !== null) as EconomicEvent[];
     } catch (error) {
-       console.error('Critical Error fetching FF Events', error);
-       return [];
+      console.error('Critical Error fetching FF Events', error);
+      return [];
     }
   }
 
   private mapCurrencyToSymbols(currency: string): string[] {
     const map: Record<string, string[]> = {
-      'USD': ['EURUSD', 'GBPUSD', 'XAUUSD', 'SPX500', 'NASDAQ100'],
-      'EUR': ['EURUSD', 'EURGBP', 'EURJPY'],
-      'GBP': ['GBPUSD', 'EURGBP', 'GBPJPY'],
-      'JPY': ['USDJPY', 'EURJPY', 'GBPJPY'],
-      'AUD': ['AUDUSD', 'EURAUD'],
-      'CAD': ['USDCAD', 'EURCAD'],
-      'CHF': ['USDCHF'],
-      'NZD': ['NZDUSD'],
-      'CNY': ['USDCNH', 'XAUUSD'],
+      USD: ['EURUSD', 'GBPUSD', 'XAUUSD', 'SPX500', 'NASDAQ100'],
+      EUR: ['EURUSD', 'EURGBP', 'EURJPY'],
+      GBP: ['GBPUSD', 'EURGBP', 'GBPJPY'],
+      JPY: ['USDJPY', 'EURJPY', 'GBPJPY'],
+      AUD: ['AUDUSD', 'EURAUD'],
+      CAD: ['USDCAD', 'EURCAD'],
+      CHF: ['USDCHF'],
+      NZD: ['NZDUSD'],
+      CNY: ['USDCNH', 'XAUUSD'],
     };
     return map[currency] || ['EURUSD'];
-
   }
 
   private mapNewsToEvents(newsList: any[]): EconomicEvent[] {
@@ -599,11 +605,11 @@ export class EconomicCalendarService {
     // 1. Find the event details
     // Only search today/this week (ForexFactory XML is weekly)
     const events = await this.fetchEconomicEvents();
-    const event = events.find(e => e.id === eventId);
-    
+    const event = events.find((e) => e.id === eventId);
+
     if (!event) {
-       // Fallback mock if not found (or old event)
-       return this.getMockImpactAnalysis(eventId);
+      // Fallback mock if not found (or old event)
+      return this.getMockImpactAnalysis(eventId);
     }
 
     // 2. Use AI to generate analysis
@@ -618,7 +624,6 @@ export class EconomicCalendarService {
     */
   }
 
-
   private getMockImpactAnalysis(eventId: string): EconomicImpactAnalysis {
     return {
       eventId,
@@ -629,12 +634,12 @@ export class EconomicCalendarService {
         riskScenarios: ['Deviation from forecast could trigger volatility.'],
       },
       detailedAnalysis: {
-         source: 'Financial Agency',
-         measures: 'Economic Activity',
-         usualEffect: 'Actual > Forecast = Good for Currency',
-         frequency: 'Monthly',
-         whyTradersCare: 'Primary gauge of economic health',
-         nextRelease: 'Next Month'
+        source: 'Financial Agency',
+        measures: 'Economic Activity',
+        usualEffect: 'Actual > Forecast = Good for Currency',
+        frequency: 'Monthly',
+        whyTradersCare: 'Primary gauge of economic health',
+        nextRelease: 'Next Month',
       },
       tradingRecommendations: {
         preEvent: ['Reduce risk.'],

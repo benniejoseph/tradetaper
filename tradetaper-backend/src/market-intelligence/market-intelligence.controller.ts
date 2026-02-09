@@ -99,9 +99,7 @@ export class MarketIntelligenceController {
 
   @UseGuards(JwtAuthGuard)
   @Get('news')
-  async getMarketNews(
-    @Query('category') category?: string,
-  ) {
+  async getMarketNews(@Query('category') category?: string) {
     this.logger.log(`Getting market news (Category: ${category || 'All'})`);
     try {
       // Use new category filter in service
@@ -124,7 +122,7 @@ export class MarketIntelligenceController {
       return await this.marketSentimentService.generateSentimentReport();
     } catch (error) {
       this.logger.error('Failed to get AI analysis', error);
-       throw new HttpException(
+      throw new HttpException(
         'Failed to fetch AI analysis',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );

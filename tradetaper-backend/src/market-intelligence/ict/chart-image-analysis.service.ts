@@ -80,10 +80,10 @@ export class ChartImageAnalysisService {
    * This is the main ICT chart analysis function
    */
   async analyzeChartImages(
-    request: ChartImageAnalysisRequest
+    request: ChartImageAnalysisRequest,
   ): Promise<ChartImageAnalysis> {
     this.logger.log(
-      `Analyzing ICT chart images for ${request.symbol} across ${Object.keys(request.timeframes).length} timeframes`
+      `Analyzing ICT chart images for ${request.symbol} across ${Object.keys(request.timeframes).length} timeframes`,
     );
 
     const analysisId = this.generateAnalysisId();
@@ -97,7 +97,7 @@ export class ChartImageAnalysisService {
     if (this.geminiApiKey && this.hasImages(request.timeframes)) {
       geminiAnalysis = await this.analyzeWithGeminiVision(
         request.timeframes,
-        ictPrompt
+        ictPrompt,
       );
     }
 
@@ -105,7 +105,7 @@ export class ChartImageAnalysisService {
     const ictNarrative = this.buildICTNarrative(
       request,
       geminiAnalysis,
-      timeframesAnalyzed
+      timeframesAnalyzed,
     );
 
     // Extract ICT concepts from analysis
@@ -128,14 +128,14 @@ export class ChartImageAnalysisService {
       fairValueGaps,
       orderBlocks,
       liquidity,
-      killZone
+      killZone,
     );
 
     // Generate warnings
     const warnings = this.generateWarnings(
       tradingPlan,
       killZone,
-      premiumDiscount
+      premiumDiscount,
     );
 
     return {
@@ -222,7 +222,7 @@ Be specific with price levels when possible. Use ICT terminology throughout.`;
    */
   private async analyzeWithGeminiVision(
     timeframes: any,
-    prompt: string
+    prompt: string,
   ): Promise<any> {
     if (!this.geminiApiKey) {
       this.logger.warn('Gemini API key not configured - using mock analysis');
@@ -260,7 +260,7 @@ Be specific with price levels when possible. Use ICT terminology throughout.`;
               maxOutputTokens: 4096,
             },
           }),
-        }
+        },
       );
 
       const data = await response.json();
@@ -300,7 +300,9 @@ Be specific with price levels when possible. Use ICT terminology throughout.`;
    * Check if request has images
    */
   private hasImages(timeframes: any): boolean {
-    return Object.values(timeframes).some((img) => img && typeof img === 'string');
+    return Object.values(timeframes).some(
+      (img) => img && typeof img === 'string',
+    );
   }
 
   /**
@@ -309,15 +311,23 @@ Be specific with price levels when possible. Use ICT terminology throughout.`;
   private buildICTNarrative(
     request: any,
     geminiAnalysis: any,
-    timeframes: string[]
+    timeframes: string[],
   ): string[] {
     const narrative: string[] = [];
 
-    narrative.push(`╔═══════════════════════════════════════════════════════════╗`);
-    narrative.push(`║        ICT CHART IMAGE ANALYSIS - ${request.symbol}       ║`);
-    narrative.push(`╚═══════════════════════════════════════════════════════════╝`);
+    narrative.push(
+      `╔═══════════════════════════════════════════════════════════╗`,
+    );
+    narrative.push(
+      `║        ICT CHART IMAGE ANALYSIS - ${request.symbol}       ║`,
+    );
+    narrative.push(
+      `╚═══════════════════════════════════════════════════════════╝`,
+    );
 
-    narrative.push(`\n📊 Timeframes Analyzed: ${timeframes.join(', ').toUpperCase()}`);
+    narrative.push(
+      `\n📊 Timeframes Analyzed: ${timeframes.join(', ').toUpperCase()}`,
+    );
 
     if (geminiAnalysis && geminiAnalysis.text) {
       narrative.push(`\n🤖 AI ICT Analysis:\n`);
@@ -329,7 +339,9 @@ Be specific with price levels when possible. Use ICT terminology throughout.`;
         }
       });
     } else {
-      narrative.push(`\n⚠️ AI analysis not available - using algorithmic ICT analysis`);
+      narrative.push(
+        `\n⚠️ AI analysis not available - using algorithmic ICT analysis`,
+      );
     }
 
     return narrative;
@@ -340,7 +352,7 @@ Be specific with price levels when possible. Use ICT terminology throughout.`;
    */
   private extractICTConcepts(
     geminiAnalysis: any,
-    request: any
+    request: any,
   ): {
     liquidity: any;
     marketStructure: any;
@@ -367,14 +379,20 @@ Be specific with price levels when possible. Use ICT terminology throughout.`;
     return {
       buySide: this.extractLines(text, 'buy-side', 'buy side', 'buyside'),
       sellSide: this.extractLines(text, 'sell-side', 'sell side', 'sellside'),
-      nearestTarget: this.extractFirstLine(text, 'nearest liquidity', 'liquidity target'),
+      nearestTarget: this.extractFirstLine(
+        text,
+        'nearest liquidity',
+        'liquidity target',
+      ),
     };
   }
 
   private extractMarketStructure(text: string): any {
     return {
       trend: this.extractFirstLine(text, 'trend', 'direction') || 'Unknown',
-      lastStructureShift: this.extractFirstLine(text, 'BOS', 'CHoCH', 'structure') || 'None detected',
+      lastStructureShift:
+        this.extractFirstLine(text, 'BOS', 'CHoCH', 'structure') ||
+        'None detected',
       bias: this.extractFirstLine(text, 'bias', 'direction') || 'Neutral',
     };
   }
@@ -383,7 +401,9 @@ Be specific with price levels when possible. Use ICT terminology throughout.`;
     return {
       bullish: this.extractLines(text, 'bullish FVG', 'bullish gap'),
       bearish: this.extractLines(text, 'bearish FVG', 'bearish gap'),
-      nearest: this.extractFirstLine(text, 'nearest FVG', 'nearest gap') || 'None identified',
+      nearest:
+        this.extractFirstLine(text, 'nearest FVG', 'nearest gap') ||
+        'None identified',
     };
   }
 
@@ -391,24 +411,39 @@ Be specific with price levels when possible. Use ICT terminology throughout.`;
     return {
       bullish: this.extractLines(text, 'bullish order block', 'bullish OB'),
       bearish: this.extractLines(text, 'bearish order block', 'bearish OB'),
-      nearest: this.extractFirstLine(text, 'nearest order block', 'nearest OB') || 'None identified',
+      nearest:
+        this.extractFirstLine(text, 'nearest order block', 'nearest OB') ||
+        'None identified',
     };
   }
 
   private extractPremiumDiscount(text: string): any {
     return {
-      currentZone: this.extractFirstLine(text, 'premium', 'discount', 'equilibrium') || 'Unknown',
-      optimalEntry: this.extractFirstLine(text, 'OTE', 'optimal entry', 'entry zone') || 'Not identified',
+      currentZone:
+        this.extractFirstLine(text, 'premium', 'discount', 'equilibrium') ||
+        'Unknown',
+      optimalEntry:
+        this.extractFirstLine(text, 'OTE', 'optimal entry', 'entry zone') ||
+        'Not identified',
     };
   }
 
   private extractPowerOfThree(text: string): any {
-    const phase = this.extractFirstLine(text, 'accumulation', 'manipulation', 'distribution');
-    
+    const phase = this.extractFirstLine(
+      text,
+      'accumulation',
+      'manipulation',
+      'distribution',
+    );
+
     return {
-      phase: phase?.toLowerCase().includes('accumulation') ? 'accumulation' :
-             phase?.toLowerCase().includes('manipulation') ? 'manipulation' :
-             phase?.toLowerCase().includes('distribution') ? 'distribution' : 'unknown',
+      phase: phase?.toLowerCase().includes('accumulation')
+        ? 'accumulation'
+        : phase?.toLowerCase().includes('manipulation')
+          ? 'manipulation'
+          : phase?.toLowerCase().includes('distribution')
+            ? 'distribution'
+            : 'unknown',
       description: phase || 'Phase not identified in analysis',
     };
   }
@@ -473,19 +508,21 @@ Be specific with price levels when possible. Use ICT terminology throughout.`;
     fvgs: any,
     obs: any,
     liquidity: any,
-    killZone: any
+    killZone: any,
   ): any {
     // Determine primary setup based on ICT concepts
     let primarySetup = 'Wait for clear ICT setup';
     let entryZone = 'TBD';
     let stopLoss = 'Below structure';
     const takeProfit = ['Equilibrium', 'Opposite premium/discount zone'];
-    let riskReward = '1:2 minimum';
+    const riskReward = '1:2 minimum';
     let confidence = 50;
 
     // If in discount and bullish bias
-    if (premiumDiscount.currentZone.toLowerCase().includes('discount') && 
-        structure.bias.toLowerCase().includes('bull')) {
+    if (
+      premiumDiscount.currentZone.toLowerCase().includes('discount') &&
+      structure.bias.toLowerCase().includes('bull')
+    ) {
       primarySetup = 'Bullish setup in discount zone';
       entryZone = obs.nearest || fvgs.nearest || 'Wait for pullback to OB/FVG';
       stopLoss = 'Below nearest Order Block or liquidity';
@@ -493,8 +530,10 @@ Be specific with price levels when possible. Use ICT terminology throughout.`;
     }
 
     // If in premium and bearish bias
-    if (premiumDiscount.currentZone.toLowerCase().includes('premium') &&
-        structure.bias.toLowerCase().includes('bear')) {
+    if (
+      premiumDiscount.currentZone.toLowerCase().includes('premium') &&
+      structure.bias.toLowerCase().includes('bear')
+    ) {
       primarySetup = 'Bearish setup in premium zone';
       entryZone = obs.nearest || fvgs.nearest || 'Wait for rally to OB/FVG';
       stopLoss = 'Above nearest Order Block or liquidity';
@@ -502,7 +541,10 @@ Be specific with price levels when possible. Use ICT terminology throughout.`;
     }
 
     // Boost confidence if in Kill Zone
-    if (killZone.current.includes('London Open') || killZone.current.includes('Silver Bullet')) {
+    if (
+      killZone.current.includes('London Open') ||
+      killZone.current.includes('Silver Bullet')
+    ) {
       confidence += 15;
     }
 
@@ -522,12 +564,17 @@ Be specific with price levels when possible. Use ICT terminology throughout.`;
   private generateWarnings(
     tradingPlan: any,
     killZone: any,
-    premiumDiscount: any
+    premiumDiscount: any,
   ): string[] {
     const warnings: string[] = [];
 
-    if (!killZone.current.includes('London') && !killZone.current.includes('Silver Bullet')) {
-      warnings.push('⚠️ Outside optimal Kill Zones - wait for London/NY sessions');
+    if (
+      !killZone.current.includes('London') &&
+      !killZone.current.includes('Silver Bullet')
+    ) {
+      warnings.push(
+        '⚠️ Outside optimal Kill Zones - wait for London/NY sessions',
+      );
     }
 
     if (premiumDiscount.currentZone.toLowerCase().includes('equilibrium')) {
@@ -592,4 +639,3 @@ TRADING PLAN:
     };
   }
 }
-

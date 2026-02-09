@@ -20,12 +20,14 @@ export class TradingViewAdvancedService implements OnModuleInit {
       const password = this.configService.get<string>('TRADINGVIEW_PASSWORD');
 
       if (!username || !password) {
-        this.logger.warn('TradingView credentials not found. Advanced features will be unavailable.');
+        this.logger.warn(
+          'TradingView credentials not found. Advanced features will be unavailable.',
+        );
         return;
       }
 
       this.logger.log('Initializing TradingView Advanced API...');
-      
+
       // Create client instance
       this.client = new TradingView.Client({
         token: '', // Will be set after login
@@ -34,38 +36,46 @@ export class TradingViewAdvancedService implements OnModuleInit {
 
       // Login with credentials
       await this.loginWithCredentials(username, password);
-      
     } catch (error) {
-      this.logger.error('Failed to initialize TradingView Advanced API:', error.message);
+      this.logger.error(
+        'Failed to initialize TradingView Advanced API:',
+        error.message,
+      );
     }
   }
 
   private async loginWithCredentials(username: string, password: string) {
     try {
       this.logger.log('Attempting to authenticate with TradingView...');
-      
+
       // Perform login - Library method is loginUser, not login
       // Check if loginUser exists, otherwise try other common methods or log error without crashing
       let token = '';
-      
+
       if (typeof TradingView.loginUser === 'function') {
-         token = await TradingView.loginUser(username, password, false); // false = rememberMe
+        token = await TradingView.loginUser(username, password, false); // false = rememberMe
       } else if (typeof TradingView.login === 'function') {
-         token = await TradingView.login(username, password);
+        token = await TradingView.login(username, password);
       } else {
-         this.logger.warn('TradingView login method not found on library export. Skipping authentication.');
-         return;
+        this.logger.warn(
+          'TradingView login method not found on library export. Skipping authentication.',
+        );
+        return;
       }
-      
+
       if (token) {
         this.client.token = token;
         this.isAuthenticated = true;
         this.logger.log('✅ Successfully authenticated with TradingView!');
       } else {
-        this.logger.error('❌ Failed to authenticate with TradingView - no token received');
+        this.logger.error(
+          '❌ Failed to authenticate with TradingView - no token received',
+        );
       }
     } catch (error) {
-      this.logger.error(`❌ TradingView authentication error: ${error.message}`);
+      this.logger.error(
+        `❌ TradingView authentication error: ${error.message}`,
+      );
       // Do not set isAuthenticated = false here, let it remain false from initialization
     }
   }
@@ -84,17 +94,17 @@ export class TradingViewAdvancedService implements OnModuleInit {
 
     try {
       const chart = new this.client.Session.Chart();
-      
+
       // Set market symbol
       chart.setMarket(symbol, {
         timeframe: interval,
       });
 
       // Add indicators if requested
-      const studyPromises = indicators.map(indicator => 
-        chart.addIndicator(indicator)
+      const studyPromises = indicators.map((indicator) =>
+        chart.addIndicator(indicator),
       );
-      
+
       await Promise.all(studyPromises);
 
       // Get chart data
@@ -114,7 +124,10 @@ export class TradingViewAdvancedService implements OnModuleInit {
         });
       });
     } catch (error) {
-      this.logger.error(`Failed to get chart data for ${symbol}:`, error.message);
+      this.logger.error(
+        `Failed to get chart data for ${symbol}:`,
+        error.message,
+      );
       throw error;
     }
   }
@@ -122,14 +135,22 @@ export class TradingViewAdvancedService implements OnModuleInit {
   /**
    * Get technical analysis from TradingView
    */
-  async getTechnicalAnalysis(symbol: string, interval: string = '4h'): Promise<any> {
+  async getTechnicalAnalysis(
+    symbol: string,
+    interval: string = '4h',
+  ): Promise<any> {
     if (!this.isAuthenticated) {
       throw new Error('TradingView API is not authenticated');
     }
 
     try {
-      const analysis = await TradingView.getIndicator(this.client, symbol, interval, 'TechnicalAnalysis');
-      
+      const analysis = await TradingView.getIndicator(
+        this.client,
+        symbol,
+        interval,
+        'TechnicalAnalysis',
+      );
+
       return {
         symbol,
         interval,
@@ -139,7 +160,10 @@ export class TradingViewAdvancedService implements OnModuleInit {
         summary: analysis?.summary || {},
       };
     } catch (error) {
-      this.logger.error(`Failed to get technical analysis for ${symbol}:`, error.message);
+      this.logger.error(
+        `Failed to get technical analysis for ${symbol}:`,
+        error.message,
+      );
       throw error;
     }
   }
@@ -159,7 +183,7 @@ export class TradingViewAdvancedService implements OnModuleInit {
 
     try {
       const chart = new this.client.Session.Chart();
-      
+
       chart.setMarket(symbol, {
         timeframe: interval,
       });
@@ -180,7 +204,10 @@ export class TradingViewAdvancedService implements OnModuleInit {
         });
       });
     } catch (error) {
-      this.logger.error(`Failed to get indicator ${indicatorName} for ${symbol}:`, error.message);
+      this.logger.error(
+        `Failed to get indicator ${indicatorName} for ${symbol}:`,
+        error.message,
+      );
       throw error;
     }
   }
@@ -195,13 +222,16 @@ export class TradingViewAdvancedService implements OnModuleInit {
 
     try {
       const drawings = await TradingView.getDrawings(this.client, chartId);
-      
+
       return {
         chartId,
         drawings: drawings || [],
       };
     } catch (error) {
-      this.logger.error(`Failed to get drawings for chart ${chartId}:`, error.message);
+      this.logger.error(
+        `Failed to get drawings for chart ${chartId}:`,
+        error.message,
+      );
       throw error;
     }
   }
@@ -220,7 +250,7 @@ export class TradingViewAdvancedService implements OnModuleInit {
 
     try {
       const chart = new this.client.Session.Chart();
-      
+
       chart.setMarket(symbol, {
         timeframe: interval,
       });
@@ -240,7 +270,10 @@ export class TradingViewAdvancedService implements OnModuleInit {
 
       return chart; // Return chart instance so it can be managed
     } catch (error) {
-      this.logger.error(`Failed to subscribe to updates for ${symbol}:`, error.message);
+      this.logger.error(
+        `Failed to subscribe to updates for ${symbol}:`,
+        error.message,
+      );
       throw error;
     }
   }
@@ -248,14 +281,21 @@ export class TradingViewAdvancedService implements OnModuleInit {
   /**
    * Get screener results (top gainers, losers, etc.)
    */
-  async getScreenerResults(filter: string = 'top_gainers', market: string = 'forex'): Promise<any> {
+  async getScreenerResults(
+    filter: string = 'top_gainers',
+    market: string = 'forex',
+  ): Promise<any> {
     if (!this.isAuthenticated) {
       throw new Error('TradingView API is not authenticated');
     }
 
     try {
-      const results = await TradingView.getScreener(this.client, filter, market);
-      
+      const results = await TradingView.getScreener(
+        this.client,
+        filter,
+        market,
+      );
+
       return {
         filter,
         market,
@@ -294,10 +334,12 @@ export class TradingViewAdvancedService implements OnModuleInit {
     }
 
     try {
-      this.logger.log(`Fetching ${bars} bars of ${interval} data for ${symbol}...`);
-      
+      this.logger.log(
+        `Fetching ${bars} bars of ${interval} data for ${symbol}...`,
+      );
+
       const chart = new this.client.Session.Chart();
-      
+
       chart.setMarket(symbol, {
         timeframe: interval,
         range: bars,
@@ -310,7 +352,7 @@ export class TradingViewAdvancedService implements OnModuleInit {
 
         chart.onUpdate(() => {
           clearTimeout(timeout);
-          
+
           const periods = chart.periods || [];
           const data = periods.map((candle: any) => ({
             time: candle.time * 1000, // Convert to milliseconds
@@ -322,7 +364,7 @@ export class TradingViewAdvancedService implements OnModuleInit {
           }));
 
           this.logger.log(`✅ Fetched ${data.length} bars for ${symbol}`);
-          
+
           resolve({
             symbol,
             interval,
@@ -336,7 +378,10 @@ export class TradingViewAdvancedService implements OnModuleInit {
         });
       });
     } catch (error) {
-      this.logger.error(`Failed to get historical data for ${symbol}:`, error.message);
+      this.logger.error(
+        `Failed to get historical data for ${symbol}:`,
+        error.message,
+      );
       throw error;
     }
   }
@@ -358,4 +403,3 @@ export class TradingViewAdvancedService implements OnModuleInit {
     };
   }
 }
-

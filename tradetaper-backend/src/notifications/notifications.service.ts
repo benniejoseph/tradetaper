@@ -17,7 +17,6 @@ import { ConfigService } from '@nestjs/config';
 import { WebSocketService } from '../websocket/websocket.service';
 import { UsersService } from '../users/users.service'; // Assuming UsersService exists and can find email
 
-
 export interface CreateNotificationDto {
   userId: string;
   type: NotificationType;
@@ -68,9 +67,7 @@ export class NotificationsService {
    * Respects user preferences and routes to appropriate channels
    */
   async send(dto: CreateNotificationDto): Promise<Notification> {
-    this.logger.log(
-      `Sending notification: ${dto.type} to user ${dto.userId}`,
-    );
+    this.logger.log(`Sending notification: ${dto.type} to user ${dto.userId}`);
 
     // Get user preferences
     const preferences = await this.getOrCreatePreferences(dto.userId);
@@ -203,7 +200,11 @@ export class NotificationsService {
   async getUserNotifications(
     userId: string,
     filter: NotificationFilter = {},
-  ): Promise<{ notifications: Notification[]; total: number; unreadCount: number }> {
+  ): Promise<{
+    notifications: Notification[];
+    total: number;
+    unreadCount: number;
+  }> {
     const where: any = { userId };
 
     if (filter.status) {
@@ -215,16 +216,20 @@ export class NotificationsService {
     }
 
     if (filter.unreadOnly) {
-      where.status = In([NotificationStatus.DELIVERED, NotificationStatus.PENDING]);
+      where.status = In([
+        NotificationStatus.DELIVERED,
+        NotificationStatus.PENDING,
+      ]);
       where.readAt = IsNull();
     }
 
-    const [notifications, total] = await this.notificationRepository.findAndCount({
-      where,
-      order: { createdAt: 'DESC' },
-      take: filter.limit || 50,
-      skip: filter.offset || 0,
-    });
+    const [notifications, total] =
+      await this.notificationRepository.findAndCount({
+        where,
+        order: { createdAt: 'DESC' },
+        take: filter.limit || 50,
+        skip: filter.offset || 0,
+      });
 
     // Get unread count
     const unreadCount = await this.notificationRepository.count({
@@ -310,7 +315,9 @@ export class NotificationsService {
   /**
    * Get or create user preferences
    */
-  async getOrCreatePreferences(userId: string): Promise<NotificationPreference> {
+  async getOrCreatePreferences(
+    userId: string,
+  ): Promise<NotificationPreference> {
     let preferences = await this.preferenceRepository.findOne({
       where: { userId },
     });
@@ -423,14 +430,20 @@ export class NotificationsService {
     try {
       const user = await this.usersService.findOneById(notification.userId);
       if (!user || !user.email) {
-        this.logger.warn(`User ${notification.userId} not found or no email - skipping email notification`);
+        this.logger.warn(
+          `User ${notification.userId} not found or no email - skipping email notification`,
+        );
         return;
       }
 
-      this.logger.debug(`Delivering email notification ${notification.id} to ${user.email}`);
+      this.logger.debug(
+        `Delivering email notification ${notification.id} to ${user.email}`,
+      );
 
       const { data, error } = await this.resend.emails.send({
-        from: this.configService.get<string>('NOTIFICATION_FROM_EMAIL') || 'notifications@tradetaper.com',
+        from:
+          this.configService.get<string>('NOTIFICATION_FROM_EMAIL') ||
+          'notifications@tradetaper.com',
         to: [user.email],
         subject: notification.title,
         html: `
@@ -450,10 +463,13 @@ export class NotificationsService {
       if (error) {
         this.logger.error('Resend email failed:', error);
       } else {
-          this.logger.log(`Email sent successfully: ${data?.id}`);
+        this.logger.log(`Email sent successfully: ${data?.id}`);
       }
     } catch (error) {
-      this.logger.error(`Failed to send email to user ${notification.userId}`, error);
+      this.logger.error(
+        `Failed to send email to user ${notification.userId}`,
+        error,
+      );
     }
   }
 

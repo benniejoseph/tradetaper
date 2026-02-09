@@ -7,14 +7,17 @@ import {
 } from '../interfaces/agent.interface';
 import { AgentRegistryService } from '../agent-registry.service';
 import { EventBusService } from '../event-bus.service';
-import { AIMarketPredictionService, AIMarketPrediction } from '../../market-intelligence/ai-market-prediction.service';
+import {
+  AIMarketPredictionService,
+  AIMarketPrediction,
+} from '../../market-intelligence/ai-market-prediction.service';
 
 /**
  * Market Analyst Agent
- * 
+ *
  * Provides market analysis and predictions for trading instruments.
  * Wraps the existing AIMarketPredictionService with agent capabilities.
- * 
+ *
  * Capabilities:
  * - market-prediction: Generate market predictions for symbols
  * - market-analysis: Analyze market conditions
@@ -24,20 +27,36 @@ export class MarketAnalystAgent extends BaseAgent {
   readonly agentId = 'market-analyst-agent';
   readonly name = 'Market Analyst Agent';
   readonly priority = 20;
-  
+
   readonly capabilities: AgentCapability[] = [
     {
       id: 'market-prediction',
-      description: 'Generate AI-powered market predictions for trading instruments',
-      keywords: ['prediction', 'forecast', 'market', 'direction', 'bullish', 'bearish', 'price'],
+      description:
+        'Generate AI-powered market predictions for trading instruments',
+      keywords: [
+        'prediction',
+        'forecast',
+        'market',
+        'direction',
+        'bullish',
+        'bearish',
+        'price',
+      ],
     },
     {
       id: 'market-analysis',
       description: 'Analyze current market conditions and technical indicators',
-      keywords: ['analysis', 'technical', 'fundamental', 'sentiment', 'trend', 'volatility'],
+      keywords: [
+        'analysis',
+        'technical',
+        'fundamental',
+        'sentiment',
+        'trend',
+        'volatility',
+      ],
     },
   ];
-  
+
   constructor(
     registry: AgentRegistryService,
     eventBus: EventBusService,
@@ -45,30 +64,32 @@ export class MarketAnalystAgent extends BaseAgent {
   ) {
     super(registry, eventBus);
   }
-  
+
   /**
    * Process incoming messages
    */
-  protected async processMessage(message: AgentMessage): Promise<AgentResponse> {
+  protected async processMessage(
+    message: AgentMessage,
+  ): Promise<AgentResponse> {
     const { payload, context } = message;
-    
+
     switch (payload.action) {
       case 'predict':
       case 'get-prediction':
         return this.getPrediction(payload.symbol, context);
-      
+
       case 'multi-predict':
         return this.getMultiplePredictions(payload.symbols, context);
-      
+
       case 'analyze':
         return this.analyzeMarket(payload.symbol, context);
-      
+
       default:
         // Default: if symbol provided, generate prediction
         if (payload.symbol) {
           return this.getPrediction(payload.symbol, context);
         }
-        
+
         return {
           success: false,
           error: {
@@ -78,7 +99,7 @@ export class MarketAnalystAgent extends BaseAgent {
         };
     }
   }
-  
+
   /**
    * Get prediction for a single symbol
    */
@@ -87,27 +108,36 @@ export class MarketAnalystAgent extends BaseAgent {
     context: AgentMessage['context'],
   ): Promise<AgentResponse> {
     try {
-      const prediction = await this.predictionService.generateMarketPrediction(symbol);
-      
+      const prediction =
+        await this.predictionService.generateMarketPrediction(symbol);
+
       // Share prediction with other agents
-      this.emit('event', {
-        type: 'market-prediction-generated',
-        symbol,
-        prediction: {
-          direction: prediction.prediction.direction,
-          confidence: prediction.prediction.confidence,
+      this.emit(
+        'event',
+        {
+          type: 'market-prediction-generated',
+          symbol,
+          prediction: {
+            direction: prediction.prediction.direction,
+            confidence: prediction.prediction.confidence,
+          },
         },
-      }, context);
-      
+        context,
+      );
+
       // Alert on high-confidence signals
       if (prediction.prediction.confidence >= 80) {
-        this.emitAlert({
-          type: 'high-confidence-signal',
-          message: `High confidence ${prediction.prediction.direction} signal on ${symbol}`,
-          prediction,
-        }, context, 'high');
+        this.emitAlert(
+          {
+            type: 'high-confidence-signal',
+            message: `High confidence ${prediction.prediction.direction} signal on ${symbol}`,
+            prediction,
+          },
+          context,
+          'high',
+        );
       }
-      
+
       return {
         success: true,
         data: {
@@ -128,12 +158,15 @@ export class MarketAnalystAgent extends BaseAgent {
         success: false,
         error: {
           code: 'PREDICTION_FAILED',
-          message: error instanceof Error ? error.message : 'Failed to generate prediction',
+          message:
+            error instanceof Error
+              ? error.message
+              : 'Failed to generate prediction',
         },
       };
     }
   }
-  
+
   /**
    * Get predictions for multiple symbols
    */
@@ -151,27 +184,42 @@ export class MarketAnalystAgent extends BaseAgent {
           },
         };
       }
-      
-      const predictions = await this.predictionService.generateMultiSymbolPredictions(symbols);
-      
+
+      const predictions =
+        await this.predictionService.generateMultiSymbolPredictions(symbols);
+
       // Find best opportunities
       const bullishOpportunities = predictions
-        .filter(p => p.prediction.direction === 'bullish' && p.prediction.confidence >= 70)
+        .filter(
+          (p) =>
+            p.prediction.direction === 'bullish' &&
+            p.prediction.confidence >= 70,
+        )
         .sort((a, b) => b.prediction.confidence - a.prediction.confidence);
-      
+
       const bearishOpportunities = predictions
-        .filter(p => p.prediction.direction === 'bearish' && p.prediction.confidence >= 70)
+        .filter(
+          (p) =>
+            p.prediction.direction === 'bearish' &&
+            p.prediction.confidence >= 70,
+        )
         .sort((a, b) => b.prediction.confidence - a.prediction.confidence);
-      
+
       return {
         success: true,
         data: {
           predictions,
           summary: {
             totalSymbols: symbols.length,
-            bullishCount: predictions.filter(p => p.prediction.direction === 'bullish').length,
-            bearishCount: predictions.filter(p => p.prediction.direction === 'bearish').length,
-            neutralCount: predictions.filter(p => p.prediction.direction === 'neutral').length,
+            bullishCount: predictions.filter(
+              (p) => p.prediction.direction === 'bullish',
+            ).length,
+            bearishCount: predictions.filter(
+              (p) => p.prediction.direction === 'bearish',
+            ).length,
+            neutralCount: predictions.filter(
+              (p) => p.prediction.direction === 'neutral',
+            ).length,
           },
           topOpportunities: {
             bullish: bullishOpportunities.slice(0, 3),
@@ -184,12 +232,15 @@ export class MarketAnalystAgent extends BaseAgent {
         success: false,
         error: {
           code: 'MULTI_PREDICTION_FAILED',
-          message: error instanceof Error ? error.message : 'Failed to generate predictions',
+          message:
+            error instanceof Error
+              ? error.message
+              : 'Failed to generate predictions',
         },
       };
     }
   }
-  
+
   /**
    * Analyze market conditions for a symbol
    */
@@ -198,8 +249,9 @@ export class MarketAnalystAgent extends BaseAgent {
     context: AgentMessage['context'],
   ): Promise<AgentResponse> {
     try {
-      const prediction = await this.predictionService.generateMarketPrediction(symbol);
-      
+      const prediction =
+        await this.predictionService.generateMarketPrediction(symbol);
+
       return {
         success: true,
         data: {
@@ -220,12 +272,13 @@ export class MarketAnalystAgent extends BaseAgent {
         success: false,
         error: {
           code: 'ANALYSIS_FAILED',
-          message: error instanceof Error ? error.message : 'Failed to analyze market',
+          message:
+            error instanceof Error ? error.message : 'Failed to analyze market',
         },
       };
     }
   }
-  
+
   /**
    * Generate actionable trading recommendation
    */
@@ -236,11 +289,11 @@ export class MarketAnalystAgent extends BaseAgent {
   } {
     const { direction, confidence } = prediction.prediction;
     const { volatility } = prediction.technicalAnalysis;
-    
+
     // Determine action
     let action: 'buy' | 'sell' | 'wait' | 'hold' = 'wait';
     let confidenceLevel: 'low' | 'medium' | 'high' = 'low';
-    
+
     if (confidence >= 75) {
       confidenceLevel = 'high';
       if (direction === 'bullish') action = 'buy';
@@ -256,21 +309,23 @@ export class MarketAnalystAgent extends BaseAgent {
       action = 'wait';
       confidenceLevel = 'low';
     }
-    
+
     return {
       action,
       confidence: confidenceLevel,
       rationale: prediction.rationale,
     };
   }
-  
+
   /**
    * React to events from other agents
    */
   protected async onEvent(message: AgentMessage): Promise<void> {
     // React to trade events - could update predictions based on closed trades
     if (message.payload?.type === 'trade-closed') {
-      this.logger.debug(`Trade closed on ${message.payload.symbol}, could update predictions`);
+      this.logger.debug(
+        `Trade closed on ${message.payload.symbol}, could update predictions`,
+      );
     }
   }
 }

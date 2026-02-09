@@ -12,7 +12,7 @@ import { AgentOrchestratorService } from './agent-orchestrator.service';
 
 /**
  * Agents Controller
- * 
+ *
  * Exposes multi-agent system endpoints:
  * - Risk calculations
  * - Trade assessments
@@ -23,16 +23,17 @@ import { AgentOrchestratorService } from './agent-orchestrator.service';
 @UseGuards(JwtAuthGuard)
 export class AgentsController {
   private readonly logger = new Logger(AgentsController.name);
-  
+
   constructor(private readonly orchestrator: AgentOrchestratorService) {}
-  
+
   /**
    * Calculate position size based on risk parameters
    */
   @Post('risk/position-size')
   async calculatePositionSize(
     @Req() req: any,
-    @Body() body: {
+    @Body()
+    body: {
       accountBalance: number;
       riskPercent?: number;
       entryPrice: number;
@@ -41,7 +42,7 @@ export class AgentsController {
     },
   ) {
     const context = this.orchestrator.createContext(req.user.id);
-    
+
     const response = await this.orchestrator.routeToCapability(
       'risk-calculation',
       {
@@ -50,17 +51,18 @@ export class AgentsController {
       },
       context,
     );
-    
+
     return response;
   }
-  
+
   /**
    * Assess trade risk/reward
    */
   @Post('risk/assess-trade')
   async assessTradeRisk(
     @Req() req: any,
-    @Body() body: {
+    @Body()
+    body: {
       symbol?: string;
       direction?: 'buy' | 'sell';
       entryPrice: number;
@@ -70,7 +72,7 @@ export class AgentsController {
     },
   ) {
     const context = this.orchestrator.createContext(req.user.id);
-    
+
     const response = await this.orchestrator.routeToCapability(
       'trade-assessment',
       {
@@ -79,17 +81,18 @@ export class AgentsController {
       },
       context,
     );
-    
+
     return response;
   }
-  
+
   /**
    * Analyze portfolio risk
    */
   @Post('risk/portfolio')
   async analyzePortfolioRisk(
     @Req() req: any,
-    @Body() body: {
+    @Body()
+    body: {
       openTrades: Array<{
         symbol: string;
         direction: 'buy' | 'sell';
@@ -102,7 +105,7 @@ export class AgentsController {
     },
   ) {
     const context = this.orchestrator.createContext(req.user.id);
-    
+
     const response = await this.orchestrator.routeToCapability(
       'portfolio-risk',
       {
@@ -111,36 +114,33 @@ export class AgentsController {
       },
       context,
     );
-    
+
     return response;
   }
-  
+
   /**
    * Get risk management rules
    */
   @Get('risk/rules')
   async getRiskRules(@Req() req: any) {
     const context = this.orchestrator.createContext(req.user.id);
-    
+
     const response = await this.orchestrator.routeToCapability(
       'risk-calculation',
       { action: 'get-risk-rules' },
       context,
     );
-    
+
     return response;
   }
-  
+
   /**
    * Get market prediction for a symbol
    */
   @Post('market/predict')
-  async getMarketPrediction(
-    @Req() req: any,
-    @Body() body: { symbol: string },
-  ) {
+  async getMarketPrediction(@Req() req: any, @Body() body: { symbol: string }) {
     const context = this.orchestrator.createContext(req.user.id);
-    
+
     const response = await this.orchestrator.routeToCapability(
       'market-prediction',
       {
@@ -149,10 +149,10 @@ export class AgentsController {
       },
       context,
     );
-    
+
     return response;
   }
-  
+
   /**
    * Analyze trading psychology from text
    */
@@ -162,7 +162,7 @@ export class AgentsController {
     @Body() body: { text: string; tradeId?: string },
   ) {
     const context = this.orchestrator.createContext(req.user.id);
-    
+
     const response = await this.orchestrator.routeToCapability(
       'psychology-analysis',
       {
@@ -171,17 +171,18 @@ export class AgentsController {
       },
       context,
     );
-    
+
     return response;
   }
-  
+
   /**
    * Execute multi-agent workflow: analyze trade then assess risk
    */
   @Post('workflow/full-analysis')
   async fullTradeAnalysis(
     @Req() req: any,
-    @Body() body: {
+    @Body()
+    body: {
       symbol: string;
       entryPrice: number;
       stopLoss: number;
@@ -190,7 +191,7 @@ export class AgentsController {
     },
   ) {
     const context = this.orchestrator.createContext(req.user.id);
-    
+
     // Execute multi-agent workflow
     const response = await this.orchestrator.executeWorkflow(
       [
@@ -207,20 +208,17 @@ export class AgentsController {
       },
       context,
     );
-    
+
     return response;
   }
-  
+
   /**
    * Chat with ICT Mentor (RAG)
    */
   @Post('mentor/chat')
-  async chatWithMentor(
-    @Req() req: any,
-    @Body() body: { question: string },
-  ) {
+  async chatWithMentor(@Req() req: any, @Body() body: { question: string }) {
     const context = this.orchestrator.createContext(req.user.id);
-    
+
     const response = await this.orchestrator.routeToCapability(
       'mentor-qa',
       {
@@ -229,7 +227,7 @@ export class AgentsController {
       },
       context,
     );
-    
+
     return response;
   }
 
@@ -242,7 +240,7 @@ export class AgentsController {
     @Body() body: { imageUrl: string; description?: string },
   ) {
     const context = this.orchestrator.createContext(req.user.id);
-    
+
     const response = await this.orchestrator.routeToCapability(
       'audit-trade',
       {
@@ -252,7 +250,7 @@ export class AgentsController {
       },
       context,
     );
-    
+
     return response;
   }
 
@@ -262,10 +260,11 @@ export class AgentsController {
   @Post('mentor/ingest')
   async ingestKnowledge(
     @Req() req: any,
-    @Body() body: { title: string; content: string; type: 'transcript' | 'text' },
+    @Body()
+    body: { title: string; content: string; type: 'transcript' | 'text' },
   ) {
     const context = this.orchestrator.createContext(req.user.id);
-    
+
     const response = await this.orchestrator.routeToCapability(
       'ingest-knowledge',
       {
@@ -276,7 +275,7 @@ export class AgentsController {
       },
       context,
     );
-    
+
     return response;
   }
 

@@ -13,6 +13,9 @@ export class PredictiveTradesController {
 
   @Post('predict')
   async predict(@Req() req, @Body() createPredictionDto: CreatePredictionDto) {
-    return this.predictiveTradesService.predict(req.user.id, createPredictionDto);
+    return this.predictiveTradesService.predict(
+      req.user.id,
+      createPredictionDto,
+    );
   }
-} 
+}

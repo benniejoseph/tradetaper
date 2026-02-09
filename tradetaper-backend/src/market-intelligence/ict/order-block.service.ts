@@ -43,9 +43,11 @@ export class OrderBlockService {
   identifyOrderBlocks(
     symbol: string,
     priceData: any[],
-    timeframe: string = '1D'
+    timeframe: string = '1D',
   ): OrderBlockAnalysis {
-    this.logger.log(`Identifying ICT Order Blocks for ${symbol} on ${timeframe}`);
+    this.logger.log(
+      `Identifying ICT Order Blocks for ${symbol} on ${timeframe}`,
+    );
 
     const bullishOrderBlocks: OrderBlock[] = [];
     const bearishOrderBlocks: OrderBlock[] = [];
@@ -71,15 +73,16 @@ export class OrderBlockService {
     }
 
     // Filter active (untested or holding) order blocks
-    const activeOrderBlocks = [...bullishOrderBlocks, ...bearishOrderBlocks].filter(
-      (ob) => !ob.isBreaker && ob.holdingStrength > 50
-    );
+    const activeOrderBlocks = [
+      ...bullishOrderBlocks,
+      ...bearishOrderBlocks,
+    ].filter((ob) => !ob.isBreaker && ob.holdingStrength > 50);
 
     // Find nearest order block
     const currentPrice = priceData[priceData.length - 1].close;
     const nearestOrderBlock = this.findNearestOrderBlock(
       activeOrderBlocks,
-      currentPrice
+      currentPrice,
     );
 
     // Generate analysis
@@ -88,13 +91,13 @@ export class OrderBlockService {
       bearishOrderBlocks,
       activeOrderBlocks,
       nearestOrderBlock,
-      currentPrice
+      currentPrice,
     );
 
     // Generate trading setups
     const tradingSetups = this.generateTradingSetups(
       nearestOrderBlock,
-      currentPrice
+      currentPrice,
     );
 
     return {
@@ -115,7 +118,7 @@ export class OrderBlockService {
    */
   private identifyBullishOrderBlock(
     priceData: any[],
-    index: number
+    index: number,
   ): OrderBlock | null {
     const candle = priceData[index];
 
@@ -143,7 +146,7 @@ export class OrderBlockService {
     const strength = this.calculateOrderBlockStrength(
       candle,
       nextCandles,
-      'bullish'
+      'bullish',
     );
 
     return {
@@ -169,7 +172,7 @@ export class OrderBlockService {
    */
   private identifyBearishOrderBlock(
     priceData: any[],
-    index: number
+    index: number,
   ): OrderBlock | null {
     const candle = priceData[index];
 
@@ -195,7 +198,7 @@ export class OrderBlockService {
     const strength = this.calculateOrderBlockStrength(
       candle,
       nextCandles,
-      'bearish'
+      'bearish',
     );
 
     return {
@@ -222,7 +225,7 @@ export class OrderBlockService {
   private calculateOrderBlockStrength(
     obCandle: any,
     reactionCandles: any[],
-    type: 'bullish' | 'bearish'
+    type: 'bullish' | 'bearish',
   ): 'strong' | 'moderate' | 'weak' {
     // Factors:
     // 1. Volume of OB candle
@@ -245,12 +248,20 @@ export class OrderBlockService {
     const avgCandleSize = totalMove / reactionCandles.length;
 
     // Strong OB: High volume, good body ratio, strong reaction
-    if (obVolume > avgVolume * 1.5 && bodyRatio > 0.6 && avgCandleSize > obBody) {
+    if (
+      obVolume > avgVolume * 1.5 &&
+      bodyRatio > 0.6 &&
+      avgCandleSize > obBody
+    ) {
       return 'strong';
     }
 
     // Weak OB: Low volume, small body, weak reaction
-    if (obVolume < avgVolume || bodyRatio < 0.3 || avgCandleSize < obBody * 0.5) {
+    if (
+      obVolume < avgVolume ||
+      bodyRatio < 0.3 ||
+      avgCandleSize < obBody * 0.5
+    ) {
       return 'weak';
     }
 
@@ -263,7 +274,7 @@ export class OrderBlockService {
   private checkOrderBlockTest(
     ob: OrderBlock,
     priceData: any[],
-    startIndex: number
+    startIndex: number,
   ): void {
     for (let i = startIndex + 1; i < priceData.length; i++) {
       const candle = priceData[i];
@@ -338,7 +349,7 @@ export class OrderBlockService {
    */
   private findNearestOrderBlock(
     activeOrderBlocks: OrderBlock[],
-    currentPrice: number
+    currentPrice: number,
   ): OrderBlock | null {
     if (activeOrderBlocks.length === 0) return null;
 
@@ -366,49 +377,59 @@ export class OrderBlockService {
     bearishOBs: OrderBlock[],
     activeOBs: OrderBlock[],
     nearestOB: OrderBlock | null,
-    currentPrice: number
+    currentPrice: number,
   ): string[] {
     const analysis: string[] = [];
 
     analysis.push(`🏛️ ICT Order Block Analysis`);
-    analysis.push(`Total Order Blocks: ${bullishOBs.length + bearishOBs.length}`);
+    analysis.push(
+      `Total Order Blocks: ${bullishOBs.length + bearishOBs.length}`,
+    );
     analysis.push(`   • Bullish OBs: ${bullishOBs.length}`);
     analysis.push(`   • Bearish OBs: ${bearishOBs.length}`);
     analysis.push(`   • Active OBs: ${activeOBs.length} ⭐`);
 
     // Breaker blocks
-    const breakerBlocks = [...bullishOBs, ...bearishOBs].filter((ob) => ob.isBreaker);
+    const breakerBlocks = [...bullishOBs, ...bearishOBs].filter(
+      (ob) => ob.isBreaker,
+    );
     if (breakerBlocks.length > 0) {
       analysis.push(
-        `   • Breaker Blocks: ${breakerBlocks.length} (failed OBs that became resistance/support)`
+        `   • Breaker Blocks: ${breakerBlocks.length} (failed OBs that became resistance/support)`,
       );
     }
 
     if (nearestOB) {
-      const distance = Math.abs(currentPrice - (nearestOB.high + nearestOB.low) / 2);
+      const distance = Math.abs(
+        currentPrice - (nearestOB.high + nearestOB.low) / 2,
+      );
       const distancePercent = (distance / currentPrice) * 100;
 
       analysis.push(`\n🎯 Nearest Active Order Block:`);
       analysis.push(`   Type: ${nearestOB.type.toUpperCase()}`);
       analysis.push(
-        `   Range: ${safeToFixed(nearestOB.low, 2)} - ${safeToFixed(nearestOB.high, 2)}`
+        `   Range: ${safeToFixed(nearestOB.low, 2)} - ${safeToFixed(nearestOB.high, 2)}`,
       );
       analysis.push(`   Strength: ${nearestOB.strength.toUpperCase()}`);
       analysis.push(`   Tested: ${nearestOB.testCount} time(s)`);
+      analysis.push(`   Holding Strength: ${nearestOB.holdingStrength}%`);
       analysis.push(
-        `   Holding Strength: ${nearestOB.holdingStrength}%`
+        `   Distance: ${safeToFixed(distancePercent, 2)}% from current price`,
       );
-      analysis.push(`   Distance: ${safeToFixed(distancePercent, 2)}% from current price`);
 
       if (nearestOB.isBreaker) {
-        analysis.push(`   ⚠️ BREAKER BLOCK - OB was broken, now acts as opposite level`);
+        analysis.push(
+          `   ⚠️ BREAKER BLOCK - OB was broken, now acts as opposite level`,
+        );
       }
     }
 
     // Strong active OBs
     const strongActiveOBs = activeOBs.filter((ob) => ob.strength === 'strong');
     if (strongActiveOBs.length > 0) {
-      analysis.push(`\n⚡ ${strongActiveOBs.length} STRONG active Order Blocks`);
+      analysis.push(
+        `\n⚡ ${strongActiveOBs.length} STRONG active Order Blocks`,
+      );
       analysis.push(`   These are HIGH-PROBABILITY support/resistance zones`);
     }
 
@@ -420,7 +441,7 @@ export class OrderBlockService {
    */
   private generateTradingSetups(
     nearestOB: OrderBlock | null,
-    currentPrice: number
+    currentPrice: number,
   ): string[] {
     const setups: string[] = [];
 
@@ -437,17 +458,21 @@ export class OrderBlockService {
         // Price above bullish OB - wait for retest
         setups.push(`📉 BULLISH ORDER BLOCK RETEST SETUP:`);
         setups.push(
-          `   • Bullish OB below at ${safeToFixed(nearestOB.low, 2)} - ${safeToFixed(nearestOB.high, 2)}`
+          `   • Bullish OB below at ${safeToFixed(nearestOB.low, 2)} - ${safeToFixed(nearestOB.high, 2)}`,
         );
         setups.push(
-          `   • Distance: ${safeToFixed(Math.abs(distancePercent), 2)}% below current price`
+          `   • Distance: ${safeToFixed(Math.abs(distancePercent), 2)}% below current price`,
         );
         setups.push(`   • Strategy: Wait for price to retrace to OB`);
-        setups.push(`   • Entry: Within OB range, preferably at ${safeToFixed(obMidpoint, 2)}`);
-        setups.push(`   • Stop Loss: Below OB at ${nearestOB.low * 0.998, 2}`);
+        setups.push(
+          `   • Entry: Within OB range, preferably at ${safeToFixed(obMidpoint, 2)}`,
+        );
+        setups.push(
+          `   • Stop Loss: Below OB at ${(nearestOB.low * 0.998, 2)}`,
+        );
         setups.push(`   • Target: Recent swing high`);
         setups.push(
-          `   • Holding Strength: ${nearestOB.holdingStrength}% (${nearestOB.testCount} previous tests)`
+          `   • Holding Strength: ${nearestOB.holdingStrength}% (${nearestOB.testCount} previous tests)`,
         );
 
         if (nearestOB.strength === 'strong') {
@@ -461,16 +486,18 @@ export class OrderBlockService {
         setups.push(`🎯 PRICE IN BULLISH ORDER BLOCK - BUY ZONE!`);
         setups.push(`   • Current price: ${safeToFixed(currentPrice, 2)}`);
         setups.push(
-          `   • OB range: ${safeToFixed(nearestOB.low, 2)} - ${safeToFixed(nearestOB.high, 2)}`
+          `   • OB range: ${safeToFixed(nearestOB.low, 2)} - ${safeToFixed(nearestOB.high, 2)}`,
         );
         setups.push(`   • Action: Consider LONG entry NOW`);
-        setups.push(`   • Stop Loss: Below OB at ${nearestOB.low * 0.998, 2}`);
+        setups.push(
+          `   • Stop Loss: Below OB at ${(nearestOB.low * 0.998, 2)}`,
+        );
         setups.push(`   • Target 1: Recent swing high`);
         setups.push(`   • Target 2: Next resistance level`);
 
         if (nearestOB.testCount > 0) {
           setups.push(
-            `   ✅ OB has held ${nearestOB.testCount} time(s) - proven demand zone`
+            `   ✅ OB has held ${nearestOB.testCount} time(s) - proven demand zone`,
           );
         }
       }
@@ -479,18 +506,20 @@ export class OrderBlockService {
       if (currentPrice < nearestOB.low) {
         setups.push(`📈 BEARISH ORDER BLOCK RETEST SETUP:`);
         setups.push(
-          `   • Bearish OB above at ${safeToFixed(nearestOB.low, 2)} - ${safeToFixed(nearestOB.high, 2)}`
+          `   • Bearish OB above at ${safeToFixed(nearestOB.low, 2)} - ${safeToFixed(nearestOB.high, 2)}`,
         );
         setups.push(
-          `   • Distance: ${safeToFixed(Math.abs(distancePercent), 2)}% above current price`
+          `   • Distance: ${safeToFixed(Math.abs(distancePercent), 2)}% above current price`,
         );
         setups.push(`   • Strategy: Wait for price to retrace to OB`);
-        setups.push(`   • Entry: Within OB range, preferably at ${safeToFixed(obMidpoint, 2)}`);
-        setups.push(`   • Stop Loss: Above OB at ${nearestOB.high * 1.002, 2}`);
-        setups.push(`   • Target: Recent swing low`);
         setups.push(
-          `   • Holding Strength: ${nearestOB.holdingStrength}%`
+          `   • Entry: Within OB range, preferably at ${safeToFixed(obMidpoint, 2)}`,
         );
+        setups.push(
+          `   • Stop Loss: Above OB at ${(nearestOB.high * 1.002, 2)}`,
+        );
+        setups.push(`   • Target: Recent swing low`);
+        setups.push(`   • Holding Strength: ${nearestOB.holdingStrength}%`);
 
         if (nearestOB.strength === 'strong') {
           setups.push(`   ⭐ STRONG OB - Institutional supply zone`);
@@ -502,16 +531,18 @@ export class OrderBlockService {
         setups.push(`🎯 PRICE IN BEARISH ORDER BLOCK - SELL ZONE!`);
         setups.push(`   • Current price: ${safeToFixed(currentPrice, 2)}`);
         setups.push(
-          `   • OB range: ${safeToFixed(nearestOB.low, 2)} - ${safeToFixed(nearestOB.high, 2)}`
+          `   • OB range: ${safeToFixed(nearestOB.low, 2)} - ${safeToFixed(nearestOB.high, 2)}`,
         );
         setups.push(`   • Action: Consider SHORT entry NOW`);
-        setups.push(`   • Stop Loss: Above OB at ${nearestOB.high * 1.002, 2}`);
+        setups.push(
+          `   • Stop Loss: Above OB at ${(nearestOB.high * 1.002, 2)}`,
+        );
         setups.push(`   • Target 1: Recent swing low`);
         setups.push(`   • Target 2: Next support level`);
 
         if (nearestOB.testCount > 0) {
           setups.push(
-            `   ✅ OB has held ${nearestOB.testCount} time(s) - proven supply zone`
+            `   ✅ OB has held ${nearestOB.testCount} time(s) - proven supply zone`,
           );
         }
       }
@@ -520,4 +551,3 @@ export class OrderBlockService {
     return setups;
   }
 }
-

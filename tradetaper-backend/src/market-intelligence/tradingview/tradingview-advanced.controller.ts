@@ -1,4 +1,12 @@
-import { Controller, Get, Post, Query, Body, UseGuards, Logger } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Query,
+  Body,
+  UseGuards,
+  Logger,
+} from '@nestjs/common';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { TradingViewAdvancedService } from './tradingview-advanced.service';
 
@@ -41,14 +49,21 @@ export class TradingViewAdvancedController {
     @Query('interval') interval = '4h',
   ): Promise<any> {
     try {
-      const analysis = await this.tradingViewAdvancedService.getTechnicalAnalysis(symbol, interval);
-      
+      const analysis =
+        await this.tradingViewAdvancedService.getTechnicalAnalysis(
+          symbol,
+          interval,
+        );
+
       return {
         success: true,
         data: analysis,
       };
     } catch (error: any) {
-      this.logger.error(`Failed to get technical analysis for ${symbol}:`, error.message);
+      this.logger.error(
+        `Failed to get technical analysis for ${symbol}:`,
+        error.message,
+      );
       return {
         success: false,
         error: error.message,
@@ -63,21 +78,18 @@ export class TradingViewAdvancedController {
    */
   @Post('chart-data')
   async getChartData(
-    @Body() body: {
-      symbol: string;
-      interval?: string;
-      indicators?: string[];
-    },
+    @Body() body: { symbol: string; interval?: string; indicators?: string[] },
   ): Promise<any> {
     try {
       const { symbol = 'XAUUSD', interval = '240', indicators = [] } = body;
-      
-      const chartData = await this.tradingViewAdvancedService.getChartWithIndicators(
-        symbol,
-        interval,
-        indicators,
-      );
-      
+
+      const chartData =
+        await this.tradingViewAdvancedService.getChartWithIndicators(
+          symbol,
+          interval,
+          indicators,
+        );
+
       return {
         success: true,
         data: chartData,
@@ -98,7 +110,8 @@ export class TradingViewAdvancedController {
    */
   @Post('indicator')
   async getIndicator(
-    @Body() body: {
+    @Body()
+    body: {
       symbol: string;
       indicatorName: string;
       interval?: string;
@@ -107,21 +120,22 @@ export class TradingViewAdvancedController {
   ): Promise<any> {
     try {
       const { symbol, indicatorName, interval = '240', settings } = body;
-      
+
       if (!indicatorName) {
         return {
           success: false,
           error: 'Indicator name is required',
         };
       }
-      
-      const indicatorData = await this.tradingViewAdvancedService.getIndicatorValues(
-        symbol,
-        indicatorName,
-        interval,
-        settings,
-      );
-      
+
+      const indicatorData =
+        await this.tradingViewAdvancedService.getIndicatorValues(
+          symbol,
+          indicatorName,
+          interval,
+          settings,
+        );
+
       return {
         success: true,
         data: indicatorData,
@@ -148,9 +162,10 @@ export class TradingViewAdvancedController {
           error: 'Chart ID is required',
         };
       }
-      
-      const drawings = await this.tradingViewAdvancedService.getChartDrawings(chartId);
-      
+
+      const drawings =
+        await this.tradingViewAdvancedService.getChartDrawings(chartId);
+
       return {
         success: true,
         data: drawings,
@@ -174,8 +189,11 @@ export class TradingViewAdvancedController {
     @Query('market') market = 'forex',
   ): Promise<any> {
     try {
-      const results = await this.tradingViewAdvancedService.getScreenerResults(filter, market);
-      
+      const results = await this.tradingViewAdvancedService.getScreenerResults(
+        filter,
+        market,
+      );
+
       return {
         success: true,
         data: results,
@@ -221,10 +239,10 @@ export class TradingViewAdvancedController {
       });
 
       const results = await Promise.allSettled(indicatorPromises);
-      
+
       const indicators = results
-        .filter(r => r.status === 'fulfilled' && r.value !== null)
-        .map(r => (r as any).value);
+        .filter((r) => r.status === 'fulfilled' && r.value !== null)
+        .map((r) => (r as any).value);
 
       return {
         success: true,
@@ -243,4 +261,3 @@ export class TradingViewAdvancedController {
     }
   }
 }
-

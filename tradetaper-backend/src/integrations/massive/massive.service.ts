@@ -13,12 +13,17 @@ export class MassiveService {
     if (this.apiKey) {
       this.logger.log('Massive (Polygon) Service initialized (HTTP Mode)');
     } else {
-      this.logger.warn('POLYGON_API_KEY not found. Massive integration disabled.');
+      this.logger.warn(
+        'POLYGON_API_KEY not found. Massive integration disabled.',
+      );
     }
   }
 
   // Map backend normalized timeframe to Polygon timeframe
-  private readonly timeframeMap: Record<string, { multiplier: number; timespan: string }> = {
+  private readonly timeframeMap: Record<
+    string,
+    { multiplier: number; timespan: string }
+  > = {
     '1m': { multiplier: 1, timespan: 'minute' },
     '5m': { multiplier: 5, timespan: 'minute' },
     '15m': { multiplier: 15, timespan: 'minute' },
@@ -40,9 +45,14 @@ export class MassiveService {
     if (!this.apiKey) return [];
 
     const ticker = this._resolveSymbol(symbol);
-    const tf = this.timeframeMap[timeframe] || { multiplier: 1, timespan: 'day' };
+    const tf = this.timeframeMap[timeframe] || {
+      multiplier: 1,
+      timespan: 'day',
+    };
 
-    this.logger.log(`Fetching from Massive: ${ticker} (${tf.multiplier} ${tf.timespan}) [${startTime.toISOString()} - ${endTime.toISOString()}]`);
+    this.logger.log(
+      `Fetching from Massive: ${ticker} (${tf.multiplier} ${tf.timespan}) [${startTime.toISOString()} - ${endTime.toISOString()}]`,
+    );
 
     try {
       // Polygon API: /v2/aggs/ticker/{ticker}/range/{multiplier}/{timespan}/{from}/{to}
@@ -57,11 +67,15 @@ export class MassiveService {
           apiKey: this.apiKey,
           limit: 50000,
           adjusted: true,
-          sort: 'asc'
-        }
+          sort: 'asc',
+        },
       });
 
-      if (!response.data || response.data.resultsCount === 0 || !response.data.results) {
+      if (
+        !response.data ||
+        response.data.resultsCount === 0 ||
+        !response.data.results
+      ) {
         return [];
       }
 
@@ -75,12 +89,15 @@ export class MassiveService {
         close: candle.c,
         tickVolume: candle.v,
       }));
-
     } catch (error) {
       if (axios.isAxiosError(error)) {
-        this.logger.warn(`Failed to fetch from Massive for ${ticker}: ${error.response?.status} ${error.response?.statusText} - ${JSON.stringify(error.response?.data)}`);
+        this.logger.warn(
+          `Failed to fetch from Massive for ${ticker}: ${error.response?.status} ${error.response?.statusText} - ${JSON.stringify(error.response?.data)}`,
+        );
       } else {
-        this.logger.warn(`Failed to fetch from Massive for ${ticker}: ${error.message}`);
+        this.logger.warn(
+          `Failed to fetch from Massive for ${ticker}: ${error.message}`,
+        );
       }
       return [];
     }
@@ -94,7 +111,7 @@ export class MassiveService {
 
     // Forex: C:EURUSD
     if (s.length === 6 && /^[A-Z]+$/.test(s)) {
-        return `C:${s}`; 
+      return `C:${s}`;
     }
 
     // Crypto: X:BTCUSD

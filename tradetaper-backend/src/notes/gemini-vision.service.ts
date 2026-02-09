@@ -29,13 +29,17 @@ export class GeminiVisionService {
 
       try {
         // Clean markdown
-        const cleanText = text.replace(/```json/g, '').replace(/```/g, '').trim();
+        const cleanText = text
+          .replace(/```json/g, '')
+          .replace(/```/g, '')
+          .trim();
         return JSON.parse(cleanText);
       } catch (jsonError) {
         this.logger.error(`Failed to parse Vision JSON: ${jsonError.message}`);
         // Fallback extraction
         const extractedData: any = {};
-        const regex = /"(symbol|direction|entryPrice|exitPrice|stopLoss|takeProfit)":\s*"?([^",]+)"?/g;
+        const regex =
+          /"(symbol|direction|entryPrice|exitPrice|stopLoss|takeProfit)":\s*"?([^",]+)"?/g;
         let match;
         while ((match = regex.exec(text)) !== null) {
           extractedData[match[1]] = match[2];

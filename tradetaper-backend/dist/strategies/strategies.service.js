@@ -87,8 +87,8 @@ let StrategiesService = class StrategiesService {
                 profitFactor: 0,
             };
         }
-        const winningTrades = trades.filter(t => (t.profitOrLoss || 0) > 0);
-        const losingTrades = trades.filter(t => (t.profitOrLoss || 0) < 0);
+        const winningTrades = trades.filter((t) => (t.profitOrLoss || 0) > 0);
+        const losingTrades = trades.filter((t) => (t.profitOrLoss || 0) < 0);
         const totalPnl = trades.reduce((sum, t) => sum + (Number(t.profitOrLoss) || 0), 0);
         const totalWins = winningTrades.reduce((sum, t) => sum + (Number(t.profitOrLoss) || 0), 0);
         const totalLosses = Math.abs(losingTrades.reduce((sum, t) => sum + (Number(t.profitOrLoss) || 0), 0));
@@ -107,7 +107,9 @@ let StrategiesService = class StrategiesService {
             averagePnl: parseFloat(averagePnl.toFixed(2)),
             averageWin: parseFloat(averageWin.toFixed(2)),
             averageLoss: parseFloat(averageLoss.toFixed(2)),
-            profitFactor: profitFactor === Infinity ? 999.99 : parseFloat(profitFactor.toFixed(2)),
+            profitFactor: profitFactor === Infinity
+                ? 999.99
+                : parseFloat(profitFactor.toFixed(2)),
         };
     }
     async getAllStrategiesWithStats(userId) {

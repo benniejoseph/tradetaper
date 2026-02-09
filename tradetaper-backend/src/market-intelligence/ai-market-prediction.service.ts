@@ -16,7 +16,12 @@ export interface AIMarketPrediction {
     probability: number; // 0-100
   };
   technicalAnalysis: {
-    trend: 'strong_bullish' | 'bullish' | 'neutral' | 'bearish' | 'strong_bearish';
+    trend:
+      | 'strong_bullish'
+      | 'bullish'
+      | 'neutral'
+      | 'bearish'
+      | 'strong_bearish';
     momentum: number; // -100 to 100
     volatility: 'low' | 'medium' | 'high';
     keyLevels: {
@@ -63,14 +68,19 @@ export class AIMarketPredictionService {
       }
 
       // 2. Filter data for relevance
-      const relevantNews = news.news.filter(n => 
-        n.title.includes(symbol) || 
-        n.summary.includes(symbol) || 
-        (symbol.includes('USD') && (n.category === 'fed' || n.category === 'economy'))
-      ).slice(0, 5);
+      const relevantNews = news.news
+        .filter(
+          (n) =>
+            n.title.includes(symbol) ||
+            n.summary.includes(symbol) ||
+            (symbol.includes('USD') &&
+              (n.category === 'fed' || n.category === 'economy')),
+        )
+        .slice(0, 5);
 
-      const relevantEvents = economicEvents.filter(e => 
-        e.impact.affectedSymbols.includes(symbol) || e.currency === 'USD'
+      const relevantEvents = economicEvents.filter(
+        (e) =>
+          e.impact.affectedSymbols.includes(symbol) || e.currency === 'USD',
       );
 
       // 3. Construct LLM Context
@@ -84,8 +94,14 @@ export class AIMarketPredictionService {
           spread: quote.spread,
         },
         marketSentiment: sentiment,
-        relevantNews: relevantNews.map(n => ({ title: n.title, sentiment: n.sentiment })),
-        upcomingEvents: relevantEvents.map(e => ({ title: e.title, impact: e.impact.expected })),
+        relevantNews: relevantNews.map((n) => ({
+          title: n.title,
+          sentiment: n.sentiment,
+        })),
+        upcomingEvents: relevantEvents.map((e) => ({
+          title: e.title,
+          impact: e.impact.expected,
+        })),
         timestamp: new Date().toISOString(),
       };
 
@@ -128,15 +144,19 @@ export class AIMarketPredictionService {
         optimizeFor: 'quality',
       });
 
-      const result = JSON.parse(response.content.replace(/```json/g, '').replace(/```/g, '').trim());
+      const result = JSON.parse(
+        response.content
+          .replace(/```json/g, '')
+          .replace(/```/g, '')
+          .trim(),
+      );
 
       return {
         symbol,
-        timeframe: '4H', 
+        timeframe: '4H',
         ...result,
         timestamp: new Date(),
       };
-
     } catch (error) {
       this.logger.error(`Failed to generate prediction for ${symbol}`, error);
       // Fallback or rethrow
@@ -168,5 +188,3 @@ export class AIMarketPredictionService {
     }
   }
 }
-
-

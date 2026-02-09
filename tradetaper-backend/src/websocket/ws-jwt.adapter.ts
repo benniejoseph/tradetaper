@@ -50,7 +50,9 @@ export class WsJwtAdapter extends IoAdapter {
         // Try cookie as last resort (for cookie-based auth)
         if (!token && socket.handshake.headers.cookie) {
           const cookies = socket.handshake.headers.cookie.split('; ');
-          const authCookie = cookies.find((c: string) => c.startsWith('auth_token='));
+          const authCookie = cookies.find((c: string) =>
+            c.startsWith('auth_token='),
+          );
           if (authCookie) {
             token = authCookie.split('=')[1];
             this.logger.debug('Token extracted from cookie');
@@ -58,7 +60,9 @@ export class WsJwtAdapter extends IoAdapter {
         }
 
         if (!token) {
-          this.logger.warn(`WebSocket connection rejected: No token provided from ${socket.handshake.address}`);
+          this.logger.warn(
+            `WebSocket connection rejected: No token provided from ${socket.handshake.address}`,
+          );
           return next(new Error('Authentication token required'));
         }
 
@@ -80,7 +84,9 @@ export class WsJwtAdapter extends IoAdapter {
           role: payload.role,
         };
 
-        this.logger.log(`WebSocket authenticated: User ${payload.email} (${payload.sub})`);
+        this.logger.log(
+          `WebSocket authenticated: User ${payload.email} (${payload.sub})`,
+        );
         next();
       } catch (error) {
         this.logger.warn(`WebSocket authentication failed: ${error.message}`);

@@ -155,13 +155,20 @@ export class MarketIntelligenceService {
           sentimentScore += newsSentiment * 0.4;
 
           // Volume factor
-          if (quote && quote.volume && quote.averageVolume && quote.volume > quote.averageVolume * 1.5) {
+          if (
+            quote &&
+            quote.volume &&
+            quote.averageVolume &&
+            quote.volume > quote.averageVolume * 1.5
+          ) {
             sentimentScore += 0.2;
             sentimentReasons.push('Above average volume');
           }
 
           // Technical factor (RSI-like calculation)
-          const technicalSentiment = quote ? this.calculateTechnicalSentiment(quote) : 0;
+          const technicalSentiment = quote
+            ? this.calculateTechnicalSentiment(quote)
+            : 0;
           sentimentScore += technicalSentiment * 0.3;
 
           const sentiment =

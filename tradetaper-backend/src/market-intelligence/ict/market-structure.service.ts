@@ -37,9 +37,11 @@ export class MarketStructureService {
   analyzeMarketStructure(
     symbol: string,
     priceData: any[],
-    timeframe: string = '1D'
+    timeframe: string = '1D',
   ): MarketStructure {
-    this.logger.log(`Analyzing ICT market structure for ${symbol} on ${timeframe}`);
+    this.logger.log(
+      `Analyzing ICT market structure for ${symbol} on ${timeframe}`,
+    );
 
     // Identify swing points
     const swingPoints = this.identifySwingPoints(priceData);
@@ -58,14 +60,14 @@ export class MarketStructureService {
       trend,
       structureShift,
       structureLevels,
-      swingPoints
+      swingPoints,
     );
 
     // Determine trading bias
     const tradingBias = this.determineTradingBias(
       trend,
       structureShift,
-      priceData
+      priceData,
     );
 
     return {
@@ -142,7 +144,7 @@ export class MarketStructureService {
    */
   private determineTrend(
     swingPoints: any,
-    priceData: any[]
+    priceData: any[],
   ): 'bullish' | 'bearish' | 'ranging' {
     if (swingPoints.highs.length < 2 || swingPoints.lows.length < 2) {
       return 'ranging';
@@ -191,7 +193,7 @@ export class MarketStructureService {
    */
   private detectStructureShift(
     swingPoints: any,
-    priceData: any[]
+    priceData: any[],
   ): {
     type: 'BOS' | 'CHoCH' | 'none';
     shift: any | null;
@@ -297,11 +299,15 @@ export class MarketStructureService {
 
     return {
       higherHigh:
-        recentHighs[1].price > recentHighs[0].price ? recentHighs[1].price : null,
+        recentHighs[1].price > recentHighs[0].price
+          ? recentHighs[1].price
+          : null,
       higherLow:
         recentLows[1].price > recentLows[0].price ? recentLows[1].price : null,
       lowerHigh:
-        recentHighs[1].price < recentHighs[0].price ? recentHighs[1].price : null,
+        recentHighs[1].price < recentHighs[0].price
+          ? recentHighs[1].price
+          : null,
       lowerLow:
         recentLows[1].price < recentLows[0].price ? recentLows[1].price : null,
     };
@@ -314,7 +320,7 @@ export class MarketStructureService {
     trend: string,
     structureShift: any,
     structureLevels: any,
-    swingPoints: any
+    swingPoints: any,
   ): string[] {
     const analysis: string[] = [];
 
@@ -327,12 +333,12 @@ export class MarketStructureService {
 
       if (structureShift.type === 'BOS') {
         analysis.push(
-          `   • BOS indicates CONTINUATION of ${structureShift.shift.direction} trend`
+          `   • BOS indicates CONTINUATION of ${structureShift.shift.direction} trend`,
         );
         analysis.push(`   • Look for pullback entries in trend direction`);
       } else if (structureShift.type === 'CHoCH') {
         analysis.push(
-          `   • CHoCH indicates potential REVERSAL to ${structureShift.shift.direction} trend`
+          `   • CHoCH indicates potential REVERSAL to ${structureShift.shift.direction} trend`,
         );
         analysis.push(`   • Wait for confirmation before entering`);
       }
@@ -346,24 +352,24 @@ export class MarketStructureService {
     if (trend === 'bullish') {
       if (structureLevels.higherHigh) {
         analysis.push(
-          `   • Higher High: ${safeToFixed(structureLevels.higherHigh, 2)} ✅`
+          `   • Higher High: ${safeToFixed(structureLevels.higherHigh, 2)} ✅`,
         );
       }
       if (structureLevels.higherLow) {
         analysis.push(
-          `   • Higher Low: ${safeToFixed(structureLevels.higherLow, 2)} ✅`
+          `   • Higher Low: ${safeToFixed(structureLevels.higherLow, 2)} ✅`,
         );
       }
       analysis.push(`   • Bullish structure intact - look for LONG setups`);
     } else if (trend === 'bearish') {
       if (structureLevels.lowerHigh) {
         analysis.push(
-          `   • Lower High: ${safeToFixed(structureLevels.lowerHigh, 2)} ✅`
+          `   • Lower High: ${safeToFixed(structureLevels.lowerHigh, 2)} ✅`,
         );
       }
       if (structureLevels.lowerLow) {
         analysis.push(
-          `   • Lower Low: ${safeToFixed(structureLevels.lowerLow, 2)} ✅`
+          `   • Lower Low: ${safeToFixed(structureLevels.lowerLow, 2)} ✅`,
         );
       }
       analysis.push(`   • Bearish structure intact - look for SHORT setups`);
@@ -385,7 +391,7 @@ export class MarketStructureService {
   private determineTradingBias(
     trend: string,
     structureShift: any,
-    priceData: any[]
+    priceData: any[],
   ): 'long' | 'short' | 'neutral' {
     // If we have a recent CHoCH, bias changes
     if (structureShift.shift && structureShift.type === 'CHoCH') {
@@ -398,4 +404,3 @@ export class MarketStructureService {
     return 'neutral';
   }
 }
-

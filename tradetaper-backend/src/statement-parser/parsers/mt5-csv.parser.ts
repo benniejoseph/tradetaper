@@ -4,7 +4,7 @@ import { ParsedTrade } from '../dto/upload-statement.dto';
 
 /**
  * Parser for MT5 CSV Deal History exports
- * 
+ *
  * MT5 exports deal history as CSV with columns that vary by broker.
  * Common columns: Time, Deal, Symbol, Type, Direction, Volume, Price, Commission, Swap, Profit
  */
@@ -20,8 +20,8 @@ export class MT5CsvParser {
     const trades: ParsedTrade[] = [];
 
     try {
-      const lines = csvContent.split('\n').filter(line => line.trim());
-      
+      const lines = csvContent.split('\n').filter((line) => line.trim());
+
       if (lines.length < 2) {
         this.logger.warn('CSV file has no data rows');
         return trades;
@@ -30,8 +30,8 @@ export class MT5CsvParser {
       // Parse header to find column indices
       const headerLine = lines[0];
       const delimiter = this.detectDelimiter(headerLine);
-      const headers = this.parseCSVLine(headerLine, delimiter).map(h => 
-        h.toLowerCase().trim()
+      const headers = this.parseCSVLine(headerLine, delimiter).map((h) =>
+        h.toLowerCase().trim(),
       );
 
       // Map column indices
@@ -48,29 +48,41 @@ export class MT5CsvParser {
         if (!line) continue;
 
         const cells = this.parseCSVLine(line, delimiter);
-        
+
         // Get values using column map
         const dealId = colMap.deal !== -1 ? cells[colMap.deal] : '';
         const symbol = colMap.symbol !== -1 ? cells[colMap.symbol] : '';
-        const typeStr = colMap.type !== -1 ? cells[colMap.type]?.toLowerCase() : '';
-        const directionStr = colMap.direction !== -1 ? cells[colMap.direction]?.toLowerCase() : '';
-        const volume = colMap.volume !== -1 ? parseFloat(cells[colMap.volume]) || 0 : 0;
-        const price = colMap.price !== -1 ? parseFloat(cells[colMap.price]) || 0 : 0;
+        const typeStr =
+          colMap.type !== -1 ? cells[colMap.type]?.toLowerCase() : '';
+        const directionStr =
+          colMap.direction !== -1 ? cells[colMap.direction]?.toLowerCase() : '';
+        const volume =
+          colMap.volume !== -1 ? parseFloat(cells[colMap.volume]) || 0 : 0;
+        const price =
+          colMap.price !== -1 ? parseFloat(cells[colMap.price]) || 0 : 0;
         const timeStr = colMap.time !== -1 ? cells[colMap.time] : '';
-        const commission = colMap.commission !== -1 ? parseFloat(cells[colMap.commission]) || 0 : 0;
-        const swap = colMap.swap !== -1 ? parseFloat(cells[colMap.swap]) || 0 : 0;
-        const profit = colMap.profit !== -1 ? parseFloat(cells[colMap.profit]) || 0 : 0;
+        const commission =
+          colMap.commission !== -1
+            ? parseFloat(cells[colMap.commission]) || 0
+            : 0;
+        const swap =
+          colMap.swap !== -1 ? parseFloat(cells[colMap.swap]) || 0 : 0;
+        const profit =
+          colMap.profit !== -1 ? parseFloat(cells[colMap.profit]) || 0 : 0;
         const comment = colMap.comment !== -1 ? cells[colMap.comment] : '';
 
         // Skip non-trade entries
         if (!symbol || symbol === '') continue;
-        
+
         // Determine trade direction from type or direction column
         let side: 'BUY' | 'SELL' | null = null;
-        
+
         if (directionStr.includes('buy') || directionStr.includes('in')) {
           side = 'BUY';
-        } else if (directionStr.includes('sell') || directionStr.includes('out')) {
+        } else if (
+          directionStr.includes('sell') ||
+          directionStr.includes('out')
+        ) {
           side = 'SELL';
         } else if (typeStr.includes('buy')) {
           side = 'BUY';
@@ -79,7 +91,11 @@ export class MT5CsvParser {
         }
 
         // Skip balance operations, deposits, etc.
-        if (!side || typeStr.includes('balance') || typeStr.includes('credit')) {
+        if (
+          !side ||
+          typeStr.includes('balance') ||
+          typeStr.includes('credit')
+        ) {
           continue;
         }
 
@@ -146,7 +162,7 @@ export class MT5CsvParser {
 
     for (let i = 0; i < line.length; i++) {
       const char = line[i];
-      
+
       if (char === '"') {
         inQuotes = !inQuotes;
       } else if (char === delimiter && !inQuotes) {
@@ -156,7 +172,7 @@ export class MT5CsvParser {
         current += char;
       }
     }
-    
+
     result.push(current.trim());
     return result;
   }
@@ -167,7 +183,7 @@ export class MT5CsvParser {
   private mapColumns(headers: string[]): Record<string, number> {
     const findIndex = (patterns: string[]): number => {
       for (const pattern of patterns) {
-        const idx = headers.findIndex(h => h.includes(pattern));
+        const idx = headers.findIndex((h) => h.includes(pattern));
         if (idx !== -1) return idx;
       }
       return -1;
@@ -195,18 +211,18 @@ export class MT5CsvParser {
    */
   private parseDateTime(dateStr: string): Date {
     if (!dateStr) return new Date();
-    
+
     // Normalize separators
-    let cleaned = dateStr.trim()
-      .replace(/\./g, '-')
-      .replace(/\//g, '-');
-    
+    const cleaned = dateStr.trim().replace(/\./g, '-').replace(/\//g, '-');
+
     // Try direct parsing
     let parsed = new Date(cleaned);
-    
+
     if (isNaN(parsed.getTime())) {
       // Try extracting components
-      const match = dateStr.match(/(\d{4})[\.\-\/](\d{2})[\.\-\/](\d{2})\s+(\d{2}):(\d{2})(?::(\d{2}))?/);
+      const match = dateStr.match(
+        /(\d{4})[\.\-\/](\d{2})[\.\-\/](\d{2})\s+(\d{2}):(\d{2})(?::(\d{2}))?/,
+      );
       if (match) {
         parsed = new Date(
           parseInt(match[1]),
@@ -214,11 +230,11 @@ export class MT5CsvParser {
           parseInt(match[3]),
           parseInt(match[4]),
           parseInt(match[5]),
-          parseInt(match[6] || '0')
+          parseInt(match[6] || '0'),
         );
       }
     }
-    
+
     return parsed;
   }
 
@@ -237,11 +253,15 @@ export class MT5CsvParser {
    * Pair MT5 deals into complete trades
    * MT5 CSV often has separate "in" and "out" entries for each trade
    */
-  private pairDeals(deals: ParsedTrade[], headers: string[], colMap: Record<string, number>): ParsedTrade[] {
+  private pairDeals(
+    deals: ParsedTrade[],
+    headers: string[],
+    colMap: Record<string, number>,
+  ): ParsedTrade[] {
     // For now, return deals as-is
     // In a more sophisticated implementation, we would pair entries by position ID
     // and create complete trades with openTime, closeTime, openPrice, closePrice
-    
+
     // TODO: Implement deal pairing based on position ID if available
     return deals;
   }

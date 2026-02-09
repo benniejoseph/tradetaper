@@ -35,4 +35,4 @@ export class PredictiveTradesService {
 
     return this.geminiPredictionService.generatePrediction(createPredictionDto);
   }
-} 
+}

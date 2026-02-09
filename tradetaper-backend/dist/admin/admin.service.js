@@ -49,7 +49,7 @@ let AdminService = class AdminService {
             monthlyGrowth: 0,
         };
     }
-    async getUserAnalytics(timeRange) {
+    getUserAnalytics(timeRange) {
         const days = this.getDaysFromTimeRange(timeRange);
         const data = [];
         for (let i = days - 1; i >= 0; i--) {
@@ -66,7 +66,7 @@ let AdminService = class AdminService {
             data,
         };
     }
-    async getRevenueAnalytics(timeRange) {
+    getRevenueAnalytics(timeRange) {
         const days = this.getDaysFromTimeRange(timeRange);
         const data = [];
         for (let i = days - 1; i >= 0; i--) {
@@ -83,7 +83,7 @@ let AdminService = class AdminService {
             data,
         };
     }
-    async getSystemHealth() {
+    getSystemHealth() {
         return {
             status: 'healthy',
             uptime: 99.9,
@@ -94,7 +94,7 @@ let AdminService = class AdminService {
             timestamp: new Date().toISOString(),
         };
     }
-    async getActivityFeed(limit = 5) {
+    getActivityFeed(_limit = 5) {
         return [];
     }
     async getUsers(page = 1, limit = 20) {
@@ -376,26 +376,6 @@ let AdminService = class AdminService {
                     createdTrades++;
                 }
             }
-            const sampleSubscriptions = [
-                {
-                    user: createdUsers[0],
-                    plan: 'premium',
-                    status: subscription_entity_1.SubscriptionStatus.ACTIVE,
-                    createdAt: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000),
-                },
-                {
-                    user: createdUsers[1],
-                    plan: 'basic',
-                    status: subscription_entity_1.SubscriptionStatus.ACTIVE,
-                    createdAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000),
-                },
-                {
-                    user: createdUsers[2],
-                    plan: 'premium',
-                    status: subscription_entity_1.SubscriptionStatus.CANCELED,
-                    createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
-                },
-            ];
             const createdSubscriptions = 0;
             console.log('Skipping subscription seeding due to schema mismatch');
             return {

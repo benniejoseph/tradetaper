@@ -14,10 +14,10 @@ import { KnowledgeBaseModule } from '../../knowledge-base/knowledge-base.module'
 
 /**
  * Agents Implementation Module
- * 
+ *
  * Registers all AI agent implementations with the orchestrator.
  * Each agent auto-registers itself via the BaseAgent.onModuleInit.
- * 
+ *
  * Available Agents:
  * - PsychologyAgent: Trading psychology analysis
  * - MarketAnalystAgent: Market predictions & analysis
@@ -57,4 +57,3 @@ import { KnowledgeBaseModule } from '../../knowledge-base/knowledge-base.module'
   ],
 })
 export class AgentsImplementationModule {}
-

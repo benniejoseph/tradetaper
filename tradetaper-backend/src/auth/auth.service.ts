@@ -108,29 +108,47 @@ export class AuthService {
       };
 
       try {
-        const subscription = await this.subscriptionService.getOrCreateSubscription(user.id);
-        const plan = await this.subscriptionService.getPricingPlan(subscription.plan);
+        const subscription =
+          await this.subscriptionService.getOrCreateSubscription(user.id);
+        const plan = await this.subscriptionService.getPricingPlan(
+          subscription.plan,
+        );
         userResponse.subscription = {
           ...subscription,
           planDetails: plan,
         };
       } catch (subError) {
-        this.logger.error(`Failed to fetch subscription for Google user ${user.id}: ${subError.message}`);
+        this.logger.error(
+          `Failed to fetch subscription for Google user ${user.id}: ${subError.message}`,
+        );
       }
 
       // ADMIN OVERRIDE: Grant Premium to 'tradetaper@gmail.com'
-      if (user.email === 'tradetaper@gmail.com' && userResponse.subscription?.plan !== 'premium') {
-          try {
-              const updatedSub = await this.subscriptionService.forceUpdateSubscriptionPlan(user.id, 'premium');
-              const updatedPlan = await this.subscriptionService.getPricingPlan('premium');
-              userResponse.subscription = {
-                  ...updatedSub,
-                  planDetails: updatedPlan,
-              };
-              this.logger.log(`ADMIN OVERRIDE: Upgraded ${user.email} to Premium via Google OAuth`);
-          } catch (e) {
-              this.logger.error(`Failed to apply Admin Override for ${user.email}`, e);
-          }
+      if (
+        user.email === 'tradetaper@gmail.com' &&
+        userResponse.subscription?.plan !== 'premium'
+      ) {
+        try {
+          const updatedSub =
+            await this.subscriptionService.forceUpdateSubscriptionPlan(
+              user.id,
+              'premium',
+            );
+          const updatedPlan =
+            await this.subscriptionService.getPricingPlan('premium');
+          userResponse.subscription = {
+            ...updatedSub,
+            planDetails: updatedPlan,
+          };
+          this.logger.log(
+            `ADMIN OVERRIDE: Upgraded ${user.email} to Premium via Google OAuth`,
+          );
+        } catch (e) {
+          this.logger.error(
+            `Failed to apply Admin Override for ${user.email}`,
+            e,
+          );
+        }
       }
 
       this.logger.log(`Google OAuth login successful for: ${user.email}`);
@@ -194,30 +212,46 @@ export class AuthService {
       };
 
       try {
-        const subscription = await this.subscriptionService.getOrCreateSubscription(user.id);
-        const plan = await this.subscriptionService.getPricingPlan(subscription.plan);
+        const subscription =
+          await this.subscriptionService.getOrCreateSubscription(user.id);
+        const plan = await this.subscriptionService.getPricingPlan(
+          subscription.plan,
+        );
         userResponse.subscription = {
           ...subscription,
           planDetails: plan, // Include full plan details (features, limits)
         };
       } catch (subError) {
-        this.logger.error(`Failed to fetch subscription for user ${user.id}: ${subError.message}`);
+        this.logger.error(
+          `Failed to fetch subscription for user ${user.id}: ${subError.message}`,
+        );
         // Don't fail login, just return user without subscription or with basic free structure
       }
 
       // ADMIN OVERRIDE: Grant Premium to 'tradetaper@gmail.com'
-      if (user.email === 'tradetaper@gmail.com' && userResponse.subscription?.plan !== 'premium') {
-          try {
-              const updatedSub = await this.subscriptionService.forceUpdateSubscriptionPlan(user.id, 'premium');
-              const updatedPlan = await this.subscriptionService.getPricingPlan('premium');
-              userResponse.subscription = {
-                  ...updatedSub,
-                  planDetails: updatedPlan,
-              };
-              this.logger.log(`ADMIN OVERRIDE: Upgraded ${user.email} to Premium`);
-          } catch (e) {
-              this.logger.error(`Failed to apply Admin Override for ${user.email}`, e);
-          }
+      if (
+        user.email === 'tradetaper@gmail.com' &&
+        userResponse.subscription?.plan !== 'premium'
+      ) {
+        try {
+          const updatedSub =
+            await this.subscriptionService.forceUpdateSubscriptionPlan(
+              user.id,
+              'premium',
+            );
+          const updatedPlan =
+            await this.subscriptionService.getPricingPlan('premium');
+          userResponse.subscription = {
+            ...updatedSub,
+            planDetails: updatedPlan,
+          };
+          this.logger.log(`ADMIN OVERRIDE: Upgraded ${user.email} to Premium`);
+        } catch (e) {
+          this.logger.error(
+            `Failed to apply Admin Override for ${user.email}`,
+            e,
+          );
+        }
       }
 
       this.logger.log(`Login successful for user: ${user.email}`);
@@ -239,13 +273,17 @@ export class AuthService {
 
   async register(registerUserDto: RegisterUserDto): Promise<UserResponseDto> {
     const createdUser = await this.usersService.create(registerUserDto);
-    
+
     // Create default free subscription immediately upon registration
     try {
       await this.subscriptionService.getOrCreateSubscription(createdUser.id);
-      this.logger.log(`Default free subscription created for new user: ${createdUser.email}`);
+      this.logger.log(
+        `Default free subscription created for new user: ${createdUser.email}`,
+      );
     } catch (error) {
-      this.logger.error(`Failed to create default subscription for ${createdUser.email}: ${error.message}`);
+      this.logger.error(
+        `Failed to create default subscription for ${createdUser.email}: ${error.message}`,
+      );
       // Non-blocking: user exists, subscription will be created on first login if this fails
     }
 

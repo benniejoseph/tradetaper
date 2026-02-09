@@ -55,99 +55,146 @@ export class TradesService {
     timeframe: string,
     userContext: UserResponseDto,
   ): Promise<any[]> {
-    this.logger.debug(`Fetching candles for trade ${tradeId}, timeframe ${timeframe}`);
-    
+    this.logger.debug(
+      `Fetching candles for trade ${tradeId}, timeframe ${timeframe}`,
+    );
+
     try {
-        // 1. Check TradeCandle cache first
-        const cached = await this.tradeCandleRepository.findOne({ where: { tradeId, timeframe } });
-        if (cached) {
-            this.logger.debug(`Cache HIT for trade ${tradeId}`);
-            return cached.data;
-        }
-        this.logger.debug(`Cache MISS for trade ${tradeId}`);
+      // 1. Check TradeCandle cache first
+      const cached = await this.tradeCandleRepository.findOne({
+        where: { tradeId, timeframe },
+      });
+      if (cached) {
+        this.logger.debug(`Cache HIT for trade ${tradeId}`);
+        return cached.data;
+      }
+      this.logger.debug(`Cache MISS for trade ${tradeId}`);
 
-        // 2. Get Trade details and check executionCandles
-        const trade = await this.findOne(tradeId, userContext);
-        
-        // 3. Return execution candles if available (auto-fetched from MT5)
-        if (trade.executionCandles && trade.executionCandles.length > 0) {
-            this.logger.debug(`Returning ${trade.executionCandles.length} execution candles from DB`);
-            
-            // Cache for future requests if trade is CLOSED
-            if (trade.status === TradeStatus.CLOSED) {
-                try {
-                    await this.tradeCandleRepository.save({
-                        tradeId: trade.id,
-                        symbol: trade.symbol,
-                        timeframe,
-                        data: trade.executionCandles
-                    });
-                } catch (cacheError) {
-                    this.logger.error(`Failed to cache candles: ${cacheError.message}`);
-                }
-            }
-            
-            return trade.executionCandles;
-        }
+      // 2. Get Trade details and check executionCandles
+      const trade = await this.findOne(tradeId, userContext);
 
-        // 4. Candles not yet available - return pending status
-        // (Candles are auto-fetched when trade closes via processTrades)
-        if (trade.status === TradeStatus.OPEN) {
-            return [{ status: 'pending', message: 'Candles will be fetched when trade closes' }];
+      // 3. Return execution candles if available (auto-fetched from MT5)
+      if (trade.executionCandles && trade.executionCandles.length > 0) {
+        this.logger.debug(
+          `Returning ${trade.executionCandles.length} execution candles from DB`,
+        );
+
+        // Cache for future requests if trade is CLOSED
+        if (trade.status === TradeStatus.CLOSED) {
+          try {
+            await this.tradeCandleRepository.save({
+              tradeId: trade.id,
+              symbol: trade.symbol,
+              timeframe,
+              data: trade.executionCandles,
+            });
+          } catch (cacheError) {
+            this.logger.error(`Failed to cache candles: ${cacheError.message}`);
+          }
         }
 
-        // 5. Trade is closed but no candles - may need manual trigger or re-sync
-        if (trade.externalId && trade.accountId) {
-            const terminal = await this.terminalFarmService.findTerminalForAccount(trade.accountId);
-            if (terminal && terminal.status === 'RUNNING') {
-                // Calculate time range
-                const entryTime = new Date(trade.openTime).getTime();
-                const exitTime = trade.closeTime ? new Date(trade.closeTime).getTime() : Date.now();
-                const bufferMs = 2 * 60 * 60 * 1000; // 2 hours
+        return trade.executionCandles;
+      }
 
-                const startTime = new Date(entryTime - bufferMs);
-                const endTime = new Date(exitTime + bufferMs);
+      // 4. Candles not yet available - return pending status
+      // (Candles are auto-fetched when trade closes via processTrades)
+      if (trade.status === TradeStatus.OPEN) {
+        return [
+          {
+            status: 'pending',
+            message: 'Candles will be fetched when trade closes',
+          },
+        ];
+      }
 
-                const startStr = startTime.toISOString().replace('T', ' ').substring(0, 19);
-                const endStr = endTime.toISOString().replace('T', ' ').substring(0, 19);
-                const payload = `${trade.symbol},1m,${startStr},${endStr},${trade.id}`;
+      // 5. Trade is closed but no candles - may need manual trigger or re-sync
+      if (trade.externalId && trade.accountId) {
+        const terminal = await this.terminalFarmService.findTerminalForAccount(
+          trade.accountId,
+        );
+        if (terminal && terminal.status === 'RUNNING') {
+          // Calculate time range
+          const entryTime = new Date(trade.openTime).getTime();
+          const exitTime = trade.closeTime
+            ? new Date(trade.closeTime).getTime()
+            : Date.now();
+          const bufferMs = 2 * 60 * 60 * 1000; // 2 hours
 
-                this.terminalFarmService.queueCommand(terminal.id, 'FETCH_CANDLES', payload);
-                
-                return [{ status: 'queued', message: 'Request sent to MT5 Terminal. Refresh in 30s.' }];
-            }
+          const startTime = new Date(entryTime - bufferMs);
+          const endTime = new Date(exitTime + bufferMs);
+
+          const startStr = startTime
+            .toISOString()
+            .replace('T', ' ')
+            .substring(0, 19);
+          const endStr = endTime
+            .toISOString()
+            .replace('T', ' ')
+            .substring(0, 19);
+          const payload = `${trade.symbol},1m,${startStr},${endStr},${trade.id}`;
+
+          this.terminalFarmService.queueCommand(
+            terminal.id,
+            'FETCH_CANDLES',
+            payload,
+          );
+
+          return [
+            {
+              status: 'queued',
+              message: 'Request sent to MT5 Terminal. Refresh in 30s.',
+            },
+          ];
         }
+      }
 
-        // No terminal or not an MT5 trade
-        return [{ status: 'unavailable', message: 'Candle data not available for this trade' }];
+      // No terminal or not an MT5 trade
+      return [
+        {
+          status: 'unavailable',
+          message: 'Candle data not available for this trade',
+        },
+      ];
     } catch (error) {
-        this.logger.error(`Error in getTradeCandles: ${error.message}`, error.stack);
-        throw error;
+      this.logger.error(
+        `Error in getTradeCandles: ${error.message}`,
+        error.stack,
+      );
+      throw error;
     }
   }
 
   async saveExecutionCandles(tradeId: string, candles: any[]): Promise<void> {
-    const trade = await this.tradesRepository.findOne({ where: { id: tradeId } });
+    const trade = await this.tradesRepository.findOne({
+      where: { id: tradeId },
+    });
     if (trade) {
-        trade.executionCandles = candles;
-        await this.tradesRepository.save(trade);
-        this.logger.log(`Saved ${candles.length} execution candles for trade ${tradeId}`);
+      trade.executionCandles = candles;
+      await this.tradesRepository.save(trade);
+      this.logger.log(
+        `Saved ${candles.length} execution candles for trade ${tradeId}`,
+      );
     }
   }
 
-  private async _populateAccountDetails(trades: Trade[], userId: string): Promise<Trade[]> {
+  private async _populateAccountDetails(
+    trades: Trade[],
+    userId: string,
+  ): Promise<Trade[]> {
     if (!trades.length) return trades;
 
-    const accountIds = [...new Set(trades.map(t => t.accountId).filter(id => id))];
+    const accountIds = [
+      ...new Set(trades.map((t) => t.accountId).filter((id) => id)),
+    ];
     if (accountIds.length === 0) return trades;
 
     // Fetch from both services
     // Note: This is not efficient for large datasets but works for now given the split architecture
     // Ideally we'd have a unified cache or table
-    
+
     // We can't easily query by IDs blindly because we don't know which ID belongs to which service
     // But we can try to fetch all user accounts and map them
-    
+
     // Better approach: Fetch all user accounts once (cached) and map
     const [manualAccounts, mt5Accounts] = await Promise.all([
       this.accountsService.findAllByUser(userId),
@@ -155,10 +202,14 @@ export class TradesService {
     ]);
 
     const accountMap = new Map<string, any>();
-    manualAccounts.forEach(a => accountMap.set(a.id, { id: a.id, name: a.name, type: 'manual' }));
-    mt5Accounts.forEach(a => accountMap.set(a.id, { id: a.id, name: a.accountName, type: 'mt5' }));
+    manualAccounts.forEach((a) =>
+      accountMap.set(a.id, { id: a.id, name: a.name, type: 'manual' }),
+    );
+    mt5Accounts.forEach((a) =>
+      accountMap.set(a.id, { id: a.id, name: a.accountName, type: 'mt5' }),
+    );
 
-    return trades.map(trade => {
+    return trades.map((trade) => {
       if (trade.accountId) {
         const account = accountMap.get(trade.accountId);
         if (account) {
@@ -260,7 +311,10 @@ export class TradesService {
       );
     }
 
-    const [populatedTrade] = await this._populateAccountDetails([completeTradeData], userContext.id);
+    const [populatedTrade] = await this._populateAccountDetails(
+      [completeTradeData],
+      userContext.id,
+    );
 
     this.logger.log(`Trade created successfully: ${savedTrade.id}`);
 
@@ -304,7 +358,10 @@ export class TradesService {
       ...options,
     });
 
-    const populatedTrades = await this._populateAccountDetails(trades, userContext.id);
+    const populatedTrades = await this._populateAccountDetails(
+      trades,
+      userContext.id,
+    );
 
     this.logger.log(
       `Found ${trades.length} of ${total} trades for user ${userContext.id}, account filter: ${accountId || 'all'}`,
@@ -318,8 +375,14 @@ export class TradesService {
     };
   }
 
-  async findDuplicate(userId: string, symbol: string, entryDate: Date, externalId?: string): Promise<Trade | null> {
-     const queryBuilder = this.tradesRepository.createQueryBuilder('trade')
+  async findDuplicate(
+    userId: string,
+    symbol: string,
+    entryDate: Date,
+    externalId?: string,
+  ): Promise<Trade | null> {
+    const queryBuilder = this.tradesRepository
+      .createQueryBuilder('trade')
       .where('trade.userId = :userId', { userId })
       .andWhere('trade.accountId IS NOT NULL'); // Ignore orphaned trades
 
@@ -330,16 +393,19 @@ export class TradesService {
       // Otherwise fallback to symbol and fuzzy time match (within 60s)
       queryBuilder
         .andWhere('trade.symbol = :symbol', { symbol })
-        .andWhere('trade.openTime BETWEEN :start AND :end', { 
-          start: new Date(entryDate.getTime() - 60000), 
-          end: new Date(entryDate.getTime() + 60000) 
+        .andWhere('trade.openTime BETWEEN :start AND :end', {
+          start: new Date(entryDate.getTime() - 60000),
+          end: new Date(entryDate.getTime() + 60000),
         });
     }
 
     return await queryBuilder.getOne();
   }
 
-  async findOneByExternalId(userId: string, externalId: string): Promise<Trade | null> {
+  async findOneByExternalId(
+    userId: string,
+    externalId: string,
+  ): Promise<Trade | null> {
     return await this.tradesRepository.findOne({
       where: { userId, externalId },
     });
@@ -354,8 +420,11 @@ export class TradesService {
         .where('trade.id = :id', { id })
         .andWhere('trade.userId = :userId', { userId: userContext.id })
         .getOneOrFail();
-      
-      const [populatedTrade] = await this._populateAccountDetails([trade], userContext.id);
+
+      const [populatedTrade] = await this._populateAccountDetails(
+        [trade],
+        userContext.id,
+      );
       return populatedTrade;
     } catch (error: any) {
       let errorMessage = 'Unknown error';

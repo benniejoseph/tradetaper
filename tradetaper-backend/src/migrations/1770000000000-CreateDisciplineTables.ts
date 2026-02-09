@@ -94,10 +94,18 @@ export class CreateDisciplineTables1770000000000 implements MigrationInterface {
     `);
 
     // Create indexes
-    await queryRunner.query(`CREATE INDEX "IDX_trade_approvals_userId" ON "trade_approvals" ("userId")`);
-    await queryRunner.query(`CREATE INDEX "IDX_trade_approvals_status" ON "trade_approvals" ("status")`);
-    await queryRunner.query(`CREATE INDEX "IDX_cooldown_sessions_userId" ON "cooldown_sessions" ("userId")`);
-    await queryRunner.query(`CREATE INDEX "IDX_cooldown_sessions_isCompleted" ON "cooldown_sessions" ("isCompleted")`);
+    await queryRunner.query(
+      `CREATE INDEX "IDX_trade_approvals_userId" ON "trade_approvals" ("userId")`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_trade_approvals_status" ON "trade_approvals" ("status")`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_cooldown_sessions_userId" ON "cooldown_sessions" ("userId")`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_cooldown_sessions_isCompleted" ON "cooldown_sessions" ("isCompleted")`,
+    );
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
@@ -105,9 +113,13 @@ export class CreateDisciplineTables1770000000000 implements MigrationInterface {
     await queryRunner.query(`DROP INDEX "IDX_cooldown_sessions_userId"`);
     await queryRunner.query(`DROP INDEX "IDX_trade_approvals_status"`);
     await queryRunner.query(`DROP INDEX "IDX_trade_approvals_userId"`);
-    await queryRunner.query(`ALTER TABLE "strategies" DROP COLUMN IF EXISTS "maxRiskPercent"`);
+    await queryRunner.query(
+      `ALTER TABLE "strategies" DROP COLUMN IF EXISTS "maxRiskPercent"`,
+    );
     await queryRunner.query(`DROP TABLE "cooldown_sessions"`);
-    await queryRunner.query(`DROP TYPE "public"."cooldown_sessions_trigger_enum"`);
+    await queryRunner.query(
+      `DROP TYPE "public"."cooldown_sessions_trigger_enum"`,
+    );
     await queryRunner.query(`DROP TABLE "trader_discipline"`);
     await queryRunner.query(`DROP TABLE "trade_approvals"`);
     await queryRunner.query(`DROP TYPE "public"."trade_approvals_status_enum"`);

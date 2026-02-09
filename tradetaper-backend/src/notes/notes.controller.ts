@@ -16,7 +16,10 @@ import {
   Logger,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { UsageLimitGuard, UsageFeature } from '../subscriptions/guards/usage-limit.guard';
+import {
+  UsageLimitGuard,
+  UsageFeature,
+} from '../subscriptions/guards/usage-limit.guard';
 import { NotesService } from './notes.service';
 import { PsychologicalInsightsService } from './psychological-insights.service';
 import { CreateNoteDto } from './dto/create-note.dto';

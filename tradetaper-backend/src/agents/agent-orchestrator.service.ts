@@ -11,7 +11,7 @@ import { AgentRegistryService } from './agent-registry.service';
 
 /**
  * Agent Orchestrator Service - Central coordinator for multi-agent workflows
- * 
+ *
  * Responsibilities:
  * - Route messages to appropriate agents
  * - Coordinate multi-agent workflows
@@ -21,26 +21,26 @@ import { AgentRegistryService } from './agent-registry.service';
 @Injectable()
 export class AgentOrchestratorService implements OnModuleInit {
   private readonly logger = new Logger(AgentOrchestratorService.name);
-  
+
   /** Active conversation contexts */
   private readonly contexts = new Map<string, MessageContext>();
-  
+
   constructor(
     private readonly eventBus: EventBusService,
     private readonly registry: AgentRegistryService,
   ) {}
-  
+
   async onModuleInit() {
     this.logger.log('Agent Orchestrator initialized');
-    
+
     // Subscribe to all events for logging and monitoring
-    this.eventBus.events$.subscribe(message => {
+    this.eventBus.events$.subscribe((message) => {
       this.logger.debug(
         `[Event] ${message.sourceAgent} -> ${message.targetAgent || '*'}: ${message.type}`,
       );
     });
   }
-  
+
   /**
    * Create a new conversation context
    */
@@ -51,13 +51,13 @@ export class AgentOrchestratorService implements OnModuleInit {
       correlationId: uuidv4(),
       sharedState: {},
     };
-    
+
     this.contexts.set(context.sessionId, context);
     this.logger.debug(`Created context for session ${context.sessionId}`);
-    
+
     return context;
   }
-  
+
   /**
    * Get or create a conversation context
    */
@@ -67,7 +67,7 @@ export class AgentOrchestratorService implements OnModuleInit {
     }
     return this.createContext(userId, sessionId);
   }
-  
+
   /**
    * Route a request to the appropriate agent based on capability
    */
@@ -77,7 +77,7 @@ export class AgentOrchestratorService implements OnModuleInit {
     context: MessageContext,
   ): Promise<AgentResponse> {
     const agent = this.registry.findBestAgent(capabilityId);
-    
+
     if (!agent) {
       this.logger.warn(`No agent found for capability: ${capabilityId}`);
       return {
@@ -88,10 +88,10 @@ export class AgentOrchestratorService implements OnModuleInit {
         },
       };
     }
-    
+
     return this.sendToAgent(agent.agentId, payload, context);
   }
-  
+
   /**
    * Send a message directly to a specific agent
    */
@@ -101,7 +101,7 @@ export class AgentOrchestratorService implements OnModuleInit {
     context: MessageContext,
   ): Promise<AgentResponse> {
     const agent = this.registry.getAgent(agentId);
-    
+
     if (!agent) {
       return {
         success: false,
@@ -111,21 +111,27 @@ export class AgentOrchestratorService implements OnModuleInit {
         },
       };
     }
-    
-    const message = this.createMessage('orchestrator', agentId, 'request', payload, context);
-    
+
+    const message = this.createMessage(
+      'orchestrator',
+      agentId,
+      'request',
+      payload,
+      context,
+    );
+
     try {
       const startTime = Date.now();
-      
+
       // Publish to event bus for observability
       this.eventBus.publish(message);
-      
+
       // Direct call to agent
       const response = await agent.handleMessage(message);
-      
+
       // Record metrics
       this.registry.recordMessage(agentId, response.success);
-      
+
       // Update shared state if agent provides it
       if (response.data?.sharedState) {
         context.sharedState = {
@@ -133,21 +139,21 @@ export class AgentOrchestratorService implements OnModuleInit {
           ...response.data.sharedState,
         };
       }
-      
+
       // Handle forwarding to other agents
       if (response.forwardTo && response.forwardTo.length > 0) {
         await this.handleForwarding(response.forwardTo, context);
       }
-      
+
       this.logger.debug(
         `Agent ${agentId} processed message in ${Date.now() - startTime}ms`,
       );
-      
+
       return response;
     } catch (error) {
       this.registry.recordMessage(agentId, false);
       this.logger.error(`Error from agent ${agentId}:`, error);
-      
+
       return {
         success: false,
         error: {
@@ -158,7 +164,7 @@ export class AgentOrchestratorService implements OnModuleInit {
       };
     }
   }
-  
+
   /**
    * Broadcast a message to all agents or agents with specific capability
    */
@@ -170,15 +176,21 @@ export class AgentOrchestratorService implements OnModuleInit {
     const agents = capabilityFilter
       ? this.registry.findAgentsByCapability(capabilityFilter)
       : this.registry.getActiveAgents();
-    
+
     const results = new Map<string, AgentResponse>();
-    
-    const message = this.createMessage('orchestrator', undefined, 'event', payload, context);
+
+    const message = this.createMessage(
+      'orchestrator',
+      undefined,
+      'event',
+      payload,
+      context,
+    );
     this.eventBus.publish(message);
-    
+
     // Process in parallel
     await Promise.all(
-      agents.map(async agent => {
+      agents.map(async (agent) => {
         try {
           const response = await agent.handleMessage(message);
           results.set(agent.agentId, response);
@@ -193,10 +205,10 @@ export class AgentOrchestratorService implements OnModuleInit {
         }
       }),
     );
-    
+
     return results;
   }
-  
+
   /**
    * Execute a multi-agent workflow
    */
@@ -207,25 +219,29 @@ export class AgentOrchestratorService implements OnModuleInit {
   ): Promise<AgentResponse> {
     let currentPayload = initialPayload;
     let lastResponse: AgentResponse = { success: true };
-    
+
     for (const step of steps) {
-      const payload = step.transform 
+      const payload = step.transform
         ? step.transform(lastResponse.data || currentPayload)
         : currentPayload;
-      
-      lastResponse = await this.routeToCapability(step.capability, payload, context);
-      
+
+      lastResponse = await this.routeToCapability(
+        step.capability,
+        payload,
+        context,
+      );
+
       if (!lastResponse.success) {
         this.logger.warn(`Workflow failed at step: ${step.capability}`);
         return lastResponse;
       }
-      
+
       currentPayload = lastResponse.data;
     }
-    
+
     return lastResponse;
   }
-  
+
   /**
    * Handle forwarding requests to other agents
    */
@@ -235,12 +251,14 @@ export class AgentOrchestratorService implements OnModuleInit {
   ): Promise<void> {
     for (const forward of forwards) {
       // Fire and forget - results handled asynchronously
-      this.sendToAgent(forward.agentId, forward.payload, context).catch(err => {
-        this.logger.error(`Forwarding to ${forward.agentId} failed:`, err);
-      });
+      this.sendToAgent(forward.agentId, forward.payload, context).catch(
+        (err) => {
+          this.logger.error(`Forwarding to ${forward.agentId} failed:`, err);
+        },
+      );
     }
   }
-  
+
   /**
    * Create a standardized message
    */
@@ -269,7 +287,7 @@ export class AgentOrchestratorService implements OnModuleInit {
       },
     };
   }
-  
+
   /**
    * Get orchestrator statistics
    */
@@ -280,20 +298,20 @@ export class AgentOrchestratorService implements OnModuleInit {
       eventBusMessages: this.eventBus.getMessageCount(),
     };
   }
-  
+
   /**
    * Cleanup old contexts (call periodically)
    */
   cleanupOldContexts(maxAgeMs: number = 3600000): number {
     const now = Date.now();
     let cleaned = 0;
-    
+
     // For now just clear all - in production would track lastAccess
     if (this.contexts.size > 1000) {
       this.contexts.clear();
       cleaned = this.contexts.size;
     }
-    
+
     return cleaned;
   }
 }

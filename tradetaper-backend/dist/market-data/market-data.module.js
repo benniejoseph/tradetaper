@@ -10,7 +10,6 @@ exports.MarketDataModule = void 0;
 const common_1 = require("@nestjs/common");
 const axios_1 = require("@nestjs/axios");
 const config_1 = require("@nestjs/config");
-const cache_manager_1 = require("@nestjs/cache-manager");
 const market_data_service_1 = require("./market-data.service");
 const market_data_controller_1 = require("./market-data.controller");
 const market_data_public_controller_1 = require("./market-data-public.controller");
@@ -23,10 +22,6 @@ exports.MarketDataModule = MarketDataModule = __decorate([
         imports: [
             axios_1.HttpModule,
             config_1.ConfigModule,
-            cache_manager_1.CacheModule.register({
-                ttl: 60000,
-                max: 1000,
-            }),
         ],
         providers: [market_data_service_1.MarketDataService, multi_provider_service_1.MultiProviderMarketDataService],
         controllers: [market_data_controller_1.MarketDataController, market_data_public_controller_1.MarketDataPublicController],

@@ -22,7 +22,9 @@ export class TradeJournalSyncService {
    * Called automatically when trades are imported from MT5
    */
   async createJournalForTrade(trade: Trade): Promise<Note> {
-    this.logger.log(`Creating journal entry for trade ${trade.id} (${trade.symbol})`);
+    this.logger.log(
+      `Creating journal entry for trade ${trade.id} (${trade.symbol})`,
+    );
 
     // Generate title
     const sideLabel = trade.side === TradeDirection.LONG ? 'Long' : 'Short';
@@ -66,7 +68,9 @@ export class TradeJournalSyncService {
     const note = this.noteRepository.create(noteData);
 
     const savedNote = await this.noteRepository.save(note);
-    this.logger.log(`Created journal note ${savedNote.id} for trade ${trade.id}`);
+    this.logger.log(
+      `Created journal note ${savedNote.id} for trade ${trade.id}`,
+    );
 
     return savedNote;
   }
@@ -88,22 +92,28 @@ export class TradeJournalSyncService {
 
     // Trade details - format numbers properly
     const pnlEmoji = (trade.profitOrLoss ?? 0) >= 0 ? '🟢' : '🔴';
-    const pnlText = trade.profitOrLoss !== undefined 
-      ? `${pnlEmoji} P&L: $${this.formatPrice(trade.profitOrLoss)}`
-      : '⏳ Trade still open';
+    const pnlText =
+      trade.profitOrLoss !== undefined
+        ? `${pnlEmoji} P&L: $${this.formatPrice(trade.profitOrLoss)}`
+        : '⏳ Trade still open';
 
     const quantityFormatted = Number(trade.quantity).toFixed(2);
     const entryPriceFormatted = this.formatPrice(trade.openPrice);
-    const exitPriceFormatted = trade.closePrice ? this.formatPrice(trade.closePrice) : null;
+    const exitPriceFormatted = trade.closePrice
+      ? this.formatPrice(trade.closePrice)
+      : null;
 
     blocks.push({
       id: `block-${position}`,
       type: 'callout',
       content: {
         type: trade.status === TradeStatus.CLOSED ? 'info' : 'warning',
-        text: `**${trade.symbol}** | ${trade.side === TradeDirection.LONG ? 'Long 📈' : 'Short 📉'} | ${quantityFormatted} lots\n\n` +
+        text:
+          `**${trade.symbol}** | ${trade.side === TradeDirection.LONG ? 'Long 📈' : 'Short 📉'} | ${quantityFormatted} lots\n\n` +
           `Entry: ${entryPriceFormatted} at ${this.formatTime(trade.openTime)}\n` +
-          (exitPriceFormatted ? `Exit: ${exitPriceFormatted} at ${this.formatTime(trade.closeTime)}\n` : '') +
+          (exitPriceFormatted
+            ? `Exit: ${exitPriceFormatted} at ${this.formatTime(trade.closeTime)}\n`
+            : '') +
           `\n${pnlText}`,
       },
       position: position++,
@@ -142,8 +152,10 @@ export class TradeJournalSyncService {
     blocks.push({
       id: `block-${position}`,
       type: 'text',
-      content: { 
-        text: trade.setupDetails || 'Describe your trade setup here...\n\n- What signals did you see?\n- What was your entry trigger?\n- What timeframe confluence did you have?',
+      content: {
+        text:
+          trade.setupDetails ||
+          'Describe your trade setup here...\n\n- What signals did you see?\n- What was your entry trigger?\n- What timeframe confluence did you have?',
       },
       position: position++,
     });
@@ -193,8 +205,10 @@ export class TradeJournalSyncService {
     blocks.push({
       id: `block-${position}`,
       type: 'text',
-      content: { 
-        text: trade.mistakesMade || 'List any mistakes you made...\n\n- Did you follow your rules?\n- Was your position size correct?\n- Did you manage the trade properly?',
+      content: {
+        text:
+          trade.mistakesMade ||
+          'List any mistakes you made...\n\n- Did you follow your rules?\n- Was your position size correct?\n- Did you manage the trade properly?',
       },
       position: position++,
     });
@@ -209,8 +223,10 @@ export class TradeJournalSyncService {
     blocks.push({
       id: `block-${position}`,
       type: 'text',
-      content: { 
-        text: trade.lessonsLearned || 'What did you learn from this trade?\n\n- What would you do differently?\n- What patterns should you remember?',
+      content: {
+        text:
+          trade.lessonsLearned ||
+          'What did you learn from this trade?\n\n- What would you do differently?\n- What patterns should you remember?',
       },
       position: position++,
     });
@@ -227,7 +243,7 @@ export class TradeJournalSyncService {
     blocks.push({
       id: `block-${position}`,
       type: 'text',
-      content: { 
+      content: {
         text: '_This journal was auto-created from your MT5 trade import. Edit it to add your analysis!_',
       },
       position: position++,
@@ -295,7 +311,7 @@ export class TradeJournalSyncService {
     if (price === undefined || price === null) return 'N/A';
     const numPrice = Number(price);
     if (isNaN(numPrice)) return 'N/A';
-    
+
     // Use 2 decimals for most prices, 5 for small values (forex pips)
     const decimals = Math.abs(numPrice) < 100 ? 5 : 2;
     return numPrice.toFixed(decimals);
@@ -306,14 +322,16 @@ export class TradeJournalSyncService {
    */
   async createJournalsForTrades(trades: Trade[]): Promise<Note[]> {
     this.logger.log(`Creating journal entries for ${trades.length} trades`);
-    
+
     const notes: Note[] = [];
     for (const trade of trades) {
       try {
         const note = await this.createJournalForTrade(trade);
         notes.push(note);
       } catch (error) {
-        this.logger.error(`Failed to create journal for trade ${trade.id}: ${error.message}`);
+        this.logger.error(
+          `Failed to create journal for trade ${trade.id}: ${error.message}`,
+        );
       }
     }
 
@@ -338,17 +356,19 @@ export class TradeJournalSyncService {
   /**
    * Sync all trades - create journals for trades that don't have them
    */
-  async syncTradesWithJournals(userId: string): Promise<{ created: number; total: number }> {
+  async syncTradesWithJournals(
+    userId: string,
+  ): Promise<{ created: number; total: number }> {
     const tradesWithoutNotes = await this.findTradesWithoutJournals(userId);
-    
+
     if (tradesWithoutNotes.length === 0) {
       return { created: 0, total: 0 };
     }
 
     const notes = await this.createJournalsForTrades(tradesWithoutNotes);
-    
-    return { 
-      created: notes.length, 
+
+    return {
+      created: notes.length,
       total: tradesWithoutNotes.length,
     };
   }

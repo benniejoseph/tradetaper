@@ -23,18 +23,20 @@ async function bootstrap() {
     console.log('🔐 WebSocket JWT authentication enabled');
 
     // SECURITY: Add security headers to protect against common attacks
-    app.use(helmet({
-      contentSecurityPolicy: {
-        directives: {
-          defaultSrc: ["'self'"],
-          styleSrc: ["'self'", "'unsafe-inline'"], // Allow inline styles for Tailwind
-          scriptSrc: ["'self'"],
-          imgSrc: ["'self'", 'data:', 'https:'],
-          connectSrc: ["'self'", 'https://api.tradetaper.com'],
+    app.use(
+      helmet({
+        contentSecurityPolicy: {
+          directives: {
+            defaultSrc: ["'self'"],
+            styleSrc: ["'self'", "'unsafe-inline'"], // Allow inline styles for Tailwind
+            scriptSrc: ["'self'"],
+            imgSrc: ["'self'", 'data:', 'https:'],
+            connectSrc: ["'self'", 'https://api.tradetaper.com'],
+          },
         },
-      },
-      crossOriginEmbedderPolicy: false, // Allow embedding for OAuth
-    }));
+        crossOriginEmbedderPolicy: false, // Allow embedding for OAuth
+      }),
+    );
     console.log('🛡️  Security headers enabled (Helmet.js)');
 
     // SECURITY: Enable cookie parsing for HTTP-only auth cookies
@@ -43,10 +45,13 @@ async function bootstrap() {
 
     // SECURITY: CSRF protection for state-changing operations
     // Only enable in production or when explicitly enabled
-    const enableCsrf = process.env.ENABLE_CSRF === 'true' || process.env.NODE_ENV === 'production';
+    const enableCsrf =
+      process.env.ENABLE_CSRF === 'true' ||
+      process.env.NODE_ENV === 'production';
     if (enableCsrf) {
       const { doubleCsrfProtection } = doubleCsrf({
-        getSecret: () => process.env.CSRF_SECRET || 'default-csrf-secret-change-in-production',
+        getSecret: () =>
+          process.env.CSRF_SECRET || 'default-csrf-secret-change-in-production',
         cookieName: '__Host-csrf',
         cookieOptions: {
           httpOnly: true,
@@ -61,18 +66,18 @@ async function bootstrap() {
           return req.cookies?.['connect.sid'] || req.cookies?.['session'] || '';
         },
         getCsrfTokenFromRequest: (req) => {
-          return (
-            req.headers['x-csrf-token'] ||
+          return (req.headers['x-csrf-token'] ||
             req.headers['csrf-token'] ||
             req.body?._csrf ||
-            req.query?._csrf
-          ) as string;
+            req.query?._csrf) as string;
         },
       });
       app.use(doubleCsrfProtection);
       console.log('🛡️  CSRF protection enabled');
     } else {
-      console.log('⚠️  CSRF protection disabled (set ENABLE_CSRF=true to enable)');
+      console.log(
+        '⚠️  CSRF protection disabled (set ENABLE_CSRF=true to enable)',
+      );
     }
 
     const port = process.env.PORT || 3000;
@@ -94,7 +99,12 @@ async function bootstrap() {
         process.env.FRONTEND_URL || 'https://tradetaper.com', // Provide a sensible default
       ],
       methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-      allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token', 'CSRF-Token'],
+      allowedHeaders: [
+        'Content-Type',
+        'Authorization',
+        'X-CSRF-Token',
+        'CSRF-Token',
+      ],
       credentials: true,
     };
 
@@ -110,11 +120,14 @@ async function bootstrap() {
         forbidNonWhitelisted: true,
         transform: true,
         exceptionFactory: (errors) => {
-          const messages = errors.map(error => ({
+          const messages = errors.map((error) => ({
             field: error.property,
             errors: Object.values(error.constraints || {}),
           }));
-          console.error('🚨 Validation failed:', JSON.stringify(messages, null, 2));
+          console.error(
+            '🚨 Validation failed:',
+            JSON.stringify(messages, null, 2),
+          );
           return new BadRequestException(messages);
         },
       }),

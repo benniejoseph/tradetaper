@@ -19,7 +19,6 @@ const mt5_account_entity_1 = require("./entities/mt5-account.entity");
 const mt5_accounts_service_1 = require("./mt5-accounts.service");
 const mt5_accounts_controller_1 = require("./mt5-accounts.controller");
 const trade_history_parser_service_1 = require("./trade-history-parser.service");
-const cache_manager_1 = require("@nestjs/cache-manager");
 const trades_module_1 = require("../trades/trades.module");
 const subscriptions_module_1 = require("../subscriptions/subscriptions.module");
 let UsersModule = class UsersModule {
@@ -30,10 +29,6 @@ exports.UsersModule = UsersModule = __decorate([
         imports: [
             typeorm_1.TypeOrmModule.forFeature([user_entity_1.User, account_entity_1.Account, mt5_account_entity_1.MT5Account]),
             config_1.ConfigModule,
-            cache_manager_1.CacheModule.register({
-                ttl: 24 * 60 * 60 * 1000,
-                max: 100,
-            }),
             (0, common_1.forwardRef)(() => trades_module_1.TradesModule),
             subscriptions_module_1.SubscriptionsModule,
         ],

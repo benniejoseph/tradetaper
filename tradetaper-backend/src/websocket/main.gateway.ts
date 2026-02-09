@@ -14,7 +14,10 @@ import { Logger, Injectable } from '@nestjs/common';
 @Injectable()
 @WebSocketGateway({
   cors: {
-    origin: (origin: string, callback: (err: Error | null, allow?: boolean) => void) => {
+    origin: (
+      origin: string,
+      callback: (err: Error | null, allow?: boolean) => void,
+    ) => {
       if (!origin) {
         return callback(null, true);
       }
@@ -28,7 +31,7 @@ import { Logger, Injectable } from '@nestjs/common';
         /^https:\/\/tradetaper-admin.*\.vercel\.app$/,
       ];
 
-      const isAllowed = allowedPatterns.some(pattern => {
+      const isAllowed = allowedPatterns.some((pattern) => {
         if (typeof pattern === 'string') return pattern === origin;
         if (pattern instanceof RegExp) return pattern.test(origin);
         return false;

@@ -79,4 +79,6 @@ export declare class SubscriptionService {
         description: string;
         customer_id: string;
     }>;
+    handleRazorpayWebhook(event: any): Promise<void>;
+    private updateSubscriptionFromRazorpay;
 }

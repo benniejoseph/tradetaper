@@ -10,11 +10,7 @@ import {
 } from 'typeorm';
 import { Strategy } from '../../strategies/entities/strategy.entity';
 import { User } from '../../users/entities/user.entity';
-import {
-  TradeDirection,
-  TradingSession,
-  ICTConcept,
-} from '../../types/enums';
+import { TradeDirection, TradingSession, ICTConcept } from '../../types/enums';
 
 export enum Timeframe {
   M1 = 'M1',

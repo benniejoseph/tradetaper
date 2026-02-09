@@ -107,7 +107,9 @@ let MT5AccountsService = MT5AccountsService_1 = class MT5AccountsService {
             accountName: createDto.accountName,
             server: this.encrypt(createDto.server),
             login: this.encrypt(createDto.login.toString()),
-            password: createDto.password ? this.encrypt(createDto.password) : 'encrypted-placeholder',
+            password: createDto.password
+                ? this.encrypt(createDto.password)
+                : 'encrypted-placeholder',
             userId: userId,
             accountType: createDto.isRealAccount ? 'real' : 'demo',
             currency: createDto.currency || 'USD',
@@ -235,7 +237,9 @@ let MT5AccountsService = MT5AccountsService_1 = class MT5AccountsService {
             updatedData.target = updateMT5AccountDto.target;
         }
         await this.mt5AccountRepository.update(id, updatedData);
-        const updatedAccount = await this.mt5AccountRepository.findOne({ where: { id } });
+        const updatedAccount = await this.mt5AccountRepository.findOne({
+            where: { id },
+        });
         if (!updatedAccount) {
             throw new common_1.NotFoundException(`MT5 account with id ${id} not found`);
         }

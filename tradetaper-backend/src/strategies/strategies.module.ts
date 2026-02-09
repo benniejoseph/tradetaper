@@ -7,13 +7,9 @@ import { Trade } from '../trades/entities/trade.entity';
 import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([Strategy, Trade]),
-    SubscriptionsModule,
-  ],
+  imports: [TypeOrmModule.forFeature([Strategy, Trade]), SubscriptionsModule],
   controllers: [StrategiesController],
   providers: [StrategiesService],
   exports: [StrategiesService],
 })
 export class StrategiesModule {}
-

@@ -11,7 +11,10 @@ export class RazorpayService {
   constructor(private configService: ConfigService) {
     const keyId = this.configService.get<string>('RAZORPAY_KEY_ID');
     const keySecret = this.configService.get<string>('RAZORPAY_KEY_SECRET');
-    console.log('[RazorpayService] Initializing with Key ID:', keyId ? '***' + keyId.slice(-4) : 'undefined');
+    console.log(
+      '[RazorpayService] Initializing with Key ID:',
+      keyId ? '***' + keyId.slice(-4) : 'undefined',
+    );
 
     if (keyId && keySecret) {
       this.razorpay = new Razorpay({
@@ -77,16 +80,20 @@ export class RazorpayService {
     return this.razorpay.invoices.all({ customer_id: customerId });
   }
 
-  verifyWebhookSignature(body: string, signature: string, secret: string): boolean {
+  verifyWebhookSignature(
+    body: string,
+    signature: string,
+    secret: string,
+  ): boolean {
     const expectedSignature = crypto
       .createHmac('sha256', secret)
       .update(body)
       .digest('hex');
-    
+
     return expectedSignature === signature;
   }
-  
+
   getClient() {
-      return this.razorpay;
+    return this.razorpay;
   }
 }

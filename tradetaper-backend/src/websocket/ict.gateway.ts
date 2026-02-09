@@ -32,7 +32,9 @@ interface ICTSubscription {
   },
   namespace: '/ict',
 })
-export class ICTGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
+export class ICTGateway
+  implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
+{
   @WebSocketServer()
   server: Server;
 
@@ -49,7 +51,7 @@ export class ICTGateway implements OnGatewayInit, OnGatewayConnection, OnGateway
 
   afterInit() {
     this.logger.log('🎯 ICT WebSocket Gateway initialized');
-    
+
     // Start periodic updates every 30 seconds
     this.updateInterval = setInterval(() => {
       this.broadcastUpdates();
@@ -58,9 +60,9 @@ export class ICTGateway implements OnGatewayInit, OnGatewayConnection, OnGateway
 
   async handleConnection(client: Socket) {
     this.logger.log(`✅ ICT client connected: ${client.id}`);
-    client.emit('ict:connected', { 
+    client.emit('ict:connected', {
       message: 'Connected to ICT real-time feed',
-      socketId: client.id 
+      socketId: client.id,
     });
   }
 
@@ -77,10 +79,10 @@ export class ICTGateway implements OnGatewayInit, OnGatewayConnection, OnGateway
     const { symbol } = data;
     this.subscriptions.set(client.id, { symbol, socketId: client.id });
     this.logger.log(`📊 Client ${client.id} subscribed to ${symbol}`);
-    
+
     // Send immediate data
     await this.sendICTData(client, symbol);
-    
+
     return { event: 'ict:subscribed', symbol };
   }
 
@@ -105,13 +107,21 @@ export class ICTGateway implements OnGatewayInit, OnGatewayConnection, OnGateway
       });
 
       // Send Premium/Discount data
-      const premiumDiscountData = this.premiumDiscountService.analyzePremiumDiscount(symbol, priceData, '1H');
+      const premiumDiscountData =
+        this.premiumDiscountService.analyzePremiumDiscount(
+          symbol,
+          priceData,
+          '1H',
+        );
       client.emit('ict:premium-discount', premiumDiscountData);
 
       // Send Power of Three data
-      const powerOfThreeData = this.powerOfThreeService.analyzePowerOfThree(symbol, priceData, '1H');
+      const powerOfThreeData = this.powerOfThreeService.analyzePowerOfThree(
+        symbol,
+        priceData,
+        '1H',
+      );
       client.emit('ict:power-of-three', powerOfThreeData);
-
     } catch (error) {
       this.logger.error(`Error sending ICT data: ${error.message}`);
       client.emit('ict:error', { message: error.message });
@@ -120,7 +130,7 @@ export class ICTGateway implements OnGatewayInit, OnGatewayConnection, OnGateway
 
   private async broadcastUpdates() {
     const uniqueSymbols = new Set(
-      Array.from(this.subscriptions.values()).map(s => s.symbol)
+      Array.from(this.subscriptions.values()).map((s) => s.symbol),
     );
 
     for (const symbol of uniqueSymbols) {
@@ -132,8 +142,17 @@ export class ICTGateway implements OnGatewayInit, OnGatewayConnection, OnGateway
           timeframe: '1H',
           limit: 100,
         });
-        const premiumDiscountData = this.premiumDiscountService.analyzePremiumDiscount(symbol, priceData, '1H');
-        const powerOfThreeData = this.powerOfThreeService.analyzePowerOfThree(symbol, priceData, '1H');
+        const premiumDiscountData =
+          this.premiumDiscountService.analyzePremiumDiscount(
+            symbol,
+            priceData,
+            '1H',
+          );
+        const powerOfThreeData = this.powerOfThreeService.analyzePowerOfThree(
+          symbol,
+          priceData,
+          '1H',
+        );
 
         // Broadcast to all subscribed clients
         for (const [socketId, sub] of this.subscriptions) {
@@ -147,7 +166,9 @@ export class ICTGateway implements OnGatewayInit, OnGatewayConnection, OnGateway
           }
         }
       } catch (error) {
-        this.logger.error(`Error broadcasting updates for ${symbol}: ${error.message}`);
+        this.logger.error(
+          `Error broadcasting updates for ${symbol}: ${error.message}`,
+        );
       }
     }
   }

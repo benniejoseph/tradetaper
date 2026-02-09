@@ -1,6 +1,8 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class AddPropFirmAccountsAndMetadata1770001000000 implements MigrationInterface {
+export class AddPropFirmAccountsAndMetadata1770001000000
+  implements MigrationInterface
+{
   name = 'AddPropFirmAccountsAndMetadata1770001000000';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
@@ -58,6 +60,8 @@ export class AddPropFirmAccountsAndMetadata1770001000000 implements MigrationInt
     await queryRunner.query(`DROP INDEX IF EXISTS "idx_prop_firm_user"`);
     await queryRunner.query(`DROP TABLE IF EXISTS "prop_firm_accounts"`);
     await queryRunner.query(`DROP TYPE IF EXISTS "prop_firm_phase_enum"`);
-    await queryRunner.query(`ALTER TABLE "trade_approvals" DROP COLUMN IF EXISTS "metadata"`);
+    await queryRunner.query(
+      `ALTER TABLE "trade_approvals" DROP COLUMN IF EXISTS "metadata"`,
+    );
   }
 }

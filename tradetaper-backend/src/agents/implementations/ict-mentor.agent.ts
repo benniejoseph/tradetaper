@@ -20,12 +20,26 @@ export class ICTMentorAgent extends BaseAgent {
     {
       id: 'mentor-qa',
       description: 'Answer trading questions using personal ICT knowledge base',
-      keywords: ['question', 'how to', 'explain', 'what is', 'mentor', 'concept'],
+      keywords: [
+        'question',
+        'how to',
+        'explain',
+        'what is',
+        'mentor',
+        'concept',
+      ],
     },
     {
       id: 'audit-trade',
       description: 'Audit and critique a trade screenshot/setup',
-      keywords: ['audit', 'critique', 'review', 'chart', 'screenshot', 'mistake'],
+      keywords: [
+        'audit',
+        'critique',
+        'review',
+        'chart',
+        'screenshot',
+        'mistake',
+      ],
     },
     {
       id: 'ingest-knowledge',
@@ -43,14 +57,16 @@ export class ICTMentorAgent extends BaseAgent {
     super(registry, eventBus);
   }
 
-  protected async processMessage(message: AgentMessage): Promise<AgentResponse> {
+  protected async processMessage(
+    message: AgentMessage,
+  ): Promise<AgentResponse> {
     const { payload, context } = message;
 
     switch (payload.action) {
       case 'ask':
       case 'mentor-qa':
         return this.handleQA(payload.question, context);
-      
+
       case 'audit-trade':
       case 'analyze-chart':
         return this.handleTradeAudit(payload, context);
@@ -66,7 +82,10 @@ export class ICTMentorAgent extends BaseAgent {
         }
         return {
           success: false,
-          error: { code: 'UNKNOWN_ACTION', message: 'Unknown action for Mentor Agent' },
+          error: {
+            code: 'UNKNOWN_ACTION',
+            message: 'Unknown action for Mentor Agent',
+          },
         };
     }
   }
@@ -129,7 +148,7 @@ export class ICTMentorAgent extends BaseAgent {
     context: any,
   ): Promise<AgentResponse> {
     const { imageUrl, description } = payload;
-    
+
     // We can also RAG here: fetch context about the specific setup user mentions
     let contextString = '';
     if (description) {
@@ -156,7 +175,7 @@ export class ICTMentorAgent extends BaseAgent {
       prompt,
       // Pass image if the Orchestrator supports it, or assume prompt includes image reference handling
       // In a real implementation: images: [imageUrl]
-      modelPreference: 'gemini-1.5-flash', 
+      modelPreference: 'gemini-1.5-flash',
       taskComplexity: 'complex',
     });
 
@@ -181,7 +200,10 @@ export class ICTMentorAgent extends BaseAgent {
         data: { docId: doc.id, chunkCount: doc.chunkCount },
       };
     } catch (error) {
-      return { success: false, error: { code: 'INGEST_FAIL', message: error.message } };
+      return {
+        success: false,
+        error: { code: 'INGEST_FAIL', message: error.message },
+      };
     }
   }
 }

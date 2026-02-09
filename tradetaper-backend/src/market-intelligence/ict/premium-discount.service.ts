@@ -43,9 +43,11 @@ export class PremiumDiscountService {
   analyzePremiumDiscount(
     symbol: string,
     priceData: any[],
-    timeframe: string = '1D'
+    timeframe: string = '1D',
   ): PremiumDiscountAnalysis {
-    this.logger.log(`Analyzing ICT Premium/Discount for ${symbol} on ${timeframe}`);
+    this.logger.log(
+      `Analyzing ICT Premium/Discount for ${symbol} on ${timeframe}`,
+    );
 
     const currentPrice = priceData[priceData.length - 1].close;
 
@@ -62,7 +64,8 @@ export class PremiumDiscountService {
     const currentZone = this.determineCurrentZone(currentPrice, equilibrium);
 
     // Calculate percentage in range
-    const percentageInRange = ((currentPrice - rangeLow) / (rangeHigh - rangeLow)) * 100;
+    const percentageInRange =
+      ((currentPrice - rangeLow) / (rangeHigh - rangeLow)) * 100;
 
     // Calculate Optimal Trade Entry zones
     const optimalTradeEntry = {
@@ -84,14 +87,14 @@ export class PremiumDiscountService {
       fibLevels,
       optimalTradeEntry,
       rangeHigh,
-      rangeLow
+      rangeLow,
     );
 
     // Get current position description
     const currentPosition = this.describeCurrentPosition(
       currentPrice,
       fibLevels,
-      percentageInRange
+      percentageInRange,
     );
 
     return {
@@ -116,7 +119,7 @@ export class PremiumDiscountService {
    */
   private defineRange(
     priceData: any[],
-    lookback: number = 50
+    lookback: number = 50,
   ): { rangeHigh: number; rangeLow: number } {
     const recentData = priceData.slice(-lookback);
 
@@ -131,7 +134,7 @@ export class PremiumDiscountService {
    */
   private calculateFibonacciLevels(
     high: number,
-    low: number
+    low: number,
   ): {
     level_0: number;
     level_236: number;
@@ -163,7 +166,7 @@ export class PremiumDiscountService {
    */
   private determineCurrentZone(
     currentPrice: number,
-    equilibrium: number
+    equilibrium: number,
   ): 'premium' | 'discount' | 'equilibrium' {
     const threshold = equilibrium * 0.02; // 2% threshold for equilibrium zone
 
@@ -186,7 +189,7 @@ export class PremiumDiscountService {
     fibLevels: any,
     optimalTradeEntry: any,
     rangeHigh: number,
-    rangeLow: number
+    rangeLow: number,
   ): {
     bias: 'buy_at_discount' | 'sell_at_premium' | 'wait_for_zone';
     reasoning: string[];
@@ -195,11 +198,11 @@ export class PremiumDiscountService {
 
     reasoning.push(`🎯 ICT Premium/Discount Analysis`);
     reasoning.push(
-      `Current Price: ${safeToFixed(currentPrice, 2)} (${currentZone.toUpperCase()} zone)`
+      `Current Price: ${safeToFixed(currentPrice, 2)} (${currentZone.toUpperCase()} zone)`,
     );
     reasoning.push(`Equilibrium: ${safeToFixed(equilibrium, 2)} (50% level)`);
     reasoning.push(
-      `Range: ${safeToFixed(rangeLow, 2)} - ${safeToFixed(rangeHigh, 2)}`
+      `Range: ${safeToFixed(rangeLow, 2)} - ${safeToFixed(rangeHigh, 2)}`,
     );
 
     // Discount zone - look for LONGS
@@ -213,11 +216,13 @@ export class PremiumDiscountService {
       ) {
         reasoning.push(`🎯 PRICE IN BULLISH OTE ZONE (0.618-0.786)!`);
         reasoning.push(
-          `   • OTE Range: ${safeToFixed(optimalTradeEntry.bullishOTE.low, 2)} - ${safeToFixed(optimalTradeEntry.bullishOTE.high, 2)}`
+          `   • OTE Range: ${safeToFixed(optimalTradeEntry.bullishOTE.low, 2)} - ${safeToFixed(optimalTradeEntry.bullishOTE.high, 2)}`,
         );
         reasoning.push(`   • This is a PREMIUM entry point for longs`);
         reasoning.push(`   • Wait for bullish Order Block or FVG in this zone`);
-        reasoning.push(`   • Target: Equilibrium (${safeToFixed(equilibrium, 2)}) or Premium zone`);
+        reasoning.push(
+          `   • Target: Equilibrium (${safeToFixed(equilibrium, 2)}) or Premium zone`,
+        );
 
         return { bias: 'buy_at_discount', reasoning };
       }
@@ -226,7 +231,7 @@ export class PremiumDiscountService {
       if (currentPrice < optimalTradeEntry.bullishOTE.low) {
         reasoning.push(`💡 Price below OTE zone`);
         reasoning.push(
-          `   • Wait for pullback to OTE (${safeToFixed(optimalTradeEntry.bullishOTE.low, 2)} - ${safeToFixed(optimalTradeEntry.bullishOTE.high, 2)})`
+          `   • Wait for pullback to OTE (${safeToFixed(optimalTradeEntry.bullishOTE.low, 2)} - ${safeToFixed(optimalTradeEntry.bullishOTE.high, 2)})`,
         );
         reasoning.push(`   • Or look for bullish structure shift`);
       } else {
@@ -249,11 +254,13 @@ export class PremiumDiscountService {
       ) {
         reasoning.push(`🎯 PRICE IN BEARISH OTE ZONE (0.618-0.786 from high)!`);
         reasoning.push(
-          `   • OTE Range: ${safeToFixed(optimalTradeEntry.bearishOTE.low, 2)} - ${safeToFixed(optimalTradeEntry.bearishOTE.high, 2)}`
+          `   • OTE Range: ${safeToFixed(optimalTradeEntry.bearishOTE.low, 2)} - ${safeToFixed(optimalTradeEntry.bearishOTE.high, 2)}`,
         );
         reasoning.push(`   • This is a PREMIUM entry point for shorts`);
         reasoning.push(`   • Wait for bearish Order Block or FVG in this zone`);
-        reasoning.push(`   • Target: Equilibrium (${safeToFixed(equilibrium, 2)}) or Discount zone`);
+        reasoning.push(
+          `   • Target: Equilibrium (${safeToFixed(equilibrium, 2)}) or Discount zone`,
+        );
 
         return { bias: 'sell_at_premium', reasoning };
       }
@@ -262,7 +269,7 @@ export class PremiumDiscountService {
       if (currentPrice > optimalTradeEntry.bearishOTE.high) {
         reasoning.push(`💡 Price above bearish OTE zone`);
         reasoning.push(
-          `   • Wait for pullback to OTE (${safeToFixed(optimalTradeEntry.bearishOTE.low, 2)} - ${safeToFixed(optimalTradeEntry.bearishOTE.high, 2)})`
+          `   • Wait for pullback to OTE (${safeToFixed(optimalTradeEntry.bearishOTE.low, 2)} - ${safeToFixed(optimalTradeEntry.bearishOTE.high, 2)})`,
         );
         reasoning.push(`   • Or look for bearish structure shift`);
       } else {
@@ -281,10 +288,10 @@ export class PremiumDiscountService {
     reasoning.push(`   • No clear edge at equilibrium`);
     reasoning.push(`\n💡 Strategy:`);
     reasoning.push(
-      `   • If price moves to discount (${safeToFixed(fibLevels.level_382, 2)} or lower) → Look for LONGS`
+      `   • If price moves to discount (${safeToFixed(fibLevels.level_382, 2)} or lower) → Look for LONGS`,
     );
     reasoning.push(
-      `   • If price moves to premium (${safeToFixed(fibLevels.level_618, 2)} or higher) → Look for SHORTS`
+      `   • If price moves to premium (${safeToFixed(fibLevels.level_618, 2)} or higher) → Look for SHORTS`,
     );
 
     return { bias: 'wait_for_zone', reasoning };
@@ -296,7 +303,7 @@ export class PremiumDiscountService {
   private describeCurrentPosition(
     currentPrice: number,
     fibLevels: any,
-    percentage: number
+    percentage: number,
   ): string {
     if (currentPrice <= fibLevels.level_236) {
       return `Deep Discount (0-23.6%) - Extreme low, strong buy zone`;
@@ -320,7 +327,7 @@ export class PremiumDiscountService {
    */
   getNearestFibLevel(
     currentPrice: number,
-    fibLevels: any
+    fibLevels: any,
   ): { level: string; price: number; distance: number } {
     const levels = [
       { level: '0%', price: fibLevels.level_0 },
@@ -352,4 +359,3 @@ export class PremiumDiscountService {
     };
   }
 }
-

@@ -29,14 +29,25 @@ export interface ICTStrategyConfig {
 }
 
 export interface EntryCondition {
-  type: 'fvg' | 'orderBlock' | 'killZone' | 'premiumDiscount' | 'powerOfThree' | 'structureBreak';
+  type:
+    | 'fvg'
+    | 'orderBlock'
+    | 'killZone'
+    | 'premiumDiscount'
+    | 'powerOfThree'
+    | 'structureBreak';
   direction?: 'bullish' | 'bearish' | 'any';
   minConfidence?: number;
   params?: Record<string, any>;
 }
 
 export interface ExitCondition {
-  type: 'riskReward' | 'oppositeSignal' | 'timeExit' | 'trailingStop' | 'targetLevel';
+  type:
+    | 'riskReward'
+    | 'oppositeSignal'
+    | 'timeExit'
+    | 'trailingStop'
+    | 'targetLevel';
   value?: number;
   params?: Record<string, any>;
 }
@@ -103,7 +114,14 @@ export class ICTBacktestAgent extends BaseAgent {
     {
       id: 'backtest-ict-strategy',
       description: 'Run ICT strategy backtests on historical data',
-      keywords: ['backtest', 'ict', 'strategy', 'historical', 'test', 'simulate'],
+      keywords: [
+        'backtest',
+        'ict',
+        'strategy',
+        'historical',
+        'test',
+        'simulate',
+      ],
     },
     {
       id: 'analyze-setup-performance',
@@ -123,7 +141,13 @@ export class ICTBacktestAgent extends BaseAgent {
     {
       id: 'get-prebuilt-strategies',
       description: 'Get pre-built ICT trading strategies',
-      keywords: ['prebuilt', 'template', 'power of three', 'turtle soup', 'ict strategies'],
+      keywords: [
+        'prebuilt',
+        'template',
+        'power of three',
+        'turtle soup',
+        'ict strategies',
+      ],
     },
   ];
 
@@ -184,7 +208,10 @@ export class ICTBacktestAgent extends BaseAgent {
         { type: 'fvg', direction: 'any' },
       ],
       exitConditions: [{ type: 'riskReward', value: 1.5 }],
-      filters: [{ type: 'sessionFilter', value: 'london' }, { type: 'minIctScore', value: 55 }],
+      filters: [
+        { type: 'sessionFilter', value: 'london' },
+        { type: 'minIctScore', value: 55 },
+      ],
     },
     'ny-open-reversal': {
       name: 'NY Open Reversal',
@@ -194,11 +221,16 @@ export class ICTBacktestAgent extends BaseAgent {
         { type: 'orderBlock', direction: 'any' },
       ],
       exitConditions: [{ type: 'riskReward', value: 2.5 }],
-      filters: [{ type: 'sessionFilter', value: 'ny_open' }, { type: 'minIctScore', value: 70 }],
+      filters: [
+        { type: 'sessionFilter', value: 'ny_open' },
+        { type: 'minIctScore', value: 70 },
+      ],
     },
   };
 
-  protected async processMessage(message: AgentMessage): Promise<AgentResponse> {
+  protected async processMessage(
+    message: AgentMessage,
+  ): Promise<AgentResponse> {
     const { payload } = message;
     const action = payload?.action || payload?.capability;
 
@@ -226,9 +258,9 @@ export class ICTBacktestAgent extends BaseAgent {
         }
         return {
           success: false,
-          error: { 
-            code: 'UNKNOWN_ACTION', 
-            message: `Unknown action: ${action}. Supported: backtest, analyze-setup, optimize, compare, prebuilt` 
+          error: {
+            code: 'UNKNOWN_ACTION',
+            message: `Unknown action: ${action}. Supported: backtest, analyze-setup, optimize, compare, prebuilt`,
           },
         };
     }
@@ -250,45 +282,62 @@ export class ICTBacktestAgent extends BaseAgent {
     return {
       success: true,
       data: {
-        strategies: Object.entries(this.PREBUILT_STRATEGIES).map(([id, strategy]) => ({
-          id,
-          name: strategy.name,
-          description: `${strategy.entryConditions.map(c => c.type).join(' + ')} entry`,
-          entryConditions: strategy.entryConditions.length,
-          filters: strategy.filters?.length || 0,
-          riskReward: strategy.exitConditions.find(e => e.type === 'riskReward')?.value || 'N/A',
-        })),
-        usage: 'Use with backtest action: { action: "backtest", symbol: "XAUUSD", strategyId: "power-of-three" }',
+        strategies: Object.entries(this.PREBUILT_STRATEGIES).map(
+          ([id, strategy]) => ({
+            id,
+            name: strategy.name,
+            description: `${strategy.entryConditions.map((c) => c.type).join(' + ')} entry`,
+            entryConditions: strategy.entryConditions.length,
+            filters: strategy.filters?.length || 0,
+            riskReward:
+              strategy.exitConditions.find((e) => e.type === 'riskReward')
+                ?.value || 'N/A',
+          }),
+        ),
+        usage:
+          'Use with backtest action: { action: "backtest", symbol: "XAUUSD", strategyId: "power-of-three" }',
       },
     };
   }
 
   private async runBacktest(payload: any): Promise<AgentResponse> {
-    const { symbol, timeframe, days = 90, strategyId, initialCapital = 10000, riskPerTrade = 1 } = payload;
-    
+    const {
+      symbol,
+      timeframe,
+      days = 90,
+      strategyId,
+      initialCapital = 10000,
+      riskPerTrade = 1,
+    } = payload;
+
     // Use pre-built strategy if strategyId provided
-    const strategy = strategyId && this.PREBUILT_STRATEGIES[strategyId] 
-      ? this.PREBUILT_STRATEGIES[strategyId] 
-      : payload.strategy;
+    const strategy =
+      strategyId && this.PREBUILT_STRATEGIES[strategyId]
+        ? this.PREBUILT_STRATEGIES[strategyId]
+        : payload.strategy;
 
     try {
-      this.logger.log(`Starting backtest for ${symbol} - ${strategy?.name || 'Default ICT'}`);
+      this.logger.log(
+        `Starting backtest for ${symbol} - ${strategy?.name || 'Default ICT'}`,
+      );
 
       // Try to fetch real TradingView data, fallback to simulated
       let priceData: any[];
-      
+
       if (this.tradingView?.isReady()) {
         try {
           this.logger.log('Fetching real data from TradingView...');
           const tvData = await this.tradingView.getHistoricalData(
             this.formatSymbol(symbol),
             this.formatTimeframe(timeframe),
-            Math.min(days * this.getBarsPerDay(timeframe), 5000)
+            Math.min(days * this.getBarsPerDay(timeframe), 5000),
           );
           priceData = tvData.data;
           this.logger.log(`Received ${priceData.length} bars from TradingView`);
         } catch (tvError) {
-          this.logger.warn(`TradingView fetch failed, using simulated data: ${tvError.message}`);
+          this.logger.warn(
+            `TradingView fetch failed, using simulated data: ${tvError.message}`,
+          );
           priceData = this.generateHistoricalData(symbol, days, timeframe);
         }
       } else {
@@ -297,34 +346,51 @@ export class ICTBacktestAgent extends BaseAgent {
       }
       const trades: BacktestTrade[] = [];
       let equity = initialCapital;
-      const equityHistory: EquityPoint[] = [{ time: new Date(priceData[0].time), equity, drawdown: 0 }];
+      const equityHistory: EquityPoint[] = [
+        { time: new Date(priceData[0].time), equity, drawdown: 0 },
+      ];
       let peakEquity = equity;
 
       // Run through historical data
       for (let i = 50; i < priceData.length - 10; i++) {
         const windowData = priceData.slice(Math.max(0, i - 100), i + 1);
-        
+
         // Run ICT analysis on this point
-        const analysis = await this.ictAIAgent.analyze(symbol, windowData, timeframe);
-        
+        const analysis = await this.ictAIAgent.analyze(
+          symbol,
+          windowData,
+          timeframe,
+        );
+
         // Check if entry conditions are met
         if (this.shouldEnter(analysis, strategy)) {
           const entryPrice = priceData[i].close;
           const direction = analysis.signal.includes('buy') ? 'long' : 'short';
-          
+
           // Find exit point
-          const exitResult = this.findExit(priceData, i, direction, strategy, analysis);
-          
+          const exitResult = this.findExit(
+            priceData,
+            i,
+            direction,
+            strategy,
+            analysis,
+          );
+
           if (exitResult) {
-            const slLevel = (analysis.stopLoss as any)?.price || (analysis.stopLoss as any)?.level || entryPrice * 0.99;
-            const positionSize = (equity * riskPerTrade / 100) / Math.abs(entryPrice - slLevel);
-            const pnl = direction === 'long' 
-              ? (exitResult.price - entryPrice) * positionSize
-              : (entryPrice - exitResult.price) * positionSize;
-            
+            const slLevel =
+              (analysis.stopLoss as any)?.price ||
+              (analysis.stopLoss as any)?.level ||
+              entryPrice * 0.99;
+            const positionSize =
+              (equity * riskPerTrade) / 100 / Math.abs(entryPrice - slLevel);
+            const pnl =
+              direction === 'long'
+                ? (exitResult.price - entryPrice) * positionSize
+                : (entryPrice - exitResult.price) * positionSize;
+
             equity += pnl;
             peakEquity = Math.max(peakEquity, equity);
-            
+
             trades.push({
               entryTime: new Date(priceData[i].time),
               exitTime: new Date(priceData[exitResult.index].time),
@@ -350,7 +416,11 @@ export class ICTBacktestAgent extends BaseAgent {
       }
 
       // Calculate metrics
-      const metrics = this.calculateMetrics(trades, initialCapital, equityHistory);
+      const metrics = this.calculateMetrics(
+        trades,
+        initialCapital,
+        equityHistory,
+      );
 
       const result: BacktestResult = {
         config: {
@@ -384,20 +454,22 @@ export class ICTBacktestAgent extends BaseAgent {
   private shouldEnter(analysis: any, strategy?: ICTStrategyConfig): boolean {
     // Minimum ICT score requirement
     if (analysis.ictScore < 60) return false;
-    
+
     // Must have a clear signal
     if (analysis.signal === 'neutral') return false;
-    
+
     // Confidence threshold
     if (analysis.confidence < 0.6) return false;
 
     // Check Kill Zone if required
-    if (strategy?.filters?.some(f => f.type === 'killZoneOnly')) {
+    if (strategy?.filters?.some((f) => f.type === 'killZoneOnly')) {
       if (!analysis.killZoneStatus.isOptimal) return false;
     }
 
     // Check minimum ICT score filter
-    const minScoreFilter = strategy?.filters?.find(f => f.type === 'minIctScore');
+    const minScoreFilter = strategy?.filters?.find(
+      (f) => f.type === 'minIctScore',
+    );
     if (minScoreFilter && analysis.ictScore < (minScoreFilter.value || 70)) {
       return false;
     }
@@ -413,17 +485,24 @@ export class ICTBacktestAgent extends BaseAgent {
     analysis: any,
   ): { index: number; price: number; reason: string } | null {
     const entryPrice = priceData[entryIndex].close;
-    const stopLoss = analysis.stopLoss?.price || analysis.stopLoss?.level || (direction === 'long' 
-      ? entryPrice * 0.99 
-      : entryPrice * 1.01);
-    const takeProfit = analysis.takeProfit?.[0]?.target || (direction === 'long'
-      ? entryPrice * 1.02
-      : entryPrice * 0.98);
+    const stopLoss =
+      analysis.stopLoss?.price ||
+      analysis.stopLoss?.level ||
+      (direction === 'long' ? entryPrice * 0.99 : entryPrice * 1.01);
+    const takeProfit =
+      analysis.takeProfit?.[0]?.target ||
+      (direction === 'long' ? entryPrice * 1.02 : entryPrice * 0.98);
 
-    const rrRatio = strategy?.exitConditions?.find(e => e.type === 'riskReward')?.value || 2;
+    const rrRatio =
+      strategy?.exitConditions?.find((e) => e.type === 'riskReward')?.value ||
+      2;
     const maxBars = 50; // Max holding period
 
-    for (let i = entryIndex + 1; i < Math.min(entryIndex + maxBars, priceData.length); i++) {
+    for (
+      let i = entryIndex + 1;
+      i < Math.min(entryIndex + maxBars, priceData.length);
+      i++
+    ) {
       const candle = priceData[i];
 
       // Check stop loss
@@ -457,21 +536,23 @@ export class ICTBacktestAgent extends BaseAgent {
     initialCapital: number,
     equityHistory: EquityPoint[],
   ): BacktestMetrics {
-    const wins = trades.filter(t => t.pnl > 0);
-    const losses = trades.filter(t => t.pnl < 0);
-    
+    const wins = trades.filter((t) => t.pnl > 0);
+    const losses = trades.filter((t) => t.pnl < 0);
+
     const totalPnL = trades.reduce((sum, t) => sum + t.pnl, 0);
     const grossProfit = wins.reduce((sum, t) => sum + t.pnl, 0);
     const grossLoss = Math.abs(losses.reduce((sum, t) => sum + t.pnl, 0));
 
-    const maxDrawdown = Math.max(...equityHistory.map(e => e.drawdown));
+    const maxDrawdown = Math.max(...equityHistory.map((e) => e.drawdown));
 
     // Calculate Sharpe Ratio (simplified)
-    const returns = trades.map(t => t.pnlPercent);
+    const returns = trades.map((t) => t.pnlPercent);
     const avgReturn = returns.reduce((a, b) => a + b, 0) / returns.length || 0;
-    const stdDev = Math.sqrt(
-      returns.reduce((sum, r) => sum + Math.pow(r - avgReturn, 2), 0) / returns.length
-    ) || 1;
+    const stdDev =
+      Math.sqrt(
+        returns.reduce((sum, r) => sum + Math.pow(r - avgReturn, 2), 0) /
+          returns.length,
+      ) || 1;
     const sharpeRatio = (avgReturn / stdDev) * Math.sqrt(252); // Annualized
 
     return {
@@ -479,70 +560,111 @@ export class ICTBacktestAgent extends BaseAgent {
       winningTrades: wins.length,
       losingTrades: losses.length,
       winRate: trades.length > 0 ? (wins.length / trades.length) * 100 : 0,
-      profitFactor: grossLoss > 0 ? grossProfit / grossLoss : grossProfit > 0 ? Infinity : 0,
+      profitFactor:
+        grossLoss > 0
+          ? grossProfit / grossLoss
+          : grossProfit > 0
+            ? Infinity
+            : 0,
       totalPnL,
       totalPnLPercent: (totalPnL / initialCapital) * 100,
-      maxDrawdown: equityHistory.length > 0 ? Math.max(...equityHistory.map(e => 
-        initialCapital + totalPnL - e.equity
-      )) : 0,
+      maxDrawdown:
+        equityHistory.length > 0
+          ? Math.max(
+              ...equityHistory.map((e) => initialCapital + totalPnL - e.equity),
+            )
+          : 0,
       maxDrawdownPercent: maxDrawdown,
       sharpeRatio: isFinite(sharpeRatio) ? sharpeRatio : 0,
       averageWin: wins.length > 0 ? grossProfit / wins.length : 0,
       averageLoss: losses.length > 0 ? grossLoss / losses.length : 0,
-      averageRR: losses.length > 0 && wins.length > 0 
-        ? (grossProfit / wins.length) / (grossLoss / losses.length) 
-        : 0,
-      largestWin: wins.length > 0 ? Math.max(...wins.map(t => t.pnl)) : 0,
-      largestLoss: losses.length > 0 ? Math.min(...losses.map(t => t.pnl)) : 0,
-      averageHoldTime: trades.length > 0 
-        ? trades.reduce((sum, t) => sum + (t.exitTime.getTime() - t.entryTime.getTime()) / 3600000, 0) / trades.length
-        : 0,
+      averageRR:
+        losses.length > 0 && wins.length > 0
+          ? grossProfit / wins.length / (grossLoss / losses.length)
+          : 0,
+      largestWin: wins.length > 0 ? Math.max(...wins.map((t) => t.pnl)) : 0,
+      largestLoss:
+        losses.length > 0 ? Math.min(...losses.map((t) => t.pnl)) : 0,
+      averageHoldTime:
+        trades.length > 0
+          ? trades.reduce(
+              (sum, t) =>
+                sum + (t.exitTime.getTime() - t.entryTime.getTime()) / 3600000,
+              0,
+            ) / trades.length
+          : 0,
       bestMonth: 'N/A',
       worstMonth: 'N/A',
     };
   }
 
-  private generateBacktestAnalysis(metrics: BacktestMetrics, trades: BacktestTrade[]): string[] {
+  private generateBacktestAnalysis(
+    metrics: BacktestMetrics,
+    trades: BacktestTrade[],
+  ): string[] {
     const analysis: string[] = [];
 
     // Win rate assessment
     if (metrics.winRate >= 60) {
-      analysis.push(`✅ Strong win rate of ${metrics.winRate.toFixed(1)}% - strategy shows consistency`);
+      analysis.push(
+        `✅ Strong win rate of ${metrics.winRate.toFixed(1)}% - strategy shows consistency`,
+      );
     } else if (metrics.winRate >= 45) {
-      analysis.push(`⚠️ Moderate win rate of ${metrics.winRate.toFixed(1)}% - acceptable with good R:R`);
+      analysis.push(
+        `⚠️ Moderate win rate of ${metrics.winRate.toFixed(1)}% - acceptable with good R:R`,
+      );
     } else {
-      analysis.push(`❌ Low win rate of ${metrics.winRate.toFixed(1)}% - strategy needs refinement`);
+      analysis.push(
+        `❌ Low win rate of ${metrics.winRate.toFixed(1)}% - strategy needs refinement`,
+      );
     }
 
     // Profit factor
     if (metrics.profitFactor >= 2) {
-      analysis.push(`✅ Excellent profit factor of ${metrics.profitFactor.toFixed(2)}`);
+      analysis.push(
+        `✅ Excellent profit factor of ${metrics.profitFactor.toFixed(2)}`,
+      );
     } else if (metrics.profitFactor >= 1.5) {
-      analysis.push(`✅ Good profit factor of ${metrics.profitFactor.toFixed(2)}`);
+      analysis.push(
+        `✅ Good profit factor of ${metrics.profitFactor.toFixed(2)}`,
+      );
     } else if (metrics.profitFactor >= 1) {
-      analysis.push(`⚠️ Marginal profit factor of ${metrics.profitFactor.toFixed(2)} - room for improvement`);
+      analysis.push(
+        `⚠️ Marginal profit factor of ${metrics.profitFactor.toFixed(2)} - room for improvement`,
+      );
     } else {
       analysis.push(`❌ Negative profit factor - strategy is losing money`);
     }
 
     // Drawdown
     if (metrics.maxDrawdownPercent <= 10) {
-      analysis.push(`✅ Low max drawdown of ${metrics.maxDrawdownPercent.toFixed(1)}% - good risk control`);
+      analysis.push(
+        `✅ Low max drawdown of ${metrics.maxDrawdownPercent.toFixed(1)}% - good risk control`,
+      );
     } else if (metrics.maxDrawdownPercent <= 20) {
-      analysis.push(`⚠️ Moderate drawdown of ${metrics.maxDrawdownPercent.toFixed(1)}% - acceptable`);
+      analysis.push(
+        `⚠️ Moderate drawdown of ${metrics.maxDrawdownPercent.toFixed(1)}% - acceptable`,
+      );
     } else {
-      analysis.push(`❌ High drawdown of ${metrics.maxDrawdownPercent.toFixed(1)}% - reduce position sizing`);
+      analysis.push(
+        `❌ High drawdown of ${metrics.maxDrawdownPercent.toFixed(1)}% - reduce position sizing`,
+      );
     }
 
     // Setup analysis
-    const setups = trades.reduce((acc, t) => {
-      acc[t.setup] = (acc[t.setup] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
-    
+    const setups = trades.reduce(
+      (acc, t) => {
+        acc[t.setup] = (acc[t.setup] || 0) + 1;
+        return acc;
+      },
+      {} as Record<string, number>,
+    );
+
     const topSetup = Object.entries(setups).sort((a, b) => b[1] - a[1])[0];
     if (topSetup) {
-      analysis.push(`📊 Most common setup: ${topSetup[0]} (${topSetup[1]} trades)`);
+      analysis.push(
+        `📊 Most common setup: ${topSetup[0]} (${topSetup[1]} trades)`,
+      );
     }
 
     return analysis;
@@ -554,7 +676,9 @@ export class ICTBacktestAgent extends BaseAgent {
     // Run backtest focusing on specific setup
     const strategy: ICTStrategyConfig = {
       name: `${setup} Analysis`,
-      entryConditions: [{ type: this.mapSetupToCondition(setup), direction: 'any' }],
+      entryConditions: [
+        { type: this.mapSetupToCondition(setup), direction: 'any' },
+      ],
       exitConditions: [{ type: 'riskReward', value: 2 }],
       filters: [{ type: 'minIctScore', value: 50 }],
     };
@@ -564,12 +688,12 @@ export class ICTBacktestAgent extends BaseAgent {
 
   private mapSetupToCondition(setup: string): any {
     const mapping: Record<string, string> = {
-      'FVG': 'fvg',
-      'OrderBlock': 'orderBlock',
-      'KillZone': 'killZone',
-      'PremiumDiscount': 'premiumDiscount',
-      'PowerOfThree': 'powerOfThree',
-      'BOS': 'structureBreak',
+      FVG: 'fvg',
+      OrderBlock: 'orderBlock',
+      KillZone: 'killZone',
+      PremiumDiscount: 'premiumDiscount',
+      PowerOfThree: 'powerOfThree',
+      BOS: 'structureBreak',
     };
     return mapping[setup] || 'fvg';
   }
@@ -590,7 +714,12 @@ export class ICTBacktestAgent extends BaseAgent {
           filters: [{ type: 'minIctScore', value: ictScore }],
         };
 
-        const result = await this.runBacktest({ symbol, timeframe: '4H', days, strategy });
+        const result = await this.runBacktest({
+          symbol,
+          timeframe: '4H',
+          days,
+          strategy,
+        });
         if (result.success && result.data) {
           results.push({
             params: { ictScore, rr },
@@ -618,12 +747,12 @@ export class ICTBacktestAgent extends BaseAgent {
 
     const results = await Promise.all(
       strategies.map((strategy: ICTStrategyConfig) =>
-        this.runBacktest({ symbol, timeframe: '4H', days, strategy })
-      )
+        this.runBacktest({ symbol, timeframe: '4H', days, strategy }),
+      ),
     );
 
     const comparison = results
-      .filter(r => r.success)
+      .filter((r) => r.success)
       .map((r, i) => ({
         strategy: strategies[i].name,
         ...r.data.metrics,
@@ -647,24 +776,31 @@ export class ICTBacktestAgent extends BaseAgent {
         { type: 'fvg', direction: 'any', minConfidence: 0.6 },
         { type: 'orderBlock', direction: 'any' },
       ],
-      exitConditions: [
-        { type: 'riskReward', value: 2 },
-      ],
-      filters: [
-        { type: 'killZoneOnly' },
-        { type: 'minIctScore', value: 65 },
-      ],
+      exitConditions: [{ type: 'riskReward', value: 2 }],
+      filters: [{ type: 'killZoneOnly' }, { type: 'minIctScore', value: 65 }],
     };
   }
 
-  private generateHistoricalData(symbol: string, days: number, timeframe: string): any[] {
+  private generateHistoricalData(
+    symbol: string,
+    days: number,
+    timeframe: string,
+  ): any[] {
     const data: any[] = [];
     const barsPerDay = this.getBarsPerDay(timeframe);
     const totalBars = days * barsPerDay;
-    
-    let basePrice = symbol.includes('XAU') ? 2000 : symbol.includes('NAS') ? 15000 : 1.1;
-    const volatility = symbol.includes('XAU') ? 0.005 : symbol.includes('NAS') ? 0.008 : 0.002;
-    
+
+    let basePrice = symbol.includes('XAU')
+      ? 2000
+      : symbol.includes('NAS')
+        ? 15000
+        : 1.1;
+    const volatility = symbol.includes('XAU')
+      ? 0.005
+      : symbol.includes('NAS')
+        ? 0.008
+        : 0.002;
+
     const startTime = Date.now() - days * 24 * 60 * 60 * 1000;
     const barInterval = (24 * 60 * 60 * 1000) / barsPerDay;
 
@@ -673,10 +809,19 @@ export class ICTBacktestAgent extends BaseAgent {
       const change = (Math.random() - 0.5) * 2 * volatility * basePrice;
       const open = basePrice;
       const close = basePrice + change;
-      const high = Math.max(open, close) + Math.random() * volatility * basePrice * 0.5;
-      const low = Math.min(open, close) - Math.random() * volatility * basePrice * 0.5;
-      
-      data.push({ time, open, high, low, close, volume: Math.random() * 10000 });
+      const high =
+        Math.max(open, close) + Math.random() * volatility * basePrice * 0.5;
+      const low =
+        Math.min(open, close) - Math.random() * volatility * basePrice * 0.5;
+
+      data.push({
+        time,
+        open,
+        high,
+        low,
+        close,
+        volume: Math.random() * 10000,
+      });
       basePrice = close;
     }
 
@@ -687,21 +832,24 @@ export class ICTBacktestAgent extends BaseAgent {
     // Format symbol for TradingView API
     // e.g., 'XAUUSD' -> 'OANDA:XAUUSD', 'NASDAQ' -> 'NASDAQ:NDX'
     const symbolMappings: Record<string, string> = {
-      'XAUUSD': 'OANDA:XAUUSD',
-      'GOLD': 'OANDA:XAUUSD',
-      'NASDAQ': 'NASDAQ:NDX',
-      'NAS100': 'NASDAQ:NDX',
-      'NDX': 'NASDAQ:NDX',
-      'SP500': 'SP:SPX',
-      'SPX': 'SP:SPX',
-      'EURUSD': 'FX:EURUSD',
-      'GBPUSD': 'FX:GBPUSD',
-      'USDJPY': 'FX:USDJPY',
-      'BTCUSD': 'COINBASE:BTCUSD',
+      XAUUSD: 'OANDA:XAUUSD',
+      GOLD: 'OANDA:XAUUSD',
+      NASDAQ: 'NASDAQ:NDX',
+      NAS100: 'NASDAQ:NDX',
+      NDX: 'NASDAQ:NDX',
+      SP500: 'SP:SPX',
+      SPX: 'SP:SPX',
+      EURUSD: 'FX:EURUSD',
+      GBPUSD: 'FX:GBPUSD',
+      USDJPY: 'FX:USDJPY',
+      BTCUSD: 'COINBASE:BTCUSD',
     };
-    
+
     const upperSymbol = symbol.toUpperCase();
-    return symbolMappings[upperSymbol] || (symbol.includes(':') ? symbol : `OANDA:${upperSymbol}`);
+    return (
+      symbolMappings[upperSymbol] ||
+      (symbol.includes(':') ? symbol : `OANDA:${upperSymbol}`)
+    );
   }
 
   private formatTimeframe(timeframe: string): string {
@@ -716,13 +864,13 @@ export class ICTBacktestAgent extends BaseAgent {
       '4H': '240',
       '1d': 'D',
       '1D': 'D',
-      'D': 'D',
-      'daily': 'D',
+      D: 'D',
+      daily: 'D',
       '1w': 'W',
       '1W': 'W',
-      'weekly': 'W',
+      weekly: 'W',
     };
-    
+
     return timeframeMappings[timeframe] || timeframe;
   }
 

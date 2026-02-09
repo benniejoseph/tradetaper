@@ -8,9 +8,16 @@ import {
   Request,
 } from '@nestjs/common';
 import { DisciplineService } from './discipline.service';
-import { CreateApprovalDto, ApproveTradeDto, CompleteExerciseDto } from './dto/discipline.dto';
+import {
+  CreateApprovalDto,
+  ApproveTradeDto,
+  CompleteExerciseDto,
+} from './dto/discipline.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { FeatureAccessGuard, RequireFeature } from '../subscriptions/guards/feature-access.guard';
+import {
+  FeatureAccessGuard,
+  RequireFeature,
+} from '../subscriptions/guards/feature-access.guard';
 
 @Controller('discipline')
 @UseGuards(JwtAuthGuard, FeatureAccessGuard)
@@ -69,7 +76,11 @@ export class DisciplineController {
     @Param('id') id: string,
     @Body() dto: CompleteExerciseDto,
   ) {
-    return this.disciplineService.completeExercise(req.user.id, id, dto.exerciseId);
+    return this.disciplineService.completeExercise(
+      req.user.id,
+      id,
+      dto.exerciseId,
+    );
   }
 
   @Post('cooldowns/:id/skip')

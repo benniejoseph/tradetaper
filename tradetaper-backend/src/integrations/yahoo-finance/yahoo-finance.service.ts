@@ -33,11 +33,13 @@ export class YahooFinanceService {
   ): Promise<any[]> {
     const yahooSymbol = this._resolveSymbol(symbol);
     const interval = this.timeframeMap[timeframe] || '1d';
-    
+
     // Yahoo Finance endpoints (like '1h') often only support limited history (e.g. last 730 days)
     // We'll try to fetch as requested, but catch errors gracefully.
 
-    this.logger.log(`Fetching from Yahoo Finance: ${yahooSymbol} (${interval}) [${startTime.toISOString()} - ${endTime.toISOString()}]`);
+    this.logger.log(
+      `Fetching from Yahoo Finance: ${yahooSymbol} (${interval}) [${startTime.toISOString()} - ${endTime.toISOString()}]`,
+    );
 
     try {
       const queryOptions = {
@@ -51,18 +53,19 @@ export class YahooFinanceService {
       // Transform to match MetaApi format
       // Yahoo returns: { date, open, high, low, close, adjClose, volume }
       // MetaApi expects: { time, open, high, low, close, tickVolume, spread, etc. }
-      
-      return (result as any[]).map(candle => ({
+
+      return (result as any[]).map((candle) => ({
         time: candle.date,
         open: candle.open,
         high: candle.high,
         low: candle.low,
         close: candle.close,
-        tickVolume: candle.volume, 
+        tickVolume: candle.volume,
       }));
-
     } catch (error) {
-      this.logger.warn(`Failed to fetch from Yahoo Finance for ${yahooSymbol}: ${error.message}`);
+      this.logger.warn(
+        `Failed to fetch from Yahoo Finance for ${yahooSymbol}: ${error.message}`,
+      );
       // Return empty array instead of throwing to allow graceful degradation in the chain
       return [];
     }
@@ -85,9 +88,9 @@ export class YahooFinanceService {
 
     // Forex Heuristic: 6 chars (e.g. EURUSD) -> EURUSD=X
     if (s.length === 6 && /^[A-Z]+$/.test(s)) {
-        // Exclude common tickers that might be 6 chars but not forex if needed, 
-        // but generally EURUSD=X is safe for forex pairs.
-        return `${s}=X`;
+      // Exclude common tickers that might be 6 chars but not forex if needed,
+      // but generally EURUSD=X is safe for forex pairs.
+      return `${s}=X`;
     }
 
     return s;

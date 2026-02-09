@@ -74,15 +74,15 @@ export class StrategiesService {
   async getStrategyStats(strategyId: string, userId: string) {
     // Get all closed trades for this strategy
     const trades = await this.tradesRepository.find({
-      where: { 
-        strategyId, 
+      where: {
+        strategyId,
         userId,
         status: TradeStatus.CLOSED,
       },
     });
 
     const closedTrades = trades.length;
-    
+
     if (closedTrades === 0) {
       return {
         totalTrades: 0,
@@ -99,18 +99,29 @@ export class StrategiesService {
     }
 
     // Calculate stats from trades
-    const winningTrades = trades.filter(t => (t.profitOrLoss || 0) > 0);
-    const losingTrades = trades.filter(t => (t.profitOrLoss || 0) < 0);
-    
-    const totalPnl = trades.reduce((sum, t) => sum + (Number(t.profitOrLoss) || 0), 0);
-    const totalWins = winningTrades.reduce((sum, t) => sum + (Number(t.profitOrLoss) || 0), 0);
-    const totalLosses = Math.abs(losingTrades.reduce((sum, t) => sum + (Number(t.profitOrLoss) || 0), 0));
+    const winningTrades = trades.filter((t) => (t.profitOrLoss || 0) > 0);
+    const losingTrades = trades.filter((t) => (t.profitOrLoss || 0) < 0);
+
+    const totalPnl = trades.reduce(
+      (sum, t) => sum + (Number(t.profitOrLoss) || 0),
+      0,
+    );
+    const totalWins = winningTrades.reduce(
+      (sum, t) => sum + (Number(t.profitOrLoss) || 0),
+      0,
+    );
+    const totalLosses = Math.abs(
+      losingTrades.reduce((sum, t) => sum + (Number(t.profitOrLoss) || 0), 0),
+    );
 
     const winRate = (winningTrades.length / closedTrades) * 100;
     const averagePnl = totalPnl / closedTrades;
-    const averageWin = winningTrades.length > 0 ? totalWins / winningTrades.length : 0;
-    const averageLoss = losingTrades.length > 0 ? totalLosses / losingTrades.length : 0;
-    const profitFactor = totalLosses > 0 ? totalWins / totalLosses : totalWins > 0 ? Infinity : 0;
+    const averageWin =
+      winningTrades.length > 0 ? totalWins / winningTrades.length : 0;
+    const averageLoss =
+      losingTrades.length > 0 ? totalLosses / losingTrades.length : 0;
+    const profitFactor =
+      totalLosses > 0 ? totalWins / totalLosses : totalWins > 0 ? Infinity : 0;
 
     return {
       totalTrades: closedTrades,
@@ -122,7 +133,10 @@ export class StrategiesService {
       averagePnl: parseFloat(averagePnl.toFixed(2)),
       averageWin: parseFloat(averageWin.toFixed(2)),
       averageLoss: parseFloat(averageLoss.toFixed(2)),
-      profitFactor: profitFactor === Infinity ? 999.99 : parseFloat(profitFactor.toFixed(2)),
+      profitFactor:
+        profitFactor === Infinity
+          ? 999.99
+          : parseFloat(profitFactor.toFixed(2)),
     };
   }
 
@@ -142,4 +156,3 @@ export class StrategiesService {
     return strategiesWithStats;
   }
 }
-

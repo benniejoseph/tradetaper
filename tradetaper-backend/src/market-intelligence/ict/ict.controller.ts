@@ -50,7 +50,7 @@ export class ICTController {
   @Get('complete-analysis')
   async getCompleteAnalysis(@Query('symbol') symbol: string) {
     this.logger.log(`Getting complete ICT analysis for ${symbol}`);
-    
+
     if (!symbol) {
       throw new HttpException('Symbol is required', HttpStatus.BAD_REQUEST);
     }
@@ -62,11 +62,11 @@ export class ICTController {
         timeframe: '1H',
         limit: 100,
       });
-      
+
       const analysis = await this.ictMaster.analyzeComplete(
         symbol,
         priceData,
-        '1H'
+        '1H',
       );
 
       return {
@@ -94,7 +94,7 @@ export class ICTController {
     @Query('timeframe') timeframe: string = '1H',
   ) {
     this.logger.log(`Getting liquidity analysis for ${symbol} on ${timeframe}`);
-    
+
     try {
       const priceData = await this.marketDataProvider.getPriceData({
         symbol,
@@ -130,7 +130,7 @@ export class ICTController {
     @Query('timeframe') timeframe: string = '1H',
   ) {
     this.logger.log(`Getting market structure for ${symbol} on ${timeframe}`);
-    
+
     try {
       const priceData = await this.marketDataProvider.getPriceData({
         symbol,
@@ -166,7 +166,7 @@ export class ICTController {
     @Query('timeframe') timeframe: string = '1H',
   ) {
     this.logger.log(`Getting FVGs for ${symbol} on ${timeframe}`);
-    
+
     try {
       const priceData = await this.marketDataProvider.getPriceData({
         symbol,
@@ -202,7 +202,7 @@ export class ICTController {
     @Query('timeframe') timeframe: string = '1H',
   ) {
     this.logger.log(`Getting Order Blocks for ${symbol} on ${timeframe}`);
-    
+
     try {
       const priceData = await this.marketDataProvider.getPriceData({
         symbol,
@@ -235,7 +235,7 @@ export class ICTController {
   @Get('kill-zones')
   async getKillZones() {
     this.logger.log('Getting Kill Zones status');
-    
+
     try {
       const analysis = this.killZone.analyzeKillZones();
 
@@ -262,13 +262,14 @@ export class ICTController {
     @Query('timeframe') timeframe: string = '1H',
   ) {
     this.logger.log(`Getting Premium/Discount for ${symbol} on ${timeframe}`);
-    
+
     try {
-      const { data: priceData, source } = await this.marketDataProvider.getPriceDataWithSource({
-        symbol,
-        timeframe: timeframe || '1H',
-        limit: 100,
-      });
+      const { data: priceData, source } =
+        await this.marketDataProvider.getPriceDataWithSource({
+          symbol,
+          timeframe: timeframe || '1H',
+          limit: 100,
+        });
       const analysis = this.premiumDiscount.analyzePremiumDiscount(
         symbol,
         priceData,
@@ -301,13 +302,14 @@ export class ICTController {
     @Query('timeframe') timeframe: string = '1H',
   ) {
     this.logger.log(`Getting Power of Three for ${symbol} on ${timeframe}`);
-    
+
     try {
-      const { data: priceData, source } = await this.marketDataProvider.getPriceDataWithSource({
-        symbol,
-        timeframe: timeframe || '1H',
-        limit: 100,
-      });
+      const { data: priceData, source } =
+        await this.marketDataProvider.getPriceDataWithSource({
+          symbol,
+          timeframe: timeframe || '1H',
+          limit: 100,
+        });
       const analysis = this.powerOfThree.analyzePowerOfThree(
         symbol,
         priceData,
@@ -341,17 +343,22 @@ export class ICTController {
     @UploadedFiles() files: Express.Multer.File[],
     @Body() body: { symbol: string; timeframes: string[] },
   ) {
-    this.logger.log(`Analyzing ${files?.length || 0} chart images for ${body.symbol}`);
-    
+    this.logger.log(
+      `Analyzing ${files?.length || 0} chart images for ${body.symbol}`,
+    );
+
     try {
       if (!files || files.length === 0) {
-        throw new HttpException('No chart images provided', HttpStatus.BAD_REQUEST);
+        throw new HttpException(
+          'No chart images provided',
+          HttpStatus.BAD_REQUEST,
+        );
       }
 
       // Convert uploaded files to base64 for Gemini Vision API
       const chartData: any = {};
-      const timeframes = Array.isArray(body.timeframes) 
-        ? body.timeframes 
+      const timeframes = Array.isArray(body.timeframes)
+        ? body.timeframes
         : [body.timeframes];
 
       files.forEach((file, index) => {
@@ -375,7 +382,8 @@ export class ICTController {
         context: 'Multi-timeframe ICT analysis',
       };
 
-      const analysis = await this.chartImageAnalysis.analyzeChartImages(request);
+      const analysis =
+        await this.chartImageAnalysis.analyzeChartImages(request);
 
       return {
         success: true,
@@ -401,7 +409,7 @@ export class ICTController {
     @Query('timeframe') timeframe: string = '1H',
   ) {
     this.logger.log(`Getting ICT AI analysis for ${symbol} on ${timeframe}`);
-    
+
     try {
       const priceData = await this.marketDataProvider.getPriceData({
         symbol,
@@ -427,6 +435,4 @@ export class ICTController {
       );
     }
   }
-
 }
-

@@ -20,7 +20,10 @@ import { UpdateTradeDto } from './dto/update-trade.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { Trade } from './entities/trade.entity';
 import { PaginatedResponseDto } from '../common/dto/paginated-response.dto';
-import { UsageLimitGuard, UsageFeature } from '../subscriptions/guards/usage-limit.guard';
+import {
+  UsageLimitGuard,
+  UsageFeature,
+} from '../subscriptions/guards/usage-limit.guard';
 
 @UseGuards(JwtAuthGuard)
 @Controller('trades')
@@ -36,7 +39,9 @@ export class TradesController {
     @Body() createTradeDto: CreateTradeDto,
     @Request() req,
   ): Promise<Trade> {
-    this.logger.debug(`📥 Received create trade request: ${JSON.stringify(createTradeDto)}`);
+    this.logger.debug(
+      `📥 Received create trade request: ${JSON.stringify(createTradeDto)}`,
+    );
     this.logger.debug(`👤 User: ${req.user?.email || req.user?.id}`);
     return this.tradesService.create(createTradeDto, req.user);
   }
@@ -51,7 +56,13 @@ export class TradesController {
     // Ensure limit doesn't exceed a max value to prevent abuse
     // Increase max limit to support full analytics
     const safeLimit = Math.min(5000, limit);
-    return this.tradesService.findAll(req.user, accountId, undefined, page, safeLimit);
+    return this.tradesService.findAll(
+      req.user,
+      accountId,
+      undefined,
+      page,
+      safeLimit,
+    );
   }
 
   @Get(':id')

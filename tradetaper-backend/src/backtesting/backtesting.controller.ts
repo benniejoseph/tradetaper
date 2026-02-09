@@ -128,7 +128,7 @@ export class BacktestingController {
   ) {
     // Handle tags if they come as a single string
     const tagArray = typeof tags === 'string' ? [tags] : tags;
-    
+
     return this.backtestingService.findAllLogs(req.user.id, {
       symbol,
       session,
@@ -177,17 +177,34 @@ export class BacktestingController {
   @Get('strategies/:strategyId/dimension/:dimension')
   async getStatsByDimension(
     @Param('strategyId', ParseUUIDPipe) strategyId: string,
-    @Param('dimension') dimension: 'symbol' | 'session' | 'timeframe' | 'killZone' | 'dayOfWeek' | 'setupType',
+    @Param('dimension')
+    dimension:
+      | 'symbol'
+      | 'session'
+      | 'timeframe'
+      | 'killZone'
+      | 'dayOfWeek'
+      | 'setupType',
     @Request() req,
   ) {
-    return this.backtestingService.getStatsByDimension(strategyId, req.user.id, dimension);
+    return this.backtestingService.getStatsByDimension(
+      strategyId,
+      req.user.id,
+      dimension,
+    );
   }
 
   @Get('strategies/:strategyId/matrix')
   async getPerformanceMatrix(
     @Param('strategyId', ParseUUIDPipe) strategyId: string,
-    @Query('rows') rowDimension: 'session' | 'timeframe' | 'killZone' | 'dayOfWeek' = 'session',
-    @Query('columns') columnDimension: 'symbol' | 'session' | 'timeframe' = 'symbol',
+    @Query('rows')
+    rowDimension:
+      | 'session'
+      | 'timeframe'
+      | 'killZone'
+      | 'dayOfWeek' = 'session',
+    @Query('columns')
+    columnDimension: 'symbol' | 'session' | 'timeframe' = 'symbol',
     @Request() req,
   ) {
     return this.backtestingService.getPerformanceMatrix(
@@ -205,8 +222,6 @@ export class BacktestingController {
   ) {
     return this.backtestingService.getAnalysisData(strategyId, req.user.id);
   }
-
-
 
   @Get('symbols')
   async getSymbols(@Request() req) {

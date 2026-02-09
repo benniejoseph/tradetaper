@@ -1,10 +1,16 @@
-import { MigrationInterface, QueryRunner, Table, TableIndex, TableForeignKey } from 'typeorm';
+import {
+  MigrationInterface,
+  QueryRunner,
+  Table,
+  TableIndex,
+  TableForeignKey,
+} from 'typeorm';
 
 export class CreateTradeCandles1769000000000 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
     // Check if table already exists
     const tableExists = await queryRunner.hasTable('trade_candles');
-    
+
     if (!tableExists) {
       await queryRunner.createTable(
         new Table({
@@ -46,8 +52,10 @@ export class CreateTradeCandles1769000000000 implements MigrationInterface {
 
     // Check if foreign key already exists
     const table = await queryRunner.getTable('trade_candles');
-    const hasForeignKey = table?.foreignKeys.some(fk => fk.columnNames.includes('tradeId'));
-    
+    const hasForeignKey = table?.foreignKeys.some((fk) =>
+      fk.columnNames.includes('tradeId'),
+    );
+
     if (!hasForeignKey) {
       await queryRunner.createForeignKey(
         'trade_candles',
@@ -61,8 +69,10 @@ export class CreateTradeCandles1769000000000 implements MigrationInterface {
     }
 
     // Check if index already exists
-    const hasIndex = table?.indices.some(idx => idx.name === 'IDX_trade_candles_trade_timeframe');
-    
+    const hasIndex = table?.indices.some(
+      (idx) => idx.name === 'IDX_trade_candles_trade_timeframe',
+    );
+
     if (!hasIndex) {
       await queryRunner.createIndex(
         'trade_candles',

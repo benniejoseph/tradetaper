@@ -11,9 +11,11 @@ import { TypeOrmModule } from '@nestjs/typeorm';
           configService.get<string>('NODE_ENV') === 'production';
 
         if (isProduction) {
-          const instanceName = configService.get<string>('INSTANCE_CONNECTION_NAME');
+          const instanceName = configService.get<string>(
+            'INSTANCE_CONNECTION_NAME',
+          );
           // Check for DB_SSL (default true in prod if not specified, safe for Cloud)
-          const isSSL = configService.get<string>('DB_SSL') === 'true' || true; 
+          const isSSL = configService.get<string>('DB_SSL') === 'true' || true;
 
           let hostConfig = {};
           if (instanceName) {
@@ -22,12 +24,12 @@ import { TypeOrmModule } from '@nestjs/typeorm';
               host: `/cloudsql/${instanceName}`,
             };
           } else {
-             console.log('🔧 Using Standard TCP Connection');
-             hostConfig = {
-               host: configService.get<string>('DB_HOST'),
-               port: Number(configService.get<string>('DB_PORT') || 5432),
-               ssl: isSSL ? { rejectUnauthorized: false } : false,
-             };
+            console.log('🔧 Using Standard TCP Connection');
+            hostConfig = {
+              host: configService.get<string>('DB_HOST'),
+              port: Number(configService.get<string>('DB_PORT') || 5432),
+              ssl: isSSL ? { rejectUnauthorized: false } : false,
+            };
           }
 
           const config = {

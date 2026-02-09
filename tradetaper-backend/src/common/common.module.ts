@@ -14,10 +14,6 @@ import { CsrfController } from './controllers/csrf.controller';
     GlobalExceptionFilter,
     LoggingInterceptor,
   ],
-  exports: [
-    ProductionLoggerService,
-    GlobalExceptionFilter,
-    LoggingInterceptor,
-  ],
+  exports: [ProductionLoggerService, GlobalExceptionFilter, LoggingInterceptor],
 })
 export class CommonModule {}

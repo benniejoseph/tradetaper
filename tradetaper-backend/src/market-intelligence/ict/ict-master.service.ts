@@ -54,9 +54,11 @@ export class ICTMasterService {
   async analyzeComplete(
     symbol: string,
     priceData: any[],
-    timeframe: string = '1D'
+    timeframe: string = '1D',
   ): Promise<ICTCompleteAnalysis> {
-    this.logger.log(`Running complete ICT analysis for ${symbol} on ${timeframe}`);
+    this.logger.log(
+      `Running complete ICT analysis for ${symbol} on ${timeframe}`,
+    );
 
     if (!priceData || priceData.length === 0) {
       throw new Error('Price data is empty');
@@ -80,24 +82,47 @@ export class ICTMasterService {
     ]);
 
     // Extract results with fallbacks
-    const liquidity = results[0].status === 'fulfilled' ? results[0].value : { nearestLiquidity: { above: null, below: null } };
-    const structure = results[1].status === 'fulfilled' ? results[1].value : { trend: 'unknown', tradingBias: 'neutral' };
-    const fvgs = results[2].status === 'fulfilled' ? results[2].value : { unfilledFVGs: [], nearestFVG: null };
-    const obs = results[3].status === 'fulfilled' ? results[3].value : { activeOrderBlocks: [], nearestOrderBlock: null };
-    const killZoneAnalysis = results[4].status === 'fulfilled' ? results[4].value : { isOptimalTradingTime: false, activeKillZone: null };
+    const liquidity =
+      results[0].status === 'fulfilled'
+        ? results[0].value
+        : { nearestLiquidity: { above: null, below: null } };
+    const structure =
+      results[1].status === 'fulfilled'
+        ? results[1].value
+        : { trend: 'unknown', tradingBias: 'neutral' };
+    const fvgs =
+      results[2].status === 'fulfilled'
+        ? results[2].value
+        : { unfilledFVGs: [], nearestFVG: null };
+    const obs =
+      results[3].status === 'fulfilled'
+        ? results[3].value
+        : { activeOrderBlocks: [], nearestOrderBlock: null };
+    const killZoneAnalysis =
+      results[4].status === 'fulfilled'
+        ? results[4].value
+        : { isOptimalTradingTime: false, activeKillZone: null };
 
     // Log any failures
     results.forEach((result, index) => {
       if (result.status === 'rejected') {
-        const serviceName = ['Liquidity', 'Structure', 'FVG', 'OrderBlock', 'KillZone'][index];
-        this.logger.error(`${serviceName} analysis failed: ${result.reason?.message}`);
+        const serviceName = [
+          'Liquidity',
+          'Structure',
+          'FVG',
+          'OrderBlock',
+          'KillZone',
+        ][index];
+        this.logger.error(
+          `${serviceName} analysis failed: ${result.reason?.message}`,
+        );
       }
     });
 
     // Determine overall bias
     let overallBias: 'neutral' | 'bullish' | 'bearish';
     try {
-      overallBias = this.calculateOverallBias(structure, liquidity, fvgs, obs) as 'neutral' | 'bullish' | 'bearish';
+      overallBias = this.calculateOverallBias(structure, liquidity, fvgs, obs);
     } catch (error) {
       this.logger.error(`Error calculating overall bias: ${error.message}`);
       overallBias = 'neutral';
@@ -106,7 +131,13 @@ export class ICTMasterService {
     // Calculate ICT score (alignment of all concepts)
     let ictScore: number;
     try {
-      ictScore = this.calculateICTScore(structure, liquidity, fvgs, obs, killZoneAnalysis);
+      ictScore = this.calculateICTScore(
+        structure,
+        liquidity,
+        fvgs,
+        obs,
+        killZoneAnalysis,
+      );
     } catch (error) {
       this.logger.error(`Error calculating ICT score: ${error.message}`);
       ictScore = 50;
@@ -115,7 +146,10 @@ export class ICTMasterService {
     // Calculate confidence
     let confidence: number;
     try {
-      confidence = this.calculateConfidence(ictScore, killZoneAnalysis.isOptimalTradingTime);
+      confidence = this.calculateConfidence(
+        ictScore,
+        killZoneAnalysis.isOptimalTradingTime,
+      );
     } catch (error) {
       this.logger.error(`Error calculating confidence: ${error.message}`);
       confidence = 50;
@@ -124,7 +158,12 @@ export class ICTMasterService {
     // Identify primary setup
     let primarySetup: string | null;
     try {
-      primarySetup = this.identifyPrimarySetup(structure, fvgs, obs, overallBias);
+      primarySetup = this.identifyPrimarySetup(
+        structure,
+        fvgs,
+        obs,
+        overallBias,
+      );
     } catch (error) {
       this.logger.error(`Error identifying primary setup: ${error.message}`);
       primarySetup = null;
@@ -150,11 +189,15 @@ export class ICTMasterService {
         killZoneAnalysis,
         overallBias,
         ictScore,
-        currentPrice
+        currentPrice,
       );
     } catch (error) {
-      this.logger.error(`Error generating comprehensive analysis: ${error.message}`);
-      analysis = ['Error generating analysis - some ICT values may be undefined'];
+      this.logger.error(
+        `Error generating comprehensive analysis: ${error.message}`,
+      );
+      analysis = [
+        'Error generating analysis - some ICT values may be undefined',
+      ];
     }
 
     // Generate trading plan
@@ -166,11 +209,13 @@ export class ICTMasterService {
         entryZones,
         killZoneAnalysis,
         structure,
-        confidence
+        confidence,
       );
     } catch (error) {
       this.logger.error(`Error generating trading plan: ${error.message}`);
-      tradingPlan = ['Error generating trading plan - some ICT values may be undefined'];
+      tradingPlan = [
+        'Error generating trading plan - some ICT values may be undefined',
+      ];
     }
 
     return {
@@ -204,7 +249,7 @@ export class ICTMasterService {
     structure: any,
     liquidity: any,
     fvgs: any,
-    obs: any
+    obs: any,
   ): 'bullish' | 'bearish' | 'neutral' {
     let bullishSignals = 0;
     let bearishSignals = 0;
@@ -218,7 +263,8 @@ export class ICTMasterService {
 
     // Liquidity (which side is being targeted)
     if (liquidity.nearestLiquidity.above) {
-      const distance = liquidity.nearestLiquidity.above.price - liquidity.currentPrice;
+      const distance =
+        liquidity.nearestLiquidity.above.price - liquidity.currentPrice;
       if (distance / liquidity.currentPrice < 0.02) {
         // Close to buy-side liquidity = likely sweep then reverse bearish
         bearishSignals += 1;
@@ -226,7 +272,8 @@ export class ICTMasterService {
     }
 
     if (liquidity.nearestLiquidity.below) {
-      const distance = liquidity.currentPrice - liquidity.nearestLiquidity.below.price;
+      const distance =
+        liquidity.currentPrice - liquidity.nearestLiquidity.below.price;
       if (distance / liquidity.currentPrice < 0.02) {
         // Close to sell-side liquidity = likely sweep then reverse bullish
         bullishSignals += 1;
@@ -234,15 +281,23 @@ export class ICTMasterService {
     }
 
     // FVGs
-    const bullishFVGs = fvgs.bullishFVGs.filter((fvg: any) => !fvg.filled).length;
-    const bearishFVGs = fvgs.bearishFVGs.filter((fvg: any) => !fvg.filled).length;
+    const bullishFVGs = fvgs.bullishFVGs.filter(
+      (fvg: any) => !fvg.filled,
+    ).length;
+    const bearishFVGs = fvgs.bearishFVGs.filter(
+      (fvg: any) => !fvg.filled,
+    ).length;
 
     if (bullishFVGs > bearishFVGs) bullishSignals += 1;
     else if (bearishFVGs > bullishFVGs) bearishSignals += 1;
 
     // Order Blocks
-    const activeBullishOBs = obs.bullishOrderBlocks.filter((ob: any) => !ob.isBreaker).length;
-    const activeBearishOBs = obs.bearishOrderBlocks.filter((ob: any) => !ob.isBreaker).length;
+    const activeBullishOBs = obs.bullishOrderBlocks.filter(
+      (ob: any) => !ob.isBreaker,
+    ).length;
+    const activeBearishOBs = obs.bearishOrderBlocks.filter(
+      (ob: any) => !ob.isBreaker,
+    ).length;
 
     if (activeBullishOBs > activeBearishOBs) bullishSignals += 1;
     else if (activeBearishOBs > activeBullishOBs) bearishSignals += 1;
@@ -261,12 +316,13 @@ export class ICTMasterService {
     liquidity: any,
     fvgs: any,
     obs: any,
-    killZoneAnalysis: any
+    killZoneAnalysis: any,
   ): number {
     let score = 0;
 
     // Market structure clarity (max 25 points)
-    if (structure.structureType === 'BOS') score += 15; // Clear continuation
+    if (structure.structureType === 'BOS')
+      score += 15; // Clear continuation
     else if (structure.structureType === 'CHoCH') score += 10; // Potential reversal
 
     if (structure.trend !== 'ranging') score += 10; // Clear trend
@@ -292,7 +348,10 @@ export class ICTMasterService {
   /**
    * Calculate confidence based on ICT score and timing
    */
-  private calculateConfidence(ictScore: number, isOptimalTime: boolean): number {
+  private calculateConfidence(
+    ictScore: number,
+    isOptimalTime: boolean,
+  ): number {
     let confidence = ictScore * 0.7; // Base confidence from ICT score
 
     if (isOptimalTime) {
@@ -309,19 +368,30 @@ export class ICTMasterService {
     structure: any,
     fvgs: any,
     obs: any,
-    bias: string
+    bias: string,
   ): string | null {
     // Priority: Order Block > FVG > Structure Break
 
-    if (obs.nearestOrderBlock?.type === bias && obs.nearestOrderBlock?.low !== undefined && obs.nearestOrderBlock?.high !== undefined) {
+    if (
+      obs.nearestOrderBlock?.type === bias &&
+      obs.nearestOrderBlock?.low !== undefined &&
+      obs.nearestOrderBlock?.high !== undefined
+    ) {
       return `${bias.toUpperCase()} Order Block Retest at ${safeToFixed(obs.nearestOrderBlock.low, 2)} - ${safeToFixed(obs.nearestOrderBlock.high, 2)}`;
     }
 
-    if (fvgs.nearestFVG?.type === bias && fvgs.nearestFVG?.low !== undefined && fvgs.nearestFVG?.high !== undefined) {
+    if (
+      fvgs.nearestFVG?.type === bias &&
+      fvgs.nearestFVG?.low !== undefined &&
+      fvgs.nearestFVG?.high !== undefined
+    ) {
       return `${bias.toUpperCase()} Fair Value Gap Fill at ${safeToFixed(fvgs.nearestFVG.low, 2)} - ${safeToFixed(fvgs.nearestFVG.high, 2)}`;
     }
 
-    if (structure.structureType === 'BOS' && structure.tradingBias === bias.replace('ish', '')) {
+    if (
+      structure.structureType === 'BOS' &&
+      structure.tradingBias === bias.replace('ish', '')
+    ) {
       return `${bias.toUpperCase()} Break of Structure (Trend Continuation)`;
     }
 
@@ -339,7 +409,7 @@ export class ICTMasterService {
     fvgs: any,
     obs: any,
     liquidity: any,
-    bias: string
+    bias: string,
   ): Array<any> {
     const zones: Array<any> = [];
 
@@ -361,7 +431,10 @@ export class ICTMasterService {
         type: 'OrderBlock',
         direction: obs.nearestOrderBlock.type === 'bullish' ? 'long' : 'short',
         price: (obs.nearestOrderBlock.high + obs.nearestOrderBlock.low) / 2,
-        range: { high: obs.nearestOrderBlock.high, low: obs.nearestOrderBlock.low },
+        range: {
+          high: obs.nearestOrderBlock.high,
+          low: obs.nearestOrderBlock.low,
+        },
         strength: obs.nearestOrderBlock.strength,
         description: obs.nearestOrderBlock.description,
       });
@@ -410,25 +483,33 @@ export class ICTMasterService {
     killZone: any,
     bias: string,
     ictScore: number,
-    currentPrice: number
+    currentPrice: number,
   ): string[] {
     const analysis: string[] = [];
 
-    analysis.push(`╔═══════════════════════════════════════════════════════════╗`);
-    analysis.push(`║        ICT (INNER CIRCLE TRADER) COMPLETE ANALYSIS         ║`);
-    analysis.push(`╚═══════════════════════════════════════════════════════════╝`);
+    analysis.push(
+      `╔═══════════════════════════════════════════════════════════╗`,
+    );
+    analysis.push(
+      `║        ICT (INNER CIRCLE TRADER) COMPLETE ANALYSIS         ║`,
+    );
+    analysis.push(
+      `╚═══════════════════════════════════════════════════════════╝`,
+    );
 
     analysis.push(`\n📊 Overall Assessment:`);
     analysis.push(`   • ICT Score: ${ictScore}/100`);
     analysis.push(`   • Overall Bias: ${bias.toUpperCase()}`);
-    analysis.push(`   • Current Price: ${currentPrice !== undefined && currentPrice !== null ? safeToFixed(currentPrice, 2) : 'N/A'}`);
+    analysis.push(
+      `   • Current Price: ${currentPrice !== undefined && currentPrice !== null ? safeToFixed(currentPrice, 2) : 'N/A'}`,
+    );
 
     // Kill Zone info
     analysis.push(`\n🕐 Kill Zone Status:`);
     if (killZone.activeKillZone) {
       analysis.push(`   • Active: ${killZone.activeKillZone.name}`);
       analysis.push(
-        `   • Time Remaining: ${Math.floor((killZone.activeKillZone.timeUntilEnd || 0) / 60)}h ${(killZone.activeKillZone.timeUntilEnd || 0) % 60}m`
+        `   • Time Remaining: ${Math.floor((killZone.activeKillZone.timeUntilEnd || 0) / 60)}h ${(killZone.activeKillZone.timeUntilEnd || 0) % 60}m`,
       );
       if (killZone.isOptimalTradingTime) {
         analysis.push(`   ⭐ OPTIMAL TRADING WINDOW - High probability setups`);
@@ -446,27 +527,41 @@ export class ICTMasterService {
 
     // Liquidity summary
     analysis.push(`\n💧 Liquidity Zones:`);
-    analysis.push(`   • Buy-Side Liquidity: ${liquidity.buySideLiquidity.length} zones`);
-    analysis.push(`   • Sell-Side Liquidity: ${liquidity.sellSideLiquidity.length} zones`);
+    analysis.push(
+      `   • Buy-Side Liquidity: ${liquidity.buySideLiquidity.length} zones`,
+    );
+    analysis.push(
+      `   • Sell-Side Liquidity: ${liquidity.sellSideLiquidity.length} zones`,
+    );
     if (liquidity.liquidityVoid.hasVoid) {
-      analysis.push(`   ⚠️ LIQUIDITY VOID DETECTED - expect fast price movement`);
+      analysis.push(
+        `   ⚠️ LIQUIDITY VOID DETECTED - expect fast price movement`,
+      );
     }
 
     // FVG summary
     analysis.push(`\n📊 Fair Value Gaps:`);
     analysis.push(`   • Unfilled FVGs: ${fvgs.unfilledFVGs.length}`);
-    if (fvgs.nearestFVG && fvgs.nearestFVG.low !== undefined && fvgs.nearestFVG.high !== undefined) {
+    if (
+      fvgs.nearestFVG &&
+      fvgs.nearestFVG.low !== undefined &&
+      fvgs.nearestFVG.high !== undefined
+    ) {
       analysis.push(
-        `   • Nearest: ${fvgs.nearestFVG.type} FVG at ${safeToFixed(fvgs.nearestFVG.low, 2)} - ${safeToFixed(fvgs.nearestFVG.high, 2)}`
+        `   • Nearest: ${fvgs.nearestFVG.type} FVG at ${safeToFixed(fvgs.nearestFVG.low, 2)} - ${safeToFixed(fvgs.nearestFVG.high, 2)}`,
       );
     }
 
     // Order Block summary
     analysis.push(`\n🏛️ Order Blocks:`);
     analysis.push(`   • Active OBs: ${obs.activeOrderBlocks.length}`);
-    if (obs.nearestOrderBlock && obs.nearestOrderBlock.low !== undefined && obs.nearestOrderBlock.high !== undefined) {
+    if (
+      obs.nearestOrderBlock &&
+      obs.nearestOrderBlock.low !== undefined &&
+      obs.nearestOrderBlock.high !== undefined
+    ) {
       analysis.push(
-        `   • Nearest: ${obs.nearestOrderBlock.type} OB at ${safeToFixed(obs.nearestOrderBlock.low, 2)} - ${safeToFixed(obs.nearestOrderBlock.high, 2)}`
+        `   • Nearest: ${obs.nearestOrderBlock.type} OB at ${safeToFixed(obs.nearestOrderBlock.low, 2)} - ${safeToFixed(obs.nearestOrderBlock.high, 2)}`,
       );
     }
 
@@ -482,7 +577,7 @@ export class ICTMasterService {
     entryZones: any[],
     killZone: any,
     structure: any,
-    confidence: number
+    confidence: number,
   ): string[] {
     const plan: string[] = [];
 
@@ -503,7 +598,7 @@ export class ICTMasterService {
         plan.push(`\n   ${index + 1}. ${zone.type.toUpperCase()} Entry:`);
         plan.push(`      • Direction: ${zone.direction.toUpperCase()}`);
         plan.push(
-          `      • Range: ${safeToFixed(zone.range.low, 2)} - ${safeToFixed(zone.range.high, 2)}`
+          `      • Range: ${safeToFixed(zone.range.low, 2)} - ${safeToFixed(zone.range.high, 2)}`,
         );
         plan.push(`      • Strength: ${zone.strength.toUpperCase()}`);
         plan.push(`      • ${zone.description}`);
@@ -547,4 +642,3 @@ export class ICTMasterService {
     return plan;
   }
 }
-

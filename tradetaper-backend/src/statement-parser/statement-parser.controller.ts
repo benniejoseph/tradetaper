@@ -18,7 +18,9 @@ import { StatementUploadResponseDto } from './dto/upload-statement.dto';
 @Controller('statement-upload')
 @UseGuards(JwtAuthGuard)
 export class StatementParserController {
-  constructor(private readonly statementParserService: StatementParserService) {}
+  constructor(
+    private readonly statementParserService: StatementParserService,
+  ) {}
 
   /**
    * Upload and process a statement file
@@ -35,12 +37,12 @@ export class StatementParserController {
         if (!file.originalname.match(allowed)) {
           return callback(
             new BadRequestException('Only CSV and HTML files are supported'),
-            false
+            false,
           );
         }
         callback(null, true);
       },
-    })
+    }),
   )
   async uploadStatement(
     @Request() req,
@@ -54,7 +56,7 @@ export class StatementParserController {
     return this.statementParserService.processUpload(
       file,
       req.user.id,
-      accountId
+      accountId,
     );
   }
 
@@ -62,7 +64,9 @@ export class StatementParserController {
    * Get upload history for current user
    */
   @Get('history')
-  async getUploadHistory(@Request() req): Promise<StatementUploadResponseDto[]> {
+  async getUploadHistory(
+    @Request() req,
+  ): Promise<StatementUploadResponseDto[]> {
     return this.statementParserService.getUploadHistory(req.user.id);
   }
 }

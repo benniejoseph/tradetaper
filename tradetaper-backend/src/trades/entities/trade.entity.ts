@@ -360,13 +360,15 @@ export class Trade {
     ) {
       const contractSize = this.getContractSize();
       let pnl = 0;
-      
+
       if (this.side === TradeDirection.LONG) {
         pnl = (this.closePrice - this.openPrice) * this.quantity * contractSize;
       } else if (this.side === TradeDirection.SHORT) {
         pnl = (this.openPrice - this.closePrice) * this.quantity * contractSize;
       }
-      this.profitOrLoss = parseFloat((pnl + (this.commission || 0) + (this.swap || 0)).toFixed(4));
+      this.profitOrLoss = parseFloat(
+        (pnl + (this.commission || 0) + (this.swap || 0)).toFixed(4),
+      );
     } else {
       this.profitOrLoss = undefined;
     }

@@ -1,9 +1,19 @@
 // src/terminal-farm/terminal-farm.service.ts
-import { Injectable, Logger, NotFoundException, BadRequestException, Inject, forwardRef } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  NotFoundException,
+  BadRequestException,
+  Inject,
+  forwardRef,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
-import { TerminalInstance, TerminalStatus } from './entities/terminal-instance.entity';
+import {
+  TerminalInstance,
+  TerminalStatus,
+} from './entities/terminal-instance.entity';
 import { MT5Account } from '../users/entities/mt5-account.entity';
 import {
   CreateTerminalDto,
@@ -19,9 +29,7 @@ import { TradeStatus, TradeDirection, AssetType } from '../types/enums';
 
 @Injectable()
 export class TerminalFarmService {
-// ... (imports fixed)
-
-
+  // ... (imports fixed)
 
   private readonly logger = new Logger(TerminalFarmService.name);
 
@@ -38,7 +46,9 @@ export class TerminalFarmService {
   /**
    * Find running terminal for an account
    */
-  async findTerminalForAccount(accountId: string): Promise<TerminalInstance | null> {
+  async findTerminalForAccount(
+    accountId: string,
+  ): Promise<TerminalInstance | null> {
     return this.terminalRepository.findOne({
       where: { accountId },
     });
@@ -47,7 +57,11 @@ export class TerminalFarmService {
   /**
    * Enable auto-sync for an account (provision a terminal)
    */
-  async enableAutoSync(accountId: string, userId: string, dto: EnableAutoSyncDto): Promise<TerminalResponseDto> {
+  async enableAutoSync(
+    accountId: string,
+    userId: string,
+    dto: EnableAutoSyncDto,
+  ): Promise<TerminalResponseDto> {
     try {
       this.logger.log(`Enabling auto-sync for account ${accountId}`);
 
@@ -83,14 +97,14 @@ export class TerminalFarmService {
       await this.terminalRepository.save(terminal);
 
       // Trigger terminal provisioning (async)
-      this.provisionTerminal(terminal.id, account, dto).catch(err => {
+      this.provisionTerminal(terminal.id, account, dto).catch((err) => {
         this.logger.error(`Failed to provision terminal: ${err.message}`);
       });
 
       return this.mapToResponse(terminal, account);
     } catch (error) {
-       this.logger.error(`enableAutoSync FAILED: ${error.message}`, error.stack);
-       throw error;
+      this.logger.error(`enableAutoSync FAILED: ${error.message}`, error.stack);
+      throw error;
     }
   }
 
@@ -122,7 +136,7 @@ export class TerminalFarmService {
     await this.terminalRepository.save(terminal);
 
     // Trigger terminal teardown (async)
-    this.teardownTerminal(terminal.id).catch(err => {
+    this.teardownTerminal(terminal.id).catch((err) => {
       this.logger.error(`Failed to teardown terminal: ${err.message}`);
     });
   }
@@ -130,7 +144,10 @@ export class TerminalFarmService {
   /**
    * Get terminal status for an account
    */
-  async getTerminalStatus(accountId: string, userId: string): Promise<TerminalResponseDto | null> {
+  async getTerminalStatus(
+    accountId: string,
+    userId: string,
+  ): Promise<TerminalResponseDto | null> {
     const account = await this.mt5AccountRepository.findOne({
       where: { id: accountId, userId },
     });
@@ -151,7 +168,8 @@ export class TerminalFarmService {
   }
 
   // In-memory command queue: TerminalID -> Command Object
-  private commandQueue: Map<string, { command: string; payload: string }[]> = new Map();
+  private commandQueue: Map<string, { command: string; payload: string }[]> =
+    new Map();
 
   /**
    * Queue a command for a terminal
@@ -182,7 +200,7 @@ export class TerminalFarmService {
 
     // Update heartbeat
     terminal.lastHeartbeat = new Date();
-    
+
     if (terminal.status !== TerminalStatus.RUNNING) {
       terminal.status = TerminalStatus.RUNNING;
     }
@@ -202,7 +220,9 @@ export class TerminalFarmService {
     if (queue && queue.length > 0) {
       const nextCmd = queue.shift(); // FIFO
       if (nextCmd) {
-        this.logger.log(`Dispatching command ${nextCmd.command} to terminal ${data.terminalId}`);
+        this.logger.log(
+          `Dispatching command ${nextCmd.command} to terminal ${data.terminalId}`,
+        );
         return { success: true, ...nextCmd };
       }
     }
@@ -213,8 +233,12 @@ export class TerminalFarmService {
   /**
    * Process trade sync from terminal EA
    */
-  async processTrades(data: TerminalSyncDto): Promise<{ imported: number; skipped: number }> {
-    this.logger.log(`Trade sync from terminal ${data.terminalId}: ${data.trades.length} trades`);
+  async processTrades(
+    data: TerminalSyncDto,
+  ): Promise<{ imported: number; skipped: number }> {
+    this.logger.log(
+      `Trade sync from terminal ${data.terminalId}: ${data.trades.length} trades`,
+    );
 
     const terminal = await this.terminalRepository.findOne({
       where: { id: data.terminalId },
@@ -233,24 +257,24 @@ export class TerminalFarmService {
         // --- 1. Position-Based Logic (New) ---
         if (trade.positionId) {
           const positionIdString = trade.positionId.toString();
-          
+
           // Try to find existing trade by Position ID
           // We look for any trade with this externalId
-          let existingTrade = await this.tradesService.findOneByExternalId(
-             terminal.account.userId,
-             positionIdString
+          const existingTrade = await this.tradesService.findOneByExternalId(
+            terminal.account.userId,
+            positionIdString,
           );
 
           const isEntry = trade.entryType === 0; // DEAL_ENTRY_IN
-          const isExit = trade.entryType === 1;  // DEAL_ENTRY_OUT
+          const isExit = trade.entryType === 1; // DEAL_ENTRY_OUT
 
           if (isEntry) {
             // If it's an entry and we already have it, skip (idempotent)
             if (existingTrade) {
-               // Optional: Update open fields if they changed? 
-               // For now, assume Entry is immutable once recorded.
-               skipped++;
-               continue;
+              // Optional: Update open fields if they changed?
+              // For now, assume Entry is immutable once recorded.
+              skipped++;
+              continue;
             }
 
             // Create New OPEN Trade
@@ -258,7 +282,10 @@ export class TerminalFarmService {
               {
                 symbol: trade.symbol,
                 assetType: this.detectAssetType(trade.symbol),
-                side: trade.type === 'BUY' ? TradeDirection.LONG : TradeDirection.SHORT,
+                side:
+                  trade.type === 'BUY'
+                    ? TradeDirection.LONG
+                    : TradeDirection.SHORT,
                 status: TradeStatus.OPEN, // Explicitly OPEN
                 openTime: trade.openTime || new Date().toISOString(),
                 // No close time yet
@@ -271,73 +298,94 @@ export class TerminalFarmService {
                 accountId: terminal.accountId,
                 stopLoss: trade.stopLoss,
                 takeProfit: trade.takeProfit,
-                externalId: positionIdString,       // The common link
-                externalDealId: trade.ticket,       // The entry ticket
+                externalId: positionIdString, // The common link
+                externalDealId: trade.ticket, // The entry ticket
                 mt5Magic: trade.magic,
                 contractSize: trade.contractSize,
               },
-              { id: terminal.account.userId } as any
+              { id: terminal.account.userId } as any,
             );
             imported++;
-
           } else if (isExit) {
             // If it's an exit, we need to close the existing trade
             if (existingTrade) {
               // Only update if it's not already closed (or if we want to update the close info)
               // OR if it's missing contractSize (Self-healing for legacy trades)
-              if (existingTrade.status !== TradeStatus.CLOSED || !existingTrade.contractSize) {
+              if (
+                existingTrade.status !== TradeStatus.CLOSED ||
+                !existingTrade.contractSize
+              ) {
                 await this.tradesService.update(
                   existingTrade.id, // We need ID, assuming findOneByExternalId returns broad entity or we fetch it
                   {
                     status: TradeStatus.CLOSED,
                     closeTime: trade.openTime, // MT5 "Time" is the event time
                     closePrice: trade.openPrice, // MT5 Deal Price is the execution price
-                    profitOrLoss: trade.profit,  // Final profit is on the exit deal
-                    commission: parseFloat(String(existingTrade.commission || 0)) + (trade.commission || 0), // Accumulate
-                    swap: parseFloat(String(existingTrade.swap || 0)) + (trade.swap || 0),         // Accumulate
+                    profitOrLoss: trade.profit, // Final profit is on the exit deal
+                    commission:
+                      parseFloat(String(existingTrade.commission || 0)) +
+                      (trade.commission || 0), // Accumulate
+                    swap:
+                      parseFloat(String(existingTrade.swap || 0)) +
+                      (trade.swap || 0), // Accumulate
                     contractSize: trade.contractSize,
                     // We typically don't update SL/TP on close, but we could if the exit deal has it (unlikely helpful vs entry)
                   },
 
-                  { id: terminal.account.userId } as any
+                  { id: terminal.account.userId } as any,
                 );
                 imported++;
 
                 // Queue FETCH_CANDLES command for this closed trade (2h before entry, 2h after exit)
-                const entryTime = existingTrade.openTime ? new Date(existingTrade.openTime) : new Date();
-                const exitTime = trade.openTime ? new Date(trade.openTime) : new Date();
+                const entryTime = existingTrade.openTime
+                  ? new Date(existingTrade.openTime)
+                  : new Date();
+                const exitTime = trade.openTime
+                  ? new Date(trade.openTime)
+                  : new Date();
                 const bufferMs = 2 * 60 * 60 * 1000; // 2 hours
 
                 const startTime = new Date(entryTime.getTime() - bufferMs);
                 const endTime = new Date(exitTime.getTime() + bufferMs);
 
-                const startStr = startTime.toISOString().replace('T', ' ').substring(0, 19);
-                const endStr = endTime.toISOString().replace('T', ' ').substring(0, 19);
+                const startStr = startTime
+                  .toISOString()
+                  .replace('T', ' ')
+                  .substring(0, 19);
+                const endStr = endTime
+                  .toISOString()
+                  .replace('T', ' ')
+                  .substring(0, 19);
                 const payload = `${trade.symbol},1m,${startStr},${endStr},${existingTrade.id}`;
 
                 this.queueCommand(terminal.id, 'FETCH_CANDLES', payload);
-                this.logger.debug(`Queued FETCH_CANDLES for closed trade ${existingTrade.id}`);
+                this.logger.debug(
+                  `Queued FETCH_CANDLES for closed trade ${existingTrade.id}`,
+                );
               } else {
                 skipped++; // Already closed
               }
             } else {
               // Edge Case: Exit arrived but we missed the Entry?
               // Create a standalone CLOSED trade so user sees the PnL
-               await this.tradesService.create(
+              await this.tradesService.create(
                 {
                   symbol: trade.symbol,
                   assetType: this.detectAssetType(trade.symbol),
-                  // If Exit is SELL, Position was BUY. 
+                  // If Exit is SELL, Position was BUY.
                   // actually, MT5 Exit Deal Type is the direction of the *closing* order?
                   // No, DEAL_TYPE_BUY means we bought. If we bought to close, we were Short.
                   // This is tricky without knowing the specific MT5 Deal Type semantics for 'entry out'.
                   // Usually: Exit Deal Type is opposite to Position Type.
                   // Safest assumption: If EntryType=OUT and Type=SELL, we Sold to Close -> Position was LONG.
                   // If EntryType=OUT and Type=BUY, we Bought to Close -> Position was SHORT.
-                  
+
                   // Let's invert the side for the record if it's an orphan exit
-                  side: trade.type === 'SELL' ? TradeDirection.LONG : TradeDirection.SHORT,
-                  
+                  side:
+                    trade.type === 'SELL'
+                      ? TradeDirection.LONG
+                      : TradeDirection.SHORT,
+
                   status: TradeStatus.CLOSED,
                   openTime: trade.openTime || new Date().toISOString(), // Use execution time as fallback
                   closeTime: trade.openTime,
@@ -355,7 +403,7 @@ export class TerminalFarmService {
                   externalDealId: trade.ticket, // Exit ticket
                   mt5Magic: trade.magic,
                 },
-                { id: terminal.account.userId } as any
+                { id: terminal.account.userId } as any,
               );
               imported++;
             }
@@ -369,7 +417,7 @@ export class TerminalFarmService {
           terminal.account.userId,
           trade.symbol,
           new Date(trade.openTime || Date.now()),
-          trade.ticket
+          trade.ticket,
         );
 
         if (existing) {
@@ -382,7 +430,8 @@ export class TerminalFarmService {
           {
             symbol: trade.symbol,
             assetType: this.detectAssetType(trade.symbol),
-            side: trade.type === 'BUY' ? TradeDirection.LONG : TradeDirection.SHORT,
+            side:
+              trade.type === 'BUY' ? TradeDirection.LONG : TradeDirection.SHORT,
             status: trade.closeTime ? TradeStatus.CLOSED : TradeStatus.OPEN,
             openTime: trade.openTime || new Date().toISOString(),
             closeTime: trade.closeTime,
@@ -393,12 +442,14 @@ export class TerminalFarmService {
             notes: `Auto-synced from MT5. Ticket: ${trade.ticket}`,
             accountId: terminal.accountId,
           },
-          { id: terminal.account.userId } as any
+          { id: terminal.account.userId } as any,
         );
 
         imported++;
       } catch (error) {
-        this.logger.warn(`Failed to import trade ${trade.ticket}: ${error.message}`);
+        this.logger.warn(
+          `Failed to import trade ${trade.ticket}: ${error.message}`,
+        );
         skipped++;
       }
     }
@@ -414,7 +465,9 @@ export class TerminalFarmService {
    * Process live positions from terminal EA
    */
   async processPositions(data: TerminalPositionsDto): Promise<void> {
-    this.logger.debug(`Positions update from terminal ${data.terminalId}: ${data.positions.length} positions`);
+    this.logger.debug(
+      `Positions update from terminal ${data.terminalId}: ${data.positions.length} positions`,
+    );
 
     const terminal = await this.terminalRepository.findOne({
       where: { id: data.terminalId },
@@ -439,7 +492,9 @@ export class TerminalFarmService {
    * Process candle data from terminal EA
    */
   async processCandles(data: TerminalCandlesSyncDto): Promise<void> {
-    this.logger.log(`Candle sync from terminal ${data.terminalId}: ${data.candles.length} candles for trade ${data.tradeId}`);
+    this.logger.log(
+      `Candle sync from terminal ${data.terminalId}: ${data.candles.length} candles for trade ${data.tradeId}`,
+    );
 
     const terminal = await this.terminalRepository.findOne({
       where: { id: data.terminalId },
@@ -456,11 +511,19 @@ export class TerminalFarmService {
   /**
    * Provision a new terminal container
    */
-  private async provisionTerminal(terminalId: string, account: MT5Account, credentials?: EnableAutoSyncDto): Promise<void> {
-    this.logger.log(`Provisioning terminal ${terminalId} for account ${account.id}`);
-    
+  private async provisionTerminal(
+    terminalId: string,
+    account: MT5Account,
+    credentials?: EnableAutoSyncDto,
+  ): Promise<void> {
+    this.logger.log(
+      `Provisioning terminal ${terminalId} for account ${account.id}`,
+    );
+
     if (credentials) {
-      this.logger.log(`Using provided credentials for Server: ${credentials.server}, Login: ${credentials.login}`);
+      this.logger.log(
+        `Using provided credentials for Server: ${credentials.server}, Login: ${credentials.login}`,
+      );
     }
 
     const terminal = await this.terminalRepository.findOne({
@@ -480,8 +543,10 @@ export class TerminalFarmService {
       // 4. Store container ID
 
       // For now, we'll simulate the process
-      const orchestratorUrl = this.configService.get('TERMINAL_ORCHESTRATOR_URL');
-      
+      const orchestratorUrl = this.configService.get(
+        'TERMINAL_ORCHESTRATOR_URL',
+      );
+
       if (orchestratorUrl) {
         // Call orchestrator API (to be implemented)
         // const response = await fetch(`${orchestratorUrl}/terminals`, {
@@ -521,8 +586,10 @@ export class TerminalFarmService {
 
     try {
       // In a full implementation, call Docker API to stop/remove container
-      const orchestratorUrl = this.configService.get('TERMINAL_ORCHESTRATOR_URL');
-      
+      const orchestratorUrl = this.configService.get(
+        'TERMINAL_ORCHESTRATOR_URL',
+      );
+
       if (orchestratorUrl && terminal.containerId) {
         // Call orchestrator API
         // await fetch(`${orchestratorUrl}/terminals/${terminal.containerId}`, {
@@ -549,15 +616,27 @@ export class TerminalFarmService {
   private detectAssetType(symbol: string): AssetType {
     const upper = symbol.toUpperCase();
     const forexPairs = ['EUR', 'USD', 'GBP', 'JPY', 'AUD', 'NZD', 'CAD', 'CHF'];
-    const forexMatch = forexPairs.filter(c => upper.includes(c)).length >= 2;
-    
+    const forexMatch = forexPairs.filter((c) => upper.includes(c)).length >= 2;
+
     if (forexMatch && upper.length <= 7) return AssetType.FOREX;
     if (upper.includes('BTC') || upper.includes('ETH')) return AssetType.CRYPTO;
-    if (upper.includes('XAU') || upper.includes('GOLD')) return AssetType.COMMODITIES;
-    
+    if (upper.includes('XAU') || upper.includes('GOLD'))
+      return AssetType.COMMODITIES;
+
     // Indices Common Symbols
-    const indices = ['US30', 'DJ30', 'NAS100', 'NDX', 'SPX', 'SP500', 'GER30', 'DE30', 'UK100', 'JP225'];
-    if (indices.some(i => upper.includes(i))) return AssetType.INDICES;
+    const indices = [
+      'US30',
+      'DJ30',
+      'NAS100',
+      'NDX',
+      'SPX',
+      'SP500',
+      'GER30',
+      'DE30',
+      'UK100',
+      'JP225',
+    ];
+    if (indices.some((i) => upper.includes(i))) return AssetType.INDICES;
 
     return AssetType.FOREX;
   }
@@ -565,7 +644,10 @@ export class TerminalFarmService {
   /**
    * Map entity to response DTO
    */
-  private mapToResponse(terminal: TerminalInstance, account: MT5Account): TerminalResponseDto {
+  private mapToResponse(
+    terminal: TerminalInstance,
+    account: MT5Account,
+  ): TerminalResponseDto {
     return {
       id: terminal.id,
       accountId: terminal.accountId,

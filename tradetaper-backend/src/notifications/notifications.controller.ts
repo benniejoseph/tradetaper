@@ -16,7 +16,10 @@ import {
   NotificationsService,
   NotificationFilter,
 } from './notifications.service';
-import { NotificationStatus, NotificationType } from './entities/notification.entity';
+import {
+  NotificationStatus,
+  NotificationType,
+} from './entities/notification.entity';
 import { NotificationPreference } from './entities/notification-preference.entity';
 
 @Controller('notifications')
@@ -126,7 +129,8 @@ export class NotificationsController {
       userId: req.user.id,
       type: NotificationType.SYSTEM_UPDATE,
       title: 'Test Notification',
-      message: 'This is a test notification to verify the system is working correctly.',
+      message:
+        'This is a test notification to verify the system is working correctly.',
       data: { test: true, timestamp: new Date().toISOString() },
     });
 

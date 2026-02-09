@@ -53,4 +53,3 @@ import { TradingViewRealtimeService } from './tradingview-realtime.service';
   ],
 })
 export class ICTModule {}
-

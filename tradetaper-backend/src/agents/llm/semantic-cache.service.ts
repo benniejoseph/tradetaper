@@ -5,10 +5,10 @@ import * as crypto from 'crypto';
 
 /**
  * Semantic Cache Service
- * 
+ *
  * Caches LLM responses based on semantic similarity of prompts.
  * Reduces API costs by 60-80% through intelligent caching.
- * 
+ *
  * Features:
  * - Exact match caching
  * - Semantic similarity caching (future: with embeddings)
@@ -48,42 +48,40 @@ export class SemanticCacheService {
     costSaved: 0,
   };
 
-  constructor(
-    @Inject(CACHE_MANAGER) private cacheManager: Cache,
-  ) {}
+  constructor(@Inject(CACHE_MANAGER) private cacheManager: Cache) {}
 
   /**
    * Get cached response if exists
    */
   async get(prompt: string, model: string): Promise<any | null> {
     this.stats.totalRequests++;
-    
+
     const key = this.generateCacheKey(prompt, model);
     const cached = await this.cacheManager.get<CachedResponse>(key);
-    
+
     if (cached) {
       // Update hit count
       cached.hits++;
       await this.cacheManager.set(key, cached, this.getTTL(cached));
-      
+
       // Update stats
       this.stats.cacheHits++;
       this.stats.tokensSaved += cached.tokensUsed;
       this.stats.costSaved += cached.cost;
       this.updateHitRate();
-      
+
       this.logger.debug(
-        `Cache HIT for prompt hash ${key.substring(0, 8)}... (hits: ${cached.hits})`
+        `Cache HIT for prompt hash ${key.substring(0, 8)}... (hits: ${cached.hits})`,
       );
-      
+
       return cached.response;
     }
-    
+
     this.stats.cacheMisses++;
     this.updateHitRate();
-    
+
     this.logger.debug(`Cache MISS for prompt hash ${key.substring(0, 8)}...`);
-    
+
     return null;
   }
 
@@ -101,7 +99,7 @@ export class SemanticCacheService {
     },
   ): Promise<void> {
     const key = this.generateCacheKey(prompt, model);
-    
+
     const cachedResponse: CachedResponse = {
       prompt,
       response,
@@ -111,13 +109,13 @@ export class SemanticCacheService {
       tokensUsed: metadata.tokensUsed,
       cost: metadata.cost,
     };
-    
+
     const ttl = metadata.ttl || this.getDefaultTTL();
-    
+
     await this.cacheManager.set(key, cachedResponse, ttl);
-    
+
     this.logger.debug(
-      `Cached response for prompt hash ${key.substring(0, 8)}... (TTL: ${ttl / 1000}s)`
+      `Cached response for prompt hash ${key.substring(0, 8)}... (TTL: ${ttl / 1000}s)`,
     );
   }
 
@@ -127,13 +125,13 @@ export class SemanticCacheService {
   private generateCacheKey(prompt: string, model: string): string {
     // Normalize prompt (remove extra whitespace, lowercase)
     const normalized = prompt.trim().toLowerCase().replace(/\s+/g, ' ');
-    
+
     // Create hash of normalized prompt + model
     const hash = crypto
       .createHash('sha256')
       .update(`${normalized}:${model}`)
       .digest('hex');
-    
+
     return `llm-cache:${hash}`;
   }
 
@@ -197,7 +195,9 @@ export class SemanticCacheService {
   async invalidateAll(): Promise<void> {
     // Cache manager doesn't have reset() method in newer versions
     // This is a placeholder for manual cache clearing if needed
-    this.logger.warn('Cache invalidation requested - implement manual clearing if needed');
+    this.logger.warn(
+      'Cache invalidation requested - implement manual clearing if needed',
+    );
   }
 
   /**
@@ -206,7 +206,9 @@ export class SemanticCacheService {
   async invalidateModel(model: string): Promise<void> {
     // This is a simple implementation
     // For production, use Redis SCAN with pattern matching
-    this.logger.warn(`Cache invalidation for model ${model} not fully implemented`);
+    this.logger.warn(
+      `Cache invalidation for model ${model} not fully implemented`,
+    );
   }
 
   /**
@@ -220,10 +222,10 @@ export class SemanticCacheService {
   } {
     const hitRatePercent = (this.stats.hitRate * 100).toFixed(1);
     const costSavedDollars = this.stats.costSaved.toFixed(2);
-    
+
     // Estimate monthly savings based on current rate
     const estimatedMonthlySavings = (this.stats.costSaved * 30).toFixed(2);
-    
+
     return {
       hitRate: `${hitRatePercent}%`,
       tokensSaved: this.stats.tokensSaved,
@@ -232,4 +234,3 @@ export class SemanticCacheService {
     };
   }
 }
-

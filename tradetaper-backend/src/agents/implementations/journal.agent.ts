@@ -11,12 +11,12 @@ import { AIService } from '../../notes/ai.service';
 
 /**
  * Journal Agent
- * 
+ *
  * Assists with trade journal entries using AI:
  * - Speech-to-text transcription
  * - Text enhancement (grammar, clarity, summarization)
  * - Auto-tagging and suggestions
- * 
+ *
  * Capabilities:
  * - journal-transcription: Convert voice notes to text
  * - journal-enhancement: Improve journal entry quality
@@ -27,25 +27,48 @@ export class JournalAgent extends BaseAgent {
   readonly agentId = 'journal-agent';
   readonly name = 'Journal Agent';
   readonly priority = 15;
-  
+
   readonly capabilities: AgentCapability[] = [
     {
       id: 'journal-transcription',
       description: 'Convert audio recordings to text for journal entries',
-      keywords: ['speech', 'voice', 'audio', 'transcribe', 'transcription', 'dictate'],
+      keywords: [
+        'speech',
+        'voice',
+        'audio',
+        'transcribe',
+        'transcription',
+        'dictate',
+      ],
     },
     {
       id: 'journal-enhancement',
       description: 'Improve journal entry text quality, grammar, and clarity',
-      keywords: ['enhance', 'improve', 'grammar', 'clarity', 'summarize', 'expand', 'edit'],
+      keywords: [
+        'enhance',
+        'improve',
+        'grammar',
+        'clarity',
+        'summarize',
+        'expand',
+        'edit',
+      ],
     },
     {
       id: 'journal-suggestions',
-      description: 'Generate tags, titles, and related topics for journal entries',
-      keywords: ['tags', 'suggest', 'title', 'topics', 'categorize', 'organize'],
+      description:
+        'Generate tags, titles, and related topics for journal entries',
+      keywords: [
+        'tags',
+        'suggest',
+        'title',
+        'topics',
+        'categorize',
+        'organize',
+      ],
     },
   ];
-  
+
   constructor(
     registry: AgentRegistryService,
     eventBus: EventBusService,
@@ -53,24 +76,26 @@ export class JournalAgent extends BaseAgent {
   ) {
     super(registry, eventBus);
   }
-  
+
   /**
    * Process incoming messages
    */
-  protected async processMessage(message: AgentMessage): Promise<AgentResponse> {
+  protected async processMessage(
+    message: AgentMessage,
+  ): Promise<AgentResponse> {
     const { payload, context } = message;
-    
+
     switch (payload.action) {
       case 'transcribe':
         return this.transcribeAudio(payload, context);
-      
+
       case 'enhance':
         return this.enhanceText(payload, context);
-      
+
       case 'suggest':
       case 'generate-suggestions':
         return this.generateSuggestions(payload, context);
-      
+
       default:
         // Auto-detect based on payload content
         if (payload.audioBuffer) {
@@ -82,7 +107,7 @@ export class JournalAgent extends BaseAgent {
         if (payload.content) {
           return this.generateSuggestions(payload, context);
         }
-        
+
         return {
           success: false,
           error: {
@@ -92,7 +117,7 @@ export class JournalAgent extends BaseAgent {
         };
     }
   }
-  
+
   /**
    * Transcribe audio to text
    */
@@ -105,14 +130,18 @@ export class JournalAgent extends BaseAgent {
         data.audioBuffer,
         data.filename || 'audio.mp3',
       );
-      
+
       // Emit event for other agents
-      this.emit('event', {
-        type: 'journal-transcribed',
-        transcript: result.transcript,
-        confidence: result.confidence,
-      }, context);
-      
+      this.emit(
+        'event',
+        {
+          type: 'journal-transcribed',
+          transcript: result.transcript,
+          confidence: result.confidence,
+        },
+        context,
+      );
+
       return {
         success: true,
         data: {
@@ -129,22 +158,28 @@ export class JournalAgent extends BaseAgent {
         success: false,
         error: {
           code: 'TRANSCRIPTION_FAILED',
-          message: error instanceof Error ? error.message : 'Audio transcription failed',
+          message:
+            error instanceof Error
+              ? error.message
+              : 'Audio transcription failed',
         },
       };
     }
   }
-  
+
   /**
    * Enhance journal text
    */
   private async enhanceText(
-    data: { text: string; task: 'grammar' | 'clarity' | 'summarize' | 'expand' },
+    data: {
+      text: string;
+      task: 'grammar' | 'clarity' | 'summarize' | 'expand';
+    },
     context: AgentMessage['context'],
   ): Promise<AgentResponse> {
     try {
       const result = await this.aiService.enhanceText(data.text, data.task);
-      
+
       return {
         success: true,
         data: {
@@ -159,12 +194,13 @@ export class JournalAgent extends BaseAgent {
         success: false,
         error: {
           code: 'ENHANCEMENT_FAILED',
-          message: error instanceof Error ? error.message : 'Text enhancement failed',
+          message:
+            error instanceof Error ? error.message : 'Text enhancement failed',
         },
       };
     }
   }
-  
+
   /**
    * Generate suggestions for journal content
    */
@@ -174,14 +210,18 @@ export class JournalAgent extends BaseAgent {
   ): Promise<AgentResponse> {
     try {
       const result = await this.aiService.generateNoteSuggestions(data.content);
-      
+
       // Share tags with other agents for correlation
-      this.emit('event', {
-        type: 'journal-tags-generated',
-        tags: result.tags,
-        title: result.title,
-      }, context);
-      
+      this.emit(
+        'event',
+        {
+          type: 'journal-tags-generated',
+          tags: result.tags,
+          title: result.title,
+        },
+        context,
+      );
+
       return {
         success: true,
         data: {
@@ -198,12 +238,15 @@ export class JournalAgent extends BaseAgent {
         success: false,
         error: {
           code: 'SUGGESTIONS_FAILED',
-          message: error instanceof Error ? error.message : 'Failed to generate suggestions',
+          message:
+            error instanceof Error
+              ? error.message
+              : 'Failed to generate suggestions',
         },
       };
     }
   }
-  
+
   /**
    * React to events from other agents
    */

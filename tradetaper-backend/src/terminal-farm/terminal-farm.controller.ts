@@ -55,7 +55,10 @@ export class TerminalFarmController {
     @Param('accountId') accountId: string,
     @Request() req,
   ): Promise<TerminalResponseDto | { enabled: false }> {
-    const status = await this.terminalFarmService.getTerminalStatus(accountId, req.user.id);
+    const status = await this.terminalFarmService.getTerminalStatus(
+      accountId,
+      req.user.id,
+    );
     return status || { enabled: false };
   }
 }

@@ -18,14 +18,14 @@ import { SubscriptionsWebhookController } from './subscriptions.webhook.controll
   imports: [
     ConfigModule,
     TypeOrmModule.forFeature([
-      Subscription, 
-      Usage, 
+      Subscription,
+      Usage,
       User,
       Trade,
       Account,
       MT5Account,
       Note,
-      Strategy
+      Strategy,
     ]),
   ],
   controllers: [SubscriptionsController, SubscriptionsWebhookController],

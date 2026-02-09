@@ -56,7 +56,9 @@ export class NotificationsGateway
     if (data.userId) {
       this.webSocketService.registerUserSocket(data.userId, client.id);
       client.emit('auth:success', { message: 'Authenticated successfully' });
-      this.logger.log(`User ${data.userId} authenticated on socket ${client.id}`);
+      this.logger.log(
+        `User ${data.userId} authenticated on socket ${client.id}`,
+      );
     } else {
       client.emit('auth:error', { message: 'userId is required' });
     }
@@ -97,7 +99,10 @@ export class NotificationsGateway
     }
 
     client.emit('economic:subscribed', data);
-    this.logger.debug(`Client ${client.id} subscribed to economic events`, data);
+    this.logger.debug(
+      `Client ${client.id} subscribed to economic events`,
+      data,
+    );
   }
 
   /**
@@ -120,7 +125,10 @@ export class NotificationsGateway
     }
 
     client.emit('economic:unsubscribed', data);
-    this.logger.debug(`Client ${client.id} unsubscribed from economic events`, data);
+    this.logger.debug(
+      `Client ${client.id} unsubscribed from economic events`,
+      data,
+    );
   }
 
   /**

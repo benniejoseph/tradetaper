@@ -9,7 +9,10 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { FeatureAccessGuard, RequireFeature } from '../subscriptions/guards/feature-access.guard';
+import {
+  FeatureAccessGuard,
+  RequireFeature,
+} from '../subscriptions/guards/feature-access.guard';
 import { AIService } from './ai.service';
 
 @Controller('notes/ai')

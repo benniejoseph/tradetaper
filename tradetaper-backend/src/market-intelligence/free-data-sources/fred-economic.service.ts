@@ -32,7 +32,7 @@ export class FredEconomicService {
 
   constructor(
     private readonly httpService: HttpService,
-    private readonly configService: ConfigService
+    private readonly configService: ConfigService,
   ) {
     // FRED API key is FREE - get it at https://fred.stlouisfed.org/docs/api/api_key.html
     this.fredApiKey = this.configService.get<string>('FRED_API_KEY') || '';
@@ -60,7 +60,7 @@ export class FredEconomicService {
         gdp,
         unemployment,
         inflation,
-        interestRate
+        interestRate,
       );
 
       return {
@@ -99,7 +99,8 @@ export class FredEconomicService {
       value: latest.value,
       date: new Date(latest.date),
       change,
-      interpretation: change > 2 ? 'positive' : change < 0 ? 'negative' : 'neutral',
+      interpretation:
+        change > 2 ? 'positive' : change < 0 ? 'negative' : 'neutral',
     };
   }
 
@@ -198,7 +199,8 @@ export class FredEconomicService {
       value: latest.value,
       date: new Date(latest.date),
       change,
-      interpretation: change > 2 ? 'positive' : change < -2 ? 'negative' : 'neutral',
+      interpretation:
+        change > 2 ? 'positive' : change < -2 ? 'negative' : 'neutral',
     };
   }
 
@@ -207,12 +209,15 @@ export class FredEconomicService {
    */
   private async fetchSeries(
     seriesId: string,
-    observations: number = 1
+    observations: number = 1,
   ): Promise<{ date: string; value: number }[]> {
     // Check cache
     const cacheKey = `${seriesId}_${observations}`;
     const cached = this.cache.get(cacheKey);
-    if (cached && Date.now() - cached.timestamp.getTime() < this.CACHE_DURATION) {
+    if (
+      cached &&
+      Date.now() - cached.timestamp.getTime() < this.CACHE_DURATION
+    ) {
       return cached.data;
     }
 
@@ -233,7 +238,7 @@ export class FredEconomicService {
             limit: observations,
           },
           timeout: 10000,
-        })
+        }),
       );
 
       const data = response.data.observations
@@ -251,7 +256,7 @@ export class FredEconomicService {
     } catch (error) {
       this.logger.warn(
         `Failed to fetch FRED series ${seriesId}, using mock data:`,
-        error.message
+        error.message,
       );
       return this.getMockData(seriesId, observations);
     }
@@ -262,7 +267,7 @@ export class FredEconomicService {
    */
   private getMockData(
     seriesId: string,
-    observations: number
+    observations: number,
   ): { date: string; value: number }[] {
     const mockData: { [key: string]: number[] } = {
       GDPC1: [22000, 22500], // GDP in billions
@@ -296,7 +301,7 @@ export class FredEconomicService {
     gdp: EconomicIndicator,
     unemployment: EconomicIndicator,
     inflation: EconomicIndicator,
-    interestRate: EconomicIndicator
+    interestRate: EconomicIndicator,
   ): {
     sentiment: 'bullish' | 'bearish' | 'neutral';
     impact: string[];
@@ -308,10 +313,14 @@ export class FredEconomicService {
     // GDP analysis
     if (gdp.interpretation === 'positive') {
       positiveCount++;
-      impact.push(`✅ Strong GDP growth (+${gdp.change.toFixed(2)}%) - bullish for markets`);
+      impact.push(
+        `✅ Strong GDP growth (+${gdp.change.toFixed(2)}%) - bullish for markets`,
+      );
     } else if (gdp.interpretation === 'negative') {
       negativeCount++;
-      impact.push(`❌ GDP contraction (${gdp.change.toFixed(2)}%) - bearish signal`);
+      impact.push(
+        `❌ GDP contraction (${gdp.change.toFixed(2)}%) - bearish signal`,
+      );
     } else {
       impact.push(`➖ GDP growth moderate (${gdp.change.toFixed(2)}%)`);
     }
@@ -320,24 +329,30 @@ export class FredEconomicService {
     if (unemployment.interpretation === 'positive') {
       positiveCount++;
       impact.push(
-        `✅ Unemployment decreasing (${unemployment.change > 0 ? '+' : ''}${unemployment.change.toFixed(2)}%) - positive`
+        `✅ Unemployment decreasing (${unemployment.change > 0 ? '+' : ''}${unemployment.change.toFixed(2)}%) - positive`,
       );
     } else if (unemployment.interpretation === 'negative') {
       negativeCount++;
       impact.push(
-        `❌ Unemployment rising (${unemployment.change > 0 ? '+' : ''}${unemployment.change.toFixed(2)}%) - negative`
+        `❌ Unemployment rising (${unemployment.change > 0 ? '+' : ''}${unemployment.change.toFixed(2)}%) - negative`,
       );
     } else {
-      impact.push(`➖ Unemployment stable at ${unemployment.value.toFixed(1)}%`);
+      impact.push(
+        `➖ Unemployment stable at ${unemployment.value.toFixed(1)}%`,
+      );
     }
 
     // Inflation analysis
     if (inflation.interpretation === 'positive') {
       positiveCount++;
-      impact.push(`✅ Inflation moderate (${inflation.value.toFixed(2)}%) - favorable`);
+      impact.push(
+        `✅ Inflation moderate (${inflation.value.toFixed(2)}%) - favorable`,
+      );
     } else if (inflation.interpretation === 'negative') {
       negativeCount++;
-      impact.push(`❌ High inflation (${inflation.value.toFixed(2)}%) - concerning`);
+      impact.push(
+        `❌ High inflation (${inflation.value.toFixed(2)}%) - concerning`,
+      );
     } else {
       impact.push(`➖ Inflation at ${inflation.value.toFixed(2)}%`);
     }
@@ -345,23 +360,23 @@ export class FredEconomicService {
     // Interest rate analysis
     if (interestRate.interpretation === 'positive') {
       positiveCount++;
-      impact.push(
-        `✅ Interest rates declining - supports growth`
-      );
+      impact.push(`✅ Interest rates declining - supports growth`);
     } else if (interestRate.interpretation === 'negative') {
       negativeCount++;
-      impact.push(
-        `❌ Interest rates rising - tightening conditions`
-      );
+      impact.push(`❌ Interest rates rising - tightening conditions`);
     } else {
-      impact.push(`➖ Interest rates stable at ${interestRate.value.toFixed(2)}%`);
+      impact.push(
+        `➖ Interest rates stable at ${interestRate.value.toFixed(2)}%`,
+      );
     }
 
     // Determine overall sentiment
     let sentiment: 'bullish' | 'bearish' | 'neutral';
     if (positiveCount > negativeCount + 1) {
       sentiment = 'bullish';
-      impact.push('\n📈 Overall: Favorable economic conditions for risk assets');
+      impact.push(
+        '\n📈 Overall: Favorable economic conditions for risk assets',
+      );
     } else if (negativeCount > positiveCount + 1) {
       sentiment = 'bearish';
       impact.push('\n📉 Overall: Economic headwinds present');
@@ -373,4 +388,3 @@ export class FredEconomicService {
     return { sentiment, impact };
   }
 }
-

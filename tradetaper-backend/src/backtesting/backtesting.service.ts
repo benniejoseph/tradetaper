@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException, Inject, forwardRef } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  Inject,
+  forwardRef,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { BacktestTrade, TradeOutcome } from './entities/backtest-trade.entity';
@@ -69,8 +74,14 @@ export class BacktestingService {
     createDto: CreateBacktestTradeDto,
     userId: string,
   ): Promise<BacktestTrade> {
-    const entryTime = this.parseTimeToTimestamp(createDto.entryTime, createDto.tradeDate);
-    const exitTime = this.parseTimeToTimestamp(createDto.exitTime, createDto.tradeDate);
+    const entryTime = this.parseTimeToTimestamp(
+      createDto.entryTime,
+      createDto.tradeDate,
+    );
+    const exitTime = this.parseTimeToTimestamp(
+      createDto.exitTime,
+      createDto.tradeDate,
+    );
 
     const trade = this.backtestTradeRepository.create({
       ...createDto,
@@ -100,7 +111,9 @@ export class BacktestingService {
       .addOrderBy('bt.createdAt', 'DESC');
 
     if (filters?.strategyId) {
-      query.andWhere('bt.strategyId = :strategyId', { strategyId: filters.strategyId });
+      query.andWhere('bt.strategyId = :strategyId', {
+        strategyId: filters.strategyId,
+      });
     }
     if (filters?.symbol) {
       query.andWhere('bt.symbol = :symbol', { symbol: filters.symbol });
@@ -109,13 +122,17 @@ export class BacktestingService {
       query.andWhere('bt.session = :session', { session: filters.session });
     }
     if (filters?.timeframe) {
-      query.andWhere('bt.timeframe = :timeframe', { timeframe: filters.timeframe });
+      query.andWhere('bt.timeframe = :timeframe', {
+        timeframe: filters.timeframe,
+      });
     }
     if (filters?.outcome) {
       query.andWhere('bt.outcome = :outcome', { outcome: filters.outcome });
     }
     if (filters?.startDate) {
-      query.andWhere('bt.tradeDate >= :startDate', { startDate: filters.startDate });
+      query.andWhere('bt.tradeDate >= :startDate', {
+        startDate: filters.startDate,
+      });
     }
     if (filters?.endDate) {
       query.andWhere('bt.tradeDate <= :endDate', { endDate: filters.endDate });
@@ -153,7 +170,10 @@ export class BacktestingService {
 
   // ============ ANALYTICS ============
 
-  async getStrategyStats(strategyId: string, userId: string): Promise<BacktestStats> {
+  async getStrategyStats(
+    strategyId: string,
+    userId: string,
+  ): Promise<BacktestStats> {
     const trades = await this.backtestTradeRepository.find({
       where: { strategyId, userId },
     });
@@ -174,47 +194,73 @@ export class BacktestingService {
       return this.getEmptyStats();
     }
 
-    const wins = trades.filter(t => t.outcome === TradeOutcome.WIN);
-    const losses = trades.filter(t => t.outcome === TradeOutcome.LOSS);
-    const breakevens = trades.filter(t => t.outcome === TradeOutcome.BREAKEVEN);
+    const wins = trades.filter((t) => t.outcome === TradeOutcome.WIN);
+    const losses = trades.filter((t) => t.outcome === TradeOutcome.LOSS);
+    const breakevens = trades.filter(
+      (t) => t.outcome === TradeOutcome.BREAKEVEN,
+    );
 
-    const totalPnlDollars = trades.reduce((sum, t) => sum + (Number(t.pnlDollars) || 0), 0);
-    const totalPnlPips = trades.reduce((sum, t) => sum + (Number(t.pnlPips) || 0), 0);
+    const totalPnlDollars = trades.reduce(
+      (sum, t) => sum + (Number(t.pnlDollars) || 0),
+      0,
+    );
+    const totalPnlPips = trades.reduce(
+      (sum, t) => sum + (Number(t.pnlPips) || 0),
+      0,
+    );
 
-    const winPnl = wins.reduce((sum, t) => sum + (Number(t.pnlDollars) || 0), 0);
-    const lossPnl = Math.abs(losses.reduce((sum, t) => sum + (Number(t.pnlDollars) || 0), 0));
+    const winPnl = wins.reduce(
+      (sum, t) => sum + (Number(t.pnlDollars) || 0),
+      0,
+    );
+    const lossPnl = Math.abs(
+      losses.reduce((sum, t) => sum + (Number(t.pnlDollars) || 0), 0),
+    );
 
     const averageWin = wins.length > 0 ? winPnl / wins.length : 0;
     const averageLoss = losses.length > 0 ? lossPnl / losses.length : 0;
 
     const winRate = (wins.length / trades.length) * 100;
     const lossRate = losses.length / trades.length;
-    const profitFactor = lossPnl > 0 ? winPnl / lossPnl : winPnl > 0 ? 999.99 : 0;
-    const expectancy = (winRate / 100 * averageWin) - (lossRate * averageLoss);
+    const profitFactor =
+      lossPnl > 0 ? winPnl / lossPnl : winPnl > 0 ? 999.99 : 0;
+    const expectancy = (winRate / 100) * averageWin - lossRate * averageLoss;
 
     // R-Multiple calculations
-    const tradesWithR = trades.filter(t => t.rMultiple !== null && t.rMultiple !== undefined);
-    const averageRMultiple = tradesWithR.length > 0
-      ? tradesWithR.reduce((sum, t) => sum + Number(t.rMultiple), 0) / tradesWithR.length
-      : 0;
+    const tradesWithR = trades.filter(
+      (t) => t.rMultiple !== null && t.rMultiple !== undefined,
+    );
+    const averageRMultiple =
+      tradesWithR.length > 0
+        ? tradesWithR.reduce((sum, t) => sum + Number(t.rMultiple), 0) /
+          tradesWithR.length
+        : 0;
 
     // Consecutive wins/losses
-    const { maxConsecutiveWins, maxConsecutiveLosses } = this.calculateConsecutive(trades);
+    const { maxConsecutiveWins, maxConsecutiveLosses } =
+      this.calculateConsecutive(trades);
 
     // Quality metrics
-    const tradesWithQuality = trades.filter(t => t.entryQuality !== null);
-    const averageEntryQuality = tradesWithQuality.length > 0
-      ? tradesWithQuality.reduce((sum, t) => sum + t.entryQuality, 0) / tradesWithQuality.length
-      : 0;
+    const tradesWithQuality = trades.filter((t) => t.entryQuality !== null);
+    const averageEntryQuality =
+      tradesWithQuality.length > 0
+        ? tradesWithQuality.reduce((sum, t) => sum + t.entryQuality, 0) /
+          tradesWithQuality.length
+        : 0;
 
-    const ruleFollowingRate = trades.length > 0
-      ? (trades.filter(t => t.followedRules).length / trades.length) * 100
-      : 0;
+    const ruleFollowingRate =
+      trades.length > 0
+        ? (trades.filter((t) => t.followedRules).length / trades.length) * 100
+        : 0;
 
-    const tradesWithChecklist = trades.filter(t => t.checklistScore !== null);
-    const averageChecklistScore = tradesWithChecklist.length > 0
-      ? tradesWithChecklist.reduce((sum, t) => sum + Number(t.checklistScore), 0) / tradesWithChecklist.length
-      : 0;
+    const tradesWithChecklist = trades.filter((t) => t.checklistScore !== null);
+    const averageChecklistScore =
+      tradesWithChecklist.length > 0
+        ? tradesWithChecklist.reduce(
+            (sum, t) => sum + Number(t.checklistScore),
+            0,
+          ) / tradesWithChecklist.length
+        : 0;
 
     return {
       totalTrades: trades.length,
@@ -224,7 +270,9 @@ export class BacktestingService {
       winRate: parseFloat(winRate.toFixed(2)),
       totalPnlDollars: parseFloat(totalPnlDollars.toFixed(2)),
       totalPnlPips: parseFloat(totalPnlPips.toFixed(2)),
-      averagePnlDollars: parseFloat((totalPnlDollars / trades.length).toFixed(2)),
+      averagePnlDollars: parseFloat(
+        (totalPnlDollars / trades.length).toFixed(2),
+      ),
       averagePnlPips: parseFloat((totalPnlPips / trades.length).toFixed(2)),
       averageWin: parseFloat(averageWin.toFixed(2)),
       averageLoss: parseFloat(averageLoss.toFixed(2)),
@@ -239,13 +287,19 @@ export class BacktestingService {
     };
   }
 
-  private calculateConsecutive(trades: BacktestTrade[]): { maxConsecutiveWins: number; maxConsecutiveLosses: number } {
-    let maxWins = 0, maxLosses = 0;
-    let currentWins = 0, currentLosses = 0;
+  private calculateConsecutive(trades: BacktestTrade[]): {
+    maxConsecutiveWins: number;
+    maxConsecutiveLosses: number;
+  } {
+    let maxWins = 0,
+      maxLosses = 0;
+    let currentWins = 0,
+      currentLosses = 0;
 
     // Sort by date
-    const sortedTrades = [...trades].sort((a, b) => 
-      new Date(a.tradeDate).getTime() - new Date(b.tradeDate).getTime()
+    const sortedTrades = [...trades].sort(
+      (a, b) =>
+        new Date(a.tradeDate).getTime() - new Date(b.tradeDate).getTime(),
     );
 
     for (const trade of sortedTrades) {
@@ -296,7 +350,13 @@ export class BacktestingService {
   async getStatsByDimension(
     strategyId: string,
     userId: string,
-    dimension: 'symbol' | 'session' | 'timeframe' | 'killZone' | 'dayOfWeek' | 'setupType',
+    dimension:
+      | 'symbol'
+      | 'session'
+      | 'timeframe'
+      | 'killZone'
+      | 'dayOfWeek'
+      | 'setupType',
   ): Promise<DimensionStats[]> {
     const trades = await this.backtestTradeRepository.find({
       where: { strategyId, userId },
@@ -316,7 +376,7 @@ export class BacktestingService {
     const results: DimensionStats[] = [];
     for (const [value, groupTrades] of groups) {
       const stats = this.calculateStats(groupTrades);
-      
+
       let recommendation: 'TRADE' | 'CAUTION' | 'AVOID' | 'MORE_DATA';
       if (groupTrades.length < 10) {
         recommendation = 'MORE_DATA';
@@ -356,17 +416,20 @@ export class BacktestingService {
     });
 
     // Get unique values for rows and columns
-    const rows = [...new Set(trades.map(t => t[rowDimension] || 'unknown'))];
-    const columns = [...new Set(trades.map(t => t[columnDimension] || 'unknown'))];
+    const rows = [...new Set(trades.map((t) => t[rowDimension] || 'unknown'))];
+    const columns = [
+      ...new Set(trades.map((t) => t[columnDimension] || 'unknown')),
+    ];
 
     // Calculate stats for each cell
     const data: PerformanceMatrix['data'] = [];
-    
+
     for (const row of rows) {
       for (const col of columns) {
         const cellTrades = trades.filter(
-          t => (t[rowDimension] || 'unknown') === row && 
-               (t[columnDimension] || 'unknown') === col
+          (t) =>
+            (t[rowDimension] || 'unknown') === row &&
+            (t[columnDimension] || 'unknown') === col,
         );
 
         if (cellTrades.length > 0) {
@@ -395,29 +458,53 @@ export class BacktestingService {
     });
 
     const overallStats = this.calculateStats(trades);
-    
-    const bySymbol = await this.getStatsByDimension(strategyId, userId, 'symbol');
-    const bySession = await this.getStatsByDimension(strategyId, userId, 'session');
-    const byTimeframe = await this.getStatsByDimension(strategyId, userId, 'timeframe');
-    const byKillZone = await this.getStatsByDimension(strategyId, userId, 'killZone');
-    const byDayOfWeek = await this.getStatsByDimension(strategyId, userId, 'dayOfWeek');
-    const bySetup = await this.getStatsByDimension(strategyId, userId, 'setupType');
+
+    const bySymbol = await this.getStatsByDimension(
+      strategyId,
+      userId,
+      'symbol',
+    );
+    const bySession = await this.getStatsByDimension(
+      strategyId,
+      userId,
+      'session',
+    );
+    const byTimeframe = await this.getStatsByDimension(
+      strategyId,
+      userId,
+      'timeframe',
+    );
+    const byKillZone = await this.getStatsByDimension(
+      strategyId,
+      userId,
+      'killZone',
+    );
+    const byDayOfWeek = await this.getStatsByDimension(
+      strategyId,
+      userId,
+      'dayOfWeek',
+    );
+    const bySetup = await this.getStatsByDimension(
+      strategyId,
+      userId,
+      'setupType',
+    );
 
     // Identify best and worst conditions
     const bestConditions = {
-      symbol: bySymbol.find(s => s.recommendation === 'TRADE'),
-      session: bySession.find(s => s.recommendation === 'TRADE'),
-      timeframe: byTimeframe.find(s => s.recommendation === 'TRADE'),
-      killZone: byKillZone.find(s => s.recommendation === 'TRADE'),
-      dayOfWeek: byDayOfWeek.find(s => s.recommendation === 'TRADE'),
+      symbol: bySymbol.find((s) => s.recommendation === 'TRADE'),
+      session: bySession.find((s) => s.recommendation === 'TRADE'),
+      timeframe: byTimeframe.find((s) => s.recommendation === 'TRADE'),
+      killZone: byKillZone.find((s) => s.recommendation === 'TRADE'),
+      dayOfWeek: byDayOfWeek.find((s) => s.recommendation === 'TRADE'),
     };
 
     const worstConditions = {
-      symbol: bySymbol.find(s => s.recommendation === 'AVOID'),
-      session: bySession.find(s => s.recommendation === 'AVOID'),
-      timeframe: byTimeframe.find(s => s.recommendation === 'AVOID'),
-      killZone: byKillZone.find(s => s.recommendation === 'AVOID'),
-      dayOfWeek: byDayOfWeek.find(s => s.recommendation === 'AVOID'),
+      symbol: bySymbol.find((s) => s.recommendation === 'AVOID'),
+      session: bySession.find((s) => s.recommendation === 'AVOID'),
+      timeframe: byTimeframe.find((s) => s.recommendation === 'AVOID'),
+      killZone: byKillZone.find((s) => s.recommendation === 'AVOID'),
+      dayOfWeek: byDayOfWeek.find((s) => s.recommendation === 'AVOID'),
     };
 
     return {
@@ -431,10 +518,13 @@ export class BacktestingService {
       bestConditions,
       worstConditions,
       tradeCount: trades.length,
-      dateRange: trades.length > 0 ? {
-        start: trades[0].tradeDate,
-        end: trades[trades.length - 1].tradeDate,
-      } : null,
+      dateRange:
+        trades.length > 0
+          ? {
+              start: trades[0].tradeDate,
+              end: trades[trades.length - 1].tradeDate,
+            }
+          : null,
     };
   }
 
@@ -451,25 +541,31 @@ export class BacktestingService {
     const canAnalyze = logs.length >= MINIMUM_SAMPLE_SIZE;
 
     // 1. Tag Frequency & Correlation
-    const tagStats = new Map<string, {
-      count: number;
-      movements: Record<string, number>;
-      sentiments: Record<string, number>;
-      sessions: Record<string, number>;
-      timeframes: Record<string, number>;
-      avgSignificance: number;
-    }>();
+    const tagStats = new Map<
+      string,
+      {
+        count: number;
+        movements: Record<string, number>;
+        sentiments: Record<string, number>;
+        sessions: Record<string, number>;
+        timeframes: Record<string, number>;
+        avgSignificance: number;
+      }
+    >();
 
     // 2. Tag Pair Correlation Tracking
-    const tagPairs = new Map<string, {
-      count: number;
-      movements: Record<string, number>;
-    }>();
+    const tagPairs = new Map<
+      string,
+      {
+        count: number;
+        movements: Record<string, number>;
+      }
+    >();
 
-    logs.forEach(log => {
+    logs.forEach((log) => {
       if (!log.tags || log.tags.length === 0) return;
-      
-      log.tags.forEach(tag => {
+
+      log.tags.forEach((tag) => {
         if (!tagStats.has(tag)) {
           tagStats.set(tag, {
             count: 0,
@@ -480,18 +576,20 @@ export class BacktestingService {
             avgSignificance: 0,
           });
         }
-        
+
         const stats = tagStats.get(tag)!;
         stats.count++;
-        
+
         // Movement correlation
         if (log.movementType) {
-          stats.movements[log.movementType] = (stats.movements[log.movementType] || 0) + 1;
+          stats.movements[log.movementType] =
+            (stats.movements[log.movementType] || 0) + 1;
         }
 
         // Sentiment correlation
         if (log.sentiment) {
-          stats.sentiments[log.sentiment] = (stats.sentiments[log.sentiment] || 0) + 1;
+          stats.sentiments[log.sentiment] =
+            (stats.sentiments[log.sentiment] || 0) + 1;
         }
 
         // Session correlation
@@ -501,11 +599,15 @@ export class BacktestingService {
 
         // Timeframe correlation
         if (log.timeframe) {
-          stats.timeframes[log.timeframe] = (stats.timeframes[log.timeframe] || 0) + 1;
+          stats.timeframes[log.timeframe] =
+            (stats.timeframes[log.timeframe] || 0) + 1;
         }
 
         // Running average for significance
-        stats.avgSignificance = ((stats.avgSignificance * (stats.count - 1)) + (log.significance || 3)) / stats.count;
+        stats.avgSignificance =
+          (stats.avgSignificance * (stats.count - 1) +
+            (log.significance || 3)) /
+          stats.count;
       });
 
       // Track tag pairs (for correlation discovery)
@@ -519,7 +621,8 @@ export class BacktestingService {
             const pair = tagPairs.get(pairKey)!;
             pair.count++;
             if (log.movementType) {
-              pair.movements[log.movementType] = (pair.movements[log.movementType] || 0) + 1;
+              pair.movements[log.movementType] =
+                (pair.movements[log.movementType] || 0) + 1;
             }
           }
         }
@@ -527,10 +630,12 @@ export class BacktestingService {
     });
 
     // Helper: Get best value from a record
-    const getBest = (record: Record<string, number>): { value: string; count: number } | null => {
+    const getBest = (
+      record: Record<string, number>,
+    ): { value: string; count: number } | null => {
       const entries = Object.entries(record);
       if (entries.length === 0) return null;
-      const sorted = entries.sort(([,a], [,b]) => b - a);
+      const sorted = entries.sort(([, a], [, b]) => b - a);
       return { value: sorted[0][0], count: sorted[0][1] };
     };
 
@@ -543,35 +648,41 @@ export class BacktestingService {
     };
 
     // Format discoveries for frontend
-    const discoveries = Array.from(tagStats.entries()).map(([tag, stats]) => {
-      const dominantMovement = getBest(stats.movements);
-      const dominantSentiment = getBest(stats.sentiments);
-      const bestSession = getBest(stats.sessions);
-      const bestTimeframe = getBest(stats.timeframes);
+    const discoveries = Array.from(tagStats.entries())
+      .map(([tag, stats]) => {
+        const dominantMovement = getBest(stats.movements);
+        const dominantSentiment = getBest(stats.sentiments);
+        const bestSession = getBest(stats.sessions);
+        const bestTimeframe = getBest(stats.timeframes);
 
-      return {
-        tag,
-        occurrences: stats.count,
-        sampleSizeStatus: getSampleStatus(stats.count),
-        confidence: parseFloat(((stats.count / logs.length) * 100).toFixed(1)),
-        avgSignificance: parseFloat(stats.avgSignificance.toFixed(1)),
-        dominantPattern: dominantMovement?.value || 'Mixed',
-        dominantSentiment: dominantSentiment?.value || 'Neutral',
-        bestSession: bestSession?.value || null,
-        bestTimeframe: bestTimeframe?.value || null,
-        movementDistribution: stats.movements,
-        sentimentDistribution: stats.sentiments,
-        sessionDistribution: stats.sessions,
-        timeframeDistribution: stats.timeframes,
-      };
-    }).sort((a, b) => b.occurrences - a.occurrences);
+        return {
+          tag,
+          occurrences: stats.count,
+          sampleSizeStatus: getSampleStatus(stats.count),
+          confidence: parseFloat(
+            ((stats.count / logs.length) * 100).toFixed(1),
+          ),
+          avgSignificance: parseFloat(stats.avgSignificance.toFixed(1)),
+          dominantPattern: dominantMovement?.value || 'Mixed',
+          dominantSentiment: dominantSentiment?.value || 'Neutral',
+          bestSession: bestSession?.value || null,
+          bestTimeframe: bestTimeframe?.value || null,
+          movementDistribution: stats.movements,
+          sentimentDistribution: stats.sentiments,
+          sessionDistribution: stats.sessions,
+          timeframeDistribution: stats.timeframes,
+        };
+      })
+      .sort((a, b) => b.occurrences - a.occurrences);
 
     // Format correlations for frontend
     const correlations = Array.from(tagPairs.entries())
       .filter(([, pair]) => pair.count >= 3) // Minimum 3 co-occurrences
       .map(([key, pair]) => {
         const dominant = getBest(pair.movements);
-        const successRate = dominant ? (dominant.count / pair.count * 100).toFixed(1) : 0;
+        const successRate = dominant
+          ? ((dominant.count / pair.count) * 100).toFixed(1)
+          : 0;
         return {
           tags: key,
           coOccurrences: pair.count,
@@ -587,7 +698,7 @@ export class BacktestingService {
       minimumForAnalysis: MINIMUM_SAMPLE_SIZE,
       canAnalyze,
       needsMoreData: !canAnalyze ? MINIMUM_SAMPLE_SIZE - logs.length : 0,
-      discoveries: discoveries.filter(d => d.occurrences >= 2), // Filter noise
+      discoveries: discoveries.filter((d) => d.occurrences >= 2), // Filter noise
       correlations,
     };
   }
@@ -598,8 +709,8 @@ export class BacktestingService {
       .select('DISTINCT bt.symbol', 'symbol')
       .where('bt.userId = :userId', { userId })
       .getRawMany();
-    
-    return result.map(r => r.symbol);
+
+    return result.map((r) => r.symbol);
   }
 
   // ============ MARKET LOGS ============
@@ -609,12 +720,18 @@ export class BacktestingService {
     userId: string,
   ): Promise<MarketLog> {
     // Normalize tags before saving
-    const normalizedTags = createDto.tags 
+    const normalizedTags = createDto.tags
       ? this.tagService.normalizeAll(createDto.tags)
       : [];
 
-    const startTime = this.parseTimeToTimestamp(createDto.startTime, createDto.tradeDate);
-    const endTime = this.parseTimeToTimestamp(createDto.endTime, createDto.tradeDate);
+    const startTime = this.parseTimeToTimestamp(
+      createDto.startTime,
+      createDto.tradeDate,
+    );
+    const endTime = this.parseTimeToTimestamp(
+      createDto.endTime,
+      createDto.tradeDate,
+    );
 
     const log = this.marketLogRepository.create({
       ...createDto,
@@ -628,9 +745,12 @@ export class BacktestingService {
 
   // Helper to combine date and time into a proper timestamp
   // Time comes as "HH:mm" (e.g., "09:30"), we need to combine with tradeDate
-  private parseTimeToTimestamp(timeStr: string | undefined, dateStr: string): Date | null {
+  private parseTimeToTimestamp(
+    timeStr: string | undefined,
+    dateStr: string,
+  ): Date | null {
     if (!timeStr || timeStr.trim() === '') return null;
-    
+
     // timeStr format: "HH:mm" or "HH:mm:ss"
     // dateStr format: "YYYY-MM-DD"
     try {
@@ -669,13 +789,19 @@ export class BacktestingService {
       query.andWhere('ml.session = :session', { session: filters.session });
     }
     if (filters?.timeframe) {
-      query.andWhere('ml.timeframe = :timeframe', { timeframe: filters.timeframe });
+      query.andWhere('ml.timeframe = :timeframe', {
+        timeframe: filters.timeframe,
+      });
     }
     if (filters?.sentiment) {
-      query.andWhere('ml.sentiment = :sentiment', { sentiment: filters.sentiment });
+      query.andWhere('ml.sentiment = :sentiment', {
+        sentiment: filters.sentiment,
+      });
     }
     if (filters?.startDate) {
-      query.andWhere('ml.tradeDate >= :startDate', { startDate: filters.startDate });
+      query.andWhere('ml.tradeDate >= :startDate', {
+        startDate: filters.startDate,
+      });
     }
     if (filters?.endDate) {
       query.andWhere('ml.tradeDate <= :endDate', { endDate: filters.endDate });
@@ -686,12 +812,12 @@ export class BacktestingService {
       // For arrays stored as string (simple-array), exact matching is tricky in TypeORM without Postgres specific queries
       // We'll filter in memory for MVP if array query fails, or use LIKE
       // Assuming simple-array stores as "tag1,tag2"
-      
+
       // Better approach for cross-db compatibility with 'simple-array' is standard LIKE
       // But let's rely on TypeORM's handling or memory filter for now to be safe
       // Let's defer strict tag filtering to frontend or exact match for now
       // Or we can use `like` for partial matches
-      filters.tags.forEach(tag => {
+      filters.tags.forEach((tag) => {
         query.andWhere('ml.tags LIKE :tagParam', { tagParam: `%${tag}%` });
       });
     }

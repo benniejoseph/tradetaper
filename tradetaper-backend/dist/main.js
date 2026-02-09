@@ -1,13 +1,67 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 const core_1 = require("@nestjs/core");
 const app_module_1 = require("./app.module");
 const common_1 = require("@nestjs/common");
+const cookie_parser_1 = __importDefault(require("cookie-parser"));
+const csrf_csrf_1 = require("csrf-csrf");
+const helmet_1 = __importDefault(require("helmet"));
+const ws_jwt_adapter_1 = require("./websocket/ws-jwt.adapter");
 async function bootstrap() {
     try {
         console.log('🚀 TradeTaper Backend Starting...');
         console.log(`📊 Node.js: ${process.version}, ENV: ${process.env.NODE_ENV}, PORT: ${process.env.PORT}`);
         const app = await core_1.NestFactory.create(app_module_1.AppModule);
+        app.useWebSocketAdapter(new ws_jwt_adapter_1.WsJwtAdapter(app));
+        console.log('🔐 WebSocket JWT authentication enabled');
+        app.use((0, helmet_1.default)({
+            contentSecurityPolicy: {
+                directives: {
+                    defaultSrc: ["'self'"],
+                    styleSrc: ["'self'", "'unsafe-inline'"],
+                    scriptSrc: ["'self'"],
+                    imgSrc: ["'self'", 'data:', 'https:'],
+                    connectSrc: ["'self'", 'https://api.tradetaper.com'],
+                },
+            },
+            crossOriginEmbedderPolicy: false,
+        }));
+        console.log('🛡️  Security headers enabled (Helmet.js)');
+        app.use((0, cookie_parser_1.default)());
+        console.log('🍪 Cookie parser enabled');
+        const enableCsrf = process.env.ENABLE_CSRF === 'true' ||
+            process.env.NODE_ENV === 'production';
+        if (enableCsrf) {
+            const { doubleCsrfProtection } = (0, csrf_csrf_1.doubleCsrf)({
+                getSecret: () => process.env.CSRF_SECRET || 'default-csrf-secret-change-in-production',
+                cookieName: '__Host-csrf',
+                cookieOptions: {
+                    httpOnly: true,
+                    sameSite: 'strict',
+                    secure: process.env.NODE_ENV === 'production',
+                    path: '/',
+                },
+                size: 64,
+                ignoredMethods: ['GET', 'HEAD', 'OPTIONS'],
+                getSessionIdentifier: (req) => {
+                    return req.cookies?.['connect.sid'] || req.cookies?.['session'] || '';
+                },
+                getCsrfTokenFromRequest: (req) => {
+                    return (req.headers['x-csrf-token'] ||
+                        req.headers['csrf-token'] ||
+                        req.body?._csrf ||
+                        req.query?._csrf);
+                },
+            });
+            app.use(doubleCsrfProtection);
+            console.log('🛡️  CSRF protection enabled');
+        }
+        else {
+            console.log('⚠️  CSRF protection disabled (set ENABLE_CSRF=true to enable)');
+        }
         const port = process.env.PORT || 3000;
         console.log(`🔧 Using port: ${port}`);
         const corsOptions = {
@@ -25,7 +79,12 @@ async function bootstrap() {
                 process.env.FRONTEND_URL || 'https://tradetaper.com',
             ],
             methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-            allowedHeaders: ['Content-Type', 'Authorization'],
+            allowedHeaders: [
+                'Content-Type',
+                'Authorization',
+                'X-CSRF-Token',
+                'CSRF-Token',
+            ],
             credentials: true,
         };
         app.enableCors(corsOptions);
@@ -35,7 +94,7 @@ async function bootstrap() {
             forbidNonWhitelisted: true,
             transform: true,
             exceptionFactory: (errors) => {
-                const messages = errors.map(error => ({
+                const messages = errors.map((error) => ({
                     field: error.property,
                     errors: Object.values(error.constraints || {}),
                 }));

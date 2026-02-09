@@ -5,7 +5,7 @@ import { ConfigService } from '@nestjs/config';
 
 /**
  * LLM Cost Manager Service
- * 
+ *
  * Manages token usage, costs, and budgets across all LLM operations.
  * Provides cost tracking, budget enforcement, and optimization.
  */
@@ -54,7 +54,7 @@ export class BudgetExceededException extends Error {
 @Injectable()
 export class LLMCostManagerService {
   private readonly logger = new Logger(LLMCostManagerService.name);
-  
+
   // Model pricing (as of 2024/2025 - update regularly)
   private readonly modelPricing: Map<string, ModelPricing> = new Map([
     [
@@ -127,9 +127,14 @@ export class LLMCostManagerService {
     const pricing = this.modelPricing.get(model);
     if (!pricing) {
       this.logger.warn(`Unknown model pricing: ${model}, using default`);
-      return (promptTokens / 1000) * 0.0001875 + (completionTokens / 1000) * 0.000375;
+      return (
+        (promptTokens / 1000) * 0.0001875 + (completionTokens / 1000) * 0.000375
+      );
     }
-    return (promptTokens / 1000) * pricing.promptCostPer1K + (completionTokens / 1000) * pricing.completionCostPer1K;
+    return (
+      (promptTokens / 1000) * pricing.promptCostPer1K +
+      (completionTokens / 1000) * pricing.completionCostPer1K
+    );
   }
 
   estimateTokens(text: string): number {
@@ -140,9 +145,12 @@ export class LLMCostManagerService {
     const tokenUsage: TokenUsage = { ...usage, timestamp: new Date() };
     const key = `token-usage:${tokenUsage.userId || 'system'}:${Date.now()}`;
     await this.cacheManager.set(key, tokenUsage, 86400000);
-    if (tokenUsage.userId) await this.updateUserUsage(tokenUsage.userId, tokenUsage.cost);
+    if (tokenUsage.userId)
+      await this.updateUserUsage(tokenUsage.userId, tokenUsage.cost);
     await this.updateSystemStats(tokenUsage);
-    this.logger.debug(`Recorded usage: ${tokenUsage.totalTokens} tokens, $${tokenUsage.cost.toFixed(6)} (model: ${tokenUsage.model})`);
+    this.logger.debug(
+      `Recorded usage: ${tokenUsage.totalTokens} tokens, $${tokenUsage.cost.toFixed(6)} (model: ${tokenUsage.model})`,
+    );
   }
 
   async checkBudget(userId: string, estimatedCost: number): Promise<void> {
@@ -150,19 +158,34 @@ export class LLMCostManagerService {
     if (budget.currentUsage + estimatedCost > budget.monthlyBudget) {
       throw new BudgetExceededException(
         `AI token budget exceeded. Current: $${budget.currentUsage.toFixed(2)}, Budget: $${budget.monthlyBudget.toFixed(2)}`,
-        userId, budget.currentUsage, budget.monthlyBudget,
+        userId,
+        budget.currentUsage,
+        budget.monthlyBudget,
       );
     }
   }
 
   async getUserBudget(userId: string): Promise<UserBudget> {
     const subscriptionTier = await this.getUserSubscriptionTier(userId);
-    const monthlyBudgets = { free: 1.0, basic: 5.0, pro: 25.0, enterprise: 1000.0 };
-    const monthlyBudget = monthlyBudgets[subscriptionTier] || monthlyBudgets.free;
+    const monthlyBudgets = {
+      free: 1.0,
+      basic: 5.0,
+      pro: 25.0,
+      enterprise: 1000.0,
+    };
+    const monthlyBudget =
+      monthlyBudgets[subscriptionTier] || monthlyBudgets.free;
     const currentUsage = await this.getUserMonthlyUsage(userId);
     const now = new Date();
     const resetDate = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-    return { userId, monthlyBudget, currentUsage, percentUsed: (currentUsage / monthlyBudget) * 100, remainingBudget: monthlyBudget - currentUsage, resetDate };
+    return {
+      userId,
+      monthlyBudget,
+      currentUsage,
+      percentUsed: (currentUsage / monthlyBudget) * 100,
+      remainingBudget: monthlyBudget - currentUsage,
+      resetDate,
+    };
   }
 
   private async getUserMonthlyUsage(userId: string): Promise<number> {
@@ -174,18 +197,31 @@ export class LLMCostManagerService {
   private async updateUserUsage(userId: string, cost: number): Promise<void> {
     const key = `monthly-usage:${userId}:${this.getCurrentYearMonth()}`;
     const currentUsage = await this.getUserMonthlyUsage(userId);
-    await this.cacheManager.set(key, currentUsage + cost, this.getTTLUntilEndOfNextMonth());
+    await this.cacheManager.set(
+      key,
+      currentUsage + cost,
+      this.getTTLUntilEndOfNextMonth(),
+    );
   }
 
-  selectOptimalModel(taskComplexity: 'simple' | 'medium' | 'complex', maxCost?: number): string {
+  selectOptimalModel(
+    taskComplexity: 'simple' | 'medium' | 'complex',
+    maxCost?: number,
+  ): string {
     let recommendedModels: string[];
     switch (taskComplexity) {
-      case 'simple': recommendedModels = ['gemini-1.5-flash']; break;
-      case 'medium': recommendedModels = ['gemini-1.5-flash']; break;
-      case 'complex': recommendedModels = ['gemini-3-pro-preview', 'gemini-1.5-pro']; break;
+      case 'simple':
+        recommendedModels = ['gemini-1.5-flash'];
+        break;
+      case 'medium':
+        recommendedModels = ['gemini-1.5-flash'];
+        break;
+      case 'complex':
+        recommendedModels = ['gemini-3-pro-preview', 'gemini-1.5-pro'];
+        break;
     }
     if (maxCost) {
-      recommendedModels = recommendedModels.filter(model => {
+      recommendedModels = recommendedModels.filter((model) => {
         const pricing = this.modelPricing.get(model);
         return pricing && pricing.promptCostPer1K <= maxCost;
       });
@@ -196,7 +232,15 @@ export class LLMCostManagerService {
   async getSystemStats(): Promise<any> {
     const key = 'system-stats:tokens';
     const stats = await this.cacheManager.get<any>(key);
-    return stats || { totalTokens: 0, totalCost: 0, totalRequests: 0, costByModel: {}, topUsers: [] };
+    return (
+      stats || {
+        totalTokens: 0,
+        totalCost: 0,
+        totalRequests: 0,
+        costByModel: {},
+        topUsers: [],
+      }
+    );
   }
 
   private async updateSystemStats(usage: TokenUsage): Promise<void> {
@@ -223,7 +267,14 @@ export class LLMCostManagerService {
 
   private getTTLUntilEndOfNextMonth(): number {
     const now = new Date();
-    const endOfNextMonth = new Date(now.getFullYear(), now.getMonth() + 2, 0, 23, 59, 59);
+    const endOfNextMonth = new Date(
+      now.getFullYear(),
+      now.getMonth() + 2,
+      0,
+      23,
+      59,
+      59,
+    );
     return endOfNextMonth.getTime() - now.getTime();
   }
 

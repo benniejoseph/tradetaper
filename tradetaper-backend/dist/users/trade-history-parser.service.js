@@ -231,7 +231,9 @@ let TradeHistoryParserService = TradeHistoryParserService_1 = class TradeHistory
                         else if ('text' in value)
                             value = value.text;
                         else if ('richText' in value)
-                            value = value.richText.map((rt) => rt.text).join('');
+                            value = value.richText
+                                .map((rt) => rt.text)
+                                .join('');
                     }
                     rowData[colNumber - 1] = value;
                 });
@@ -241,7 +243,10 @@ let TradeHistoryParserService = TradeHistoryParserService_1 = class TradeHistory
                 const row = sheetData[i];
                 if (!row)
                     continue;
-                const rowText = row.filter(c => c != null).join(' ').toLowerCase();
+                const rowText = row
+                    .filter((c) => c != null)
+                    .join(' ')
+                    .toLowerCase();
                 if (rowText.includes('balance') && !accountBalance) {
                     for (let j = 0; j < row.length; j++) {
                         const cell = (row[j] || '').toString();
@@ -281,7 +286,10 @@ let TradeHistoryParserService = TradeHistoryParserService_1 = class TradeHistory
                 const row = sheetData[i];
                 if (!row)
                     continue;
-                const rowText = row.filter(c => c != null).join(' ').toLowerCase();
+                const rowText = row
+                    .filter((c) => c != null)
+                    .join(' ')
+                    .toLowerCase();
                 if (rowText.includes('position') &&
                     rowText.includes('symbol') &&
                     rowText.includes('type')) {

@@ -29,10 +29,10 @@ export class PowerOfThreeService {
   analyzePowerOfThree(
     symbol: string,
     priceData: any[],
-    timeframe: string = '1D'
+    timeframe: string = '1D',
   ): PowerOfThreeAnalysis {
     this.logger.log(
-      `Analyzing ICT Power of Three for ${symbol} on ${timeframe}`
+      `Analyzing ICT Power of Three for ${symbol} on ${timeframe}`,
     );
 
     // Identify current phase
@@ -45,13 +45,17 @@ export class PowerOfThreeService {
     const phaseDescription = this.describePhase(phase, phaseLevels);
 
     // Predict next move
-    const expectedNextMove = this.predictNextMove(phase, phaseLevels, priceData);
+    const expectedNextMove = this.predictNextMove(
+      phase,
+      phaseLevels,
+      priceData,
+    );
 
     // Generate trading strategy
     const tradingStrategy = this.generateTradingStrategy(
       phase,
       phaseLevels,
-      priceData
+      priceData,
     );
 
     // Generate warnings
@@ -84,7 +88,7 @@ export class PowerOfThreeService {
     }
 
     const recent = priceData.slice(-20);
-    
+
     // Calculate volatility and range
     const highs = recent.map((d) => d.high);
     const lows = recent.map((d) => d.low);
@@ -102,7 +106,7 @@ export class PowerOfThreeService {
       const tr = Math.max(
         recent[i].high - recent[i].low,
         Math.abs(recent[i].high - recent[i - 1].close),
-        Math.abs(recent[i].low - recent[i - 1].close)
+        Math.abs(recent[i].low - recent[i - 1].close),
       );
       totalATR += tr;
     }
@@ -162,7 +166,8 @@ export class PowerOfThreeService {
       if (
         current.high > prev.high * 1.01 && // Spike up
         next.close < current.open && // Reversal down
-        Math.abs(current.close - current.open) > (current.high - current.low) * 0.3 // Wick
+        Math.abs(current.close - current.open) >
+          (current.high - current.low) * 0.3 // Wick
       ) {
         return true;
       }
@@ -171,7 +176,8 @@ export class PowerOfThreeService {
       if (
         current.low < prev.low * 0.99 && // Spike down
         next.close > current.open && // Reversal up
-        Math.abs(current.close - current.open) > (current.high - current.low) * 0.3 // Wick
+        Math.abs(current.close - current.open) >
+          (current.high - current.low) * 0.3 // Wick
       ) {
         return true;
       }
@@ -212,7 +218,7 @@ export class PowerOfThreeService {
    */
   private calculatePhaseLevels(
     priceData: any[],
-    phase: string
+    phase: string,
   ): {
     accumulation?: { low: number; high: number };
     manipulation?: { fakeoutLevel: number; reversalPoint: number };
@@ -241,9 +247,10 @@ export class PowerOfThreeService {
 
       return {
         manipulation: {
-          fakeoutLevel: recentHigh > rangeLow + (rangeHigh - rangeLow) * 0.5
-            ? recentHigh
-            : recentLow,
+          fakeoutLevel:
+            recentHigh > rangeLow + (rangeHigh - rangeLow) * 0.5
+              ? recentHigh
+              : recentLow,
           reversalPoint: recent[recent.length - 1].close,
         },
       };
@@ -290,7 +297,7 @@ export class PowerOfThreeService {
   private predictNextMove(
     phase: string,
     levels: any,
-    priceData: any[]
+    priceData: any[],
   ): string {
     const currentPrice = priceData[priceData.length - 1].close;
 
@@ -315,7 +322,7 @@ export class PowerOfThreeService {
   private generateTradingStrategy(
     phase: string,
     levels: any,
-    priceData: any[]
+    priceData: any[],
   ): string[] {
     const strategy: string[] = [];
 
@@ -326,7 +333,9 @@ export class PowerOfThreeService {
       case 'accumulation':
         strategy.push(`\n📍 ACCUMULATION STRATEGY:`);
         strategy.push(`   • DO NOT trade the range`);
-        strategy.push(`   • Mark the accumulation high (${safeToFixed(levels.accumulation?.high, 2)}) and low (${safeToFixed(levels.accumulation?.low, 2)})`);
+        strategy.push(
+          `   • Mark the accumulation high (${safeToFixed(levels.accumulation?.high, 2)}) and low (${safeToFixed(levels.accumulation?.low, 2)})`,
+        );
         strategy.push(`   • Wait for manipulation phase (liquidity sweep)`);
         strategy.push(`   • Prepare to enter AFTER the fake breakout reverses`);
         strategy.push(`   • Patience is key - this is the setup phase`);
@@ -334,11 +343,19 @@ export class PowerOfThreeService {
 
       case 'manipulation':
         strategy.push(`\n⚡ MANIPULATION STRATEGY (HIGH PRIORITY!):`);
-        strategy.push(`   • Liquidity has been swept at ${safeToFixed(levels.manipulation?.fakeoutLevel, 2)}`);
-        strategy.push(`   • Price reversed to ${safeToFixed(levels.manipulation?.reversalPoint, 2)}`);
+        strategy.push(
+          `   • Liquidity has been swept at ${safeToFixed(levels.manipulation?.fakeoutLevel, 2)}`,
+        );
+        strategy.push(
+          `   • Price reversed to ${safeToFixed(levels.manipulation?.reversalPoint, 2)}`,
+        );
         strategy.push(`   • THIS IS YOUR ENTRY ZONE!`);
-        strategy.push(`   • Entry: Near ${safeToFixed(levels.manipulation?.reversalPoint, 2)}`);
-        strategy.push(`   • Stop Loss: Beyond manipulation level (${safeToFixed(levels.manipulation?.fakeoutLevel, 2)})`);
+        strategy.push(
+          `   • Entry: Near ${safeToFixed(levels.manipulation?.reversalPoint, 2)}`,
+        );
+        strategy.push(
+          `   • Stop Loss: Beyond manipulation level (${safeToFixed(levels.manipulation?.fakeoutLevel, 2)})`,
+        );
         strategy.push(`   • Target: Opposite side of accumulation range`);
         strategy.push(`   • Risk/Reward: Typically 1:3 to 1:5`);
         strategy.push(`   • Look for Order Block or FVG for precise entry`);
@@ -349,9 +366,13 @@ export class PowerOfThreeService {
         strategy.push(`   • Follow the institutional flow`);
         strategy.push(`   • Enter on pullbacks to Order Blocks or FVGs`);
         strategy.push(`   • Trail stops below/above swing points`);
-        strategy.push(`   • Target: ${safeToFixed(levels.distribution?.targetHigh, 2) || safeToFixed(levels.distribution?.targetLow, 2)}`);
+        strategy.push(
+          `   • Target: ${safeToFixed(levels.distribution?.targetHigh, 2) || safeToFixed(levels.distribution?.targetLow, 2)}`,
+        );
         strategy.push(`   • Take partial profits along the way`);
-        strategy.push(`   • Exit when distribution is complete (reversal signals)`);
+        strategy.push(
+          `   • Exit when distribution is complete (reversal signals)`,
+        );
         break;
 
       default:
@@ -371,15 +392,21 @@ export class PowerOfThreeService {
     const warnings: string[] = [];
 
     if (confidence < 60) {
-      warnings.push(`⚠️ Low confidence (${confidence}%) - phase identification uncertain`);
+      warnings.push(
+        `⚠️ Low confidence (${confidence}%) - phase identification uncertain`,
+      );
     }
 
     if (phase === 'accumulation') {
-      warnings.push(`⚠️ DO NOT trade during accumulation - wait for manipulation`);
+      warnings.push(
+        `⚠️ DO NOT trade during accumulation - wait for manipulation`,
+      );
     }
 
     if (phase === 'unknown') {
-      warnings.push(`⚠️ Phase unclear - avoid trading until structure develops`);
+      warnings.push(
+        `⚠️ Phase unclear - avoid trading until structure develops`,
+      );
     }
 
     return warnings;
@@ -414,4 +441,3 @@ This cycle repeats on ALL timeframes!`,
     };
   }
 }
-

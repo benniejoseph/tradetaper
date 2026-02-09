@@ -96,12 +96,7 @@ export class ProductionSeedService {
     valid: boolean;
     missingVars: string[];
   } {
-    const requiredVars = [
-      'DATABASE_URL',
-      'JWT_SECRET',
-
-      'FRONTEND_URL',
-    ];
+    const requiredVars = ['DATABASE_URL', 'JWT_SECRET', 'FRONTEND_URL'];
 
     const missingVars: string[] = [];
 

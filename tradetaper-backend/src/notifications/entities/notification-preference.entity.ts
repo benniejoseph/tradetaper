@@ -55,32 +55,33 @@ export class NotificationPreference {
   // Channel preferences per notification type (stored as JSONB)
   @Column({
     type: 'jsonb',
-    default: () => `'${JSON.stringify({
-      // Trade notifications
-      [NotificationType.TRADE_CREATED]: DEFAULT_CHANNEL_PREFERENCE,
-      [NotificationType.TRADE_UPDATED]: DEFAULT_CHANNEL_PREFERENCE,
-      [NotificationType.TRADE_CLOSED]: DEFAULT_CHANNEL_PREFERENCE,
-      [NotificationType.MT5_SYNC_COMPLETE]: DEFAULT_CHANNEL_PREFERENCE,
-      [NotificationType.MT5_SYNC_ERROR]: HIGH_PRIORITY_PREFERENCE,
+    default: () =>
+      `'${JSON.stringify({
+        // Trade notifications
+        [NotificationType.TRADE_CREATED]: DEFAULT_CHANNEL_PREFERENCE,
+        [NotificationType.TRADE_UPDATED]: DEFAULT_CHANNEL_PREFERENCE,
+        [NotificationType.TRADE_CLOSED]: DEFAULT_CHANNEL_PREFERENCE,
+        [NotificationType.MT5_SYNC_COMPLETE]: DEFAULT_CHANNEL_PREFERENCE,
+        [NotificationType.MT5_SYNC_ERROR]: HIGH_PRIORITY_PREFERENCE,
 
-      // Economic calendar - high priority
-      [NotificationType.ECONOMIC_EVENT_1H]: HIGH_PRIORITY_PREFERENCE,
-      [NotificationType.ECONOMIC_EVENT_15M]: HIGH_PRIORITY_PREFERENCE,
-      [NotificationType.ECONOMIC_EVENT_NOW]: HIGH_PRIORITY_PREFERENCE,
+        // Economic calendar - high priority
+        [NotificationType.ECONOMIC_EVENT_1H]: HIGH_PRIORITY_PREFERENCE,
+        [NotificationType.ECONOMIC_EVENT_15M]: HIGH_PRIORITY_PREFERENCE,
+        [NotificationType.ECONOMIC_EVENT_NOW]: HIGH_PRIORITY_PREFERENCE,
 
-      // AI & Strategy
-      [NotificationType.AI_INSIGHT]: DEFAULT_CHANNEL_PREFERENCE,
-      [NotificationType.STRATEGY_ALERT]: HIGH_PRIORITY_PREFERENCE,
+        // AI & Strategy
+        [NotificationType.AI_INSIGHT]: DEFAULT_CHANNEL_PREFERENCE,
+        [NotificationType.STRATEGY_ALERT]: HIGH_PRIORITY_PREFERENCE,
 
-      // System
-      [NotificationType.SYSTEM_UPDATE]: DEFAULT_CHANNEL_PREFERENCE,
-      [NotificationType.SUBSCRIPTION_EXPIRY]: EMAIL_PREFERENCE,
-      [NotificationType.SUBSCRIPTION_RENEWED]: EMAIL_PREFERENCE,
+        // System
+        [NotificationType.SYSTEM_UPDATE]: DEFAULT_CHANNEL_PREFERENCE,
+        [NotificationType.SUBSCRIPTION_EXPIRY]: EMAIL_PREFERENCE,
+        [NotificationType.SUBSCRIPTION_RENEWED]: EMAIL_PREFERENCE,
 
-      // Account
-      [NotificationType.ACCOUNT_LINKED]: DEFAULT_CHANNEL_PREFERENCE,
-      [NotificationType.ACCOUNT_UNLINKED]: DEFAULT_CHANNEL_PREFERENCE,
-    })}'`,
+        // Account
+        [NotificationType.ACCOUNT_LINKED]: DEFAULT_CHANNEL_PREFERENCE,
+        [NotificationType.ACCOUNT_UNLINKED]: DEFAULT_CHANNEL_PREFERENCE,
+      })}'`,
   })
   channelPreferences: Record<NotificationType, ChannelPreference>;
 

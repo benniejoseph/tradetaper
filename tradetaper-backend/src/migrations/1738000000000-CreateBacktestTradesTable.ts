@@ -1,6 +1,8 @@
 import { MigrationInterface, QueryRunner, Table, TableIndex } from 'typeorm';
 
-export class CreateBacktestTradesTable1738000000000 implements MigrationInterface {
+export class CreateBacktestTradesTable1738000000000
+  implements MigrationInterface
+{
   name = 'CreateBacktestTradesTable1738000000000';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
@@ -304,7 +306,7 @@ export class CreateBacktestTradesTable1738000000000 implements MigrationInterfac
 
   public async down(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.dropTable('backtest_trades', true);
-    
+
     // Drop enum types
     await queryRunner.query(`DROP TYPE IF EXISTS "timeframe_enum"`);
     await queryRunner.query(`DROP TYPE IF EXISTS "killzone_enum"`);

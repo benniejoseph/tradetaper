@@ -111,11 +111,7 @@ let ProductionSeedService = ProductionSeedService_1 = class ProductionSeedServic
         };
     }
     validateProductionEnvironment() {
-        const requiredVars = [
-            'DATABASE_URL',
-            'JWT_SECRET',
-            'FRONTEND_URL',
-        ];
+        const requiredVars = ['DATABASE_URL', 'JWT_SECRET', 'FRONTEND_URL'];
         const missingVars = [];
         for (const varName of requiredVars) {
             const value = this.configService.get(varName);

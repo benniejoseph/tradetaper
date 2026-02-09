@@ -12,10 +12,10 @@ import { MultiModelOrchestratorService } from '../llm/multi-model-orchestrator.s
 
 /**
  * Market Sentiment Agent
- * 
+ *
  * Specialized agent for analyzing market sentiment from news, social media,
  * and economic indicators.
- * 
+ *
  * Capabilities:
  * - News sentiment analysis
  * - Social sentiment aggregation
@@ -24,9 +24,7 @@ import { MultiModelOrchestratorService } from '../llm/multi-model-orchestrator.s
  */
 @Injectable()
 export class MarketSentimentAgent extends BaseAgent {
-  constructor(
-    private readonly llmOrchestrator: MultiModelOrchestratorService,
-  ) {
+  constructor(private readonly llmOrchestrator: MultiModelOrchestratorService) {
     const config: AgentConfig = {
       name: 'market-sentiment-analyzer',
       type: 'sentiment-analysis',
@@ -57,22 +55,24 @@ export class MarketSentimentAgent extends BaseAgent {
         backoffMs: 1000,
       },
     };
-    
+
     super(config);
   }
 
   protected async executeTask(task: Task): Promise<AgentResponse> {
-    this.logger.log(`Analyzing market sentiment for: ${JSON.stringify(task.data)}`);
-    
+    this.logger.log(
+      `Analyzing market sentiment for: ${JSON.stringify(task.data)}`,
+    );
+
     const { symbol, news, marketData } = task.data as {
       symbol: string;
       news: any[];
       marketData: any;
     };
-    
+
     // Analyze sentiment using LLM
     const sentiment = await this.analyzeSentiment(symbol, news, marketData);
-    
+
     return {
       success: true,
       data: sentiment,
@@ -97,9 +97,9 @@ export class MarketSentimentAgent extends BaseAgent {
     // Prepare prompt for LLM
     const newsText = news
       .slice(0, 10)
-      .map(n => `- ${n.title}: ${n.content?.substring(0, 200) || ''}`)
+      .map((n) => `- ${n.title}: ${n.content?.substring(0, 200) || ''}`)
       .join('\n');
-    
+
     const prompt = `Analyze the market sentiment for ${symbol} based on the following information:
 
 Recent News:
@@ -127,19 +127,20 @@ Provide a comprehensive sentiment analysis in JSON format:
         requireJson: true,
         maxTokens: 500,
       });
-      
+
       const result = JSON.parse(response.content);
-      
+
       return {
         sentiment: result.sentiment || 'neutral',
         score: result.score || 0.5,
         confidence: result.confidence || 0.7,
-        reasoning: result.reasoning || 'Market analysis based on available data',
+        reasoning:
+          result.reasoning || 'Market analysis based on available data',
         factors: result.factors || [],
       };
     } catch (error) {
       this.logger.error(`Sentiment analysis failed: ${error.message}`);
-      
+
       // Fallback to simple heuristic
       return this.fallbackSentiment(marketData);
     }
@@ -147,10 +148,10 @@ Provide a comprehensive sentiment analysis in JSON format:
 
   private fallbackSentiment(marketData: any): any {
     const changePercent = marketData.changePercent || 0;
-    
+
     let sentiment: 'bullish' | 'bearish' | 'neutral';
     let score: number;
-    
+
     if (changePercent > 2) {
       sentiment = 'bullish';
       score = 0.75;
@@ -161,7 +162,7 @@ Provide a comprehensive sentiment analysis in JSON format:
       sentiment = 'neutral';
       score = 0.5;
     }
-    
+
     return {
       sentiment,
       score,
@@ -171,4 +172,3 @@ Provide a comprehensive sentiment analysis in JSON format:
     };
   }
 }
-

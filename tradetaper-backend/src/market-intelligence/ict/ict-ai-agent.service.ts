@@ -62,10 +62,10 @@ export class ICTAIAgentService {
   async analyze(
     symbol: string,
     priceData: any[],
-    timeframe: string = '1D'
+    timeframe: string = '1D',
   ): Promise<ICTAIAgentAnalysis> {
     this.logger.log(
-      `ICT AI Agent analyzing ${symbol} on ${timeframe} using PURE ICT concepts`
+      `ICT AI Agent analyzing ${symbol} on ${timeframe} using PURE ICT concepts`,
     );
 
     if (!priceData || priceData.length === 0) {
@@ -80,28 +80,43 @@ export class ICTAIAgentService {
     const currentPrice = lastCandle.close;
 
     // Run all ICT analyses
-    const [liquidity, structure, fvgs, obs, killZoneAnalysis, premiumDiscount, powerOfThree] =
-      await Promise.all([
-        Promise.resolve(
-          this.liquidityAnalysis.analyzeLiquidity(symbol, priceData, timeframe)
+    const [
+      liquidity,
+      structure,
+      fvgs,
+      obs,
+      killZoneAnalysis,
+      premiumDiscount,
+      powerOfThree,
+    ] = await Promise.all([
+      Promise.resolve(
+        this.liquidityAnalysis.analyzeLiquidity(symbol, priceData, timeframe),
+      ),
+      Promise.resolve(
+        this.marketStructure.analyzeMarketStructure(
+          symbol,
+          priceData,
+          timeframe,
         ),
-        Promise.resolve(
-          this.marketStructure.analyzeMarketStructure(symbol, priceData, timeframe)
+      ),
+      Promise.resolve(
+        this.fairValueGap.identifyFairValueGaps(symbol, priceData, timeframe),
+      ),
+      Promise.resolve(
+        this.orderBlock.identifyOrderBlocks(symbol, priceData, timeframe),
+      ),
+      Promise.resolve(this.killZone.analyzeKillZones()),
+      Promise.resolve(
+        this.premiumDiscount.analyzePremiumDiscount(
+          symbol,
+          priceData,
+          timeframe,
         ),
-        Promise.resolve(
-          this.fairValueGap.identifyFairValueGaps(symbol, priceData, timeframe)
-        ),
-        Promise.resolve(
-          this.orderBlock.identifyOrderBlocks(symbol, priceData, timeframe)
-        ),
-        Promise.resolve(this.killZone.analyzeKillZones()),
-        Promise.resolve(
-          this.premiumDiscount.analyzePremiumDiscount(symbol, priceData, timeframe)
-        ),
-        Promise.resolve(
-          this.powerOfThree.analyzePowerOfThree(symbol, priceData, timeframe)
-        ),
-      ]);
+      ),
+      Promise.resolve(
+        this.powerOfThree.analyzePowerOfThree(symbol, priceData, timeframe),
+      ),
+    ]);
 
     // Calculate ICT Score (concept alignment)
     const ictScore = this.calculateICTScore(
@@ -111,7 +126,7 @@ export class ICTAIAgentService {
       obs,
       liquidity,
       killZoneAnalysis,
-      powerOfThree
+      powerOfThree,
     );
 
     // Build ICT Narrative (the story)
@@ -122,7 +137,7 @@ export class ICTAIAgentService {
       obs,
       liquidity,
       powerOfThree,
-      currentPrice
+      currentPrice,
     );
 
     // Determine signal based on ICT concepts
@@ -134,7 +149,7 @@ export class ICTAIAgentService {
       liquidity,
       killZoneAnalysis,
       powerOfThree,
-      ictScore
+      ictScore,
     );
 
     // Identify primary setup
@@ -143,7 +158,7 @@ export class ICTAIAgentService {
       premiumDiscount,
       fvgs,
       obs,
-      powerOfThree
+      powerOfThree,
     );
 
     // Identify entry zone
@@ -152,7 +167,7 @@ export class ICTAIAgentService {
       fvgs,
       obs,
       signal,
-      currentPrice
+      currentPrice,
     );
 
     // Calculate stop loss
@@ -163,11 +178,15 @@ export class ICTAIAgentService {
       entryZone,
       premiumDiscount,
       liquidity,
-      signal
+      signal,
     );
 
     // Calculate risk/reward
-    const riskReward = this.calculateRiskReward(entryZone, stopLoss, takeProfit);
+    const riskReward = this.calculateRiskReward(
+      entryZone,
+      stopLoss,
+      takeProfit,
+    );
 
     // Generate reasoning
     const reasoning = this.generateReasoning(
@@ -177,7 +196,7 @@ export class ICTAIAgentService {
       confidence,
       structure,
       premiumDiscount,
-      powerOfThree
+      powerOfThree,
     );
 
     return {
@@ -195,7 +214,8 @@ export class ICTAIAgentService {
       riskReward,
       killZoneStatus: {
         isOptimal: killZoneAnalysis.isOptimalTradingTime,
-        recommendation: killZoneAnalysis.activeKillZone?.name || 'Outside Kill Zones',
+        recommendation:
+          killZoneAnalysis.activeKillZone?.name || 'Outside Kill Zones',
       },
       powerOfThreePhase: powerOfThree.currentPhase,
       timestamp: new Date(),
@@ -212,7 +232,7 @@ export class ICTAIAgentService {
     obs: any,
     liquidity: any,
     killZone: any,
-    powerOfThree: any
+    powerOfThree: any,
   ): number {
     let score = 0;
 
@@ -222,7 +242,10 @@ export class ICTAIAgentService {
     if (structure.trend !== 'ranging') score += 5;
 
     // Premium/Discount alignment (20 points)
-    if (premiumDiscount.currentZone === 'premium' || premiumDiscount.currentZone === 'discount') {
+    if (
+      premiumDiscount.currentZone === 'premium' ||
+      premiumDiscount.currentZone === 'discount'
+    ) {
       score += 15;
     }
     if (premiumDiscount.tradingBias !== 'wait_for_zone') score += 5;
@@ -259,44 +282,58 @@ export class ICTAIAgentService {
     obs: any,
     liquidity: any,
     powerOfThree: any,
-    currentPrice: number
+    currentPrice: number,
   ): string[] {
     const narrative: string[] = [];
 
-    narrative.push(`╔═══════════════════════════════════════════════════════════╗`);
-    narrative.push(`║          ICT AI AGENT - THE INSTITUTIONAL STORY           ║`);
-    narrative.push(`╚═══════════════════════════════════════════════════════════╝`);
+    narrative.push(
+      `╔═══════════════════════════════════════════════════════════╗`,
+    );
+    narrative.push(
+      `║          ICT AI AGENT - THE INSTITUTIONAL STORY           ║`,
+    );
+    narrative.push(
+      `╚═══════════════════════════════════════════════════════════╝`,
+    );
 
     // Power of Three context
     narrative.push(`\n📖 THE ICT NARRATIVE:`);
-    narrative.push(`\n1️⃣ POWER OF THREE - ${powerOfThree.currentPhase.toUpperCase()} PHASE`);
+    narrative.push(
+      `\n1️⃣ POWER OF THREE - ${powerOfThree.currentPhase.toUpperCase()} PHASE`,
+    );
     narrative.push(`   ${powerOfThree.phaseDescription}`);
 
     // Market Structure
-    narrative.push(`\n2️⃣ MARKET STRUCTURE - ${structure.trend.toUpperCase()} TREND`);
+    narrative.push(
+      `\n2️⃣ MARKET STRUCTURE - ${structure.trend.toUpperCase()} TREND`,
+    );
     if (structure.structureType) {
       narrative.push(
-        `   Last Structure Shift: ${structure.lastStructureShift?.description || 'None'}`
+        `   Last Structure Shift: ${structure.lastStructureShift?.description || 'None'}`,
       );
     }
     narrative.push(`   Trading Bias: ${structure.tradingBias.toUpperCase()}`);
 
     // Premium/Discount
-    narrative.push(`\n3️⃣ PREMIUM/DISCOUNT - ${premiumDiscount.currentZone.toUpperCase()} ZONE`);
+    narrative.push(
+      `\n3️⃣ PREMIUM/DISCOUNT - ${premiumDiscount.currentZone.toUpperCase()} ZONE`,
+    );
     narrative.push(`   Current Price: ${safeToFixed(currentPrice, 2)}`);
-    narrative.push(`   Equilibrium: ${safeToFixed(premiumDiscount.equilibrium, 2)}`);
+    narrative.push(
+      `   Equilibrium: ${safeToFixed(premiumDiscount.equilibrium, 2)}`,
+    );
     narrative.push(`   Position: ${premiumDiscount.currentPosition}`);
 
     // Liquidity
     narrative.push(`\n4️⃣ LIQUIDITY POOLS:`);
     if (liquidity.nearestLiquidity.above) {
       narrative.push(
-        `   Buy-side Target: ${safeToFixed(liquidity.nearestLiquidity.above.price, 2)}`
+        `   Buy-side Target: ${safeToFixed(liquidity.nearestLiquidity.above.price, 2)}`,
       );
     }
     if (liquidity.nearestLiquidity.below) {
       narrative.push(
-        `   Sell-side Target: ${safeToFixed(liquidity.nearestLiquidity.below.price, 2)}`
+        `   Sell-side Target: ${safeToFixed(liquidity.nearestLiquidity.below.price, 2)}`,
       );
     }
 
@@ -304,12 +341,12 @@ export class ICTAIAgentService {
     narrative.push(`\n5️⃣ PREMIUM ENTRY ZONES:`);
     if (fvgs.nearestFVG) {
       narrative.push(
-        `   FVG: ${fvgs.nearestFVG.type} at ${safeToFixed(fvgs.nearestFVG.low, 2)} - ${safeToFixed(fvgs.nearestFVG.high, 2)}`
+        `   FVG: ${fvgs.nearestFVG.type} at ${safeToFixed(fvgs.nearestFVG.low, 2)} - ${safeToFixed(fvgs.nearestFVG.high, 2)}`,
       );
     }
     if (obs.nearestOrderBlock) {
       narrative.push(
-        `   Order Block: ${obs.nearestOrderBlock.type} at ${safeToFixed(obs.nearestOrderBlock.low, 2)} - ${safeToFixed(obs.nearestOrderBlock.high, 2)}`
+        `   Order Block: ${obs.nearestOrderBlock.type} at ${safeToFixed(obs.nearestOrderBlock.low, 2)} - ${safeToFixed(obs.nearestOrderBlock.high, 2)}`,
       );
     }
 
@@ -331,8 +368,11 @@ export class ICTAIAgentService {
     liquidity: any,
     killZone: any,
     powerOfThree: any,
-    ictScore: number
-  ): { signal: 'strong_buy' | 'buy' | 'neutral' | 'sell' | 'strong_sell'; confidence: number } {
+    ictScore: number,
+  ): {
+    signal: 'strong_buy' | 'buy' | 'neutral' | 'sell' | 'strong_sell';
+    confidence: number;
+  } {
     let bullishPoints = 0;
     let bearishPoints = 0;
 
@@ -397,7 +437,7 @@ export class ICTAIAgentService {
     premiumDiscount: any,
     fvgs: any,
     obs: any,
-    powerOfThree: any
+    powerOfThree: any,
   ): string {
     // Power of Three drives the setup
     if (powerOfThree.currentPhase === 'manipulation') {
@@ -409,11 +449,17 @@ export class ICTAIAgentService {
     }
 
     // Premium/Discount setups
-    if (premiumDiscount.currentZone === 'discount' && structure.trend === 'bullish') {
+    if (
+      premiumDiscount.currentZone === 'discount' &&
+      structure.trend === 'bullish'
+    ) {
       return `DISCOUNT ZONE LONG - Buy at ${obs.nearestOrderBlock?.type === 'bullish' ? 'Bullish OB' : fvgs.nearestFVG?.type === 'bullish' ? 'Bullish FVG' : 'discount level'}`;
     }
 
-    if (premiumDiscount.currentZone === 'premium' && structure.trend === 'bearish') {
+    if (
+      premiumDiscount.currentZone === 'premium' &&
+      structure.trend === 'bearish'
+    ) {
       return `PREMIUM ZONE SHORT - Sell at ${obs.nearestOrderBlock?.type === 'bearish' ? 'Bearish OB' : fvgs.nearestFVG?.type === 'bearish' ? 'Bearish FVG' : 'premium level'}`;
     }
 
@@ -428,13 +474,16 @@ export class ICTAIAgentService {
     fvgs: any,
     obs: any,
     signal: string,
-    currentPrice: number
+    currentPrice: number,
   ): any {
     // Priority: Order Block > FVG > Premium/Discount level
     const isBullish = signal.includes('buy');
 
     // Order Block entry
-    if (obs.nearestOrderBlock && obs.nearestOrderBlock.type === (isBullish ? 'bullish' : 'bearish')) {
+    if (
+      obs.nearestOrderBlock &&
+      obs.nearestOrderBlock.type === (isBullish ? 'bullish' : 'bearish')
+    ) {
       return {
         type: 'OrderBlock',
         price: (obs.nearestOrderBlock.high + obs.nearestOrderBlock.low) / 2,
@@ -447,7 +496,10 @@ export class ICTAIAgentService {
     }
 
     // FVG entry
-    if (fvgs.nearestFVG && fvgs.nearestFVG.type === (isBullish ? 'bullish' : 'bearish')) {
+    if (
+      fvgs.nearestFVG &&
+      fvgs.nearestFVG.type === (isBullish ? 'bullish' : 'bearish')
+    ) {
       return {
         type: 'FVG',
         price: (fvgs.nearestFVG.high + fvgs.nearestFVG.low) / 2,
@@ -463,7 +515,10 @@ export class ICTAIAgentService {
     if (isBullish && premiumDiscount.optimalTradeEntry.bullishOTE) {
       return {
         type: 'PremiumDiscount',
-        price: (premiumDiscount.optimalTradeEntry.bullishOTE.high + premiumDiscount.optimalTradeEntry.bullishOTE.low) / 2,
+        price:
+          (premiumDiscount.optimalTradeEntry.bullishOTE.high +
+            premiumDiscount.optimalTradeEntry.bullishOTE.low) /
+          2,
         range: premiumDiscount.optimalTradeEntry.bullishOTE,
         description: `Bullish OTE (Optimal Trade Entry) at ${safeToFixed(premiumDiscount.optimalTradeEntry.bullishOTE.low, 2)} - ${safeToFixed(premiumDiscount.optimalTradeEntry.bullishOTE.high, 2)}`,
       };
@@ -472,7 +527,10 @@ export class ICTAIAgentService {
     if (!isBullish && premiumDiscount.optimalTradeEntry.bearishOTE) {
       return {
         type: 'PremiumDiscount',
-        price: (premiumDiscount.optimalTradeEntry.bearishOTE.high + premiumDiscount.optimalTradeEntry.bearishOTE.low) / 2,
+        price:
+          (premiumDiscount.optimalTradeEntry.bearishOTE.high +
+            premiumDiscount.optimalTradeEntry.bearishOTE.low) /
+          2,
         range: premiumDiscount.optimalTradeEntry.bearishOTE,
         description: `Bearish OTE (Optimal Trade Entry) at ${safeToFixed(premiumDiscount.optimalTradeEntry.bearishOTE.low, 2)} - ${safeToFixed(premiumDiscount.optimalTradeEntry.bearishOTE.high, 2)}`,
       };
@@ -484,7 +542,12 @@ export class ICTAIAgentService {
   /**
    * Calculate stop loss
    */
-  private calculateStopLoss(entryZone: any, obs: any, fvgs: any, signal: string): any {
+  private calculateStopLoss(
+    entryZone: any,
+    obs: any,
+    fvgs: any,
+    signal: string,
+  ): any {
     if (!entryZone) {
       return { price: 0, reasoning: 'No entry zone identified' };
     }
@@ -510,7 +573,7 @@ export class ICTAIAgentService {
     entryZone: any,
     premiumDiscount: any,
     liquidity: any,
-    signal: string
+    signal: string,
   ): any[] {
     if (!entryZone) return [];
 
@@ -547,7 +610,11 @@ export class ICTAIAgentService {
   /**
    * Calculate risk/reward
    */
-  private calculateRiskReward(entryZone: any, stopLoss: any, takeProfit: any[]): number {
+  private calculateRiskReward(
+    entryZone: any,
+    stopLoss: any,
+    takeProfit: any[],
+  ): number {
     if (!entryZone || !stopLoss.price || takeProfit.length === 0) return 0;
 
     const risk = Math.abs(entryZone.price - stopLoss.price);
@@ -566,7 +633,7 @@ export class ICTAIAgentService {
     confidence: number,
     structure: any,
     premiumDiscount: any,
-    powerOfThree: any
+    powerOfThree: any,
   ): string[] {
     const reasoning: string[] = [];
 
@@ -576,7 +643,9 @@ export class ICTAIAgentService {
     reasoning.push(`\n📍 Primary Setup: ${setup}`);
 
     reasoning.push(`\n🔍 ICT Concept Alignment:`);
-    reasoning.push(`   • Market Structure: ${structure.trend} (${structure.tradingBias})`);
+    reasoning.push(
+      `   • Market Structure: ${structure.trend} (${structure.tradingBias})`,
+    );
     reasoning.push(`   • Premium/Discount: ${premiumDiscount.currentZone}`);
     reasoning.push(`   • Power of Three: ${powerOfThree.currentPhase}`);
 
@@ -591,4 +660,3 @@ export class ICTAIAgentService {
     return reasoning;
   }
 }
-

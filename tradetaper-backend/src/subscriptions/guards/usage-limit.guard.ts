@@ -10,8 +10,9 @@ import { SubscriptionService } from '../services/subscription.service';
 
 export const USAGE_FEATURE_KEY = 'usageFeature';
 
-export const UsageFeature = (feature: 'trades' | 'accounts' | 'mt5Accounts' | 'notes' | 'strategies') =>
-  SetMetadata(USAGE_FEATURE_KEY, feature);
+export const UsageFeature = (
+  feature: 'trades' | 'accounts' | 'mt5Accounts' | 'notes' | 'strategies',
+) => SetMetadata(USAGE_FEATURE_KEY, feature);
 
 @Injectable()
 export class UsageLimitGuard implements CanActivate {
@@ -21,10 +22,9 @@ export class UsageLimitGuard implements CanActivate {
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const feature = this.reflector.getAllAndOverride<'trades' | 'accounts' | 'mt5Accounts' | 'notes' | 'strategies'>(
-      USAGE_FEATURE_KEY,
-      [context.getHandler(), context.getClass()],
-    );
+    const feature = this.reflector.getAllAndOverride<
+      'trades' | 'accounts' | 'mt5Accounts' | 'notes' | 'strategies'
+    >(USAGE_FEATURE_KEY, [context.getHandler(), context.getClass()]);
 
     if (!feature) {
       return true; // No usage limit specified

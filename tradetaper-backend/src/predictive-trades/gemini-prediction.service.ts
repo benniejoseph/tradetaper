@@ -48,7 +48,9 @@ export class GeminiPredictionService {
       const cached = await this.cacheManager.get<PredictionResponse>(cacheKey);
       if (cached) {
         this.cacheHits++;
-        this.logger.debug(`Cache HIT for ${tradeSetup.instrument} (${this.getCacheStats()})`);
+        this.logger.debug(
+          `Cache HIT for ${tradeSetup.instrument} (${this.getCacheStats()})`,
+        );
         return cached;
       }
     }
@@ -95,7 +97,9 @@ export class GeminiPredictionService {
     if (setups.length === 0) return [];
     if (setups.length === 1) {
       const pred = await this.generatePrediction(setups[0]);
-      return [{ symbol: setups[0].instrument, prediction: pred, fromCache: false }];
+      return [
+        { symbol: setups[0].instrument, prediction: pred, fromCache: false },
+      ];
     }
 
     this.batchCalls++;
@@ -110,10 +114,15 @@ export class GeminiPredictionService {
       const cacheKey = this.generateCacheKey(setup);
 
       if (this.cacheManager) {
-        const cached = await this.cacheManager.get<PredictionResponse>(cacheKey);
+        const cached =
+          await this.cacheManager.get<PredictionResponse>(cacheKey);
         if (cached) {
           this.cacheHits++;
-          results[i] = { symbol: setup.instrument, prediction: cached, fromCache: true };
+          results[i] = {
+            symbol: setup.instrument,
+            prediction: cached,
+            fromCache: true,
+          };
           continue;
         }
       }
@@ -128,7 +137,7 @@ export class GeminiPredictionService {
     }
 
     // Generate batch prompt for uncached items
-    const batchPrompt = this.createBatchPrompt(uncached.map(u => u.setup));
+    const batchPrompt = this.createBatchPrompt(uncached.map((u) => u.setup));
 
     try {
       const result = await this.model.generateContent(batchPrompt);
@@ -151,21 +160,29 @@ export class GeminiPredictionService {
             fromCache: false,
           };
           if (this.cacheManager) {
-            await this.cacheManager.set(this.generateCacheKey(uncached[0].setup), parsed, 900000);
+            await this.cacheManager.set(
+              this.generateCacheKey(uncached[0].setup),
+              parsed,
+              900000,
+            );
           }
           return results;
         }
         throw new Error('Could not parse batch response');
       }
 
-      const parsed = JSON.parse(match[0]) as Array<PredictionResponse & { symbol?: string }>;
+      const parsed = JSON.parse(match[0]) as Array<
+        PredictionResponse & { symbol?: string }
+      >;
 
       // Map predictions back to results
       for (let i = 0; i < uncached.length; i++) {
         const { setup, index } = uncached[i];
-        const pred = parsed[i] || parsed.find(p => 
-          p.symbol?.toLowerCase() === setup.instrument.toLowerCase()
-        );
+        const pred =
+          parsed[i] ||
+          parsed.find(
+            (p) => p.symbol?.toLowerCase() === setup.instrument.toLowerCase(),
+          );
 
         if (pred) {
           results[index] = {
@@ -181,7 +198,11 @@ export class GeminiPredictionService {
 
           // Cache individual results
           if (this.cacheManager) {
-            await this.cacheManager.set(this.generateCacheKey(setup), results[index].prediction, 900000);
+            await this.cacheManager.set(
+              this.generateCacheKey(setup),
+              results[index].prediction,
+              900000,
+            );
           }
         } else {
           results[index] = {
@@ -197,7 +218,7 @@ export class GeminiPredictionService {
       return results;
     } catch (error) {
       this.logger.error(`Batch prediction failed: ${error.message}`);
-      
+
       // Fill remaining with errors
       for (const { setup, index } of uncached) {
         if (!results[index]) {
@@ -225,7 +246,13 @@ export class GeminiPredictionService {
     return `hits=${this.cacheHits}, misses=${this.cacheMisses}, rate=${rate}%`;
   }
 
-  getCacheMetrics(): { hits: number; misses: number; rate: number; batchCalls: number; singleCalls: number } {
+  getCacheMetrics(): {
+    hits: number;
+    misses: number;
+    rate: number;
+    batchCalls: number;
+    singleCalls: number;
+  } {
     const total = this.cacheHits + this.cacheMisses;
     return {
       hits: this.cacheHits,
@@ -247,9 +274,12 @@ JSON only: {"probabilityOfProfit": 0-1, "expectedPnL": {"min": N, "max": N}, "pr
   }
 
   private createBatchPrompt(setups: CreatePredictionDto[]): string {
-    const setupsText = setups.map((s, i) => 
-      `${i + 1}. ${s.instrument} ${s.direction} Entry:${s.entryPrice} SL:${s.stopLoss} TP:${s.takeProfit}`
-    ).join('\n');
+    const setupsText = setups
+      .map(
+        (s, i) =>
+          `${i + 1}. ${s.instrument} ${s.direction} Entry:${s.entryPrice} SL:${s.stopLoss} TP:${s.takeProfit}`,
+      )
+      .join('\n');
 
     return `Predict outcomes for these ${setups.length} trades:
 ${setupsText}
@@ -258,5 +288,3 @@ Return JSON array with one object per trade:
 [{"symbol":"X","probabilityOfProfit":0-1,"expectedPnL":{"min":N,"max":N},"predictedOutcome":"win|loss|neutral","confidence":0-1}]`;
   }
 }
-
- 

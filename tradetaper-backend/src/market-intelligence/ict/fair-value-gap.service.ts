@@ -41,9 +41,11 @@ export class FairValueGapService {
   identifyFairValueGaps(
     symbol: string,
     priceData: any[],
-    timeframe: string = '1D'
+    timeframe: string = '1D',
   ): FVGAnalysis {
-    this.logger.log(`Identifying ICT Fair Value Gaps for ${symbol} on ${timeframe}`);
+    this.logger.log(
+      `Identifying ICT Fair Value Gaps for ${symbol} on ${timeframe}`,
+    );
 
     const bullishFVGs: FairValueGap[] = [];
     const bearishFVGs: FairValueGap[] = [];
@@ -100,7 +102,7 @@ export class FairValueGapService {
 
     // Find unfilled FVGs (prime trading opportunities)
     const unfilledFVGs = [...bullishFVGs, ...bearishFVGs].filter(
-      (fvg) => !fvg.filled && fvg.fillPercentage < 50
+      (fvg) => !fvg.filled && fvg.fillPercentage < 50,
     );
 
     // Find nearest FVG to current price
@@ -113,14 +115,14 @@ export class FairValueGapService {
       bearishFVGs,
       unfilledFVGs,
       nearestFVG,
-      currentPrice
+      currentPrice,
     );
 
     // Generate trading opportunities
     const tradingOpportunities = this.generateTradingOpportunities(
       unfilledFVGs,
       nearestFVG,
-      currentPrice
+      currentPrice,
     );
 
     return {
@@ -143,7 +145,7 @@ export class FairValueGapService {
   private calculateFVGStrength(
     candle1: any,
     candle2: any,
-    candle3: any
+    candle3: any,
   ): 'strong' | 'moderate' | 'weak' {
     // Strong FVG characteristics:
     // 1. Large middle candle (strong momentum)
@@ -160,7 +162,8 @@ export class FairValueGapService {
         : candle1.low - candle3.high;
 
     const avgCandleSize =
-      ((candle1.high - candle1.low) +
+      (candle1.high -
+        candle1.low +
         (candle2.high - candle2.low) +
         (candle3.high - candle3.low)) /
       3;
@@ -183,7 +186,11 @@ export class FairValueGapService {
   /**
    * Check if FVG has been filled by subsequent price action
    */
-  private checkFVGFill(fvg: FairValueGap, priceData: any[], startIndex: number): void {
+  private checkFVGFill(
+    fvg: FairValueGap,
+    priceData: any[],
+    startIndex: number,
+  ): void {
     for (let i = startIndex; i < priceData.length; i++) {
       const candle = priceData[i];
 
@@ -222,7 +229,7 @@ export class FairValueGapService {
    */
   private findNearestFVG(
     unfilledFVGs: FairValueGap[],
-    currentPrice: number
+    currentPrice: number,
   ): FairValueGap | null {
     if (unfilledFVGs.length === 0) return null;
 
@@ -250,37 +257,47 @@ export class FairValueGapService {
     bearishFVGs: FairValueGap[],
     unfilledFVGs: FairValueGap[],
     nearestFVG: FairValueGap | null,
-    currentPrice: number
+    currentPrice: number,
   ): string[] {
     const analysis: string[] = [];
 
     analysis.push(`📊 ICT Fair Value Gap (FVG) Analysis`);
-    analysis.push(`Total FVGs Identified: ${bullishFVGs.length + bearishFVGs.length}`);
+    analysis.push(
+      `Total FVGs Identified: ${bullishFVGs.length + bearishFVGs.length}`,
+    );
     analysis.push(`   • Bullish FVGs: ${bullishFVGs.length}`);
     analysis.push(`   • Bearish FVGs: ${bearishFVGs.length}`);
     analysis.push(`   • Unfilled FVGs: ${unfilledFVGs.length} ⭐`);
 
     if (nearestFVG) {
-      const distance = Math.abs(currentPrice - (nearestFVG.high + nearestFVG.low) / 2);
+      const distance = Math.abs(
+        currentPrice - (nearestFVG.high + nearestFVG.low) / 2,
+      );
       const distancePercent = (distance / currentPrice) * 100;
 
       analysis.push(`\n🎯 Nearest Unfilled FVG:`);
       analysis.push(`   Type: ${nearestFVG.type.toUpperCase()}`);
       analysis.push(
-        `   Range: ${safeToFixed(nearestFVG.low, 2)} - ${safeToFixed(nearestFVG.high, 2)}`
+        `   Range: ${safeToFixed(nearestFVG.low, 2)} - ${safeToFixed(nearestFVG.high, 2)}`,
       );
       analysis.push(`   Size: ${safeToFixed(nearestFVG.size, 4)}`);
       analysis.push(`   Strength: ${nearestFVG.strength.toUpperCase()}`);
-      analysis.push(`   Distance: ${safeToFixed(distancePercent, 2)}% from current price`);
       analysis.push(
-        `   Fill Status: ${safeToFixed(nearestFVG.fillPercentage, 1)}% filled`
+        `   Distance: ${safeToFixed(distancePercent, 2)}% from current price`,
+      );
+      analysis.push(
+        `   Fill Status: ${safeToFixed(nearestFVG.fillPercentage, 1)}% filled`,
       );
     }
 
     // Strong unfilled FVGs
-    const strongUnfilledFVGs = unfilledFVGs.filter((fvg) => fvg.strength === 'strong');
+    const strongUnfilledFVGs = unfilledFVGs.filter(
+      (fvg) => fvg.strength === 'strong',
+    );
     if (strongUnfilledFVGs.length > 0) {
-      analysis.push(`\n⚡ ${strongUnfilledFVGs.length} STRONG unfilled FVGs detected`);
+      analysis.push(
+        `\n⚡ ${strongUnfilledFVGs.length} STRONG unfilled FVGs detected`,
+      );
       analysis.push(`   These are HIGH-PROBABILITY retracement targets`);
     }
 
@@ -293,7 +310,7 @@ export class FairValueGapService {
   private generateTradingOpportunities(
     unfilledFVGs: FairValueGap[],
     nearestFVG: FairValueGap | null,
-    currentPrice: number
+    currentPrice: number,
   ): string[] {
     const opportunities: string[] = [];
 
@@ -309,17 +326,19 @@ export class FairValueGapService {
         // Price above bullish FVG - expect pullback
         opportunities.push(`📉 RETRACEMENT OPPORTUNITY:`);
         opportunities.push(
-          `   • Bullish FVG below at ${safeToFixed(nearestFVG.low, 2)} - ${safeToFixed(nearestFVG.high, 2)}`
+          `   • Bullish FVG below at ${safeToFixed(nearestFVG.low, 2)} - ${safeToFixed(nearestFVG.high, 2)}`,
         );
         opportunities.push(`   • Expect price to retrace into FVG`);
         opportunities.push(
-          `   • Strategy: Wait for price to enter FVG (${safeToFixed(nearestFVG.low, 2)})`
+          `   • Strategy: Wait for price to enter FVG (${safeToFixed(nearestFVG.low, 2)})`,
         );
-        opportunities.push(`   • Entry: FVG midpoint ~${safeToFixed(fvgMidpoint, 2)}`);
-        opportunities.push(`   • Stop Loss: Below FVG at ${safeToFixed(nearestFVG.low * 0.999, 2)}`);
         opportunities.push(
-          `   • Target: Recent high or next resistance level`
+          `   • Entry: FVG midpoint ~${safeToFixed(fvgMidpoint, 2)}`,
         );
+        opportunities.push(
+          `   • Stop Loss: Below FVG at ${safeToFixed(nearestFVG.low * 0.999, 2)}`,
+        );
+        opportunities.push(`   • Target: Recent high or next resistance level`);
 
         if (nearestFVG.strength === 'strong') {
           opportunities.push(`   ⭐ STRONG FVG - High probability setup`);
@@ -330,12 +349,16 @@ export class FairValueGapService {
       ) {
         // Price currently in bullish FVG
         opportunities.push(`🎯 PRICE IN BULLISH FVG - ENTRY ZONE!`);
-        opportunities.push(`   • Current price: ${safeToFixed(currentPrice, 2)}`);
         opportunities.push(
-          `   • FVG range: ${safeToFixed(nearestFVG.low, 2)} - ${safeToFixed(nearestFVG.high, 2)}`
+          `   • Current price: ${safeToFixed(currentPrice, 2)}`,
+        );
+        opportunities.push(
+          `   • FVG range: ${safeToFixed(nearestFVG.low, 2)} - ${safeToFixed(nearestFVG.high, 2)}`,
         );
         opportunities.push(`   • Action: Consider LONG entry`);
-        opportunities.push(`   • Stop Loss: Below FVG at ${safeToFixed(nearestFVG.low * 0.999, 2)}`);
+        opportunities.push(
+          `   • Stop Loss: Below FVG at ${safeToFixed(nearestFVG.low * 0.999, 2)}`,
+        );
         opportunities.push(`   • Target: Recent swing high`);
       }
     } else {
@@ -344,14 +367,18 @@ export class FairValueGapService {
         // Price below bearish FVG - expect rally
         opportunities.push(`📈 RETRACEMENT OPPORTUNITY:`);
         opportunities.push(
-          `   • Bearish FVG above at ${safeToFixed(nearestFVG.low, 2)} - ${safeToFixed(nearestFVG.high, 2)}`
+          `   • Bearish FVG above at ${safeToFixed(nearestFVG.low, 2)} - ${safeToFixed(nearestFVG.high, 2)}`,
         );
         opportunities.push(`   • Expect price to retrace into FVG`);
         opportunities.push(
-          `   • Strategy: Wait for price to enter FVG (${safeToFixed(nearestFVG.high, 2)})`
+          `   • Strategy: Wait for price to enter FVG (${safeToFixed(nearestFVG.high, 2)})`,
         );
-        opportunities.push(`   • Entry: FVG midpoint ~${safeToFixed(fvgMidpoint, 2)}`);
-        opportunities.push(`   • Stop Loss: Above FVG at ${safeToFixed(nearestFVG.high * 1.001, 2)}`);
+        opportunities.push(
+          `   • Entry: FVG midpoint ~${safeToFixed(fvgMidpoint, 2)}`,
+        );
+        opportunities.push(
+          `   • Stop Loss: Above FVG at ${safeToFixed(nearestFVG.high * 1.001, 2)}`,
+        );
         opportunities.push(`   • Target: Recent low or next support level`);
 
         if (nearestFVG.strength === 'strong') {
@@ -363,12 +390,16 @@ export class FairValueGapService {
       ) {
         // Price currently in bearish FVG
         opportunities.push(`🎯 PRICE IN BEARISH FVG - ENTRY ZONE!`);
-        opportunities.push(`   • Current price: ${safeToFixed(currentPrice, 2)}`);
         opportunities.push(
-          `   • FVG range: ${safeToFixed(nearestFVG.low, 2)} - ${safeToFixed(nearestFVG.high, 2)}`
+          `   • Current price: ${safeToFixed(currentPrice, 2)}`,
+        );
+        opportunities.push(
+          `   • FVG range: ${safeToFixed(nearestFVG.low, 2)} - ${safeToFixed(nearestFVG.high, 2)}`,
         );
         opportunities.push(`   • Action: Consider SHORT entry`);
-        opportunities.push(`   • Stop Loss: Above FVG at ${safeToFixed(nearestFVG.high * 1.001, 2)}`);
+        opportunities.push(
+          `   • Stop Loss: Above FVG at ${safeToFixed(nearestFVG.high * 1.001, 2)}`,
+        );
         opportunities.push(`   • Target: Recent swing low`);
       }
     }
@@ -382,11 +413,10 @@ export class FairValueGapService {
 
     if (nearbyFVGs.length > 0) {
       opportunities.push(
-        `\n📍 ${nearbyFVGs.length} additional FVGs within 5% of current price`
+        `\n📍 ${nearbyFVGs.length} additional FVGs within 5% of current price`,
       );
     }
 
     return opportunities;
   }
 }
-

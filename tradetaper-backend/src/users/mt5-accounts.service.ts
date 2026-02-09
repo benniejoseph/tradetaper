@@ -1,5 +1,10 @@
 // src/users/mt5-accounts.service.ts
-import { Injectable, Logger, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  NotFoundException,
+  UnprocessableEntityException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { MT5Account } from './entities/mt5-account.entity';
@@ -96,7 +101,9 @@ export class MT5AccountsService {
       accountName: createDto.accountName,
       server: this.encrypt(createDto.server),
       login: this.encrypt(createDto.login.toString()),
-      password: createDto.password ? this.encrypt(createDto.password) : 'encrypted-placeholder',
+      password: createDto.password
+        ? this.encrypt(createDto.password)
+        : 'encrypted-placeholder',
       userId: userId,
       accountType: createDto.isRealAccount ? 'real' : 'demo',
       currency: createDto.currency || 'USD',
@@ -115,7 +122,7 @@ export class MT5AccountsService {
 
     const savedAccount = await this.mt5AccountRepository.save(mt5Account);
     this.logger.log(`MT5 account ${savedAccount.id} created successfully`);
-    
+
     return this.mapToResponseDto(savedAccount);
   }
 
@@ -123,7 +130,9 @@ export class MT5AccountsService {
    * Create a manual MT5 account (for file upload workflow)
    */
   async createManual(manualAccountData: any): Promise<any> {
-    this.logger.log(`Creating manual MT5 account for user ${manualAccountData.userId}`);
+    this.logger.log(
+      `Creating manual MT5 account for user ${manualAccountData.userId}`,
+    );
 
     const mt5Account = this.mt5AccountRepository.create({
       accountName: manualAccountData.accountName,
@@ -183,7 +192,9 @@ export class MT5AccountsService {
         const responseDto = this.mapToResponseDto(account);
         validAccounts.push(responseDto);
       } catch (error) {
-        this.logger.warn(`Account ${account.id} has encryption issue, returning with masked data: ${error.message}`);
+        this.logger.warn(
+          `Account ${account.id} has encryption issue, returning with masked data: ${error.message}`,
+        );
         // Instead of deleting, return with placeholder data
         validAccounts.push({
           id: account.id,
@@ -255,7 +266,9 @@ export class MT5AccountsService {
 
     await this.mt5AccountRepository.update(id, updatedData);
 
-    const updatedAccount = await this.mt5AccountRepository.findOne({ where: { id } });
+    const updatedAccount = await this.mt5AccountRepository.findOne({
+      where: { id },
+    });
     if (!updatedAccount) {
       throw new NotFoundException(`MT5 account with id ${id} not found`);
     }
@@ -290,7 +303,8 @@ export class MT5AccountsService {
    * Map entity to response DTO (handles decryption)
    */
   private mapToResponseDto(account: MT5Account): MT5AccountResponseDto {
-    const isManual = account.metadata?.isManual || account.connectionStatus === 'manual';
+    const isManual =
+      account.metadata?.isManual || account.connectionStatus === 'manual';
     const { password, login, server, ...rest } = account;
 
     return {
@@ -310,7 +324,9 @@ export class MT5AccountsService {
     }
 
     // TODO: Implement FTP-based sync
-    this.logger.log(`Sync requested for account ${id} - FTP sync not yet implemented`);
+    this.logger.log(
+      `Sync requested for account ${id} - FTP sync not yet implemented`,
+    );
     throw new UnprocessableEntityException(
       'Auto-sync via FTP is coming soon. Please use manual file upload for now.',
     );

@@ -4,7 +4,7 @@ import { ParsedTrade } from '../dto/upload-statement.dto';
 
 /**
  * Parser for MT4 HTML Statement files
- * 
+ *
  * MT4 exports trade history as HTML with a table structure.
  * Key columns: Ticket, Open Time, Type, Size, Item, Price, S/L, T/P, Close Time, Price, Commission, Swap, Profit
  */
@@ -22,7 +22,7 @@ export class MT4HtmlParser {
     try {
       // Find the "Closed Transactions" section
       const closedTransactionsMatch = htmlContent.match(
-        /Closed\s+Transactions[\s\S]*?<table[^>]*>([\s\S]*?)<\/table>/i
+        /Closed\s+Transactions[\s\S]*?<table[^>]*>([\s\S]*?)<\/table>/i,
       );
 
       if (!closedTransactionsMatch) {
@@ -31,15 +31,15 @@ export class MT4HtmlParser {
       }
 
       const tableContent = closedTransactionsMatch[1];
-      
+
       // Parse rows
       const rowMatches = tableContent.matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/gi);
-      
+
       let isHeaderSkipped = false;
-      
+
       for (const rowMatch of rowMatches) {
         const rowContent = rowMatch[1];
-        
+
         // Skip header row
         if (rowContent.includes('<th') || rowContent.includes('Ticket')) {
           isHeaderSkipped = true;
@@ -49,16 +49,18 @@ export class MT4HtmlParser {
         if (!isHeaderSkipped) continue;
 
         // Skip summary rows (balance, credit, etc.)
-        if (rowContent.toLowerCase().includes('balance') || 
-            rowContent.toLowerCase().includes('credit') ||
-            rowContent.toLowerCase().includes('closed p/l')) {
+        if (
+          rowContent.toLowerCase().includes('balance') ||
+          rowContent.toLowerCase().includes('credit') ||
+          rowContent.toLowerCase().includes('closed p/l')
+        ) {
           continue;
         }
 
         // Extract cells
         const cellMatches = rowContent.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi);
         const cells: string[] = [];
-        
+
         for (const cellMatch of cellMatches) {
           // Strip HTML tags and trim
           const cellValue = cellMatch[1]
@@ -72,7 +74,7 @@ export class MT4HtmlParser {
         if (cells.length < 10) continue;
 
         // Parse based on typical MT4 statement structure
-        // [0] Ticket, [1] Open Time, [2] Type, [3] Size, [4] Item/Symbol, 
+        // [0] Ticket, [1] Open Time, [2] Type, [3] Size, [4] Item/Symbol,
         // [5] Open Price, [6] S/L, [7] T/P, [8] Close Time, [9] Close Price,
         // [10] Commission, [11] Taxes, [12] Swap, [13] Profit
 
@@ -84,12 +86,12 @@ export class MT4HtmlParser {
         const openPrice = parseFloat(cells[5]) || 0;
         const closeTimeStr = cells[8];
         const closePrice = parseFloat(cells[9]) || 0;
-        
+
         // Commission, Swap, Profit positions may vary
         let commission = 0;
         let swap = 0;
         let profit = 0;
-        
+
         if (cells.length >= 14) {
           commission = parseFloat(cells[10]) || 0;
           swap = parseFloat(cells[12]) || 0;
@@ -101,7 +103,10 @@ export class MT4HtmlParser {
         }
 
         // Skip non-trade entries (deposits, withdrawals, etc.)
-        if (!tradeType || (!tradeType.includes('buy') && !tradeType.includes('sell'))) {
+        if (
+          !tradeType ||
+          (!tradeType.includes('buy') && !tradeType.includes('sell'))
+        ) {
           continue;
         }
 
@@ -113,7 +118,9 @@ export class MT4HtmlParser {
           symbol: this.normalizeSymbol(symbol),
           side: tradeType.includes('buy') ? 'BUY' : 'SELL',
           openTime: this.parseDateTime(openTimeStr),
-          closeTime: closeTimeStr ? this.parseDateTime(closeTimeStr) : undefined,
+          closeTime: closeTimeStr
+            ? this.parseDateTime(closeTimeStr)
+            : undefined,
           openPrice,
           closePrice: closePrice || undefined,
           quantity: size,
@@ -150,14 +157,16 @@ export class MT4HtmlParser {
    */
   private parseDateTime(dateStr: string): Date {
     if (!dateStr) return new Date();
-    
+
     // Handle format: 2024.01.15 14:30:00
     const cleaned = dateStr.replace(/\./g, '-').trim();
     const parsed = new Date(cleaned);
-    
+
     if (isNaN(parsed.getTime())) {
       // Try alternative parsing
-      const parts = dateStr.match(/(\d{4})\.(\d{2})\.(\d{2})\s+(\d{2}):(\d{2})(?::(\d{2}))?/);
+      const parts = dateStr.match(
+        /(\d{4})\.(\d{2})\.(\d{2})\s+(\d{2}):(\d{2})(?::(\d{2}))?/,
+      );
       if (parts) {
         return new Date(
           parseInt(parts[1]),
@@ -165,11 +174,11 @@ export class MT4HtmlParser {
           parseInt(parts[3]),
           parseInt(parts[4]),
           parseInt(parts[5]),
-          parseInt(parts[6] || '0')
+          parseInt(parts[6] || '0'),
         );
       }
     }
-    
+
     return parsed;
   }
 

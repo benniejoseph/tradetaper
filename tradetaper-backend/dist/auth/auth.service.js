@@ -92,7 +92,8 @@ let AuthService = AuthService_1 = class AuthService {
             catch (subError) {
                 this.logger.error(`Failed to fetch subscription for Google user ${user.id}: ${subError.message}`);
             }
-            if (user.email === 'tradetaper@gmail.com' && userResponse.subscription?.plan !== 'premium') {
+            if (user.email === 'tradetaper@gmail.com' &&
+                userResponse.subscription?.plan !== 'premium') {
                 try {
                     const updatedSub = await this.subscriptionService.forceUpdateSubscriptionPlan(user.id, 'premium');
                     const updatedPlan = await this.subscriptionService.getPricingPlan('premium');
@@ -160,7 +161,8 @@ let AuthService = AuthService_1 = class AuthService {
             catch (subError) {
                 this.logger.error(`Failed to fetch subscription for user ${user.id}: ${subError.message}`);
             }
-            if (user.email === 'tradetaper@gmail.com' && userResponse.subscription?.plan !== 'premium') {
+            if (user.email === 'tradetaper@gmail.com' &&
+                userResponse.subscription?.plan !== 'premium') {
                 try {
                     const updatedSub = await this.subscriptionService.forceUpdateSubscriptionPlan(user.id, 'premium');
                     const updatedPlan = await this.subscriptionService.getPricingPlan('premium');

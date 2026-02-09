@@ -49,17 +49,19 @@ export class NewsAnalysisService {
 
   constructor(
     private readonly httpService: HttpService,
-    @Inject(CACHE_MANAGER) private cacheManager: Cache
+    @Inject(CACHE_MANAGER) private cacheManager: Cache,
   ) {}
 
   async getMarketNews(categoryFilter?: string): Promise<NewsAnalysisResult> {
     const cacheKey = categoryFilter ? `news_${categoryFilter}` : 'news_all';
-    
+
     // Check cache
     const cached = await this.cacheManager.get<NewsAnalysisResult>(cacheKey);
     if (cached) return cached;
-    
-    this.logger.log(`Fetching market news (Filter: ${categoryFilter || 'All'})...`);
+
+    this.logger.log(
+      `Fetching market news (Filter: ${categoryFilter || 'All'})...`,
+    );
 
     try {
       // Fetch from multiple sources in parallel
@@ -69,11 +71,13 @@ export class NewsAnalysisService {
           this.getNewsFromAlphaVantage(),
           this.getNewsFromFMP(), // FMP is often limited, keep it.
         ]);
-        
+
       const allNews: MarketNews[] = [];
 
-      if (newsApiResults.status === 'fulfilled') allNews.push(...newsApiResults.value);
-      if (alphaVantageResults.status === 'fulfilled') allNews.push(...alphaVantageResults.value);
+      if (newsApiResults.status === 'fulfilled')
+        allNews.push(...newsApiResults.value);
+      if (alphaVantageResults.status === 'fulfilled')
+        allNews.push(...alphaVantageResults.value);
       if (fmpResults.status === 'fulfilled') allNews.push(...fmpResults.value);
 
       // Deduplicate
@@ -81,8 +85,12 @@ export class NewsAnalysisService {
 
       // Filter
       if (categoryFilter && categoryFilter !== 'all') {
-          uniqueNews = uniqueNews.filter(n => n.category.toLowerCase() === categoryFilter.toLowerCase() || 
-                                              (categoryFilter === 'market' && ['economy','fed','earnings'].includes(n.category)));
+        uniqueNews = uniqueNews.filter(
+          (n) =>
+            n.category.toLowerCase() === categoryFilter.toLowerCase() ||
+            (categoryFilter === 'market' &&
+              ['economy', 'fed', 'earnings'].includes(n.category)),
+        );
       }
 
       // Sort
@@ -110,8 +118,8 @@ export class NewsAnalysisService {
       await this.cacheManager.set(cacheKey, result, this.CACHE_DURATION);
       return result;
     } catch (error) {
-       this.logger.error('Error fetching market news:', error);
-       return this.getFallbackNews();
+      this.logger.error('Error fetching market news:', error);
+      return this.getFallbackNews();
     }
   }
 
@@ -527,7 +535,7 @@ export class NewsAnalysisService {
           impact: 'medium',
           symbols: [],
           category: 'general',
-          hasVideo: false
+          hasVideo: false,
         },
       ],
       overallSentiment: 'neutral',
@@ -539,13 +547,17 @@ export class NewsAnalysisService {
   }
 
   private detectVideo(url: string): boolean {
-    return url.includes('youtube.com') || url.includes('video') || url.includes('watch?v=');
+    return (
+      url.includes('youtube.com') ||
+      url.includes('video') ||
+      url.includes('watch?v=')
+    );
   }
 
   private extractVideoUrl(url: string): string | undefined {
     if (url.includes('youtube.com/watch')) {
-       const videoId = url.split('v=')[1]?.split('&')[0];
-       return videoId ? `https://www.youtube.com/embed/${videoId}` : undefined;
+      const videoId = url.split('v=')[1]?.split('&')[0];
+      return videoId ? `https://www.youtube.com/embed/${videoId}` : undefined;
     }
     return undefined;
   }

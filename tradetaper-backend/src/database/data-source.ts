@@ -74,7 +74,8 @@ async function createDataSource() {
         port: parseInt(process.env.DB_PORT || '5432', 10),
         username: process.env.DB_USER || process.env.DB_USERNAME,
         password: process.env.DB_PASSWORD,
-        database: process.env.DB_DATABASE || process.env.DB_NAME || 'tradetaper',
+        database:
+          process.env.DB_DATABASE || process.env.DB_NAME || 'tradetaper',
         ssl: { rejectUnauthorized: false }, // Required for Supabase/Cloud
         entities: [
           User,

@@ -7,10 +7,10 @@ import { SecretsService } from '../../common/secrets/secrets.service';
 
 /**
  * Multi-Model Orchestrator Service
- * 
+ *
  * Intelligently routes LLM requests across multiple models and providers.
  * Provides automatic fallbacks, cost optimization, and quality assurance.
- * 
+ *
  * Features:
  * - Multi-provider support (Google Gemini, OpenAI GPT, Anthropic Claude)
  * - Intelligent model selection based on task complexity
@@ -63,7 +63,7 @@ interface ModelConfig {
 export class MultiModelOrchestratorService {
   private readonly logger = new Logger(MultiModelOrchestratorService.name);
   private geminiClient: GoogleGenerativeAI;
-  
+
   // Model configurations in priority order
   private readonly models: ModelConfig[] = [
     {
@@ -117,7 +117,7 @@ export class MultiModelOrchestratorService {
         this.logger.log('✓ Gemini client initialized');
       } else {
         this.logger.warn('Gemini API key not found - Gemini models disabled');
-        this.models.forEach(m => {
+        this.models.forEach((m) => {
           if (m.provider === 'google') m.enabled = false;
         });
       }
@@ -132,22 +132,27 @@ export class MultiModelOrchestratorService {
   async complete(request: LLMRequest): Promise<LLMResponse> {
     const startTime = Date.now();
     let lastError: Error | undefined;
-    
+
     // 1. Check semantic cache first
     const taskComplexity = request.taskComplexity || 'medium';
     let selectedModel = request.modelPreference || this.selectModel(request);
-    
+
     // Validate model preference validity if provided
-    if (request.modelPreference && !this.getProviderForModel(request.modelPreference)) {
-      this.logger.warn(`Invalid model preference: ${request.modelPreference}, falling back to auto-selection`);
+    if (
+      request.modelPreference &&
+      !this.getProviderForModel(request.modelPreference)
+    ) {
+      this.logger.warn(
+        `Invalid model preference: ${request.modelPreference}, falling back to auto-selection`,
+      );
       selectedModel = this.selectModel(request);
     }
-    
+
     const cachedResponse = await this.semanticCache.get(
       request.prompt,
-      selectedModel
+      selectedModel,
     );
-    
+
     if (cachedResponse) {
       this.logger.debug('Returning cached response');
       return {
@@ -166,46 +171,43 @@ export class MultiModelOrchestratorService {
         },
       };
     }
-    
+
     // 2. Check user budget (if userId provided)
     if (request.userId) {
       const estimatedTokens = this.costManager.estimateTokens(request.prompt);
       const estimatedCost = this.costManager.calculateCost(
         estimatedTokens,
         request.maxTokens || 1000,
-        selectedModel
+        selectedModel,
       );
-      
+
       await this.costManager.checkBudget(request.userId, estimatedCost);
     }
-    
+
     // 3. Try models with fallback
     const sortedModels = this.getSortedModels(request);
-    
+
     for (const modelConfig of sortedModels) {
       if (!modelConfig.enabled) {
         continue;
       }
-      
+
       try {
         this.logger.debug(`Trying model: ${modelConfig.name}`);
-        
-        const response = await this.executeWithRetry(
-          request,
-          modelConfig
-        );
-        
+
+        const response = await this.executeWithRetry(request, modelConfig);
+
         // 4. Validate quality if threshold specified
         if (request.qualityThreshold) {
           const quality = this.assessQuality(response.content);
           if (quality < request.qualityThreshold) {
             this.logger.warn(
-              `Response quality ${quality} below threshold ${request.qualityThreshold}`
+              `Response quality ${quality} below threshold ${request.qualityThreshold}`,
             );
             continue; // Try next model
           }
         }
-        
+
         // 5. Cache successful response
         await this.semanticCache.set(
           request.prompt,
@@ -214,9 +216,9 @@ export class MultiModelOrchestratorService {
           {
             tokensUsed: response.metadata.totalTokens,
             cost: response.metadata.cost,
-          }
+          },
         );
-        
+
         // 6. Record usage
         await this.costManager.recordUsage({
           promptTokens: response.metadata.promptTokens,
@@ -227,22 +229,20 @@ export class MultiModelOrchestratorService {
           userId: request.userId,
           operation: 'completion',
         });
-        
+
         response.metadata.executionTime = Date.now() - startTime;
-        
+
         return response;
       } catch (error) {
         lastError = error;
-        this.logger.warn(
-          `Model ${modelConfig.name} failed: ${error.message}`
-        );
+        this.logger.warn(`Model ${modelConfig.name} failed: ${error.message}`);
         continue; // Try next model
       }
     }
-    
+
     // All models failed
     throw new Error(
-      `All LLM models failed. Last error: ${lastError?.message || 'Unknown'}`
+      `All LLM models failed. Last error: ${lastError?.message || 'Unknown'}`,
     );
   }
 
@@ -252,10 +252,12 @@ export class MultiModelOrchestratorService {
   private selectModel(request: LLMRequest): string {
     const complexity = request.taskComplexity || 'medium';
     const optimizeFor = request.optimizeFor || 'cost';
-    
+
     if (optimizeFor === 'cost') {
       // Use flash for simple/medium to save cost
-      return complexity === 'complex' ? 'gemini-3-pro-preview' : 'gemini-1.5-flash';
+      return complexity === 'complex'
+        ? 'gemini-3-pro-preview'
+        : 'gemini-1.5-flash';
     } else if (optimizeFor === 'quality') {
       // Use best available model
       return 'gemini-3-pro-preview';
@@ -270,10 +272,10 @@ export class MultiModelOrchestratorService {
    */
   private getSortedModels(request: LLMRequest): ModelConfig[] {
     const primaryModel = this.selectModel(request);
-    
+
     // Sort models: primary first, then by priority
     return this.models
-      .filter(m => m.enabled)
+      .filter((m) => m.enabled)
       .sort((a, b) => {
         if (a.name === primaryModel) return -1;
         if (b.name === primaryModel) return 1;
@@ -289,23 +291,23 @@ export class MultiModelOrchestratorService {
     modelConfig: ModelConfig,
   ): Promise<LLMResponse> {
     let lastError: Error | undefined;
-    
+
     for (let attempt = 1; attempt <= modelConfig.maxRetries; attempt++) {
       try {
         return await this.executeRequest(request, modelConfig);
       } catch (error) {
         lastError = error as Error;
-        
+
         if (attempt < modelConfig.maxRetries) {
           const backoffMs = Math.min(1000 * Math.pow(2, attempt - 1), 5000);
           this.logger.debug(
-            `Attempt ${attempt} failed, retrying in ${backoffMs}ms...`
+            `Attempt ${attempt} failed, retrying in ${backoffMs}ms...`,
           );
-          await new Promise(resolve => setTimeout(resolve, backoffMs));
+          await new Promise((resolve) => setTimeout(resolve, backoffMs));
         }
       }
     }
-    
+
     throw lastError || new Error('All retry attempts failed');
   }
 
@@ -317,13 +319,13 @@ export class MultiModelOrchestratorService {
     modelConfig: ModelConfig,
   ): Promise<LLMResponse> {
     const startTime = Date.now();
-    
+
     if (modelConfig.provider === 'google') {
       return await this.executeGemini(request, modelConfig, startTime);
     }
-    
+
     // Add other providers here (OpenAI, Anthropic, etc.)
-    
+
     throw new Error(`Provider ${modelConfig.provider} not implemented`);
   }
 
@@ -338,37 +340,37 @@ export class MultiModelOrchestratorService {
     const model = this.geminiClient.getGenerativeModel({
       model: modelConfig.name,
     });
-    
+
     const generationConfig: any = {
       temperature: request.temperature ?? 0.7,
       maxOutputTokens: request.maxTokens ?? 2048,
     };
-    
+
     // Force JSON output if requested
     if (request.requireJson) {
       generationConfig.responseMimeType = 'application/json';
     }
-    
+
     const parts: Array<any> = [];
-    
+
     if (request.system) {
       // Gemini 1.5 usually takes system instruction in model config, but putting it in parts works for prompts often,
-      // or we should use systemInstruction prop in getGenerativeModel. 
+      // or we should use systemInstruction prop in getGenerativeModel.
       // For now, prepeding to prompt is safer for compatibility across versions if systemInstruction not set.
-      // But let's check if we can use systemInstruction in getGenerativeModel. 
+      // But let's check if we can use systemInstruction in getGenerativeModel.
       // Actually, let's just prepend to prompt for now or add as first text part.
       parts.push({ text: `System: ${request.system}\n\n` });
     }
-    
+
     parts.push({ text: request.prompt });
-    
+
     // Add images if present
     if (request.images && request.images.length > 0) {
-      request.images.forEach(img => {
+      request.images.forEach((img) => {
         // Simple base64 detection
         let mimeType = 'image/jpeg';
         let data = img;
-        
+
         if (img.startsWith('data:')) {
           const matches = img.match(/^data:(.+);base64,(.+)$/);
           if (matches) {
@@ -376,35 +378,35 @@ export class MultiModelOrchestratorService {
             data = matches[2];
           }
         }
-        
+
         parts.push({
           inlineData: {
             mimeType,
-            data
-          }
+            data,
+          },
         });
       });
     }
-    
+
     const result = await model.generateContent({
       contents: [{ role: 'user', parts }],
       generationConfig,
     });
-    
+
     const response = result.response;
     const text = response.text();
-    
+
     // Estimate tokens (Gemini doesn't always provide token counts)
     const promptTokens = this.costManager.estimateTokens(request.prompt);
     const completionTokens = this.costManager.estimateTokens(text);
     const totalTokens = promptTokens + completionTokens;
-    
+
     const cost = this.costManager.calculateCost(
       promptTokens,
       completionTokens,
-      modelConfig.name
+      modelConfig.name,
     );
-    
+
     return {
       content: text,
       model: modelConfig.name,
@@ -428,22 +430,22 @@ export class MultiModelOrchestratorService {
   private assessQuality(response: string): number {
     // Simple quality metrics
     let score = 1.0;
-    
+
     // Check length (too short or too long is bad)
     if (response.length < 50) score -= 0.3;
     if (response.length > 10000) score -= 0.2;
-    
+
     // Check for error indicators
     const errorIndicators = ['error', 'sorry', 'cannot', 'unable'];
-    if (errorIndicators.some(word => response.toLowerCase().includes(word))) {
+    if (errorIndicators.some((word) => response.toLowerCase().includes(word))) {
       score -= 0.4;
     }
-    
+
     // Check for completeness
     if (!response.trim().endsWith('.') && !response.trim().endsWith('}')) {
       score -= 0.2;
     }
-    
+
     return Math.max(0, score);
   }
 
@@ -451,7 +453,7 @@ export class MultiModelOrchestratorService {
    * Get provider for model name
    */
   private getProviderForModel(modelName: string): string {
-    const modelConfig = this.models.find(m => m.name === modelName);
+    const modelConfig = this.models.find((m) => m.name === modelName);
     return modelConfig?.provider || 'unknown';
   }
 
@@ -460,23 +462,25 @@ export class MultiModelOrchestratorService {
    */
   async batchComplete(requests: LLMRequest[]): Promise<LLMResponse[]> {
     this.logger.log(`Processing batch of ${requests.length} requests`);
-    
+
     // Process in parallel with concurrency limit
     const concurrency = 5;
     const results: LLMResponse[] = [];
-    
+
     for (let i = 0; i < requests.length; i += concurrency) {
       const batch = requests.slice(i, i + concurrency);
       const batchResults = await Promise.all(
-        batch.map(req => this.complete(req).catch(err => {
-          this.logger.error(`Batch request failed: ${err.message}`);
-          return null;
-        }))
+        batch.map((req) =>
+          this.complete(req).catch((err) => {
+            this.logger.error(`Batch request failed: ${err.message}`);
+            return null;
+          }),
+        ),
       );
-      
-      results.push(...batchResults.filter(r => r !== null));
+
+      results.push(...batchResults.filter((r) => r !== null));
     }
-    
+
     return results;
   }
 
@@ -489,8 +493,8 @@ export class MultiModelOrchestratorService {
     cacheStats: any;
     costStats: any;
   }> {
-    const enabledModels = this.models.filter(m => m.enabled);
-    
+    const enabledModels = this.models.filter((m) => m.enabled);
+
     let status: 'healthy' | 'degraded' | 'unhealthy';
     if (enabledModels.length === 0) {
       status = 'unhealthy';
@@ -499,10 +503,10 @@ export class MultiModelOrchestratorService {
     } else {
       status = 'healthy';
     }
-    
+
     return {
       status,
-      models: this.models.map(m => ({
+      models: this.models.map((m) => ({
         name: m.name,
         enabled: m.enabled,
         provider: m.provider,
@@ -512,4 +516,3 @@ export class MultiModelOrchestratorService {
     };
   }
 }
-

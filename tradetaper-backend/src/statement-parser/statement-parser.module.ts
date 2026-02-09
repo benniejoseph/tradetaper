@@ -14,11 +14,7 @@ import { TradesModule } from '../trades/trades.module';
     forwardRef(() => TradesModule),
   ],
   controllers: [StatementParserController],
-  providers: [
-    StatementParserService,
-    MT4HtmlParser,
-    MT5CsvParser,
-  ],
+  providers: [StatementParserService, MT4HtmlParser, MT5CsvParser],
   exports: [StatementParserService],
 })
 export class StatementParserModule {}

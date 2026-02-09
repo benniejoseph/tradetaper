@@ -33,7 +33,9 @@ export class WebSocketService {
         if (sockets.size === 0) {
           this.userSockets.delete(userId);
         }
-        this.logger.debug(`Socket ${socketId} unregistered from user ${userId}`);
+        this.logger.debug(
+          `Socket ${socketId} unregistered from user ${userId}`,
+        );
         break;
       }
     }
@@ -53,7 +55,9 @@ export class WebSocketService {
       for (const socketId of sockets) {
         this.server.to(socketId).emit(event, data);
       }
-      this.logger.debug(`Sent ${event} to user ${userId} (${sockets.size} sockets)`);
+      this.logger.debug(
+        `Sent ${event} to user ${userId} (${sockets.size} sockets)`,
+      );
     }
   }
 

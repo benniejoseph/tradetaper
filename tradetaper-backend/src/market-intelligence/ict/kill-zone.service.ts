@@ -30,7 +30,10 @@ export class KillZoneService {
   private readonly logger = new Logger(KillZoneService.name);
 
   // ICT Kill Zones (UTC time)
-  private readonly killZones: Omit<KillZone, 'active' | 'timeUntilStart' | 'timeUntilEnd'>[] = [
+  private readonly killZones: Omit<
+    KillZone,
+    'active' | 'timeUntilStart' | 'timeUntilEnd'
+  >[] = [
     {
       name: 'Asian Kill Zone',
       session: 'asian',
@@ -111,12 +114,11 @@ export class KillZoneService {
 
     // Determine which kill zones are active
     const killZonesWithStatus = this.killZones.map((kz) =>
-      this.getKillZoneStatus(kz, now)
+      this.getKillZoneStatus(kz, now),
     );
 
     // Find active kill zone
-    const activeKillZone =
-      killZonesWithStatus.find((kz) => kz.active) || null;
+    const activeKillZone = killZonesWithStatus.find((kz) => kz.active) || null;
 
     // Find next kill zone
     const upcomingKillZones = killZonesWithStatus
@@ -132,14 +134,14 @@ export class KillZoneService {
     const analysis = this.generateKillZoneAnalysis(
       activeKillZone,
       nextKillZone,
-      currentTimeUTC
+      currentTimeUTC,
     );
 
     // Generate recommendations
     const recommendations = this.generateRecommendations(
       activeKillZone,
       nextKillZone,
-      isOptimalTradingTime
+      isOptimalTradingTime,
     );
 
     return {
@@ -160,13 +162,13 @@ export class KillZoneService {
    */
   private getKillZoneStatus(
     kz: Omit<KillZone, 'active' | 'timeUntilStart' | 'timeUntilEnd'>,
-    now: Date
+    now: Date,
   ): KillZone {
     const currentMinutes = now.getUTCHours() * 60 + now.getUTCMinutes();
     const [startHour, startMin] = kz.startTime.split(':').map(Number);
     const [endHour, endMin] = kz.endTime.split(':').map(Number);
 
-    let startMinutes = startHour * 60 + startMin;
+    const startMinutes = startHour * 60 + startMin;
     let endMinutes = endHour * 60 + endMin;
 
     // Handle overnight sessions
@@ -241,7 +243,7 @@ export class KillZoneService {
   private generateKillZoneAnalysis(
     activeKillZone: KillZone | null,
     nextKillZone: KillZone | null,
-    currentTimeUTC: string
+    currentTimeUTC: string,
   ): string[] {
     const analysis: string[] = [];
 
@@ -252,10 +254,10 @@ export class KillZoneService {
       analysis.push(`\n✅ ACTIVE KILL ZONE: ${activeKillZone.name}`);
       analysis.push(`   Session: ${activeKillZone.session.toUpperCase()}`);
       analysis.push(
-        `   Time Window: ${activeKillZone.startTime} - ${activeKillZone.endTime} UTC`
+        `   Time Window: ${activeKillZone.startTime} - ${activeKillZone.endTime} UTC`,
       );
       analysis.push(
-        `   Time Remaining: ${this.formatMinutes(activeKillZone.timeUntilEnd || 0)}`
+        `   Time Remaining: ${this.formatMinutes(activeKillZone.timeUntilEnd || 0)}`,
       );
       analysis.push(`   ${activeKillZone.description}`);
 
@@ -273,10 +275,10 @@ export class KillZoneService {
     if (nextKillZone) {
       analysis.push(`\n⏭️ Next Kill Zone: ${nextKillZone.name}`);
       analysis.push(
-        `   Starts in: ${this.formatMinutes(nextKillZone.timeUntilStart || 0)}`
+        `   Starts in: ${this.formatMinutes(nextKillZone.timeUntilStart || 0)}`,
       );
       analysis.push(
-        `   Time Window: ${nextKillZone.startTime} - ${nextKillZone.endTime} UTC`
+        `   Time Window: ${nextKillZone.startTime} - ${nextKillZone.endTime} UTC`,
       );
     }
 
@@ -289,7 +291,7 @@ export class KillZoneService {
   private generateRecommendations(
     activeKillZone: KillZone | null,
     nextKillZone: KillZone | null,
-    isOptimalTime: boolean
+    isOptimalTime: boolean,
   ): string[] {
     const recommendations: string[] = [];
 
@@ -311,25 +313,29 @@ export class KillZoneService {
         recommendations.push(`   • Enter on FVG fills or Order Block retests`);
         recommendations.push(`   • Set tight stops (volatility is HIGH)`);
         recommendations.push(
-          `   • Target nearby liquidity pools or previous day's high/low`
+          `   • Target nearby liquidity pools or previous day's high/low`,
         );
-      } else if (activeKillZone.name === 'New York Open Kill Zone (Silver Bullet)') {
+      } else if (
+        activeKillZone.name === 'New York Open Kill Zone (Silver Bullet)'
+      ) {
         recommendations.push(`\n⚡ SILVER BULLET Strategies:`);
+        recommendations.push(`   • This is the MOST reliable ICT setup window`);
         recommendations.push(
-          `   • This is the MOST reliable ICT setup window`
+          `   • Wait for 13:00-16:00 UTC for precision entries`,
         );
-        recommendations.push(`   • Wait for 13:00-16:00 UTC for precision entries`);
         recommendations.push(`   • Look for FVG fills within this window`);
-        recommendations.push(`   • Order Block retests are highly reliable here`);
+        recommendations.push(
+          `   • Order Block retests are highly reliable here`,
+        );
         recommendations.push(`   • Trend continuation setups work best`);
         recommendations.push(`   • Risk/Reward of 1:3 or better is achievable`);
       } else if (activeKillZone.name === 'Asian Kill Zone') {
         recommendations.push(`\n🌏 Asian Session Strategies:`);
-        recommendations.push(`   • Lower volatility - use smaller position sizes`);
-        recommendations.push(`   • Good for ranging/mean reversion strategies`);
         recommendations.push(
-          `   • Watch for stop hunts before London open`
+          `   • Lower volatility - use smaller position sizes`,
         );
+        recommendations.push(`   • Good for ranging/mean reversion strategies`);
+        recommendations.push(`   • Watch for stop hunts before London open`);
         recommendations.push(`   • Mark liquidity pools for London session`);
       }
     } else {
@@ -338,16 +344,22 @@ export class KillZoneService {
       recommendations.push(`   • Manage existing positions only`);
       recommendations.push(`   • Use this time for analysis and planning`);
       recommendations.push(
-        `   • Wait for next Kill Zone for optimal entry conditions`
+        `   • Wait for next Kill Zone for optimal entry conditions`,
       );
     }
 
-    if (nextKillZone && nextKillZone.timeUntilStart && nextKillZone.timeUntilStart < 60) {
+    if (
+      nextKillZone &&
+      nextKillZone.timeUntilStart &&
+      nextKillZone.timeUntilStart < 60
+    ) {
       recommendations.push(
-        `\n⏰ ALERT: ${nextKillZone.name} starts in ${this.formatMinutes(nextKillZone.timeUntilStart)}`
+        `\n⏰ ALERT: ${nextKillZone.name} starts in ${this.formatMinutes(nextKillZone.timeUntilStart)}`,
       );
       recommendations.push(`   • Prepare your watchlist`);
-      recommendations.push(`   • Review key levels (OBs, FVGs, liquidity zones)`);
+      recommendations.push(
+        `   • Review key levels (OBs, FVGs, liquidity zones)`,
+      );
       recommendations.push(`   • Have your trading plan ready`);
     }
 
@@ -389,4 +401,3 @@ export class KillZoneService {
     };
   }
 }
-
