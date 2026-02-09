@@ -56,8 +56,10 @@ async function bootstrap() {
         },
         size: 64,
         ignoredMethods: ['GET', 'HEAD', 'OPTIONS'],
-
-        getSessionIdentifier: (req) => req.cookies?.['session_id'] || '', // Add session identifier logic
+        getSessionIdentifier: (req) => {
+          // Use session cookie or create a default identifier
+          return req.cookies?.['connect.sid'] || req.cookies?.['session'] || '';
+        },
         getCsrfTokenFromRequest: (req) => {
           return (
             req.headers['x-csrf-token'] ||
@@ -92,7 +94,7 @@ async function bootstrap() {
         process.env.FRONTEND_URL || 'https://tradetaper.com', // Provide a sensible default
       ],
       methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-      allowedHeaders: ['Content-Type', 'Authorization'],
+      allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token', 'CSRF-Token'],
       credentials: true,
     };
 
