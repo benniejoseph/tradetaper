@@ -32,10 +32,12 @@ const authSlice = createSlice({
       state.token = action.payload.token;
       state.user = action.payload.user;
       state.error = null;
-      // Store token in localStorage
+      // SECURITY: Token is now in HTTP-only cookie, only store user data in localStorage
       if (typeof window !== 'undefined') {
-        localStorage.setItem('token', action.payload.token);
+        // Only store non-sensitive user data
         localStorage.setItem('user', JSON.stringify(action.payload.user));
+        // SECURITY: No longer storing token in localStorage
+        // Token is managed by HTTP-only cookie set by backend
       }
     },
     authFailure(state, action: PayloadAction<string>) {
@@ -45,8 +47,8 @@ const authSlice = createSlice({
       state.user = null;
       state.error = action.payload;
       if (typeof window !== 'undefined') {
-        localStorage.removeItem('token');
         localStorage.removeItem('user');
+        // SECURITY: Token is in HTTP-only cookie, will be cleared by backend on logout
       }
     },
     logout(state) {
@@ -56,23 +58,24 @@ const authSlice = createSlice({
       state.isLoading = false;
       state.error = null;
       if (typeof window !== 'undefined') {
-        localStorage.removeItem('token');
         localStorage.removeItem('user');
+        // SECURITY: Token is in HTTP-only cookie, will be cleared by backend on logout
+        // TODO: Call backend /auth/logout endpoint to clear cookie
       }
     },
     loadUserFromStorage(state) {
         if (typeof window !== 'undefined') {
-            const token = localStorage.getItem('token');
             const userString = localStorage.getItem('user');
-            if (token && userString) {
+            // SECURITY: Token is now in HTTP-only cookie, we only restore user data
+            // The cookie will be automatically sent with requests
+            if (userString) {
                 try {
                     const user = JSON.parse(userString) as UserResponseDto;
-                    state.token = token;
                     state.user = user;
                     state.isAuthenticated = true;
+                    state.token = 'cookie'; // Placeholder - actual token is in HTTP-only cookie
                 } catch (error) {
                     console.error("Error parsing user from localStorage", error);
-                    localStorage.removeItem('token');
                     localStorage.removeItem('user');
                 }
             }

@@ -13,30 +13,29 @@ function GoogleCallbackContent() {
   useEffect(() => {
     // Prevent running if already processed or if no params yet
     if (status !== 'processing') return;
-    
+
     const handleCallback = async () => {
       try {
-        // Check if we have any auth-related params before processing
-        const token = searchParams.get('token');
-        const user = searchParams.get('user');
+        // SECURITY FIX: Now checking for success parameter instead of token/user
+        // Token is now in HTTP-only cookie, not URL parameters
+        const success = searchParams.get('success');
         const error = searchParams.get('error');
-        
+
         // If no relevant params, wait - they might still be loading
-        if (!token && !user && !error) {
+        if (!success && !error) {
           console.log('No auth params yet, waiting...');
           // Give it a moment for params to populate
           await new Promise(resolve => setTimeout(resolve, 300));
-          
+
           // Re-check after waiting
-          const tokenRetry = searchParams.get('token');
-          const userRetry = searchParams.get('user');
+          const successRetry = searchParams.get('success');
           const errorRetry = searchParams.get('error');
-          
-          if (!tokenRetry && !userRetry && !errorRetry) {
-            // Still no params - check localStorage as fallback (might already be authenticated)
-            const storedToken = localStorage.getItem('token');
-            if (storedToken) {
-              console.log('Found existing token in localStorage, redirecting to dashboard');
+
+          if (!successRetry && !errorRetry) {
+            // Still no params - check if user is already authenticated
+            const storedUser = localStorage.getItem('user');
+            if (storedUser) {
+              console.log('Found existing user in localStorage, redirecting to dashboard');
               router.push('/dashboard');
               return;
             }
@@ -48,10 +47,10 @@ function GoogleCallbackContent() {
             return;
           }
         }
-        
-        const success = await GoogleAuthService.handleGoogleCallback(searchParams);
-        
-        if (success) {
+
+        const authSuccess = await GoogleAuthService.handleGoogleCallback(searchParams);
+
+        if (authSuccess) {
           setStatus('success');
           // Redirect to dashboard after successful authentication
           setTimeout(() => {
@@ -60,15 +59,15 @@ function GoogleCallbackContent() {
         } else {
           // Check if there's an error parameter
           const errorParam = searchParams.get('error');
-          
+
           let errorMsg = 'Authentication failed';
           if (errorParam) {
             errorMsg = `Authentication error: ${errorParam}`;
           }
-          
+
           setErrorMessage(errorMsg);
           setStatus('error');
-          
+
           // Redirect to login page after error
           setTimeout(() => {
             router.push('/login');

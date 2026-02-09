@@ -3,6 +3,7 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe, BadRequestException } from '@nestjs/common';
 import { CorsOptions } from '@nestjs/common/interfaces/external/cors-options.interface';
+import * as cookieParser from 'cookie-parser';
 
 async function bootstrap() {
   try {
@@ -12,6 +13,10 @@ async function bootstrap() {
     );
 
     const app = await NestFactory.create(AppModule);
+
+    // SECURITY: Enable cookie parsing for HTTP-only auth cookies
+    app.use(cookieParser());
+    console.log('🍪 Cookie parser enabled');
 
     const port = process.env.PORT || 3000;
     console.log(`🔧 Using port: ${port}`);

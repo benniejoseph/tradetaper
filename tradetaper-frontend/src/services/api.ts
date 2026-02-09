@@ -19,6 +19,8 @@ export const apiClient = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  // SECURITY: Enable sending cookies with requests for HTTP-only auth tokens
+  withCredentials: true,
 });
 
 // Instance for authenticated routes
@@ -27,6 +29,8 @@ export const authApiClient = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  // SECURITY: Enable sending cookies with requests for HTTP-only auth tokens
+  withCredentials: true,
 });
 
 export default authApiClient;
@@ -42,11 +46,18 @@ export function setupAuthInterceptors(getState: () => RootState) { // removed un
                 hasUser: !!state.auth.user,
                 url: config.url
             });
-            if (token) {
+
+            // SECURITY NOTE: Authentication now uses HTTP-only cookies
+            // The token is automatically sent via cookies (withCredentials: true)
+            // We keep the Authorization header for backwards compatibility during transition
+            if (token && token !== 'cookie') {
                 config.headers.Authorization = `Bearer ${token}`;
-                console.log('✅ Added Bearer token to request');
+                console.log('✅ Added Bearer token to request (legacy mode)');
+            } else if (state.auth.isAuthenticated) {
+                console.log('✅ Using cookie-based authentication (secure mode)');
+                // Token is in HTTP-only cookie, will be sent automatically
             } else {
-                console.warn('⚠️ No token found in Redux store!');
+                console.warn('⚠️ No authentication found!');
             }
             console.log('🚀 Making authenticated API request to:', config.baseURL + config.url);
             return config;

@@ -7,6 +7,7 @@ import {
 import { PassportStrategy } from '@nestjs/passport';
 import { Injectable, UnauthorizedException, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { Request } from 'express';
 import { UsersService } from '../../users/users.service';
 import { UserResponseDto } from '../../users/dto/user-response.dto';
 
@@ -28,6 +29,30 @@ function getJwtSecret(configService: ConfigService): string {
   return jwtSecret;
 }
 
+/**
+ * SECURITY: Custom JWT extractor that checks both Authorization header and HTTP-only cookie
+ * This allows for backwards compatibility during migration to cookie-based auth
+ */
+function cookieExtractor(req: Request): string | null {
+  let token: string | null = null;
+
+  // First try to extract from HTTP-only cookie (secure method)
+  if (req && req.cookies && req.cookies['auth_token']) {
+    token = req.cookies['auth_token'];
+    console.log('✅ JWT extracted from cookie (secure)');
+  }
+  // Fallback to Authorization header for backwards compatibility
+  else if (req && req.headers.authorization) {
+    const bearerToken = ExtractJwt.fromAuthHeaderAsBearerToken()(req);
+    if (bearerToken) {
+      token = bearerToken;
+      console.log('⚠️ JWT extracted from Authorization header (legacy)');
+    }
+  }
+
+  return token;
+}
+
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
   private readonly logger = new Logger(JwtStrategy.name);
@@ -36,9 +61,10 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     private readonly configService: ConfigService,
     private readonly usersService: UsersService,
   ) {
-    // Construct the options object that matches StrategyOptionsWithoutRequest
+    // SECURITY: Updated to extract JWT from both cookie and Authorization header
+    // Cookie-based auth is more secure (HTTP-only, protected from XSS)
     const strategyOptions: StrategyOptionsWithoutRequest = {
-      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+      jwtFromRequest: cookieExtractor,
       ignoreExpiration: false,
       secretOrKey: getJwtSecret(configService),
       // passReqToCallback: false, // Explicitly setting to false
