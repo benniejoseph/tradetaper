@@ -11,6 +11,7 @@ import {
 import { Logger } from '@nestjs/common';
 import { Server, Socket } from 'socket.io';
 import { WebSocketService } from './websocket.service';
+import { AuthenticatedSocket } from './types/authenticated-socket';
 
 @WebSocketGateway({
   cors: {
@@ -35,30 +36,52 @@ export class NotificationsGateway
   }
 
   handleConnection(client: Socket) {
-    this.logger.log(`Client connected: ${client.id}`);
+    // SECURITY: User is now authenticated via WsJwtAdapter
+    const authClient = client as AuthenticatedSocket;
+    if (authClient.user) {
+      this.logger.log(`Client connected: ${client.id} (User: ${authClient.user.email})`);
+      // Automatically register the authenticated user's socket
+      this.webSocketService.registerUserSocket(authClient.user.id, client.id);
+    } else {
+      this.logger.warn(`Client connected without authentication: ${client.id}`);
+    }
   }
 
   handleDisconnect(client: Socket) {
+    const authClient = client as AuthenticatedSocket;
     this.webSocketService.unregisterSocket(client.id);
-    this.logger.log(`Client disconnected: ${client.id}`);
+    if (authClient.user) {
+      this.logger.log(`Client disconnected: ${client.id} (User: ${authClient.user.email})`);
+    } else {
+      this.logger.log(`Client disconnected: ${client.id}`);
+    }
   }
 
   /**
-   * Handle user authentication and register socket
+   * Handle user authentication status check
+   * SECURITY: Authentication is now handled at connection time via WsJwtAdapter
+   * This endpoint just returns the authenticated user's info
    */
   @SubscribeMessage('auth')
   handleAuth(
-    @ConnectedSocket() client: Socket,
-    @MessageBody() data: { userId: string; token?: string },
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() data: { userId?: string; token?: string },
   ) {
-    // TODO: Validate JWT token for security
-    // For now, just register the socket with the userId
-    if (data.userId) {
-      this.webSocketService.registerUserSocket(data.userId, client.id);
-      client.emit('auth:success', { message: 'Authenticated successfully' });
-      this.logger.log(`User ${data.userId} authenticated on socket ${client.id}`);
+    // SECURITY: User is already authenticated via JWT at connection time
+    if (client.user) {
+      client.emit('auth:success', {
+        message: 'Authenticated successfully',
+        user: {
+          id: client.user.id,
+          email: client.user.email,
+          role: client.user.role,
+        }
+      });
+      this.logger.log(`Auth status requested by user ${client.user.email} on socket ${client.id}`);
     } else {
-      client.emit('auth:error', { message: 'userId is required' });
+      // This should never happen if WsJwtAdapter is working correctly
+      client.emit('auth:error', { message: 'Not authenticated' });
+      this.logger.warn(`Unauthenticated socket attempted auth: ${client.id}`);
     }
   }
 

@@ -5,6 +5,7 @@ import { ValidationPipe, BadRequestException } from '@nestjs/common';
 import { CorsOptions } from '@nestjs/common/interfaces/external/cors-options.interface';
 import * as cookieParser from 'cookie-parser';
 import helmet from 'helmet';
+import { WsJwtAdapter } from './websocket/ws-jwt.adapter';
 
 async function bootstrap() {
   try {
@@ -14,6 +15,10 @@ async function bootstrap() {
     );
 
     const app = await NestFactory.create(AppModule);
+
+    // SECURITY: Use JWT-authenticated WebSocket adapter
+    app.useWebSocketAdapter(new WsJwtAdapter(app));
+    console.log('🔐 WebSocket JWT authentication enabled');
 
     // SECURITY: Add security headers to protect against common attacks
     app.use(helmet({
