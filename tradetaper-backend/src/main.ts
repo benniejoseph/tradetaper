@@ -3,6 +3,11 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe, BadRequestException } from '@nestjs/common';
 import { CorsOptions } from '@nestjs/common/interfaces/external/cors-options.interface';
+import cookieParser from 'cookie-parser';
+import { doubleCsrf } from 'csrf-csrf';
+
+import helmet from 'helmet';
+import { WsJwtAdapter } from './websocket/ws-jwt.adapter';
 
 async function bootstrap() {
   try {
@@ -12,6 +17,63 @@ async function bootstrap() {
     );
 
     const app = await NestFactory.create(AppModule);
+
+    // SECURITY: Use JWT-authenticated WebSocket adapter
+    app.useWebSocketAdapter(new WsJwtAdapter(app));
+    console.log('🔐 WebSocket JWT authentication enabled');
+
+    // SECURITY: Add security headers to protect against common attacks
+    app.use(helmet({
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          styleSrc: ["'self'", "'unsafe-inline'"], // Allow inline styles for Tailwind
+          scriptSrc: ["'self'"],
+          imgSrc: ["'self'", 'data:', 'https:'],
+          connectSrc: ["'self'", 'https://api.tradetaper.com'],
+        },
+      },
+      crossOriginEmbedderPolicy: false, // Allow embedding for OAuth
+    }));
+    console.log('🛡️  Security headers enabled (Helmet.js)');
+
+    // SECURITY: Enable cookie parsing for HTTP-only auth cookies
+    app.use(cookieParser());
+    console.log('🍪 Cookie parser enabled');
+
+    // SECURITY: CSRF protection for state-changing operations
+    // Only enable in production or when explicitly enabled
+    const enableCsrf = process.env.ENABLE_CSRF === 'true' || process.env.NODE_ENV === 'production';
+    if (enableCsrf) {
+      const { doubleCsrfProtection } = doubleCsrf({
+        getSecret: () => process.env.CSRF_SECRET || 'default-csrf-secret-change-in-production',
+        cookieName: '__Host-csrf',
+        cookieOptions: {
+          httpOnly: true,
+          sameSite: 'strict',
+          secure: process.env.NODE_ENV === 'production',
+          path: '/',
+        },
+        size: 64,
+        ignoredMethods: ['GET', 'HEAD', 'OPTIONS'],
+        getSessionIdentifier: (req) => {
+          // Use session cookie or create a default identifier
+          return req.cookies?.['connect.sid'] || req.cookies?.['session'] || '';
+        },
+        getCsrfTokenFromRequest: (req) => {
+          return (
+            req.headers['x-csrf-token'] ||
+            req.headers['csrf-token'] ||
+            req.body?._csrf ||
+            req.query?._csrf
+          ) as string;
+        },
+      });
+      app.use(doubleCsrfProtection);
+      console.log('🛡️  CSRF protection enabled');
+    } else {
+      console.log('⚠️  CSRF protection disabled (set ENABLE_CSRF=true to enable)');
+    }
 
     const port = process.env.PORT || 3000;
     console.log(`🔧 Using port: ${port}`);
@@ -32,7 +94,7 @@ async function bootstrap() {
         process.env.FRONTEND_URL || 'https://tradetaper.com', // Provide a sensible default
       ],
       methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-      allowedHeaders: ['Content-Type', 'Authorization'],
+      allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token', 'CSRF-Token'],
       credentials: true,
     };
 
