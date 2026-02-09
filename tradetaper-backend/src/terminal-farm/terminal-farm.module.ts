@@ -2,6 +2,7 @@
 import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule } from '@nestjs/config';
+import { JwtModule } from '@nestjs/jwt';
 import { TerminalInstance } from './entities/terminal-instance.entity';
 import { TerminalFarmService } from './terminal-farm.service';
 import { TerminalFarmController } from './terminal-farm.controller';
@@ -17,6 +18,7 @@ import { TerminalHealthController } from './terminal-health.controller';
   imports: [
     TypeOrmModule.forFeature([TerminalInstance, MT5Account]),
     ConfigModule,
+    JwtModule.register({}),
     forwardRef(() => TradesModule),
   ],
   controllers: [

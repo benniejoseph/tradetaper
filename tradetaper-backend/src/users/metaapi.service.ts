@@ -77,11 +77,14 @@ export class MetaApiService {
     }
 
     try {
-      const profiles =
-        await this.metaApi.provisioningProfileApi.getProvisioningProfiles(
-          50,
-          'active',
+      const profileList =
+        await this.metaApi.provisioningProfileApi.getProvisioningProfilesWithClassicPagination(
+          {
+            limit: 50,
+            status: 'active',
+          },
         );
+      const profiles = profileList.items || [];
 
       let profile = profiles.find((p) => p.name.includes(server));
 
