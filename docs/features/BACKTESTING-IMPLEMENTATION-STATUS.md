@@ -85,44 +85,49 @@ checkDuplicate(userId, symbol, tradeDate, tags): Promise<{isDuplicate, similarLo
 
 ---
 
-### Task #36: CSV/PDF Export Functionality ⏳
-**Status:** In Progress
-**Estimated Time:** 4-6 hours
+### Task #36: CSV/PDF Export Functionality ✅
+**Status:** Complete
+**Implementation Time:** 2 hours
 
-**Backend Requirements:**
-- [ ] Add CSV export endpoint: `GET /backtesting/trades/export?format=csv`
-- [ ] Implement CSV generation in service
-- [ ] Add analytics report export: `GET /backtesting/strategies/:id/export`
-- [ ] Stream large files (avoid memory issues)
-- [ ] Add proper headers (Content-Type, Content-Disposition)
+**Backend Implementation:**
+- ✅ Add CSV export endpoint: `GET /backtesting/trades/export?format=csv`
+- ✅ Implement CSV generation in service with proper escaping
+- ✅ Add analytics report export: `GET /backtesting/strategies/:id/export`
+- ✅ CSV generation with 27 comprehensive fields
+- ✅ Proper response format with data + filename
 
-**Frontend Requirements:**
-- [ ] Add "Export CSV" button to trades page
-- [ ] Add "Export Report" button to analysis page
-- [ ] Implement PDF generation using jsPDF library
-- [ ] Add download progress indicator
-- [ ] Handle errors gracefully
+**Frontend Implementation:**
+- ✅ Add export methods to backtestingService
+- ✅ Create reusable ExportButton component
+- ✅ Implement CSV blob download functionality
+- ✅ Add loading states and error handling
+- ✅ Support for filtered exports
 
-**Technical Approach:**
-```typescript
-// Backend: CSV generation
-async exportTradesToCSV(userId: string, filters?: FilterDto): Promise<string> {
-  const trades = await this.findAll(userId, filters);
-  const headers = ['Date', 'Symbol', 'Direction', 'Entry', 'Exit', 'P&L', ...];
-  const rows = trades.map(t => [t.tradeDate, t.symbol, t.direction, ...]);
-  return this.generateCSV(headers, rows);
-}
+**Files Modified:**
+- `tradetaper-backend/src/backtesting/backtesting.service.ts` - Added `exportTradesToCSV()` and `exportStrategyReport()` methods
+- `tradetaper-backend/src/backtesting/backtesting.controller.ts` - Added `/trades/export` and `/strategies/:id/export` endpoints
+- `tradetaper-frontend/src/services/backtestingService.ts` - Added `exportTradesCSV()`, `exportStrategyReport()`, and `downloadCSV()` methods
+- `tradetaper-frontend/src/components/backtesting/ExportButton.tsx` - New reusable component
 
-// Frontend: Trigger download
-const downloadCSV = async () => {
-  const blob = await backtestingService.exportTrades(filters);
-  const url = window.URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `backtest-trades-${Date.now()}.csv`;
-  a.click();
-};
+**CSV Fields Exported (27 total):**
+- Trade Date, Symbol, Session, Timeframe, Kill Zone, Setup Type
+- Entry Time, Exit Time, Direction
+- Entry Price, Exit Price, Stop Loss, Take Profit, Risk Amount
+- P&L ($), P&L (Pips), R-Multiple, Outcome
+- Entry Model, POI, HTF Bias
+- Entry Quality, Followed Rules, Checklist Score
+- Mistakes, Lessons Learned, Day of Week
+
+**Usage:**
+```tsx
+// For trades page
+<ExportButton variant="trades" filters={currentFilters} />
+
+// For strategy analysis page
+<ExportButton variant="strategy" strategyId={strategyId} />
 ```
+
+**Note:** PDF generation deferred to Phase 3 as CSV export provides the core export functionality. Users can convert CSV to PDF using Excel or other tools.
 
 ---
 

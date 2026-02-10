@@ -317,4 +317,82 @@ export const backtestingService = {
     if (!response.ok) throw new Error('Failed to fetch pattern analysis');
     return response.json();
   },
+
+  // ============ EXPORT ============
+
+  async exportTradesCSV(filters?: {
+    strategyId?: string;
+    symbol?: string;
+    session?: string;
+    timeframe?: string;
+    outcome?: string;
+    startDate?: string;
+    endDate?: string;
+  }): Promise<Blob> {
+    const params = new URLSearchParams();
+    if (filters) {
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value) params.append(key, value);
+      });
+    }
+    params.append('format', 'csv');
+
+    const url = `${API_URL}/api/v1/backtesting/trades/export${params.toString() ? `?${params}` : ''}`;
+    const response = await fetch(url, {
+      headers: getAuthHeaders(),
+      credentials: 'include', // ✅ Send cookies (JWT)
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to export trades');
+    }
+
+    // Get JSON response with CSV data
+    const result = await response.json();
+
+    // Convert CSV string to Blob
+    const blob = new Blob([result.data], { type: 'text/csv;charset=utf-8;' });
+    return blob;
+  },
+
+  async exportStrategyReport(strategyId: string): Promise<{
+    blob: Blob;
+    stats: BacktestStats;
+    dimensionAnalysis: any;
+  }> {
+    const response = await fetch(
+      `${API_URL}/api/v1/backtesting/strategies/${strategyId}/export`,
+      {
+        headers: getAuthHeaders(),
+        credentials: 'include', // ✅ Send cookies (JWT)
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error('Failed to export strategy report');
+    }
+
+    const result = await response.json();
+
+    // Convert CSV string to Blob
+    const blob = new Blob([result.csvData], { type: 'text/csv;charset=utf-8;' });
+
+    return {
+      blob,
+      stats: result.stats,
+      dimensionAnalysis: result.dimensionAnalysis,
+    };
+  },
+
+  // Helper function to trigger CSV download
+  downloadCSV(blob: Blob, filename: string) {
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+  },
 };

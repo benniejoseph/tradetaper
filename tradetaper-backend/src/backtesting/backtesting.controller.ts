@@ -227,4 +227,58 @@ export class BacktestingController {
   async getSymbols(@Request() req) {
     return this.backtestingService.getDistinctSymbols(req.user.id);
   }
+
+  // ============ EXPORT ============
+
+  @Get('trades/export')
+  async exportTrades(
+    @Request() req,
+    @Query('strategyId') strategyId?: string,
+    @Query('symbol') symbol?: string,
+    @Query('session') session?: string,
+    @Query('timeframe') timeframe?: string,
+    @Query('outcome') outcome?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+    @Query('format') format: 'csv' = 'csv',
+  ) {
+    const csvData = await this.backtestingService.exportTradesToCSV(
+      req.user.id,
+      {
+        strategyId,
+        symbol,
+        session,
+        timeframe,
+        outcome,
+        startDate,
+        endDate,
+      },
+    );
+
+    // Return CSV data with proper headers
+    // Note: In a production environment, you might want to use @Res() decorator
+    // and set headers manually for better control over Content-Disposition
+    return {
+      data: csvData,
+      filename: `backtest-trades-${new Date().toISOString().split('T')[0]}.csv`,
+      format: 'csv',
+    };
+  }
+
+  @Get('strategies/:strategyId/export')
+  async exportStrategy(
+    @Param('strategyId', ParseUUIDPipe) strategyId: string,
+    @Request() req,
+  ) {
+    const reportData = await this.backtestingService.exportStrategyReport(
+      strategyId,
+      req.user.id,
+    );
+
+    return {
+      ...reportData,
+      filename: `strategy-report-${strategyId}-${new Date().toISOString().split('T')[0]}.csv`,
+      format: 'csv',
+    };
+  }
 }

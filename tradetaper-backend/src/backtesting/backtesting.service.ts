@@ -851,4 +851,158 @@ export class BacktestingService {
       throw new NotFoundException(`Market log with ID ${id} not found`);
     }
   }
+
+  // ============ CSV EXPORT ============
+
+  async exportTradesToCSV(
+    userId: string,
+    filters?: {
+      strategyId?: string;
+      symbol?: string;
+      session?: string;
+      timeframe?: string;
+      outcome?: string;
+      startDate?: string;
+      endDate?: string;
+    },
+  ): Promise<string> {
+    // Get trades with filters
+    const trades = await this.findAll(userId, filters);
+
+    // Define CSV headers
+    const headers = [
+      'Trade Date',
+      'Symbol',
+      'Session',
+      'Timeframe',
+      'Kill Zone',
+      'Setup Type',
+      'Entry Time',
+      'Exit Time',
+      'Direction',
+      'Entry Price',
+      'Exit Price',
+      'Stop Loss',
+      'Take Profit',
+      'Risk Amount',
+      'P&L ($)',
+      'P&L (Pips)',
+      'R-Multiple',
+      'Outcome',
+      'Entry Model',
+      'POI',
+      'HTF Bias',
+      'Entry Quality',
+      'Followed Rules',
+      'Checklist Score',
+      'Mistakes',
+      'Lessons Learned',
+      'Day of Week',
+    ];
+
+    // Helper to escape CSV values
+    const escapeCSV = (value: any): string => {
+      if (value === null || value === undefined) return '';
+      const str = String(value);
+      // Escape quotes and wrap in quotes if contains comma, quote, or newline
+      if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+        return `"${str.replace(/"/g, '""')}"`;
+      }
+      return str;
+    };
+
+    // Helper to format date
+    const formatDate = (date: Date | string | null): string => {
+      if (!date) return '';
+      const d = new Date(date);
+      return d.toISOString().split('T')[0]; // YYYY-MM-DD
+    };
+
+    // Helper to format time
+    const formatTime = (date: Date | string | null): string => {
+      if (!date) return '';
+      const d = new Date(date);
+      return d.toTimeString().split(' ')[0]; // HH:MM:SS
+    };
+
+    // Map trades to rows
+    const rows = trades.map((trade) => [
+      formatDate(trade.tradeDate),
+      trade.symbol || '',
+      trade.session || '',
+      trade.timeframe || '',
+      trade.killZone || '',
+      trade.setupType || '',
+      formatTime(trade.entryTime),
+      formatTime(trade.exitTime),
+      trade.direction || '',
+      trade.entryPrice?.toString() || '',
+      trade.exitPrice?.toString() || '',
+      trade.stopLoss?.toString() || '',
+      trade.takeProfit?.toString() || '',
+      trade.riskAmount?.toString() || '',
+      trade.pnlDollars?.toString() || '',
+      trade.pnlPips?.toString() || '',
+      trade.rMultiple?.toString() || '',
+      trade.outcome || '',
+      trade.entryModel || '',
+      trade.poi || '',
+      trade.htfBias || '',
+      trade.entryQuality?.toString() || '',
+      trade.followedRules ? 'Yes' : 'No',
+      trade.checklistScore?.toString() || '',
+      trade.mistakes || '',
+      trade.lessonsLearned || '',
+      trade.dayOfWeek || '',
+    ]);
+
+    // Generate CSV string
+    const csvLines = [
+      headers.map(escapeCSV).join(','),
+      ...rows.map((row) => row.map(escapeCSV).join(',')),
+    ];
+
+    return csvLines.join('\n');
+  }
+
+  async exportStrategyReport(
+    strategyId: string,
+    userId: string,
+  ): Promise<{
+    stats: BacktestStats;
+    dimensionAnalysis: {
+      bySymbol: DimensionStats[];
+      bySession: DimensionStats[];
+      byTimeframe: DimensionStats[];
+      byKillZone: DimensionStats[];
+      byDayOfWeek: DimensionStats[];
+      bySetup: DimensionStats[];
+    };
+    trades: BacktestTrade[];
+    csvData: string;
+  }> {
+    // Get comprehensive analysis data
+    const analysisData = await this.getAnalysisData(strategyId, userId);
+    const trades = await this.backtestTradeRepository.find({
+      where: { strategyId, userId },
+      order: { tradeDate: 'DESC' },
+    });
+
+    // Generate CSV for this strategy
+    const csvData = await this.exportTradesToCSV(userId, { strategyId });
+
+    return {
+      stats: analysisData.overallStats,
+      dimensionAnalysis: {
+        bySymbol: analysisData.bySymbol,
+        bySession: analysisData.bySession,
+        byTimeframe: analysisData.byTimeframe,
+        byKillZone: analysisData.byKillZone,
+        byDayOfWeek: analysisData.byDayOfWeek,
+        bySetup: analysisData.bySetup,
+      },
+      trades,
+      csvData,
+    };
+  }
 }
