@@ -15,7 +15,7 @@ import { MarketIntelligenceModule } from '../market-intelligence/market-intellig
     TypeOrmModule.forFeature([Notification, NotificationPreference]),
     ScheduleModule.forRoot(),
     forwardRef(() => WebSocketModule),
-    UsersModule,
+    forwardRef(() => UsersModule),
     forwardRef(() => MarketIntelligenceModule), // Added with forwardRef
   ],
   controllers: [NotificationsController],

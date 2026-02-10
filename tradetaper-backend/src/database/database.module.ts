@@ -17,18 +17,22 @@ import { TypeOrmModule } from '@nestjs/typeorm';
           // Check for DB_SSL (default true in prod if not specified, safe for Cloud)
           const isSSL = configService.get<string>('DB_SSL') === 'true' || true;
 
-          let hostConfig = {};
+          let hostConfig: any = {};
           if (instanceName) {
             console.log('🔧 Using Unix socket for Cloud Run');
             hostConfig = {
               host: `/cloudsql/${instanceName}`,
             };
           } else {
-            console.log('🔧 Using Standard TCP Connection');
+            console.log('🔧 Using Standard TCP Connection (IPv4)');
             hostConfig = {
               host: configService.get<string>('DB_HOST'),
               port: Number(configService.get<string>('DB_PORT') || 5432),
               ssl: isSSL ? { rejectUnauthorized: false } : false,
+              extra: {
+                connectionTimeoutMillis: 60000,
+                query_timeout: 60000,
+              },
             };
           }
 
@@ -46,7 +50,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
               configService.get<string>('DB_PASSWORD') ||
               configService.get<string>('DATABASE_PASSWORD'),
             autoLoadEntities: true,
-            synchronize: true, // TEMPORARY: Enable to create new time columns, then set back to false
+            synchronize: false, // CRITICAL: Never enable in production - use migrations instead
             migrationsRun: true,
             migrations: [__dirname + '/../migrations/*{.ts,.js}'],
             logging: ['error', 'warn'] as any,

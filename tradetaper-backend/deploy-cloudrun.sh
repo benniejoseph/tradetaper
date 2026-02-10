@@ -41,6 +41,9 @@ gcloud run deploy ${SERVICE_NAME} \
   --min-instances 0 \
   --max-instances 5 \
   --cpu-boost \
+  --vpc-connector trade-taper-connector \
+  --vpc-egress private-ranges-only \
+  --set-secrets=GOOGLE_APPLICATION_CREDENTIALS=firebase-adminsdk:latest \
   --env-vars-file env-vars.yaml
 
 if [ $? -eq 0 ]; then
