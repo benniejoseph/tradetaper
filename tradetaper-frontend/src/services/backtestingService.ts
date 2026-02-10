@@ -42,7 +42,7 @@ export const backtestingService = {
   // ============ CRUD ============
 
   async createTrade(data: CreateBacktestTradeDto): Promise<BacktestTrade> {
-    const response = await fetch(`${API_URL}/api/v1/backtesting/trades`, {
+    const response = await fetch(`${API_URL}/backtesting/trades`, {
       method: 'POST',
       headers: getAuthHeaders(),
       credentials: 'include', // ✅ Send cookies (JWT)
@@ -90,7 +90,7 @@ export const backtestingService = {
       params.append('limit', pagination.limit.toString());
     }
 
-    const url = `${API_URL}/api/v1/backtesting/trades${params.toString() ? `?${params}` : ''}`;
+    const url = `${API_URL}/backtesting/trades${params.toString() ? `?${params}` : ''}`;
     const response = await fetch(url, {
       headers: getAuthHeaders(),
       credentials: 'include', // ✅ Send cookies (JWT)
@@ -108,7 +108,7 @@ export const backtestingService = {
   },
 
   async getTrade(id: string): Promise<BacktestTrade> {
-    const response = await fetch(`${API_URL}/api/v1/backtesting/trades/${id}`, {
+    const response = await fetch(`${API_URL}/backtesting/trades/${id}`, {
       headers: getAuthHeaders(),
       credentials: 'include', // ✅ Send cookies (JWT)
     });
@@ -118,7 +118,7 @@ export const backtestingService = {
   },
 
   async updateTrade(id: string, data: Partial<CreateBacktestTradeDto>): Promise<BacktestTrade> {
-    const response = await fetch(`${API_URL}/api/v1/backtesting/trades/${id}`, {
+    const response = await fetch(`${API_URL}/backtesting/trades/${id}`, {
       method: 'PATCH',
       headers: getAuthHeaders(),
       body: JSON.stringify(data),
@@ -129,7 +129,7 @@ export const backtestingService = {
   },
 
   async deleteTrade(id: string): Promise<void> {
-    const response = await fetch(`${API_URL}/api/v1/backtesting/trades/${id}`, {
+    const response = await fetch(`${API_URL}/backtesting/trades/${id}`, {
       method: 'DELETE',
       headers: getAuthHeaders(),
       credentials: 'include', // ✅ Send cookies (JWT)
@@ -140,7 +140,7 @@ export const backtestingService = {
   // ============ ANALYTICS ============
 
   async getOverallStats(): Promise<BacktestStats> {
-    const response = await fetch(`${API_URL}/api/v1/backtesting/stats`, {
+    const response = await fetch(`${API_URL}/backtesting/stats`, {
       headers: getAuthHeaders(),
       credentials: 'include', // ✅ Send cookies (JWT)
     });
@@ -161,7 +161,7 @@ export const backtestingService = {
   },
 
   async getStrategyStats(strategyId: string): Promise<BacktestStats> {
-    const response = await fetch(`${API_URL}/api/v1/backtesting/strategies/${strategyId}/stats`, {
+    const response = await fetch(`${API_URL}/backtesting/strategies/${strategyId}/stats`, {
       headers: getAuthHeaders(),
       credentials: 'include', // ✅ Send cookies (JWT)
     });
@@ -184,7 +184,7 @@ export const backtestingService = {
     dimension: 'symbol' | 'session' | 'timeframe' | 'killZone' | 'dayOfWeek' | 'setupType'
   ): Promise<DimensionStats[]> {
     const response = await fetch(
-      `${API_URL}/api/v1/backtesting/strategies/${strategyId}/dimension/${dimension}`,
+      `${API_URL}/backtesting/strategies/${strategyId}/dimension/${dimension}`,
       {
         headers: getAuthHeaders(),
         credentials: 'include' // ✅ Send cookies (JWT)
@@ -206,7 +206,7 @@ export const backtestingService = {
     columns: 'symbol' | 'session' | 'timeframe' = 'symbol'
   ): Promise<PerformanceMatrix> {
     const response = await fetch(
-      `${API_URL}/api/v1/backtesting/strategies/${strategyId}/matrix?rows=${rows}&columns=${columns}`,
+      `${API_URL}/backtesting/strategies/${strategyId}/matrix?rows=${rows}&columns=${columns}`,
       {
         headers: getAuthHeaders(),
         credentials: 'include' // ✅ Send cookies (JWT)
@@ -226,7 +226,7 @@ export const backtestingService = {
 
   async getAnalysisData(strategyId: string): Promise<AnalysisData> {
     const response = await fetch(
-      `${API_URL}/api/v1/backtesting/strategies/${strategyId}/analysis`,
+      `${API_URL}/backtesting/strategies/${strategyId}/analysis`,
       {
         headers: getAuthHeaders(),
         credentials: 'include' // ✅ Send cookies (JWT)
@@ -252,7 +252,7 @@ export const backtestingService = {
   },
 
   async getSymbols(): Promise<string[]> {
-    const response = await fetch(`${API_URL}/api/v1/backtesting/symbols`, {
+    const response = await fetch(`${API_URL}/backtesting/symbols`, {
       headers: getAuthHeaders(),
       credentials: 'include', // ✅ Send cookies (JWT)
     });
@@ -263,7 +263,7 @@ export const backtestingService = {
   // ============ MARKET LOGS ============
 
   async createLog(data: CreateMarketLogDto): Promise<MarketLog> {
-    const response = await fetch(`${API_URL}/api/v1/backtesting/logs`, {
+    const response = await fetch(`${API_URL}/backtesting/logs`, {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify(data),
@@ -297,7 +297,7 @@ export const backtestingService = {
       });
     }
 
-    const url = `${API_URL}/api/v1/backtesting/logs${params.toString() ? `?${params}` : ''}`;
+    const url = `${API_URL}/backtesting/logs${params.toString() ? `?${params}` : ''}`;
     const response = await fetch(url, {
       headers: getAuthHeaders(),
       credentials: 'include', // ✅ Send cookies (JWT)
@@ -307,7 +307,7 @@ export const backtestingService = {
   },
 
   async getLog(id: string): Promise<MarketLog> {
-    const response = await fetch(`${API_URL}/api/v1/backtesting/logs/${id}`, {
+    const response = await fetch(`${API_URL}/backtesting/logs/${id}`, {
       headers: getAuthHeaders(),
       credentials: 'include', // ✅ Send cookies (JWT)
     });
@@ -316,7 +316,7 @@ export const backtestingService = {
   },
 
   async updateLog(id: string, data: UpdateMarketLogDto): Promise<MarketLog> {
-    const response = await fetch(`${API_URL}/api/v1/backtesting/logs/${id}`, {
+    const response = await fetch(`${API_URL}/backtesting/logs/${id}`, {
       method: 'PATCH',
       headers: getAuthHeaders(),
       body: JSON.stringify(data),
@@ -326,7 +326,7 @@ export const backtestingService = {
   },
 
   async deleteLog(id: string): Promise<void> {
-    const response = await fetch(`${API_URL}/api/v1/backtesting/logs/${id}`, {
+    const response = await fetch(`${API_URL}/backtesting/logs/${id}`, {
       method: 'DELETE',
       headers: getAuthHeaders(),
       credentials: 'include', // ✅ Send cookies (JWT)
@@ -335,7 +335,7 @@ export const backtestingService = {
   },
 
   async analyzePatterns(): Promise<{ totalLogs: number; discoveries: MarketPatternDiscovery[] }> {
-    const response = await fetch(`${API_URL}/api/v1/backtesting/logs/analysis`, {
+    const response = await fetch(`${API_URL}/backtesting/logs/analysis`, {
       headers: getAuthHeaders(),
       credentials: 'include', // ✅ Send cookies (JWT)
     });
@@ -362,7 +362,7 @@ export const backtestingService = {
     }
     params.append('format', 'csv');
 
-    const url = `${API_URL}/api/v1/backtesting/trades/export${params.toString() ? `?${params}` : ''}`;
+    const url = `${API_URL}/backtesting/trades/export${params.toString() ? `?${params}` : ''}`;
     const response = await fetch(url, {
       headers: getAuthHeaders(),
       credentials: 'include', // ✅ Send cookies (JWT)
@@ -386,7 +386,7 @@ export const backtestingService = {
     dimensionAnalysis: any;
   }> {
     const response = await fetch(
-      `${API_URL}/api/v1/backtesting/strategies/${strategyId}/export`,
+      `${API_URL}/backtesting/strategies/${strategyId}/export`,
       {
         headers: getAuthHeaders(),
         credentials: 'include', // ✅ Send cookies (JWT)
@@ -424,7 +424,7 @@ export const backtestingService = {
   // ============ AI INSIGHTS ============
 
   async *streamInsights(strategyId: string): AsyncGenerator<string> {
-    const url = `${API_URL}/api/v1/backtesting/strategies/${strategyId}/insights`;
+    const url = `${API_URL}/backtesting/strategies/${strategyId}/insights`;
 
     const response = await fetch(url, {
       headers: getAuthHeaders(),
@@ -475,7 +475,7 @@ export const backtestingService = {
     const formData = new FormData();
     formData.append('file', file);
 
-    const response = await fetch(`${API_URL}/api/v1/upload/screenshot`, {
+    const response = await fetch(`${API_URL}/upload/screenshot`, {
       method: 'POST',
       credentials: 'include', // ✅ Send cookies (JWT)
       body: formData, // Don't set Content-Type header - browser will set it with boundary
