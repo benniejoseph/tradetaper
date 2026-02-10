@@ -1,19 +1,10 @@
 "use client";
 
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import ThreeGlobe from "three-globe";
-import { useFrame, extend, Object3DNode } from "@react-three/fiber";
+import { useFrame, useThree } from "@react-three/fiber";
 import { Color } from "three";
 import countries from "@/data/countries.json";
-
-// Extend ThreeGlobe so it can be used as a JSX element
-extend({ ThreeGlobe });
-
-declare module "@react-three/fiber" {
-  interface ThreeElements {
-    threeGlobe: Object3DNode<ThreeGlobe, typeof ThreeGlobe>;
-  }
-}
 
 export type GlobeConfig = {
   pointSize?: number;
@@ -47,6 +38,7 @@ interface WorldProps {
 
 export default function GlobeContent({ globeConfig }: WorldProps) {
   const globeRef = useRef<ThreeGlobe>(null);
+  const [globeObj, setGlobeObj] = useState<ThreeGlobe | null>(null);
 
   const defaultProps = {
     pointSize: 1,
@@ -65,51 +57,41 @@ export default function GlobeContent({ globeConfig }: WorldProps) {
   };
 
   useEffect(() => {
-    if (globeRef.current) {
-      _buildData();
-      _buildMaterial();
-    }
-  }, [globeRef.current]);
+    // Instantiate ThreeGlobe manually
+    const globe = new ThreeGlobe()
+      .hexPolygonsData(countries.features)
+      .hexPolygonResolution(3)
+      .hexPolygonMargin(0.7)
+      .showAtmosphere(defaultProps.showAtmosphere)
+      .atmosphereColor(defaultProps.atmosphereColor)
+      .atmosphereAltitude(defaultProps.atmosphereAltitude)
+      .hexPolygonColor(() => {
+        return defaultProps.polygonColor;
+      });
 
-  const _buildMaterial = () => {
-    if (!globeRef.current) return;
-
-    const globeMaterial = globeRef.current.globeMaterial() as THREE.MeshPhongMaterial;
+    // Rotate to initial position
+    globe.rotateY(-Math.PI * (5 / 9));
+    globe.rotateZ(-Math.PI / 6);
+    
+    // Apply material props
+    const globeMaterial = globe.globeMaterial() as THREE.MeshPhongMaterial;
     globeMaterial.color = new Color(globeConfig.globeColor || "#1d072e");
     globeMaterial.emissive = new Color(globeConfig.emissive || "#000000");
     globeMaterial.emissiveIntensity = globeConfig.emissiveIntensity || 0.1;
     globeMaterial.shininess = globeConfig.shininess || 0.9;
-  };
 
-  const _buildData = () => {
-    if (globeRef.current) {
-      globeRef.current
-        .hexPolygonsData(countries.features)
-        .hexPolygonResolution(3)
-        .hexPolygonMargin(0.7)
-        .showAtmosphere(defaultProps.showAtmosphere)
-        .atmosphereColor(defaultProps.atmosphereColor)
-        .atmosphereAltitude(defaultProps.atmosphereAltitude)
-        .hexPolygonColor(() => {
-          return defaultProps.polygonColor;
-        });
-        
-      globeRef.current.rotateY(-Math.PI * (5 / 9));
-      globeRef.current.rotateZ(-Math.PI / 6);
-    }
-  };
+    setGlobeObj(globe);
+  }, []);
 
-  useFrame((state) => {
-    if (!globeRef.current) return;
-    
-    if(globeConfig.autoRotate){
-         globeRef.current.rotation.y += globeConfig.autoRotateSpeed || 0.001;
+  useFrame(() => {
+    if (globeObj && globeConfig.autoRotate) {
+       globeObj.rotation.y += globeConfig.autoRotateSpeed || 0.001;
     }
   });
 
   return (
     <>
-      <threeGlobe ref={globeRef} />
+      {globeObj && <primitive object={globeObj} />}
       <mesh position={[0, 0, 0]}>
         <boxGeometry args={[100, 100, 100]} />
         <meshBasicMaterial color="hotpink" wireframe />
