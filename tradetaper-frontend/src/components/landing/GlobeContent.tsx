@@ -75,9 +75,9 @@ export default function GlobeContent({ globeConfig }: WorldProps) {
     
     // Apply material props to the globe sphere itself (ocean)
     const globeMaterial = globe.globeMaterial() as THREE.MeshPhongMaterial;
-    globeMaterial.color = new Color(globeConfig.globeColor || "#10357a");
-    globeMaterial.emissive = new Color(globeConfig.emissive || "#062056");
-    globeMaterial.emissiveIntensity = 0.3;
+    globeMaterial.color = new Color(globeConfig.globeColor || "#3b82f6");
+    globeMaterial.emissive = new Color(globeConfig.emissive || "#1d4ed8");
+    globeMaterial.emissiveIntensity = 0.6;
     globeMaterial.shininess = 0.9;
     globeMaterial.opacity = 1; 
     globeMaterial.transparent = true;
