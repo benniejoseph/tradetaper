@@ -8,6 +8,7 @@ import { BacktestTrade, TIMEFRAMES, SESSIONS, OUTCOMES } from '@/types/backtesti
 import { strategiesService } from '@/services/strategiesService';
 import { backtestingService } from '@/services/backtestingService';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
+import ExportButton from '@/components/backtesting/ExportButton';
 import { FiArrowLeft, FiPlus, FiTrash2, FiFilter, FiTrendingUp, FiTrendingDown } from 'react-icons/fi';
 
 function ContentHeader({ title, description }: { title: string; description?: string }) {
@@ -179,7 +180,18 @@ function BacktestTradesContent() {
           ))}
         </select>
 
-        <div className="ml-auto">
+        <div className="ml-auto flex items-center gap-3">
+          <ExportButton
+            variant="trades"
+            filters={{
+              strategyId: selectedStrategyId,
+              symbol: symbolFilter || undefined,
+              session: sessionFilter || undefined,
+              timeframe: timeframeFilter || undefined,
+              outcome: outcomeFilter || undefined,
+            }}
+            label="Export CSV"
+          />
           <Link
             href={`/backtesting/new?strategyId=${selectedStrategyId}`}
             className="inline-flex items-center px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
