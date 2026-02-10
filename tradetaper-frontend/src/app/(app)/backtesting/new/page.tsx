@@ -29,6 +29,7 @@ import { strategiesService } from '@/services/strategiesService';
 import { backtestingService } from '@/services/backtestingService';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { FiArrowLeft, FiSave, FiStar } from 'react-icons/fi';
+import ScreenshotUpload from '@/components/backtesting/ScreenshotUpload';
 
 function ContentHeader({ title, description }: { title: string; description?: string }) {
   return (
@@ -610,13 +611,11 @@ function NewBacktestTradeContent() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Screenshot URL</label>
-              <input
-                type="url"
-                value={formData.screenshotUrl || ''}
-                onChange={(e) => updateField('screenshotUrl', e.target.value)}
-                placeholder="https://..."
-                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600/30 rounded-lg bg-white dark:bg-black text-gray-900 dark:text-white"
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Screenshot</label>
+              <ScreenshotUpload
+                value={formData.screenshotUrl || undefined}
+                onChange={(url) => updateField('screenshotUrl', url || '')}
+                disabled={submitting}
               />
             </div>
           </div>

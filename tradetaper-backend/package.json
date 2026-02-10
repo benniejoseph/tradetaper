@@ -30,7 +30,7 @@
   },
   "dependencies": {
     "@google-cloud/cloud-sql-connector": "^1.2.1",
-    "@google-cloud/storage": "^7.7.0",
+    "@google-cloud/storage": "^7.19.0",
     "@google/generative-ai": "^0.15.0",
     "@keyv/redis": "^5.1.6",
     "@langchain/textsplitters": "^1.0.1",

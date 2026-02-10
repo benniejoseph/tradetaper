@@ -468,4 +468,27 @@ export const backtestingService = {
       reader.releaseLock();
     }
   },
+
+  // ============ FILE UPLOAD ============
+
+  async uploadScreenshot(file: File): Promise<{ url: string; filename: string; size: number; mimetype: string }> {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await fetch(`${API_URL}/api/v1/upload/screenshot`, {
+      method: 'POST',
+      credentials: 'include', // ✅ Send cookies (JWT)
+      body: formData, // Don't set Content-Type header - browser will set it with boundary
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ message: 'Failed to upload screenshot' }));
+      throw new Error(error.message || 'Failed to upload screenshot');
+    }
+
+    return response.json();
+  },
 };
+
+// Export uploadScreenshot as named export for easier importing
+export const uploadScreenshot = backtestingService.uploadScreenshot.bind(backtestingService);

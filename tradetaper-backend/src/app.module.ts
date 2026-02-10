@@ -33,6 +33,7 @@ import { StatementParserModule } from './statement-parser/statement-parser.modul
 import { TerminalFarmModule } from './terminal-farm/terminal-farm.module';
 import { DisciplineModule } from './discipline/discipline.module';
 import { SubscriptionsModule } from './subscriptions/subscriptions.module';
+import { UploadModule } from './upload/upload.module';
 
 @Module({
   imports: [
@@ -92,6 +93,7 @@ import { SubscriptionsModule } from './subscriptions/subscriptions.module';
     TerminalFarmModule, // MT5 terminal auto-sync infrastructure
     DisciplineModule, // Trade discipline, gamification, pre-trade approvals
     SubscriptionsModule,
+    UploadModule, // File upload (screenshots, documents)
   ],
   controllers: [AppController],
   providers: [AppService],
