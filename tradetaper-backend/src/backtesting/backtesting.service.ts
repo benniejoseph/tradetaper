@@ -969,19 +969,19 @@ export class BacktestingService {
       trade.exitPrice?.toString() || '',
       trade.stopLoss?.toString() || '',
       trade.takeProfit?.toString() || '',
-      trade.riskAmount?.toString() || '',
+      '', // Risk Amount - not stored
       trade.pnlDollars?.toString() || '',
       trade.pnlPips?.toString() || '',
       trade.rMultiple?.toString() || '',
       trade.outcome || '',
-      trade.entryModel || '',
-      trade.poi || '',
+      trade.ictConcept || '', // Entry Model = ICT Concept
+      '', // POI - not stored
       trade.htfBias || '',
       trade.entryQuality?.toString() || '',
       trade.followedRules ? 'Yes' : 'No',
       trade.checklistScore?.toString() || '',
-      trade.mistakes || '',
-      trade.lessonsLearned || '',
+      '', // Mistakes - not stored
+      trade.lessonLearned || '', // Fixed: singular not plural
       trade.dayOfWeek || '',
     ]);
 

@@ -42,6 +42,7 @@ const statement_parser_module_1 = require("./statement-parser/statement-parser.m
 const terminal_farm_module_1 = require("./terminal-farm/terminal-farm.module");
 const discipline_module_1 = require("./discipline/discipline.module");
 const subscriptions_module_1 = require("./subscriptions/subscriptions.module");
+const upload_module_1 = require("./upload/upload.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -98,6 +99,7 @@ exports.AppModule = AppModule = __decorate([
             terminal_farm_module_1.TerminalFarmModule,
             discipline_module_1.DisciplineModule,
             subscriptions_module_1.SubscriptionsModule,
+            upload_module_1.UploadModule,
         ],
         controllers: [app_controller_1.AppController],
         providers: [app_service_1.AppService],
