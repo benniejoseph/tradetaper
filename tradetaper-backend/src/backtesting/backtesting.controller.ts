@@ -17,6 +17,8 @@ import { Response } from 'express';
 import { BacktestingService } from './backtesting.service';
 import { TagService } from './services/tag.service';
 import { BacktestInsightsService } from './services/backtest-insights.service';
+import { CandleManagementService } from './services/candle-management.service';
+import { ReplaySessionService } from './services/replay-session.service';
 import { CreateBacktestTradeDto } from './dto/create-backtest-trade.dto';
 import { UpdateBacktestTradeDto } from './dto/update-backtest-trade.dto';
 import { CreateMarketLogDto } from './dto/create-market-log.dto';
@@ -30,6 +32,8 @@ export class BacktestingController {
     private readonly backtestingService: BacktestingService,
     private readonly tagService: TagService,
     private readonly insightsService: BacktestInsightsService,
+    private readonly candleManagementService: CandleManagementService,
+    private readonly replaySessionService: ReplaySessionService,
   ) {}
 
   // ============ CRUD ============
@@ -344,5 +348,116 @@ export class BacktestingController {
       filename: `strategy-report-${strategyId}-${new Date().toISOString().split('T')[0]}.csv`,
       format: 'csv',
     };
+  }
+
+  // ============ CANDLE DATA ============
+
+  @Get('candles/:symbol')
+  async getMarketCandles(
+    @Param('symbol') symbol: string,
+    @Query('timeframe') timeframe: string,
+    @Query('startDate') startDate: string,
+    @Query('endDate') endDate: string,
+    @Request() req,
+  ) {
+    const start = new Date(startDate);
+    const end = endDate ? new Date(endDate) : new Date();
+    const tf = timeframe || '1h';
+
+    return this.candleManagementService.getCandles(symbol, tf, start, end);
+  }
+
+  @Post('candles/:symbol/fetch')
+  async fetchCandles(
+    @Param('symbol') symbol: string,
+    @Body() body: { timeframe: string; startDate: string; endDate: string },
+    @Request() req,
+  ) {
+    const start = new Date(body.startDate);
+    const end = body.endDate ? new Date(body.endDate) : new Date();
+
+    await this.candleManagementService.fetchAndStoreCandles(
+      symbol,
+      body.timeframe,
+      start,
+      end,
+    );
+
+    return { message: 'Candles fetched and stored successfully' };
+  }
+
+  // ============ REPLAY SESSIONS ============
+
+  @Post('sessions')
+  async createSession(
+    @Body()
+    body: {
+      symbol: string;
+      timeframe: string;
+      startDate: string;
+      endDate: string;
+      startingBalance?: number;
+    },
+    @Request() req,
+  ) {
+    return this.replaySessionService.createSession({
+      userId: req.user.id,
+      symbol: body.symbol,
+      timeframe: body.timeframe,
+      startDate: new Date(body.startDate),
+      endDate: new Date(body.endDate),
+      startingBalance: body.startingBalance,
+    });
+  }
+
+  @Get('sessions')
+  async getUserSessions(@Request() req) {
+    return this.replaySessionService.getUserSessions(req.user.id);
+  }
+
+  @Get('sessions/:id')
+  async getSession(@Param('id', ParseUUIDPipe) id: string, @Request() req) {
+    return this.replaySessionService.getSession(id);
+  }
+
+  @Patch('sessions/:id')
+  async updateSession(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body()
+    body: {
+      trades?: any[];
+      endingBalance?: number;
+      totalPnl?: number;
+      status?: 'in_progress' | 'completed' | 'abandoned';
+    },
+    @Request() req,
+  ) {
+    return this.replaySessionService.updateSession(id, body);
+  }
+
+  @Post('sessions/:id/complete')
+  async completeSession(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: { endingBalance: number; trades: any[] },
+    @Request() req,
+  ) {
+    return this.replaySessionService.completeSession(id, body);
+  }
+
+  @Delete('sessions/:id')
+  async deleteSession(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Request() req,
+  ) {
+    await this.replaySessionService.deleteSession(id);
+    return { message: 'Session deleted successfully' };
+  }
+
+  @Post('sessions/:id/abandon')
+  async abandonSession(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Request() req,
+  ) {
+    return this.replaySessionService.abandonSession(id);
   }
 }

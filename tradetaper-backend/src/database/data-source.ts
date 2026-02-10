@@ -16,6 +16,10 @@ import { PsychologicalInsight } from '../notes/entities/psychological-insight.en
 import { KnowledgeDocument } from '../knowledge-base/entities/knowledge-document.entity';
 import { VectorEmbedding } from '../knowledge-base/entities/vector-embedding.entity';
 import { TradeCandle } from '../trades/entities/trade-candle.entity';
+import { BacktestTrade } from '../backtesting/entities/backtest-trade.entity';
+import { MarketLog } from '../backtesting/entities/market-log.entity';
+import { MarketCandle } from '../backtesting/entities/market-candle.entity';
+import { ReplaySession } from '../backtesting/entities/replay-session.entity';
 import { Connector } from '@google-cloud/cloud-sql-connector';
 
 const isProduction = process.env.NODE_ENV === 'production';
@@ -61,6 +65,11 @@ async function createDataSource() {
           PsychologicalInsight,
           KnowledgeDocument,
           VectorEmbedding,
+          TradeCandle,
+          BacktestTrade,
+          MarketLog,
+          MarketCandle,
+          ReplaySession,
         ],
         migrations: ['dist/migrations/*{.ts,.js}'],
         synchronize: false,
@@ -92,6 +101,11 @@ async function createDataSource() {
           PsychologicalInsight,
           KnowledgeDocument,
           VectorEmbedding,
+          TradeCandle,
+          BacktestTrade,
+          MarketLog,
+          MarketCandle,
+          ReplaySession,
         ],
         migrations: ['dist/migrations/*{.ts,.js}'],
         synchronize: false,
@@ -124,6 +138,11 @@ async function createDataSource() {
         PsychologicalInsight,
         KnowledgeDocument,
         VectorEmbedding,
+        TradeCandle,
+        BacktestTrade,
+        MarketLog,
+        MarketCandle,
+        ReplaySession,
       ],
       migrations: ['src/migrations/*{.ts,.js}'],
       synchronize: false,
