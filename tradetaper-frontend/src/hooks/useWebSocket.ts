@@ -43,6 +43,15 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
     // Add namespace to URL if provided
     const socketUrl = namespace ? `${WEBSOCKET_URL}${namespace}` : WEBSOCKET_URL;
 
+    // Get JWT token from cookie (backend expects it)
+    const getTokenFromCookie = () => {
+      const cookies = document.cookie.split('; ');
+      const authCookie = cookies.find(c => c.startsWith('auth_token='));
+      return authCookie ? authCookie.split('=')[1] : null;
+    };
+
+    const token = getTokenFromCookie();
+
     const socket = io(socketUrl, {
       transports: ['websocket', 'polling'],
       reconnection: true,
@@ -50,6 +59,10 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
       reconnectionDelay: 1000,
       reconnectionDelayMax: 5000,
       timeout: 10000,
+      // ✅ Send JWT token for authentication
+      auth: token ? { token } : undefined,
+      // Also send in query as fallback
+      query: token ? { token } : undefined,
     });
 
     socketRef.current = socket;
