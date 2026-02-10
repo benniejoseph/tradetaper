@@ -73,12 +73,14 @@ export default function GlobeContent({ globeConfig }: WorldProps) {
     globe.rotateY(-Math.PI * (5 / 9));
     globe.rotateZ(-Math.PI / 6);
     
-    // Apply material props
+    // Apply material props to the globe sphere itself (ocean)
     const globeMaterial = globe.globeMaterial() as THREE.MeshPhongMaterial;
-    globeMaterial.color = new Color(globeConfig.globeColor || "#1d072e");
+    globeMaterial.color = new Color(globeConfig.globeColor || "#062056");
     globeMaterial.emissive = new Color(globeConfig.emissive || "#000000");
     globeMaterial.emissiveIntensity = globeConfig.emissiveIntensity || 0.1;
     globeMaterial.shininess = globeConfig.shininess || 0.9;
+    globeMaterial.opacity = 0.9; // Make sure it's not transparent
+    globeMaterial.transparent = true;
 
     setGlobeObj(globe);
   }, []);
@@ -92,10 +94,6 @@ export default function GlobeContent({ globeConfig }: WorldProps) {
   return (
     <>
       {globeObj && <primitive object={globeObj} />}
-      <mesh position={[0, 0, 0]}>
-        <boxGeometry args={[100, 100, 100]} />
-        <meshBasicMaterial color="hotpink" wireframe />
-      </mesh>
     </>
   );
 }
