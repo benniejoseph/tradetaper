@@ -33,7 +33,8 @@ export default function ReplaySessionsPage() {
   const fetchSessions = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/v1/backtesting/sessions', {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || '/api/v1';
+      const response = await fetch(`${apiUrl}/backtesting/sessions`, {
         credentials: 'include',
       });
 
@@ -55,7 +56,8 @@ export default function ReplaySessionsPage() {
     if (!confirm('Are you sure you want to delete this session?')) return;
 
     try {
-      const response = await fetch(`/api/v1/backtesting/sessions/${sessionId}`, {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || '/api/v1';
+      const response = await fetch(`${apiUrl}/backtesting/sessions/${sessionId}`, {
         method: 'DELETE',
         credentials: 'include',
       });

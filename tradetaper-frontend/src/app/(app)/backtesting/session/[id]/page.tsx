@@ -50,8 +50,9 @@ export default function BacktestSessionPage({ params }: { params: { id: string }
       setLoading(true);
       setError(null);
 
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || '/api/v1';
       const response = await fetch(
-        `/api/v1/backtesting/candles/${symbol}?timeframe=${timeframe}&startDate=${startDate}&endDate=${endDate}`,
+        `${apiUrl}/backtesting/candles/${symbol}?timeframe=${timeframe}&startDate=${startDate}&endDate=${endDate}`,
         {
           credentials: 'include',
           headers: {
