@@ -28,7 +28,7 @@ import { Strategy } from '../../strategies/entities/strategy.entity';
 import { RazorpayService } from './razorpay.service';
 import { Between } from 'typeorm';
 import { NotificationsService } from '../../notifications/notifications.service';
-import { NotificationType } from '../../notifications/entities/notification.entity';
+import { NotificationType, NotificationPriority } from '../../notifications/entities/notification.entity';
 
 export interface PricingPlan {
   id: string; // 'free' | 'essential' | 'premium'
@@ -740,7 +740,7 @@ export class SubscriptionService {
           type: NotificationType.SUBSCRIPTION_EXPIRY,
           title: 'Subscription Expiring Soon',
           message: `Your ${subscription.plan} subscription will expire in 7 days on ${subscription.currentPeriodEnd.toLocaleDateString()}`,
-          priority: 'high',
+          priority: NotificationPriority.HIGH,
           data: {
             subscriptionId: subscription.id,
             plan: subscription.plan,

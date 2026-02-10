@@ -27,6 +27,8 @@ const note_entity_1 = require("../../notes/entities/note.entity");
 const strategy_entity_1 = require("../../strategies/entities/strategy.entity");
 const razorpay_service_1 = require("./razorpay.service");
 const typeorm_3 = require("typeorm");
+const notifications_service_1 = require("../../notifications/notifications.service");
+const notification_entity_1 = require("../../notifications/entities/notification.entity");
 let SubscriptionService = SubscriptionService_1 = class SubscriptionService {
     subscriptionRepository;
     userRepository;
@@ -37,9 +39,10 @@ let SubscriptionService = SubscriptionService_1 = class SubscriptionService {
     strategyRepository;
     configService;
     razorpayService;
+    notificationsService;
     logger = new common_1.Logger(SubscriptionService_1.name);
     pricingPlans;
-    constructor(subscriptionRepository, userRepository, tradeRepository, accountRepository, mt5AccountRepository, noteRepository, strategyRepository, configService, razorpayService) {
+    constructor(subscriptionRepository, userRepository, tradeRepository, accountRepository, mt5AccountRepository, noteRepository, strategyRepository, configService, razorpayService, notificationsService) {
         this.subscriptionRepository = subscriptionRepository;
         this.userRepository = userRepository;
         this.tradeRepository = tradeRepository;
@@ -49,6 +52,7 @@ let SubscriptionService = SubscriptionService_1 = class SubscriptionService {
         this.strategyRepository = strategyRepository;
         this.configService = configService;
         this.razorpayService = razorpayService;
+        this.notificationsService = notificationsService;
         this.pricingPlans = [
             {
                 id: 'free',
@@ -408,6 +412,24 @@ let SubscriptionService = SubscriptionService_1 = class SubscriptionService {
                 this.logger.log(`Subscription charged for user ${subscription.userId}`);
                 subscription.status = subscription_entity_1.SubscriptionStatus.ACTIVE;
                 await this.updateSubscriptionFromRazorpay(subscription, subscriptionEntity);
+                try {
+                    await this.notificationsService.send({
+                        userId: subscription.userId,
+                        type: notification_entity_1.NotificationType.SUBSCRIPTION_RENEWED,
+                        title: 'Subscription Renewed',
+                        message: `Your ${subscription.plan} subscription has been successfully renewed`,
+                        data: {
+                            subscriptionId: subscription.id,
+                            plan: subscription.plan,
+                            tier: subscription.tier,
+                            currentPeriodEnd: subscription.currentPeriodEnd,
+                            razorpaySubscriptionId: subscription.razorpaySubscriptionId,
+                        },
+                    });
+                }
+                catch (error) {
+                    this.logger.error(`Failed to send subscription renewed notification: ${error.message}`);
+                }
                 break;
             case 'subscription.cancelled':
                 this.logger.log(`Subscription cancelled for user ${subscription.userId}`);
@@ -452,6 +474,44 @@ let SubscriptionService = SubscriptionService_1 = class SubscriptionService {
         subscription.status = subscription_entity_1.SubscriptionStatus.ACTIVE;
         subscription.cancelAtPeriodEnd = false;
     }
+    async sendExpiryWarnings() {
+        const sevenDaysFromNow = new Date();
+        sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7);
+        const oneDayFromNow = new Date();
+        oneDayFromNow.setDate(oneDayFromNow.getDate() + 8);
+        const expiringSubscriptions = await this.subscriptionRepository
+            .createQueryBuilder('subscription')
+            .where('subscription.currentPeriodEnd BETWEEN :start AND :end', {
+            start: sevenDaysFromNow,
+            end: oneDayFromNow,
+        })
+            .andWhere('subscription.status = :status', { status: subscription_entity_1.SubscriptionStatus.ACTIVE })
+            .andWhere('subscription.cancelAtPeriodEnd = :cancel', { cancel: true })
+            .getMany();
+        this.logger.log(`Found ${expiringSubscriptions.length} subscriptions expiring in 7 days`);
+        for (const subscription of expiringSubscriptions) {
+            try {
+                await this.notificationsService.send({
+                    userId: subscription.userId,
+                    type: notification_entity_1.NotificationType.SUBSCRIPTION_EXPIRY,
+                    title: 'Subscription Expiring Soon',
+                    message: `Your ${subscription.plan} subscription will expire in 7 days on ${subscription.currentPeriodEnd.toLocaleDateString()}`,
+                    priority: notification_entity_1.NotificationPriority.HIGH,
+                    data: {
+                        subscriptionId: subscription.id,
+                        plan: subscription.plan,
+                        tier: subscription.tier,
+                        expiryDate: subscription.currentPeriodEnd,
+                    },
+                    actionUrl: '/billing',
+                });
+            }
+            catch (error) {
+                this.logger.error(`Failed to send expiry warning for subscription ${subscription.id}: ${error.message}`);
+            }
+        }
+        return expiringSubscriptions.length;
+    }
 };
 exports.SubscriptionService = SubscriptionService;
 exports.SubscriptionService = SubscriptionService = SubscriptionService_1 = __decorate([
@@ -463,6 +523,7 @@ exports.SubscriptionService = SubscriptionService = SubscriptionService_1 = __de
     __param(4, (0, typeorm_1.InjectRepository)(mt5_account_entity_1.MT5Account)),
     __param(5, (0, typeorm_1.InjectRepository)(note_entity_1.Note)),
     __param(6, (0, typeorm_1.InjectRepository)(strategy_entity_1.Strategy)),
+    __param(9, (0, common_1.Inject)((0, common_1.forwardRef)(() => notifications_service_1.NotificationsService))),
     __metadata("design:paramtypes", [typeorm_2.Repository,
         typeorm_2.Repository,
         typeorm_2.Repository,
@@ -471,6 +532,7 @@ exports.SubscriptionService = SubscriptionService = SubscriptionService_1 = __de
         typeorm_2.Repository,
         typeorm_2.Repository,
         config_1.ConfigService,
-        razorpay_service_1.RazorpayService])
+        razorpay_service_1.RazorpayService,
+        notifications_service_1.NotificationsService])
 ], SubscriptionService);
 //# sourceMappingURL=subscription.service.js.map

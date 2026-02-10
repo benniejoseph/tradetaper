@@ -20,6 +20,7 @@ const note_entity_1 = require("../notes/entities/note.entity");
 const trade_candle_entity_1 = require("./entities/trade-candle.entity");
 const terminal_farm_module_1 = require("../terminal-farm/terminal-farm.module");
 const subscriptions_module_1 = require("../subscriptions/subscriptions.module");
+const notifications_module_1 = require("../notifications/notifications.module");
 let TradesModule = class TradesModule {
 };
 exports.TradesModule = TradesModule;
@@ -29,6 +30,7 @@ exports.TradesModule = TradesModule = __decorate([
             typeorm_1.TypeOrmModule.forFeature([trade_entity_1.Trade, note_entity_1.Note, trade_candle_entity_1.TradeCandle]),
             (0, common_1.forwardRef)(() => users_module_1.UsersModule),
             (0, common_1.forwardRef)(() => terminal_farm_module_1.TerminalFarmModule),
+            (0, common_1.forwardRef)(() => notifications_module_1.NotificationsModule),
             tags_module_1.TagsModule,
             subscriptions_module_1.SubscriptionsModule,
         ],

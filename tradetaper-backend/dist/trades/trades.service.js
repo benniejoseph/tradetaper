@@ -26,6 +26,8 @@ const accounts_service_1 = require("../users/accounts.service");
 const mt5_accounts_service_1 = require("../users/mt5-accounts.service");
 const trade_candle_entity_1 = require("./entities/trade-candle.entity");
 const terminal_farm_service_1 = require("../terminal-farm/terminal-farm.service");
+const notifications_service_1 = require("../notifications/notifications.service");
+const notification_entity_1 = require("../notifications/entities/notification.entity");
 let TradesService = TradesService_1 = class TradesService {
     tradesRepository;
     tradeCandleRepository;
@@ -35,8 +37,9 @@ let TradesService = TradesService_1 = class TradesService {
     accountsService;
     mt5AccountsService;
     terminalFarmService;
+    notificationsService;
     logger = new common_1.Logger(TradesService_1.name);
-    constructor(tradesRepository, tradeCandleRepository, tagRepository, tradesGateway, geminiVisionService, accountsService, mt5AccountsService, terminalFarmService) {
+    constructor(tradesRepository, tradeCandleRepository, tagRepository, tradesGateway, geminiVisionService, accountsService, mt5AccountsService, terminalFarmService, notificationsService) {
         this.tradesRepository = tradesRepository;
         this.tradeCandleRepository = tradeCandleRepository;
         this.tagRepository = tagRepository;
@@ -45,6 +48,7 @@ let TradesService = TradesService_1 = class TradesService {
         this.accountsService = accountsService;
         this.mt5AccountsService = mt5AccountsService;
         this.terminalFarmService = terminalFarmService;
+        this.notificationsService = notificationsService;
     }
     async getTradeCandles(tradeId, timeframe, userContext) {
         this.logger.debug(`Fetching candles for trade ${tradeId}, timeframe ${timeframe}`);
@@ -214,6 +218,24 @@ let TradesService = TradesService_1 = class TradesService {
             throw new common_1.NotFoundException(`Trade with id ${savedTrade.id} not found after creation`);
         }
         const [populatedTrade] = await this._populateAccountDetails([completeTradeData], userContext.id);
+        try {
+            await this.notificationsService.send({
+                userId: userContext.id,
+                type: notification_entity_1.NotificationType.TRADE_CREATED,
+                title: 'Trade Created',
+                message: `New ${populatedTrade.side} trade on ${populatedTrade.symbol}${populatedTrade.profitOrLoss ? ` - P/L: ${populatedTrade.profitOrLoss > 0 ? '+' : ''}${populatedTrade.profitOrLoss.toFixed(2)}` : ''}`,
+                data: {
+                    tradeId: populatedTrade.id,
+                    symbol: populatedTrade.symbol,
+                    side: populatedTrade.side,
+                    openPrice: populatedTrade.openPrice,
+                    status: populatedTrade.status,
+                },
+            });
+        }
+        catch (error) {
+            this.logger.error(`Failed to send trade created notification: ${error.message}`);
+        }
         this.logger.log(`Trade created successfully: ${savedTrade.id}`);
         return populatedTrade;
     }
@@ -336,6 +358,40 @@ let TradesService = TradesService_1 = class TradesService {
             trade.calculatePnl();
         }
         const updatedTrade = await this.tradesRepository.save(trade);
+        try {
+            if (updatedTrade.status === enums_1.TradeStatus.CLOSED && trade.status !== enums_1.TradeStatus.CLOSED) {
+                await this.notificationsService.send({
+                    userId: userContext.id,
+                    type: notification_entity_1.NotificationType.TRADE_CLOSED,
+                    title: 'Trade Closed',
+                    message: `${updatedTrade.side} trade on ${updatedTrade.symbol} closed${updatedTrade.profitOrLoss ? ` - P/L: ${updatedTrade.profitOrLoss > 0 ? '+' : ''}${updatedTrade.profitOrLoss.toFixed(2)}` : ''}`,
+                    data: {
+                        tradeId: updatedTrade.id,
+                        symbol: updatedTrade.symbol,
+                        side: updatedTrade.side,
+                        profitOrLoss: updatedTrade.profitOrLoss,
+                        status: updatedTrade.status,
+                    },
+                });
+            }
+            else {
+                await this.notificationsService.send({
+                    userId: userContext.id,
+                    type: notification_entity_1.NotificationType.TRADE_UPDATED,
+                    title: 'Trade Updated',
+                    message: `Trade on ${updatedTrade.symbol} has been updated`,
+                    data: {
+                        tradeId: updatedTrade.id,
+                        symbol: updatedTrade.symbol,
+                        side: updatedTrade.side,
+                        status: updatedTrade.status,
+                    },
+                });
+            }
+        }
+        catch (error) {
+            this.logger.error(`Failed to send trade update notification: ${error.message}`);
+        }
         return updatedTrade;
     }
     async remove(id, userContext) {
@@ -432,6 +488,7 @@ exports.TradesService = TradesService = TradesService_1 = __decorate([
     __param(5, (0, common_1.Inject)((0, common_1.forwardRef)(() => accounts_service_1.AccountsService))),
     __param(6, (0, common_1.Inject)((0, common_1.forwardRef)(() => mt5_accounts_service_1.MT5AccountsService))),
     __param(7, (0, common_1.Inject)((0, common_1.forwardRef)(() => terminal_farm_service_1.TerminalFarmService))),
+    __param(8, (0, common_1.Inject)((0, common_1.forwardRef)(() => notifications_service_1.NotificationsService))),
     __metadata("design:paramtypes", [typeorm_2.Repository,
         typeorm_2.Repository,
         typeorm_2.Repository,
@@ -439,6 +496,7 @@ exports.TradesService = TradesService = TradesService_1 = __decorate([
         gemini_vision_service_1.GeminiVisionService,
         accounts_service_1.AccountsService,
         mt5_accounts_service_1.MT5AccountsService,
-        terminal_farm_service_1.TerminalFarmService])
+        terminal_farm_service_1.TerminalFarmService,
+        notifications_service_1.NotificationsService])
 ], TradesService);
 //# sourceMappingURL=trades.service.js.map

@@ -11,6 +11,7 @@ import { AccountsService } from '../users/accounts.service';
 import { MT5AccountsService } from '../users/mt5-accounts.service';
 import { TradeCandle } from './entities/trade-candle.entity';
 import { TerminalFarmService } from '../terminal-farm/terminal-farm.service';
+import { NotificationsService } from '../notifications/notifications.service';
 export declare class TradesService {
     private readonly tradesRepository;
     private readonly tradeCandleRepository;
@@ -20,8 +21,9 @@ export declare class TradesService {
     private readonly accountsService;
     private readonly mt5AccountsService;
     private readonly terminalFarmService;
+    private readonly notificationsService;
     private readonly logger;
-    constructor(tradesRepository: Repository<Trade>, tradeCandleRepository: Repository<TradeCandle>, tagRepository: Repository<Tag>, tradesGateway: SimpleTradesGateway, geminiVisionService: GeminiVisionService, accountsService: AccountsService, mt5AccountsService: MT5AccountsService, terminalFarmService: TerminalFarmService);
+    constructor(tradesRepository: Repository<Trade>, tradeCandleRepository: Repository<TradeCandle>, tagRepository: Repository<Tag>, tradesGateway: SimpleTradesGateway, geminiVisionService: GeminiVisionService, accountsService: AccountsService, mt5AccountsService: MT5AccountsService, terminalFarmService: TerminalFarmService, notificationsService: NotificationsService);
     getTradeCandles(tradeId: string, timeframe: string, userContext: UserResponseDto): Promise<any[]>;
     saveExecutionCandles(tradeId: string, candles: any[]): Promise<void>;
     private _populateAccountDetails;

@@ -326,12 +326,12 @@ export class TradesService {
         userId: userContext.id,
         type: NotificationType.TRADE_CREATED,
         title: 'Trade Created',
-        message: `New ${populatedTrade.direction} trade on ${populatedTrade.symbol}${populatedTrade.profitOrLoss ? ` - P/L: ${populatedTrade.profitOrLoss > 0 ? '+' : ''}${populatedTrade.profitOrLoss.toFixed(2)}` : ''}`,
+        message: `New ${populatedTrade.side} trade on ${populatedTrade.symbol}${populatedTrade.profitOrLoss ? ` - P/L: ${populatedTrade.profitOrLoss > 0 ? '+' : ''}${populatedTrade.profitOrLoss.toFixed(2)}` : ''}`,
         data: {
           tradeId: populatedTrade.id,
           symbol: populatedTrade.symbol,
-          direction: populatedTrade.direction,
-          entryPrice: populatedTrade.entryPrice,
+          side: populatedTrade.side,
+          openPrice: populatedTrade.openPrice,
           status: populatedTrade.status,
         },
       });
@@ -535,11 +535,11 @@ export class TradesService {
           userId: userContext.id,
           type: NotificationType.TRADE_CLOSED,
           title: 'Trade Closed',
-          message: `${updatedTrade.direction} trade on ${updatedTrade.symbol} closed${updatedTrade.profitOrLoss ? ` - P/L: ${updatedTrade.profitOrLoss > 0 ? '+' : ''}${updatedTrade.profitOrLoss.toFixed(2)}` : ''}`,
+          message: `${updatedTrade.side} trade on ${updatedTrade.symbol} closed${updatedTrade.profitOrLoss ? ` - P/L: ${updatedTrade.profitOrLoss > 0 ? '+' : ''}${updatedTrade.profitOrLoss.toFixed(2)}` : ''}`,
           data: {
             tradeId: updatedTrade.id,
             symbol: updatedTrade.symbol,
-            direction: updatedTrade.direction,
+            side: updatedTrade.side,
             profitOrLoss: updatedTrade.profitOrLoss,
             status: updatedTrade.status,
           },
@@ -554,7 +554,7 @@ export class TradesService {
           data: {
             tradeId: updatedTrade.id,
             symbol: updatedTrade.symbol,
-            direction: updatedTrade.direction,
+            side: updatedTrade.side,
             status: updatedTrade.status,
           },
         });

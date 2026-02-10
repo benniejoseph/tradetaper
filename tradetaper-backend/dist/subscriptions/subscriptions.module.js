@@ -20,8 +20,10 @@ const note_entity_1 = require("../notes/entities/note.entity");
 const strategy_entity_1 = require("../strategies/entities/strategy.entity");
 const subscription_service_1 = require("./services/subscription.service");
 const razorpay_service_1 = require("./services/razorpay.service");
+const subscription_scheduler_service_1 = require("./services/subscription-scheduler.service");
 const subscriptions_controller_1 = require("./subscriptions.controller");
 const subscriptions_webhook_controller_1 = require("./subscriptions.webhook.controller");
+const notifications_module_1 = require("../notifications/notifications.module");
 let SubscriptionsModule = class SubscriptionsModule {
 };
 exports.SubscriptionsModule = SubscriptionsModule;
@@ -39,9 +41,10 @@ exports.SubscriptionsModule = SubscriptionsModule = __decorate([
                 note_entity_1.Note,
                 strategy_entity_1.Strategy,
             ]),
+            (0, common_1.forwardRef)(() => notifications_module_1.NotificationsModule),
         ],
         controllers: [subscriptions_controller_1.SubscriptionsController, subscriptions_webhook_controller_1.SubscriptionsWebhookController],
-        providers: [subscription_service_1.SubscriptionService, razorpay_service_1.RazorpayService],
+        providers: [subscription_service_1.SubscriptionService, razorpay_service_1.RazorpayService, subscription_scheduler_service_1.SubscriptionSchedulerService],
         exports: [subscription_service_1.SubscriptionService, razorpay_service_1.RazorpayService],
     })
 ], SubscriptionsModule);

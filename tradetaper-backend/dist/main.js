@@ -15,6 +15,31 @@ async function bootstrap() {
         console.log('🚀 TradeTaper Backend Starting...');
         console.log(`📊 Node.js: ${process.version}, ENV: ${process.env.NODE_ENV}, PORT: ${process.env.PORT}`);
         const app = await core_1.NestFactory.create(app_module_1.AppModule);
+        const corsOptions = {
+            origin: [
+                'http://localhost:3000',
+                'http://localhost:3001',
+                'http://localhost:3002',
+                'https://tradetaper.com',
+                'https://www.tradetaper.com',
+                'https://api.tradetaper.com',
+                'https://tradetaper-frontend.vercel.app',
+                'https://tradetaper-admin.vercel.app',
+                ...(process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',') : []),
+                process.env.FRONTEND_URL || 'https://tradetaper.com',
+            ],
+            methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+            allowedHeaders: [
+                'Content-Type',
+                'Authorization',
+                'X-CSRF-Token',
+                'CSRF-Token',
+                'x-csrf-token',
+            ],
+            credentials: true,
+        };
+        app.enableCors(corsOptions);
+        console.log('✅ CORS enabled with options:', JSON.stringify(corsOptions.origin));
         app.useWebSocketAdapter(new ws_jwt_adapter_1.WsJwtAdapter(app));
         console.log('🔐 WebSocket JWT authentication enabled');
         app.use((0, helmet_1.default)({
@@ -40,8 +65,8 @@ async function bootstrap() {
                 cookieName: '__Host-csrf',
                 cookieOptions: {
                     httpOnly: true,
-                    sameSite: 'strict',
-                    secure: process.env.NODE_ENV === 'production',
+                    sameSite: 'none',
+                    secure: true,
                     path: '/',
                 },
                 size: 64,
@@ -64,30 +89,6 @@ async function bootstrap() {
         }
         const port = process.env.PORT || 3000;
         console.log(`🔧 Using port: ${port}`);
-        const corsOptions = {
-            origin: [
-                'http://localhost:3000',
-                'http://localhost:3001',
-                'http://localhost:3002',
-                'https://tradetaper-frontend-benniejosephs-projects.vercel.app',
-                'https://tradetaper-frontend.vercel.app',
-                'https://tradetaper-admin.vercel.app',
-                'https://api.tradetaper.com',
-                'https://tradetaper.com',
-                'https://www.tradetaper.com',
-                'https://api.tradetaper.com',
-                process.env.FRONTEND_URL || 'https://tradetaper.com',
-            ],
-            methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-            allowedHeaders: [
-                'Content-Type',
-                'Authorization',
-                'X-CSRF-Token',
-                'CSRF-Token',
-            ],
-            credentials: true,
-        };
-        app.enableCors(corsOptions);
         app.setGlobalPrefix('api/v1');
         app.useGlobalPipes(new common_1.ValidationPipe({
             whitelist: true,

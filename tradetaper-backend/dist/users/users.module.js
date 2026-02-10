@@ -21,6 +21,7 @@ const mt5_accounts_controller_1 = require("./mt5-accounts.controller");
 const trade_history_parser_service_1 = require("./trade-history-parser.service");
 const trades_module_1 = require("../trades/trades.module");
 const subscriptions_module_1 = require("../subscriptions/subscriptions.module");
+const metaapi_service_1 = require("./metaapi.service");
 let UsersModule = class UsersModule {
 };
 exports.UsersModule = UsersModule;
@@ -37,6 +38,7 @@ exports.UsersModule = UsersModule = __decorate([
             accounts_service_1.AccountsService,
             mt5_accounts_service_1.MT5AccountsService,
             trade_history_parser_service_1.TradeHistoryParserService,
+            metaapi_service_1.MetaApiService,
         ],
         exports: [
             users_service_1.UsersService,

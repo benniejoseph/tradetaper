@@ -8,6 +8,7 @@ import { MT5Account } from '../../users/entities/mt5-account.entity';
 import { Note } from '../../notes/entities/note.entity';
 import { Strategy } from '../../strategies/entities/strategy.entity';
 import { RazorpayService } from './razorpay.service';
+import { NotificationsService } from '../../notifications/notifications.service';
 export interface PricingPlan {
     id: string;
     name: string;
@@ -58,9 +59,10 @@ export declare class SubscriptionService {
     private strategyRepository;
     private configService;
     private razorpayService;
+    private readonly notificationsService;
     private readonly logger;
     private readonly pricingPlans;
-    constructor(subscriptionRepository: Repository<Subscription>, userRepository: Repository<User>, tradeRepository: Repository<Trade>, accountRepository: Repository<Account>, mt5AccountRepository: Repository<MT5Account>, noteRepository: Repository<Note>, strategyRepository: Repository<Strategy>, configService: ConfigService, razorpayService: RazorpayService);
+    constructor(subscriptionRepository: Repository<Subscription>, userRepository: Repository<User>, tradeRepository: Repository<Trade>, accountRepository: Repository<Account>, mt5AccountRepository: Repository<MT5Account>, noteRepository: Repository<Note>, strategyRepository: Repository<Strategy>, configService: ConfigService, razorpayService: RazorpayService, notificationsService: NotificationsService);
     getPricingPlans(): PricingPlan[];
     getPricingPlan(planId: string): PricingPlan | null;
     getOrCreateSubscription(userId: string): Promise<Subscription>;
@@ -81,4 +83,5 @@ export declare class SubscriptionService {
     }>;
     handleRazorpayWebhook(event: any): Promise<void>;
     private updateSubscriptionFromRazorpay;
+    sendExpiryWarnings(): Promise<number>;
 }

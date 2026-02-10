@@ -30,7 +30,7 @@ import { TerminalCommandsQueue } from './queue/terminal-commands.queue';
 import { TerminalFailedTradesQueue } from './queue/terminal-failed-trades.queue';
 import { TerminalTokenService } from './terminal-token.service';
 import { NotificationsService } from '../notifications/notifications.service';
-import { NotificationType } from '../notifications/entities/notification.entity';
+import { NotificationType, NotificationPriority } from '../notifications/entities/notification.entity';
 
 @Injectable()
 export class TerminalFarmService {
@@ -532,7 +532,7 @@ export class TerminalFarmService {
             type: NotificationType.MT5_SYNC_ERROR,
             title: 'MT5 Sync Error',
             message: `Failed to sync trade ${trade.ticket}: ${error.message}`,
-            priority: 'high',
+            priority: NotificationPriority.HIGH,
             data: {
               terminalId: terminal.id,
               accountId: terminal.accountId,
