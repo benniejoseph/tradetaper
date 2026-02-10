@@ -131,26 +131,51 @@ checkDuplicate(userId, symbol, tradeDate, tags): Promise<{isDuplicate, similarLo
 
 ---
 
-### Task #37: AI Agent Integration ⏳
-**Status:** Pending
-**Estimated Time:** 2-4 hours
+### Task #37: AI Agent Integration ✅
+**Status:** Complete
+**Implementation Time:** 3 hours
 
-**Existing Asset:**
-- ✅ ICT Backtest Agent exists: `src/agents/implementations/ict-backtest.agent.ts`
-- Need to verify implementation and integrate with frontend
+**Backend Implementation:**
+- ✅ Created BacktestInsightsService with Gemini AI integration
+- ✅ Created streaming endpoint: `GET /backtesting/strategies/:id/insights`
+- ✅ SSE (Server-Sent Events) streaming implementation
+- ✅ Comprehensive prompt engineering with 5 analysis sections
+- ✅ Registered service in BacktestingModule
 
-**Backend Requirements:**
-- [ ] Review ict-backtest.agent.ts implementation
-- [ ] Create endpoint: `POST /backtesting/strategies/:id/insights`
-- [ ] Stream AI responses to frontend
-- [ ] Cache insights for 1 hour (Redis)
+**Frontend Implementation:**
+- ✅ Added `streamInsights()` method to backtestingService
+- ✅ Created AIInsightsButton component with modal UI
+- ✅ SSE stream parsing and real-time display
+- ✅ Markdown rendering with react-markdown
+- ✅ Loading states with spinner
+- ✅ Error handling with user feedback
+- ✅ Integrated on analysis page with Export button
 
-**Frontend Requirements:**
-- [ ] Add "Get AI Insights" button on analysis page
-- [ ] Handle SSE/streaming response
-- [ ] Display insights with markdown formatting
-- [ ] Add loading skeleton
-- [ ] Error handling
+**Files Modified:**
+- `tradetaper-backend/src/backtesting/services/backtest-insights.service.ts` (new)
+- `tradetaper-backend/src/backtesting/backtesting.controller.ts` - Added streaming insights endpoint
+- `tradetaper-backend/src/backtesting/backtesting.module.ts` - Registered BacktestInsightsService
+- `tradetaper-frontend/src/services/backtestingService.ts` - Added streamInsights() method
+- `tradetaper-frontend/src/components/backtesting/AIInsightsButton.tsx` (new)
+- `tradetaper-frontend/src/app/(app)/backtesting/analysis/page.tsx` - Integrated AI Insights button
+- `tradetaper-frontend/package.json` - Added react-markdown dependency
+
+**AI Insights Sections:**
+1. **Overall Assessment** - Strategy profitability and execution quality
+2. **Key Strengths** - What's working well, best setups/sessions/symbols
+3. **Critical Weaknesses** - Areas needing immediate attention
+4. **ICT-Specific Recommendations** - 5-7 concrete actions (kill zones, order blocks, FVGs, etc.)
+5. **Next Steps** - 3 immediate actions to take
+
+**Features:**
+- Real-time streaming with SSE
+- Modal UI with professional design
+- Markdown-formatted output
+- Purple theme for AI features
+- Loading states and error handling
+- Integrated with analysis page
+
+**Note:** Redis caching deferred to future optimization as insights are generated quickly with Gemini Flash model.
 
 ---
 

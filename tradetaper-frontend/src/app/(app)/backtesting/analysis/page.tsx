@@ -8,6 +8,8 @@ import { AnalysisData, DimensionStats } from '@/types/backtesting';
 import { strategiesService } from '@/services/strategiesService';
 import { backtestingService } from '@/services/backtestingService';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
+import AIInsightsButton from '@/components/backtesting/AIInsightsButton';
+import ExportButton from '@/components/backtesting/ExportButton';
 import { FiArrowLeft, FiCheckCircle, FiXCircle, FiAlertCircle, FiBarChart2 } from 'react-icons/fi';
 
 function ContentHeader({ title, description }: { title: string; description?: string }) {
@@ -212,18 +214,28 @@ function AnalysisContent() {
         />
       </div>
 
-      {/* Strategy Selector */}
-      <div className="flex items-center gap-4">
-        <label className="text-sm text-gray-600 dark:text-gray-400">Strategy:</label>
-        <select
-          value={selectedStrategyId}
-          onChange={(e) => setSelectedStrategyId(e.target.value)}
-          className="px-4 py-2 border border-emerald-300 dark:border-emerald-600/30 rounded-lg bg-white dark:bg-black text-gray-900 dark:text-white min-w-[200px]"
-        >
-          {strategies.map(s => (
-            <option key={s.id} value={s.id}>{s.name}</option>
+      {/* Strategy Selector & Actions */}
+      <div className="flex items-center gap-4 flex-wrap">
+        <div className="flex items-center gap-4">
+          <label className="text-sm text-gray-600 dark:text-gray-400">Strategy:</label>
+          <select
+            value={selectedStrategyId}
+            onChange={(e) => setSelectedStrategyId(e.target.value)}
+            className="px-4 py-2 border border-emerald-300 dark:border-emerald-600/30 rounded-lg bg-white dark:bg-black text-gray-900 dark:text-white min-w-[200px]"
+          >
+            {strategies.map(s => (
+              <option key={s.id} value={s.id}>{s.name}</option>
           ))}
-        </select>
+          </select>
+        </div>
+
+        {/* Action Buttons */}
+        {selectedStrategyId && (
+          <div className="flex items-center gap-3 ml-auto">
+            <AIInsightsButton strategyId={selectedStrategyId} />
+            <ExportButton variant="strategy" strategyId={selectedStrategyId} label="Export Report" />
+          </div>
+        )}
       </div>
 
       {analysisLoading ? (

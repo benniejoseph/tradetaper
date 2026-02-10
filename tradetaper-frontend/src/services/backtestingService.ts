@@ -395,4 +395,52 @@ export const backtestingService = {
     document.body.removeChild(link);
     window.URL.revokeObjectURL(url);
   },
+
+  // ============ AI INSIGHTS ============
+
+  async *streamInsights(strategyId: string): AsyncGenerator<string> {
+    const url = `${API_URL}/api/v1/backtesting/strategies/${strategyId}/insights`;
+
+    const response = await fetch(url, {
+      headers: getAuthHeaders(),
+      credentials: 'include', // ✅ Send cookies (JWT)
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch AI insights');
+    }
+
+    const reader = response.body?.getReader();
+    if (!reader) {
+      throw new Error('No response body');
+    }
+
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const data = JSON.parse(line.slice(6));
+            if (data.done) {
+              return;
+            }
+            if (data.text) {
+              yield data.text;
+            }
+          }
+        }
+      }
+    } finally {
+      reader.releaseLock();
+    }
+  },
 };

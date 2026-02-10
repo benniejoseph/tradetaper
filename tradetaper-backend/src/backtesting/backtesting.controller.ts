@@ -10,9 +10,13 @@ import {
   Request,
   Query,
   ParseUUIDPipe,
+  Res,
+  HttpStatus,
 } from '@nestjs/common';
+import { Response } from 'express';
 import { BacktestingService } from './backtesting.service';
 import { TagService } from './services/tag.service';
+import { BacktestInsightsService } from './services/backtest-insights.service';
 import { CreateBacktestTradeDto } from './dto/create-backtest-trade.dto';
 import { UpdateBacktestTradeDto } from './dto/update-backtest-trade.dto';
 import { CreateMarketLogDto } from './dto/create-market-log.dto';
@@ -25,6 +29,7 @@ export class BacktestingController {
   constructor(
     private readonly backtestingService: BacktestingService,
     private readonly tagService: TagService,
+    private readonly insightsService: BacktestInsightsService,
   ) {}
 
   // ============ CRUD ============
@@ -221,6 +226,56 @@ export class BacktestingController {
     @Request() req,
   ) {
     return this.backtestingService.getAnalysisData(strategyId, req.user.id);
+  }
+
+  @Get('strategies/:strategyId/insights')
+  async getAIInsights(
+    @Param('strategyId', ParseUUIDPipe) strategyId: string,
+    @Request() req,
+    @Res() res: Response,
+  ) {
+    try {
+      // Get comprehensive analysis data
+      const analysisData = await this.backtestingService.getAnalysisData(
+        strategyId,
+        req.user.id,
+      );
+
+      // Set headers for SSE (Server-Sent Events)
+      res.setHeader('Content-Type', 'text/event-stream');
+      res.setHeader('Cache-Control', 'no-cache');
+      res.setHeader('Connection', 'keep-alive');
+      res.setHeader('X-Accel-Buffering', 'no'); // Disable buffering for nginx
+
+      // Stream AI insights
+      const insightsGenerator = this.insightsService.generateInsights({
+        stats: analysisData.overallStats,
+        dimensionAnalysis: {
+          bySymbol: analysisData.bySymbol,
+          bySession: analysisData.bySession,
+          byTimeframe: analysisData.byTimeframe,
+          byKillZone: analysisData.byKillZone,
+          byDayOfWeek: analysisData.byDayOfWeek,
+          bySetup: analysisData.bySetup,
+        },
+        tradeCount: analysisData.tradeCount,
+        dateRange: analysisData.dateRange,
+      });
+
+      for await (const chunk of insightsGenerator) {
+        // Send as SSE format
+        res.write(`data: ${JSON.stringify({ text: chunk })}\n\n`);
+      }
+
+      // Send completion event
+      res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
+      res.end();
+    } catch (error) {
+      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+        error: 'Failed to generate insights',
+        message: error.message,
+      });
+    }
   }
 
   @Get('symbols')
