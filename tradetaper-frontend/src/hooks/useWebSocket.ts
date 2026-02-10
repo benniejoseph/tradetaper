@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { io, Socket } from 'socket.io-client';
 
 // Derive WebSocket URL from API URL (remove /api/v1 suffix if present)
+// Force cache bust: 2026-02-10T05:08:00Z
 const getWebSocketURL = () => {
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
   // Remove /api/v1 suffix and replace http with ws
