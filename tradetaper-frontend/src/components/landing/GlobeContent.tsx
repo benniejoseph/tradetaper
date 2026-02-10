@@ -66,7 +66,7 @@ export default function GlobeContent({ globeConfig }: WorldProps) {
       .atmosphereColor(defaultProps.atmosphereColor)
       .atmosphereAltitude(defaultProps.atmosphereAltitude)
       .hexPolygonColor(() => {
-        return defaultProps.polygonColor;
+        return "rgba(255,255,255, 1)";
       });
 
     // Rotate to initial position
@@ -75,11 +75,11 @@ export default function GlobeContent({ globeConfig }: WorldProps) {
     
     // Apply material props to the globe sphere itself (ocean)
     const globeMaterial = globe.globeMaterial() as THREE.MeshPhongMaterial;
-    globeMaterial.color = new Color(globeConfig.globeColor || "#062056");
-    globeMaterial.emissive = new Color(globeConfig.emissive || "#000000");
-    globeMaterial.emissiveIntensity = globeConfig.emissiveIntensity || 0.1;
-    globeMaterial.shininess = globeConfig.shininess || 0.9;
-    globeMaterial.opacity = 0.9; // Make sure it's not transparent
+    globeMaterial.color = new Color(globeConfig.globeColor || "#10357a");
+    globeMaterial.emissive = new Color(globeConfig.emissive || "#062056");
+    globeMaterial.emissiveIntensity = 0.3;
+    globeMaterial.shininess = 0.9;
+    globeMaterial.opacity = 1; 
     globeMaterial.transparent = true;
 
     setGlobeObj(globe);

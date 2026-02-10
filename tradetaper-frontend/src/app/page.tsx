@@ -22,7 +22,6 @@ import {
   FaTimes
 } from 'react-icons/fa';
 import HeroGlobe from '@/components/landing/HeroGlobe';
-import { ThemeToggle } from '@/components/common/ThemeToggle'; // Use common toggle
 
 /**
  * 3D Card Component with Glassmorphism
@@ -97,12 +96,8 @@ export default function LandingPage() {
             ))}
           </div>
 
-          {/* Auth Buttons & Theme & Mobile Toggle */}
+            {/* Auth Buttons & Mobile Toggle */}
           <div className="flex items-center space-x-4">
-             <div className="hidden md:block">
-              <ThemeToggle />
-             </div>
-            
             <div className="hidden md:flex items-center space-x-3">
               <Link 
                 href="/login"
@@ -142,10 +137,6 @@ export default function LandingPage() {
               </a>
             ))}
             <div className="h-px bg-white/10 my-2"></div>
-            <div className="flex items-center justify-between">
-              <span className="text-slate-400">Appearance</span>
-              <ThemeToggle showLabel />
-            </div>
              <Link 
                 href="/login"
                 className="block text-center py-3 text-slate-300 border border-white/10 rounded-lg hover:bg-white/5"
