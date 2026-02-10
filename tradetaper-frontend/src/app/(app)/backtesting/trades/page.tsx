@@ -4,11 +4,11 @@ import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Strategy } from '@/types/strategy';
-import { BacktestTrade, TIMEFRAMES, SESSIONS, OUTCOMES } from '@/types/backtesting';
+import { TIMEFRAMES, SESSIONS, OUTCOMES } from '@/types/backtesting';
 import { strategiesService } from '@/services/strategiesService';
-import { backtestingService } from '@/services/backtestingService';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import ExportButton from '@/components/backtesting/ExportButton';
+import { useBacktestTrades, useDeleteBacktestTrade } from '@/hooks/useBacktesting';
 import { FiArrowLeft, FiPlus, FiTrash2, FiFilter, FiTrendingUp, FiTrendingDown } from 'react-icons/fi';
 
 function ContentHeader({ title, description }: { title: string; description?: string }) {
@@ -27,10 +27,8 @@ function BacktestTradesContent() {
   const strategyIdFromUrl = searchParams.get('strategyId');
 
   const [strategies, setStrategies] = useState<Strategy[]>([]);
-  const [trades, setTrades] = useState<BacktestTrade[]>([]);
   const [loading, setLoading] = useState(true);
-  const [tradesLoading, setTradesLoading] = useState(false);
-  
+
   // Filters
   const [selectedStrategyId, setSelectedStrategyId] = useState<string>(strategyIdFromUrl || '');
   const [symbolFilter, setSymbolFilter] = useState<string>('');
@@ -38,15 +36,24 @@ function BacktestTradesContent() {
   const [timeframeFilter, setTimeframeFilter] = useState<string>('');
   const [outcomeFilter, setOutcomeFilter] = useState<string>('');
 
+  // React Query hooks
+  const {
+    data: trades = [],
+    isLoading: tradesLoading,
+    error: tradesError,
+  } = useBacktestTrades({
+    strategyId: selectedStrategyId,
+    symbol: symbolFilter || undefined,
+    session: sessionFilter || undefined,
+    timeframe: timeframeFilter || undefined,
+    outcome: outcomeFilter || undefined,
+  });
+
+  const deleteTradeMutation = useDeleteBacktestTrade();
+
   useEffect(() => {
     loadStrategies();
   }, []);
-
-  useEffect(() => {
-    if (selectedStrategyId) {
-      loadTrades();
-    }
-  }, [selectedStrategyId, symbolFilter, sessionFilter, timeframeFilter, outcomeFilter]);
 
   const loadStrategies = async () => {
     try {
@@ -65,32 +72,14 @@ function BacktestTradesContent() {
     }
   };
 
-  const loadTrades = async () => {
-    try {
-      setTradesLoading(true);
-      const data = await backtestingService.getTrades({
-        strategyId: selectedStrategyId,
-        symbol: symbolFilter || undefined,
-        session: sessionFilter || undefined,
-        timeframe: timeframeFilter || undefined,
-        outcome: outcomeFilter || undefined,
-      });
-      setTrades(data);
-    } catch (err) {
-      console.error('Failed to load trades:', err);
-    } finally {
-      setTradesLoading(false);
-    }
-  };
-
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this backtest trade?')) return;
-    try {
-      await backtestingService.deleteTrade(id);
-      loadTrades();
-    } catch (err) {
-      console.error('Failed to delete trade:', err);
-    }
+    deleteTradeMutation.mutate(id, {
+      onError: (err) => {
+        console.error('Failed to delete trade:', err);
+        alert('Failed to delete trade. Please try again.');
+      },
+    });
   };
 
   const selectedStrategy = strategies.find(s => s.id === selectedStrategyId);

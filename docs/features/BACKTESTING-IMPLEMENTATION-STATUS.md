@@ -179,31 +179,77 @@ checkDuplicate(userId, symbol, tradeDate, tags): Promise<{isDuplicate, similarLo
 
 ---
 
-### Task #38: React Query Caching ⏳
-**Status:** Pending
-**Estimated Time:** 2-3 hours
+### Task #38: React Query Caching ✅
+**Status:** Complete
+**Implementation Time:** 2 hours
 
-**Requirements:**
-- [ ] Install `@tanstack/react-query`
-- [ ] Create QueryClient provider in layout
-- [ ] Convert backtestingService methods to hooks:
-  - `useBacktestTrades(filters)`
-  - `useBacktestStats(strategyId)`
-  - `useBacktestAnalysis(strategyId)`
-- [ ] Configure cache times:
-  - Trades list: 5 minutes
-  - Stats: 2 minutes
-  - Analysis: 5 minutes
-- [ ] Add mutation hooks with cache invalidation:
-  - `useCreateTrade()`
-  - `useUpdateTrade()`
-  - `useDeleteTrade()`
+**Backend Requirements:**
+- N/A - No backend changes needed
 
-**Benefits:**
-- Automatic background refetching
-- Optimistic updates
-- Reduced API calls
-- Better loading states
+**Frontend Implementation:**
+- ✅ Install `@tanstack/react-query` (v5)
+- ✅ Create QueryClientProvider in app/providers.tsx
+- ✅ Configure global defaults (1 min stale time, 5 min gc time)
+- ✅ Create comprehensive React Query hooks in `hooks/useBacktesting.ts`
+
+**Query Hooks Created:**
+- ✅ `useBacktestTrades(filters)` - Fetch trades with filters (5 min cache)
+- ✅ `useBacktestTrade(id)` - Fetch single trade (5 min cache)
+- ✅ `useBacktestStats(strategyId)` - Fetch stats (2 min cache)
+- ✅ `useBacktestAnalysis(strategyId)` - Fetch analysis (5 min cache)
+- ✅ `useBacktestSymbols()` - Fetch symbols (10 min cache)
+
+**Mutation Hooks Created:**
+- ✅ `useCreateBacktestTrade()` - Create trade with optimistic update
+- ✅ `useUpdateBacktestTrade()` - Update trade with cache invalidation
+- ✅ `useDeleteBacktestTrade()` - Delete trade with cache cleanup
+
+**Utility Hooks:**
+- ✅ `useRefreshBacktesting()` - Manual refresh all data
+- ✅ `usePrefetchBacktestTrades()` - Background prefetch
+
+**Cache Configuration:**
+- Trades list: 5 minutes stale time
+- Stats: 2 minutes stale time
+- Analysis: 5 minutes stale time
+- Symbols: 10 minutes stale time
+- Global GC time: 5 minutes
+
+**Query Key Structure:**
+```typescript
+backtestingKeys = {
+  all: ['backtesting'],
+  trades: (filters) => ['backtesting', 'trades', filters],
+  trade: (id) => ['backtesting', 'trade', id],
+  stats: (strategyId) => ['backtesting', 'stats', strategyId],
+  analysis: (strategyId) => ['backtesting', 'analysis', strategyId],
+  symbols: () => ['backtesting', 'symbols'],
+}
+```
+
+**Example Integration:**
+- ✅ Updated trades page to use React Query hooks
+- Replaced manual data fetching with `useBacktestTrades()`
+- Replaced manual delete with `useDeleteBacktestTrade()`
+
+**Files Modified:**
+- `tradetaper-frontend/src/app/providers.tsx` - Added QueryClientProvider
+- `tradetaper-frontend/src/hooks/useBacktesting.ts` (new) - All React Query hooks
+- `tradetaper-frontend/src/app/(app)/backtesting/trades/page.tsx` - Migrated to hooks
+- `tradetaper-frontend/package.json` - Added @tanstack/react-query
+
+**Benefits Achieved:**
+- ✅ Automatic background refetching
+- ✅ Optimistic updates on mutations
+- ✅ Reduced API calls (caching)
+- ✅ Better loading states
+- ✅ Automatic cache invalidation
+- ✅ Improved developer experience
+
+**Next Steps:**
+- Other backtesting pages can gradually migrate to hooks
+- Analysis page can use `useBacktestAnalysis()`
+- Stats components can use `useBacktestStats()`
 
 ---
 
