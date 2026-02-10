@@ -11,13 +11,14 @@ import {
   MarketPatternDiscovery,
 } from '@/types/backtesting';
 
-const API_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
+// ✅ Use correct environment variable and production default
+const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'https://api.tradetaper.com/api/v1').trim();
 
 const getAuthHeaders = () => {
-  const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
   return {
     'Content-Type': 'application/json',
-    ...(token && { Authorization: `Bearer ${token}` }),
+    // Auth is handled via HTTP-only cookies (withCredentials)
+    // No Authorization header needed
   };
 };
 
@@ -44,6 +45,7 @@ export const backtestingService = {
     const response = await fetch(`${API_URL}/api/v1/backtesting/trades`, {
       method: 'POST',
       headers: getAuthHeaders(),
+      credentials: 'include', // ✅ Send cookies (JWT)
       body: JSON.stringify(data),
     });
     if (!response.ok) {
@@ -73,6 +75,7 @@ export const backtestingService = {
     const url = `${API_URL}/api/v1/backtesting/trades${params.toString() ? `?${params}` : ''}`;
     const response = await fetch(url, {
       headers: getAuthHeaders(),
+      credentials: 'include', // ✅ Send cookies (JWT)
     });
     if (!response.ok) throw new Error('Failed to fetch backtest trades');
     const trades = await response.json();
@@ -82,6 +85,7 @@ export const backtestingService = {
   async getTrade(id: string): Promise<BacktestTrade> {
     const response = await fetch(`${API_URL}/api/v1/backtesting/trades/${id}`, {
       headers: getAuthHeaders(),
+      credentials: 'include', // ✅ Send cookies (JWT)
     });
     if (!response.ok) throw new Error('Failed to fetch backtest trade');
     const trade = await response.json();
@@ -103,6 +107,7 @@ export const backtestingService = {
     const response = await fetch(`${API_URL}/api/v1/backtesting/trades/${id}`, {
       method: 'DELETE',
       headers: getAuthHeaders(),
+      credentials: 'include', // ✅ Send cookies (JWT)
     });
     if (!response.ok) throw new Error('Failed to delete backtest trade');
   },
@@ -112,6 +117,7 @@ export const backtestingService = {
   async getOverallStats(): Promise<BacktestStats> {
     const response = await fetch(`${API_URL}/api/v1/backtesting/stats`, {
       headers: getAuthHeaders(),
+      credentials: 'include', // ✅ Send cookies (JWT)
     });
     if (!response.ok) throw new Error('Failed to fetch overall stats');
     const stats = await response.json();
@@ -132,6 +138,7 @@ export const backtestingService = {
   async getStrategyStats(strategyId: string): Promise<BacktestStats> {
     const response = await fetch(`${API_URL}/api/v1/backtesting/strategies/${strategyId}/stats`, {
       headers: getAuthHeaders(),
+      credentials: 'include', // ✅ Send cookies (JWT)
     });
     if (!response.ok) throw new Error('Failed to fetch strategy stats');
     const stats = await response.json();
@@ -153,7 +160,10 @@ export const backtestingService = {
   ): Promise<DimensionStats[]> {
     const response = await fetch(
       `${API_URL}/api/v1/backtesting/strategies/${strategyId}/dimension/${dimension}`,
-      { headers: getAuthHeaders() }
+      {
+        headers: getAuthHeaders(),
+        credentials: 'include' // ✅ Send cookies (JWT)
+      }
     );
     if (!response.ok) throw new Error('Failed to fetch dimension stats');
     const data = await response.json();
@@ -172,7 +182,10 @@ export const backtestingService = {
   ): Promise<PerformanceMatrix> {
     const response = await fetch(
       `${API_URL}/api/v1/backtesting/strategies/${strategyId}/matrix?rows=${rows}&columns=${columns}`,
-      { headers: getAuthHeaders() }
+      {
+        headers: getAuthHeaders(),
+        credentials: 'include' // ✅ Send cookies (JWT)
+      }
     );
     if (!response.ok) throw new Error('Failed to fetch performance matrix');
     const matrix = await response.json();
@@ -189,7 +202,10 @@ export const backtestingService = {
   async getAnalysisData(strategyId: string): Promise<AnalysisData> {
     const response = await fetch(
       `${API_URL}/api/v1/backtesting/strategies/${strategyId}/analysis`,
-      { headers: getAuthHeaders() }
+      {
+        headers: getAuthHeaders(),
+        credentials: 'include' // ✅ Send cookies (JWT)
+      }
     );
     if (!response.ok) throw new Error('Failed to fetch analysis data');
     const data = await response.json();
@@ -213,6 +229,7 @@ export const backtestingService = {
   async getSymbols(): Promise<string[]> {
     const response = await fetch(`${API_URL}/api/v1/backtesting/symbols`, {
       headers: getAuthHeaders(),
+      credentials: 'include', // ✅ Send cookies (JWT)
     });
     if (!response.ok) throw new Error('Failed to fetch symbols');
     return response.json();
@@ -258,6 +275,7 @@ export const backtestingService = {
     const url = `${API_URL}/api/v1/backtesting/logs${params.toString() ? `?${params}` : ''}`;
     const response = await fetch(url, {
       headers: getAuthHeaders(),
+      credentials: 'include', // ✅ Send cookies (JWT)
     });
     if (!response.ok) throw new Error('Failed to fetch market logs');
     return response.json();
@@ -266,6 +284,7 @@ export const backtestingService = {
   async getLog(id: string): Promise<MarketLog> {
     const response = await fetch(`${API_URL}/api/v1/backtesting/logs/${id}`, {
       headers: getAuthHeaders(),
+      credentials: 'include', // ✅ Send cookies (JWT)
     });
     if (!response.ok) throw new Error('Failed to fetch market log');
     return response.json();
@@ -285,6 +304,7 @@ export const backtestingService = {
     const response = await fetch(`${API_URL}/api/v1/backtesting/logs/${id}`, {
       method: 'DELETE',
       headers: getAuthHeaders(),
+      credentials: 'include', // ✅ Send cookies (JWT)
     });
     if (!response.ok) throw new Error('Failed to delete market log');
   },
@@ -292,6 +312,7 @@ export const backtestingService = {
   async analyzePatterns(): Promise<{ totalLogs: number; discoveries: MarketPatternDiscovery[] }> {
     const response = await fetch(`${API_URL}/api/v1/backtesting/logs/analysis`, {
       headers: getAuthHeaders(),
+      credentials: 'include', // ✅ Send cookies (JWT)
     });
     if (!response.ok) throw new Error('Failed to fetch pattern analysis');
     return response.json();
