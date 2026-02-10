@@ -94,6 +94,10 @@ export default function GlobeContent({ globeConfig }: WorldProps) {
   return (
     <>
       {globeObj && <primitive object={globeObj} />}
+      <mesh position={[0, 0, 0]}>
+        <boxGeometry args={[100, 100, 100]} />
+        <meshBasicMaterial color="hotpink" wireframe />
+      </mesh>
     </>
   );
 }
