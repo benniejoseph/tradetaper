@@ -329,9 +329,13 @@ export default function Sidebar({ isOpen, toggleSidebar, isMobile, onExpandChang
             </div>
           </div>
           
-          {/* Theme Toggle - Show on mobile in sidebar */}
-          <div className="mt-4 flex justify-center md:hidden">
-             <ThemeToggle showLabel variant="button" className="w-full justify-center" />
+          {/* Theme Toggle */}
+          <div className={`mt-4 flex ${isExpanded ? 'justify-between' : 'justify-center'} items-center`}>
+             <ThemeToggle 
+               showLabel={isExpanded} 
+               variant={isExpanded ? 'button' : 'icon'} 
+               className={isExpanded ? 'w-full justify-center' : ''} 
+             />
           </div>
         </div>
       </aside>

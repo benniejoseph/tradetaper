@@ -7,6 +7,8 @@ import { store } from '@/store/store';
 import { CurrencyProvider } from '@/context/CurrencyContext';
 import { loadUserFromStorage } from '@/store/features/authSlice';
 import { setupAuthInterceptors, initializeApiSecurity } from '@/services/api';
+import { ThemeProvider } from '@/components/theme-provider';
+import React from 'react';
 
 function ReduxProviderWithInit({ children }: { children: React.ReactNode }) {
   useEffect(() => {
@@ -17,7 +19,7 @@ function ReduxProviderWithInit({ children }: { children: React.ReactNode }) {
     setupAuthInterceptors(() => store.getState());
 
     // SECURITY: Initialize CSRF protection
-    initializeApiSecurity().catch((error) => {
+    initializeApiSecurity().catch((error: any) => {
       console.error('Failed to initialize API security:', error);
     });
   }, []);
@@ -49,7 +51,14 @@ export function Providers({ children }: { children: React.ReactNode }) {
     <QueryClientProvider client={queryClient}>
       <ReduxProviderWithInit>
         <CurrencyProvider>
-          {children}
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
+          >
+            {children}
+          </ThemeProvider>
         </CurrencyProvider>
       </ReduxProviderWithInit>
     </QueryClientProvider>

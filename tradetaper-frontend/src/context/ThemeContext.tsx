@@ -1,61 +1,29 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { ReactNode } from 'react';
+import { useTheme as useNextTheme } from 'next-themes';
 
-type Theme = 'light' | 'dark';
-
-interface ThemeContextType {
-  theme: Theme;
-  setTheme: (theme: Theme) => void;
-  toggleTheme: () => void;
-}
-
-const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
-
-export const ThemeProvider = ({ children }: { children: ReactNode }) => {
-  const [theme, setThemeState] = useState<Theme>('dark'); // Default to dark theme
-
-  useEffect(() => {
-    // Check local storage for saved theme preference
-    const savedTheme = localStorage.getItem('tradetaper-theme') as Theme | null;
-    if (savedTheme) {
-      setThemeState(savedTheme);
-    } else {
-      // Check system preference if no saved theme
-      const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-      setThemeState(prefersDark ? 'dark' : 'light');
-    }
-  }, []);
-
-  useEffect(() => {
-    // Apply theme to HTML element and save to local storage
-    if (theme === 'dark') {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-    localStorage.setItem('tradetaper-theme', theme);
-  }, [theme]);
-
-  const setTheme = (newTheme: Theme) => {
-    setThemeState(newTheme);
-  };
+// Compatibility hook to match the old interface
+export const useTheme = () => {
+  const { theme, setTheme, resolvedTheme } = useNextTheme();
 
   const toggleTheme = () => {
-    setThemeState((prevTheme) => (prevTheme === 'light' ? 'dark' : 'light'));
+    setTheme(resolvedTheme === 'dark' ? 'light' : 'dark');
   };
 
-  return (
-    <ThemeContext.Provider value={{ theme, setTheme, toggleTheme }}>
-      {children}
-    </ThemeContext.Provider>
-  );
+  return {
+    theme: resolvedTheme, // Return resolvedTheme (light/dark) to match old behavior
+    setTheme,
+    toggleTheme,
+    // Expose original values just in case
+    systemTheme: theme === 'system',
+    originalTheme: theme,
+  };
 };
 
-export const useTheme = () => {
-  const context = useContext(ThemeContext);
-  if (context === undefined) {
-    throw new Error('useTheme must be used within a ThemeProvider');
-  }
-  return context;
-}; 
+// Deprecated Provider (no-op as next-themes provider is in providers.tsx)
+// Keep it to avoid breaking imports in layout.tsx until it is removed there
+export const ThemeProvider = ({ children }: { children: ReactNode }) => {
+  return <>{children}</>;
+};
+ 

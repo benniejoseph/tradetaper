@@ -4,7 +4,7 @@ import React from 'react';
 import Script from 'next/script';
 import "./globals.css";
 import { Providers } from "./providers";
-import { ThemeProvider } from "@/context/ThemeContext";
+
 
 export const metadata: Metadata = {
   title: "Trade Taper",
@@ -20,9 +20,7 @@ export default function RootLayout({
     <html lang="en">
       <body> 
         <Providers>
-          <ThemeProvider>
             {children}
-          </ThemeProvider>
         </Providers>
         <Script 
           src="https://checkout.razorpay.com/v1/checkout.js" 

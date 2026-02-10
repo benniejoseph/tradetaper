@@ -1,7 +1,7 @@
 // src/app/page.tsx
 "use client";
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useSelector } from 'react-redux';
 import { RootState } from '@/store/store';
@@ -12,55 +12,42 @@ import {
   FaRocket, 
   FaArrowRight, 
   FaCheck, 
-  FaStar,
-  FaShieldAlt,
-  FaGlobe,
-  FaUsers,
-  FaLaptopCode,
   FaBrain,
+  FaShieldAlt,
+  FaLaptopCode,
   FaGem,
-  FaBolt
+  FaUsers,
+  FaGlobe,
+  FaBars,
+  FaTimes
 } from 'react-icons/fa';
+import HeroGlobe from '@/components/landing/HeroGlobe';
+import { ThemeToggle } from '@/components/common/ThemeToggle'; // Use common toggle
 
 /**
- * 3D Background Animation Component
- * Renders floating orbs and grid lines for depth
- */
-const HeroBackground = () => (
-  <div className="absolute inset-0 overflow-hidden pointer-events-none">
-    {/* Deep Space Background */}
-    <div className="absolute inset-0 bg-slate-950"></div>
-    
-    {/* Grid Floor */}
-    <div className="absolute inset-0 bg-[linear-gradient(rgba(16,185,129,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(16,185,129,0.05)_1px,transparent_1px)] bg-[size:100px_100px] [transform:perspective(1000px)_rotateX(60deg)_translateY(-100px)_scale(3)] origin-top"></div>
-
-    {/* Floating Orbs - Emerald & Teal */}
-    <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl animate-float"></div>
-    <div className="absolute bottom-1/4 right-1/4 w-[30rem] h-[30rem] bg-teal-500/10 rounded-full blur-3xl animate-float delay-1000"></div>
-    
-    {/* Radial Glow */}
-    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-[radial-gradient(circle_at_center,rgba(16,185,129,0.05),transparent_70%)]"></div>
-  </div>
-);
-
-/**
- * 3D Card Component with Hover Effect
+ * 3D Card Component with Glassmorphism
  */
 const FeatureCard = ({ icon: Icon, title, description }: { icon: any, title: string, description: string }) => (
-  <div className="glass-card p-8 rounded-2xl group">
-    <div className="w-14 h-14 rounded-xl bg-emerald-500/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
-      <Icon className="text-2xl text-emerald-400" />
+  <div className="group relative p-8 rounded-3xl border border-white/5 bg-white/5 backdrop-blur-sm hover:bg-white/10 transition-all duration-500 overflow-hidden">
+    {/* Hover Glow */}
+    <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/0 via-emerald-500/0 to-emerald-500/0 group-hover:from-emerald-500/5 group-hover:to-purple-500/5 transition-all duration-500"></div>
+    
+    <div className="relative z-10">
+      <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-500/10 to-purple-500/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-500 shadow-lg shadow-emerald-500/5">
+        <Icon className="text-2xl text-emerald-400 group-hover:text-emerald-300 transition-colors" />
+      </div>
+      <h3 className="text-xl font-bold text-white mb-3 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-white group-hover:to-emerald-200 transition-all">{title}</h3>
+      <p className="text-slate-400 group-hover:text-slate-300 transition-colors leading-relaxed">
+        {description}
+      </p>
     </div>
-    <h3 className="text-xl font-bold text-white mb-3 group-hover:text-emerald-300 transition-colors">{title}</h3>
-    <p className="text-slate-400 group-hover:text-slate-300 transition-colors leading-relaxed">
-      {description}
-    </p>
   </div>
 );
 
 export default function LandingPage() {
   const { isAuthenticated } = useSelector((state: RootState) => state.auth);
   const router = useRouter();
+  const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
 
   // Redirect if logged in
   useEffect(() => {
@@ -72,7 +59,7 @@ export default function LandingPage() {
   // Loading State for Auth Check
   if (isAuthenticated) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-950">
+      <div className="min-h-screen flex items-center justify-center bg-black">
         <div className="flex flex-col items-center">
           <div className="w-16 h-16 border-4 border-emerald-500/30 border-t-emerald-500 rounded-full animate-spin"></div>
           <p className="mt-4 text-emerald-400 font-medium">Initializing Dashboard...</p>
@@ -82,116 +69,176 @@ export default function LandingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-white selection:bg-emerald-500/30">
+    <div className="min-h-screen bg-black text-white selection:bg-emerald-500/30 overflow-x-hidden">
       
       {/* Navigation Bar */}
-      <nav className="fixed top-0 w-full bg-slate-950/80 backdrop-blur-xl border-b border-white/5 z-50">
+      <nav className="fixed top-0 w-full bg-black/50 backdrop-blur-xl border-b border-white/5 z-50">
         <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
           {/* Logo */}
-          <Link href="/" className="flex items-center space-x-3 group">
-            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-500/20 group-hover:shadow-emerald-500/40 transition-all">
+          <Link href="/" className="flex items-center space-x-3 group z-50">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center shadow-lg shadow-emerald-500/20 group-hover:shadow-emerald-500/40 transition-all">
               <FaChartLine className="text-white text-lg" />
             </div>
-            <span className="text-2xl font-bold tracking-tight text-white group-hover:text-emerald-300 transition-colors">
+            <span className="text-2xl font-bold tracking-tight text-white group-hover:text-emerald-400 transition-colors">
               TradeTaper
             </span>
           </Link>
 
           {/* Desktop Nav Links */}
-          <div className="hidden md:flex items-center space-x-8">
+          <div className="hidden md:flex items-center space-x-1">
             {['Features', 'Pricing', 'Testimonials'].map((item) => (
               <a 
                 key={item} 
                 href={`#${item.toLowerCase()}`} 
-                className="text-sm font-medium text-slate-400 hover:text-emerald-400 transition-colors"
+                className="px-4 py-2 text-sm font-medium text-slate-400 hover:text-white transition-colors hover:bg-white/5 rounded-lg"
               >
                 {item}
               </a>
             ))}
           </div>
 
-          {/* Auth Buttons */}
+          {/* Auth Buttons & Theme & Mobile Toggle */}
           <div className="flex items-center space-x-4">
-            <Link 
-              href="/login"
-              className="px-5 py-2.5 text-sm font-medium text-slate-300 hover:text-white transition-colors"
+             <div className="hidden md:block">
+              <ThemeToggle />
+             </div>
+            
+            <div className="hidden md:flex items-center space-x-3">
+              <Link 
+                href="/login"
+                className="px-5 py-2 text-sm font-medium text-slate-300 hover:text-white transition-colors"
+              >
+                Log In
+              </Link>
+              <Link 
+                href="/register"
+                className="px-5 py-2 text-sm font-bold bg-white text-black rounded-lg hover:bg-emerald-50 transition-all hover:scale-105 shadow-[0_0_20px_rgba(255,255,255,0.3)]"
+              >
+                Get Started
+              </Link>
+            </div>
+
+            {/* Mobile Menu Button */}
+             <button 
+              className="md:hidden text-slate-300 hover:text-white p-2"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             >
-              Log In
-            </Link>
-            <Link 
-              href="/register"
-              className="px-5 py-2.5 text-sm font-bold bg-white text-slate-900 rounded-lg hover:bg-emerald-50 transition-colors shadow-lg shadow-white/10"
-            >
-              Get Started
-            </Link>
+              {mobileMenuOpen ? <FaTimes size={24} /> : <FaBars size={24} />}
+            </button>
           </div>
         </div>
+
+        {/* Mobile Menu Overlay */}
+        {mobileMenuOpen && (
+          <div className="md:hidden absolute top-20 left-0 w-full bg-black/95 border-b border-white/10 p-6 flex flex-col space-y-4 shadow-2xl animate-fade-in-down">
+             {['Features', 'Pricing', 'Testimonials'].map((item) => (
+              <a 
+                key={item} 
+                href={`#${item.toLowerCase()}`} 
+                className="text-lg font-medium text-slate-300 hover:text-emerald-400"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                {item}
+              </a>
+            ))}
+            <div className="h-px bg-white/10 my-2"></div>
+            <div className="flex items-center justify-between">
+              <span className="text-slate-400">Appearance</span>
+              <ThemeToggle showLabel />
+            </div>
+             <Link 
+                href="/login"
+                className="block text-center py-3 text-slate-300 border border-white/10 rounded-lg hover:bg-white/5"
+              >
+                Log In
+              </Link>
+              <Link 
+                href="/register"
+                className="block text-center py-3 font-bold bg-emerald-600 text-white rounded-lg shadow-lg shadow-emerald-900/50"
+              >
+                Get Started
+              </Link>
+          </div>
+        )}
       </nav>
 
       {/* Hero Section */}
-      <section className="relative pt-40 pb-32 overflow-hidden">
-        <HeroBackground />
+      <section className="relative pt-32 pb-20 md:pt-48 md:pb-32 overflow-hidden min-h-screen flex flex-col justify-center">
+        {/* 3D Background */}
+        <div className="absolute inset-0 opacity-40">
+           <Suspense fallback={null}>
+             <HeroGlobe />
+           </Suspense>
+        </div>
         
+        {/* Gradient Overlay for Readability */}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/0 via-black/50 to-black z-0 pointer-events-none"></div>
+
         <div className="relative max-w-7xl mx-auto px-6 text-center z-10">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm font-medium mb-8 animate-fade-in-up">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 text-emerald-400 text-sm font-medium mb-8 backdrop-blur-md animate-fade-in-up">
             <span className="relative flex h-2 w-2">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
             </span>
-            New: AI Pattern Recognition Engine v2.0
+            AI-Powered Trading Journal v2.0
           </div>
           
-          <h1 className="text-5xl md:text-7xl font-bold tracking-tight mb-8 leading-tight">
-            Master the Markets with <br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-teal-300 to-lime-300">
-              Precision Intelligence
+          <h1 className="text-5xl md:text-8xl font-bold tracking-tight mb-8 leading-tight">
+            Trade with <br />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-teal-200 to-white animate-text-shimmer">
+              Digital Precision
             </span>
           </h1>
           
-          <p className="text-xl text-slate-400 max-w-2xl mx-auto mb-12 leading-relaxed">
-            The advanced trading journal that evolves with you. Leverage AI-driven insights, 
-            3D visualization, and institutional-grade analytics to refine your edge.
+          <p className="text-xl text-slate-400 max-w-2xl mx-auto mb-12 leading-relaxed font-light">
+            Evolve your edge with institutional-grade analytics, 
+            <span className="text-white font-medium"> AI-driven insights</span>, and 
+            <span className="text-white font-medium"> immersive visualization</span>.
           </p>
           
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link 
               href="/register"
-              className="btn-3d btn-primary-3d flex items-center gap-2"
+              className="group relative px-8 py-4 bg-white text-black font-bold rounded-full hover:bg-emerald-50 transition-all hover:scale-105 shadow-[0_0_40px_rgba(255,255,255,0.3)] flex items-center gap-2 overflow-hidden"
             >
-              Start Free Trial <FaRocket />
+              <span className="relative z-10">Start Free Trial</span>
+              <FaRocket className="relative z-10 group-hover:translate-x-1 transition-transform" />
+                <div className="absolute inset-0 bg-gradient-to-r from-emerald-200 to-white opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
             </Link>
             <Link 
               href="/demo"
-              className="btn-3d btn-secondary-3d flex items-center gap-2"
+              className="px-8 py-4 rounded-full border border-white/20 text-white font-medium hover:bg-white/10 transition-all backdrop-blur-md flex items-center gap-2"
             >
               Live Demo <FaArrowRight />
             </Link>
           </div>
 
           {/* 3D Dashboard Preview Hero Image */}
-          <div className="mt-20 relative mx-auto max-w-5xl perspective-1000 group">
-             <div className="relative transform-style-3d rotate-x-12 group-hover:rotate-x-0 transition-transform duration-1000 ease-out">
+          <div className="mt-24 relative mx-auto max-w-6xl perspective-1000 group">
+             <div className="relative transform-style-3d rotate-x-6 group-hover:rotate-x-0 transition-transform duration-1000 ease-out">
                 {/* Glow Effect behind image */}
-                <div className="absolute -inset-4 bg-emerald-500/20 rounded-xl blur-2xl opacity-50"></div>
+                <div className="absolute -inset-10 bg-emerald-500/10 rounded-[3rem] blur-3xl opacity-50 animate-pulse-slow"></div>
                 
                 {/* Mockup Container */}
-                <div className="relative bg-slate-900 border border-white/10 rounded-xl overflow-hidden shadow-2xl">
+                <div className="relative bg-[#0A0A0A] border border-white/10 rounded-2xl overflow-hidden shadow-2xl shadow-emerald-900/20">
                   {/* Window Controls */}
-                  <div className="h-8 bg-slate-800 flex items-center px-4 space-x-2 border-b border-white/5">
+                  <div className="h-10 bg-black/50 backdrop-blur-xl flex items-center px-4 space-x-2 border-b border-white/5">
                     <div className="w-3 h-3 rounded-full bg-red-500/80"></div>
                     <div className="w-3 h-3 rounded-full bg-yellow-500/80"></div>
                     <div className="w-3 h-3 rounded-full bg-green-500/80"></div>
+                    <div className="ml-4 px-3 py-1 bg-white/5 rounded-md text-[10px] text-slate-500 font-mono">tradetaper.com/dashboard</div>
                   </div>
                   
                   {/* Content Placeholder (Eventually Real Screenshot) */}
-                  <div className="aspect-video bg-slate-950 relative flex items-center justify-center overflow-hidden">
-                    <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent_25%,rgba(6,78,59,0.2)_50%,transparent_75%,transparent_100%)] bg-[length:250%_250%] animate-[shimmer_3s_infinite]"></div>
-                    <div className="text-center">
-                        <FaChartLine className="text-6xl text-slate-800 mx-auto mb-4" />
-                        <p className="text-slate-700 font-mono">Live Market Interface Loading...</p>
+                  <div className="aspect-[16/9] bg-black relative flex items-center justify-center overflow-hidden">
+                    <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent_25%,rgba(16,185,129,0.05)_50%,transparent_75%,transparent_100%)] bg-[length:250%_250%] animate-[shimmer_8s_infinite]"></div>
+                    <div className="text-center z-10">
+                        <FaChartLine className="text-7xl text-white/5 mx-auto mb-6" />
+                        <p className="text-emerald-500 font-mono text-sm tracking-widest uppercase">System Operational</p>
                     </div>
                     {/* Overlay Grid lines for tech feel */}
-                    <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-10"></div>
+                    <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay"></div>
+                    <div className="absolute inset-0 bg-[linear-gradient(0deg,transparent_24%,rgba(255,255,255,0.03)_25%,rgba(255,255,255,0.03)_26%,transparent_27%,transparent_74%,rgba(255,255,255,0.03)_75%,rgba(255,255,255,0.03)_76%,transparent_77%,transparent),linear-gradient(90deg,transparent_24%,rgba(255,255,255,0.03)_25%,rgba(255,255,255,0.03)_26%,transparent_27%,transparent_74%,rgba(255,255,255,0.03)_75%,rgba(255,255,255,0.03)_76%,transparent_77%,transparent)] bg-[length:50px_50px]"></div>
                   </div>
                 </div>
              </div>
@@ -200,18 +247,18 @@ export default function LandingPage() {
       </section>
 
       {/* Stats Section with Glassmorphism */}
-      <section className="py-20 border-y border-white/5 bg-slate-900/30 backdrop-blur-sm">
+      <section className="py-24 border-y border-white/5 bg-white/[0.02] backdrop-blur-sm">
         <div className="max-w-7xl mx-auto px-6">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-12">
             {[
-              { label: 'Active Traders', value: '10k+' },
+              { label: 'Active Traders', value: '10,000+' },
               { label: 'Trades Logged', value: '2.5M+' },
-              { label: 'Strategies Analyzed', value: '500+' },
-              { label: 'Data Points', value: '1B+' },
+              { label: 'Strategies', value: '500+' },
+              { label: 'Processing', value: '1.2B Ops' },
             ].map((stat, idx) => (
-              <div key={idx} className="text-center">
-                <div className="text-4xl font-bold text-white mb-2">{stat.value}</div>
-                <div className="text-sm font-medium text-emerald-500 uppercase tracking-wider">{stat.label}</div>
+              <div key={idx} className="text-center group">
+                <div className="text-4xl md:text-5xl font-bold text-white mb-2 group-hover:text-emerald-400 transition-colors duration-500">{stat.value}</div>
+                <div className="text-xs font-bold text-slate-500 uppercase tracking-[0.2em] group-hover:text-emerald-500/70 transition-colors">{stat.label}</div>
               </div>
             ))}
           </div>
@@ -219,13 +266,17 @@ export default function LandingPage() {
       </section>
 
       {/* Features Grid */}
-      <section id="features" className="py-32 relative">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="text-center mb-20">
-            <h2 className="text-3xl md:text-5xl font-bold mb-6">
-              Engineered for <span className="text-gradient-emerald">Performance</span>
+      <section id="features" className="py-32 relative overflow-hidden">
+        {/* Decorative blobs */}
+        <div className="absolute top-0 right-0 w-[40rem] h-[40rem] bg-purple-500/5 rounded-full blur-[100px] pointer-events-none"></div>
+        <div className="absolute bottom-0 left-0 w-[40rem] h-[40rem] bg-emerald-500/5 rounded-full blur-[100px] pointer-events-none"></div>
+
+        <div className="max-w-7xl mx-auto px-6 relative z-10">
+          <div className="text-center mb-24">
+            <h2 className="text-3xl md:text-6xl font-bold mb-8">
+              Engineered for <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-400">Performance</span>
             </h2>
-            <p className="text-slate-400 text-lg max-w-2xl mx-auto">
+            <p className="text-slate-400 text-lg max-w-2xl mx-auto leading-relaxed">
               Our suite of tools is designed to help you identify patterns, manage risk, and execute with confidence.
             </p>
           </div>
@@ -265,12 +316,12 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Pricing Section (Showcase of new PlanCards style) */}
-      <section id="pricing" className="py-32 bg-slate-900/50">
+      {/* Pricing Section */}
+      <section id="pricing" className="py-32 relative">
         <div className="max-w-7xl mx-auto px-6">
            <div className="text-center mb-20">
             <h2 className="text-3xl md:text-5xl font-bold mb-6">
-              Transparent <span className="text-gradient-emerald">Pricing</span>
+              Transparent <span className="text-emerald-400">Pricing</span>
             </h2>
             <p className="text-slate-400 text-lg max-w-2xl mx-auto">
               Start for free, upgrade as you grow. No hidden fees.
@@ -281,49 +332,44 @@ export default function LandingPage() {
             {PRICING_TIERS.map((tier) => (
               <div 
                 key={tier.id}
-                className={`relative rounded-[2rem] p-8 border backdrop-blur-xl transition-all duration-300 flex flex-col group
+                className={`relative rounded-[2.5rem] p-10 border backdrop-blur-xl transition-all duration-500 flex flex-col group
                   ${tier.recommended 
-                    ? 'bg-slate-900/60 border-emerald-500/50 shadow-2xl shadow-emerald-500/10 scale-105 z-10' 
-                    : 'bg-slate-900/50 border-white/10 hover:bg-slate-900/60 hover:border-white/20'}`}
+                    ? 'bg-gradient-to-b from-slate-900 via-slate-900 to-black border-emerald-500/50 shadow-2xl shadow-emerald-900/20 scale-105 z-10' 
+                    : 'bg-black/40 border-white/5 hover:bg-white/5 hover:border-white/10'}`}
               >
                  {/* Glow Effect on Hover */}
-                 <div className="absolute inset-0 rounded-[2rem] bg-gradient-to-b from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"></div>
+                 <div className="absolute inset-0 rounded-[2.5rem] bg-gradient-to-b from-emerald-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"></div>
 
                 {tier.recommended && (
-                  <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-bold px-5 py-1.5 rounded-full text-xs uppercase tracking-wider shadow-lg">
+                  <div className="absolute -top-5 left-1/2 -translate-x-1/2 bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-bold px-6 py-2 rounded-full text-xs uppercase tracking-widest shadow-lg shadow-emerald-500/20">
                     Most Popular
                   </div>
                 )}
                 
                 <h3 className="text-xl font-medium text-white mb-2">{tier.name}</h3>
-                <div className="flex items-baseline mb-6 gap-1">
-                  <span className="text-5xl font-bold text-white tracking-tight">${tier.price}</span>
-                  <span className="text-slate-500 text-lg font-medium">/mo</span>
+                <div className="flex items-baseline mb-8 gap-1">
+                  <span className="text-6xl font-bold text-white tracking-tighter">${tier.price}</span>
+                  <span className="text-slate-500 text-lg font-medium">/{tier.interval || 'mo'}</span>
                 </div>
-                <p className="text-slate-400 text-sm mb-8 leading-relaxed h-10">{tier.description}</p>
+                <p className="text-slate-400 text-sm mb-10 leading-relaxed font-light h-10">{tier.description}</p>
                 
-                <ul className="space-y-4 mb-10 flex-grow">
-                  {tier.features.slice(0, 5).map((feature, idx) => (
-                     <li key={idx} className="flex items-start gap-3">
-                        <div className="mt-1 w-5 h-5 rounded-full bg-emerald-500/20 flex items-center justify-center flex-shrink-0">
+                <ul className="space-y-5 mb-12 flex-grow">
+                  {tier.features.slice(0, 8).map((feature: string, idx: number) => (
+                     <li key={idx} className="flex items-start gap-4">
+                        <div className="mt-0.5 w-5 h-5 rounded-full bg-emerald-500/20 flex items-center justify-center flex-shrink-0">
                              <FaCheck className="text-[10px] text-emerald-400" />
                         </div>
                        <span className="text-slate-300 text-sm">{feature}</span>
                      </li>
                   ))}
-                   {tier.features.length > 5 && (
-                    <li className="text-xs text-slate-500 italic pl-8">
-                        + {tier.features.length - 5} more features
-                    </li>
-                   )}
                 </ul>
 
                 <Link
                   href="/register"
-                  className={`block w-full py-3.5 rounded-full font-bold text-center transition-all ${
+                  className={`block w-full py-4 rounded-xl font-bold text-center transition-all duration-300 ${
                     tier.recommended 
-                      ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-900/20' 
-                      : 'bg-white/10 text-white hover:bg-white/20 border border-white/5'
+                      ? 'bg-white text-black hover:bg-emerald-50 hover:scale-105 shadow-[0_0_20px_rgba(255,255,255,0.2)]' 
+                      : 'bg-white/5 text-white hover:bg-white/10 border border-white/5'
                   }`}
                 >
                   {tier.price === 0 ? 'Start Free' : 'Choose Plan'}
@@ -335,30 +381,30 @@ export default function LandingPage() {
       </section>
  
       {/* Footer */}
-      {/* Footer */}
-      <footer className="bg-slate-950 pt-20 pb-10 border-t border-white/5 relative z-50">
+      <footer className="bg-black pt-24 pb-12 border-t border-white/5 relative z-10">
         <div className="max-w-7xl mx-auto px-6">
-          <div className="grid md:grid-cols-4 gap-12 mb-16">
+          <div className="grid md:grid-cols-4 gap-12 mb-20">
             <div className="col-span-2">
-               <Link href="/" className="flex items-center space-x-3 mb-6">
-                <div className="w-8 h-8 rounded bg-emerald-500 flex items-center justify-center">
+               <Link href="/" className="flex items-center space-x-3 mb-8">
+                <div className="w-8 h-8 rounded bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center">
                   <FaChartLine className="text-white text-sm" />
                 </div>
                 <span className="text-xl font-bold text-white">TradeTaper</span>
               </Link>
-              <p className="text-slate-400 max-w-sm mb-6">
+              <p className="text-slate-400 max-w-sm mb-8 leading-relaxed">
                 The most advanced trading journal platform for modern traders. 
                 Visualize success, manage risk, and master your psychology.
               </p>
-              <div className="flex space-x-4 text-slate-400">
-                <FaGlobe className="hover:text-white cursor-pointer" />
-                <FaUsers className="hover:text-white cursor-pointer" />
+              <div className="flex space-x-6 text-slate-500">
+                <FaGlobe className="hover:text-emerald-400 cursor-pointer transition-colors text-xl" />
+                <FaUsers className="hover:text-emerald-400 cursor-pointer transition-colors text-xl" />
+                <FaBrain className="hover:text-emerald-400 cursor-pointer transition-colors text-xl" />
               </div>
             </div>
             
             <div>
-              <h4 className="font-bold text-white mb-6">Product</h4>
-              <ul className="space-y-3 text-sm text-slate-400">
+              <h4 className="font-bold text-white mb-8">Product</h4>
+              <ul className="space-y-4 text-sm text-slate-400">
                 <li><Link href="/#features" className="hover:text-emerald-400 transition-colors">Features</Link></li>
                 <li><Link href="/pricing" className="hover:text-emerald-400 transition-colors">Pricing</Link></li>
                 <li><Link href="/register" className="hover:text-emerald-400 transition-colors">Get Started</Link></li>
@@ -366,8 +412,8 @@ export default function LandingPage() {
             </div>
             
             <div>
-              <h4 className="font-bold text-white mb-6">Company</h4>
-              <ul className="space-y-3 text-sm text-slate-400">
+              <h4 className="font-bold text-white mb-8">Company</h4>
+              <ul className="space-y-4 text-sm text-slate-400">
                 <li><Link href="/about" className="hover:text-emerald-400 transition-colors">About Us</Link></li>
                 <li><Link href="/contact" className="hover:text-emerald-400 transition-colors">Contact</Link></li>
                 <li><Link href="/support" className="hover:text-emerald-400 transition-colors">Support</Link></li>
@@ -375,9 +421,9 @@ export default function LandingPage() {
             </div>
           </div>
           
-          <div className="pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between items-center text-sm text-slate-500">
+          <div className="pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between items-center text-sm text-slate-600">
             <p>&copy; {new Date().getFullYear()} TradeTaper Inc. All rights reserved.</p>
-            <div className="flex space-x-6 mt-4 md:mt-0">
+            <div className="flex space-x-8 mt-6 md:mt-0">
                <Link href="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link>
                <Link href="/terms" className="hover:text-white transition-colors">Terms of Service</Link>
                <Link href="/refund" className="hover:text-white transition-colors">Refund Policy</Link>
