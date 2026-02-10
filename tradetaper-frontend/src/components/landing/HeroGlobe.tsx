@@ -48,10 +48,10 @@ export default function HeroGlobe() {
   return (
     <div className="absolute inset-0 z-0 h-full w-full pointer-events-none">
        <Canvas camera={{ position: [0, 0, 450], fov: 45 }}>
-        <ambientLight color={globeConfig.ambientLight} intensity={1.5} />
-        <pointLight color={globeConfig.pointLight} position={[-200, 500, 200]} intensity={2.5} />
+        <ambientLight color={globeConfig.ambientLight} intensity={2.0} />
+        <pointLight color={globeConfig.pointLight} position={[-200, 500, 200]} intensity={3.5} />
         {mounted && (
-           <group position={[0, -150, 0]} scale={1.6}> {/* Adjusted position and scale for better visibility */}
+           <group position={[0, -100, 0]} scale={1.6}> {/* Moved up, High intensity */}
              <GlobeContent globeConfig={globeConfig} />
            </group>
         )}
