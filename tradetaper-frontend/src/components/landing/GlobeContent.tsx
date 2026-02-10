@@ -110,6 +110,10 @@ export default function GlobeContent({ globeConfig }: WorldProps) {
   return (
     <>
       <threeGlobe ref={globeRef} />
+      <mesh position={[0, 200, 0]}>
+        <boxGeometry args={[50, 50, 50]} />
+        <meshBasicMaterial color="lime" wireframe />
+      </mesh>
     </>
   );
 }

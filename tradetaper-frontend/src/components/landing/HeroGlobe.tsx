@@ -7,8 +7,8 @@ import { Color } from "three";
 import { OrbitControls } from "@react-three/drei";
 import countries from "@/data/countries.json";
 
-// Dynamically import ThreeGlobe to avoid SSR issues
-const ThreeGlobe = dynamic(() => import("three-globe"), { ssr: false });
+// Dynamically import GlobeContent to avoid SSR
+const GlobeContent = dynamic(() => import("./GlobeContent"), { ssr: false });
 
 // Extend ThreeGlobe so it can be used as a JSX element
 // We need to do this inside a component or useEffect if ThreeGlobe is dynamically imported, 
@@ -18,7 +18,7 @@ const ThreeGlobe = dynamic(() => import("three-globe"), { ssr: false });
 // The error `ReferenceError: window is not defined` likely comes from `three-globe` being imported at module level or used in render.
 
 // Let's wrap the THREE part in a component that is dynamically imported with ssr: false.
-const GlobeContent = dynamic(() => import("./GlobeContent"), { ssr: false });
+
 
 export default function HeroGlobe() {
   const [mounted, setMounted] = useState(false);
