@@ -14,6 +14,7 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
+var AuthController_1;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AuthController = void 0;
 const axios_1 = __importDefault(require("axios"));
@@ -26,10 +27,11 @@ const user_response_dto_1 = require("../users/dto/user-response.dto");
 const rate_limit_guard_1 = require("../common/guards/rate-limit.guard");
 const jwt_1 = require("@nestjs/jwt");
 const config_1 = require("@nestjs/config");
-let AuthController = class AuthController {
+let AuthController = AuthController_1 = class AuthController {
     authService;
     jwtService;
     configService;
+    logger = new common_1.Logger(AuthController_1.name);
     constructor(authService, jwtService, configService) {
         this.authService = authService;
         this.jwtService = jwtService;
@@ -62,11 +64,11 @@ let AuthController = class AuthController {
                 `state=${state}&` +
                 `access_type=offline&` +
                 `prompt=consent`;
-            console.log(`Redirecting to Google OAuth: ${googleAuthUrl}`);
+            this.logger.log(`Redirecting to Google OAuth: ${googleAuthUrl}`);
             return res.redirect(googleAuthUrl);
         }
         catch (error) {
-            console.error('Error initiating Google OAuth:', error);
+            this.logger.error('Error initiating Google OAuth', error);
             throw new common_1.HttpException('Failed to initiate Google OAuth', common_1.HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
@@ -74,17 +76,17 @@ let AuthController = class AuthController {
         try {
             const { code, error, state } = query;
             if (error) {
-                console.error('Google OAuth error:', error);
+                this.logger.error(`Google OAuth error: ${error}`);
                 throw new common_1.BadRequestException(`Google OAuth error: ${error}`);
             }
             if (!code) {
                 throw new common_1.BadRequestException('No authorization code received');
             }
-            console.log('Received authorization code, exchanging for tokens...');
+            this.logger.log('Received authorization code, exchanging for tokens...');
             const tokens = await this.exchangeCodeForTokens(code);
-            console.log('Successfully exchanged code for tokens');
+            this.logger.log('Successfully exchanged code for tokens');
             const userInfo = await this.getUserInfo(tokens.access_token);
-            console.log('Retrieved user info from Google:', userInfo.email);
+            this.logger.log(`Retrieved user info from Google: ${userInfo.email}`);
             const result = await this.authService.validateOrCreateGoogleUser({
                 email: userInfo.email,
                 firstName: userInfo.given_name || userInfo.name?.split(' ')[0] || '',
@@ -94,14 +96,14 @@ let AuthController = class AuthController {
                 googleId: userInfo.sub,
                 picture: userInfo.picture,
             });
-            console.log('User authenticated successfully:', result.user.email);
+            this.logger.log(`User authenticated successfully: ${result.user.email}`);
             const frontendUrl = this.configService.get('FRONTEND_URL') ||
                 'http://localhost:3000';
             const redirectUrl = `${frontendUrl}/auth/google/callback?token=${result.accessToken}&user=${encodeURIComponent(JSON.stringify(result.user))}`;
             return res.redirect(redirectUrl);
         }
         catch (error) {
-            console.error('Google OAuth callback error:', error);
+            this.logger.error('Google OAuth callback error', error);
             const frontendUrl = this.configService.get('FRONTEND_URL') ||
                 'http://localhost:3000';
             const errorUrl = `${frontendUrl}/auth/google/callback?error=${encodeURIComponent(error.message)}`;
@@ -127,7 +129,7 @@ let AuthController = class AuthController {
             return response.data;
         }
         catch (error) {
-            console.error('Token exchange error:', error.response?.data || error.message);
+            this.logger.error('Token exchange error:', error.response?.data || error.message);
             throw new common_1.HttpException('Failed to exchange code for tokens', common_1.HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
@@ -141,7 +143,7 @@ let AuthController = class AuthController {
             return response.data;
         }
         catch (error) {
-            console.error('User info fetch error:', error.response?.data || error.message);
+            this.logger.error('User info fetch error:', error.response?.data || error.message);
             throw new common_1.HttpException('Failed to fetch user info from Google', common_1.HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
@@ -265,7 +267,7 @@ __decorate([
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", Promise)
 ], AuthController.prototype, "testOauthRoutes", null);
-exports.AuthController = AuthController = __decorate([
+exports.AuthController = AuthController = AuthController_1 = __decorate([
     (0, common_1.Controller)('auth'),
     __metadata("design:paramtypes", [auth_service_1.AuthService,
         jwt_1.JwtService,

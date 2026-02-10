@@ -22,7 +22,7 @@ export class SubscriptionsWebhookController {
   @Post('webhook/razorpay')
   @HttpCode(HttpStatus.OK)
   async handleRazorpayWebhook(
-    @Body() payload: any,
+    @Body() payload: Record<string, unknown>,
     @Headers('x-razorpay-signature') signature: string,
   ) {
     const webhookSecret = this.configService.get<string>(

@@ -15,6 +15,7 @@ import {
   Query,
   HttpException,
   BadRequestException,
+  Logger,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { LocalAuthGuard } from './guards/local-auth.guard';
@@ -34,6 +35,8 @@ import { ConfigService } from '@nestjs/config';
 
 @Controller('auth') // Route prefix /api/v1/auth
 export class AuthController {
+  private readonly logger = new Logger(AuthController.name);
+
   constructor(
     private authService: AuthService,
     private jwtService: JwtService,
@@ -90,10 +93,10 @@ export class AuthController {
         `access_type=offline&` +
         `prompt=consent`;
 
-      console.log(`Redirecting to Google OAuth: ${googleAuthUrl}`);
+      this.logger.log(`Redirecting to Google OAuth: ${googleAuthUrl}`);
       return res.redirect(googleAuthUrl);
     } catch (error) {
-      console.error('Error initiating Google OAuth:', error);
+      this.logger.error('Error initiating Google OAuth', error);
       throw new HttpException(
         'Failed to initiate Google OAuth',
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -102,12 +105,12 @@ export class AuthController {
   }
 
   @Get('google/callback')
-  async googleCallback(@Query() query: any, @Res() res) {
+  async googleCallback(@Query() query: Record<string, string>, @Res() res) {
     try {
       const { code, error, state } = query;
 
       if (error) {
-        console.error('Google OAuth error:', error);
+        this.logger.error(`Google OAuth error: ${error}`);
         throw new BadRequestException(`Google OAuth error: ${error}`);
       }
 
@@ -115,15 +118,15 @@ export class AuthController {
         throw new BadRequestException('No authorization code received');
       }
 
-      console.log('Received authorization code, exchanging for tokens...');
+      this.logger.log('Received authorization code, exchanging for tokens...');
 
       // Exchange code for tokens
       const tokens = await this.exchangeCodeForTokens(code);
-      console.log('Successfully exchanged code for tokens');
+      this.logger.log('Successfully exchanged code for tokens');
 
       // Get user info from Google
       const userInfo = await this.getUserInfo(tokens.access_token);
-      console.log('Retrieved user info from Google:', userInfo.email);
+      this.logger.log(`Retrieved user info from Google: ${userInfo.email}`);
 
       // Create or authenticate user
       const result = await this.authService.validateOrCreateGoogleUser({
@@ -137,7 +140,7 @@ export class AuthController {
         picture: userInfo.picture,
       });
 
-      console.log('User authenticated successfully:', result.user.email);
+      this.logger.log(`User authenticated successfully: ${result.user.email}`);
 
       // Redirect to frontend with success
       const frontendUrl =
@@ -147,7 +150,7 @@ export class AuthController {
 
       return res.redirect(redirectUrl);
     } catch (error) {
-      console.error('Google OAuth callback error:', error);
+      this.logger.error('Google OAuth callback error', error);
       const frontendUrl =
         this.configService.get<string>('FRONTEND_URL') ||
         'http://localhost:3000';
@@ -180,7 +183,7 @@ export class AuthController {
 
       return response.data;
     } catch (error) {
-      console.error(
+      this.logger.error(
         'Token exchange error:',
         error.response?.data || error.message,
       );
@@ -204,7 +207,7 @@ export class AuthController {
 
       return response.data;
     } catch (error) {
-      console.error(
+      this.logger.error(
         'User info fetch error:',
         error.response?.data || error.message,
       );
@@ -237,7 +240,7 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   async adminLogin(
     @Body() loginDto: { email: string; password: string },
-  ): Promise<{ accessToken: string; user: any }> {
+  ): Promise<{ accessToken: string; user: Record<string, string> }> {
     // Demo admin credentials
     const adminCredentials = {
       email: 'admin@tradetaper.com',

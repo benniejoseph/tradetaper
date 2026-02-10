@@ -18,6 +18,7 @@ import {
   FeatureAccessGuard,
   RequireFeature,
 } from '../subscriptions/guards/feature-access.guard';
+import { AuthenticatedRequest } from '../types/authenticated-request.interface';
 
 @Controller('discipline')
 @UseGuards(JwtAuthGuard, FeatureAccessGuard)
@@ -28,20 +29,20 @@ export class DisciplineController {
   // ============== DISCIPLINE STATS ==============
 
   @Get('stats')
-  async getStats(@Request() req: any) {
+  async getStats(@Request() req: AuthenticatedRequest) {
     return this.disciplineService.getDisciplineStats(req.user.id);
   }
 
   // ============== TRADE APPROVALS ==============
 
   @Post('approvals')
-  async createApproval(@Request() req: any, @Body() dto: CreateApprovalDto) {
+  async createApproval(@Request() req: AuthenticatedRequest, @Body() dto: CreateApprovalDto) {
     return this.disciplineService.createApproval(req.user.id, dto);
   }
 
   @Post('approvals/:id/approve')
   async approveAndUnlock(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Param('id') id: string,
     @Body() dto: ApproveTradeDto,
   ) {
@@ -49,30 +50,30 @@ export class DisciplineController {
   }
 
   @Get('approvals/active')
-  async getActiveApproval(@Request() req: any) {
+  async getActiveApproval(@Request() req: AuthenticatedRequest) {
     return this.disciplineService.getActiveApproval(req.user.id);
   }
 
   @Get('approvals/pending')
-  async getPendingApprovals(@Request() req: any) {
+  async getPendingApprovals(@Request() req: AuthenticatedRequest) {
     return this.disciplineService.getPendingApprovals(req.user.id);
   }
 
   @Get('approvals/history')
-  async getApprovalHistory(@Request() req: any) {
+  async getApprovalHistory(@Request() req: AuthenticatedRequest) {
     return this.disciplineService.getApprovalHistory(req.user.id);
   }
 
   // ============== COOLDOWNS ==============
 
   @Get('cooldowns/active')
-  async getActiveCooldown(@Request() req: any) {
+  async getActiveCooldown(@Request() req: AuthenticatedRequest) {
     return this.disciplineService.getActiveCooldown(req.user.id);
   }
 
   @Post('cooldowns/:id/complete-exercise')
   async completeExercise(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Param('id') id: string,
     @Body() dto: CompleteExerciseDto,
   ) {
@@ -84,12 +85,12 @@ export class DisciplineController {
   }
 
   @Post('cooldowns/:id/skip')
-  async skipCooldown(@Request() req: any, @Param('id') id: string) {
+  async skipCooldown(@Request() req: AuthenticatedRequest, @Param('id') id: string) {
     return this.disciplineService.skipCooldown(req.user.id, id);
   }
 
   @Get('cooldowns/history')
-  async getCooldownHistory(@Request() req: any) {
+  async getCooldownHistory(@Request() req: AuthenticatedRequest) {
     return this.disciplineService.getCooldownHistory(req.user.id);
   }
 }

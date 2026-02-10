@@ -1,4 +1,7 @@
 import { DataSource } from 'typeorm';
+import { Logger } from '@nestjs/common';
+
+const logger = new Logger('DataSource');
 import { ConfigService } from '@nestjs/config';
 import { User } from './users/entities/user.entity';
 import { Account } from './users/entities/account.entity';
@@ -13,13 +16,13 @@ import { NoteBlock } from './notes/entities/note-block.entity';
 import { NoteMedia } from './notes/entities/note-media.entity';
 import { Connector, IpAddressTypes } from '@google-cloud/cloud-sql-connector';
 
-console.log('📦 data-source.ts module loaded');
+logger.log('data-source.ts module loaded');
 
 const getDataSource = async (): Promise<DataSource> => {
-  console.log('🔧 Initializing data source...');
+  logger.log('Initializing data source...');
 
   if (process.env.NODE_ENV === 'test') {
-    console.log('🧪 Test environment detected. Using in-memory SQLite.');
+    logger.log('Test environment detected. Using in-memory SQLite.');
     return new DataSource({
       type: 'sqlite',
       database: ':memory:',
@@ -32,13 +35,13 @@ const getDataSource = async (): Promise<DataSource> => {
 
   try {
     const connector = new Connector();
-    console.log('☁️ CloudSqlConnector instantiated.');
+    logger.log('CloudSqlConnector instantiated.');
 
     const driverOptions = await connector.getOptions({
       instanceConnectionName: process.env.INSTANCE_CONNECTION_NAME!,
       ipType: IpAddressTypes.PRIVATE,
     });
-    console.log('✅ Connector options received.');
+    logger.log('Connector options received.');
 
     const dataSource = new DataSource({
       ...driverOptions,
@@ -52,12 +55,12 @@ const getDataSource = async (): Promise<DataSource> => {
       logging: ['error', 'warn'],
     });
 
-    console.log('➕ DataSource object created. Initializing...');
+    logger.log('DataSource object created. Initializing...');
     await dataSource.initialize();
-    console.log('🎉 Data source initialized successfully.');
+    logger.log('Data source initialized successfully.');
     return dataSource;
   } catch (error) {
-    console.error('❌ FATAL: Error during data source initialization:', error);
+    logger.fatal('Error during data source initialization', error);
     throw error; // Re-throw to ensure the process exits
   }
 };

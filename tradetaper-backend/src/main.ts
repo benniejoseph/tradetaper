@@ -1,7 +1,7 @@
 // trading-journal-backend/src/main.ts
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { ValidationPipe, BadRequestException } from '@nestjs/common';
+import { ValidationPipe, BadRequestException, Logger } from '@nestjs/common';
 import { CorsOptions } from '@nestjs/common/interfaces/external/cors-options.interface';
 import cookieParser from 'cookie-parser';
 import { doubleCsrf } from 'csrf-csrf';
@@ -9,11 +9,13 @@ import { doubleCsrf } from 'csrf-csrf';
 import helmet from 'helmet';
 import { WsJwtAdapter } from './websocket/ws-jwt.adapter';
 
+const logger = new Logger('Bootstrap');
+
 async function bootstrap() {
   try {
-    console.log('🚀 TradeTaper Backend Starting...');
-    console.log(
-      `📊 Node.js: ${process.version}, ENV: ${process.env.NODE_ENV}, PORT: ${process.env.PORT}`,
+    logger.log('TradeTaper Backend Starting...');
+    logger.log(
+      `Node.js: ${process.version}, ENV: ${process.env.NODE_ENV}, PORT: ${process.env.PORT}`,
     );
 
     const app = await NestFactory.create(AppModule);
@@ -43,11 +45,11 @@ async function bootstrap() {
       credentials: true,
     };
     app.enableCors(corsOptions);
-    console.log('✅ CORS enabled with options:', JSON.stringify(corsOptions.origin));
+    logger.log(`CORS enabled for origins: ${JSON.stringify(corsOptions.origin)}`);
 
     // SECURITY: Use JWT-authenticated WebSocket adapter
     app.useWebSocketAdapter(new WsJwtAdapter(app));
-    console.log('🔐 WebSocket JWT authentication enabled');
+    logger.log('WebSocket JWT authentication enabled');
 
     // SECURITY: Add security headers to protect against common attacks
     app.use(
@@ -64,11 +66,11 @@ async function bootstrap() {
         crossOriginEmbedderPolicy: false, // Allow embedding for OAuth
       }),
     );
-    console.log('🛡️  Security headers enabled (Helmet.js)');
+    logger.log('Security headers enabled (Helmet.js)');
 
     // SECURITY: Enable cookie parsing for HTTP-only auth cookies
     app.use(cookieParser());
-    console.log('🍪 Cookie parser enabled');
+    logger.log('Cookie parser enabled');
 
     // SECURITY: CSRF protection for state-changing operations
     // Only enable in production or when explicitly enabled
@@ -100,15 +102,15 @@ async function bootstrap() {
         },
       });
       app.use(doubleCsrfProtection);
-      console.log('🛡️  CSRF protection enabled');
+      logger.log('CSRF protection enabled');
     } else {
-      console.log(
-        '⚠️  CSRF protection disabled (set ENABLE_CSRF=true to enable)',
+      logger.warn(
+        'CSRF protection disabled (set ENABLE_CSRF=true to enable)',
       );
     }
 
     const port = process.env.PORT || 3000;
-    console.log(`🔧 Using port: ${port}`);
+    logger.log(`Using port: ${port}`);
 
     // Set global prefix
     app.setGlobalPrefix('api/v1');
@@ -124,49 +126,48 @@ async function bootstrap() {
             field: error.property,
             errors: Object.values(error.constraints || {}),
           }));
-          console.error(
-            '🚨 Validation failed:',
-            JSON.stringify(messages, null, 2),
+          logger.error(
+            `Validation failed: ${JSON.stringify(messages, null, 2)}`,
           );
           return new BadRequestException(messages);
         },
       }),
     );
 
-    console.log(`🔧 Starting server on port ${port}...`);
+    logger.log(`Starting server on port ${port}...`);
     await app.listen(port, '0.0.0.0');
 
-    console.log(`🚀 TradeTaper Backend is running on port ${port}`);
-    console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
-    console.log(`❤️ Health: http://0.0.0.0:${port}/health`);
-    console.log(`📊 API: http://0.0.0.0:${port}/api/v1`);
-    console.log(`Application is running on: ${await app.getUrl()}`);
-  } catch (error) {
-    console.error('❌ STARTUP FAILED:', error);
-    console.error('Stack trace:', error.stack);
+    logger.log(`TradeTaper Backend is running on port ${port}`);
+    logger.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+    logger.log(`Health: http://0.0.0.0:${port}/health`);
+    logger.log(`API: http://0.0.0.0:${port}/api/v1`);
+    logger.log(`Application is running on: ${await app.getUrl()}`);
+  } catch (error: unknown) {
+    const err = error as Error;
+    logger.fatal(`STARTUP FAILED: ${err.message}`, err.stack);
     process.exit(1);
   }
 }
 
 // Handle uncaught exceptions
 process.on('uncaughtException', (error) => {
-  console.error('❌ Uncaught Exception:', error);
+  logger.fatal(`Uncaught Exception: ${error.message}`, error.stack);
   process.exit(1);
 });
 
-process.on('unhandledRejection', (reason, promise) => {
-  console.error('❌ Unhandled Rejection at:', promise, 'reason:', reason);
+process.on('unhandledRejection', (reason: unknown) => {
+  logger.fatal(`Unhandled Rejection: ${reason}`);
   process.exit(1);
 });
 
 // Graceful shutdown
 process.on('SIGTERM', () => {
-  console.log('🛑 SIGTERM received, shutting down gracefully');
+  logger.log('SIGTERM received, shutting down gracefully');
   process.exit(0);
 });
 
 process.on('SIGINT', () => {
-  console.log('🛑 SIGINT received, shutting down gracefully');
+  logger.log('SIGINT received, shutting down gracefully');
   process.exit(0);
 });
 

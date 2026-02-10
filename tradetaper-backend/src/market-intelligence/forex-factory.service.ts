@@ -92,7 +92,7 @@ export class ForexFactoryService {
         }),
       );
 
-      return response.data.map((event: any) => ({
+      return response.data.map((event: Record<string, any>) => ({
         id: `ec_${event.CalendarId || Date.now()}_${Math.random()}`,
         title: event.Event || event.Name,
         country: this.mapCountryToCurrency(event.Country),
@@ -132,7 +132,7 @@ export class ForexFactoryService {
       );
 
       if (response.data.feed) {
-        return response.data.feed.map((item: any) => ({
+        return response.data.feed.map((item: Record<string, any>) => ({
           id: `av_${item.url.split('/').pop()}_${Date.now()}`,
           title: item.title,
           country: 'USD', // Alpha Vantage primarily covers US markets
@@ -179,7 +179,7 @@ export class ForexFactoryService {
         ),
       );
 
-      return response.data.map((event: any) => ({
+      return response.data.map((event: Record<string, any>) => ({
         id: `te_${event.CalendarId}_${Date.now()}`,
         title: event.Event,
         country: event.Country,
@@ -235,8 +235,8 @@ export class ForexFactoryService {
     return mapping[country.toLowerCase()] || 'USD';
   }
 
-  private mapImportanceToImpact(importance: any): 'low' | 'medium' | 'high' {
-    const imp = parseFloat(importance) || 1;
+  private mapImportanceToImpact(importance: string | number): 'low' | 'medium' | 'high' {
+    const imp = parseFloat(String(importance)) || 1;
     if (imp >= 3) return 'high';
     if (imp >= 2) return 'medium';
     return 'low';

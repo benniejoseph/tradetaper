@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable, BadRequestException, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as fs from 'fs';
 import * as os from 'os';
@@ -7,6 +7,8 @@ import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
 export class AIService {
+  private readonly logger = new Logger(AIService.name);
+
   private geminiApiKey: string;
   private tempDir: string;
 
@@ -103,7 +105,7 @@ export class AIService {
 
         if (!response.ok) {
           const errorData = await response.text();
-          console.error('Gemini API error:', errorData);
+          this.logger.error(`Gemini API error: ${errorData}`);
           throw new Error(`Gemini API error: ${response.status}`);
         }
 
@@ -130,7 +132,7 @@ export class AIService {
         }
       }
     } catch (error) {
-      console.error('Speech-to-text error:', error);
+      this.logger.error('Speech-to-text error', error);
       throw new BadRequestException(
         'Failed to transcribe audio: ' + error.message,
       );
@@ -211,7 +213,7 @@ export class AIService {
         ],
       };
     } catch (error) {
-      console.error('Text enhancement error:', error);
+      this.logger.error('Text enhancement error', error);
       throw new BadRequestException('Failed to enhance text: ' + error.message);
     }
   }
@@ -285,7 +287,7 @@ Please respond in JSON format:
           return suggestions;
         }
       } catch (parseError) {
-        console.warn('Failed to parse JSON response, using fallback');
+        this.logger.warn('Failed to parse JSON response, using fallback');
       }
 
       // Fallback parsing
@@ -299,7 +301,7 @@ Please respond in JSON format:
         ],
       };
     } catch (error) {
-      console.error('Note suggestions error:', error);
+      this.logger.error('Note suggestions error', error);
       // Return default suggestions on error
       return {
         tags: ['note'],
@@ -324,7 +326,7 @@ Please respond in JSON format:
     return mimeTypes[ext] || 'audio/mpeg';
   }
 
-  private calculateConfidence(transcript: string, geminiResponse: any): number {
+  private calculateConfidence(transcript: string, geminiResponse: Record<string, unknown>): number {
     // Basic confidence calculation based on response characteristics
     let confidence = 0.8; // Base confidence
 

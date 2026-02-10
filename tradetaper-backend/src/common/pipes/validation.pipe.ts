@@ -35,7 +35,7 @@ export class EnhancedValidationPipe implements PipeTransform<any> {
     this.validationPipe = new NestValidationPipe(this.options);
   }
 
-  async transform(value: any, metadata: ArgumentMetadata): Promise<any> {
+  async transform(value: unknown, metadata: ArgumentMetadata): Promise<unknown> {
     // First, run standard validation
     const transformedValue = await this.validationPipe.transform(
       value,
@@ -54,7 +54,7 @@ export class EnhancedValidationPipe implements PipeTransform<any> {
     return transformedValue;
   }
 
-  private sanitizeObject(obj: any): any {
+  private sanitizeObject(obj: unknown): unknown {
     if (Array.isArray(obj)) {
       return obj.map((item) => this.sanitizeObject(item));
     }
@@ -251,7 +251,7 @@ export class SecurityValidators {
   }
 
   private static checkObjectDepth(
-    obj: any,
+    obj: unknown,
     maxDepth: number,
     currentDepth: number = 0,
   ): boolean {

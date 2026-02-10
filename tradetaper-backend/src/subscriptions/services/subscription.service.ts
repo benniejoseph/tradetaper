@@ -552,7 +552,7 @@ export class SubscriptionService {
   }
 
   // Handle Razorpay Webhooks
-  async handleRazorpayWebhook(event: any) {
+  async handleRazorpayWebhook(event: Record<string, any>) {
     const { event: eventType, payload } = event;
     const subscriptionEntity = payload.subscription
       ? payload.subscription.entity
@@ -668,7 +668,7 @@ export class SubscriptionService {
 
   private async updateSubscriptionFromRazorpay(
     subscription: Subscription,
-    entity: any,
+    entity: Record<string, any>,
   ) {
     if (!entity) return;
 

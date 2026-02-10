@@ -30,7 +30,7 @@ export class FilesService implements OnModuleInit {
       'GOOGLE_APPLICATION_CREDENTIALS_JSON',
     );
 
-    let storageConfig: any = {};
+    let storageConfig: Record<string, unknown> = {};
 
     if (credentialsJson) {
       // Production: Use JSON string from environment variable

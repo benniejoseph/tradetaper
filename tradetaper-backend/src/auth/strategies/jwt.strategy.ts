@@ -17,10 +17,11 @@ export interface JwtPayload {
 }
 
 function getJwtSecret(configService: ConfigService): string {
+  const logger = new Logger('JwtStrategy');
   const jwtSecret = configService.get<string>('JWT_SECRET');
   if (!jwtSecret) {
-    console.error(
-      'WARNING: JWT_SECRET is not defined in environment variables. Using fallback secret for debugging.',
+    logger.warn(
+      'JWT_SECRET is not defined in environment variables. Using fallback secret for debugging.',
     );
     // Temporary fallback for debugging - should be replaced with proper secret
     return 'temporary-fallback-jwt-secret-for-debugging-please-set-proper-secret-in-production-environment-12345';

@@ -444,7 +444,7 @@ let MultiProviderMarketDataService = MultiProviderMarketDataService_1 = class Mu
                 throw new Error(`Historical data for ${assetType} not supported by Alpha Vantage`);
             }
             const response = await (0, rxjs_1.firstValueFrom)(this.httpService.get(url));
-            let timeSeries;
+            let timeSeries = {};
             if (assetType === 'stocks') {
                 timeSeries = response.data['Time Series (Daily)'];
             }

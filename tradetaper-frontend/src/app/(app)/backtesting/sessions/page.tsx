@@ -110,7 +110,7 @@ export default function ReplaySessionsPage() {
         </div>
 
         <Link
-          href="/backtesting/session/new"
+          href="/backtesting"
           className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 rounded-lg text-white transition-colors flex items-center gap-2"
         >
           <FaPlay />
@@ -149,7 +149,7 @@ export default function ReplaySessionsPage() {
             <h2 className="text-xl font-bold text-white mb-2">No replay sessions yet</h2>
             <p className="text-slate-400 mb-6">Start a new replay session to practice your trading skills</p>
             <Link
-              href="/backtesting/session/new"
+              href="/backtesting"
               className="inline-flex items-center gap-2 px-6 py-3 bg-emerald-600 hover:bg-emerald-700 rounded-lg text-white transition-colors"
             >
               <FaPlay />
@@ -240,7 +240,7 @@ export default function ReplaySessionsPage() {
 
                   <div className="flex items-center gap-2 ml-6">
                     <Link
-                      href={`/backtesting/session/${session.id}`}
+                      href={`/backtesting/session/${session.id}?symbol=${session.symbol}&timeframe=${session.timeframe}&startDate=${session.startDate}&endDate=${session.endDate}&balance=${session.startingBalance}`}
                       className="p-2 hover:bg-white/5 rounded-lg text-emerald-400 hover:text-emerald-300 transition-colors"
                       title="Resume session"
                     >

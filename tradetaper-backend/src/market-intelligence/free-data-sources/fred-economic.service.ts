@@ -242,11 +242,11 @@ export class FredEconomicService {
       );
 
       const data = response.data.observations
-        .map((obs: any) => ({
+        .map((obs: Record<string, any>) => ({
           date: obs.date,
           value: parseFloat(obs.value),
         }))
-        .filter((d: any) => !isNaN(d.value))
+        .filter((d: { date: string; value: number }) => !isNaN(d.value))
         .reverse();
 
       // Cache the result

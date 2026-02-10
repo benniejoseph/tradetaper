@@ -8,16 +8,19 @@ import { strategiesService } from '@/services/strategiesService';
 import { backtestingService } from '@/services/backtestingService';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { MarketLogsList } from '@/components/backtesting/MarketLogsList';
-import { 
-  FiPlus, 
-  FiTrendingUp, 
-  FiTrendingDown, 
-  FiTarget, 
+import SessionConfigModal from '@/components/backtesting/SessionConfigModal';
+import {
+  FiPlus,
+  FiTrendingUp,
+  FiTrendingDown,
+  FiTarget,
   FiGrid,
   FiBarChart2,
-  FiList 
+  FiList,
+  FiPlay
 } from 'react-icons/fi';
 import { FaFlask, FaChartLine } from 'react-icons/fa';
+import React from 'react';
 
 function ContentHeader({ title, description }: { title: string; description?: string }) {
   return (
@@ -60,6 +63,7 @@ export default function BacktestingPage() {
   const [loading, setLoading] = useState(true);
   const [statsLoading, setStatsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isReplayModalOpen, setIsReplayModalOpen] = useState(false);
 
   useEffect(() => {
     loadStrategies();
@@ -279,7 +283,7 @@ export default function BacktestingPage() {
               )}
 
               {/* Quick Actions */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <Link
                   href={`/backtesting/trades?strategyId=${selectedStrategyId}`}
                   className="flex items-center gap-4 p-4 bg-gradient-to-br from-white to-blue-50 dark:from-black dark:to-blue-950/20 rounded-xl border border-blue-200/50 dark:border-blue-700/30 hover:shadow-lg transition-all"
@@ -317,6 +321,30 @@ export default function BacktestingPage() {
                     <h3 className="font-semibold text-gray-900 dark:text-white">AI Analysis</h3>
                     <p className="text-sm text-gray-500 dark:text-gray-400">Generate mechanical rules</p>
                   </div>
+                </Link>
+
+                <button
+                  onClick={() => setIsReplayModalOpen(true)}
+                  className="flex items-center gap-4 p-4 bg-gradient-to-br from-white to-green-50 dark:from-black dark:to-green-950/20 rounded-xl border border-green-200/50 dark:border-green-700/30 hover:shadow-lg transition-all"
+                >
+                  <div className="p-3 bg-green-100 dark:bg-green-900/30 rounded-lg">
+                    <FiPlay className="w-6 h-6 text-green-600 dark:text-green-400" />
+                  </div>
+                  <div className="text-left">
+                    <h3 className="font-semibold text-gray-900 dark:text-white">Practice Trading</h3>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Replay with real candles</p>
+                  </div>
+                </button>
+              </div>
+
+              {/* Replay History Link */}
+              <div className="flex justify-center pt-4">
+                <Link
+                  href="/backtesting/sessions"
+                  className="inline-flex items-center text-sm text-gray-600 dark:text-gray-400 hover:text-green-600 dark:hover:text-green-400 transition-colors"
+                >
+                  <FiPlay className="mr-2" />
+                  View Replay Session History
                 </Link>
               </div>
 
@@ -389,6 +417,12 @@ export default function BacktestingPage() {
            <MarketLogsList />
         </div>
       )}
+
+      {/* Session Config Modal */}
+      <SessionConfigModal
+        isOpen={isReplayModalOpen}
+        onClose={() => setIsReplayModalOpen(false)}
+      />
     </div>
   );
 }

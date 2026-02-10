@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable, BadRequestException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 // import { Storage } from '@google-cloud/storage';
@@ -10,6 +10,8 @@ import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
 export class MediaService {
+  private readonly logger = new Logger(MediaService.name);
+
   // private storage: Storage;
   private bucketName = 'tradetaper-storage'; // Your GCP bucket name
 
@@ -100,7 +102,7 @@ export class MediaService {
 
       return savedMedia;
     } catch (error) {
-      console.error('Error uploading file:', error);
+      this.logger.error('Error uploading file', error);
       throw new BadRequestException('Failed to upload file');
     }
   }
@@ -148,7 +150,7 @@ export class MediaService {
         thumbnailPath: `gs://${this.bucketName}/${thumbnailFileName}`,
       };
     } catch (error) {
-      console.error('Error processing image:', error);
+      this.logger.error('Error processing image', error);
       // Return original buffer if processing fails
       return { processedBuffer: buffer };
     }
@@ -226,7 +228,7 @@ export class MediaService {
       // Delete database record
       await this.mediaRepository.delete(mediaId);
     } catch (error) {
-      console.error('Error deleting file:', error);
+      this.logger.error('Error deleting file', error);
       throw new BadRequestException('Failed to delete file');
     }
   }
@@ -266,7 +268,7 @@ export class MediaService {
 
       return `https://placeholder.example.com/${media.filename}`;
     } catch (error) {
-      console.error('Error generating signed URL:', error);
+      this.logger.error('Error generating signed URL', error);
       throw new BadRequestException('Failed to generate file URL');
     }
   }

@@ -20,12 +20,8 @@ let GoogleStrategy = class GoogleStrategy extends (0, passport_1.PassportStrateg
         const clientId = configService.get('GOOGLE_CLIENT_ID');
         const clientSecret = configService.get('GOOGLE_CLIENT_SECRET');
         const callbackURL = configService.get('GOOGLE_CALLBACK_URL');
-        console.log('GoogleStrategy Configuration:', {
-            hasClientId: !!clientId,
-            hasClientSecret: !!clientSecret,
-            hasCallbackURL: !!callbackURL,
-            callbackURL,
-        });
+        const logger = new common_1.Logger('GoogleStrategy');
+        logger.log(`GoogleStrategy Configuration: hasClientId=${!!clientId}, hasClientSecret=${!!clientSecret}, callbackURL=${callbackURL}`);
         const options = {
             clientID: clientId || '',
             clientSecret: clientSecret || '',

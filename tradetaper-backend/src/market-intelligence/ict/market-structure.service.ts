@@ -1,5 +1,6 @@
 import { safeToFixed } from './ict-utils';
 import { Injectable, Logger } from '@nestjs/common';
+import { Candle } from './market-data-provider.service';
 
 export interface MarketStructure {
   symbol: string;
@@ -36,7 +37,7 @@ export class MarketStructureService {
    */
   analyzeMarketStructure(
     symbol: string,
-    priceData: any[],
+    priceData: Candle[],
     timeframe: string = '1D',
   ): MarketStructure {
     this.logger.log(
@@ -89,7 +90,7 @@ export class MarketStructureService {
   /**
    * Identify swing points (highs and lows)
    */
-  private identifySwingPoints(priceData: any[]): {
+  private identifySwingPoints(priceData: Candle[]): {
     highs: Array<{ price: number; index: number; timestamp: Date }>;
     lows: Array<{ price: number; index: number; timestamp: Date }>;
   } {
@@ -143,8 +144,8 @@ export class MarketStructureService {
    * Determine current trend
    */
   private determineTrend(
-    swingPoints: any,
-    priceData: any[],
+    swingPoints: MarketStructure['swingPoints'],
+    priceData: Candle[],
   ): 'bullish' | 'bearish' | 'ranging' {
     if (swingPoints.highs.length < 2 || swingPoints.lows.length < 2) {
       return 'ranging';
@@ -192,11 +193,11 @@ export class MarketStructureService {
    * Detect structure shift (BOS or CHoCH)
    */
   private detectStructureShift(
-    swingPoints: any,
-    priceData: any[],
+    swingPoints: MarketStructure['swingPoints'],
+    priceData: Candle[],
   ): {
     type: 'BOS' | 'CHoCH' | 'none';
-    shift: any | null;
+    shift: MarketStructure['lastStructureShift'];
   } {
     if (swingPoints.highs.length < 2 || swingPoints.lows.length < 2) {
       return { type: 'none', shift: null };
@@ -279,7 +280,7 @@ export class MarketStructureService {
   /**
    * Find current structure levels
    */
-  private findStructureLevels(swingPoints: any): {
+  private findStructureLevels(swingPoints: MarketStructure['swingPoints']): {
     higherHigh: number | null;
     higherLow: number | null;
     lowerHigh: number | null;
@@ -318,9 +319,9 @@ export class MarketStructureService {
    */
   private generateStructureAnalysis(
     trend: string,
-    structureShift: any,
-    structureLevels: any,
-    swingPoints: any,
+    structureShift: { type: 'BOS' | 'CHoCH' | 'none'; shift: MarketStructure['lastStructureShift'] },
+    structureLevels: { higherHigh: number | null; higherLow: number | null; lowerHigh: number | null; lowerLow: number | null },
+    swingPoints: MarketStructure['swingPoints'],
   ): string[] {
     const analysis: string[] = [];
 
@@ -390,8 +391,8 @@ export class MarketStructureService {
    */
   private determineTradingBias(
     trend: string,
-    structureShift: any,
-    priceData: any[],
+    structureShift: { type: 'BOS' | 'CHoCH' | 'none'; shift: MarketStructure['lastStructureShift'] },
+    priceData: Candle[],
   ): 'long' | 'short' | 'neutral' {
     // If we have a recent CHoCH, bias changes
     if (structureShift.shift && structureShift.type === 'CHoCH') {

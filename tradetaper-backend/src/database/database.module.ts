@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, Logger } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
@@ -7,6 +7,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => {
+        const logger = new Logger('DatabaseModule');
         const isProduction =
           configService.get<string>('NODE_ENV') === 'production';
 
@@ -17,14 +18,14 @@ import { TypeOrmModule } from '@nestjs/typeorm';
           // Check for DB_SSL (default true in prod if not specified, safe for Cloud)
           const isSSL = configService.get<string>('DB_SSL') === 'true' || true;
 
-          let hostConfig: any = {};
+          let hostConfig: Record<string, unknown> = {};
           if (instanceName) {
-            console.log('🔧 Using Unix socket for Cloud Run');
+            logger.log('Using Unix socket for Cloud Run');
             hostConfig = {
               host: `/cloudsql/${instanceName}`,
             };
           } else {
-            console.log('🔧 Using Standard TCP Connection (IPv4)');
+            logger.log('Using Standard TCP Connection (IPv4)');
             hostConfig = {
               host: configService.get<string>('DB_HOST'),
               port: Number(configService.get<string>('DB_PORT') || 5432),
@@ -53,25 +54,18 @@ import { TypeOrmModule } from '@nestjs/typeorm';
             synchronize: false, // CRITICAL: Never enable in production - use migrations instead
             migrationsRun: true,
             migrations: [__dirname + '/../migrations/*{.ts,.js}'],
-            logging: ['error', 'warn'] as any,
+            logging: ['error', 'warn'] as ('error' | 'warn')[],
             retryAttempts: 10,
             retryDelay: 5000,
             connectTimeoutMS: 60000,
           };
 
-          console.log('🔧 Final database config:', {
-            type: config.type,
-            host: (config as any).host,
-            database: config.database,
-            username: config.username,
-            hasPassword: !!config.password,
-            ssl: !!(config as any).ssl,
-          });
+          logger.log(`Final database config: type=${config.type}, database=${config.database}, username=${config.username}, hasPassword=${!!config.password}`);
 
           return config;
         } else {
           // Local development configuration
-          console.log('🔧 Using local database connection');
+          logger.log('Using local database connection');
 
           return {
             type: 'postgres',

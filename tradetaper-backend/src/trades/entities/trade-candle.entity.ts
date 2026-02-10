@@ -30,7 +30,7 @@ export class TradeCandle {
   timeframe: string;
 
   @Column('json')
-  data: any[];
+  data: Record<string, unknown>[];
 
   @CreateDateColumn()
   createdAt: Date;

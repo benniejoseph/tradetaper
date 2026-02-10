@@ -4,7 +4,12 @@ import { LiquidityAnalysisService } from './liquidity-analysis.service';
 import { MarketStructureService } from './market-structure.service';
 import { FairValueGapService } from './fair-value-gap.service';
 import { OrderBlockService } from './order-block.service';
-import { KillZoneService } from './kill-zone.service';
+import { KillZoneService, KillZoneAnalysis } from './kill-zone.service';
+import { LiquidityPool } from './liquidity-analysis.service';
+import { MarketStructure } from './market-structure.service';
+import { FVGAnalysis } from './fair-value-gap.service';
+import { OrderBlockAnalysis } from './order-block.service';
+import { Candle } from './market-data-provider.service';
 
 export interface ICTCompleteAnalysis {
   symbol: string;
@@ -15,10 +20,10 @@ export interface ICTCompleteAnalysis {
     name: string | null;
     isOptimal: boolean;
   };
-  liquidity: any;
-  marketStructure: any;
-  fairValueGaps: any;
-  orderBlocks: any;
+  liquidity: LiquidityPool;
+  marketStructure: MarketStructure;
+  fairValueGaps: FVGAnalysis;
+  orderBlocks: OrderBlockAnalysis;
   overallBias: 'bullish' | 'bearish' | 'neutral';
   confidence: number; // 0-100
   ictScore: number; // 0-100 (how aligned all ICT concepts are)
@@ -53,7 +58,7 @@ export class ICTMasterService {
    */
   async analyzeComplete(
     symbol: string,
-    priceData: any[],
+    priceData: Candle[],
     timeframe: string = '1D',
   ): Promise<ICTCompleteAnalysis> {
     this.logger.log(
@@ -85,23 +90,75 @@ export class ICTMasterService {
     const liquidity =
       results[0].status === 'fulfilled'
         ? results[0].value
-        : { nearestLiquidity: { above: null, below: null } };
-    const structure =
+        : {
+            symbol,
+            buySideLiquidity: [],
+            sellSideLiquidity: [],
+            nearestLiquidity: { above: null, below: null },
+            liquidityVoid: { hasVoid: false },
+            analysis: [],
+            timestamp: new Date(),
+          };
+    const structure: MarketStructure =
       results[1].status === 'fulfilled'
         ? results[1].value
-        : { trend: 'unknown', tradingBias: 'neutral' };
-    const fvgs =
+        : {
+            symbol,
+            trend: 'ranging',
+            structureType: 'none',
+            lastStructureShift: null,
+            swingPoints: { highs: [], lows: [] },
+            currentHigherHigh: null,
+            currentHigherLow: null,
+            currentLowerHigh: null,
+            currentLowerLow: null,
+            tradingBias: 'neutral',
+            analysis: [],
+            timestamp: new Date(),
+          };
+    const fvgs: FVGAnalysis =
       results[2].status === 'fulfilled'
         ? results[2].value
-        : { unfilledFVGs: [], nearestFVG: null };
-    const obs =
+        : {
+            symbol,
+            totalFVGs: 0,
+            bullishFVGs: [],
+            bearishFVGs: [],
+            unfilledFVGs: [],
+            nearestFVG: null,
+            currentPrice,
+            analysis: [],
+            tradingOpportunities: [],
+            timestamp: new Date(),
+          };
+    const obs: OrderBlockAnalysis =
       results[3].status === 'fulfilled'
         ? results[3].value
-        : { activeOrderBlocks: [], nearestOrderBlock: null };
-    const killZoneAnalysis =
+        : {
+            symbol,
+            bullishOrderBlocks: [],
+            bearishOrderBlocks: [],
+            activeOrderBlocks: [],
+            nearestOrderBlock: null,
+            currentPrice,
+            analysis: [],
+            tradingSetups: [],
+            timestamp: new Date(),
+          };
+    const killZoneAnalysis: KillZoneAnalysis =
       results[4].status === 'fulfilled'
         ? results[4].value
-        : { isOptimalTradingTime: false, activeKillZone: null };
+        : {
+            currentTime: new Date(),
+            currentTimeUTC: '',
+            activeKillZone: null,
+            nextKillZone: null,
+            allKillZones: [],
+            isOptimalTradingTime: false,
+            analysis: [],
+            recommendations: [],
+            timestamp: new Date(),
+          };
 
     // Log any failures
     results.forEach((result, index) => {
@@ -122,7 +179,13 @@ export class ICTMasterService {
     // Determine overall bias
     let overallBias: 'neutral' | 'bullish' | 'bearish';
     try {
-      overallBias = this.calculateOverallBias(structure, liquidity, fvgs, obs);
+      overallBias = this.calculateOverallBias(
+        structure,
+        liquidity,
+        fvgs,
+        obs,
+        currentPrice,
+      );
     } catch (error) {
       this.logger.error(`Error calculating overall bias: ${error.message}`);
       overallBias = 'neutral';
@@ -246,10 +309,11 @@ export class ICTMasterService {
    * Calculate overall bias from all ICT concepts
    */
   private calculateOverallBias(
-    structure: any,
-    liquidity: any,
-    fvgs: any,
-    obs: any,
+    structure: MarketStructure,
+    liquidity: LiquidityPool,
+    fvgs: FVGAnalysis,
+    obs: OrderBlockAnalysis,
+    currentPrice: number,
   ): 'bullish' | 'bearish' | 'neutral' {
     let bullishSignals = 0;
     let bearishSignals = 0;
@@ -264,8 +328,8 @@ export class ICTMasterService {
     // Liquidity (which side is being targeted)
     if (liquidity.nearestLiquidity.above) {
       const distance =
-        liquidity.nearestLiquidity.above.price - liquidity.currentPrice;
-      if (distance / liquidity.currentPrice < 0.02) {
+        liquidity.nearestLiquidity.above.price - currentPrice;
+      if (distance / currentPrice < 0.02) {
         // Close to buy-side liquidity = likely sweep then reverse bearish
         bearishSignals += 1;
       }
@@ -273,8 +337,8 @@ export class ICTMasterService {
 
     if (liquidity.nearestLiquidity.below) {
       const distance =
-        liquidity.currentPrice - liquidity.nearestLiquidity.below.price;
-      if (distance / liquidity.currentPrice < 0.02) {
+        currentPrice - liquidity.nearestLiquidity.below.price;
+      if (distance / currentPrice < 0.02) {
         // Close to sell-side liquidity = likely sweep then reverse bullish
         bullishSignals += 1;
       }
@@ -282,10 +346,10 @@ export class ICTMasterService {
 
     // FVGs
     const bullishFVGs = fvgs.bullishFVGs.filter(
-      (fvg: any) => !fvg.filled,
+      (fvg) => !fvg.filled,
     ).length;
     const bearishFVGs = fvgs.bearishFVGs.filter(
-      (fvg: any) => !fvg.filled,
+      (fvg) => !fvg.filled,
     ).length;
 
     if (bullishFVGs > bearishFVGs) bullishSignals += 1;
@@ -293,10 +357,10 @@ export class ICTMasterService {
 
     // Order Blocks
     const activeBullishOBs = obs.bullishOrderBlocks.filter(
-      (ob: any) => !ob.isBreaker,
+      (ob) => !ob.isBreaker,
     ).length;
     const activeBearishOBs = obs.bearishOrderBlocks.filter(
-      (ob: any) => !ob.isBreaker,
+      (ob) => !ob.isBreaker,
     ).length;
 
     if (activeBullishOBs > activeBearishOBs) bullishSignals += 1;
@@ -312,11 +376,11 @@ export class ICTMasterService {
    * Calculate ICT Score (how well all concepts align)
    */
   private calculateICTScore(
-    structure: any,
-    liquidity: any,
-    fvgs: any,
-    obs: any,
-    killZoneAnalysis: any,
+    structure: MarketStructure,
+    liquidity: LiquidityPool,
+    fvgs: FVGAnalysis,
+    obs: OrderBlockAnalysis,
+    killZoneAnalysis: KillZoneAnalysis,
   ): number {
     let score = 0;
 
@@ -365,9 +429,9 @@ export class ICTMasterService {
    * Identify primary trading setup
    */
   private identifyPrimarySetup(
-    structure: any,
-    fvgs: any,
-    obs: any,
+    structure: MarketStructure,
+    fvgs: FVGAnalysis,
+    obs: OrderBlockAnalysis,
     bias: string,
   ): string | null {
     // Priority: Order Block > FVG > Structure Break
@@ -406,9 +470,9 @@ export class ICTMasterService {
    * Identify all entry zones
    */
   private identifyEntryZones(
-    fvgs: any,
-    obs: any,
-    liquidity: any,
+    fvgs: FVGAnalysis,
+    obs: OrderBlockAnalysis,
+    liquidity: LiquidityPool,
     bias: string,
   ): Array<any> {
     const zones: Array<any> = [];
@@ -476,11 +540,11 @@ export class ICTMasterService {
    * Generate comprehensive analysis
    */
   private generateComprehensiveAnalysis(
-    liquidity: any,
-    structure: any,
-    fvgs: any,
-    obs: any,
-    killZone: any,
+    liquidity: LiquidityPool,
+    structure: MarketStructure,
+    fvgs: FVGAnalysis,
+    obs: OrderBlockAnalysis,
+    killZone: KillZoneAnalysis,
     bias: string,
     ictScore: number,
     currentPrice: number,
@@ -575,8 +639,8 @@ export class ICTMasterService {
     bias: string,
     primarySetup: string | null,
     entryZones: any[],
-    killZone: any,
-    structure: any,
+    killZone: KillZoneAnalysis,
+    structure: MarketStructure,
     confidence: number,
   ): string[] {
     const plan: string[] = [];

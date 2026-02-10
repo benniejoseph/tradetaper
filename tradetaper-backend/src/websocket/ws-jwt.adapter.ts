@@ -1,5 +1,5 @@
 import { IoAdapter } from '@nestjs/platform-socket.io';
-import { ServerOptions } from 'socket.io';
+import { ServerOptions, Server, Socket } from 'socket.io';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { INestApplicationContext, Logger } from '@nestjs/common';
@@ -19,7 +19,7 @@ export class WsJwtAdapter extends IoAdapter {
     this.configService = this.app.get(ConfigService);
   }
 
-  createIOServer(port: number, options?: ServerOptions): any {
+  createIOServer(port: number, options?: ServerOptions): Server {
     const server = super.createIOServer(port, options);
 
     // SECURITY: Middleware to validate JWT on connection

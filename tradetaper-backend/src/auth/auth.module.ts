@@ -1,5 +1,5 @@
 // src/auth/auth.module.ts
-import { Module } from '@nestjs/common';
+import { Module, Logger } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { UsersModule } from '../users/users.module'; // Import UsersModule
@@ -24,11 +24,8 @@ import { JwtStrategy } from './strategies/jwt.strategy';
           configService.get<string>('JWT_SECRET') ||
           'temporary-fallback-jwt-secret-for-debugging-please-set-proper-secret-in-production-environment-12345';
 
-        console.log('JWT Configuration - No Expiration:', {
-          hasSecret: !!jwtSecret,
-          secretLength: jwtSecret.length,
-          skipExpiration: true,
-        });
+        const logger = new Logger('AuthModule');
+        logger.log(`JWT Configuration - No Expiration: hasSecret=${!!jwtSecret}, secretLength=${jwtSecret.length}`);
 
         // Remove signOptions entirely to avoid the expiresIn issue
         return {

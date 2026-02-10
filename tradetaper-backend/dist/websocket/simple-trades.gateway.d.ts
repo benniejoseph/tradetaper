@@ -6,9 +6,9 @@ export declare class SimpleTradesGateway implements OnGatewayConnection, OnGatew
     private connectedClients;
     handleConnection(client: Socket): void;
     handleDisconnect(client: Socket): void;
-    notifyTradeCreated(trade: any): void;
-    notifyTradeUpdated(trade: any): void;
+    notifyTradeCreated(trade: Record<string, unknown>): void;
+    notifyTradeUpdated(trade: Record<string, unknown>): void;
     notifyTradeDeleted(tradeId: string): void;
-    notifyBulkOperation(operation: string, count: number, trades?: any[]): void;
+    notifyBulkOperation(operation: string, count: number, trades?: Record<string, unknown>[]): void;
     getConnectionCount(): number;
 }

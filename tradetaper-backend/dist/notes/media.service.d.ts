@@ -4,6 +4,7 @@ import { Note } from './entities/note.entity';
 export declare class MediaService {
     private mediaRepository;
     private noteRepository;
+    private readonly logger;
     private bucketName;
     constructor(mediaRepository: Repository<NoteMedia>, noteRepository: Repository<Note>);
     uploadFile(file: Express.Multer.File, noteId: string, userId: string): Promise<NoteMedia>;

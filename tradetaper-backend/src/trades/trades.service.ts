@@ -469,7 +469,7 @@ export class TradesService {
         userContext.id,
       );
       return populatedTrade;
-    } catch (error: any) {
+    } catch (error) {
       let errorMessage = 'Unknown error';
       if (error instanceof Error) {
         errorMessage = error.message;

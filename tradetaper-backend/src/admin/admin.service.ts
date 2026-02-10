@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import { User } from '../users/entities/user.entity';
@@ -12,6 +12,8 @@ import { TradeDirection, TradeStatus, AssetType } from '../types/enums';
 
 @Injectable()
 export class AdminService {
+  private readonly logger = new Logger(AdminService.name);
+
   constructor(
     @InjectRepository(User)
     private userRepository: Repository<User>,
@@ -161,9 +163,9 @@ export class AdminService {
         ORDER BY table_name;
       `;
       const result = await this.dataSource.query(query);
-      return result.map((row: any) => row.table_name);
+      return result.map((row: Record<string, string>) => row.table_name);
     } catch (error) {
-      console.error('Error fetching database tables:', error);
+      this.logger.error('Error fetching database tables', error);
       return [];
     }
   }
@@ -174,7 +176,7 @@ export class AdminService {
       const result = await this.dataSource.query(query);
       return result;
     } catch (error) {
-      console.error(`Error fetching table ${tableName}:`, error);
+      this.logger.error(`Error fetching table ${tableName}`, error);
       return [];
     }
   }
@@ -190,7 +192,7 @@ export class AdminService {
       const result = await this.dataSource.query(query, [tableName]);
       return result;
     } catch (error) {
-      console.error(`Error fetching columns for ${tableName}:`, error);
+      this.logger.error(`Error fetching columns for ${tableName}`, error);
       return [];
     }
   }
@@ -220,7 +222,7 @@ export class AdminService {
         totalPages: Math.ceil(total / limit),
       };
     } catch (error) {
-      console.error(`Error fetching rows from ${tableName}:`, error);
+      this.logger.error(`Error fetching rows from ${tableName}`, error);
       return {
         data: [],
         total: 0,
@@ -408,7 +410,7 @@ export class AdminService {
       // Sample subscriptions would be created here when schema is fixed
       const createdSubscriptions = 0;
       // TODO: Fix subscription entity/database schema mismatch
-      console.log('Skipping subscription seeding due to schema mismatch');
+      this.logger.warn('Skipping subscription seeding due to schema mismatch');
 
       return {
         success: true,
@@ -420,7 +422,7 @@ export class AdminService {
         },
       };
     } catch (error) {
-      console.error('Error seeding sample data:', error);
+      this.logger.error('Error seeding sample data', error);
       return {
         success: false,
         message: 'Failed to seed sample data',
@@ -459,7 +461,7 @@ export class AdminService {
 
       return { deletedCount };
     } catch (error) {
-      console.error(`Error clearing table ${tableName}:`, error);
+      this.logger.error(`Error clearing table ${tableName}`, error);
       throw new Error(`Failed to clear table ${tableName}: ${error.message}`);
     }
   }
@@ -503,7 +505,7 @@ export class AdminService {
 
       return { tablesCleared, totalDeleted };
     } catch (error) {
-      console.error('Error clearing all tables:', error);
+      this.logger.error('Error clearing all tables', error);
       throw new Error(`Failed to clear all tables: ${error.message}`);
     }
   }
@@ -528,8 +530,8 @@ export class AdminService {
       const result = await this.dataSource.query(tablesQuery);
 
       // Group by table
-      const tableStats: Record<string, any> = {};
-      result.forEach((row: any) => {
+      const tableStats: Record<string, { name: string; columns: Array<{ name: string; type: string }> }> = {};
+      result.forEach((row: Record<string, string>) => {
         if (!tableStats[row.table_name]) {
           tableStats[row.table_name] = {
             name: row.table_name,
@@ -546,23 +548,23 @@ export class AdminService {
 
       return Object.values(tableStats);
     } catch (error) {
-      console.error('Error fetching table stats:', error);
+      this.logger.error('Error fetching table stats', error);
       return [];
     }
   }
 
   async runSql(
     sql: string,
-  ): Promise<{ success: boolean; result?: any; error?: string }> {
+  ): Promise<{ success: boolean; result?: unknown; error?: string }> {
     try {
-      console.log('Executing SQL:', sql);
+      this.logger.log(`Executing SQL: ${sql}`);
       const result = await this.dataSource.query(sql);
       return {
         success: true,
         result,
       };
     } catch (error) {
-      console.error('SQL execution error:', error);
+      this.logger.error('SQL execution error', error);
       return {
         success: false,
         error: error.message,

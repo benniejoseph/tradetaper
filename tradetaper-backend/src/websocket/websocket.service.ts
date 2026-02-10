@@ -44,7 +44,7 @@ export class WebSocketService {
   /**
    * Send a notification to a specific user
    */
-  sendToUser(userId: string, event: string, data: any) {
+  sendToUser(userId: string, event: string, data: Record<string, unknown>) {
     if (!this.server) {
       this.logger.warn('WebSocket server not initialized');
       return;
@@ -64,7 +64,7 @@ export class WebSocketService {
   /**
    * Broadcast to all connected clients
    */
-  broadcast(event: string, data: any) {
+  broadcast(event: string, data: Record<string, unknown>) {
     if (!this.server) {
       this.logger.warn('WebSocket server not initialized');
       return;
@@ -75,7 +75,7 @@ export class WebSocketService {
 
   // Trade notification methods
 
-  notifyTradeCreated(trade: any) {
+  notifyTradeCreated(trade: Record<string, unknown>) {
     if (!this.server) {
       this.logger.warn(
         'WebSocket server not initialized, skipping trade:created notification',
@@ -86,7 +86,7 @@ export class WebSocketService {
     this.logger.debug(`Trade created notification sent: ${trade.id}`);
   }
 
-  notifyTradeUpdated(trade: any) {
+  notifyTradeUpdated(trade: Record<string, unknown>) {
     if (!this.server) {
       this.logger.warn(
         'WebSocket server not initialized, skipping trade:updated notification',
@@ -108,7 +108,7 @@ export class WebSocketService {
     this.logger.debug(`Trade deleted notification sent: ${tradeId}`);
   }
 
-  notifyBulkOperation(operation: string, count: number, trades?: any[]) {
+  notifyBulkOperation(operation: string, count: number, trades?: Record<string, unknown>[]) {
     if (!this.server) {
       this.logger.warn(
         'WebSocket server not initialized, skipping trades:bulk notification',

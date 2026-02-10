@@ -221,7 +221,7 @@ Be specific with price levels when possible. Use ICT terminology throughout.`;
    * Analyze with Gemini Vision API
    */
   private async analyzeWithGeminiVision(
-    timeframes: any,
+    timeframes: ChartImageAnalysisRequest['timeframes'],
     prompt: string,
   ): Promise<any> {
     if (!this.geminiApiKey) {
@@ -282,7 +282,9 @@ Be specific with price levels when possible. Use ICT terminology throughout.`;
   /**
    * Prepare images for Gemini (convert to base64 if needed)
    */
-  private prepareImagesForGemini(timeframes: any): string[] {
+  private prepareImagesForGemini(
+    timeframes: ChartImageAnalysisRequest['timeframes'],
+  ): string[] {
     const images: string[] = [];
 
     for (const [timeframe, imageData] of Object.entries(timeframes)) {
@@ -299,7 +301,9 @@ Be specific with price levels when possible. Use ICT terminology throughout.`;
   /**
    * Check if request has images
    */
-  private hasImages(timeframes: any): boolean {
+  private hasImages(
+    timeframes: ChartImageAnalysisRequest['timeframes'],
+  ): boolean {
     return Object.values(timeframes).some(
       (img) => img && typeof img === 'string',
     );
@@ -309,8 +313,8 @@ Be specific with price levels when possible. Use ICT terminology throughout.`;
    * Build complete ICT narrative
    */
   private buildICTNarrative(
-    request: any,
-    geminiAnalysis: any,
+    request: ChartImageAnalysisRequest,
+    geminiAnalysis: { text: string; raw: unknown } | null,
     timeframes: string[],
   ): string[] {
     const narrative: string[] = [];
@@ -351,8 +355,8 @@ Be specific with price levels when possible. Use ICT terminology throughout.`;
    * Extract ICT concepts from Gemini analysis
    */
   private extractICTConcepts(
-    geminiAnalysis: any,
-    request: any,
+    geminiAnalysis: { text: string; raw: unknown } | null,
+    request: ChartImageAnalysisRequest,
   ): {
     liquidity: any;
     marketStructure: any;
@@ -503,13 +507,13 @@ Be specific with price levels when possible. Use ICT terminology throughout.`;
    * Generate ICT trading plan
    */
   private generateICTTradingPlan(
-    structure: any,
-    premiumDiscount: any,
-    fvgs: any,
-    obs: any,
-    liquidity: any,
-    killZone: any,
-  ): any {
+    structure: ChartImageAnalysis['marketStructure'],
+    premiumDiscount: ChartImageAnalysis['premiumDiscount'],
+    fvgs: ChartImageAnalysis['fairValueGaps'],
+    obs: ChartImageAnalysis['orderBlocks'],
+    liquidity: ChartImageAnalysis['liquidity'],
+    killZone: ChartImageAnalysis['killZone'],
+  ): ChartImageAnalysis['tradingPlan'] {
     // Determine primary setup based on ICT concepts
     let primarySetup = 'Wait for clear ICT setup';
     let entryZone = 'TBD';
@@ -562,9 +566,9 @@ Be specific with price levels when possible. Use ICT terminology throughout.`;
    * Generate warnings
    */
   private generateWarnings(
-    tradingPlan: any,
-    killZone: any,
-    premiumDiscount: any,
+    tradingPlan: ChartImageAnalysis['tradingPlan'],
+    killZone: ChartImageAnalysis['killZone'],
+    premiumDiscount: ChartImageAnalysis['premiumDiscount'],
   ): string[] {
     const warnings: string[] = [];
 

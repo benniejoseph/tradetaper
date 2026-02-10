@@ -17,9 +17,10 @@ const common_1 = require("@nestjs/common");
 const config_1 = require("@nestjs/config");
 const users_service_1 = require("../../users/users.service");
 function getJwtSecret(configService) {
+    const logger = new common_1.Logger('JwtStrategy');
     const jwtSecret = configService.get('JWT_SECRET');
     if (!jwtSecret) {
-        console.error('WARNING: JWT_SECRET is not defined in environment variables. Using fallback secret for debugging.');
+        logger.warn('JWT_SECRET is not defined in environment variables. Using fallback secret for debugging.');
         return 'temporary-fallback-jwt-secret-for-debugging-please-set-proper-secret-in-production-environment-12345';
     }
     return jwtSecret;

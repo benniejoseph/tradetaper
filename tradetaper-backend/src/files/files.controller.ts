@@ -55,7 +55,7 @@ export class FilesController {
         },
       }),
     )
-    file: any, // Express.Multer.File,
+    file: Express.Multer.File,
     @Request() req,
   ): Promise<{ url: string; gcsPath?: string; message: string }> {
     // Use instanceLogger for methods called on the controller instance

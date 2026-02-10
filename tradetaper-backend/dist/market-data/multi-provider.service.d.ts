@@ -58,7 +58,7 @@ export declare class MultiProviderMarketDataService {
     private fetchHistoricalFromIEXCloud;
     private canMakeRequest;
     private incrementRequestCount;
-    getProviderStatus(): any;
+    getProviderStatus(): Record<string, unknown>[];
     private fetchHistoricalFromTraderMade;
     testAllProviders(): Promise<any[]>;
 }

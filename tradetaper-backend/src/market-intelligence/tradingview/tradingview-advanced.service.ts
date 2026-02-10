@@ -175,7 +175,7 @@ export class TradingViewAdvancedService implements OnModuleInit {
     symbol: string,
     indicatorName: string,
     interval: string = '240',
-    settings?: any,
+    settings?: Record<string, unknown>,
   ): Promise<any> {
     if (!this.isAuthenticated) {
       throw new Error('TradingView API is not authenticated');
@@ -242,7 +242,7 @@ export class TradingViewAdvancedService implements OnModuleInit {
   async subscribeToRealTimeUpdates(
     symbol: string,
     interval: string = '240',
-    callback: (data: any) => void,
+    callback: (data: Record<string, unknown>) => void,
   ): Promise<any> {
     if (!this.isAuthenticated) {
       throw new Error('TradingView API is not authenticated');
@@ -354,7 +354,7 @@ export class TradingViewAdvancedService implements OnModuleInit {
           clearTimeout(timeout);
 
           const periods = chart.periods || [];
-          const data = periods.map((candle: any) => ({
+          const data = periods.map((candle: Record<string, any>) => ({
             time: candle.time * 1000, // Convert to milliseconds
             open: candle.open,
             high: candle.high,
@@ -372,7 +372,7 @@ export class TradingViewAdvancedService implements OnModuleInit {
           });
         });
 
-        chart.onError((error: any) => {
+        chart.onError((error: Error) => {
           clearTimeout(timeout);
           reject(error);
         });

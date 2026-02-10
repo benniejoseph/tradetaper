@@ -41,6 +41,7 @@ var __importStar = (this && this.__importStar) || (function () {
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
+var AIService_1;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AIService = void 0;
 const common_1 = require("@nestjs/common");
@@ -49,8 +50,9 @@ const fs = __importStar(require("fs"));
 const os = __importStar(require("os"));
 const path = __importStar(require("path"));
 const uuid_1 = require("uuid");
-let AIService = class AIService {
+let AIService = AIService_1 = class AIService {
     configService;
+    logger = new common_1.Logger(AIService_1.name);
     geminiApiKey;
     tempDir;
     constructor(configService) {
@@ -123,7 +125,7 @@ let AIService = class AIService {
                 });
                 if (!response.ok) {
                     const errorData = await response.text();
-                    console.error('Gemini API error:', errorData);
+                    this.logger.error(`Gemini API error: ${errorData}`);
                     throw new Error(`Gemini API error: ${response.status}`);
                 }
                 const result = await response.json();
@@ -145,7 +147,7 @@ let AIService = class AIService {
             }
         }
         catch (error) {
-            console.error('Speech-to-text error:', error);
+            this.logger.error('Speech-to-text error', error);
             throw new common_1.BadRequestException('Failed to transcribe audio: ' + error.message);
         }
     }
@@ -207,7 +209,7 @@ let AIService = class AIService {
             };
         }
         catch (error) {
-            console.error('Text enhancement error:', error);
+            this.logger.error('Text enhancement error', error);
             throw new common_1.BadRequestException('Failed to enhance text: ' + error.message);
         }
     }
@@ -266,7 +268,7 @@ Please respond in JSON format:
                 }
             }
             catch (parseError) {
-                console.warn('Failed to parse JSON response, using fallback');
+                this.logger.warn('Failed to parse JSON response, using fallback');
             }
             return {
                 tags: ['general', 'note', 'important'],
@@ -279,7 +281,7 @@ Please respond in JSON format:
             };
         }
         catch (error) {
-            console.error('Note suggestions error:', error);
+            this.logger.error('Note suggestions error', error);
             return {
                 tags: ['note'],
                 title: 'Untitled Note',
@@ -327,7 +329,7 @@ Please respond in JSON format:
     }
 };
 exports.AIService = AIService;
-exports.AIService = AIService = __decorate([
+exports.AIService = AIService = AIService_1 = __decorate([
     (0, common_1.Injectable)(),
     __metadata("design:paramtypes", [config_1.ConfigService])
 ], AIService);

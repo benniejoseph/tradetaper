@@ -27,6 +27,7 @@ import { UpdateNoteDto } from './dto/update-note.dto';
 import { SearchNotesDto } from './dto/search-notes.dto';
 import { NoteResponseDto } from './dto/note-response.dto';
 import { PsychologicalInsight } from './entities/psychological-insight.entity';
+import { AuthenticatedRequest } from '../types/authenticated-request.interface';
 
 @Controller('notes')
 @UseGuards(JwtAuthGuard)
@@ -43,7 +44,7 @@ export class NotesController {
   @UsageFeature('notes')
   async create(
     @Body() createNoteDto: CreateNoteDto,
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
   ): Promise<NoteResponseDto> {
     return this.notesService.create(createNoteDto, req.user.id);
   }
@@ -51,7 +52,7 @@ export class NotesController {
   @Get()
   async findAll(
     @Query() searchDto: SearchNotesDto,
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
   ): Promise<{
     notes: NoteResponseDto[];
     total: number;
@@ -62,7 +63,7 @@ export class NotesController {
   }
 
   @Get('stats')
-  async getStats(@Request() req: any): Promise<{
+  async getStats(@Request() req: AuthenticatedRequest): Promise<{
     totalNotes: number;
     totalWords: number;
     totalReadingTime: number;
@@ -75,7 +76,7 @@ export class NotesController {
   }
 
   @Get('tags')
-  async getAllTags(@Request() req: any): Promise<string[]> {
+  async getAllTags(@Request() req: AuthenticatedRequest): Promise<string[]> {
     return this.notesService.getAllTags(req.user.id);
   }
 
@@ -83,7 +84,7 @@ export class NotesController {
   async getCalendarNotes(
     @Param('year', ParseIntPipe) year: number,
     @Param('month', ParseIntPipe) month: number,
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
   ): Promise<
     {
       date: string;
@@ -97,7 +98,7 @@ export class NotesController {
   @Get(':id')
   async findOne(
     @Param('id', ParseUUIDPipe) id: string,
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
   ): Promise<NoteResponseDto> {
     return this.notesService.findOne(id, req.user.id);
   }
@@ -106,7 +107,7 @@ export class NotesController {
   async update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() updateNoteDto: UpdateNoteDto,
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
   ): Promise<NoteResponseDto> {
     return this.notesService.update(id, updateNoteDto, req.user.id);
   }
@@ -114,7 +115,7 @@ export class NotesController {
   @Patch(':id/toggle-pin')
   async togglePin(
     @Param('id', ParseUUIDPipe) id: string,
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
   ): Promise<NoteResponseDto> {
     return this.notesService.togglePin(id, req.user.id);
   }
@@ -123,19 +124,19 @@ export class NotesController {
   @HttpCode(HttpStatus.OK)
   async analyzeNote(
     @Param('id', ParseUUIDPipe) id: string,
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
   ): Promise<string[]> {
     this.logger.log(
       `Received analyze request for note ${id} from user ${req.user?.id || 'unknown'}`,
     );
-    return this.notesService.analyzeNote(id, req.user);
+    return this.notesService.analyzeNote(id, req.user as any);
   }
 
   @Post(':id/analyze-psychology')
   @HttpCode(HttpStatus.OK)
   async analyzePsychology(
     @Param('id', ParseUUIDPipe) id: string,
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
   ): Promise<PsychologicalInsight[]> {
     this.logger.log(
       `Received psychological analysis request for note ${id} from user ${req.user?.id || 'unknown'}`,
@@ -147,7 +148,7 @@ export class NotesController {
   }
 
   @Get('psychological-profile')
-  async getPsychologicalProfile(@Request() req: any): Promise<any> {
+  async getPsychologicalProfile(@Request() req: AuthenticatedRequest): Promise<Record<string, unknown>> {
     return this.psychologicalInsightsService.getPsychologicalSummary(
       req.user.id,
     );
@@ -157,7 +158,7 @@ export class NotesController {
   @HttpCode(HttpStatus.NO_CONTENT)
   async remove(
     @Param('id', ParseUUIDPipe) id: string,
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
   ): Promise<void> {
     return this.notesService.remove(id, req.user.id);
   }

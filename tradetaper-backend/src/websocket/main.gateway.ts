@@ -84,7 +84,7 @@ export class MainGateway
   }
 
   @SubscribeMessage('ping')
-  handlePing(@ConnectedSocket() client: Socket, @MessageBody() data: any) {
+  handlePing(@ConnectedSocket() client: Socket, @MessageBody() data: Record<string, unknown>) {
     this.logger.log(`📝 Ping received from ${client.id}: ${data}`);
     client.emit('pong', data);
     return { event: 'pong', data: data };
@@ -93,7 +93,7 @@ export class MainGateway
   @SubscribeMessage('test-message')
   handleTestMessage(
     @ConnectedSocket() client: Socket,
-    @MessageBody() data: any,
+    @MessageBody() data: Record<string, unknown>,
   ) {
     this.logger.log(
       `📨 Test message from ${client.id}: ${JSON.stringify(data)}`,

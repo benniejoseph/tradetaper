@@ -33,11 +33,8 @@ exports.AuthModule = AuthModule = __decorate([
                 useFactory: async (configService) => {
                     const jwtSecret = configService.get('JWT_SECRET') ||
                         'temporary-fallback-jwt-secret-for-debugging-please-set-proper-secret-in-production-environment-12345';
-                    console.log('JWT Configuration - No Expiration:', {
-                        hasSecret: !!jwtSecret,
-                        secretLength: jwtSecret.length,
-                        skipExpiration: true,
-                    });
+                    const logger = new common_1.Logger('AuthModule');
+                    logger.log(`JWT Configuration - No Expiration: hasSecret=${!!jwtSecret}, secretLength=${jwtSecret.length}`);
                     return {
                         secret: jwtSecret,
                     };

@@ -1,6 +1,7 @@
 import { ConfigService } from '@nestjs/config';
 export declare class AIService {
     private configService;
+    private readonly logger;
     private geminiApiKey;
     private tempDir;
     constructor(configService: ConfigService);

@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import {
   Strategy,
@@ -14,12 +14,8 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
     const clientSecret = configService.get<string>('GOOGLE_CLIENT_SECRET');
     const callbackURL = configService.get<string>('GOOGLE_CALLBACK_URL');
 
-    console.log('GoogleStrategy Configuration:', {
-      hasClientId: !!clientId,
-      hasClientSecret: !!clientSecret,
-      hasCallbackURL: !!callbackURL,
-      callbackURL,
-    });
+    const logger = new Logger('GoogleStrategy');
+    logger.log(`GoogleStrategy Configuration: hasClientId=${!!clientId}, hasClientSecret=${!!clientSecret}, callbackURL=${callbackURL}`);
 
     const options: StrategyOptions = {
       clientID: clientId || '',
@@ -34,7 +30,7 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
   async validate(
     accessToken: string,
     refreshToken: string,
-    profile: any,
+    profile: { name: { givenName: string; familyName: string }; emails: { value: string }[]; photos: { value: string }[] },
     done: VerifyCallback,
   ): Promise<any> {
     const { name, emails, photos } = profile;

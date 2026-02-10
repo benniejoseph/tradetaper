@@ -11,6 +11,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
+var AdminService_1;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AdminService = void 0;
 const common_1 = require("@nestjs/common");
@@ -21,12 +22,13 @@ const account_entity_1 = require("../users/entities/account.entity");
 const trade_entity_1 = require("../trades/entities/trade.entity");
 const subscription_entity_1 = require("../subscriptions/entities/subscription.entity");
 const enums_1 = require("../types/enums");
-let AdminService = class AdminService {
+let AdminService = AdminService_1 = class AdminService {
     userRepository;
     accountRepository;
     tradeRepository;
     subscriptionRepository;
     dataSource;
+    logger = new common_1.Logger(AdminService_1.name);
     constructor(userRepository, accountRepository, tradeRepository, subscriptionRepository, dataSource) {
         this.userRepository = userRepository;
         this.accountRepository = accountRepository;
@@ -153,7 +155,7 @@ let AdminService = class AdminService {
             return result.map((row) => row.table_name);
         }
         catch (error) {
-            console.error('Error fetching database tables:', error);
+            this.logger.error('Error fetching database tables', error);
             return [];
         }
     }
@@ -164,7 +166,7 @@ let AdminService = class AdminService {
             return result;
         }
         catch (error) {
-            console.error(`Error fetching table ${tableName}:`, error);
+            this.logger.error(`Error fetching table ${tableName}`, error);
             return [];
         }
     }
@@ -180,7 +182,7 @@ let AdminService = class AdminService {
             return result;
         }
         catch (error) {
-            console.error(`Error fetching columns for ${tableName}:`, error);
+            this.logger.error(`Error fetching columns for ${tableName}`, error);
             return [];
         }
     }
@@ -201,7 +203,7 @@ let AdminService = class AdminService {
             };
         }
         catch (error) {
-            console.error(`Error fetching rows from ${tableName}:`, error);
+            this.logger.error(`Error fetching rows from ${tableName}`, error);
             return {
                 data: [],
                 total: 0,
@@ -377,7 +379,7 @@ let AdminService = class AdminService {
                 }
             }
             const createdSubscriptions = 0;
-            console.log('Skipping subscription seeding due to schema mismatch');
+            this.logger.warn('Skipping subscription seeding due to schema mismatch');
             return {
                 success: true,
                 message: 'Sample data seeded successfully',
@@ -389,7 +391,7 @@ let AdminService = class AdminService {
             };
         }
         catch (error) {
-            console.error('Error seeding sample data:', error);
+            this.logger.error('Error seeding sample data', error);
             return {
                 success: false,
                 message: 'Failed to seed sample data',
@@ -419,7 +421,7 @@ let AdminService = class AdminService {
             return { deletedCount };
         }
         catch (error) {
-            console.error(`Error clearing table ${tableName}:`, error);
+            this.logger.error(`Error clearing table ${tableName}`, error);
             throw new Error(`Failed to clear table ${tableName}: ${error.message}`);
         }
     }
@@ -455,7 +457,7 @@ let AdminService = class AdminService {
             return { tablesCleared, totalDeleted };
         }
         catch (error) {
-            console.error('Error clearing all tables:', error);
+            this.logger.error('Error clearing all tables', error);
             throw new Error(`Failed to clear all tables: ${error.message}`);
         }
     }
@@ -494,13 +496,13 @@ let AdminService = class AdminService {
             return Object.values(tableStats);
         }
         catch (error) {
-            console.error('Error fetching table stats:', error);
+            this.logger.error('Error fetching table stats', error);
             return [];
         }
     }
     async runSql(sql) {
         try {
-            console.log('Executing SQL:', sql);
+            this.logger.log(`Executing SQL: ${sql}`);
             const result = await this.dataSource.query(sql);
             return {
                 success: true,
@@ -508,7 +510,7 @@ let AdminService = class AdminService {
             };
         }
         catch (error) {
-            console.error('SQL execution error:', error);
+            this.logger.error('SQL execution error', error);
             return {
                 success: false,
                 error: error.message,
@@ -517,7 +519,7 @@ let AdminService = class AdminService {
     }
 };
 exports.AdminService = AdminService;
-exports.AdminService = AdminService = __decorate([
+exports.AdminService = AdminService = AdminService_1 = __decorate([
     (0, common_1.Injectable)(),
     __param(0, (0, typeorm_1.InjectRepository)(user_entity_1.User)),
     __param(1, (0, typeorm_1.InjectRepository)(account_entity_1.Account)),

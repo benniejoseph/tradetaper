@@ -14,15 +14,17 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
+var ManualGoogleOAuthController_1;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ManualGoogleOAuthController = void 0;
 const common_1 = require("@nestjs/common");
 const config_1 = require("@nestjs/config");
 const auth_service_1 = require("./auth.service");
 const axios_1 = __importDefault(require("axios"));
-let ManualGoogleOAuthController = class ManualGoogleOAuthController {
+let ManualGoogleOAuthController = ManualGoogleOAuthController_1 = class ManualGoogleOAuthController {
     configService;
     authService;
+    logger = new common_1.Logger(ManualGoogleOAuthController_1.name);
     constructor(configService, authService) {
         this.configService = configService;
         this.authService = authService;
@@ -41,11 +43,11 @@ let ManualGoogleOAuthController = class ManualGoogleOAuthController {
                 `scope=email profile&` +
                 `access_type=offline&` +
                 `prompt=consent`;
-            console.log('Redirecting to Google OAuth:', googleAuthUrl);
+            this.logger.log(`Redirecting to Google OAuth: ${googleAuthUrl}`);
             return res.redirect(googleAuthUrl);
         }
         catch (error) {
-            console.error('Google OAuth redirect error:', error);
+            this.logger.error('Google OAuth redirect error', error);
             throw new common_1.HttpException('Failed to initiate Google OAuth', common_1.HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
@@ -54,12 +56,12 @@ let ManualGoogleOAuthController = class ManualGoogleOAuthController {
             const frontendUrl = this.configService.get('FRONTEND_URL') ||
                 'http://localhost:3000';
             if (error) {
-                console.error('Google OAuth error:', error);
+                this.logger.error(`Google OAuth error: ${error}`);
                 const errorUrl = `${frontendUrl}/auth/google/callback?error=${encodeURIComponent(error)}`;
                 return res.redirect(errorUrl);
             }
             if (!code) {
-                console.error('No authorization code received');
+                this.logger.error('No authorization code received');
                 const errorUrl = `${frontendUrl}/auth/google/callback?error=${encodeURIComponent('No authorization code received')}`;
                 return res.redirect(errorUrl);
             }
@@ -77,7 +79,7 @@ let ManualGoogleOAuthController = class ManualGoogleOAuthController {
             return res.redirect(redirectUrl);
         }
         catch (error) {
-            console.error('Google OAuth callback error:', error);
+            this.logger.error('Google OAuth callback error', error);
             const frontendUrl = this.configService.get('FRONTEND_URL') ||
                 'http://localhost:3000';
             const errorUrl = `${frontendUrl}/auth/google/callback?error=${encodeURIComponent(error.message || 'Authentication failed')}`;
@@ -137,7 +139,7 @@ __decorate([
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", Promise)
 ], ManualGoogleOAuthController.prototype, "getGoogleConfig", null);
-exports.ManualGoogleOAuthController = ManualGoogleOAuthController = __decorate([
+exports.ManualGoogleOAuthController = ManualGoogleOAuthController = ManualGoogleOAuthController_1 = __decorate([
     (0, common_1.Controller)('auth/oauth'),
     __metadata("design:paramtypes", [config_1.ConfigService,
         auth_service_1.AuthService])

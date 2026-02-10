@@ -147,7 +147,7 @@ export class NewsAnalysisService {
         }),
       );
 
-      return response.data.articles.map((article: any) => ({
+      return response.data.articles.map((article: Record<string, any>) => ({
         id: `newsapi_${this.generateId(article.title)}`,
         title: article.title,
         summary: article.description || '',
@@ -199,7 +199,7 @@ export class NewsAnalysisService {
         return [];
       }
 
-      return response.data.feed.map((item: any) => ({
+      return response.data.feed.map((item: Record<string, any>) => ({
         id: `av_${this.generateId(item.title)}`,
         title: item.title,
         summary: item.summary || '',
@@ -241,7 +241,7 @@ export class NewsAnalysisService {
         ),
       );
 
-      return response.data.map((item: any) => ({
+      return response.data.map((item: Record<string, any>) => ({
         id: `fmp_${this.generateId(item.title)}`,
         title: item.title,
         summary: item.text || '',
@@ -423,7 +423,7 @@ export class NewsAnalysisService {
       .slice(0, 5); // Limit to 5 symbols
   }
 
-  private extractTickerSymbols(tickerSentiment: any[]): string[] {
+  private extractTickerSymbols(tickerSentiment: Record<string, any>[]): string[] {
     return tickerSentiment
       .map((ticker) => ticker.ticker)
       .filter((ticker) => ticker && ticker.length >= 1 && ticker.length <= 5)

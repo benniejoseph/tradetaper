@@ -425,7 +425,7 @@ export class BacktestingController {
     @Param('id', ParseUUIDPipe) id: string,
     @Body()
     body: {
-      trades?: any[];
+      trades?: Record<string, unknown>[];
       endingBalance?: number;
       totalPnl?: number;
       status?: 'in_progress' | 'completed' | 'abandoned';
@@ -438,7 +438,7 @@ export class BacktestingController {
   @Post('sessions/:id/complete')
   async completeSession(
     @Param('id', ParseUUIDPipe) id: string,
-    @Body() body: { endingBalance: number; trades: any[] },
+    @Body() body: { endingBalance: number; trades: Record<string, unknown>[] },
     @Request() req,
   ) {
     return this.replaySessionService.completeSession(id, body);

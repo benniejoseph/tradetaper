@@ -1,11 +1,12 @@
 import { CalendarService, CalendarMonth } from './calendar.service';
 import { Note } from './entities/note.entity';
+import { AuthenticatedRequest } from '../types/authenticated-request.interface';
 export declare class CalendarController {
     private readonly calendarService;
     constructor(calendarService: CalendarService);
-    getCalendarData(year: number, month: number, req: any): Promise<CalendarMonth>;
-    getNotesForDate(date: string, req: any): Promise<Note[]>;
-    getCalendarStats(year: number, month: number, req: any): Promise<{
+    getCalendarData(year: number, month: number, req: AuthenticatedRequest): Promise<CalendarMonth>;
+    getNotesForDate(date: string, req: AuthenticatedRequest): Promise<Note[]>;
+    getCalendarStats(year: number, month: number, req: AuthenticatedRequest): Promise<{
         totalNotes: number;
         totalWords: number;
         averageNotesPerDay: number;
@@ -18,11 +19,11 @@ export declare class CalendarController {
             noteCount: number;
         }[];
     }>;
-    getUpcomingReminders(req: any): Promise<{
+    getUpcomingReminders(req: AuthenticatedRequest): Promise<{
         id: string;
         title: string;
         dueDate: string;
         priority: 'low' | 'medium' | 'high';
     }[]>;
-    searchNotesByDateRange(startDate: string, endDate: string, searchTerm: string, req: any): Promise<Note[]>;
+    searchNotesByDateRange(startDate: string, endDate: string, searchTerm: string, req: AuthenticatedRequest): Promise<Note[]>;
 }

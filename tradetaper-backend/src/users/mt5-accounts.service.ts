@@ -129,7 +129,7 @@ export class MT5AccountsService {
   /**
    * Create a manual MT5 account (for file upload workflow)
    */
-  async createManual(manualAccountData: any): Promise<any> {
+  async createManual(manualAccountData: Record<string, any>): Promise<Record<string, any>> {
     this.logger.log(
       `Creating manual MT5 account for user ${manualAccountData.userId}`,
     );
@@ -264,7 +264,7 @@ export class MT5AccountsService {
       updatedData.target = updateMT5AccountDto.target;
     }
 
-    await this.mt5AccountRepository.update(id, updatedData);
+    await this.mt5AccountRepository.update(id, updatedData as any);
 
     const updatedAccount = await this.mt5AccountRepository.findOne({
       where: { id },

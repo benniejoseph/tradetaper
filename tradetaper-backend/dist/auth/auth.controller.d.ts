@@ -8,6 +8,7 @@ export declare class AuthController {
     private authService;
     private jwtService;
     private configService;
+    private readonly logger;
     constructor(authService: AuthService, jwtService: JwtService, configService: ConfigService);
     register(registerUserDto: RegisterUserDto): Promise<UserResponseDto>;
     login(loginUserDto: LoginUserDto): Promise<{
@@ -15,7 +16,7 @@ export declare class AuthController {
         user: UserResponseDto;
     }>;
     googleAuth(res: any): Promise<any>;
-    googleCallback(query: any, res: any): Promise<any>;
+    googleCallback(query: Record<string, string>, res: any): Promise<any>;
     private exchangeCodeForTokens;
     private getUserInfo;
     debugGoogleConfig(): Promise<{
@@ -33,7 +34,7 @@ export declare class AuthController {
         password: string;
     }): Promise<{
         accessToken: string;
-        user: any;
+        user: Record<string, string>;
     }>;
     getProfile(req: any): UserResponseDto;
     testOauthRoutes(): Promise<{

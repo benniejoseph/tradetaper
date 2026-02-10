@@ -221,7 +221,7 @@ export class MarketIntelligenceService {
     }
   }
 
-  private calculateNewsSentiment(news: any[]): number {
+  private calculateNewsSentiment(news: Record<string, any>[]): number {
     if (news.length === 0) return 0;
 
     let score = 0;

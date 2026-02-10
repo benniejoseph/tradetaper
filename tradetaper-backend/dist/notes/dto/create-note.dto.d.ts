@@ -1,6 +1,6 @@
 export declare class CreateNoteDto {
     title: string;
-    content?: any[];
+    content?: Record<string, unknown>[];
     tags?: string[];
     accountId?: string;
     tradeId?: string;

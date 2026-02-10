@@ -2,7 +2,7 @@ import { Controller, Get, UseGuards, Req, Logger, Query } from '@nestjs/common';
 import { AnalyticsService } from './analytics.service';
 import { TradesService } from '../trades/trades.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { Request } from 'express';
+import { AuthenticatedRequest } from '../types/authenticated-request.interface';
 
 import { GeminiInsightsService } from '../market-intelligence/gemini-insights.service';
 
@@ -18,7 +18,7 @@ export class AnalyticsController {
   ) {}
 
   @Get('insights')
-  async getAIInsights(@Req() req: any, @Query('accountId') accountId?: string) {
+  async getAIInsights(@Req() req: AuthenticatedRequest, @Query('accountId') accountId?: string) {
     const userId = req.user.id;
     const trades = await this.tradesService.findAllByUser(userId);
     const filteredTrades = accountId
@@ -33,7 +33,7 @@ export class AnalyticsController {
 
   @Get('advanced')
   async getAdvancedAnalytics(
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
     @Query('accountId') accountId?: string,
   ) {
     const userId = req.user.id;

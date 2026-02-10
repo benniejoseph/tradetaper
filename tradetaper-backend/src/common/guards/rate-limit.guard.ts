@@ -23,7 +23,7 @@ export const RATE_LIMIT_KEY = 'rateLimit';
 
 export const RateLimit = (options: RateLimitOptions) => {
   return (
-    target: any,
+    target: object,
     propertyKey?: string,
     descriptor?: PropertyDescriptor,
   ) => {
@@ -102,7 +102,7 @@ export class RateLimitGuard implements CanActivate {
     return true;
   }
 
-  private getDefaultKey(request: any): string {
+  private getDefaultKey(request: Record<string, any>): string {
     const ip = request.ip || request.connection.remoteAddress || 'unknown';
     const userId = request.user?.id || 'anonymous';
     const endpoint = `${request.method}:${request.path}`;

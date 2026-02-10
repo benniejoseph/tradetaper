@@ -81,7 +81,7 @@ export class MassiveService {
 
       // Map to MetaApi format
       // Polygon: { t: unix_msec, o, h, l, c, v, vw, n }
-      return response.data.results.map((candle: any) => ({
+      return response.data.results.map((candle: Record<string, any>) => ({
         time: new Date(candle.t),
         open: candle.o,
         high: candle.h,

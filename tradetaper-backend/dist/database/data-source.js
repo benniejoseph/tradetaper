@@ -18,14 +18,16 @@ const note_media_entity_1 = require("../notes/entities/note-media.entity");
 const psychological_insight_entity_1 = require("../notes/entities/psychological-insight.entity");
 const knowledge_document_entity_1 = require("../knowledge-base/entities/knowledge-document.entity");
 const vector_embedding_entity_1 = require("../knowledge-base/entities/vector-embedding.entity");
+const trade_candle_entity_1 = require("../trades/entities/trade-candle.entity");
+const backtest_trade_entity_1 = require("../backtesting/entities/backtest-trade.entity");
+const market_log_entity_1 = require("../backtesting/entities/market-log.entity");
+const market_candle_entity_1 = require("../backtesting/entities/market-candle.entity");
+const replay_session_entity_1 = require("../backtesting/entities/replay-session.entity");
 const cloud_sql_connector_1 = require("@google-cloud/cloud-sql-connector");
+const common_1 = require("@nestjs/common");
+const dbLogger = new common_1.Logger('DatabaseDataSource');
 const isProduction = process.env.NODE_ENV === 'production';
-console.log('🔧 Database configuration (data-source.ts):', {
-    isProduction,
-    nodeEnv: process.env.NODE_ENV,
-    instanceConnectionName: process.env.INSTANCE_CONNECTION_NAME,
-    dbHost: process.env.DB_HOST,
-});
+dbLogger.log(`Database configuration: isProduction=${isProduction}, nodeEnv=${process.env.NODE_ENV}, dbHost=${process.env.DB_HOST}`);
 async function createDataSource() {
     const configService = new config_1.ConfigService();
     if (isProduction) {
@@ -58,6 +60,11 @@ async function createDataSource() {
                     psychological_insight_entity_1.PsychologicalInsight,
                     knowledge_document_entity_1.KnowledgeDocument,
                     vector_embedding_entity_1.VectorEmbedding,
+                    trade_candle_entity_1.TradeCandle,
+                    backtest_trade_entity_1.BacktestTrade,
+                    market_log_entity_1.MarketLog,
+                    market_candle_entity_1.MarketCandle,
+                    replay_session_entity_1.ReplaySession,
                 ],
                 migrations: ['dist/migrations/*{.ts,.js}'],
                 synchronize: false,
@@ -88,6 +95,11 @@ async function createDataSource() {
                     psychological_insight_entity_1.PsychologicalInsight,
                     knowledge_document_entity_1.KnowledgeDocument,
                     vector_embedding_entity_1.VectorEmbedding,
+                    trade_candle_entity_1.TradeCandle,
+                    backtest_trade_entity_1.BacktestTrade,
+                    market_log_entity_1.MarketLog,
+                    market_candle_entity_1.MarketCandle,
+                    replay_session_entity_1.ReplaySession,
                 ],
                 migrations: ['dist/migrations/*{.ts,.js}'],
                 synchronize: false,
@@ -120,6 +132,11 @@ async function createDataSource() {
                 psychological_insight_entity_1.PsychologicalInsight,
                 knowledge_document_entity_1.KnowledgeDocument,
                 vector_embedding_entity_1.VectorEmbedding,
+                trade_candle_entity_1.TradeCandle,
+                backtest_trade_entity_1.BacktestTrade,
+                market_log_entity_1.MarketLog,
+                market_candle_entity_1.MarketCandle,
+                replay_session_entity_1.ReplaySession,
             ],
             migrations: ['src/migrations/*{.ts,.js}'],
             synchronize: false,

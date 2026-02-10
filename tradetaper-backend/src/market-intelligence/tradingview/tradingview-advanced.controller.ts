@@ -30,7 +30,7 @@ export class TradingViewAdvancedController {
         success: true,
         data: status,
       };
-    } catch (error: any) {
+    } catch (error) {
       this.logger.error('Failed to get TradingView status:', error.message);
       return {
         success: false,
@@ -59,7 +59,7 @@ export class TradingViewAdvancedController {
         success: true,
         data: analysis,
       };
-    } catch (error: any) {
+    } catch (error) {
       this.logger.error(
         `Failed to get technical analysis for ${symbol}:`,
         error.message,
@@ -94,7 +94,7 @@ export class TradingViewAdvancedController {
         success: true,
         data: chartData,
       };
-    } catch (error: any) {
+    } catch (error) {
       this.logger.error(`Failed to get chart data:`, error.message);
       return {
         success: false,
@@ -115,7 +115,7 @@ export class TradingViewAdvancedController {
       symbol: string;
       indicatorName: string;
       interval?: string;
-      settings?: any;
+      settings?: Record<string, unknown>;
     },
   ): Promise<any> {
     try {
@@ -140,7 +140,7 @@ export class TradingViewAdvancedController {
         success: true,
         data: indicatorData,
       };
-    } catch (error: any) {
+    } catch (error) {
       this.logger.error(`Failed to get indicator data:`, error.message);
       return {
         success: false,
@@ -170,7 +170,7 @@ export class TradingViewAdvancedController {
         success: true,
         data: drawings,
       };
-    } catch (error: any) {
+    } catch (error) {
       this.logger.error(`Failed to get chart drawings:`, error.message);
       return {
         success: false,
@@ -198,7 +198,7 @@ export class TradingViewAdvancedController {
         success: true,
         data: results,
       };
-    } catch (error: any) {
+    } catch (error) {
       this.logger.error(`Failed to get screener results:`, error.message);
       return {
         success: false,
@@ -232,7 +232,7 @@ export class TradingViewAdvancedController {
             indicatorName,
             interval,
           );
-        } catch (error: any) {
+        } catch (error) {
           this.logger.warn(`Failed to fetch ${indicatorName}:`, error.message);
           return null;
         }
@@ -252,7 +252,7 @@ export class TradingViewAdvancedController {
           indicators,
         },
       };
-    } catch (error: any) {
+    } catch (error) {
       this.logger.error(`Failed to get ICT indicators:`, error.message);
       return {
         success: false,

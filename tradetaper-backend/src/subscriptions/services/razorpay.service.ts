@@ -5,15 +5,14 @@ import * as crypto from 'crypto';
 
 @Injectable()
 export class RazorpayService {
-  private razorpay: any;
+  private razorpay: Record<string, any>;
   private readonly logger = new Logger(RazorpayService.name);
 
   constructor(private configService: ConfigService) {
     const keyId = this.configService.get<string>('RAZORPAY_KEY_ID');
     const keySecret = this.configService.get<string>('RAZORPAY_KEY_SECRET');
-    console.log(
-      '[RazorpayService] Initializing with Key ID:',
-      keyId ? '***' + keyId.slice(-4) : 'undefined',
+    this.logger.log(
+      `Initializing with Key ID: ${keyId ? '***' + keyId.slice(-4) : 'undefined'}`,
     );
 
     if (keyId && keySecret) {
@@ -50,7 +49,7 @@ export class RazorpayService {
     quantity: number = 1,
     startAt?: number,
     expireBy?: number,
-    notes?: any,
+    notes?: Record<string, string>,
   ) {
     if (!this.razorpay) throw new Error('Razorpay client not initialized');
     try {

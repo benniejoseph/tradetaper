@@ -18,7 +18,7 @@ export class CreateNoteDto {
 
   @IsArray()
   @IsOptional()
-  content?: any[];
+  content?: Record<string, unknown>[];
 
   @IsArray()
   @IsString({ each: true })

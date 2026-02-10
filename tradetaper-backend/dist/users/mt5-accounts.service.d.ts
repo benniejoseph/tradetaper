@@ -16,7 +16,7 @@ export declare class MT5AccountsService {
     private encrypt;
     private decrypt;
     create(createDto: CreateMT5AccountDto, userId: string): Promise<MT5AccountResponseDto>;
-    createManual(manualAccountData: any): Promise<any>;
+    createManual(manualAccountData: Record<string, any>): Promise<Record<string, any>>;
     findAllByUser(userId: string): Promise<MT5AccountResponseDto[]>;
     findOne(id: string): Promise<MT5Account | null>;
     update(id: string, updateMT5AccountDto: UpdateMT5AccountDto): Promise<MT5AccountResponseDto>;

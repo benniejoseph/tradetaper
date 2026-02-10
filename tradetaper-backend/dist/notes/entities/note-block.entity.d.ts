@@ -10,7 +10,7 @@ export interface NoteBlockContent {
     code?: string;
     headers?: string[];
     rows?: string[][];
-    [key: string]: any;
+    [key: string]: unknown;
 }
 export declare class NoteBlock {
     id: string;

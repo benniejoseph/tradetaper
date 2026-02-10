@@ -205,7 +205,7 @@ export class NotificationsService {
     total: number;
     unreadCount: number;
   }> {
-    const where: any = { userId };
+    const where: Record<string, unknown> = { userId };
 
     if (filter.status) {
       where.status = filter.status;

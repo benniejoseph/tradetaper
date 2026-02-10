@@ -8,7 +8,7 @@ export declare class EnhancedValidationPipe implements PipeTransform<any> {
     private readonly validationPipe;
     private readonly options;
     constructor(options?: EnhancedValidationOptions);
-    transform(value: any, metadata: ArgumentMetadata): Promise<any>;
+    transform(value: unknown, metadata: ArgumentMetadata): Promise<unknown>;
     private sanitizeObject;
     private sanitizeString;
 }

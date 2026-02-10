@@ -8,7 +8,7 @@ export declare class MT5AccountsController {
     private readonly tradesService;
     constructor(mt5AccountsService: MT5AccountsService, tradeHistoryParserService: TradeHistoryParserService, tradesService: TradesService);
     create(req: any, createMT5AccountDto: CreateMT5AccountDto): Promise<MT5AccountResponseDto>;
-    createManual(req: any, createMT5AccountDto: CreateManualMT5AccountDto): Promise<any>;
+    createManual(req: any, createMT5AccountDto: CreateManualMT5AccountDto): Promise<Record<string, any>>;
     findAll(req: any): Promise<MT5AccountResponseDto[]>;
     findOne(req: any, id: string): Promise<MT5AccountResponseDto>;
     getLiveTrades(): never[];

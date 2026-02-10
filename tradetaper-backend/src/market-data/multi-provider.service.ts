@@ -596,7 +596,7 @@ export class MultiProviderMarketDataService {
 
       const response = await firstValueFrom(this.httpService.get(url));
 
-      let timeSeries: any;
+      let timeSeries: Record<string, any> = {};
       if (assetType === 'stocks') {
         timeSeries = response.data['Time Series (Daily)'];
       } else if (assetType === 'forex') {
@@ -729,13 +729,13 @@ export class MultiProviderMarketDataService {
 
       if (response.data && Array.isArray(response.data)) {
         const historicalData: HistoricalPrice[] = response.data
-          .filter((item: any) => {
+          .filter((item: Record<string, any>) => {
             const timestamp = new Date(item.date);
             if (fromDate && timestamp < fromDate) return false;
             if (toDate && timestamp > toDate) return false;
             return true;
           })
-          .map((item: any) => ({
+          .map((item: Record<string, any>) => ({
             timestamp: new Date(item.date),
             open: item.open,
             high: item.high,
@@ -792,7 +792,7 @@ export class MultiProviderMarketDataService {
     this.requestCounts.set(providerName, current);
   }
 
-  getProviderStatus(): any {
+  getProviderStatus(): Record<string, unknown>[] {
     return this.providers.map((provider) => ({
       ...provider,
       requestsUsed: this.requestCounts.get(provider.name)?.count || 0,
@@ -865,7 +865,7 @@ export class MultiProviderMarketDataService {
   }
 
   async testAllProviders(): Promise<any[]> {
-    const results: any[] = [];
+    const results: Record<string, unknown>[] = [];
 
     for (const provider of this.providers.filter((p) => p.isActive)) {
       try {

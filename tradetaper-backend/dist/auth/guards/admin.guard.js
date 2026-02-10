@@ -8,13 +8,15 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
+var AdminGuard_1;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AdminGuard = void 0;
 const common_1 = require("@nestjs/common");
 const core_1 = require("@nestjs/core");
 const jwt_auth_guard_1 = require("./jwt-auth.guard");
-let AdminGuard = class AdminGuard extends jwt_auth_guard_1.JwtAuthGuard {
+let AdminGuard = AdminGuard_1 = class AdminGuard extends jwt_auth_guard_1.JwtAuthGuard {
     reflector;
+    logger = new common_1.Logger(AdminGuard_1.name);
     constructor(reflector) {
         super();
         this.reflector = reflector;
@@ -24,7 +26,7 @@ let AdminGuard = class AdminGuard extends jwt_auth_guard_1.JwtAuthGuard {
         const authHeader = request.headers.authorization;
         const isAdminPanelRequest = authHeader === 'Bearer mock-admin-token' || !authHeader;
         if (isAdminPanelRequest) {
-            console.log('🔓 Admin panel access granted for demo/development');
+            this.logger.log('Admin panel access granted for demo/development');
             return true;
         }
         try {
@@ -41,13 +43,13 @@ let AdminGuard = class AdminGuard extends jwt_auth_guard_1.JwtAuthGuard {
             return adminEmails.includes(user.email?.toLowerCase());
         }
         catch (error) {
-            console.log('🔓 Admin guard bypassed due to auth error:', error.message);
+            this.logger.log(`Admin guard bypassed due to auth error: ${error.message}`);
             return true;
         }
     }
 };
 exports.AdminGuard = AdminGuard;
-exports.AdminGuard = AdminGuard = __decorate([
+exports.AdminGuard = AdminGuard = AdminGuard_1 = __decorate([
     (0, common_1.Injectable)(),
     __metadata("design:paramtypes", [core_1.Reflector])
 ], AdminGuard);

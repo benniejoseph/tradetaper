@@ -124,12 +124,18 @@ export declare class AdminController {
         totalDeleted: number;
         error?: undefined;
     }>;
-    getTableStats(): Promise<any[]>;
+    getTableStats(): Promise<{
+        name: string;
+        columns: {
+            name: string;
+            type: string;
+        }[];
+    }[]>;
     runSql(confirm: string, body: {
         sql: string;
     }): Promise<{
         success: boolean;
-        result?: any;
+        result?: unknown;
         error?: string;
     } | {
         error: string;

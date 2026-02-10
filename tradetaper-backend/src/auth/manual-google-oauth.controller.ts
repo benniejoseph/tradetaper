@@ -5,6 +5,7 @@ import {
   Res,
   HttpException,
   HttpStatus,
+  Logger,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AuthService } from './auth.service';
@@ -12,6 +13,8 @@ import axios from 'axios';
 
 @Controller('auth/oauth') // Different prefix to avoid conflicts
 export class ManualGoogleOAuthController {
+  private readonly logger = new Logger(ManualGoogleOAuthController.name);
+
   constructor(
     private configService: ConfigService,
     private authService: AuthService,
@@ -39,10 +42,10 @@ export class ManualGoogleOAuthController {
         `access_type=offline&` +
         `prompt=consent`;
 
-      console.log('Redirecting to Google OAuth:', googleAuthUrl);
+      this.logger.log(`Redirecting to Google OAuth: ${googleAuthUrl}`);
       return res.redirect(googleAuthUrl);
     } catch (error) {
-      console.error('Google OAuth redirect error:', error);
+      this.logger.error('Google OAuth redirect error', error);
       throw new HttpException(
         'Failed to initiate Google OAuth',
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -62,13 +65,13 @@ export class ManualGoogleOAuthController {
         'http://localhost:3000';
 
       if (error) {
-        console.error('Google OAuth error:', error);
+        this.logger.error(`Google OAuth error: ${error}`);
         const errorUrl = `${frontendUrl}/auth/google/callback?error=${encodeURIComponent(error)}`;
         return res.redirect(errorUrl);
       }
 
       if (!code) {
-        console.error('No authorization code received');
+        this.logger.error('No authorization code received');
         const errorUrl = `${frontendUrl}/auth/google/callback?error=${encodeURIComponent('No authorization code received')}`;
         return res.redirect(errorUrl);
       }
@@ -93,7 +96,7 @@ export class ManualGoogleOAuthController {
       const redirectUrl = `${frontendUrl}/auth/google/callback?token=${result.accessToken}&user=${encodeURIComponent(JSON.stringify(result.user))}`;
       return res.redirect(redirectUrl);
     } catch (error) {
-      console.error('Google OAuth callback error:', error);
+      this.logger.error('Google OAuth callback error', error);
       const frontendUrl =
         this.configService.get<string>('FRONTEND_URL') ||
         'http://localhost:3000';

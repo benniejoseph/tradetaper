@@ -44,5 +44,5 @@ export class PsychologicalInsight {
   analysisDate: Date;
 
   @Column('jsonb', { nullable: true })
-  rawGeminiResponse: any;
+  rawGeminiResponse: Record<string, unknown>;
 }

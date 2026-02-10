@@ -5,7 +5,7 @@ export declare class Trade {
     id: string;
     user: User;
     userId: string;
-    strategy: any;
+    strategy: Record<string, unknown>;
     strategyId?: string;
     accountId?: string;
     isStarred?: boolean;
@@ -38,7 +38,7 @@ export declare class Trade {
     externalDealId?: string;
     mt5Magic?: number;
     contractSize?: number;
-    executionCandles?: any[];
+    executionCandles?: Record<string, unknown>[];
     emotionBefore?: EmotionalState;
     emotionDuring?: EmotionalState;
     emotionAfter?: EmotionalState;

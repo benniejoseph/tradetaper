@@ -1,5 +1,6 @@
 import { safeToFixed } from './ict-utils';
 import { Injectable, Logger } from '@nestjs/common';
+import { Candle } from './market-data-provider.service';
 
 export interface PremiumDiscountAnalysis {
   symbol: string;
@@ -42,7 +43,7 @@ export class PremiumDiscountService {
    */
   analyzePremiumDiscount(
     symbol: string,
-    priceData: any[],
+    priceData: Candle[],
     timeframe: string = '1D',
   ): PremiumDiscountAnalysis {
     this.logger.log(
@@ -118,7 +119,7 @@ export class PremiumDiscountService {
    * Define trading range (swing high to swing low)
    */
   private defineRange(
-    priceData: any[],
+    priceData: Candle[],
     lookback: number = 50,
   ): { rangeHigh: number; rangeLow: number } {
     const recentData = priceData.slice(-lookback);
@@ -186,8 +187,8 @@ export class PremiumDiscountService {
     currentPrice: number,
     currentZone: string,
     equilibrium: number,
-    fibLevels: any,
-    optimalTradeEntry: any,
+    fibLevels: PremiumDiscountAnalysis['fibLevels'],
+    optimalTradeEntry: PremiumDiscountAnalysis['optimalTradeEntry'],
     rangeHigh: number,
     rangeLow: number,
   ): {
@@ -302,7 +303,7 @@ export class PremiumDiscountService {
    */
   private describeCurrentPosition(
     currentPrice: number,
-    fibLevels: any,
+    fibLevels: PremiumDiscountAnalysis['fibLevels'],
     percentage: number,
   ): string {
     if (currentPrice <= fibLevels.level_236) {
@@ -327,7 +328,7 @@ export class PremiumDiscountService {
    */
   getNearestFibLevel(
     currentPrice: number,
-    fibLevels: any,
+    fibLevels: PremiumDiscountAnalysis['fibLevels'],
   ): { level: string; price: number; distance: number } {
     const levels = [
       { level: '0%', price: fibLevels.level_0 },

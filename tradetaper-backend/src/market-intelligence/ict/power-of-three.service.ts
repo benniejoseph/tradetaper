@@ -1,5 +1,6 @@
 import { safeToFixed } from './ict-utils';
 import { Injectable, Logger } from '@nestjs/common';
+import { Candle } from './market-data-provider.service';
 
 export interface PowerOfThreeAnalysis {
   symbol: string;
@@ -28,7 +29,7 @@ export class PowerOfThreeService {
    */
   analyzePowerOfThree(
     symbol: string,
-    priceData: any[],
+    priceData: Candle[],
     timeframe: string = '1D',
   ): PowerOfThreeAnalysis {
     this.logger.log(
@@ -78,7 +79,7 @@ export class PowerOfThreeService {
   /**
    * Identify current phase of Power of Three
    */
-  private identifyPhase(priceData: any[]): {
+  private identifyPhase(priceData: Candle[]): {
     phase: 'accumulation' | 'manipulation' | 'distribution' | 'unknown';
     confidence: number;
     timeInPhase: number;
@@ -151,7 +152,7 @@ export class PowerOfThreeService {
   /**
    * Detect manipulation spike (liquidity sweep)
    */
-  private detectManipulationSpike(data: any[]): boolean {
+  private detectManipulationSpike(data: Candle[]): boolean {
     if (data.length < 5) return false;
 
     const recent5 = data.slice(-5);
@@ -189,7 +190,7 @@ export class PowerOfThreeService {
   /**
    * Detect strong trend (distribution phase)
    */
-  private detectStrongTrend(data: any[]): boolean {
+  private detectStrongTrend(data: Candle[]): boolean {
     if (data.length < 5) return false;
 
     const recent5 = data.slice(-5);
@@ -208,7 +209,7 @@ export class PowerOfThreeService {
   /**
    * Count candles in current phase
    */
-  private countPhaseCandles(data: any[], phase: string): number {
+  private countPhaseCandles(data: Candle[], phase: string): number {
     // Simplified - count recent candles fitting phase characteristics
     return Math.min(data.length, 10);
   }
@@ -217,7 +218,7 @@ export class PowerOfThreeService {
    * Calculate phase-specific levels
    */
   private calculatePhaseLevels(
-    priceData: any[],
+    priceData: Candle[],
     phase: string,
   ): {
     accumulation?: { low: number; high: number };
@@ -275,7 +276,7 @@ export class PowerOfThreeService {
   /**
    * Describe current phase
    */
-  private describePhase(phase: string, levels: any): string {
+  private describePhase(phase: string, levels: PowerOfThreeAnalysis['phaseLevels']): string {
     switch (phase) {
       case 'accumulation':
         return `ACCUMULATION PHASE: Institutions are building positions quietly. Price is consolidating in a tight range (${safeToFixed(levels.accumulation?.low, 2)} - ${safeToFixed(levels.accumulation?.high, 2)}). Low volatility as smart money accumulates. This is the "basing" phase before a big move.`;
@@ -296,8 +297,8 @@ export class PowerOfThreeService {
    */
   private predictNextMove(
     phase: string,
-    levels: any,
-    priceData: any[],
+    levels: PowerOfThreeAnalysis['phaseLevels'],
+    priceData: Candle[],
   ): string {
     const currentPrice = priceData[priceData.length - 1].close;
 
@@ -321,8 +322,8 @@ export class PowerOfThreeService {
    */
   private generateTradingStrategy(
     phase: string,
-    levels: any,
-    priceData: any[],
+    levels: PowerOfThreeAnalysis['phaseLevels'],
+    priceData: Candle[],
   ): string[] {
     const strategy: string[] = [];
 

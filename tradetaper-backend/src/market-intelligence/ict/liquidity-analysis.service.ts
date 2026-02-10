@@ -1,5 +1,6 @@
 import { safeToFixed } from './ict-utils';
 import { Injectable, Logger } from '@nestjs/common';
+import { Candle } from './market-data-provider.service';
 
 export interface LiquidityZone {
   type: 'buy_side' | 'sell_side';
@@ -38,7 +39,7 @@ export class LiquidityAnalysisService {
    */
   analyzeLiquidity(
     symbol: string,
-    priceData: any[],
+    priceData: Candle[],
     timeframe: string = '1D',
   ): LiquidityPool {
     this.logger.log(`Analyzing ICT liquidity for ${symbol} on ${timeframe}`);
@@ -87,7 +88,7 @@ export class LiquidityAnalysisService {
   /**
    * Identify buy-side liquidity (stops above swing highs)
    */
-  private identifyBuySideLiquidity(priceData: any[]): LiquidityZone[] {
+  private identifyBuySideLiquidity(priceData: Candle[]): LiquidityZone[] {
     const zones: LiquidityZone[] = [];
     const swingHighs = this.findSwingHighs(priceData);
 
@@ -110,7 +111,7 @@ export class LiquidityAnalysisService {
   /**
    * Identify sell-side liquidity (stops below swing lows)
    */
-  private identifySellSideLiquidity(priceData: any[]): LiquidityZone[] {
+  private identifySellSideLiquidity(priceData: Candle[]): LiquidityZone[] {
     const zones: LiquidityZone[] = [];
     const swingLows = this.findSwingLows(priceData);
 
@@ -133,7 +134,7 @@ export class LiquidityAnalysisService {
    * Find swing highs (local peaks)
    */
   private findSwingHighs(
-    priceData: any[],
+    priceData: Candle[],
     lookback: number = 5,
   ): Array<{ high: number; date: string; volume: number }> {
     const swings: Array<{ high: number; date: string; volume: number }> = [];
@@ -166,7 +167,7 @@ export class LiquidityAnalysisService {
    * Find swing lows (local valleys)
    */
   private findSwingLows(
-    priceData: any[],
+    priceData: Candle[],
     lookback: number = 5,
   ): Array<{ low: number; date: string; volume: number }> {
     const swings: Array<{ low: number; date: string; volume: number }> = [];
@@ -198,8 +199,8 @@ export class LiquidityAnalysisService {
    * Calculate strength of liquidity zone
    */
   private calculateLiquidityStrength(
-    swing: any,
-    priceData: any[],
+    swing: { volume: number },
+    priceData: Candle[],
   ): 'high' | 'medium' | 'low' {
     // Factors:
     // 1. How many times price tested this level
@@ -243,7 +244,7 @@ export class LiquidityAnalysisService {
   /**
    * Detect liquidity voids (areas with no liquidity)
    */
-  private detectLiquidityVoid(priceData: any[]): {
+  private detectLiquidityVoid(priceData: Candle[]): {
     hasVoid: boolean;
     range?: { high: number; low: number };
   } {
@@ -275,7 +276,7 @@ export class LiquidityAnalysisService {
     sellSide: LiquidityZone[],
     nearestAbove: LiquidityZone | null,
     nearestBelow: LiquidityZone | null,
-    liquidityVoid: any,
+    liquidityVoid: LiquidityPool['liquidityVoid'],
     currentPrice: number,
   ): string[] {
     const analysis: string[] = [];
@@ -313,7 +314,7 @@ export class LiquidityAnalysisService {
     }
 
     // Liquidity void
-    if (liquidityVoid.hasVoid) {
+    if (liquidityVoid.hasVoid && liquidityVoid.range) {
       analysis.push(
         `⚠️ LIQUIDITY VOID DETECTED: ${safeToFixed(liquidityVoid.range.low, 2)} - ${safeToFixed(liquidityVoid.range.high, 2)}`,
       );

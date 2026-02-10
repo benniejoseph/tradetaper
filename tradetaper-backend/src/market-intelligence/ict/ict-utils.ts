@@ -7,7 +7,7 @@
  * Safely format a number to fixed decimal places
  * Returns 'N/A' if the value is null, undefined, or NaN
  */
-export function safeToFixed(value: any, decimals: number = 2): string {
+export function safeToFixed(value: unknown, decimals: number = 2): string {
   try {
     if (
       value === null ||
@@ -46,7 +46,7 @@ export function formatPriceRange(
 /**
  * Check if a value is a valid number
  */
-export function isValidNumber(value: any): value is number {
+export function isValidNumber(value: unknown): value is number {
   return typeof value === 'number' && !isNaN(value) && isFinite(value);
 }
 

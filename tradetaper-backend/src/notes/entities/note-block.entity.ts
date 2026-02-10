@@ -20,7 +20,7 @@ export interface NoteBlockContent {
   code?: string;
   headers?: string[];
   rows?: string[][];
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 @Entity('note_blocks')

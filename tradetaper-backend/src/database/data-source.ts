@@ -22,14 +22,13 @@ import { MarketCandle } from '../backtesting/entities/market-candle.entity';
 import { ReplaySession } from '../backtesting/entities/replay-session.entity';
 import { Connector } from '@google-cloud/cloud-sql-connector';
 
+import { Logger } from '@nestjs/common';
+
+const dbLogger = new Logger('DatabaseDataSource');
+
 const isProduction = process.env.NODE_ENV === 'production';
 
-console.log('🔧 Database configuration (data-source.ts):', {
-  isProduction,
-  nodeEnv: process.env.NODE_ENV,
-  instanceConnectionName: process.env.INSTANCE_CONNECTION_NAME,
-  dbHost: process.env.DB_HOST,
-});
+dbLogger.log(`Database configuration: isProduction=${isProduction}, nodeEnv=${process.env.NODE_ENV}, dbHost=${process.env.DB_HOST}`);
 
 async function createDataSource() {
   const configService = new ConfigService();

@@ -264,7 +264,7 @@ export class MarketDataService implements OnModuleInit {
   }
 
   private processTimeseriesResponse(
-    data: any,
+    data: Record<string, any>,
     currencyPair: string,
     interval: string,
   ): PriceDataPoint[] {
@@ -289,7 +289,7 @@ export class MarketDataService implements OnModuleInit {
       );
     }
 
-    let quotes: any[] = [];
+    let quotes: Record<string, any>[] = [];
 
     if (data && Array.isArray(data)) {
       quotes = data;
@@ -311,7 +311,7 @@ export class MarketDataService implements OnModuleInit {
     }
 
     const priceData: PriceDataPoint[] = quotes
-      .map((q: any): PriceDataPoint | null => {
+      .map((q: Record<string, any>): PriceDataPoint | null => {
         // Handle both 'date' field (timeseries) and 'date_time' field (minute/hour historical)
         const dateField = q.date || q.date_time;
         if (
@@ -354,7 +354,7 @@ export class MarketDataService implements OnModuleInit {
   }
 
   private handleTradermadeError(
-    error: any,
+    error: Record<string, any>,
     currencyPair: string,
     interval: string,
   ): never {

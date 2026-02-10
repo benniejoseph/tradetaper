@@ -10,6 +10,7 @@ import {
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CalendarService, CalendarMonth } from './calendar.service';
 import { Note } from './entities/note.entity';
+import { AuthenticatedRequest } from '../types/authenticated-request.interface';
 
 @Controller('notes/calendar')
 @UseGuards(JwtAuthGuard)
@@ -20,7 +21,7 @@ export class CalendarController {
   async getCalendarData(
     @Param('year', ParseIntPipe) year: number,
     @Param('month', ParseIntPipe) month: number,
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
   ): Promise<CalendarMonth> {
     return this.calendarService.getCalendarData(req.user.id, year, month);
   }
@@ -28,7 +29,7 @@ export class CalendarController {
   @Get('date/:date')
   async getNotesForDate(
     @Param('date') date: string,
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
   ): Promise<Note[]> {
     return this.calendarService.getNotesForDate(req.user.id, date);
   }
@@ -37,7 +38,7 @@ export class CalendarController {
   async getCalendarStats(
     @Param('year', ParseIntPipe) year: number,
     @Param('month', ParseIntPipe) month: number,
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
   ): Promise<{
     totalNotes: number;
     totalWords: number;
@@ -49,7 +50,7 @@ export class CalendarController {
   }
 
   @Get('reminders')
-  async getUpcomingReminders(@Request() req: any): Promise<
+  async getUpcomingReminders(@Request() req: AuthenticatedRequest): Promise<
     {
       id: string;
       title: string;
@@ -65,7 +66,7 @@ export class CalendarController {
     @Query('startDate') startDate: string,
     @Query('endDate') endDate: string,
     @Query('search') searchTerm: string,
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
   ): Promise<Note[]> {
     return this.calendarService.searchNotesByDateRange(
       req.user.id,

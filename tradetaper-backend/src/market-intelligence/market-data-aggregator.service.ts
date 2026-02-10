@@ -319,7 +319,7 @@ export class MarketDataAggregatorService {
 
     if (!response.data.feed) throw new Error('No news data available');
 
-    const sentiments = response.data.feed.map((item: any) =>
+    const sentiments = response.data.feed.map((item: Record<string, any>) =>
       parseFloat(item.overall_sentiment_score),
     );
 

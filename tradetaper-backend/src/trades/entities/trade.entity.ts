@@ -50,7 +50,7 @@ export class Trade {
     onDelete: 'SET NULL',
   })
   @JoinColumn({ name: 'strategyId' })
-  strategy: any;
+  strategy: Record<string, unknown>;
 
   @Column({ nullable: true })
   strategyId?: string;
@@ -202,7 +202,7 @@ export class Trade {
   contractSize?: number;
 
   @Column({ type: 'jsonb', nullable: true })
-  executionCandles?: any[]; // Array of { time, open, high, low, close }
+  executionCandles?: Record<string, unknown>[]; // Array of { time, open, high, low, close }
 
   // ========== PHASE 1: Psychology & Emotion Tracking ==========
   @Column({

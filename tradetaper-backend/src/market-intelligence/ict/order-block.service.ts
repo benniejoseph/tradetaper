@@ -1,5 +1,6 @@
 import { safeToFixed } from './ict-utils';
 import { Injectable, Logger } from '@nestjs/common';
+import { Candle } from './market-data-provider.service';
 
 export interface OrderBlock {
   type: 'bullish' | 'bearish';
@@ -42,7 +43,7 @@ export class OrderBlockService {
    */
   identifyOrderBlocks(
     symbol: string,
-    priceData: any[],
+    priceData: Candle[],
     timeframe: string = '1D',
   ): OrderBlockAnalysis {
     this.logger.log(
@@ -117,7 +118,7 @@ export class OrderBlockService {
    * Identify Bullish Order Block
    */
   private identifyBullishOrderBlock(
-    priceData: any[],
+    priceData: Candle[],
     index: number,
   ): OrderBlock | null {
     const candle = priceData[index];
@@ -171,7 +172,7 @@ export class OrderBlockService {
    * Identify Bearish Order Block
    */
   private identifyBearishOrderBlock(
-    priceData: any[],
+    priceData: Candle[],
     index: number,
   ): OrderBlock | null {
     const candle = priceData[index];
@@ -223,8 +224,8 @@ export class OrderBlockService {
    * Calculate Order Block strength
    */
   private calculateOrderBlockStrength(
-    obCandle: any,
-    reactionCandles: any[],
+    obCandle: Candle,
+    reactionCandles: Candle[],
     type: 'bullish' | 'bearish',
   ): 'strong' | 'moderate' | 'weak' {
     // Factors:
@@ -273,7 +274,7 @@ export class OrderBlockService {
    */
   private checkOrderBlockTest(
     ob: OrderBlock,
-    priceData: any[],
+    priceData: Candle[],
     startIndex: number,
   ): void {
     for (let i = startIndex + 1; i < priceData.length; i++) {

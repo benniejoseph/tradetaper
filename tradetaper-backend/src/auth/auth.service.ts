@@ -57,7 +57,7 @@ export class AuthService {
   }
 
   async validateOrCreateGoogleUser(
-    googleUser: any,
+    googleUser: { email: string; firstName: string; lastName: string; picture: string; accessToken?: string; googleId?: string; refreshToken?: string },
   ): Promise<{ accessToken: string; user: UserResponseDto }> {
     try {
       this.logger.log(`Google OAuth login attempt for: ${googleUser.email}`);

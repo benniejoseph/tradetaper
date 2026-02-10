@@ -29,8 +29,17 @@ export interface AdvancedMetrics {
     monthlyPerformance: Record<string, any>;
     correlationMatrix: Record<string, Record<string, number>>;
     seasonalAnalysis: Record<string, any>;
-    drawdownAnalysis: any[];
-    tradingPatterns: any[];
+    drawdownAnalysis: {
+        start: number;
+        end: number;
+        duration: number;
+        peak: number;
+        trough: number;
+    }[];
+    tradingPatterns: {
+        name: string;
+        details: string;
+    }[];
 }
 export declare class AdvancedAnalyticsService {
     private readonly tradesRepository;

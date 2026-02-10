@@ -9,6 +9,7 @@ import {
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { AgentOrchestratorService } from './agent-orchestrator.service';
+import { AuthenticatedRequest } from '../types/authenticated-request.interface';
 
 /**
  * Agents Controller
@@ -31,7 +32,7 @@ export class AgentsController {
    */
   @Post('risk/position-size')
   async calculatePositionSize(
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
     @Body()
     body: {
       accountBalance: number;
@@ -60,7 +61,7 @@ export class AgentsController {
    */
   @Post('risk/assess-trade')
   async assessTradeRisk(
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
     @Body()
     body: {
       symbol?: string;
@@ -90,7 +91,7 @@ export class AgentsController {
    */
   @Post('risk/portfolio')
   async analyzePortfolioRisk(
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
     @Body()
     body: {
       openTrades: Array<{
@@ -122,7 +123,7 @@ export class AgentsController {
    * Get risk management rules
    */
   @Get('risk/rules')
-  async getRiskRules(@Req() req: any) {
+  async getRiskRules(@Req() req: AuthenticatedRequest) {
     const context = this.orchestrator.createContext(req.user.id);
 
     const response = await this.orchestrator.routeToCapability(
@@ -138,7 +139,7 @@ export class AgentsController {
    * Get market prediction for a symbol
    */
   @Post('market/predict')
-  async getMarketPrediction(@Req() req: any, @Body() body: { symbol: string }) {
+  async getMarketPrediction(@Req() req: AuthenticatedRequest, @Body() body: { symbol: string }) {
     const context = this.orchestrator.createContext(req.user.id);
 
     const response = await this.orchestrator.routeToCapability(
@@ -158,7 +159,7 @@ export class AgentsController {
    */
   @Post('psychology/analyze')
   async analyzePsychology(
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
     @Body() body: { text: string; tradeId?: string },
   ) {
     const context = this.orchestrator.createContext(req.user.id);
@@ -180,7 +181,7 @@ export class AgentsController {
    */
   @Post('workflow/full-analysis')
   async fullTradeAnalysis(
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
     @Body()
     body: {
       symbol: string;
@@ -216,7 +217,7 @@ export class AgentsController {
    * Chat with ICT Mentor (RAG)
    */
   @Post('mentor/chat')
-  async chatWithMentor(@Req() req: any, @Body() body: { question: string }) {
+  async chatWithMentor(@Req() req: AuthenticatedRequest, @Body() body: { question: string }) {
     const context = this.orchestrator.createContext(req.user.id);
 
     const response = await this.orchestrator.routeToCapability(
@@ -236,7 +237,7 @@ export class AgentsController {
    */
   @Post('mentor/audit')
   async auditTrade(
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
     @Body() body: { imageUrl: string; description?: string },
   ) {
     const context = this.orchestrator.createContext(req.user.id);
@@ -259,7 +260,7 @@ export class AgentsController {
    */
   @Post('mentor/ingest')
   async ingestKnowledge(
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
     @Body()
     body: { title: string; content: string; type: 'transcript' | 'text' },
   ) {

@@ -38,7 +38,7 @@ export class ReplaySession {
   endingBalance: number;
 
   @Column('json', { nullable: true })
-  trades: any[]; // Array of {entry, exit, pnl, type}
+  trades: Record<string, unknown>[]; // Array of {entry, exit, pnl, type}
 
   @Column('decimal', { precision: 10, scale: 2, nullable: true })
   totalPnl: number;

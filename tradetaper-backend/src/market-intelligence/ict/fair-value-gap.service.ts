@@ -1,5 +1,6 @@
 import { safeToFixed } from './ict-utils';
 import { Injectable, Logger } from '@nestjs/common';
+import { Candle } from './market-data-provider.service';
 
 export interface FairValueGap {
   type: 'bullish' | 'bearish';
@@ -40,7 +41,7 @@ export class FairValueGapService {
    */
   identifyFairValueGaps(
     symbol: string,
-    priceData: any[],
+    priceData: Candle[],
     timeframe: string = '1D',
   ): FVGAnalysis {
     this.logger.log(
@@ -143,9 +144,9 @@ export class FairValueGapService {
    * Calculate FVG strength based on candle characteristics
    */
   private calculateFVGStrength(
-    candle1: any,
-    candle2: any,
-    candle3: any,
+    candle1: Candle,
+    candle2: Candle,
+    candle3: Candle,
   ): 'strong' | 'moderate' | 'weak' {
     // Strong FVG characteristics:
     // 1. Large middle candle (strong momentum)
@@ -188,7 +189,7 @@ export class FairValueGapService {
    */
   private checkFVGFill(
     fvg: FairValueGap,
-    priceData: any[],
+    priceData: Candle[],
     startIndex: number,
   ): void {
     for (let i = startIndex; i < priceData.length; i++) {

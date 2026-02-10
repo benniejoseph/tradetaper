@@ -20,7 +20,7 @@ export interface ErrorResponse {
   method: string;
   message: string;
   error?: string;
-  details?: any;
+  details?: Record<string, unknown>;
   requestId?: string;
 }
 

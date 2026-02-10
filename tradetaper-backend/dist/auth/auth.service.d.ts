@@ -11,7 +11,15 @@ export declare class AuthService {
     private readonly logger;
     constructor(usersService: UsersService, jwtService: JwtService, subscriptionService: SubscriptionService);
     validateUser(email: string, pass: string): Promise<User | null>;
-    validateOrCreateGoogleUser(googleUser: any): Promise<{
+    validateOrCreateGoogleUser(googleUser: {
+        email: string;
+        firstName: string;
+        lastName: string;
+        picture: string;
+        accessToken?: string;
+        googleId?: string;
+        refreshToken?: string;
+    }): Promise<{
         accessToken: string;
         user: UserResponseDto;
     }>;

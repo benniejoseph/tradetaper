@@ -13,7 +13,7 @@ export interface CreateSessionDto {
 }
 
 export interface UpdateSessionDto {
-  trades?: any[];
+  trades?: Record<string, unknown>[];
   endingBalance?: number;
   totalPnl?: number;
   totalTrades?: number;

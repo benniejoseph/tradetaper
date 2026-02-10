@@ -44,6 +44,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
+var MediaService_1;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.MediaService = void 0;
 const common_1 = require("@nestjs/common");
@@ -53,9 +54,10 @@ const note_media_entity_1 = require("./entities/note-media.entity");
 const note_entity_1 = require("./entities/note.entity");
 const path = __importStar(require("path"));
 const uuid_1 = require("uuid");
-let MediaService = class MediaService {
+let MediaService = MediaService_1 = class MediaService {
     mediaRepository;
     noteRepository;
+    logger = new common_1.Logger(MediaService_1.name);
     bucketName = 'tradetaper-storage';
     constructor(mediaRepository, noteRepository) {
         this.mediaRepository = mediaRepository;
@@ -86,7 +88,7 @@ let MediaService = class MediaService {
             return savedMedia;
         }
         catch (error) {
-            console.error('Error uploading file:', error);
+            this.logger.error('Error uploading file', error);
             throw new common_1.BadRequestException('Failed to upload file');
         }
     }
@@ -134,7 +136,7 @@ let MediaService = class MediaService {
             await this.mediaRepository.delete(mediaId);
         }
         catch (error) {
-            console.error('Error deleting file:', error);
+            this.logger.error('Error deleting file', error);
             throw new common_1.BadRequestException('Failed to delete file');
         }
     }
@@ -155,7 +157,7 @@ let MediaService = class MediaService {
             return `https://placeholder.example.com/${media.filename}`;
         }
         catch (error) {
-            console.error('Error generating signed URL:', error);
+            this.logger.error('Error generating signed URL', error);
             throw new common_1.BadRequestException('Failed to generate file URL');
         }
     }
@@ -173,7 +175,7 @@ let MediaService = class MediaService {
     }
 };
 exports.MediaService = MediaService;
-exports.MediaService = MediaService = __decorate([
+exports.MediaService = MediaService = MediaService_1 = __decorate([
     (0, common_1.Injectable)(),
     __param(0, (0, typeorm_1.InjectRepository)(note_media_entity_1.NoteMedia)),
     __param(1, (0, typeorm_1.InjectRepository)(note_entity_1.Note)),

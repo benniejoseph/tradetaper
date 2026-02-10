@@ -49,14 +49,14 @@ export class SimpleTradesGateway
   }
 
   // Simple notification methods (can be called from anywhere)
-  notifyTradeCreated(trade: any) {
+  notifyTradeCreated(trade: Record<string, unknown>) {
     if (this.server) {
       this.server.emit('trade:created', trade);
       this.logger.debug(`Trade created notification sent: ${trade.id}`);
     }
   }
 
-  notifyTradeUpdated(trade: any) {
+  notifyTradeUpdated(trade: Record<string, unknown>) {
     if (this.server) {
       this.server.emit('trade:updated', trade);
       this.logger.debug(`Trade updated notification sent: ${trade.id}`);
@@ -70,7 +70,7 @@ export class SimpleTradesGateway
     }
   }
 
-  notifyBulkOperation(operation: string, count: number, trades?: any[]) {
+  notifyBulkOperation(operation: string, count: number, trades?: Record<string, unknown>[]) {
     if (this.server) {
       this.server.emit('trades:bulk', { operation, count, trades });
       this.logger.debug(

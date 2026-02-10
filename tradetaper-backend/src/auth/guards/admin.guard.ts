@@ -1,9 +1,11 @@
-import { Injectable, CanActivate, ExecutionContext } from '@nestjs/common';
+import { Injectable, CanActivate, ExecutionContext, Logger } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { JwtAuthGuard } from './jwt-auth.guard';
 
 @Injectable()
 export class AdminGuard extends JwtAuthGuard implements CanActivate {
+  private readonly logger = new Logger(AdminGuard.name);
+
   constructor(private reflector: Reflector) {
     super();
   }
@@ -18,7 +20,7 @@ export class AdminGuard extends JwtAuthGuard implements CanActivate {
       authHeader === 'Bearer mock-admin-token' || !authHeader;
 
     if (isAdminPanelRequest) {
-      console.log('🔓 Admin panel access granted for demo/development');
+      this.logger.log('Admin panel access granted for demo/development');
       return true;
     }
 
@@ -42,7 +44,7 @@ export class AdminGuard extends JwtAuthGuard implements CanActivate {
       return adminEmails.includes(user.email?.toLowerCase());
     } catch (error) {
       // If JWT validation fails, allow admin panel access for now
-      console.log('🔓 Admin guard bypassed due to auth error:', error.message);
+      this.logger.log(`Admin guard bypassed due to auth error: ${error.message}`);
       return true;
     }
   }

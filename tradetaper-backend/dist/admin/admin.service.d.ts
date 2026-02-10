@@ -9,6 +9,7 @@ export declare class AdminService {
     private tradeRepository;
     private subscriptionRepository;
     private dataSource;
+    private readonly logger;
     constructor(userRepository: Repository<User>, accountRepository: Repository<Account>, tradeRepository: Repository<Trade>, subscriptionRepository: Repository<Subscription>, dataSource: DataSource);
     getDashboardStats(): Promise<{
         totalUsers: number;
@@ -100,10 +101,16 @@ export declare class AdminService {
         tablesCleared: string[];
         totalDeleted: number;
     }>;
-    getTableStats(): Promise<any[]>;
+    getTableStats(): Promise<{
+        name: string;
+        columns: Array<{
+            name: string;
+            type: string;
+        }>;
+    }[]>;
     runSql(sql: string): Promise<{
         success: boolean;
-        result?: any;
+        result?: unknown;
         error?: string;
     }>;
 }

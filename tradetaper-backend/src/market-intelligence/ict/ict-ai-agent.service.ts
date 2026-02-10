@@ -6,7 +6,14 @@ import { FairValueGapService } from './fair-value-gap.service';
 import { OrderBlockService } from './order-block.service';
 import { KillZoneService } from './kill-zone.service';
 import { PremiumDiscountService } from './premium-discount.service';
-import { PowerOfThreeService } from './power-of-three.service';
+import { PowerOfThreeService, PowerOfThreeAnalysis } from './power-of-three.service';
+import { Candle } from './market-data-provider.service';
+import { LiquidityPool } from './liquidity-analysis.service';
+import { MarketStructure } from './market-structure.service';
+import { FVGAnalysis } from './fair-value-gap.service';
+import { OrderBlockAnalysis } from './order-block.service';
+import { KillZoneAnalysis } from './kill-zone.service';
+import { PremiumDiscountAnalysis } from './premium-discount.service';
 
 export interface ICTAIAgentAnalysis {
   symbol: string;
@@ -61,7 +68,7 @@ export class ICTAIAgentService {
    */
   async analyze(
     symbol: string,
-    priceData: any[],
+    priceData: Candle[],
     timeframe: string = '1D',
   ): Promise<ICTAIAgentAnalysis> {
     this.logger.log(
@@ -226,13 +233,13 @@ export class ICTAIAgentService {
    * Calculate ICT Score (how well concepts align)
    */
   private calculateICTScore(
-    structure: any,
-    premiumDiscount: any,
-    fvgs: any,
-    obs: any,
-    liquidity: any,
-    killZone: any,
-    powerOfThree: any,
+    structure: MarketStructure,
+    premiumDiscount: PremiumDiscountAnalysis,
+    fvgs: FVGAnalysis,
+    obs: OrderBlockAnalysis,
+    liquidity: LiquidityPool,
+    killZone: KillZoneAnalysis,
+    powerOfThree: PowerOfThreeAnalysis,
   ): number {
     let score = 0;
 
@@ -276,12 +283,12 @@ export class ICTAIAgentService {
    * Build ICT Narrative (tell the story)
    */
   private buildICTNarrative(
-    structure: any,
-    premiumDiscount: any,
-    fvgs: any,
-    obs: any,
-    liquidity: any,
-    powerOfThree: any,
+    structure: MarketStructure,
+    premiumDiscount: PremiumDiscountAnalysis,
+    fvgs: FVGAnalysis,
+    obs: OrderBlockAnalysis,
+    liquidity: LiquidityPool,
+    powerOfThree: PowerOfThreeAnalysis,
     currentPrice: number,
   ): string[] {
     const narrative: string[] = [];
@@ -361,13 +368,13 @@ export class ICTAIAgentService {
    * Determine ICT-based signal
    */
   private determineICTSignal(
-    structure: any,
-    premiumDiscount: any,
-    fvgs: any,
-    obs: any,
-    liquidity: any,
-    killZone: any,
-    powerOfThree: any,
+    structure: MarketStructure,
+    premiumDiscount: PremiumDiscountAnalysis,
+    fvgs: FVGAnalysis,
+    obs: OrderBlockAnalysis,
+    liquidity: LiquidityPool,
+    killZone: KillZoneAnalysis,
+    powerOfThree: PowerOfThreeAnalysis,
     ictScore: number,
   ): {
     signal: 'strong_buy' | 'buy' | 'neutral' | 'sell' | 'strong_sell';
@@ -433,11 +440,11 @@ export class ICTAIAgentService {
    * Identify primary ICT setup
    */
   private identifyPrimarySetup(
-    structure: any,
-    premiumDiscount: any,
-    fvgs: any,
-    obs: any,
-    powerOfThree: any,
+    structure: MarketStructure,
+    premiumDiscount: PremiumDiscountAnalysis,
+    fvgs: FVGAnalysis,
+    obs: OrderBlockAnalysis,
+    powerOfThree: PowerOfThreeAnalysis,
   ): string {
     // Power of Three drives the setup
     if (powerOfThree.currentPhase === 'manipulation') {
@@ -470,9 +477,9 @@ export class ICTAIAgentService {
    * Identify entry zone
    */
   private identifyEntryZone(
-    premiumDiscount: any,
-    fvgs: any,
-    obs: any,
+    premiumDiscount: PremiumDiscountAnalysis,
+    fvgs: FVGAnalysis,
+    obs: OrderBlockAnalysis,
     signal: string,
     currentPrice: number,
   ): any {
@@ -544,8 +551,8 @@ export class ICTAIAgentService {
    */
   private calculateStopLoss(
     entryZone: any,
-    obs: any,
-    fvgs: any,
+    obs: OrderBlockAnalysis,
+    fvgs: FVGAnalysis,
     signal: string,
   ): any {
     if (!entryZone) {
@@ -571,8 +578,8 @@ export class ICTAIAgentService {
    */
   private calculateTakeProfitLevels(
     entryZone: any,
-    premiumDiscount: any,
-    liquidity: any,
+    premiumDiscount: PremiumDiscountAnalysis,
+    liquidity: LiquidityPool,
     signal: string,
   ): any[] {
     if (!entryZone) return [];
@@ -631,9 +638,9 @@ export class ICTAIAgentService {
     setup: string,
     ictScore: number,
     confidence: number,
-    structure: any,
-    premiumDiscount: any,
-    powerOfThree: any,
+    structure: MarketStructure,
+    premiumDiscount: PremiumDiscountAnalysis,
+    powerOfThree: PowerOfThreeAnalysis,
   ): string[] {
     const reasoning: string[] = [];
 

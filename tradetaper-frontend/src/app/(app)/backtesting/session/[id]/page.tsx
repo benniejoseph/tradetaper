@@ -2,6 +2,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { CandleData } from '@/components/backtesting/workbench/mockData';
 import ChartEngine, { ChartEngineRef } from '@/components/backtesting/workbench/ChartEngine';
 import ReplayControls from '@/components/backtesting/workbench/ReplayControls';
@@ -12,14 +13,19 @@ import { FaChevronLeft, FaCog, FaSave } from 'react-icons/fa';
 import { SeriesMarker, SeriesMarkerPosition, SeriesMarkerShape, UTCTimestamp } from 'lightweight-charts';
 
 export default function BacktestSessionPage({ params }: { params: { id: string } }) {
-  // Session Configuration
-  const [symbol, setSymbol] = useState('XAUUSD');
-  const [timeframe, setTimeframe] = useState('1m');
-  const [startDate, setStartDate] = useState('2024-01-01');
-  const [endDate, setEndDate] = useState('2024-01-31');
+  const searchParams = useSearchParams();
+
+  // Session Configuration from query params
+  const [symbol, setSymbol] = useState(searchParams.get('symbol') || 'XAUUSD');
+  const [timeframe, setTimeframe] = useState(searchParams.get('timeframe') || '1m');
+  const [startDate, setStartDate] = useState(searchParams.get('startDate') || '2024-01-01');
+  const [endDate, setEndDate] = useState(searchParams.get('endDate') || '2024-01-31');
+  const [startingBalance, setStartingBalance] = useState(
+    parseFloat(searchParams.get('balance') || '100000')
+  );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [sessionId, setSessionId] = useState<string | null>(params.id);
 
   // State
   const [fullData, setFullData] = useState<CandleData[]>([]);
@@ -29,7 +35,7 @@ export default function BacktestSessionPage({ params }: { params: { id: string }
   const [speed, setSpeed] = useState(1000); // ms per candle
 
   // Trading State
-  const [balance, setBalance] = useState(100000); // $100k demo
+  const [balance, setBalance] = useState(startingBalance);
   const [trades, setTrades] = useState<any[]>([]); // Log of trades
   const [markers, setMarkers] = useState<SeriesMarker<any>[]>([]);
   const [openPosition, setOpenPosition] = useState<any | null>(null);

@@ -76,7 +76,7 @@ export class EconomicCalendarService {
     from?: string,
     to?: string,
     importance?: string,
-  ): Promise<{ events: EconomicEvent[]; weeklyAnalysis: any }> {
+  ): Promise<{ events: EconomicEvent[]; weeklyAnalysis: Record<string, unknown> }> {
     this.logger.log('Getting economic calendar events');
 
     try {
@@ -182,7 +182,7 @@ export class EconomicCalendarService {
   private async fetchForexFactoryEvents(): Promise<EconomicEvent[]> {
     try {
       const url = 'https://nfs.faireconomy.media/ff_calendar_thisweek.xml';
-      console.log(`Fetching FF Calendar from ${url}`);
+      this.logger.log(`Fetching FF Calendar from ${url}`);
 
       const response = await this.httpService.axiosRef.get(url);
       const xmlData = response.data;
@@ -200,7 +200,7 @@ export class EconomicCalendarService {
       }
 
       return rawEvents
-        .map((e: any) => {
+        .map((e: Record<string, any>) => {
           const dateStr = e.date; // MM-DD-YYYY
           const timeStr = e.time; // 1:30pm
 
@@ -222,7 +222,7 @@ export class EconomicCalendarService {
               eventDate = parse(dateTimeStr, 'MM-dd-yyyy h:mma', new Date());
             }
           } catch (err) {
-            console.error('Date parse error', err);
+            this.logger.error('Date parse error', err);
             // Fallback to today if parse fails
           }
 
@@ -250,7 +250,7 @@ export class EconomicCalendarService {
         })
         .filter((e) => e !== null) as EconomicEvent[];
     } catch (error) {
-      console.error('Critical Error fetching FF Events', error);
+      this.logger.error('Critical error fetching FF Events', error);
       return [];
     }
   }
@@ -270,7 +270,7 @@ export class EconomicCalendarService {
     return map[currency] || ['EURUSD'];
   }
 
-  private mapNewsToEvents(newsList: any[]): EconomicEvent[] {
+  private mapNewsToEvents(newsList: Record<string, any>[]): EconomicEvent[] {
     return newsList
       .filter((news) => news.category === 'economy' || news.category === 'fed')
       .map((news) => ({
