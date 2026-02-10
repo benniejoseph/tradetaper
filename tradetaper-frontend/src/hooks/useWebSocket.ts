@@ -37,6 +37,18 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
   });
   const socketRef = useRef<Socket | null>(null);
 
+  // Store callbacks in refs to avoid re-creating socket on every callback change
+  const onConnectRef = useRef(onConnect);
+  const onDisconnectRef = useRef(onDisconnect);
+  const onErrorRef = useRef(onError);
+
+  // Update refs when callbacks change
+  useEffect(() => {
+    onConnectRef.current = onConnect;
+    onDisconnectRef.current = onDisconnect;
+    onErrorRef.current = onError;
+  }, [onConnect, onDisconnect, onError]);
+
   useEffect(() => {
     if (!autoConnect) return;
 
@@ -70,19 +82,19 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
     socket.on('connect', () => {
       console.log('🔌 WebSocket connected:', socket.id);
       setState((prev) => ({ ...prev, isConnected: true, error: null }));
-      onConnect?.();
+      onConnectRef.current?.();
     });
 
     socket.on('disconnect', (reason) => {
       console.log('🔌 WebSocket disconnected:', reason);
       setState((prev) => ({ ...prev, isConnected: false }));
-      onDisconnect?.();
+      onDisconnectRef.current?.();
     });
 
     socket.on('connect_error', (error) => {
       console.error('🔌 WebSocket connection error:', error);
       setState((prev) => ({ ...prev, error, isConnected: false }));
-      onError?.(error);
+      onErrorRef.current?.(error);
     });
 
     setState((prev) => ({ ...prev, socket }));
@@ -91,7 +103,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
       socket.disconnect();
       socketRef.current = null;
     };
-  }, [autoConnect, namespace, onConnect, onDisconnect, onError]);
+  }, [autoConnect, namespace]); // ✅ Removed callback functions from dependencies
 
   const emit = useCallback((event: string, data?: unknown) => {
     if (socketRef.current?.connected) {
