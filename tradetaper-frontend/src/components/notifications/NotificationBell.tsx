@@ -122,6 +122,14 @@ export default function NotificationBell() {
 
   const recentNotifications = notifications.slice(0, 5);
 
+  // Debug log when isOpen changes
+  useEffect(() => {
+    console.log('🔔 NotificationBell isOpen state changed to:', isOpen);
+  }, [isOpen]);
+
+  // Debug log for render
+  console.log('🔔 NotificationBell rendering, isOpen:', isOpen, 'notifications:', notifications.length);
+
   return (
     <div className="relative" ref={dropdownRef}>
       {/* Bell Button */}
@@ -145,6 +153,7 @@ export default function NotificationBell() {
       </button>
 
       {/* Dropdown Panel */}
+      {console.log('🔔 Checking isOpen for dropdown render:', isOpen)}
       {isOpen && (
         <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden z-50">
           {/* Header */}
