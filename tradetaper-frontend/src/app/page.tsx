@@ -165,7 +165,7 @@ export default function LandingPage() {
       {/* Hero Section */}
       <section className="relative pt-32 pb-20 md:pt-48 md:pb-32 overflow-hidden min-h-screen flex flex-col justify-center">
         {/* 3D Background */}
-        <div className="absolute inset-0 opacity-40">
+        <div className="absolute inset-0">
            <Suspense fallback={null}>
              <HeroGlobe />
            </Suspense>
