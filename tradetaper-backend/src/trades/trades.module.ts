@@ -14,12 +14,14 @@ import { TradeCandle } from './entities/trade-candle.entity';
 
 import { TerminalFarmModule } from '../terminal-farm/terminal-farm.module';
 import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Trade, Note, TradeCandle]),
     forwardRef(() => UsersModule),
     forwardRef(() => TerminalFarmModule),
+    forwardRef(() => NotificationsModule),
     TagsModule,
     SubscriptionsModule,
   ],

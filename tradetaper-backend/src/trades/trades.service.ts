@@ -26,6 +26,8 @@ import { MT5AccountsService } from '../users/mt5-accounts.service';
 import { TradeCandle } from './entities/trade-candle.entity';
 
 import { TerminalFarmService } from '../terminal-farm/terminal-farm.service';
+import { NotificationsService } from '../notifications/notifications.service';
+import { NotificationType } from '../notifications/entities/notification.entity';
 
 @Injectable()
 export class TradesService {
@@ -48,6 +50,8 @@ export class TradesService {
     private readonly mt5AccountsService: MT5AccountsService,
     @Inject(forwardRef(() => TerminalFarmService))
     private readonly terminalFarmService: TerminalFarmService,
+    @Inject(forwardRef(() => NotificationsService))
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   async getTradeCandles(
@@ -316,6 +320,25 @@ export class TradesService {
       userContext.id,
     );
 
+    // Send notification
+    try {
+      await this.notificationsService.send({
+        userId: userContext.id,
+        type: NotificationType.TRADE_CREATED,
+        title: 'Trade Created',
+        message: `New ${populatedTrade.direction} trade on ${populatedTrade.symbol}${populatedTrade.profitOrLoss ? ` - P/L: ${populatedTrade.profitOrLoss > 0 ? '+' : ''}${populatedTrade.profitOrLoss.toFixed(2)}` : ''}`,
+        data: {
+          tradeId: populatedTrade.id,
+          symbol: populatedTrade.symbol,
+          direction: populatedTrade.direction,
+          entryPrice: populatedTrade.entryPrice,
+          status: populatedTrade.status,
+        },
+      });
+    } catch (error) {
+      this.logger.error(`Failed to send trade created notification: ${error.message}`);
+    }
+
     this.logger.log(`Trade created successfully: ${savedTrade.id}`);
 
     return populatedTrade;
@@ -504,6 +527,41 @@ export class TradesService {
       trade.calculatePnl();
     }
     const updatedTrade = await this.tradesRepository.save(trade);
+
+    // Send notification for closed trades
+    try {
+      if (updatedTrade.status === TradeStatus.CLOSED && trade.status !== TradeStatus.CLOSED) {
+        await this.notificationsService.send({
+          userId: userContext.id,
+          type: NotificationType.TRADE_CLOSED,
+          title: 'Trade Closed',
+          message: `${updatedTrade.direction} trade on ${updatedTrade.symbol} closed${updatedTrade.profitOrLoss ? ` - P/L: ${updatedTrade.profitOrLoss > 0 ? '+' : ''}${updatedTrade.profitOrLoss.toFixed(2)}` : ''}`,
+          data: {
+            tradeId: updatedTrade.id,
+            symbol: updatedTrade.symbol,
+            direction: updatedTrade.direction,
+            profitOrLoss: updatedTrade.profitOrLoss,
+            status: updatedTrade.status,
+          },
+        });
+      } else {
+        // Regular update notification
+        await this.notificationsService.send({
+          userId: userContext.id,
+          type: NotificationType.TRADE_UPDATED,
+          title: 'Trade Updated',
+          message: `Trade on ${updatedTrade.symbol} has been updated`,
+          data: {
+            tradeId: updatedTrade.id,
+            symbol: updatedTrade.symbol,
+            direction: updatedTrade.direction,
+            status: updatedTrade.status,
+          },
+        });
+      }
+    } catch (error) {
+      this.logger.error(`Failed to send trade update notification: ${error.message}`);
+    }
 
     return updatedTrade;
   }
