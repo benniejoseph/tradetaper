@@ -143,8 +143,10 @@ function ContentHeader({ toggleSidebar, isMobile, isSidebarExpanded }: ContentHe
             )}
 
             {/* Notifications */}
-            <NotificationBell />
-              
+            <div className="flex-shrink-0">
+              <NotificationBell />
+            </div>
+
             {/* Theme Toggle */}
             <div className="flex-shrink-0">
                <ThemeToggle className="hover:bg-gray-100 dark:hover:bg-[#0A0A0A] p-2 rounded-lg" />

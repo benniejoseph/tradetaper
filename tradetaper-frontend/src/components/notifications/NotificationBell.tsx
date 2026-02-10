@@ -29,17 +29,27 @@ import { formatDistanceToNow } from 'date-fns';
 export default function NotificationBell() {
   const dispatch = useDispatch<AppDispatch>();
   const router = useRouter();
-  const { notifications, unreadCount, isLoading } = useSelector(
-    (state: RootState) => state.notifications
-  );
+
+  // Use safe selector with fallback
+  const notifications = useSelector((state: RootState) => state.notifications?.notifications || []);
+  const unreadCount = useSelector((state: RootState) => state.notifications?.unreadCount || 0);
+  const isLoading = useSelector((state: RootState) => state.notifications?.isLoading || false);
 
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Fetch notifications on mount
+  // Fetch notifications on mount with error handling
   useEffect(() => {
-    dispatch(fetchUnreadCount());
-    dispatch(fetchNotifications({ limit: 10 }));
+    try {
+      dispatch(fetchUnreadCount()).catch((err) =>
+        console.error('Failed to fetch unread count:', err)
+      );
+      dispatch(fetchNotifications({ limit: 10 })).catch((err) =>
+        console.error('Failed to fetch notifications:', err)
+      );
+    } catch (error) {
+      console.error('Error initializing notifications:', error);
+    }
   }, [dispatch]);
 
   // Close dropdown when clicking outside
@@ -116,9 +126,13 @@ export default function NotificationBell() {
     <div className="relative" ref={dropdownRef}>
       {/* Bell Button */}
       <button
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => {
+          console.log('🔔 NotificationBell clicked, current isOpen:', isOpen);
+          setIsOpen(!isOpen);
+        }}
         className="relative p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
         aria-label="Notifications"
+        type="button"
       >
         <FaBell className="w-5 h-5 text-gray-600 dark:text-gray-400" />
         
