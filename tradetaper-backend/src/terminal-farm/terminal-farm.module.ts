@@ -9,6 +9,7 @@ import { TerminalFarmController } from './terminal-farm.controller';
 import { TerminalWebhookController } from './terminal-webhook.controller';
 import { MT5Account } from '../users/entities/mt5-account.entity';
 import { TradesModule } from '../trades/trades.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 import { TerminalCommandsQueue } from './queue/terminal-commands.queue';
 import { TerminalFailedTradesQueue } from './queue/terminal-failed-trades.queue';
 import { TerminalTokenService } from './terminal-token.service';
@@ -20,6 +21,7 @@ import { TerminalHealthController } from './terminal-health.controller';
     ConfigModule,
     JwtModule.register({}),
     forwardRef(() => TradesModule),
+    forwardRef(() => NotificationsModule),
   ],
   controllers: [
     TerminalFarmController,

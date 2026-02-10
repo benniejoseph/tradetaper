@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule } from '@nestjs/config';
 import { Subscription } from './entities/subscription.entity';
@@ -11,8 +11,10 @@ import { Note } from '../notes/entities/note.entity';
 import { Strategy } from '../strategies/entities/strategy.entity';
 import { SubscriptionService } from './services/subscription.service';
 import { RazorpayService } from './services/razorpay.service';
+import { SubscriptionSchedulerService } from './services/subscription-scheduler.service';
 import { SubscriptionsController } from './subscriptions.controller';
 import { SubscriptionsWebhookController } from './subscriptions.webhook.controller';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
   imports: [
@@ -27,9 +29,10 @@ import { SubscriptionsWebhookController } from './subscriptions.webhook.controll
       Note,
       Strategy,
     ]),
+    forwardRef(() => NotificationsModule),
   ],
   controllers: [SubscriptionsController, SubscriptionsWebhookController],
-  providers: [SubscriptionService, RazorpayService],
+  providers: [SubscriptionService, RazorpayService, SubscriptionSchedulerService],
   exports: [SubscriptionService, RazorpayService],
 })
 export class SubscriptionsModule {}

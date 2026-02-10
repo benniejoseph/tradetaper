@@ -7,6 +7,7 @@ import { ThemeToggle } from '@/components/common/ThemeToggle';
 import { useSelector, useDispatch } from 'react-redux';
 import { AppDispatch, RootState } from '@/store/store';
 import { Bell, Search, ChevronDown, DollarSign } from 'lucide-react';
+import NotificationBell from '@/components/notifications/NotificationBell';
 import { selectMT5Accounts, selectSelectedMT5AccountId, setSelectedMT5Account } from '@/store/features/mt5AccountsSlice';
 import { selectAvailableAccounts, selectSelectedAccountId, setSelectedAccount } from '@/store/features/accountSlice';
 import { useCurrency, CURRENCIES, CurrencyCode } from '@/context/CurrencyContext';
@@ -142,12 +143,7 @@ function ContentHeader({ toggleSidebar, isMobile, isSidebarExpanded }: ContentHe
             )}
 
             {/* Notifications */}
-            <button 
-              className={`${isMobile ? 'p-1.5' : 'p-2'} rounded-lg text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-[#0A0A0A] transition-colors duration-200 relative flex-shrink-0`}
-              aria-label="Notifications">
-              <Bell className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'}`} />
-              <span className="absolute top-0.5 right-0.5 w-2 h-2 bg-red-500 rounded-full"></span>
-            </button>
+            <NotificationBell />
               
             {/* Theme Toggle */}
             <div className="flex-shrink-0">

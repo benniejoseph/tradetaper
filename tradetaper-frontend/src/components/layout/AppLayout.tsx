@@ -9,8 +9,13 @@ import Sidebar from './Sidebar';
 // import Header from './Header'; // This is the existing mobile-only header, currently commented out
 import ContentHeader from './ContentHeader'; // Import the new ContentHeader
 import ProtectedRoute from '../auth/ProtectedRoute';
-// import { useWebSocket } from '@/hooks/useWebSocket'; // Removed - hook no longer exists
+import { useWebSocket } from '@/hooks/useWebSocket';
 import { Toaster } from 'react-hot-toast';
+import {
+  addNotification,
+  notificationRead,
+  allNotificationsRead,
+} from '@/store/features/notificationsSlice';
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -23,7 +28,12 @@ export default function AppLayout({ children }: AppLayoutProps) {
   const [isMobile, setIsMobile] = useState(false);
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
 
-  // WebSocket connection removed - hook no longer exists
+  // Setup WebSocket connection for real-time notifications
+  const { isConnected, subscribe } = useWebSocket({
+    autoConnect: isAuthenticated,
+    onConnect: () => console.log('📡 WebSocket connected for notifications'),
+    onDisconnect: () => console.log('📡 WebSocket disconnected'),
+  });
 
   // Fetch MT5 accounts and regular accounts when authenticated
   useEffect(() => {
@@ -32,6 +42,32 @@ export default function AppLayout({ children }: AppLayoutProps) {
       dispatch(fetchAccounts());
     }
   }, [dispatch, isAuthenticated]);
+
+  // Subscribe to WebSocket notification events
+  useEffect(() => {
+    if (!isConnected || !isAuthenticated) return;
+
+    const unsubscribeNew = subscribe('notification:new', (data: any) => {
+      console.log('🔔 New notification received:', data);
+      dispatch(addNotification(data));
+    });
+
+    const unsubscribeRead = subscribe('notification:read', (data: any) => {
+      console.log('✅ Notification marked as read:', data);
+      dispatch(notificationRead(data));
+    });
+
+    const unsubscribeReadAll = subscribe('notification:readAll', () => {
+      console.log('✅ All notifications marked as read');
+      dispatch(allNotificationsRead());
+    });
+
+    return () => {
+      unsubscribeNew();
+      unsubscribeRead();
+      unsubscribeReadAll();
+    };
+  }, [isConnected, isAuthenticated, subscribe, dispatch]);
 
   // Handle responsive behavior
   useEffect(() => {

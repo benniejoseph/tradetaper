@@ -6,6 +6,8 @@ import {
   BadRequestException,
   NotFoundException,
   InternalServerErrorException,
+  Inject,
+  forwardRef,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -25,6 +27,8 @@ import { Note } from '../../notes/entities/note.entity';
 import { Strategy } from '../../strategies/entities/strategy.entity';
 import { RazorpayService } from './razorpay.service';
 import { Between } from 'typeorm';
+import { NotificationsService } from '../../notifications/notifications.service';
+import { NotificationType } from '../../notifications/entities/notification.entity';
 
 export interface PricingPlan {
   id: string; // 'free' | 'essential' | 'premium'
@@ -92,6 +96,8 @@ export class SubscriptionService {
     private strategyRepository: Repository<Strategy>,
     private configService: ConfigService,
     private razorpayService: RazorpayService,
+    @Inject(forwardRef(() => NotificationsService))
+    private readonly notificationsService: NotificationsService,
   ) {
     // Initialize pricing plans
     this.pricingPlans = [
@@ -612,6 +618,25 @@ export class SubscriptionService {
           subscription,
           subscriptionEntity,
         );
+
+        // Send SUBSCRIPTION_RENEWED notification
+        try {
+          await this.notificationsService.send({
+            userId: subscription.userId,
+            type: NotificationType.SUBSCRIPTION_RENEWED,
+            title: 'Subscription Renewed',
+            message: `Your ${subscription.plan} subscription has been successfully renewed`,
+            data: {
+              subscriptionId: subscription.id,
+              plan: subscription.plan,
+              tier: subscription.tier,
+              currentPeriodEnd: subscription.currentPeriodEnd,
+              razorpaySubscriptionId: subscription.razorpaySubscriptionId,
+            },
+          });
+        } catch (error) {
+          this.logger.error(`Failed to send subscription renewed notification: ${error.message}`);
+        }
         break;
 
       case 'subscription.cancelled':
@@ -683,5 +708,52 @@ export class SubscriptionService {
     subscription.razorpaySubscriptionId = entity.id;
     subscription.status = SubscriptionStatus.ACTIVE;
     subscription.cancelAtPeriodEnd = false; // Reset cancellation if renewed
+  }
+
+  /**
+   * Send expiry warnings for subscriptions expiring in 7 days
+   * Called by cron job daily
+   */
+  async sendExpiryWarnings(): Promise<number> {
+    const sevenDaysFromNow = new Date();
+    sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7);
+
+    const oneDayFromNow = new Date();
+    oneDayFromNow.setDate(oneDayFromNow.getDate() + 8);
+
+    const expiringSubscriptions = await this.subscriptionRepository
+      .createQueryBuilder('subscription')
+      .where('subscription.currentPeriodEnd BETWEEN :start AND :end', {
+        start: sevenDaysFromNow,
+        end: oneDayFromNow,
+      })
+      .andWhere('subscription.status = :status', { status: SubscriptionStatus.ACTIVE })
+      .andWhere('subscription.cancelAtPeriodEnd = :cancel', { cancel: true })
+      .getMany();
+
+    this.logger.log(`Found ${expiringSubscriptions.length} subscriptions expiring in 7 days`);
+
+    for (const subscription of expiringSubscriptions) {
+      try {
+        await this.notificationsService.send({
+          userId: subscription.userId,
+          type: NotificationType.SUBSCRIPTION_EXPIRY,
+          title: 'Subscription Expiring Soon',
+          message: `Your ${subscription.plan} subscription will expire in 7 days on ${subscription.currentPeriodEnd.toLocaleDateString()}`,
+          priority: 'high',
+          data: {
+            subscriptionId: subscription.id,
+            plan: subscription.plan,
+            tier: subscription.tier,
+            expiryDate: subscription.currentPeriodEnd,
+          },
+          actionUrl: '/billing',
+        });
+      } catch (error) {
+        this.logger.error(`Failed to send expiry warning for subscription ${subscription.id}: ${error.message}`);
+      }
+    }
+
+    return expiringSubscriptions.length;
   }
 }

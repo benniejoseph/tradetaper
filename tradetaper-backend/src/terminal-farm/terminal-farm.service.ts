@@ -29,6 +29,8 @@ import { TradeStatus, TradeDirection, AssetType } from '../types/enums';
 import { TerminalCommandsQueue } from './queue/terminal-commands.queue';
 import { TerminalFailedTradesQueue } from './queue/terminal-failed-trades.queue';
 import { TerminalTokenService } from './terminal-token.service';
+import { NotificationsService } from '../notifications/notifications.service';
+import { NotificationType } from '../notifications/entities/notification.entity';
 
 @Injectable()
 export class TerminalFarmService {
@@ -47,6 +49,8 @@ export class TerminalFarmService {
     private readonly terminalCommandsQueue: TerminalCommandsQueue,
     private readonly terminalFailedTradesQueue: TerminalFailedTradesQueue,
     private readonly terminalTokenService: TerminalTokenService,
+    @Inject(forwardRef(() => NotificationsService))
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   /**
@@ -520,6 +524,26 @@ export class TerminalFarmService {
           trade,
           error.message,
         );
+
+        // Send MT5_SYNC_ERROR notification
+        try {
+          await this.notificationsService.send({
+            userId: terminal.account.userId,
+            type: NotificationType.MT5_SYNC_ERROR,
+            title: 'MT5 Sync Error',
+            message: `Failed to sync trade ${trade.ticket}: ${error.message}`,
+            priority: 'high',
+            data: {
+              terminalId: terminal.id,
+              accountId: terminal.accountId,
+              tradeTicket: trade.ticket,
+              symbol: trade.symbol,
+              error: error.message,
+            },
+          });
+        } catch (notifError) {
+          this.logger.error(`Failed to send MT5 sync error notification: ${notifError.message}`);
+        }
       }
     }
 
@@ -530,6 +554,27 @@ export class TerminalFarmService {
     this.logger.log(
       `Trade sync complete: ${imported} imported, ${skipped} skipped, ${failed} failed`,
     );
+
+    // Send MT5_SYNC_COMPLETE notification
+    try {
+      await this.notificationsService.send({
+        userId: terminal.account.userId,
+        type: NotificationType.MT5_SYNC_COMPLETE,
+        title: 'MT5 Sync Complete',
+        message: `Successfully synced ${imported} trades from MT5${imported > 0 ? `. ${skipped} skipped, ${failed} failed.` : ''}`,
+        data: {
+          terminalId: terminal.id,
+          accountId: terminal.accountId,
+          accountName: terminal.account.accountName,
+          imported,
+          skipped,
+          failed,
+          syncTime: new Date().toISOString(),
+        },
+      });
+    } catch (error) {
+      this.logger.error(`Failed to send MT5 sync complete notification: ${error.message}`);
+    }
 
     return { imported, skipped, failed };
   }
