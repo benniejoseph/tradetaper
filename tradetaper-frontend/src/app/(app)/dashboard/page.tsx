@@ -91,7 +91,9 @@ export default function DashboardPage() {
 
   // Fetch Advanced Analytics
   useEffect(() => {
-    if (isAuthenticated && token) {
+    // Temporarily disabled - endpoint exists but needs proper integration
+    // TODO: Re-enable once analytics integration is complete
+    if (false && isAuthenticated && token) {
       fetch(`${process.env.NEXT_PUBLIC_API_URL}/analytics/advanced${selectedAccountId ? `?accountId=${selectedAccountId}` : ''}`, {
         headers: { Authorization: `Bearer ${token}` }
       })
