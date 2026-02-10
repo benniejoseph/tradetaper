@@ -18,6 +18,33 @@ async function bootstrap() {
 
     const app = await NestFactory.create(AppModule);
 
+    // CORS configuration - MUST BE FIRST (before other middleware)
+    const corsOptions: CorsOptions = {
+      origin: [
+        'http://localhost:3000',
+        'http://localhost:3001',
+        'http://localhost:3002',
+        'https://tradetaper.com',
+        'https://www.tradetaper.com',
+        'https://api.tradetaper.com',
+        'https://tradetaper-frontend.vercel.app',
+        'https://tradetaper-admin.vercel.app',
+        ...(process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',') : []),
+        process.env.FRONTEND_URL || 'https://tradetaper.com',
+      ],
+      methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+      allowedHeaders: [
+        'Content-Type',
+        'Authorization',
+        'X-CSRF-Token',
+        'CSRF-Token',
+        'x-csrf-token',
+      ],
+      credentials: true,
+    };
+    app.enableCors(corsOptions);
+    console.log('✅ CORS enabled with options:', JSON.stringify(corsOptions.origin));
+
     // SECURITY: Use JWT-authenticated WebSocket adapter
     app.useWebSocketAdapter(new WsJwtAdapter(app));
     console.log('🔐 WebSocket JWT authentication enabled');
@@ -55,8 +82,8 @@ async function bootstrap() {
         cookieName: '__Host-csrf',
         cookieOptions: {
           httpOnly: true,
-          sameSite: 'strict',
-          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'none', // Allow cross-site (subdomains/vercel)
+          secure: true, // Must be true for sameSite: 'none'
           path: '/',
         },
         size: 64,
@@ -82,33 +109,6 @@ async function bootstrap() {
 
     const port = process.env.PORT || 3000;
     console.log(`🔧 Using port: ${port}`);
-
-    // CORS configuration
-    const corsOptions: CorsOptions = {
-      origin: [
-        'http://localhost:3000',
-        'http://localhost:3001',
-        'http://localhost:3002',
-        'https://tradetaper-frontend-benniejosephs-projects.vercel.app',
-        'https://tradetaper-frontend.vercel.app',
-        'https://tradetaper-admin.vercel.app',
-        'https://api.tradetaper.com',
-        'https://tradetaper.com',
-        'https://www.tradetaper.com',
-        'https://api.tradetaper.com',
-        process.env.FRONTEND_URL || 'https://tradetaper.com', // Provide a sensible default
-      ],
-      methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-      allowedHeaders: [
-        'Content-Type',
-        'Authorization',
-        'X-CSRF-Token',
-        'CSRF-Token',
-      ],
-      credentials: true,
-    };
-
-    app.enableCors(corsOptions);
 
     // Set global prefix
     app.setGlobalPrefix('api/v1');
