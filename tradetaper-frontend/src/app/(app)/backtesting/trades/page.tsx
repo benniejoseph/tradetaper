@@ -36,18 +36,32 @@ function BacktestTradesContent() {
   const [timeframeFilter, setTimeframeFilter] = useState<string>('');
   const [outcomeFilter, setOutcomeFilter] = useState<string>('');
 
+  // Pagination
+  const [page, setPage] = useState<number>(1);
+  const [limit, setLimit] = useState<number>(25);
+
   // React Query hooks
   const {
-    data: trades = [],
+    data: tradesResult,
     isLoading: tradesLoading,
     error: tradesError,
-  } = useBacktestTrades({
-    strategyId: selectedStrategyId,
-    symbol: symbolFilter || undefined,
-    session: sessionFilter || undefined,
-    timeframe: timeframeFilter || undefined,
-    outcome: outcomeFilter || undefined,
-  });
+  } = useBacktestTrades(
+    {
+      strategyId: selectedStrategyId,
+      symbol: symbolFilter || undefined,
+      session: sessionFilter || undefined,
+      timeframe: timeframeFilter || undefined,
+      outcome: outcomeFilter || undefined,
+    },
+    {
+      page,
+      limit,
+    },
+  );
+
+  const trades = tradesResult?.data || [];
+  const total = tradesResult?.total || 0;
+  const totalPages = tradesResult?.totalPages || 0;
 
   const deleteTradeMutation = useDeleteBacktestTrade();
 
@@ -293,33 +307,84 @@ function BacktestTradesContent() {
         </div>
       )}
 
+      {/* Pagination Controls */}
+      {total > 0 && (
+        <div className="flex items-center justify-between bg-white dark:bg-black rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+          {/* Showing X-Y of Z */}
+          <div className="text-sm text-gray-600 dark:text-gray-400">
+            Showing <span className="font-medium text-gray-900 dark:text-white">{((page - 1) * limit) + 1}</span> to{' '}
+            <span className="font-medium text-gray-900 dark:text-white">{Math.min(page * limit, total)}</span> of{' '}
+            <span className="font-medium text-gray-900 dark:text-white">{total}</span> trades
+          </div>
+
+          {/* Page Size Selector */}
+          <div className="flex items-center gap-2">
+            <label className="text-sm text-gray-600 dark:text-gray-400">Per page:</label>
+            <select
+              value={limit}
+              onChange={(e) => {
+                setLimit(Number(e.target.value));
+                setPage(1); // Reset to first page when changing limit
+              }}
+              className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-black text-gray-900 dark:text-white text-sm"
+            >
+              <option value="10">10</option>
+              <option value="25">25</option>
+              <option value="50">50</option>
+              <option value="100">100</option>
+            </select>
+          </div>
+
+          {/* Previous/Next Buttons */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setPage(p => Math.max(1, p - 1))}
+              disabled={page === 1}
+              className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-black hover:bg-gray-50 dark:hover:bg-gray-900 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              Previous
+            </button>
+            <span className="text-sm text-gray-600 dark:text-gray-400">
+              Page {page} of {totalPages}
+            </span>
+            <button
+              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+              disabled={page === totalPages}
+              className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-black hover:bg-gray-50 dark:hover:bg-gray-900 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Stats Summary */}
       {trades.length > 0 && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
           <div className="bg-white dark:bg-black p-4 rounded-lg border border-gray-200 dark:border-gray-700">
-            <div className="text-2xl font-bold text-gray-900 dark:text-white">{trades.length}</div>
-            <div className="text-sm text-gray-500">Filtered Trades</div>
+            <div className="text-2xl font-bold text-gray-900 dark:text-white">{total}</div>
+            <div className="text-sm text-gray-500">Total Trades</div>
           </div>
           <div className="bg-white dark:bg-black p-4 rounded-lg border border-gray-200 dark:border-gray-700">
             <div className="text-2xl font-bold text-green-600">
               {trades.filter(t => t.outcome === 'win').length}
             </div>
-            <div className="text-sm text-gray-500">Wins</div>
+            <div className="text-sm text-gray-500">Wins (Page)</div>
           </div>
           <div className="bg-white dark:bg-black p-4 rounded-lg border border-gray-200 dark:border-gray-700">
             <div className="text-2xl font-bold text-red-600">
               {trades.filter(t => t.outcome === 'loss').length}
             </div>
-            <div className="text-sm text-gray-500">Losses</div>
+            <div className="text-sm text-gray-500">Losses (Page)</div>
           </div>
           <div className="bg-white dark:bg-black p-4 rounded-lg border border-gray-200 dark:border-gray-700">
             <div className={`text-2xl font-bold ${
-              trades.reduce((sum, t) => sum + (Number(t.pnlDollars) || 0), 0) >= 0 
+              trades.reduce((sum, t) => sum + (Number(t.pnlDollars) || 0), 0) >= 0
                 ? 'text-green-600' : 'text-red-600'
             }`}>
               ${trades.reduce((sum, t) => sum + (Number(t.pnlDollars) || 0), 0).toFixed(2)}
             </div>
-            <div className="text-sm text-gray-500">Total P&L</div>
+            <div className="text-sm text-gray-500">Page P&L</div>
           </div>
         </div>
       )}

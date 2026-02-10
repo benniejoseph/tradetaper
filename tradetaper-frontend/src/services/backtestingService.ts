@@ -56,30 +56,55 @@ export const backtestingService = {
     return transformTrade(trade);
   },
 
-  async getTrades(filters?: {
-    strategyId?: string;
-    symbol?: string;
-    session?: string;
-    timeframe?: string;
-    outcome?: string;
-    startDate?: string;
-    endDate?: string;
-  }): Promise<BacktestTrade[]> {
+  async getTrades(
+    filters?: {
+      strategyId?: string;
+      symbol?: string;
+      session?: string;
+      timeframe?: string;
+      outcome?: string;
+      startDate?: string;
+      endDate?: string;
+    },
+    pagination?: {
+      page?: number;
+      limit?: number;
+    },
+  ): Promise<{
+    data: BacktestTrade[];
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  }> {
     const params = new URLSearchParams();
     if (filters) {
       Object.entries(filters).forEach(([key, value]) => {
         if (value) params.append(key, value);
       });
     }
-    
+    if (pagination?.page) {
+      params.append('page', pagination.page.toString());
+    }
+    if (pagination?.limit) {
+      params.append('limit', pagination.limit.toString());
+    }
+
     const url = `${API_URL}/api/v1/backtesting/trades${params.toString() ? `?${params}` : ''}`;
     const response = await fetch(url, {
       headers: getAuthHeaders(),
       credentials: 'include', // ✅ Send cookies (JWT)
     });
     if (!response.ok) throw new Error('Failed to fetch backtest trades');
-    const trades = await response.json();
-    return trades.map(transformTrade);
+    const result = await response.json();
+
+    return {
+      data: result.data.map(transformTrade),
+      total: result.total,
+      page: result.page,
+      limit: result.limit,
+      totalPages: result.totalPages,
+    };
   },
 
   async getTrade(id: string): Promise<BacktestTrade> {

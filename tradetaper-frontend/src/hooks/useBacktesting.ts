@@ -10,7 +10,8 @@ import {
 // Query keys
 export const backtestingKeys = {
   all: ['backtesting'] as const,
-  trades: (filters?: any) => [...backtestingKeys.all, 'trades', filters] as const,
+  trades: (filters?: any, pagination?: any) =>
+    [...backtestingKeys.all, 'trades', filters, pagination] as const,
   trade: (id: string) => [...backtestingKeys.all, 'trade', id] as const,
   stats: (strategyId?: string) =>
     strategyId
@@ -23,21 +24,27 @@ export const backtestingKeys = {
 // ============ QUERY HOOKS ============
 
 /**
- * Hook to fetch backtest trades with filters
+ * Hook to fetch backtest trades with filters and pagination
  * Cache: 5 minutes
  */
-export function useBacktestTrades(filters?: {
-  strategyId?: string;
-  symbol?: string;
-  session?: string;
-  timeframe?: string;
-  outcome?: string;
-  startDate?: string;
-  endDate?: string;
-}) {
+export function useBacktestTrades(
+  filters?: {
+    strategyId?: string;
+    symbol?: string;
+    session?: string;
+    timeframe?: string;
+    outcome?: string;
+    startDate?: string;
+    endDate?: string;
+  },
+  pagination?: {
+    page?: number;
+    limit?: number;
+  },
+) {
   return useQuery({
-    queryKey: backtestingKeys.trades(filters),
-    queryFn: () => backtestingService.getTrades(filters),
+    queryKey: backtestingKeys.trades(filters, pagination),
+    queryFn: () => backtestingService.getTrades(filters, pagination),
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 }

@@ -253,16 +253,13 @@ backtestingKeys = {
 
 ---
 
-### Task #39: Pagination ⏳
-**Status:** Pending
-**Estimated Time:** 3-4 hours
+### Task #39: Pagination ✅
+**Status:** Complete
+**Implementation Time:** 2 hours
 
-**Backend Requirements:**
-- [ ] Add pagination params to `findAll()`:
-  ```typescript
-  findAll(userId, filters, options?: { page?: number; limit?: number })
-  ```
-- [ ] Return paginated response:
+**Backend Implementation:**
+- ✅ Updated `findAll()` to accept pagination params (page, limit)
+- ✅ Return paginated response with metadata:
   ```typescript
   {
     data: BacktestTrade[],
@@ -272,13 +269,48 @@ backtestingKeys = {
     totalPages: number
   }
   ```
-- [ ] Default limit: 25 trades per page
+- ✅ Default limit: 25 trades per page
+- ✅ Updated controller to accept page/limit query params
+- ✅ Fixed CSV export to get all trades (limit: 10000)
 
-**Frontend Requirements:**
-- [ ] Add pagination controls to trades page
-- [ ] Update URL with page param: `/backtesting/trades?page=2`
-- [ ] Show "Showing 1-25 of 150 trades"
-- [ ] Add page size selector: 25, 50, 100
+**Frontend Implementation:**
+- ✅ Updated backtestingService.getTrades() to handle pagination
+- ✅ Updated React Query hook to support pagination params
+- ✅ Added pagination state (page, limit) to trades page
+- ✅ Pagination controls with Previous/Next buttons
+- ✅ Display "Showing X-Y of Z trades"
+- ✅ Page size selector (10, 25, 50, 100)
+- ✅ Reset to page 1 when changing filters or page size
+
+**Pagination Features:**
+- Previous/Next navigation buttons
+- Page number indicator (Page X of Y)
+- Page size selector (10, 25, 50, 100 per page)
+- "Showing X-Y of Z trades" text
+- Disabled state for first/last page buttons
+- Automatic reset to page 1 on filter changes
+
+**UI Layout:**
+- Pagination controls above stats summary
+- Responsive design (mobile-friendly)
+- Dark mode support
+- Disabled button states
+
+**Files Modified:**
+Backend:
+- `tradetaper-backend/src/backtesting/backtesting.service.ts`
+- `tradetaper-backend/src/backtesting/backtesting.controller.ts`
+
+Frontend:
+- `tradetaper-frontend/src/services/backtestingService.ts`
+- `tradetaper-frontend/src/hooks/useBacktesting.ts`
+- `tradetaper-frontend/src/app/(app)/backtesting/trades/page.tsx`
+
+**Cache Benefits:**
+- React Query caches each page separately
+- Fast navigation between previously visited pages
+- 5-minute cache per page
+- Background refetch for stale data
 
 ---
 

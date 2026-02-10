@@ -49,16 +49,25 @@ export class BacktestingController {
     @Query('outcome') outcome?: string,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
   ) {
-    return this.backtestingService.findAll(req.user.id, {
-      strategyId,
-      symbol,
-      session,
-      timeframe,
-      outcome,
-      startDate,
-      endDate,
-    });
+    return this.backtestingService.findAll(
+      req.user.id,
+      {
+        strategyId,
+        symbol,
+        session,
+        timeframe,
+        outcome,
+        startDate,
+        endDate,
+      },
+      {
+        page: page ? parseInt(page, 10) : undefined,
+        limit: limit ? parseInt(limit, 10) : undefined,
+      },
+    );
   }
 
   @Get('trades/:id')

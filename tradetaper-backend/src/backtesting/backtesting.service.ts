@@ -103,7 +103,21 @@ export class BacktestingService {
       startDate?: string;
       endDate?: string;
     },
-  ): Promise<BacktestTrade[]> {
+    pagination?: {
+      page?: number;
+      limit?: number;
+    },
+  ): Promise<{
+    data: BacktestTrade[];
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  }> {
+    const page = pagination?.page || 1;
+    const limit = pagination?.limit || 25;
+    const skip = (page - 1) * limit;
+
     const query = this.backtestTradeRepository
       .createQueryBuilder('bt')
       .where('bt.userId = :userId', { userId })
@@ -138,7 +152,21 @@ export class BacktestingService {
       query.andWhere('bt.tradeDate <= :endDate', { endDate: filters.endDate });
     }
 
-    return await query.getMany();
+    // Get total count before pagination
+    const total = await query.getCount();
+
+    // Apply pagination
+    const data = await query.skip(skip).take(limit).getMany();
+
+    const totalPages = Math.ceil(total / limit);
+
+    return {
+      data,
+      total,
+      page,
+      limit,
+      totalPages,
+    };
   }
 
   async findOne(id: string, userId: string): Promise<BacktestTrade> {
@@ -866,8 +894,9 @@ export class BacktestingService {
       endDate?: string;
     },
   ): Promise<string> {
-    // Get trades with filters
-    const trades = await this.findAll(userId, filters);
+    // Get ALL trades without pagination for export
+    const result = await this.findAll(userId, filters, { limit: 10000 });
+    const trades = result.data;
 
     // Define CSV headers
     const headers = [
