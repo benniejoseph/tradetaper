@@ -51,15 +51,11 @@ export default function HeroGlobe() {
         <ambientLight color={globeConfig.ambientLight} intensity={0.6} />
         <pointLight color={globeConfig.pointLight} position={[-200, 500, 200]} intensity={0.8} />
         {mounted && (
-           <group position={[0, 0, 0]}> {/* Centered for debugging */}
+           <group position={[0, -250, 0]}> {/* Position at bottom of screen */}
              <GlobeContent globeConfig={globeConfig} />
            </group>
         )}
         <OrbitControls enableZoom={false} enablePan={false} enableRotate={false} />
-        <mesh position={[-200, 0, 0]}>
-          <boxGeometry args={[100, 100, 100]} />
-          <meshBasicMaterial color="yellow" wireframe />
-        </mesh>
       </Canvas>
     </div>
   );
