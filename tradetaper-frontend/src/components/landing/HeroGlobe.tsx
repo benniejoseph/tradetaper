@@ -51,7 +51,7 @@ export default function HeroGlobe() {
         <ambientLight color={globeConfig.ambientLight} intensity={0.6} />
         <pointLight color={globeConfig.pointLight} position={[-200, 500, 200]} intensity={0.8} />
         {mounted && (
-           <group position={[0, -250, 0]}> {/* Position at bottom of screen */}
+           <group position={[0, 0, 0]}> {/* Centered for debugging */}
              <GlobeContent globeConfig={globeConfig} />
            </group>
         )}
