@@ -95,8 +95,16 @@ export default function DashboardPage() {
       fetch(`${process.env.NEXT_PUBLIC_API_URL}/analytics/advanced${selectedAccountId ? `?accountId=${selectedAccountId}` : ''}`, {
         headers: { Authorization: `Bearer ${token}` }
       })
-      .then(res => res.json())
-      .then(data => setAnalyticsData(data))
+      .then(res => {
+        if (!res.ok) {
+          console.warn('Analytics endpoint returned error:', res.status);
+          return null;
+        }
+        return res.json();
+      })
+      .then(data => {
+        if (data) setAnalyticsData(data);
+      })
       .catch(err => console.error("Failed to fetch analytics", err));
     }
   }, [isAuthenticated, token, selectedAccountId]);

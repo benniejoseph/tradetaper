@@ -3,7 +3,15 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { io, Socket } from 'socket.io-client';
 
-const WEBSOCKET_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+// Derive WebSocket URL from API URL (remove /api/v1 suffix if present)
+const getWebSocketURL = () => {
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+  // Remove /api/v1 suffix and replace http with ws
+  const wsUrl = apiUrl.replace('/api/v1', '').replace('https://', 'wss://').replace('http://', 'ws://');
+  return wsUrl;
+};
+
+const WEBSOCKET_URL = getWebSocketURL();
 
 interface UseWebSocketOptions {
   autoConnect?: boolean;
