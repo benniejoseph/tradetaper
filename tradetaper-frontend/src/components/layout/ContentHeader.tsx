@@ -70,9 +70,9 @@ function ContentHeader({ toggleSidebar, isMobile, isSidebarExpanded }: ContentHe
   return (
     <header className="sticky top-0 z-30 bg-white/80 dark:bg-black/80 backdrop-blur-xl border-b border-gray-200/50 dark:border-gray-700/50">
       <div className="px-4 sm:px-6 py-4">
-        <div className="flex items-center justify-between gap-2 max-w-full overflow-hidden">
+        <div className="flex items-center justify-between gap-2 max-w-full">
           {/* Left side - Menu button, title, and account selector */}
-          <div className={`flex items-center flex-shrink-0 ${isMobile ? 'space-x-2' : !isSidebarExpanded ? 'space-x-4' : 'space-x-6'} min-w-0`}>
+          <div className={`flex items-center flex-shrink-0 ${isMobile ? 'space-x-2' : !isSidebarExpanded ? 'space-x-4' : 'space-x-6'} min-w-0 overflow-hidden`}>
             {/* Mobile hamburger menu - only show on mobile/tablet */}
             {isMobile && (
               <button 
