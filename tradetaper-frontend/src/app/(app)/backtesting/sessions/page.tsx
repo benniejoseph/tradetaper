@@ -57,8 +57,19 @@ export default function ReplaySessionsPage() {
 
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || '/api/v1';
+
+      // Get CSRF token
+      const csrfResponse = await fetch(`${apiUrl}/csrf-token`, {
+        credentials: 'include',
+      });
+      const { csrfToken } = await csrfResponse.json();
+
+      // Delete session with CSRF token
       const response = await fetch(`${apiUrl}/backtesting/sessions/${sessionId}`, {
         method: 'DELETE',
+        headers: {
+          'X-CSRF-Token': csrfToken,
+        },
         credentials: 'include',
       });
 

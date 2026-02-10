@@ -47,12 +47,20 @@ export default function SessionConfigModal({ isOpen, onClose }: SessionConfigMod
     setError(null);
 
     try {
-      // Create a new replay session
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || '/api/v1';
+
+      // Step 1: Get CSRF token
+      const csrfResponse = await fetch(`${apiUrl}/csrf-token`, {
+        credentials: 'include',
+      });
+      const { csrfToken } = await csrfResponse.json();
+
+      // Step 2: Create a new replay session with CSRF token
       const response = await fetch(`${apiUrl}/backtesting/sessions`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'X-CSRF-Token': csrfToken,
         },
         credentials: 'include',
         body: JSON.stringify({
