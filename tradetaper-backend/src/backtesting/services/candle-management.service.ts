@@ -3,7 +3,6 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between } from 'typeorm';
 import { MarketCandle } from '../entities/market-candle.entity';
 import { YahooFinanceService } from '../../integrations/yahoo-finance/yahoo-finance.service';
-import { UTCTimestamp } from 'lightweight-charts';
 
 @Injectable()
 export class CandleManagementService {
@@ -114,7 +113,7 @@ export class CandleManagementService {
 
     // Transform to lightweight-charts format
     return candles.map((c) => ({
-      time: Math.floor(c.timestamp.getTime() / 1000) as UTCTimestamp,
+      time: Math.floor(c.timestamp.getTime() / 1000),
       open: Number(c.open),
       high: Number(c.high),
       low: Number(c.low),
