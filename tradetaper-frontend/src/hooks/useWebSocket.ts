@@ -15,6 +15,7 @@ const WEBSOCKET_URL = getWebSocketURL();
 
 interface UseWebSocketOptions {
   autoConnect?: boolean;
+  namespace?: string;
   onConnect?: () => void;
   onDisconnect?: () => void;
   onError?: (error: Error) => void;
@@ -27,7 +28,7 @@ interface WebSocketState {
 }
 
 export function useWebSocket(options: UseWebSocketOptions = {}) {
-  const { autoConnect = true, onConnect, onDisconnect, onError } = options;
+  const { autoConnect = true, namespace, onConnect, onDisconnect, onError } = options;
   const [state, setState] = useState<WebSocketState>({
     isConnected: false,
     socket: null,
@@ -38,7 +39,10 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
   useEffect(() => {
     if (!autoConnect) return;
 
-    const socket = io(WEBSOCKET_URL, {
+    // Add namespace to URL if provided
+    const socketUrl = namespace ? `${WEBSOCKET_URL}${namespace}` : WEBSOCKET_URL;
+
+    const socket = io(socketUrl, {
       transports: ['websocket', 'polling'],
       reconnection: true,
       reconnectionAttempts: 5,
@@ -73,7 +77,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
       socket.disconnect();
       socketRef.current = null;
     };
-  }, [autoConnect, onConnect, onDisconnect, onError]);
+  }, [autoConnect, namespace, onConnect, onDisconnect, onError]);
 
   const emit = useCallback((event: string, data?: unknown) => {
     if (socketRef.current?.connected) {

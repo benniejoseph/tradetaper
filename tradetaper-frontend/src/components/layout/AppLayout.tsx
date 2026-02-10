@@ -31,6 +31,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
   // Setup WebSocket connection for real-time notifications
   const { isConnected, subscribe } = useWebSocket({
     autoConnect: isAuthenticated,
+    namespace: '/notifications',
     onConnect: () => console.log('📡 WebSocket connected for notifications'),
     onDisconnect: () => console.log('📡 WebSocket disconnected'),
   });
