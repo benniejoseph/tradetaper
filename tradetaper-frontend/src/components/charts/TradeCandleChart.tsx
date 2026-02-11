@@ -142,13 +142,35 @@ const TradeCandleChart: React.FC<TradeCandleChartProps> = ({
 
             // Transform data if needed (MT5 sends time as unix timestamp (seconds))
             // Lightweight charts expects seconds for UTCTimestamp
-            const formattedData = data.map((c: any) => ({
-                time: (typeof c.time === 'string' ? new Date(c.time).getTime() / 1000 : c.time) as UTCTimestamp,
-                open: Number(c.open),
-                high: Number(c.high),
-                low: Number(c.low),
-                close: Number(c.close),
-            }));
+            const formattedData = data
+              .filter((c: any) => c && c.time) // Filter out invalid candles
+              .map((c: any) => {
+                let timestamp: number;
+                
+                if (typeof c.time === 'string') {
+                  // If string, try to parse as date
+                  const date = new Date(c.time);
+                  if (isNaN(date.getTime())) {
+                    console.warn('Invalid date string in candle data:', c.time);
+                    return null;
+                  }
+                  timestamp = date.getTime() / 1000;
+                } else if (typeof c.time === 'number') {
+                  timestamp = c.time;
+                } else {
+                  console.warn('Invalid time format in candle data:', c.time);
+                  return null;
+                }
+                
+                return {
+                  time: timestamp as UTCTimestamp,
+                  open: Number(c.open),
+                  high: Number(c.high),
+                  low: Number(c.low),
+                  close: Number(c.close),
+                };
+              })
+              .filter((c): c is NonNullable<typeof c> => c !== null); // Remove nulls from failed conversions
 
             // Sort by time just in case
             formattedData.sort((a, b) => (a.time as number) - (b.time as number));
