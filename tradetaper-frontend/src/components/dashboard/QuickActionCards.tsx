@@ -42,7 +42,7 @@ export default function QuickActionCards() {
         </div>
       </div>
 
-      {/* Analytics Card */}
+      {/* Market Intelligence Card */}
       <div 
         className="relative bg-gradient-to-br from-emerald-700 to-emerald-800 hover:from-emerald-800 hover:to-emerald-900 text-white rounded-xl p-4 overflow-hidden cursor-pointer transition-all duration-200 hover:scale-[1.01] shadow-md hover:shadow-lg"
         onClick={() => window.location.href = '/analytics'}
@@ -53,8 +53,8 @@ export default function QuickActionCards() {
                   <FaChartLine className="w-4 h-4" />
                 </div>
                 <div>
-                    <div className="text-base font-semibold">Analytics</div>
-                    <div className="text-xs opacity-90 text-emerald-100">Deep dive insights</div>
+                    <div className="text-base font-semibold">Market Intelligence</div>
+                    <div className="text-xs opacity-90 text-emerald-100">Strategic insights</div>
                 </div>
             </div>
         </div>
