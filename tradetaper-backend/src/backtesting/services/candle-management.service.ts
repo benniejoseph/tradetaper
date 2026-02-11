@@ -95,6 +95,7 @@ export class CandleManagementService {
   /**
    * Get candles from database (cache)
    * Returns in lightweight-charts format
+   * Automatically fetches from Yahoo Finance if cache is empty
    */
   async getCandles(
     symbol: string,
@@ -102,7 +103,7 @@ export class CandleManagementService {
     startDate: Date,
     endDate: Date,
   ): Promise<any[]> {
-    const candles = await this.marketCandleRepo.find({
+    let candles = await this.marketCandleRepo.find({
       where: {
         symbol,
         timeframe,
@@ -110,6 +111,25 @@ export class CandleManagementService {
       },
       order: { timestamp: 'ASC' },
     });
+
+    // If cache is empty or insufficient, fetch from Yahoo Finance
+    const expectedCount = this.calculateExpectedCandles(
+      timeframe,
+      startDate,
+      endDate,
+    );
+    if (candles.length < expectedCount * 0.5) {
+      // Less than 50% of expected data
+      this.logger.log(
+        `Cache insufficient (${candles.length}/${expectedCount}), fetching from Yahoo Finance`,
+      );
+      candles = await this.fetchAndStoreCandles(
+        symbol,
+        timeframe,
+        startDate,
+        endDate,
+      );
+    }
 
     // Transform to lightweight-charts format
     return candles.map((c) => ({
