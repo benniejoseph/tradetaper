@@ -216,7 +216,7 @@ export default function ViewTradePage() {
         {/* Detailed Analysis Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
            
-           {/* Left Column: Analysis & Notes (8 cols) */}
+           {/* Left Column: Analysis & Context (8 cols) */}
            <div className="lg:col-span-8 space-y-6">
               
               {/* Analysis Card */}
@@ -230,8 +230,8 @@ export default function ViewTradePage() {
                           {trade.entryReason || <span className="text-zinc-400 italic">No entry analysis provided.</span>}
                        </div>
                     </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Setup & Notes removed from here to reduce clutter if needed, but keeping them as is */}
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                        <div>
                           <h4 className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2">Setup Details</h4>
                           <div className="bg-zinc-50 dark:bg-white/[0.02] p-4 rounded-xl border border-zinc-100 dark:border-white/5 text-zinc-800 dark:text-zinc-200 text-sm leading-relaxed whitespace-pre-wrap h-full">
@@ -274,13 +274,80 @@ export default function ViewTradePage() {
                  </div>
               </div>
 
+              {/* Context & Mindset - Moved Here, Side by Side */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                 
+                 {/* Market Context */}
+                 <div className="bg-white dark:bg-[#0A0A0A] border border-zinc-200 dark:border-white/5 rounded-2xl p-6 shadow-sm h-full">
+                    <SectionHeader title="Market Context" icon={<BarChart3 className="w-4 h-4" />} color="blue" />
+                    <div className="space-y-3">
+                       <DetailItem label="Session" value={trade.session} icon={<Clock className="w-4 h-4" />} />
+                       <DetailItem label="Timeframe" value={trade.timeframe} icon={<Clock className="w-4 h-4" />} />
+                       <DetailItem label="Market Condition" value={trade.marketCondition} icon={<TrendingUp className="w-4 h-4" />} />
+                       <DetailItem label="HTF Bias" value={trade.htfBias} icon={<Target className="w-4 h-4" />} />
+                    </div>
+                    {/* Tags */}
+                    {trade.tags && trade.tags.length > 0 && (
+                       <div className="mt-4 pt-4 border-t border-zinc-100 dark:border-white/5">
+                          <h4 className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2">Tags</h4>
+                          <div className="flex flex-wrap gap-2">
+                             {trade.tags.map((tag: any, i: number) => (
+                                <span key={i} className="px-2.5 py-1 bg-zinc-100 dark:bg-white/10 text-zinc-600 dark:text-zinc-300 rounded-lg text-xs font-semibold flex items-center gap-1">
+                                   <Tag className="w-3 h-3" />
+                                   {typeof tag === 'string' ? tag : tag.name}
+                                </span>
+                             ))}
+                          </div>
+                       </div>
+                    )}
+                 </div>
+
+                 {/* Mindset & Psychology */}
+                 <div className="bg-white dark:bg-[#0A0A0A] border border-zinc-200 dark:border-white/5 rounded-2xl p-6 shadow-sm h-full">
+                    <SectionHeader title="Mindset" icon={<Brain className="w-4 h-4" />} color="amber" />
+                    
+                    <div className="grid grid-cols-3 gap-2 mb-4">
+                       <div className="text-center p-2 bg-zinc-50 dark:bg-white/[0.02] rounded-lg">
+                          <span className="block text-[9px] uppercase text-zinc-400 font-bold mb-1">Alertness</span>
+                          <span className="font-black text-lg text-emerald-500">{trade.energyLevel || '-'}/5</span>
+                       </div>
+                       <div className="text-center p-2 bg-zinc-50 dark:bg-white/[0.02] rounded-lg">
+                          <span className="block text-[9px] uppercase text-zinc-400 font-bold mb-1">Focus</span>
+                          <span className="font-black text-lg text-blue-500">{trade.distractionLevel ? 6 - trade.distractionLevel : '-'}/5</span>
+                       </div>
+                       <div className="text-center p-2 bg-zinc-50 dark:bg-white/[0.02] rounded-lg">
+                          <span className="block text-[9px] uppercase text-zinc-400 font-bold mb-1">Conf.</span>
+                          <span className="font-black text-lg text-amber-500">{trade.confidenceLevel || '-'}/5</span>
+                       </div>
+                    </div>
+
+                    <div className="space-y-3">
+                       <DetailItem label="Before" value={trade.emotionBefore} icon={<Clock className="w-4 h-4" />} />
+                       <DetailItem label="During" value={trade.emotionDuring} icon={<Clock className="w-4 h-4" />} />
+                       <DetailItem label="After" value={trade.emotionAfter} icon={<Clock className="w-4 h-4" />} />
+                       <div className="pt-2 border-t border-zinc-100 dark:border-white/5">
+                           <div className="flex justify-between items-center p-2 bg-zinc-50 dark:bg-white/[0.02] rounded-xl border border-zinc-100 dark:border-white/5">
+                              <span className="text-xs font-bold text-zinc-500 uppercase">Followed Plan?</span>
+                              {trade.followedPlan !== undefined ? (
+                                   <span className={`flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs font-bold ${trade.followedPlan ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400' : 'bg-red-100 text-red-600 dark:bg-red-500/20 dark:text-red-400'}`}>
+                                      {trade.followedPlan ? <CheckCircle className="w-3.5 h-3.5" /> : <XCircle className="w-3.5 h-3.5" />}
+                                      {trade.followedPlan ? 'YES' : 'NO'}
+                                   </span>
+                              ) : <span className="text-sm">—</span>}
+                           </div>
+                       </div>
+                    </div>
+                 </div>
+
+              </div>
+
            </div>
 
            {/* Right Column: Details & Stats (4 cols) */}
            <div className="lg:col-span-4 space-y-6">
               
-              {/* Execution Details */}
-              <div className="bg-white dark:bg-[#0A0A0A] border border-zinc-200 dark:border-white/5 rounded-2xl p-6 shadow-sm">
+              {/* Execution Details - Only item remaining here */}
+              <div className="bg-white dark:bg-[#0A0A0A] border border-zinc-200 dark:border-white/5 rounded-2xl p-6 shadow-sm sticky top-6">
                  <SectionHeader title="Execution Details" icon={<Terminal className="w-4 h-4" />} color="zinc" />
                  <div className="space-y-3">
                     <DetailItem label="Account" value={trade.account?.name || trade.accountName} icon={<Layers className="w-4 h-4" />} />
@@ -302,69 +369,7 @@ export default function ViewTradePage() {
                     </div>
                  </div>
               </div>
-
-              {/* Market Context */}
-              <div className="bg-white dark:bg-[#0A0A0A] border border-zinc-200 dark:border-white/5 rounded-2xl p-6 shadow-sm">
-                 <SectionHeader title="Market Context" icon={<BarChart3 className="w-4 h-4" />} color="blue" />
-                 <div className="space-y-3">
-                    <DetailItem label="Session" value={trade.session} icon={<Clock className="w-4 h-4" />} />
-                    <DetailItem label="Timeframe" value={trade.timeframe} icon={<Clock className="w-4 h-4" />} />
-                    <DetailItem label="Market Condition" value={trade.marketCondition} icon={<TrendingUp className="w-4 h-4" />} />
-                    <DetailItem label="HTF Bias" value={trade.htfBias} icon={<Target className="w-4 h-4" />} />
-                 </div>
-                 {/* Tags */}
-                 {trade.tags && trade.tags.length > 0 && (
-                    <div className="mt-4 pt-4 border-t border-zinc-100 dark:border-white/5">
-                       <h4 className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2">Tags</h4>
-                       <div className="flex flex-wrap gap-2">
-                          {trade.tags.map((tag: any, i: number) => (
-                             <span key={i} className="px-2.5 py-1 bg-zinc-100 dark:bg-white/10 text-zinc-600 dark:text-zinc-300 rounded-lg text-xs font-semibold flex items-center gap-1">
-                                <Tag className="w-3 h-3" />
-                                {typeof tag === 'string' ? tag : tag.name}
-                             </span>
-                          ))}
-                       </div>
-                    </div>
-                 )}
-              </div>
-
-              {/* Psychology & Environment */}
-              <div className="bg-white dark:bg-[#0A0A0A] border border-zinc-200 dark:border-white/5 rounded-2xl p-6 shadow-sm">
-                 <SectionHeader title="Mindset" icon={<Brain className="w-4 h-4" />} color="amber" />
-                 
-                 <div className="grid grid-cols-3 gap-2 mb-4">
-                    <div className="text-center p-2 bg-zinc-50 dark:bg-white/[0.02] rounded-lg">
-                       <span className="block text-[9px] uppercase text-zinc-400 font-bold mb-1">Alertness</span>
-                       <span className="font-black text-lg text-emerald-500">{trade.energyLevel || '-'}/5</span>
-                    </div>
-                    <div className="text-center p-2 bg-zinc-50 dark:bg-white/[0.02] rounded-lg">
-                       <span className="block text-[9px] uppercase text-zinc-400 font-bold mb-1">Focus</span>
-                       <span className="font-black text-lg text-blue-500">{trade.distractionLevel ? 6 - trade.distractionLevel : '-'}/5</span>
-                    </div>
-                    <div className="text-center p-2 bg-zinc-50 dark:bg-white/[0.02] rounded-lg">
-                       <span className="block text-[9px] uppercase text-zinc-400 font-bold mb-1">Conf.</span>
-                       <span className="font-black text-lg text-amber-500">{trade.confidenceLevel || '-'}/5</span>
-                    </div>
-                 </div>
-
-                 <div className="space-y-3">
-                    <DetailItem label="Before" value={trade.emotionBefore} icon={<Clock className="w-4 h-4" />} />
-                    <DetailItem label="During" value={trade.emotionDuring} icon={<Clock className="w-4 h-4" />} />
-                    <DetailItem label="After" value={trade.emotionAfter} icon={<Clock className="w-4 h-4" />} />
-                    <div className="pt-2 border-t border-zinc-100 dark:border-white/5">
-                        <div className="flex justify-between items-center p-2 bg-zinc-50 dark:bg-white/[0.02] rounded-xl border border-zinc-100 dark:border-white/5">
-                           <span className="text-xs font-bold text-zinc-500 uppercase">Followed Plan?</span>
-                           {trade.followedPlan !== undefined ? (
-                                <span className={`flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs font-bold ${trade.followedPlan ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400' : 'bg-red-100 text-red-600 dark:bg-red-500/20 dark:text-red-400'}`}>
-                                   {trade.followedPlan ? <CheckCircle className="w-3.5 h-3.5" /> : <XCircle className="w-3.5 h-3.5" />}
-                                   {trade.followedPlan ? 'YES' : 'NO'}
-                                </span>
-                           ) : <span className="text-sm">—</span>}
-                        </div>
-                    </div>
-                 </div>
-              </div>
-
+              
            </div>
         </div>
 
