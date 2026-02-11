@@ -73,16 +73,43 @@ export default function BacktestSessionPage({ params }: { params: { id: string }
 
       const candles = await response.json();
 
-      // Transform to CandleData format
-      // For intraday timeframes (1m, 5m, etc.), use Unix timestamp (seconds)
-      // For daily+ timeframes, could use date strings, but timestamps work for both
-      const formattedCandles: CandleData[] = candles.map((c: any) => ({
-        time: c.time, // Unix timestamp in seconds (already in correct format from backend)
-        open: c.open,
-        high: c.high,
-        low: c.low,
-        close: c.close,
-      }));
+      console.log('Raw candles from backend:', candles);
+
+      if (!Array.isArray(candles)) {
+        throw new Error('Invalid candles data: not an array');
+      }
+
+      if (candles.length === 0) {
+        throw new Error('No candles returned from backend');
+      }
+
+      // Transform and validate candle data
+      const formattedCandles: CandleData[] = candles
+        .map((c: any) => {
+          // Validate required fields
+          if (!c.time || !c.open || !c.high || !c.low || !c.close) {
+            console.warn('Invalid candle data:', c);
+            return null;
+          }
+
+          return {
+            time: Number(c.time), // Ensure it's a number
+            open: Number(c.open),
+            high: Number(c.high),
+            low: Number(c.low),
+            close: Number(c.close),
+          };
+        })
+        .filter((c): c is CandleData => c !== null) // Remove invalid candles
+        .sort((a, b) => (a.time as number) - (b.time as number)); // Sort by time
+
+      console.log('Formatted candles:', formattedCandles.length, 'valid candles');
+      console.log('First candle:', formattedCandles[0]);
+      console.log('Last candle:', formattedCandles[formattedCandles.length - 1]);
+
+      if (formattedCandles.length === 0) {
+        throw new Error('No valid candles after filtering');
+      }
 
       setFullData(formattedCandles);
 

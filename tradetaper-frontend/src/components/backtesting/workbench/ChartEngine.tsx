@@ -71,7 +71,25 @@ const ChartEngine = forwardRef<ChartEngineRef, ChartEngineProps>((props, ref) =>
 
         if (props.data.length > 0) {
           console.log('Setting data:', props.data.length, 'candles');
-          candleSeries.setData(props.data);
+          console.log('Sample candle:', props.data[0]);
+
+          // Validate data before setting
+          const validData = props.data.filter(candle => {
+            if (!candle.time || candle.open == null || candle.high == null ||
+                candle.low == null || candle.close == null) {
+              console.warn('Invalid candle:', candle);
+              return false;
+            }
+            return true;
+          });
+
+          console.log('Valid candles:', validData.length);
+
+          if (validData.length > 0) {
+            candleSeries.setData(validData);
+          } else {
+            console.error('No valid candles to display');
+          }
         }
 
         // Markers Support
