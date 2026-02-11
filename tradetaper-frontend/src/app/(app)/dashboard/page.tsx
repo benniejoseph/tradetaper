@@ -451,7 +451,9 @@ export default function DashboardPage() {
 
 
         {/* AI Analysis Section */}
-        <AIInsightsCard />
+        <FeatureGate feature="aiAnalysis" blur={true} className="col-span-1 sm:col-span-2 lg:col-span-6">
+          <AIInsightsCard />
+        </FeatureGate>
 
         {/* Visual Analytics Row (Radar & Gauge) */}
         {analyticsData?.radarMetrics && (
