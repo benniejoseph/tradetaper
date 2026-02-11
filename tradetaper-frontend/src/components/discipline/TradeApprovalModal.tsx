@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useRouter } from 'next/navigation';
 import { AnimatedCard } from '../ui/AnimatedCard';
 import disciplineService, { 
   TradeApproval, 
@@ -10,6 +11,7 @@ import disciplineService, {
   ChecklistResponse 
 } from '@/services/disciplineService';
 import { strategiesService } from '@/services/strategiesService';
+import { tradesService } from '@/services/tradesService';
 import { Strategy } from '@/types/strategy';
 import { MT5Account } from '@/store/features/mt5AccountsSlice';
 
@@ -20,7 +22,7 @@ interface TradeApprovalModalProps {
   onApproved?: (approval: TradeApproval) => void;
 }
 
-type Step = 'select-strategy' | 'setup' | 'calculate' | 'unlocked';
+type Step = 'select-strategy' | 'setup' | 'calculate';
 
 export const TradeApprovalModal: React.FC<TradeApprovalModalProps> = ({
   isOpen,
@@ -45,9 +47,9 @@ export const TradeApprovalModal: React.FC<TradeApprovalModalProps> = ({
   const [riskPercent, setRiskPercent] = useState<number>(1);
   
   const [approval, setApproval] = useState<TradeApproval | null>(null);
-  const [countdown, setCountdown] = useState<number>(60);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
 
   // Load strategies
   useEffect(() => {
@@ -85,16 +87,6 @@ export const TradeApprovalModal: React.FC<TradeApprovalModalProps> = ({
     // setRiskPercent(strat.maxRiskPercent || 1); // Strategy model might need maxRiskPercent update
     setStep('setup');
   };
-
-  // Countdown timer when unlocked
-  useEffect(() => {
-    if (step === 'unlocked' && countdown > 0) {
-      const timer = setInterval(() => setCountdown((c) => c - 1), 1000);
-      return () => clearInterval(timer);
-    } else if (countdown === 0) {
-      onClose();
-    }
-  }, [step, countdown, onClose]);
 
   // Calculate lot size based on risk
   const calculateLotSize = () => {
@@ -148,26 +140,39 @@ export const TradeApprovalModal: React.FC<TradeApprovalModalProps> = ({
     }
   };
 
-  const handleApproveAndUnlock = async () => {
-    if (!approval) return;
+  const handleExecuteTrade = async () => {
+    if (!approval || !selectedAccountId || !selectedStrategy) return;
     setLoading(true);
     setError(null);
 
     const calculatedLot = calculateLotSize();
 
     try {
-      const dto: ApproveTradeDto = {
-        calculatedLotSize: calculatedLot,
+      const tradeDto = {
+        accountId: selectedAccountId,
+        strategyId: selectedStrategy.id,
+        symbol,
+        direction,
+        lotSize: calculatedLot,
+        entryPrice,
         stopLoss,
         takeProfit: takeProfit || undefined,
+        riskPercent,
+        checklistResponses: checklistItems,
       };
-      const updatedApproval = await disciplineService.approveAndUnlock(approval.id, dto);
-      setApproval(updatedApproval);
-      setCountdown(60);
-      setStep('unlocked');
-      onApproved?.(updatedApproval);
+      
+      const newTrade = await tradesService.createFromDiscipline(tradeDto);
+      
+      // Navigate to trade view
+      router.push(`/trades/${newTrade.id}`);
+      
+      // Close modal
+      resetAndClose();
+      
+      // Notify parent of success
+      onApproved?.(approval);
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to unlock trading');
+      setError(err.response?.data?.message || 'Failed to execute trade');
     } finally {
       setLoading(false);
     }
@@ -187,8 +192,7 @@ export const TradeApprovalModal: React.FC<TradeApprovalModalProps> = ({
   const steps = [
     { id: 'select-strategy', label: 'Strategy' },
     { id: 'setup', label: 'Setup' },
-    { id: 'calculate', label: 'Risk' },
-    { id: 'unlocked', label: 'Unlock' },
+    { id: 'calculate', label: 'Execute' },
   ];
 
   return (
@@ -446,68 +450,12 @@ export const TradeApprovalModal: React.FC<TradeApprovalModalProps> = ({
                   >Back</button>
                   <button
                     disabled={!entryPrice || !stopLoss || loading}
-                    onClick={handleApproveAndUnlock}
+                    onClick={handleExecuteTrade}
                     className="flex-[2] py-4 rounded-2xl bg-emerald-500 text-white font-black uppercase tracking-widest text-xs shadow-xl shadow-emerald-500/20"
                   >
-                    {loading ? 'Unlocking...' : 'Approve & Unlock'}
+                    {loading ? 'Executing...' : 'Execute Trade'}
                   </button>
                 </div>
-              </div>
-            )}
-
-            {/* STEP 4: UNLOCKED */}
-            {step === 'unlocked' && (
-              <div className="text-center space-y-8 py-4">
-                <div className="relative inline-block">
-                  <div className="w-24 h-24 rounded-full border-4 border-emerald-500 flex items-center justify-center text-4xl shadow-[0_0_30px_rgba(16,185,129,0.3)]">
-                    🔓
-                  </div>
-                  <div className="absolute inset-0 rounded-full animate-ping border-4 border-emerald-500 scale-125 opacity-20" />
-                </div>
-
-                <div className="space-y-2">
-                  <h3 className="text-3xl font-black text-emerald-600 dark:text-emerald-500 uppercase tracking-tighter">Trading Unlocked</h3>
-                  <p className="text-gray-500 dark:text-gray-400 font-medium italic">Execution window active. Execute your trade on MT5 now.</p>
-                </div>
-
-                <div className="grid grid-cols-2 gap-px bg-gray-200 dark:bg-white/10 rounded-2xl overflow-hidden border border-gray-200 dark:border-white/10">
-                  <div className="bg-white dark:bg-black p-4">
-                    <p className="text-[10px] font-black text-gray-400 uppercase mb-1">Pair</p>
-                    <p className="text-lg font-bold text-gray-900 dark:text-white">{symbol}</p>
-                  </div>
-                  <div className="bg-white dark:bg-black p-4">
-                    <p className="text-[10px] font-black text-gray-400 uppercase mb-1">Direction</p>
-                    <p className={`text-lg font-bold ${direction === 'Long' ? 'text-emerald-500' : 'text-red-500'}`}>{direction}</p>
-                  </div>
-                  <div className="bg-white dark:bg-black p-4">
-                    <p className="text-[10px] font-black text-gray-400 uppercase mb-1">Lot Size</p>
-                    <p className="text-lg font-bold text-emerald-500">{calculateLotSize().toFixed(2)}</p>
-                  </div>
-                  <div className="bg-white dark:bg-black p-4">
-                    <p className="text-[10px] font-black text-gray-400 uppercase mb-1">Stop Loss</p>
-                    <p className="text-lg font-bold text-red-500">{stopLoss}</p>
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between text-xs font-black text-gray-400 uppercase tracking-widest">
-                    <span>MT5 Lock Resumes in</span>
-                    <span className="text-orange-500">{countdown}s</span>
-                  </div>
-                  <div className="h-2 bg-gray-100 dark:bg-white/5 rounded-full overflow-hidden">
-                    <div 
-                      className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400 transition-all duration-1000"
-                      style={{ width: `${(countdown / 60) * 100}%` }}
-                    />
-                  </div>
-                </div>
-
-                <button
-                  onClick={resetAndClose}
-                  className="w-full py-4 rounded-2xl bg-gray-900 dark:bg-white dark:text-black text-white font-black uppercase tracking-widest text-xs hover:opacity-80 transition-all"
-                >
-                  Close Window
-                </button>
               </div>
             )}
           </div>
