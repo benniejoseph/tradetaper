@@ -1,7 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unused-vars */
-// src/components/trades/TradeForm.tsx - Compact Tabbed Redesign
+// src/components/trades/TradeForm.tsx - Single Page Scrolling Redesign
 "use client";
 import React, { useState, useEffect, FormEvent, ChangeEvent, useMemo } from 'react';
 import { Trade, CreateTradePayload, UpdateTradePayload, AssetType, TradeDirection, TradeStatus, Tag as TradeTagType } from '@/types/trade';
@@ -25,7 +25,6 @@ import { EmotionChipPicker } from '../ui/EmotionChipPicker';
 import { StarRating } from '../ui/StarRating';
 import { ToggleChip } from '../ui/ToggleChip';
 import { ChipSelector } from '../ui/ChipSelector';
-import { FormTabs, Tab } from '../ui/FormTabs';
 import { 
   BarChart3, 
   Target, 
@@ -41,7 +40,8 @@ import {
   Tag,
   FileText,
   Home,
-  Zap
+  Zap,
+  Layers
 } from 'lucide-react';
 
 // Types
@@ -83,6 +83,16 @@ const getEnumValue = <T extends object>(enumObj: T, value: any, defaultValue: T[
   return defaultValue;
 };
 
+// Section Header Component
+const FormSectionHeader: React.FC<{ title: string; icon: React.ReactNode; color?: string }> = ({ title, icon, color = "emerald" }) => (
+  <div className="flex items-center gap-2 mb-6 pb-4 border-b border-zinc-100 dark:border-white/5">
+    <div className={`p-2 rounded-xl bg-${color}-50 dark:bg-${color}-500/10 text-${color}-600 dark:text-${color}-400 shadow-sm`}>
+      {icon}
+    </div>
+    <h3 className="text-lg font-bold text-zinc-900 dark:text-white tracking-tight">{title}</h3>
+  </div>
+);
+
 export default function TradeForm({ initialData, isEditMode = false, onFormSubmitSuccess, onCancel }: TradeFormProps) {
   const dispatch = useDispatch<AppDispatch>();
   const router = useRouter();
@@ -92,9 +102,6 @@ export default function TradeForm({ initialData, isEditMode = false, onFormSubmi
   const mt5Accounts = useSelector(selectMT5Accounts) as MT5Account[];
   const { theme } = useTheme();
 
-  // Tab state
-  const [activeTab, setActiveTab] = useState('trade');
-  
   // Form state
   const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
   const [selectedTags, setSelectedTags] = useState<MultiValue<TagOption>>([]);
@@ -284,21 +291,14 @@ export default function TradeForm({ initialData, isEditMode = false, onFormSubmi
     }
   };
 
-  // Tab configuration
-  const tabs: Tab[] = [
-    { id: 'trade', label: 'Trade', icon: <BarChart3 className="w-4 h-4" /> },
-    { id: 'execution', label: 'Execution', icon: <Target className="w-4 h-4" /> },
-    { id: 'analysis', label: 'Analysis', icon: <Brain className="w-4 h-4" /> },
-  ];
-
   // Compact input classes
-  const inputClass = "w-full px-3 py-2 text-sm bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all";
-  const labelClass = "text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1 block";
-  const cardClass = "bg-white/50 dark:bg-white/[0.02] rounded-2xl border border-gray-200/50 dark:border-white/5 p-4";
+  const inputClass = "w-full px-4 py-2.5 text-sm bg-white dark:bg-white/5 border border-zinc-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all placeholder:text-zinc-400";
+  const labelClass = "text-[11px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-1.5 block";
+  const cardClass = "bg-zinc-50/50 dark:bg-white/[0.02] rounded-xl border border-zinc-200/50 dark:border-white/5 p-5";
 
   // React Select styles
   const selectStyles: StylesConfig<TagOption, true> = {
-    control: (p, s) => ({ ...p, backgroundColor: 'transparent', borderColor: s.isFocused ? 'rgb(16 185 129)' : 'rgb(229 231 235)', borderRadius: '0.75rem', minHeight: '38px' }),
+    control: (p, s) => ({ ...p, backgroundColor: 'transparent', borderColor: s.isFocused ? 'rgb(16 185 129)' : 'rgba(255,255,255,0.1)', borderRadius: '0.75rem', minHeight: '42px' }),
     menu: (p) => ({ ...p, backgroundColor: 'var(--bg-primary)', borderRadius: '0.75rem', zIndex: 50 }),
     option: (p, s) => ({ ...p, backgroundColor: s.isSelected ? 'rgb(16 185 129)' : s.isFocused ? 'rgba(16,185,129,0.1)' : 'transparent', color: s.isSelected ? 'white' : 'inherit' }),
     multiValue: (p) => ({ ...p, backgroundColor: 'rgba(16,185,129,0.1)', borderRadius: '0.5rem' }),
@@ -309,166 +309,171 @@ export default function TradeForm({ initialData, isEditMode = false, onFormSubmi
     <div className="w-full">
       {/* Error Display */}
       {(formError || tradeSubmitError) && (
-        <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl text-red-700 dark:text-red-400 text-sm">
-          {formError || tradeSubmitError}
+        <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl text-red-700 dark:text-red-400 text-sm flex items-center gap-2">
+          <span className="font-bold">Error:</span> {formError || tradeSubmitError}
         </div>
       )}
 
-      <form onSubmit={handleSubmit}>
-        {/* Tabbed Content */}
-        <FormTabs tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab}>
-          
-          {/* === TAB 1: TRADE === */}
-          {activeTab === 'trade' && (
-            <div className="space-y-4">
-              {/* Account Selection */}
-              <div className={cardClass}>
-                <label className={labelClass}>Trading Account</label>
-                <select
-                  name="accountId"
-                  value={formData.accountId || ''}
-                  onChange={handleChange}
-                  className={inputClass}
-                  required
-                >
-                  <option value="">Select account...</option>
-                  {allAccounts.map(acc => (
-                    <option key={acc.id} value={acc.id}>
-                      {acc.name} ({acc.type}) – {acc.currency} {Number(acc.balance).toFixed(0)}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Core Trade Grid */}
-              <div className={cardClass}>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  <div>
+      <form onSubmit={handleSubmit} className="space-y-8">
+        
+        {/* === SECTION 1: TRADE DETAILS === */}
+        <div className="bg-white dark:bg-[#0A0A0A] border border-zinc-200 dark:border-white/5 rounded-2xl p-6 md:p-8 shadow-sm">
+           <FormSectionHeader title="Trade Details" icon={<Layers className="w-5 h-5" />} color="zinc" />
+           
+           <div className="space-y-6">
+              {/* Account & Details */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+                 <div className="lg:col-span-2">
+                    <label className={labelClass}>Trading Account</label>
+                    <select
+                      name="accountId"
+                      value={formData.accountId || ''}
+                      onChange={handleChange}
+                      className={inputClass}
+                      required
+                    >
+                      <option value="">Select account...</option>
+                      {allAccounts.map(acc => (
+                        <option key={acc.id} value={acc.id}>
+                          {acc.name} ({acc.type}) – {acc.currency} {Number(acc.balance).toFixed(0)}
+                        </option>
+                      ))}
+                    </select>
+                 </div>
+                 <div>
                     <label className={labelClass}>Asset Type</label>
                     <select name="assetType" value={formData.assetType} onChange={handleChange} className={inputClass}>
                       {Object.values(AssetType).map(t => <option key={t} value={t}>{t}</option>)}
                     </select>
-                  </div>
-                  <div>
-                    <label className={labelClass}>Symbol</label>
-                    <input type="text" name="symbol" value={formData.symbol} onChange={handleChange} placeholder="EURUSD" className={inputClass} required />
-                  </div>
-                  <div>
+                 </div>
+                 <div>
                     <label className={labelClass}>Direction</label>
-                    <div className="flex gap-1">
+                    <div className="flex gap-2">
                       <button type="button" onClick={() => setFormData((p: any) => ({ ...p, direction: TradeDirection.LONG }))}
-                        className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold flex items-center justify-center gap-1 transition-all
-                          ${formData.direction === TradeDirection.LONG ? 'bg-emerald-500 text-white' : 'bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-400'}`}>
-                        <TrendingUp className="w-3 h-3" /> Long
+                        className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all shadow-sm border
+                          ${formData.direction === TradeDirection.LONG ? 'bg-emerald-500 text-white border-emerald-600 shadow-emerald-500/20' : 'bg-white dark:bg-white/5 text-zinc-600 dark:text-zinc-400 border-zinc-200 dark:border-white/10'}`}>
+                        <TrendingUp className="w-3.5 h-3.5" /> Long
                       </button>
                       <button type="button" onClick={() => setFormData((p: any) => ({ ...p, direction: TradeDirection.SHORT }))}
-                        className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold flex items-center justify-center gap-1 transition-all
-                          ${formData.direction === TradeDirection.SHORT ? 'bg-red-500 text-white' : 'bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-400'}`}>
-                        <TrendingDown className="w-3 h-3" /> Short
+                        className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all shadow-sm border
+                          ${formData.direction === TradeDirection.SHORT ? 'bg-red-500 text-white border-red-600 shadow-red-500/20' : 'bg-white dark:bg-white/5 text-zinc-600 dark:text-zinc-400 border-zinc-200 dark:border-white/10'}`}>
+                        <TrendingDown className="w-3.5 h-3.5" /> Short
                       </button>
                     </div>
-                  </div>
-                  <div>
-                    <label className={labelClass}>Quantity</label>
-                    <input type="number" name="quantity" value={formData.quantity || ''} onChange={handleChange} placeholder="0.01" step="any" className={inputClass} required />
-                  </div>
-                </div>
+                 </div>
               </div>
 
-              {/* Entry & Exit */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className={cardClass}>
-                  <h4 className="text-xs font-bold text-emerald-600 dark:text-emerald-400 mb-3 flex items-center gap-1">
-                    <TrendingUp className="w-3 h-3" /> Entry
-                  </h4>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className={labelClass}>Price</label>
-                      <input type="number" name="entryPrice" value={formData.entryPrice || ''} onChange={handleChange} step="any" className={inputClass} required />
-                    </div>
-                    <div>
-                      <label className={labelClass}>Date & Time</label>
-                      <input type="datetime-local" name="entryDate" value={formData.entryDate} onChange={handleChange} className={inputClass} required />
-                    </div>
-                  </div>
-                </div>
-                <div className={cardClass}>
-                  <h4 className="text-xs font-bold text-gray-500 dark:text-gray-400 mb-3 flex items-center gap-1">
-                    <TrendingDown className="w-3 h-3" /> Exit (Optional)
-                  </h4>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className={labelClass}>Price</label>
-                      <input type="number" name="exitPrice" value={formData.exitPrice || ''} onChange={handleChange} step="any" className={inputClass} />
-                    </div>
-                    <div>
-                      <label className={labelClass}>Date & Time</label>
-                      <input type="datetime-local" name="exitDate" value={formData.exitDate || ''} onChange={handleChange} className={inputClass} />
-                    </div>
-                  </div>
-                </div>
+              {/* Symbol & Quantity */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                 <div>
+                    <label className={labelClass}>Symbol</label>
+                    <input type="text" name="symbol" value={formData.symbol} onChange={handleChange} placeholder="EURUSD" className={inputClass} required />
+                 </div>
+                 <div>
+                    <label className={labelClass}>Quantity (Lots/Units)</label>
+                    <input type="number" name="quantity" value={formData.quantity || ''} onChange={handleChange} placeholder="0.00" step="any" className={inputClass} required />
+                 </div>
               </div>
 
-              {/* Risk Management */}
-              <div className={cardClass}>
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-                  <div>
-                    <label className={labelClass}>Stop Loss</label>
-                    <input type="number" name="stopLoss" value={formData.stopLoss || ''} onChange={handleChange} step="any" className={inputClass} />
-                  </div>
-                  <div>
-                    <label className={labelClass}>Take Profit</label>
-                    <input type="number" name="takeProfit" value={formData.takeProfit || ''} onChange={handleChange} step="any" className={inputClass} />
-                  </div>
-                  <div>
-                    <label className={labelClass}>Commission</label>
-                    <input type="number" name="commission" value={formData.commission || ''} onChange={handleChange} step="any" className={inputClass} />
-                  </div>
-                  <div>
-                    <label className={labelClass}>Status</label>
-                    <select name="status" value={formData.status} onChange={handleChange} className={inputClass}>
-                      {Object.values(TradeStatus).map(s => <option key={s} value={s}>{s}</option>)}
-                    </select>
-                  </div>
-                  <div>
-                    <label className={labelClass}>R:R</label>
-                    <div className={`${inputClass} flex items-center justify-center font-bold ${formData.rMultiple >= 2 ? 'text-emerald-600' : formData.rMultiple >= 1 ? 'text-amber-600' : 'text-gray-500'}`}>
-                      {formData.rMultiple ? `${formData.rMultiple}R` : '—'}
+              {/* Entry & Exit & Risk */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+                 <div className="p-4 rounded-xl border border-zinc-200 dark:border-white/5 bg-zinc-50/50 dark:bg-white/[0.02]">
+                    <div className="flex items-center gap-2 mb-3">
+                       <div className="p-1 bg-blue-100 dark:bg-blue-500/10 rounded text-blue-600 dark:text-blue-400"><TrendingUp className="w-3 h-3" /></div>
+                       <span className="text-xs font-bold text-zinc-500 uppercase">Entry</span>
                     </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
+                    <div className="space-y-3">
+                       <div>
+                          <input type="number" name="entryPrice" value={formData.entryPrice || ''} onChange={handleChange} step="any" placeholder="Price" className={inputClass} required />
+                       </div>
+                       <div>
+                          <input type="datetime-local" name="entryDate" value={formData.entryDate} onChange={handleChange} className={inputClass} required />
+                       </div>
+                    </div>
+                 </div>
 
-          {/* === TAB 2: EXECUTION === */}
-          {activeTab === 'execution' && (
-            <div className="space-y-4">
-              {/* Strategy & ICT */}
-              <div className={cardClass}>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
+                 <div className="p-4 rounded-xl border border-zinc-200 dark:border-white/5 bg-zinc-50/50 dark:bg-white/[0.02]">
+                    <div className="flex items-center gap-2 mb-3">
+                       <div className="p-1 bg-purple-100 dark:bg-purple-500/10 rounded text-purple-600 dark:text-purple-400"><TrendingDown className="w-3 h-3" /></div>
+                       <span className="text-xs font-bold text-zinc-500 uppercase">Exit</span>
+                    </div>
+                    <div className="space-y-3">
+                       <div>
+                          <input type="number" name="exitPrice" value={formData.exitPrice || ''} onChange={handleChange} step="any" placeholder="Price" className={inputClass} />
+                       </div>
+                       <div>
+                          <input type="datetime-local" name="exitDate" value={formData.exitDate || ''} onChange={handleChange} className={inputClass} />
+                       </div>
+                    </div>
+                 </div>
+
+                 <div className="p-4 rounded-xl border border-zinc-200 dark:border-white/5 bg-zinc-50/50 dark:bg-white/[0.02]">
+                    <div className="flex items-center gap-2 mb-3">
+                       <div className="p-1 bg-red-100 dark:bg-red-500/10 rounded text-red-600 dark:text-red-400"><Target className="w-3 h-3" /></div>
+                       <span className="text-xs font-bold text-zinc-500 uppercase">Targets</span>
+                    </div>
+                    <div className="space-y-3">
+                       <div>
+                          <label className="text-[10px] text-zinc-400 uppercase font-bold mb-1 block">Stop Loss</label>
+                          <input type="number" name="stopLoss" value={formData.stopLoss || ''} onChange={handleChange} step="any" className={inputClass} />
+                       </div>
+                       <div>
+                          <label className="text-[10px] text-zinc-400 uppercase font-bold mb-1 block">Take Profit</label>
+                          <input type="number" name="takeProfit" value={formData.takeProfit || ''} onChange={handleChange} step="any" className={inputClass} />
+                       </div>
+                    </div>
+                 </div>
+
+                 <div className="p-4 rounded-xl border border-zinc-200 dark:border-white/5 bg-zinc-50/50 dark:bg-white/[0.02]">
+                    <div className="flex items-center gap-2 mb-3">
+                       <div className="p-1 bg-amber-100 dark:bg-amber-500/10 rounded text-amber-600 dark:text-amber-400"><DollarSign className="w-3 h-3" /></div>
+                       <span className="text-xs font-bold text-zinc-500 uppercase">Outcome</span>
+                    </div>
+                    <div className="space-y-3">
+                       <div>
+                          <label className="text-[10px] text-zinc-400 uppercase font-bold mb-1 block">Commission</label>
+                          <input type="number" name="commission" value={formData.commission || ''} onChange={handleChange} step="any" className={inputClass} />
+                       </div>
+                       <div>
+                          <label className="text-[10px] text-zinc-400 uppercase font-bold mb-1 block">Status</label>
+                          <select name="status" value={formData.status} onChange={handleChange} className={inputClass}>
+                            {Object.values(TradeStatus).map(s => <option key={s} value={s}>{s}</option>)}
+                          </select>
+                       </div>
+                    </div>
+                 </div>
+              </div>
+           </div>
+        </div>
+
+        {/* === SECTION 2: EXECUTION & CONTEXT === */}
+        <div className="bg-white dark:bg-[#0A0A0A] border border-zinc-200 dark:border-white/5 rounded-2xl p-6 md:p-8 shadow-sm">
+           <FormSectionHeader title="Execution & Context" icon={<Target className="w-5 h-5" />} color="blue" />
+           
+           <div className="space-y-6">
+              {/* Strategy Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                 <div>
                     <label className={labelClass}>Strategy</label>
                     <select name="strategyId" value={formData.strategyId || ''} onChange={handleChange} className={inputClass}>
                       <option value="">Select...</option>
                       {strategies.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                     </select>
-                  </div>
-                  <div>
+                 </div>
+                 <div>
                     <label className={labelClass}>ICT Concept</label>
                     <input type="text" name="ictConcept" value={formData.ictConcept || ''} onChange={handleChange} placeholder="FVG, OB, BMS..." className={inputClass} />
-                  </div>
-                  <div>
-                    <label className={labelClass}>Session</label>
+                 </div>
+                 <div>
+                    <label className={labelClass}>Trading Session</label>
                     <select name="session" value={formData.session} onChange={handleChange} className={inputClass}>
                       {Object.values(TradingSession).map(s => <option key={s} value={s}>{s}</option>)}
                     </select>
-                  </div>
-                </div>
+                 </div>
               </div>
 
-              {/* Tags */}
-              <div className={cardClass}>
+               {/* Tags */}
+              <div>
                 <label className={labelClass}>Tags</label>
                 <CreatableSelect
                   isMulti
@@ -480,163 +485,148 @@ export default function TradeForm({ initialData, isEditMode = false, onFormSubmi
                 />
               </div>
 
-              {/* Market Context */}
-              <div className={cardClass}>
-                <h4 className="text-xs font-bold text-blue-600 dark:text-blue-400 mb-3 flex items-center gap-1">
-                  <BarChart3 className="w-3 h-3" /> Market Context
-                </h4>
-                <div className="flex flex-wrap items-start gap-4">
-                  <ChipSelector
-                    label="Condition"
-                    value={formData.marketCondition}
-                    onChange={(v) => setFormData((p: any) => ({ ...p, marketCondition: v }))}
-                    options={Object.values(MarketCondition).map(c => ({ value: c, label: c }))}
-                    color="blue"
-                  />
-                  <ChipSelector
-                    label="Timeframe"
-                    value={formData.timeframe}
-                    onChange={(v) => setFormData((p: any) => ({ ...p, timeframe: v }))}
-                    options={Object.values(Timeframe).map(t => ({ value: t, label: t }))}
-                    color="blue"
-                  />
-                  <ChipSelector
-                    label="HTF Bias"
-                    value={formData.htfBias}
-                    onChange={(v) => setFormData((p: any) => ({ ...p, htfBias: v }))}
-                    options={Object.values(HTFBias).map(b => ({ value: b, label: b }))}
-                    color="blue"
-                  />
-                  <ToggleChip
-                    label="News"
-                    value={formData.newsImpact}
-                    onChange={(v) => setFormData((p: any) => ({ ...p, newsImpact: v }))}
-                  />
-                  <div>
-                    <label className={labelClass}>Planned R:R</label>
-                    <input type="number" value={formData.plannedRR || ''} onChange={(e) => setFormData((p: any) => ({ ...p, plannedRR: e.target.value ? parseFloat(e.target.value) : undefined }))}
-                      placeholder="2.0" step="0.5" className="w-16 px-2 py-1.5 text-sm text-center rounded-lg bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10" />
-                  </div>
-                </div>
+              {/* Context Chips & R:R */}
+              <div className="p-5 rounded-xl border border-zinc-200 dark:border-white/5 bg-zinc-50/50 dark:bg-white/[0.02]">
+                 <div className="flex flex-wrap items-end gap-6">
+                    <ChipSelector
+                      label="Market Condition"
+                      value={formData.marketCondition}
+                      onChange={(v) => setFormData((p: any) => ({ ...p, marketCondition: v }))}
+                      options={Object.values(MarketCondition).map(c => ({ value: c, label: c }))}
+                      color="blue"
+                    />
+                    <ChipSelector
+                      label="Timeframe"
+                      value={formData.timeframe}
+                      onChange={(v) => setFormData((p: any) => ({ ...p, timeframe: v }))}
+                      options={Object.values(Timeframe).map(t => ({ value: t, label: t }))}
+                      color="blue"
+                    />
+                    <ChipSelector
+                      label="HTF Bias"
+                      value={formData.htfBias}
+                      onChange={(v) => setFormData((p: any) => ({ ...p, htfBias: v }))}
+                      options={Object.values(HTFBias).map(b => ({ value: b, label: b }))}
+                      color="blue"
+                    />
+                    <ToggleChip
+                      label="News Impact"
+                      value={formData.newsImpact}
+                      onChange={(v) => setFormData((p: any) => ({ ...p, newsImpact: v }))}
+                    />
+                    <div>
+                      <label className={labelClass}>Planned R:R</label>
+                      <input type="number" value={formData.plannedRR || ''} onChange={(e) => setFormData((p: any) => ({ ...p, plannedRR: e.target.value ? parseFloat(e.target.value) : undefined }))}
+                        placeholder="2.0" step="0.5" className="w-20 px-3 py-2 text-sm text-center rounded-xl bg-white dark:bg-white/5 border border-zinc-200 dark:border-white/10" />
+                    </div>
+                 </div>
               </div>
 
               {/* Chart Upload */}
-              <div className={cardClass}>
-                <h4 className="text-xs font-bold text-indigo-600 dark:text-indigo-400 mb-3 flex items-center gap-1">
-                  <Upload className="w-3 h-3" /> Chart Snapshot
-                </h4>
-                <div className="flex items-center gap-4">
-                  <label className="flex-1 flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-gray-300 dark:border-white/10 rounded-xl cursor-pointer hover:border-emerald-500 transition-colors">
-                    <Upload className="w-4 h-4 text-gray-400" />
-                    <span className="text-sm text-gray-500">{selectedFile ? selectedFile.name : 'Upload chart'}</span>
-                    <input type="file" className="hidden" onChange={handleFileChange} accept="image/*" />
-                  </label>
-                  {imagePreviewUrl && (
-                    <div className="relative w-20 h-20">
-                      <img src={imagePreviewUrl} alt="Preview" className="w-full h-full object-cover rounded-lg" />
-                      <button type="button" onClick={() => { setSelectedFile(null); setImagePreviewUrl(null); }}
-                        className="absolute -top-2 -right-2 p-1 bg-red-500 rounded-full text-white">
-                        <X className="w-3 h-3" />
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* === TAB 3: ANALYSIS === */}
-          {activeTab === 'analysis' && (
-            <div className="space-y-4">
-              {/* Psychology */}
-              <div className={cardClass}>
-                <h4 className="text-xs font-bold text-purple-600 dark:text-purple-400 mb-3 flex items-center gap-1">
-                  <Brain className="w-3 h-3" /> Psychology & Mindset
-                </h4>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                  <EmotionChipPicker label="Before" value={formData.emotionBefore} onChange={(v) => setFormData((p: any) => ({ ...p, emotionBefore: v }))} />
-                  <EmotionChipPicker label="During" value={formData.emotionDuring} onChange={(v) => setFormData((p: any) => ({ ...p, emotionDuring: v }))} />
-                  <EmotionChipPicker label="After" value={formData.emotionAfter} onChange={(v) => setFormData((p: any) => ({ ...p, emotionAfter: v }))} />
-                </div>
-                <div className="flex flex-wrap items-center gap-6">
-                  <StarRating label="Confidence" value={formData.confidenceLevel} onChange={(v) => setFormData((p: any) => ({ ...p, confidenceLevel: v }))} max={5} />
-                  <ToggleChip label="Followed Plan" value={formData.followedPlan} onChange={(v) => setFormData((p: any) => ({ ...p, followedPlan: v }))} />
-                  <ChipSelector
-                    label="Grade"
-                    value={formData.executionGrade}
-                    onChange={(v) => setFormData((p: any) => ({ ...p, executionGrade: v }))}
-                    options={Object.values(ExecutionGrade).map(g => ({ value: g, label: g }))}
-                    color="purple"
-                  />
-                </div>
+              <div>
+                 <label className={labelClass}>Chart Snapshot</label>
+                 <div className="flex items-center gap-4">
+                    <label className="flex-1 flex items-center justify-center gap-2 px-6 py-8 border-2 border-dashed border-zinc-300 dark:border-white/10 rounded-2xl cursor-pointer hover:border-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-500/5 transition-all group">
+                      <div className="text-center group-hover:scale-105 transition-transform">
+                         <Upload className="w-6 h-6 text-zinc-400 group-hover:text-emerald-500 mx-auto mb-2" />
+                         <span className="text-sm font-medium text-zinc-500 dark:text-zinc-400 group-hover:text-emerald-600">
+                           {selectedFile ? selectedFile.name : 'Click to Upload Chart Image'}
+                         </span>
+                      </div>
+                      <input type="file" className="hidden" onChange={handleFileChange} accept="image/*" />
+                    </label>
+                    {imagePreviewUrl && (
+                      <div className="relative w-32 h-32 shrink-0">
+                        <img src={imagePreviewUrl} alt="Preview" className="w-full h-full object-cover rounded-xl border border-zinc-200 dark:border-white/10 shadow-sm" />
+                        <button type="button" onClick={() => { setSelectedFile(null); setImagePreviewUrl(null); }}
+                          className="absolute -top-2 -right-2 p-1.5 bg-red-500 rounded-full text-white shadow-md hover:bg-red-600 transition-colors">
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    )}
+                 </div>
               </div>
 
-              {/* Environment */}
-              <div className={cardClass}>
-                <h4 className="text-xs font-bold text-green-600 dark:text-green-400 mb-3 flex items-center gap-1">
-                  <Home className="w-3 h-3" /> Trading Environment
-                </h4>
-                <div className="flex flex-wrap items-center gap-6">
-                  <StarRating label="Sleep" value={formData.sleepQuality} onChange={(v) => setFormData((p: any) => ({ ...p, sleepQuality: v }))} max={5} />
-                  <StarRating label="Energy" value={formData.energyLevel} onChange={(v) => setFormData((p: any) => ({ ...p, energyLevel: v }))} max={5} />
-                  <StarRating label="Focus" value={formData.distractionLevel ? 6 - formData.distractionLevel : undefined} 
-                    onChange={(v) => setFormData((p: any) => ({ ...p, distractionLevel: v ? 6 - v : undefined }))} max={5} />
-                  <div>
-                    <label className={labelClass}>Location</label>
-                    <input type="text" value={formData.tradingEnvironment || ''} onChange={(e) => setFormData((p: any) => ({ ...p, tradingEnvironment: e.target.value }))}
-                      placeholder="Home, Office..." className="w-28 px-2 py-1.5 text-sm rounded-lg bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10" />
-                  </div>
-                </div>
+           </div>
+        </div>
+
+        {/* === SECTION 3: ANALYSIS & PSYCHOLOGY === */}
+        <div className="bg-white dark:bg-[#0A0A0A] border border-zinc-200 dark:border-white/5 rounded-2xl p-6 md:p-8 shadow-sm">
+           <FormSectionHeader title="Analysis & Psychology" icon={<Brain className="w-5 h-5" />} color="purple" />
+           
+           <div className="space-y-6">
+              {/* Psychology Headers */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                 <EmotionChipPicker label="Emotion Before" value={formData.emotionBefore} onChange={(v) => setFormData((p: any) => ({ ...p, emotionBefore: v }))} />
+                 <EmotionChipPicker label="Emotion During" value={formData.emotionDuring} onChange={(v) => setFormData((p: any) => ({ ...p, emotionDuring: v }))} />
+                 <EmotionChipPicker label="Emotion After" value={formData.emotionAfter} onChange={(v) => setFormData((p: any) => ({ ...p, emotionAfter: v }))} />
               </div>
 
-              {/* Notes */}
-              <div className={cardClass}>
-                <h4 className="text-xs font-bold text-amber-600 dark:text-amber-400 mb-3 flex items-center gap-1">
-                  <FileText className="w-3 h-3" /> Notes & Reflections
-                </h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <div>
+              {/* Performance Ratings */}
+              <div className="p-5 rounded-xl border border-zinc-200 dark:border-white/5 bg-zinc-50/50 dark:bg-white/[0.02]">
+                 <div className="flex flex-wrap items-center gap-x-8 gap-y-4">
+                    <StarRating label="Confidence" value={formData.confidenceLevel} onChange={(v) => setFormData((p: any) => ({ ...p, confidenceLevel: v }))} max={5} />
+                    <StarRating label="Sleep Quality" value={formData.sleepQuality} onChange={(v) => setFormData((p: any) => ({ ...p, sleepQuality: v }))} max={5} />
+                    <StarRating label="Energy Level" value={formData.energyLevel} onChange={(v) => setFormData((p: any) => ({ ...p, energyLevel: v }))} max={5} />
+                    <StarRating label="Focus" value={formData.distractionLevel ? 6 - formData.distractionLevel : undefined} 
+                        onChange={(v) => setFormData((p: any) => ({ ...p, distractionLevel: v ? 6 - v : undefined }))} max={5} />
+                    
+                    <div className="h-8 w-px bg-zinc-200 dark:bg-white/10 hidden md:block"></div>
+                    
+                    <ToggleChip label="Followed Plan" value={formData.followedPlan} onChange={(v) => setFormData((p: any) => ({ ...p, followedPlan: v }))} />
+                 </div>
+              </div>
+
+              {/* Notes Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                 <div>
                     <label className={labelClass}>Entry Reason</label>
-                    <textarea name="entryReason" value={formData.entryReason || ''} onChange={handleChange} rows={2}
-                      placeholder="Why did you enter?" className={inputClass} />
-                  </div>
-                  <div>
+                    <textarea name="entryReason" value={formData.entryReason || ''} onChange={handleChange} rows={3}
+                      placeholder="Why did you enter this trade?" className={inputClass} />
+                 </div>
+                 <div>
                     <label className={labelClass}>Setup Details</label>
-                    <textarea name="setupDetails" value={formData.setupDetails || ''} onChange={handleChange} rows={2}
-                      placeholder="Describe your setup..." className={inputClass} />
-                  </div>
-                  <div>
-                    <label className={labelClass}>Mistakes</label>
-                    <textarea name="mistakesMade" value={formData.mistakesMade || ''} onChange={handleChange} rows={2}
-                      placeholder="What could be improved?" className={inputClass} />
-                  </div>
-                  <div>
+                    <textarea name="setupDetails" value={formData.setupDetails || ''} onChange={handleChange} rows={3}
+                      placeholder="Describe the setup..." className={inputClass} />
+                 </div>
+                 <div>
+                    <label className={labelClass}>Mistakes Made</label>
+                    <textarea name="mistakesMade" value={formData.mistakesMade || ''} onChange={handleChange} rows={3}
+                      placeholder="What went wrong?" className={inputClass} />
+                 </div>
+                 <div>
                     <label className={labelClass}>Lessons Learned</label>
-                    <textarea name="lessonsLearned" value={formData.lessonsLearned || ''} onChange={handleChange} rows={2}
-                      placeholder="Key takeaways..." className={inputClass} />
-                  </div>
-                </div>
-                <div className="mt-3">
-                  <label className={labelClass}>General Notes</label>
-                  <textarea name="notes" value={formData.notes || ''} onChange={handleChange} rows={3}
-                    placeholder="Any other observations..." className={inputClass} />
-                </div>
+                    <textarea name="lessonsLearned" value={formData.lessonsLearned || ''} onChange={handleChange} rows={3}
+                      placeholder="What did you learn?" className={inputClass} />
+                 </div>
               </div>
-            </div>
-          )}
-        </FormTabs>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                 <div>
+                     <label className={labelClass}>Trading Environment / Location</label>
+                     <input type="text" value={formData.tradingEnvironment || ''} onChange={(e) => setFormData((p: any) => ({ ...p, tradingEnvironment: e.target.value }))}
+                        placeholder="Home, Office, Cafe..." className={inputClass} />
+                 </div>
+                 <div>
+                     <label className={labelClass}>General Notes</label>
+                     <textarea name="notes" value={formData.notes || ''} onChange={handleChange} rows={1}
+                        placeholder="Any additional observations..." className={inputClass} style={{ minHeight: '42px', resize: 'none' }} />
+                 </div>
+              </div>
+           </div>
+        </div>
 
-        {/* Submit Buttons - Fixed at Bottom */}
-        <div className="mt-6 flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-white/10">
+        {/* Submit Buttons */}
+        <div className="flex items-center justify-end gap-4 pt-6 border-t border-zinc-200 dark:border-white/10 sticky bottom-0 bg-zinc-50/95 dark:bg-black/95 backdrop-blur-sm p-4 -mx-4 -mb-6 md:mx-0 md:mb-0 md:bg-transparent md:backdrop-filter-none">
           {onCancel && (
             <button type="button" onClick={onCancel}
-              className="px-5 py-2.5 text-sm font-semibold rounded-xl bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-white/10 transition-all">
+              className="px-6 py-3 text-sm font-bold rounded-xl bg-white dark:bg-white/5 text-zinc-600 dark:text-zinc-400 border border-zinc-200 dark:border-white/10 hover:bg-zinc-50 dark:hover:bg-white/10 transition-all shadow-sm">
               Cancel
             </button>
           )}
           <button type="submit" disabled={tradeSubmitLoading || isUploading}
-            className="px-6 py-2.5 text-sm font-bold rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 text-white shadow-lg shadow-emerald-500/25 hover:shadow-xl hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
-            {tradeSubmitLoading || isUploading ? 'Saving...' : (
+            className="px-8 py-3 text-sm font-bold rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 text-white shadow-lg shadow-emerald-500/25 hover:shadow-xl hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
+            {tradeSubmitLoading || isUploading ? 'Saving Trade...' : (
               <>
                 {isEditMode ? <Save className="w-4 h-4" /> : <Send className="w-4 h-4" />}
                 {isEditMode ? 'Update Trade' : 'Log Trade'}
