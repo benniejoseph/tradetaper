@@ -74,13 +74,13 @@ export class CandleManagementService {
       return this.marketCandleRepo.create({
         symbol,
         timeframe,
-        timestamp: new Date(c.time),
+        timestamp: new Date(c.time * 1000), // c.time is in seconds, need milliseconds
         open: c.open,
         high: c.high,
         low: c.low,
         close: c.close,
         volume: c.tickVolume,
-        source: 'yahoo',
+        source: 'twelvedata',
       });
     });
 

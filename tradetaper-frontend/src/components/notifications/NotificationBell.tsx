@@ -41,10 +41,10 @@ export default function NotificationBell() {
   // Fetch notifications on mount with error handling
   useEffect(() => {
     try {
-      dispatch(fetchUnreadCount()).catch((err) =>
+      dispatch(fetchUnreadCount()).catch((err: any) =>
         console.error('Failed to fetch unread count:', err)
       );
-      dispatch(fetchNotifications({ limit: 10 })).catch((err) =>
+      dispatch(fetchNotifications({ limit: 10 })).catch((err: any) =>
         console.error('Failed to fetch notifications:', err)
       );
     } catch (error) {
@@ -124,18 +124,18 @@ export default function NotificationBell() {
 
   // Debug log when isOpen changes
   useEffect(() => {
-    console.log('🔔 NotificationBell isOpen state changed to:', isOpen);
+    console.log('NotificationBell isOpen state changed to:', isOpen);
   }, [isOpen]);
 
   // Debug log for render
-  console.log('🔔 NotificationBell rendering, isOpen:', isOpen, 'notifications:', notifications.length);
+  // console.log('🔔 NotificationBell rendering, isOpen:', isOpen, 'notifications:', notifications.length);
 
   return (
     <div className="relative" ref={dropdownRef}>
       {/* Bell Button */}
       <button
         onClick={() => {
-          console.log('🔔 NotificationBell clicked, current isOpen:', isOpen);
+          // console.log('🔔 NotificationBell clicked, current isOpen:', isOpen);
           setIsOpen(!isOpen);
         }}
         className="relative p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
@@ -153,7 +153,7 @@ export default function NotificationBell() {
       </button>
 
       {/* Dropdown Panel */}
-      {console.log('🔔 Checking isOpen for dropdown render:', isOpen)}
+      {/* {console.log('🔔 Checking isOpen for dropdown render:', isOpen)} */}
       {isOpen && (
         <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden z-50">
           {/* Header */}
@@ -191,7 +191,7 @@ export default function NotificationBell() {
                 <p>No notifications yet</p>
               </div>
             ) : (
-              recentNotifications.map((notification) => (
+              recentNotifications.map((notification: { id: React.Key | null | undefined; status: string; priority: string; type: any; title: string | number | bigint | boolean | React.ReactElement<unknown, string | React.JSXElementConstructor<any>> | Iterable<React.ReactNode> | React.ReactPortal | Promise<string | number | bigint | boolean | React.ReactPortal | React.ReactElement<unknown, string | React.JSXElementConstructor<any>> | Iterable<React.ReactNode> | null | undefined> | null | undefined; message: string | number | bigint | boolean | React.ReactElement<unknown, string | React.JSXElementConstructor<any>> | Iterable<React.ReactNode> | React.ReactPortal | Promise<string | number | bigint | boolean | React.ReactPortal | React.ReactElement<unknown, string | React.JSXElementConstructor<any>> | Iterable<React.ReactNode> | null | undefined> | null | undefined; createdAt: string | number | Date; }) => (
                 <div
                   key={notification.id}
                   onClick={() => handleNotificationClick(notification)}

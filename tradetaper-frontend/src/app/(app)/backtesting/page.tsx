@@ -8,7 +8,7 @@ import { strategiesService } from '@/services/strategiesService';
 import { backtestingService } from '@/services/backtestingService';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { MarketLogsList } from '@/components/backtesting/MarketLogsList';
-import SessionConfigModal from '@/components/backtesting/SessionConfigModal';
+// import SessionConfigModal from '@/components/backtesting/SessionConfigModal'; // Disabled for future release
 import {
   FiPlus,
   FiTrendingUp,
@@ -63,7 +63,7 @@ export default function BacktestingPage() {
   const [loading, setLoading] = useState(true);
   const [statsLoading, setStatsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isReplayModalOpen, setIsReplayModalOpen] = useState(false);
+  // const [isReplayModalOpen, setIsReplayModalOpen] = useState(false); // Disabled for future release
 
   useEffect(() => {
     loadStrategies();
@@ -323,18 +323,22 @@ export default function BacktestingPage() {
                   </div>
                 </Link>
 
-                <button
-                  onClick={() => setIsReplayModalOpen(true)}
-                  className="flex items-center gap-4 p-4 bg-gradient-to-br from-white to-green-50 dark:from-black dark:to-green-950/20 rounded-xl border border-green-200/50 dark:border-green-700/30 hover:shadow-lg transition-all"
+                <div
+                  className="relative flex items-center gap-4 p-4 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900/50 dark:to-gray-800/50 rounded-xl border border-gray-300/50 dark:border-gray-700/30 opacity-60 cursor-not-allowed"
                 >
-                  <div className="p-3 bg-green-100 dark:bg-green-900/30 rounded-lg">
-                    <FiPlay className="w-6 h-6 text-green-600 dark:text-green-400" />
+                  <div className="p-3 bg-gray-200 dark:bg-gray-700/30 rounded-lg">
+                    <FiPlay className="w-6 h-6 text-gray-500 dark:text-gray-500" />
                   </div>
                   <div className="text-left">
-                    <h3 className="font-semibold text-gray-900 dark:text-white">Practice Trading</h3>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Replay with real candles</p>
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-semibold text-gray-600 dark:text-gray-400">Practice Trading</h3>
+                      <span className="px-2 py-0.5 text-xs font-medium bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded-full border border-amber-200 dark:border-amber-700/30">
+                        Coming Soon
+                      </span>
+                    </div>
+                    <p className="text-sm text-gray-500 dark:text-gray-500">Replay with real candles</p>
                   </div>
-                </button>
+                </div>
               </div>
 
               {/* Replay History Link */}
@@ -418,11 +422,11 @@ export default function BacktestingPage() {
         </div>
       )}
 
-      {/* Session Config Modal */}
-      <SessionConfigModal
+      {/* Session Config Modal - Disabled for future release */}
+      {/* <SessionConfigModal
         isOpen={isReplayModalOpen}
         onClose={() => setIsReplayModalOpen(false)}
-      />
+      /> */}
     </div>
   );
 }
