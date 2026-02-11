@@ -148,6 +148,9 @@ export const TradeApprovalModal: React.FC<TradeApprovalModalProps> = ({
     const calculatedLot = calculateLotSize();
 
     try {
+      // Import authApiClient dynamically
+      const { authApiClient } = await import('@/services/api');
+      
       // Map discipline data to backend API format
       const apiPayload = {
         accountId: selectedAccountId,
@@ -163,21 +166,9 @@ export const TradeApprovalModal: React.FC<TradeApprovalModalProps> = ({
         notes: `Strategy: ${selectedStrategy.name}\nRisk: ${riskPercent}%\nChecklist completed: ${checklistItems.filter(i => i.checked).length}/${checklistItems.length}`,
       };
       
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://api.tradetaper.com/api/v1'}/trades`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(apiPayload),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to execute trade');
-      }
-
-      const newTrade = await response.json();
+      // Use authApiClient for CSRF and auth handling
+      const response = await authApiClient.post('/trades', apiPayload);
+      const newTrade = response.data;
       
       // Navigate to trade view
       router.push(`/trades/${newTrade.id}`);
@@ -188,7 +179,7 @@ export const TradeApprovalModal: React.FC<TradeApprovalModalProps> = ({
       // Notify parent of success
       onApproved?.(approval);
     } catch (err: any) {
-      setError(err.message || 'Failed to execute trade');
+      setError(err.response?.data?.message || err.message || 'Failed to execute trade');
     } finally {
       setLoading(false);
     }
