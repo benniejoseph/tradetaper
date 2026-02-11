@@ -32,7 +32,7 @@ import TradesCalendarHeatmap from '@/components/dashboard/TradesCalendarHeatmap'
 import TradingActivityModal from '@/components/dashboard/TradingActivityModal';
 import TopTradesByReturn from '@/components/dashboard/TopPairsTraded';
 import DashboardPnlCalendar from '@/components/dashboard/DashboardPnlCalendar';
-import KillZoneBanner from '@/components/dashboard/KillZoneBanner';
+import SessionDetailsWidget from '@/components/dashboard/SessionDetailsWidget';
 import AIInsightsCard from '@/components/dashboard/AIInsightsCard';
 import HourlyPerformanceChart from '@/components/dashboard/analytics/HourlyPerformanceChart';
 import SessionBreakdownChart from '@/components/dashboard/analytics/SessionBreakdownChart';
@@ -472,8 +472,8 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* Kill Zone Status Banner */}
-        <KillZoneBanner />
+        {/* Session Details Widget */}
+        <SessionDetailsWidget />
 
         {/* Main Dashboard Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
