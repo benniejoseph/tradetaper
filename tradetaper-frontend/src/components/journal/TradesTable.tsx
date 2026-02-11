@@ -577,8 +577,8 @@ export default function TradesTable({ trades, accounts, onRowClick, isLoading, i
                       </button>
                     </div>
                   ) : (
-                  <div className="flex items-center gap-1 justify-end opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                      {/* View Button */}
+                  <div className="flex items-center gap-1 justify-end">
+                      {/* View Button - Always Visible */}
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
@@ -590,7 +590,7 @@ export default function TradesTable({ trades, accounts, onRowClick, isLoading, i
                         <FaExternalLinkAlt className="w-3.5 h-3.5" />
                       </button>
 
-                      {/* Quick View Button */}
+                      {/* Quick View Button - Always Visible */}
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
@@ -602,10 +602,10 @@ export default function TradesTable({ trades, accounts, onRowClick, isLoading, i
                         <FaEye className="w-3.5 h-3.5" />
                       </button>
 
-                      {/* Edit Button */}
+                      {/* Edit Button - Hover Only */}
                       <button
                         onClick={(e) => handleEditClick(trade, e)}
-                        className="p-1.5 text-gray-400 hover:text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-lg transition-all"
+                        className="p-1.5 text-gray-400 hover:text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-lg transition-all opacity-0 group-hover:opacity-100"
                         title="Quick Edit"
                       >
                         <FaEdit className="w-3.5 h-3.5" />
