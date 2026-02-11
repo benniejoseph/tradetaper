@@ -51,22 +51,22 @@ export default function AIInsightsCard() {
   return (
     <div className="col-span-1 sm:col-span-2 lg:col-span-6 bg-white dark:bg-[#022c22] border border-slate-200 dark:border-emerald-900 rounded-xl shadow-sm p-0 overflow-hidden">
       {/* Header / Main Score Area - Emerald Gradient matching request */}
-      <div className="bg-gradient-to-r from-emerald-900 to-emerald-600 p-6 text-white flex flex-col md:flex-row items-center justify-between">
-          <div className="flex items-center gap-4">
-               <div className="p-3 bg-white/10 rounded-full backdrop-blur-sm">
-                  <FaRobot className="w-8 h-8 text-emerald-50" />
+      <div className="bg-gradient-to-r from-emerald-900 to-emerald-600 p-4 text-white flex flex-col md:flex-row items-center justify-between">
+          <div className="flex items-center gap-3">
+               <div className="p-2 bg-white/10 rounded-full backdrop-blur-sm">
+                  <FaRobot className="w-6 h-6 text-emerald-50" />
                </div>
                <div>
-                   <h3 className="text-2xl font-bold text-white">Trading Coach Insight</h3>
+                   <h3 className="text-xl font-bold text-white">Trading Coach Insight</h3>
                    <div className="flex items-center gap-2 mt-1">
                       <span className="text-emerald-50 text-sm opacity-80">AI-Powered Analysis</span>
                       {loading && <FaSpinner className="animate-spin text-white" />}
                    </div>
                </div>
           </div>
-          <div className="text-right mt-4 md:mt-0">
-             <div className="text-5xl font-black">{report?.traderScore || 0}</div>
-             <div className="text-xs uppercase tracking-widest opacity-60">Trader Score</div>
+          <div className="text-right mt-3 md:mt-0">
+             <div className="text-3xl font-black">{report?.traderScore || 0}</div>
+             <div className="text-[10px] uppercase tracking-widest opacity-60">Trader Score</div>
           </div>
       </div>
 
