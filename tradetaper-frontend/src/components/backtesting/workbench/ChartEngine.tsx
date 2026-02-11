@@ -144,10 +144,25 @@ const ChartEngine = forwardRef<ChartEngineRef, ChartEngineProps>((props, ref) =>
   useEffect(() => {
     if (candleSeriesRef.current && props.data.length > 0) {
        try {
-         candleSeriesRef.current.setData(props.data);
-         chartApiRef.current?.timeScale().fitContent();
+         // Validate before updating
+         const validData = props.data.filter(candle => {
+           if (!candle.time || candle.open == null || candle.high == null ||
+               candle.low == null || candle.close == null) {
+             console.warn('Invalid candle in update:', candle);
+             return false;
+           }
+           return true;
+         });
+
+         console.log('Updating chart with', validData.length, 'candles');
+
+         if (validData.length > 0) {
+           candleSeriesRef.current.setData(validData);
+           chartApiRef.current?.timeScale().fitContent();
+         }
        } catch (e) {
          console.error('Error updating data:', e);
+         console.error('Data that caused error:', props.data);
        }
     }
   }, [props.data]);
