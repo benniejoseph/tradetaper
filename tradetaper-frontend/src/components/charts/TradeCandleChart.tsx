@@ -236,13 +236,21 @@ const TradeCandleChart: React.FC<TradeCandleChartProps> = ({
       return nearestCandle.time as UTCTimestamp;
     };
 
-    // Get entry and exit timestamps
-    const entryTs = entryDate ? new Date(entryDate).getTime() / 1000 : null;
-    const exitTs = exitDate ? new Date(exitDate).getTime() / 1000 : null;
+    // Get entry and exit timestamps - with null checks
+    const entryTs = (entryDate && entryDate !== 'undefined') ? new Date(entryDate).getTime() / 1000 : null;
+    const exitTs = (exitDate && exitDate !== 'undefined') ? new Date(exitDate).getTime() / 1000 : null;
+    
+    // Only proceed if dates are valid
+    if (entryTs && !isNaN(entryTs)) {
+      // Use entryTs safely
+    }
+    if (exitTs && !isNaN(exitTs)) {
+      // Use exitTs safely
+    }
     
     // Find nearest candle times for zones
-    const entryCandle = entryTs ? findNearestCandleTime(entryTs) : null;
-    const exitCandle = exitTs ? findNearestCandleTime(exitTs) : null;
+    const entryCandle = (entryTs && !isNaN(entryTs)) ? findNearestCandleTime(entryTs) : null;
+    const exitCandle = (exitTs && !isNaN(exitTs)) ? findNearestCandleTime(exitTs) : null;
 
     // --- PROFIT/LOSS ZONE RECTANGLES ---
     // Using area series for the colored zones (lightweight-charts approach)
