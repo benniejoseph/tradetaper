@@ -305,8 +305,8 @@ export default function ViewTradePage() {
               <SidebarField label="Account" value={trade.account?.name || trade.accountName} icon={<Layers className="w-3 h-3" />} />
               <SidebarField label="Strategy" value={(trade as any).strategy?.name || (trade as any).strategyId || "Manual"} icon={<Brain className="w-3 h-3" />} />
               <SidebarField label="Asset" value={trade.assetType} icon={<Target className="w-3 h-3" />} />
-              <SidebarField label="Entry" value={`${formatPrice(trade.entryPrice)} @ ${formatDateFns(new Date(trade.entryDate), 'MMM dd, HH:mm')}`} icon={<Clock className="w-3 h-3" />} />
-              <SidebarField label="Exit" value={trade.exitDate ? `${formatPrice(trade.exitPrice)} @ ${formatDateFns(new Date(trade.exitDate), 'MMM dd, HH:mm')}` : 'Open'} icon={<Clock className="w-3 h-3" />} />
+              <SidebarField label="Entry" value={trade.entryDate ? `${formatPrice(trade.entryPrice)} @ ${formatDateFns(new Date(trade.entryDate), 'MMM dd, HH:mm')}` : formatPrice(trade.entryPrice)} icon={<Clock className="w-3 h-3" />} />
+              <SidebarField label="Exit" value={trade.exitDate ? `${formatPrice(trade.exitPrice)} @ ${formatDateFns(new Date(trade.exitDate), 'MMM dd, HH:mm')}` : trade.exitPrice ? formatPrice(trade.exitPrice) : 'Open'} icon={<Clock className="w-3 h-3" />} />
               <SidebarField label="Quantity" value={trade.quantity?.toLocaleString()} icon={<DollarSign className="w-3 h-3" />} />
               {trade.externalId && <SidebarField label="Position ID" value={trade.externalId} icon={<Terminal className="w-3 h-3" />} />}
             </div>
