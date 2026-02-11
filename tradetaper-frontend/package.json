@@ -27,7 +27,7 @@
     "framer-motion": "^12.3.0",
     "html2canvas": "^1.4.1",
     "isomorphic-dompurify": "^2.16.0",
-    "lightweight-charts": "^5.1.0",
+    "lightweight-charts": "^4.2.0",
     "lucide-react": "^0.513.0",
     "maath": "^0.10.8",
     "next": "^15.3.6",

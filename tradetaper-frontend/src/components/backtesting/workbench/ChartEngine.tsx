@@ -2,22 +2,21 @@
 'use client';
 
 import React, { useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
-import type { IChartApi, ISeriesApi, CandlestickData } from 'lightweight-charts';
 
 interface ChartEngineProps {
-  data: CandlestickData[];
-  markers?: any[]; // For trade markers later
+  data: any[];
+  markers?: any[];
 }
 
 export interface ChartEngineRef {
-  updateLastCandle: (candle: CandlestickData) => void;
-  setCandles: (candles: CandlestickData[]) => void;
+  updateLastCandle: (candle: any) => void;
+  setCandles: (candles: any[]) => void;
 }
 
 const ChartEngine = forwardRef<ChartEngineRef, ChartEngineProps>((props, ref) => {
   const chartContainerRef = useRef<HTMLDivElement>(null);
-  const chartApiRef = useRef<IChartApi | null>(null);
-  const candleSeriesRef = useRef<ISeriesApi<'Candlestick'> | any>(null);
+  const chartApiRef = useRef<any>(null);
+  const candleSeriesRef = useRef<any>(null);
   const resizeHandlerRef = useRef<(() => void) | null>(null);
 
   useImperativeHandle(ref, () => ({
@@ -35,14 +34,17 @@ const ChartEngine = forwardRef<ChartEngineRef, ChartEngineProps>((props, ref) =>
     let isMounted = true;
 
     // Dynamically import lightweight-charts to avoid SSR issues
-    import('lightweight-charts').then(({ createChart, ColorType }) => {
+    import('lightweight-charts').then((LightweightCharts) => {
       if (!chartContainerRef.current || !isMounted) return;
 
       try {
+        // v4 API uses default export
+        const { createChart } = LightweightCharts;
+
         // Initialize Chart
         const chart = createChart(chartContainerRef.current, {
           layout: {
-            background: { type: ColorType.Solid, color: '#020617' },
+            backgroundColor: '#020617',
             textColor: '#94A3B8',
           },
           grid: {
@@ -53,14 +55,10 @@ const ChartEngine = forwardRef<ChartEngineRef, ChartEngineProps>((props, ref) =>
           height: 500,
         });
 
-        // Verify chart was created successfully
-        if (!chart || typeof chart.addCandlestickSeries !== 'function') {
-          console.error('Chart created but addCandlestickSeries not available');
-          console.log('Chart object:', chart);
-          console.log('Chart methods:', Object.keys(chart || {}));
-          return;
-        }
+        console.log('Chart created:', chart);
+        console.log('Available methods:', Object.keys(chart));
 
+        // Add candlestick series
         const candleSeries = chart.addCandlestickSeries({
           upColor: '#10B981',
           downColor: '#EF4444',
@@ -69,7 +67,10 @@ const ChartEngine = forwardRef<ChartEngineRef, ChartEngineProps>((props, ref) =>
           wickDownColor: '#EF4444',
         });
 
+        console.log('Candlestick series created:', candleSeries);
+
         if (props.data.length > 0) {
+          console.log('Setting data:', props.data.length, 'candles');
           candleSeries.setData(props.data);
         }
 
@@ -91,12 +92,15 @@ const ChartEngine = forwardRef<ChartEngineRef, ChartEngineProps>((props, ref) =>
         resizeHandlerRef.current = handleResize;
         window.addEventListener('resize', handleResize);
 
-        console.log('Chart initialized successfully');
+        // Fit content
+        chart.timeScale().fitContent();
+
+        console.log('✅ Chart initialized successfully');
       } catch (error) {
-        console.error('Error initializing chart:', error);
+        console.error('❌ Error initializing chart:', error);
       }
     }).catch(error => {
-      console.error('Error loading lightweight-charts:', error);
+      console.error('❌ Error loading lightweight-charts:', error);
     });
 
     // Cleanup
@@ -121,9 +125,11 @@ const ChartEngine = forwardRef<ChartEngineRef, ChartEngineProps>((props, ref) =>
   // Update data if props change
   useEffect(() => {
     if (candleSeriesRef.current && props.data.length > 0) {
-       const currentDataLength = candleSeriesRef.current.data?.()?.length || 0;
-       if (props.data.length !== currentDataLength) {
+       try {
          candleSeriesRef.current.setData(props.data);
+         chartApiRef.current?.timeScale().fitContent();
+       } catch (e) {
+         console.error('Error updating data:', e);
        }
     }
   }, [props.data]);
@@ -131,7 +137,11 @@ const ChartEngine = forwardRef<ChartEngineRef, ChartEngineProps>((props, ref) =>
   // Update Markers
   useEffect(() => {
      if (candleSeriesRef.current && props.markers) {
-         candleSeriesRef.current.setMarkers(props.markers);
+         try {
+           candleSeriesRef.current.setMarkers(props.markers);
+         } catch (e) {
+           console.error('Error updating markers:', e);
+         }
      }
   }, [props.markers]);
 
