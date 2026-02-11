@@ -15,11 +15,29 @@ import {
 const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'https://api.tradetaper.com/api/v1').trim();
 
 const getAuthHeaders = () => {
-  return {
+  // Get token from Redux store (persisted in localStorage)
+  const persistedState = typeof window !== 'undefined' ? localStorage.getItem('persist:root') : null;
+  let token = null;
+
+  if (persistedState) {
+    try {
+      const parsed = JSON.parse(persistedState);
+      const auth = JSON.parse(parsed.auth || '{}');
+      token = auth.token;
+    } catch (e) {
+      console.error('Failed to parse auth token:', e);
+    }
+  }
+
+  const headers: Record<string, string> = {
     'Content-Type': 'application/json',
-    // Auth is handled via HTTP-only cookies (withCredentials)
-    // No Authorization header needed
   };
+
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  return headers;
 };
 
   //Helper to transform backend response (decimal strings) to numbers
