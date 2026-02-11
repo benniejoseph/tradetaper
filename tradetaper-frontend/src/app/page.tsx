@@ -36,7 +36,7 @@ const FeatureCard = ({ icon: Icon, title, description }: { icon: any, title: str
         <Icon className="text-2xl text-emerald-400 group-hover:text-emerald-300 transition-colors" />
       </div>
       <h3 className="text-xl font-bold text-white mb-3 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-white group-hover:to-emerald-200 transition-all">{title}</h3>
-      <p className="text-slate-400 group-hover:text-slate-300 transition-colors leading-relaxed">
+      <p className="text-neutral-400 group-hover:text-neutral-300 transition-colors leading-relaxed">
         {description}
       </p>
     </div>
@@ -89,7 +89,7 @@ export default function LandingPage() {
               <a 
                 key={item} 
                 href={`#${item.toLowerCase()}`} 
-                className="px-4 py-2 text-sm font-medium text-slate-400 hover:text-white transition-colors hover:bg-white/5 rounded-lg"
+                className="px-4 py-2 text-sm font-medium text-neutral-400 hover:text-white transition-colors hover:bg-white/5 rounded-lg"
               >
                 {item}
               </a>
@@ -101,7 +101,7 @@ export default function LandingPage() {
             <div className="hidden md:flex items-center space-x-3">
               <Link 
                 href="/login"
-                className="px-5 py-2 text-sm font-medium text-slate-300 hover:text-white transition-colors"
+                className="px-5 py-2 text-sm font-medium text-neutral-300 hover:text-white transition-colors"
               >
                 Log In
               </Link>
@@ -115,7 +115,7 @@ export default function LandingPage() {
 
             {/* Mobile Menu Button */}
              <button 
-              className="md:hidden text-slate-300 hover:text-white p-2"
+              className="md:hidden text-neutral-300 hover:text-white p-2"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             >
               {mobileMenuOpen ? <FaTimes size={24} /> : <FaBars size={24} />}
@@ -350,7 +350,7 @@ export default function LandingPage() {
                         <div className="mt-0.5 w-5 h-5 rounded-full bg-emerald-500/20 flex items-center justify-center flex-shrink-0">
                              <FaCheck className="text-[10px] text-emerald-400" />
                         </div>
-                       <span className="text-slate-300 text-sm">{feature}</span>
+                       <span className="text-neutral-400 text-sm">{feature}</span>
                      </li>
                   ))}
                 </ul>
