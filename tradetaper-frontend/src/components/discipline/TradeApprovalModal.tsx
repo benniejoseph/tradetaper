@@ -148,20 +148,22 @@ export const TradeApprovalModal: React.FC<TradeApprovalModalProps> = ({
     const calculatedLot = calculateLotSize();
 
     try {
+      // Map discipline data to standard trade format
       const tradeDto = {
         accountId: selectedAccountId,
-        strategyId: selectedStrategy.id,
+        assetType: 'Forex' as any, // AssetType.FOREX
         symbol,
-        direction,
-        lotSize: calculatedLot,
+        direction: direction as any, // TradeDirection
+        status: 'Open' as any, // TradeStatus
+        entryDate: new Date().toISOString(),
         entryPrice,
+        quantity: calculatedLot,
         stopLoss,
         takeProfit: takeProfit || undefined,
-        riskPercent,
-        checklistResponses: checklistItems,
+        notes: `Strategy: ${selectedStrategy.name}\nRisk: ${riskPercent}%\nChecklist completed: ${checklistItems.filter(i => i.checked).length}/${checklistItems.length}`,
       };
       
-      const newTrade = await tradesService.createFromDiscipline(tradeDto);
+      const newTrade = await tradesService.createTrade(tradeDto);
       
       // Navigate to trade view
       router.push(`/trades/${newTrade.id}`);
