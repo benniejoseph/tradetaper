@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from 'react';
-import { createChart, ColorType, CandlestickData, Time, UTCTimestamp, IChartApi, CandlestickSeries, createSeriesMarkers } from 'lightweight-charts';
+import { createChart, ColorType, CandlestickData, Time, UTCTimestamp, IChartApi } from 'lightweight-charts';
 import api from '@/services/api'; // Assuming you have an axios instance
 import { FaSpinner, FaChartLine } from 'react-icons/fa';
 
@@ -209,7 +209,7 @@ const TradeCandleChart: React.FC<TradeCandleChartProps> = ({
     
     chartRef.current = chart;
 
-    const candleSeries = chart.addSeries(CandlestickSeries, {
+    const candleSeries = chart.addCandlestickSeries({
         upColor: '#10b981', // emerald-500
         downColor: '#ef4444', // red-500
         borderUpColor: '#10b981',
@@ -260,7 +260,7 @@ const TradeCandleChart: React.FC<TradeCandleChartProps> = ({
           const bottomPrice = Math.min(entryPrice, takeProfit);
           
           // Create a baseline series for the profit zone
-          const profitZone = chart.addSeries(CandlestickSeries, {
+          const profitZone = chart.addCandlestickSeries({
             upColor: 'rgba(16, 185, 129, 0.2)',
             downColor: 'rgba(16, 185, 129, 0.2)',
             borderUpColor: 'transparent',
@@ -284,7 +284,7 @@ const TradeCandleChart: React.FC<TradeCandleChartProps> = ({
           const topPrice = Math.max(entryPrice, stopLoss);
           const bottomPrice = Math.min(entryPrice, stopLoss);
           
-          const lossZone = chart.addSeries(CandlestickSeries, {
+          const lossZone = chart.addCandlestickSeries({
             upColor: 'rgba(239, 68, 68, 0.2)',
             downColor: 'rgba(239, 68, 68, 0.2)',
             borderUpColor: 'transparent',
