@@ -6,7 +6,7 @@ import { format, parseISO, differenceInMinutes, differenceInHours, differenceInD
 import React, { useState, useMemo, useCallback } from 'react'; // Added useCallback
 import { useDispatch } from 'react-redux';
 import { updateTrade, deleteTrades, bulkUpdateTrades } from '@/store/features/tradesSlice';
-import { FaChevronLeft, FaChevronRight, FaEdit, FaCheck, FaTimes, FaTrash, FaPen } from 'react-icons/fa'; // Import icons for pagination
+import { FaChevronLeft, FaChevronRight, FaEdit, FaCheck, FaTimes, FaTrash, FaPen, FaExternalLinkAlt, FaEye } from 'react-icons/fa'; // Import icons for pagination
 import { CurrencyAmount } from '@/components/common/CurrencyAmount';
 import { AppDispatch } from '@/store/store';
 import { FaSpinner } from 'react-icons/fa';
@@ -577,13 +577,40 @@ export default function TradesTable({ trades, accounts, onRowClick, isLoading, i
                       </button>
                     </div>
                   ) : (
-                    <button
-                      onClick={(e) => handleEditClick(trade, e)}
-                      className="p-2 text-gray-400 hover:text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-lg transition-all opacity-0 group-hover:opacity-100"
-                      title="Quick Edit"
-                    >
-                      <FaEdit className="w-4 h-4" />
-                    </button>
+                  <div className="flex items-center gap-1 justify-end opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                      {/* View Button */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          window.location.href = `/journal/view/${trade.id}`;
+                        }}
+                        className="p-1.5 text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-all"
+                        title="View Details"
+                      >
+                        <FaExternalLinkAlt className="w-3.5 h-3.5" />
+                      </button>
+
+                      {/* Quick View Button */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onRowClick(trade);
+                        }}
+                        className="p-1.5 text-gray-400 hover:text-purple-500 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-lg transition-all"
+                        title="Quick View"
+                      >
+                        <FaEye className="w-3.5 h-3.5" />
+                      </button>
+
+                      {/* Edit Button */}
+                      <button
+                        onClick={(e) => handleEditClick(trade, e)}
+                        className="p-1.5 text-gray-400 hover:text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-lg transition-all"
+                        title="Quick Edit"
+                      >
+                        <FaEdit className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   )}
                 </td>
               </tr>
