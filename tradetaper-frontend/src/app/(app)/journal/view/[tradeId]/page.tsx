@@ -74,6 +74,18 @@ export default function ViewTradePage() {
 
   const formatPrice = (price?: number) => price?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 5 }) || '—';
 
+  // Safe date formatting helper
+  const formatTradeDate = (dateValue: any): string | null => {
+    if (!dateValue || dateValue === 'undefined' || dateValue === 'null') return null;
+    try {
+      const date = new Date(dateValue);
+      if (isNaN(date.getTime())) return null;
+      return formatDateFns(date, 'MMM dd, HH:mm');
+    } catch {
+      return null;
+    }
+  };
+
   if (isLoading && !trade) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
@@ -305,8 +317,24 @@ export default function ViewTradePage() {
               <SidebarField label="Account" value={trade.account?.name || trade.accountName} icon={<Layers className="w-3 h-3" />} />
               <SidebarField label="Strategy" value={(trade as any).strategy?.name || (trade as any).strategyId || "Manual"} icon={<Brain className="w-3 h-3" />} />
               <SidebarField label="Asset" value={trade.assetType} icon={<Target className="w-3 h-3" />} />
-              <SidebarField label="Entry" value={trade.entryDate ? `${formatPrice(trade.entryPrice)} @ ${formatDateFns(new Date(trade.entryDate), 'MMM dd, HH:mm')}` : formatPrice(trade.entryPrice)} icon={<Clock className="w-3 h-3" />} />
-              <SidebarField label="Exit" value={trade.exitDate ? `${formatPrice(trade.exitPrice)} @ ${formatDateFns(new Date(trade.exitDate), 'MMM dd, HH:mm')}` : trade.exitPrice ? formatPrice(trade.exitPrice) : 'Open'} icon={<Clock className="w-3 h-3" />} />
+              <SidebarField 
+                label="Entry" 
+                value={(() => {
+                  const dateStr = formatTradeDate(trade.entryDate);
+                  return dateStr ? `${formatPrice(trade.entryPrice)} @ ${dateStr}` : formatPrice(trade.entryPrice);
+                })()} 
+                icon={<Clock className="w-3 h-3" />} 
+              />
+              <SidebarField 
+                label="Exit" 
+                value={(() => {
+                  const dateStr = formatTradeDate(trade.exitDate);
+                  if (dateStr) return `${formatPrice(trade.exitPrice)} @ ${dateStr}`;
+                  if (trade.exitPrice) return formatPrice(trade.exitPrice);
+                  return 'Open';
+                })()} 
+                icon={<Clock className="w-3 h-3" />} 
+              />
               <SidebarField label="Quantity" value={trade.quantity?.toLocaleString()} icon={<DollarSign className="w-3 h-3" />} />
               {trade.externalId && <SidebarField label="Position ID" value={trade.externalId} icon={<Terminal className="w-3 h-3" />} />}
             </div>
