@@ -2,7 +2,9 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between } from 'typeorm';
 import { MarketCandle } from '../entities/market-candle.entity';
-import { YahooFinanceService } from '../../integrations/yahoo-finance/yahoo-finance.service';
+import { ConfigService } from '@nestjs/config';
+import { HttpService } from '@nestjs/axios';
+import { firstValueFrom } from 'rxjs';
 
 @Injectable()
 export class CandleManagementService {
@@ -11,7 +13,8 @@ export class CandleManagementService {
   constructor(
     @InjectRepository(MarketCandle)
     private marketCandleRepo: Repository<MarketCandle>,
-    private yahooFinanceService: YahooFinanceService,
+    private configService: ConfigService,
+    private httpService: HttpService,
   ) {}
 
   /**
@@ -48,11 +51,11 @@ export class CandleManagementService {
       return existing;
     }
 
-    // 2. Fetch from Yahoo Finance
+    // 2. Fetch from TwelveData
     this.logger.log(
-      `Cache MISS: Fetching from Yahoo Finance (${symbol} ${timeframe})`,
+      `Cache MISS: Fetching from TwelveData (${symbol} ${timeframe})`,
     );
-    const candles = await this.yahooFinanceService.getCandles(
+    const candles = await this.fetchFromTwelveData(
       symbol,
       timeframe,
       startDate,
@@ -61,7 +64,7 @@ export class CandleManagementService {
 
     if (candles.length === 0) {
       this.logger.warn(
-        `No candles returned from Yahoo Finance for ${symbol} ${timeframe}`,
+        `No candles returned from TwelveData for ${symbol} ${timeframe}`,
       );
       return existing; // Return whatever we have cached
     }
@@ -181,5 +184,150 @@ export class CandleManagementService {
 
     this.logger.log(`Deleted ${result.affected} old candles`);
     return result.affected || 0;
+  }
+
+  /**
+   * Fetch candles from TwelveData API
+   */
+  private async fetchFromTwelveData(
+    symbol: string,
+    timeframe: string,
+    startDate: Date,
+    endDate: Date,
+  ): Promise<any[]> {
+    const apiKey = this.configService.get<string>('TWELVE_DATA_API_KEY');
+
+    if (!apiKey) {
+      this.logger.warn('TWELVE_DATA_API_KEY not configured');
+      return [];
+    }
+
+    // Convert symbol to TwelveData format
+    const twelveSymbol = this.toTwelveDataSymbol(symbol);
+    const interval = this.toTwelveDataInterval(timeframe);
+
+    const startStr = startDate.toISOString().split('T')[0]; // YYYY-MM-DD
+    const endStr = endDate.toISOString().split('T')[0];
+
+    this.logger.log(
+      `Fetching from TwelveData: ${twelveSymbol} ${interval} from ${startStr} to ${endStr}`,
+    );
+
+    try {
+      const url = 'https://api.twelvedata.com/time_series';
+      const response = await firstValueFrom(
+        this.httpService.get(url, {
+          params: {
+            symbol: twelveSymbol,
+            interval,
+            start_date: startStr,
+            end_date: endStr,
+            apikey: apiKey,
+            outputsize: 5000, // Max allowed
+          },
+          timeout: 30000,
+        }),
+      );
+
+      if (response.data.status === 'error') {
+        this.logger.error(
+          `TwelveData API error: ${response.data.message || 'Unknown error'}`,
+        );
+        return [];
+      }
+
+      const values = response.data.values || [];
+
+      if (values.length === 0) {
+        this.logger.warn('No data returned from TwelveData');
+        return [];
+      }
+
+      // Transform to our candle format
+      return values
+        .map((candle: any) => ({
+          time: Math.floor(new Date(candle.datetime).getTime() / 1000),
+          open: parseFloat(candle.open),
+          high: parseFloat(candle.high),
+          low: parseFloat(candle.low),
+          close: parseFloat(candle.close),
+          tickVolume: parseFloat(candle.volume || 0),
+        }))
+        .reverse(); // TwelveData returns newest first
+    } catch (error) {
+      this.logger.error(
+        `Failed to fetch from TwelveData: ${error.message}`,
+        error.stack,
+      );
+      return [];
+    }
+  }
+
+  /**
+   * Convert symbol to TwelveData format
+   */
+  private toTwelveDataSymbol(symbol: string): string {
+    const commodityMapping: Record<string, string> = {
+      XAUUSD: 'XAU/USD', // Gold
+      XAGUSD: 'XAG/USD', // Silver
+      XTIUSD: 'WTI/USD', // Oil WTI
+      XBRUSD: 'BRENT/USD', // Brent Oil
+    };
+
+    if (commodityMapping[symbol]) {
+      return commodityMapping[symbol];
+    }
+
+    // Forex pairs - add slash
+    if (this.isForex(symbol) && !symbol.includes('/')) {
+      return `${symbol.slice(0, 3)}/${symbol.slice(3, 6)}`;
+    }
+
+    // Crypto - add slash
+    if (this.isCrypto(symbol)) {
+      const base = symbol.replace('USD', '').replace('USDT', '');
+      return `${base}/USD`;
+    }
+
+    return symbol;
+  }
+
+  /**
+   * Convert timeframe to TwelveData interval
+   */
+  private toTwelveDataInterval(timeframe: string): string {
+    const mapping: Record<string, string> = {
+      '1m': '1min',
+      '5m': '5min',
+      '15m': '15min',
+      '30m': '30min',
+      '1h': '1h',
+      '4h': '4h',
+      '1d': '1day',
+    };
+    return mapping[timeframe] || '1h';
+  }
+
+  /**
+   * Check if symbol is forex
+   */
+  private isForex(symbol: string): boolean {
+    const forexPairs = ['EUR', 'GBP', 'USD', 'JPY', 'CHF', 'CAD', 'AUD', 'NZD'];
+    return (
+      symbol.length === 6 &&
+      forexPairs.includes(symbol.slice(0, 3)) &&
+      forexPairs.includes(symbol.slice(3, 6))
+    );
+  }
+
+  /**
+   * Check if symbol is crypto
+   */
+  private isCrypto(symbol: string): boolean {
+    return (
+      symbol.includes('BTC') ||
+      symbol.includes('ETH') ||
+      symbol.includes('USDT')
+    );
   }
 }

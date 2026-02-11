@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { HttpModule } from '@nestjs/axios';
 import { BacktestingController } from './backtesting.controller';
 import { BacktestingService } from './backtesting.service';
 import { TagService } from './services/tag.service';
@@ -10,7 +11,6 @@ import { BacktestTrade } from './entities/backtest-trade.entity';
 import { MarketLog } from './entities/market-log.entity';
 import { MarketCandle } from './entities/market-candle.entity';
 import { ReplaySession } from './entities/replay-session.entity';
-import { YahooFinanceService } from '../integrations/yahoo-finance/yahoo-finance.service';
 
 @Module({
   imports: [
@@ -20,6 +20,7 @@ import { YahooFinanceService } from '../integrations/yahoo-finance/yahoo-finance
       MarketCandle,
       ReplaySession,
     ]),
+    HttpModule,
   ],
   controllers: [BacktestingController],
   providers: [
@@ -28,7 +29,6 @@ import { YahooFinanceService } from '../integrations/yahoo-finance/yahoo-finance
     BacktestInsightsService,
     CandleManagementService,
     ReplaySessionService,
-    YahooFinanceService,
   ],
   exports: [
     BacktestingService,
