@@ -2,6 +2,8 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useSelector } from 'react-redux';
+import { RootState } from '@/store/store';
 
 interface SessionConfigModalProps {
   isOpen: boolean;
@@ -32,6 +34,9 @@ export default function SessionConfigModal({ isOpen, onClose }: SessionConfigMod
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Get auth token from Redux store
+  const token = useSelector((state: RootState) => state.auth.token);
+
   // Form state
   const [symbol, setSymbol] = useState('XAUUSD');
   const [timeframe, setTimeframe] = useState('1m');
@@ -55,12 +60,13 @@ export default function SessionConfigModal({ isOpen, onClose }: SessionConfigMod
       });
       const { csrfToken } = await csrfResponse.json();
 
-      // Step 2: Create a new replay session with CSRF token
+      // Step 2: Create a new replay session with CSRF token and Bearer token
       const response = await fetch(`${apiUrl}/backtesting/sessions`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'X-CSRF-Token': csrfToken,
+          ...(token && { 'Authorization': `Bearer ${token}` }),
         },
         credentials: 'include',
         body: JSON.stringify({
