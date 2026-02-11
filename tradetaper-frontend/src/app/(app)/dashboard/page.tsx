@@ -575,7 +575,7 @@ export default function DashboardPage() {
                   <>
                     <div className="lg:col-span-6 flex items-center gap-2 mt-4 mb-2">
                        <FaBrain className="text-indigo-500 w-5 h-5" />
-                       <h2 className="text-xl font-bold text-gray-900 dark:text-white">Deep Dive Analytics</h2>
+                       <h2 className="text-xl font-bold text-gray-900 dark:text-white">Market Intelligence</h2>
                     </div>
 
                     {/* Hourly Performance */}
