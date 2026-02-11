@@ -83,30 +83,60 @@ export default function NotificationList({ showFilters = true }: NotificationLis
     }));
   };
 
+  // Helper: Clean title and get severity
+  const getEconomicInfo = (notification: Notification) => {
+    let title = notification.title;
+    let severity: 'High' | 'Medium' | 'Low' = 'Medium';
+
+    // Infer severity from emoji or priority
+    if (title.includes('🔴') || notification.priority === 'urgent' || notification.priority === 'high') {
+      severity = 'High';
+    } else if (title.includes('🟠') || title.includes('🟧')) {
+      severity = 'Medium';
+    } else if (title.includes('🟡') || title.includes('🟨') || notification.priority === 'low') {
+      severity = 'Low';
+    }
+
+    // Clean title - Remove emoji warnings and other indicators
+    title = title.replace(/^[🔴🟠🟡🟧🟨⚠️\s]+|[🔴🟠🟡🟧🟨⚠️\s]+$/g, '').trim();
+
+    return { title, severity };
+  };
+
   // Helper: Icon & Color logic
-  const getNotificationStyle = (type: NotificationType) => {
-    switch (type) {
+  const getNotificationStyle = (notification: Notification) => {
+    const isEconomic = notification.type.startsWith('economic_event');
+    
+    if (isEconomic) {
+      const { severity, title } = getEconomicInfo(notification);
+      switch (severity) {
+        case 'High':
+          return { icon: <FaCalendarAlt />, color: 'text-red-700 dark:text-red-400', bg: 'bg-red-50 dark:bg-red-900/10', badge: 'High', title };
+        case 'Medium':
+          return { icon: <FaCalendarAlt />, color: 'text-orange-700 dark:text-orange-400', bg: 'bg-orange-50 dark:bg-orange-900/10', badge: 'Medium', title };
+        case 'Low':
+          return { icon: <FaCalendarAlt />, color: 'text-yellow-700 dark:text-yellow-400', bg: 'bg-yellow-50 dark:bg-yellow-900/10', badge: 'Low', title };
+      }
+    }
+
+    switch (notification.type) {
       case NotificationType.TRADE_CREATED:
       case NotificationType.TRADE_UPDATED:
       case NotificationType.TRADE_CLOSED:
-        return { icon: <FaChartLine />, color: 'text-emerald-500', bg: 'bg-emerald-100 dark:bg-emerald-900/30' };
+        return { icon: <FaChartLine />, color: 'text-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-900/20' };
       case NotificationType.MT5_SYNC_COMPLETE:
-        return { icon: <FaSync />, color: 'text-blue-500', bg: 'bg-blue-100 dark:bg-blue-900/30' };
+        return { icon: <FaSync />, color: 'text-blue-500', bg: 'bg-blue-50 dark:bg-blue-900/20' };
       case NotificationType.MT5_SYNC_ERROR:
-        return { icon: <FaExclamationTriangle />, color: 'text-red-500', bg: 'bg-red-100 dark:bg-red-900/30' };
-      case NotificationType.ECONOMIC_EVENT_1H:
-      case NotificationType.ECONOMIC_EVENT_15M:
-      case NotificationType.ECONOMIC_EVENT_NOW:
-        return { icon: <FaCalendarAlt />, color: 'text-orange-500', bg: 'bg-orange-100 dark:bg-orange-900/30' };
+        return { icon: <FaExclamationTriangle />, color: 'text-red-500', bg: 'bg-red-50 dark:bg-red-900/20' };
       case NotificationType.AI_INSIGHT:
-        return { icon: <FaBrain />, color: 'text-purple-500', bg: 'bg-purple-100 dark:bg-purple-900/30' };
+        return { icon: <FaBrain />, color: 'text-purple-500', bg: 'bg-purple-50 dark:bg-purple-900/20' };
       case NotificationType.STRATEGY_ALERT:
-        return { icon: <FaExclamationTriangle />, color: 'text-yellow-500', bg: 'bg-yellow-100 dark:bg-yellow-900/30' };
+        return { icon: <FaExclamationTriangle />, color: 'text-yellow-500', bg: 'bg-yellow-50 dark:bg-yellow-900/20' };
       case NotificationType.ACCOUNT_LINKED:
       case NotificationType.ACCOUNT_UNLINKED:
-        return { icon: <FaLink />, color: 'text-blue-500', bg: 'bg-blue-100 dark:bg-blue-900/30' };
+        return { icon: <FaLink />, color: 'text-blue-500', bg: 'bg-blue-50 dark:bg-blue-900/20' };
       default:
-        return { icon: <FaBell />, color: 'text-gray-500', bg: 'bg-gray-100 dark:bg-gray-800' };
+        return { icon: <FaBell />, color: 'text-gray-500', bg: 'bg-gray-50 dark:bg-gray-800' };
     }
   };
 
@@ -219,32 +249,31 @@ export default function NotificationList({ showFilters = true }: NotificationLis
         ) : (
           Object.entries(groupedNotifications).map(([date, items]) => (
             <div key={date} className="relative">
-              <div className="sticky top-[72px] z-10 py-2 bg-gray-50/95 dark:bg-gray-900/95 backdrop-blur-sm mb-2">
+              <div className="sticky top-[72px] z-10 py-2 bg-gray-50/95 dark:bg-gray-900/95 backdrop-blur-sm mb-4">
                 <h3 className="text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 pl-1">
                   {date}
                 </h3>
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-4">
                 <AnimatePresence>
                   {items.map((notification) => {
-                    const style = getNotificationStyle(notification.type);
+                    const style = getNotificationStyle(notification);
                     const isUnread = notification.status !== 'read';
 
                     return (
                       <motion.div
                         layout
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
+                        initial={{ opacity: 0, scale: 0.98 }}
+                        animate={{ opacity: 1, scale: 1 }}
                         exit={{ opacity: 0, height: 0 }}
                         key={notification.id}
                         onClick={() => handleNotificationClick(notification)}
                         className={`
-                          group relative flex items-start gap-4 p-4 rounded-xl cursor-pointer transition-all duration-200
-                          ${isUnread 
-                            ? 'bg-white dark:bg-gray-800 shadow-sm ring-1 ring-gray-200 dark:ring-gray-700' 
-                            : 'bg-transparent hover:bg-gray-100 dark:hover:bg-gray-800/50'
-                          }
+                          group relative flex items-start gap-4 p-5 rounded-xl cursor-pointer transition-all duration-200
+                          bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700
+                          hover:shadow-md hover:border-gray-300 dark:hover:border-gray-600
+                          ${isUnread ? 'shadow-sm ring-1 ring-emerald-500/20' : 'shadow-sm'}
                         `}
                       >
                         {/* Icon */}
@@ -259,9 +288,20 @@ export default function NotificationList({ showFilters = true }: NotificationLis
                         <div className="flex-1 min-w-0 pt-0.5">
                           <div className="flex items-start justify-between gap-2">
                              <div>
-                               <p className={`text-sm leading-snug ${isUnread ? 'font-semibold text-gray-900 dark:text-white' : 'font-medium text-gray-700 dark:text-gray-300'}`}>
-                                 {notification.title}
-                               </p>
+                               <div className="flex items-center gap-2 flex-wrap">
+                                 {/* Severity Badge */}
+                                 {style.badge && (
+                                   <span className={`
+                                     ${style.bg} ${style.color}
+                                     px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide border border-current/10
+                                   `}>
+                                     {style.badge}
+                                   </span>
+                                 )}
+                                 <p className={`text-sm leading-snug ${isUnread ? 'font-semibold text-gray-900 dark:text-white' : 'font-medium text-gray-700 dark:text-gray-300'}`}>
+                                   {style.title || notification.title}
+                                 </p>
+                               </div>
                                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 line-clamp-2">
                                  {notification.message}
                                </p>
