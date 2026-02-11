@@ -14,7 +14,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '@/store/store';
 import { logout } from '@/store/features/authSlice';
 import { useRouter } from 'next/navigation';
-import { ThemeToggle } from '@/components/common/ThemeToggle';
+
 
 // Define props for Sidebar
 interface SidebarProps {
@@ -329,14 +329,7 @@ export default function Sidebar({ isOpen, toggleSidebar, isMobile, onExpandChang
             </div>
           </div>
           
-          {/* Theme Toggle */}
-          <div className={`mt-4 flex ${isExpanded ? 'justify-between' : 'justify-center'} items-center`}>
-             <ThemeToggle 
-               showLabel={isExpanded} 
-               variant={isExpanded ? 'button' : 'icon'} 
-               className={isExpanded ? 'w-full justify-center' : ''} 
-             />
-          </div>
+
         </div>
       </aside>
     </>

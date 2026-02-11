@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { FaBars } from 'react-icons/fa';
 import { ThemeToggle } from '@/components/common/ThemeToggle';
+import Link from 'next/link';
 import { useSelector, useDispatch } from 'react-redux';
 import { AppDispatch, RootState } from '@/store/store';
 import { Bell, Search, ChevronDown, DollarSign } from 'lucide-react';
@@ -154,19 +155,19 @@ function ContentHeader({ toggleSidebar, isMobile, isSidebarExpanded }: ContentHe
 
             {/* User Avatar - Only show on desktop */}
             {!isMobile && user && (
-              <div className="hidden sm:flex items-center space-x-3 flex-shrink-0">
-                <div className="w-8 h-8 rounded-full bg-gradient-to-r from-emerald-500 to-emerald-600 flex items-center justify-center text-white font-semibold text-sm">
+              <Link href="/profile" className="hidden sm:flex items-center space-x-3 flex-shrink-0 hover:bg-gray-100 dark:hover:bg-[#0A0A0A] p-1.5 rounded-lg transition-colors group">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-r from-emerald-500 to-emerald-600 flex items-center justify-center text-white font-semibold text-sm group-hover:shadow-md transition-shadow">
                   {(user.firstName?.[0] || user.email?.[0] || 'U').toUpperCase()}
                 </div>
-                <div className="hidden lg:block min-w-0">
-                  <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                <div className="hidden lg:block min-w-0 text-left">
+                  <p className="text-sm font-medium text-gray-900 dark:text-white truncate group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
                     {user.firstName || user.email?.split('@')[0]}
                   </p>
                   <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
                     {user.email}
                   </p>
                 </div>
-              </div>
+              </Link>
             )}
           </div>
         </div>
