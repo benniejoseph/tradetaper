@@ -13,7 +13,6 @@ import { Notification, NotificationType } from '@/services/notificationService';
 import { useRouter } from 'next/navigation';
 import {
   FaBell,
-  FaCheck,
   FaCheckDouble,
   FaTimes,
   FaChartLine,
@@ -25,6 +24,72 @@ import {
   FaSync,
 } from 'react-icons/fa';
 import { formatDistanceToNow } from 'date-fns';
+
+// Helper: Parse economic event data from title or type
+const getEconomicInfo = (notification: Notification): { severity: 'High' | 'Medium' | 'Low', title: string } => {
+  let title = notification.title;
+  let severity: 'High' | 'Medium' | 'Low' = 'Low';
+
+  // 1. Try to determine severity from priority field
+  if (notification.priority === 'urgent') severity = 'High';
+  else if (notification.priority === 'high') severity = 'High';
+  else if (notification.priority === 'medium') severity = 'Medium';
+  else if (notification.priority === 'low') severity = 'Low';
+
+  // 2. Fallback: Parse from emoji in title if priority didn't give High/Medium
+  // (Sometimes priority might be missing or default, but title has emojis)
+  if (title.includes('🔴') || title.includes('High Impact')) severity = 'High';
+  else if (title.includes('🟠') || title.includes('Medium Impact')) severity = 'Medium';
+  else if (title.includes('🟡') || title.includes('Low Impact')) severity = 'Low';
+
+  // Clean title - Remove emoji warnings and other indicators
+  title = title.replace(/^[🔴🟠🟡🟧🟨⚠️\s]+|[🔴🟠🟡🟧🟨⚠️\s]+$/g, '').trim();
+
+  return { title, severity };
+};
+
+// Helper: Icon & Color logic
+const getNotificationStyle = (notification: Notification) => {
+  const isEconomic = notification.type.startsWith('economic_event');
+  
+  if (isEconomic) {
+    const { severity, title } = getEconomicInfo(notification);
+    switch (severity) {
+      case 'High':
+        return { icon: <FaCalendarAlt />, color: 'text-red-700 dark:text-red-400', bg: 'bg-red-50 dark:bg-red-900/10', badge: 'High', title };
+      case 'Medium':
+        return { icon: <FaCalendarAlt />, color: 'text-orange-700 dark:text-orange-400', bg: 'bg-orange-50 dark:bg-orange-900/10', badge: 'Medium', title };
+      case 'Low':
+        return { icon: <FaCalendarAlt />, color: 'text-yellow-700 dark:text-yellow-400', bg: 'bg-yellow-50 dark:bg-yellow-900/10', badge: 'Low', title };
+    }
+  }
+
+  switch (notification.type) {
+    case NotificationType.TRADE_CREATED:
+    case NotificationType.TRADE_UPDATED:
+    case NotificationType.TRADE_CLOSED:
+      return { icon: <FaChartLine />, color: 'text-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-900/20' };
+    case NotificationType.MT5_SYNC_COMPLETE:
+      return { icon: <FaSync />, color: 'text-blue-500', bg: 'bg-blue-50 dark:bg-blue-900/20' };
+    case NotificationType.MT5_SYNC_ERROR:
+      return { icon: <FaExclamationTriangle />, color: 'text-red-500', bg: 'bg-red-50 dark:bg-red-900/20' };
+    case NotificationType.ECONOMIC_EVENT_1H:
+    case NotificationType.ECONOMIC_EVENT_15M:
+    case NotificationType.ECONOMIC_EVENT_NOW:
+      return { icon: <FaCalendarAlt />, color: 'text-orange-500', bg: 'bg-orange-50 dark:bg-orange-900/20' };
+    case NotificationType.AI_INSIGHT:
+      return { icon: <FaBrain />, color: 'text-purple-500', bg: 'bg-purple-50 dark:bg-purple-900/20' };
+    case NotificationType.STRATEGY_ALERT:
+      return { icon: <FaExclamationTriangle />, color: 'text-yellow-500', bg: 'bg-yellow-50 dark:bg-yellow-900/20' };
+    case NotificationType.SYSTEM_UPDATE:
+      return { icon: <FaCog />, color: 'text-gray-500', bg: 'bg-gray-50 dark:bg-gray-800' };
+    case NotificationType.ACCOUNT_LINKED:
+    case NotificationType.ACCOUNT_UNLINKED:
+      return { icon: <FaLink />, color: 'text-blue-500', bg: 'bg-blue-50 dark:bg-blue-900/20' };
+    default:
+      return { icon: <FaBell />, color: 'text-gray-500', bg: 'bg-gray-50 dark:bg-gray-800' };
+  }
+};
 
 export default function NotificationBell() {
   const dispatch = useDispatch<AppDispatch>();
@@ -81,45 +146,6 @@ export default function NotificationBell() {
     dispatch(markAllNotificationsAsRead());
   };
 
-  const getNotificationIcon = (type: NotificationType) => {
-    switch (type) {
-      case NotificationType.TRADE_CREATED:
-      case NotificationType.TRADE_UPDATED:
-      case NotificationType.TRADE_CLOSED:
-        return <FaChartLine className="text-emerald-500" />;
-      case NotificationType.MT5_SYNC_COMPLETE:
-        return <FaSync className="text-blue-500" />;
-      case NotificationType.MT5_SYNC_ERROR:
-        return <FaExclamationTriangle className="text-red-500" />;
-      case NotificationType.ECONOMIC_EVENT_1H:
-      case NotificationType.ECONOMIC_EVENT_15M:
-      case NotificationType.ECONOMIC_EVENT_NOW:
-        return <FaCalendarAlt className="text-orange-500" />;
-      case NotificationType.AI_INSIGHT:
-        return <FaBrain className="text-purple-500" />;
-      case NotificationType.STRATEGY_ALERT:
-        return <FaExclamationTriangle className="text-yellow-500" />;
-      case NotificationType.SYSTEM_UPDATE:
-        return <FaCog className="text-gray-500" />;
-      case NotificationType.ACCOUNT_LINKED:
-      case NotificationType.ACCOUNT_UNLINKED:
-        return <FaLink className="text-blue-500" />;
-      default:
-        return <FaBell className="text-gray-500" />;
-    }
-  };
-
-  const getPriorityStyles = (priority: string) => {
-    switch (priority) {
-      case 'urgent':
-        return 'border-l-4 border-red-500 bg-red-50 dark:bg-red-900/20';
-      case 'high':
-        return 'border-l-4 border-orange-500 bg-orange-50 dark:bg-orange-900/20';
-      default:
-        return '';
-    }
-  };
-
   const recentNotifications = notifications.slice(0, 5);
 
   // Debug log when isOpen changes
@@ -127,15 +153,11 @@ export default function NotificationBell() {
     console.log('NotificationBell isOpen state changed to:', isOpen);
   }, [isOpen]);
 
-  // Debug log for render
-  // console.log('🔔 NotificationBell rendering, isOpen:', isOpen, 'notifications:', notifications.length);
-
   return (
     <div className="relative" ref={dropdownRef}>
       {/* Bell Button */}
       <button
         onClick={() => {
-          // console.log('🔔 NotificationBell clicked, current isOpen:', isOpen);
           setIsOpen(!isOpen);
         }}
         className="relative p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
@@ -153,7 +175,6 @@ export default function NotificationBell() {
       </button>
 
       {/* Dropdown Panel */}
-      {/* {console.log('🔔 Checking isOpen for dropdown render:', isOpen)} */}
       {isOpen && (
         <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden z-50">
           {/* Header */}
@@ -179,7 +200,7 @@ export default function NotificationBell() {
           </div>
 
           {/* Notifications List */}
-          <div className="max-h-96 overflow-y-auto">
+          <div className="max-h-96 overflow-y-auto p-4 space-y-3">
             {isLoading && notifications.length === 0 ? (
               <div className="p-8 text-center text-gray-500 dark:text-gray-400">
                 <div className="animate-spin w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full mx-auto mb-2" />
@@ -191,49 +212,71 @@ export default function NotificationBell() {
                 <p>No notifications yet</p>
               </div>
             ) : (
-              recentNotifications.map((notification: { id: React.Key | null | undefined; status: string; priority: string; type: any; title: string | number | bigint | boolean | React.ReactElement<unknown, string | React.JSXElementConstructor<any>> | Iterable<React.ReactNode> | React.ReactPortal | Promise<string | number | bigint | boolean | React.ReactPortal | React.ReactElement<unknown, string | React.JSXElementConstructor<any>> | Iterable<React.ReactNode> | null | undefined> | null | undefined; message: string | number | bigint | boolean | React.ReactElement<unknown, string | React.JSXElementConstructor<any>> | Iterable<React.ReactNode> | React.ReactPortal | Promise<string | number | bigint | boolean | React.ReactPortal | React.ReactElement<unknown, string | React.JSXElementConstructor<any>> | Iterable<React.ReactNode> | null | undefined> | null | undefined; createdAt: string | number | Date; }) => (
-                <div
+              recentNotifications.map((notification: Notification) => {
+                const style = getNotificationStyle(notification);
+                const isUnread = notification.status !== 'read';
+
+                return (
+                  <div
                   key={notification.id}
                   onClick={() => handleNotificationClick(notification)}
                   className={`
-                    flex items-start space-x-3 px-4 py-3 cursor-pointer
-                    hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors
-                    ${notification.status !== 'read' ? 'bg-emerald-50/50 dark:bg-emerald-900/10' : ''}
-                    ${getPriorityStyles(notification.priority)}
+                    group relative flex items-start gap-3 p-3 rounded-lg cursor-pointer transition-all duration-200
+                    bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700
+                    hover:shadow-md hover:border-gray-300 dark:hover:border-gray-600
+                    ${isUnread ? 'shadow-sm ring-1 ring-emerald-500/20' : 'shadow-sm'}
                   `}
                 >
                   {/* Icon */}
-                  <div className="flex-shrink-0 w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
-                    {getNotificationIcon(notification.type)}
+                  <div className={`
+                    flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm
+                    ${style.bg} ${style.color}
+                  `}>
+                    {style.icon}
                   </div>
 
                   {/* Content */}
-                  <div className="flex-1 min-w-0">
-                    <p className={`text-sm font-medium text-gray-900 dark:text-white truncate ${
-                      notification.status !== 'read' ? 'font-semibold' : ''
-                    }`}>
-                      {notification.title}
-                    </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2">
-                      {notification.message}
-                    </p>
-                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-                      {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
-                    </p>
+                  <div className="flex-1 min-w-0 pt-0.5">
+                    <div className="flex flex-col gap-0.5">
+                       <div className="flex items-center gap-2 flex-wrap">
+                         {/* Severity Badge */}
+                         {style.badge && (
+                           <span className={`
+                             ${style.bg} ${style.color}
+                             px-1.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide border border-current/10
+                           `}>
+                             {style.badge}
+                           </span>
+                         )}
+                         <p className={`text-sm leading-snug truncate ${isUnread ? 'font-semibold text-gray-900 dark:text-white' : 'font-medium text-gray-700 dark:text-gray-300'}`}>
+                           {style.title || notification.title}
+                         </p>
+                       </div>
+                       
+                       <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2">
+                         {notification.message}
+                       </p>
+                       <p className="text-xs text-gray-400 mt-1.5 font-medium">
+                         {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
+                       </p>
+                    </div>
                   </div>
 
-                  {/* Unread indicator */}
-                  {notification.status !== 'read' && (
-                    <div className="flex-shrink-0 w-2 h-2 rounded-full bg-emerald-500 mt-2" />
+                  {/* Unread Indicator Dot */}
+                  {isUnread && (
+                    <div className="absolute top-3 right-3">
+                       <div className="w-2 h-2 bg-emerald-500 rounded-full" />
+                    </div>
                   )}
                 </div>
-              ))
+              );
+              })
             )}
           </div>
 
           {/* Footer */}
           {notifications.length > 0 && (
-            <div className="p-3 border-t border-gray-200 dark:border-gray-700">
+            <div className="p-3 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
               <button
                 onClick={() => {
                   router.push('/notifications');
