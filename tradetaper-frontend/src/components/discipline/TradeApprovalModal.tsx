@@ -148,22 +148,36 @@ export const TradeApprovalModal: React.FC<TradeApprovalModalProps> = ({
     const calculatedLot = calculateLotSize();
 
     try {
-      // Map discipline data to standard trade format
-      const tradeDto = {
+      // Map discipline data to backend API format
+      const apiPayload = {
         accountId: selectedAccountId,
-        assetType: 'Forex' as any, // AssetType.FOREX
+        assetType: 'Forex', // Backend expects string 'Forex'
         symbol,
-        direction: direction as any, // TradeDirection
-        status: 'Open' as any, // TradeStatus
-        entryDate: new Date().toISOString(),
-        entryPrice,
+        side: direction, // Backend uses 'side' not 'direction'
+        status: 'Open',
+        openTime: new Date().toISOString(), // Backend uses 'openTime' not 'entryDate'
+        openPrice: entryPrice, // Backend uses 'openPrice' not 'entryPrice'
         quantity: calculatedLot,
         stopLoss,
         takeProfit: takeProfit || undefined,
         notes: `Strategy: ${selectedStrategy.name}\nRisk: ${riskPercent}%\nChecklist completed: ${checklistItems.filter(i => i.checked).length}/${checklistItems.length}`,
       };
       
-      const newTrade = await tradesService.createTrade(tradeDto);
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://api.tradetaper.com/api/v1'}/trades`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(apiPayload),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to execute trade');
+      }
+
+      const newTrade = await response.json();
       
       // Navigate to trade view
       router.push(`/trades/${newTrade.id}`);
@@ -174,7 +188,7 @@ export const TradeApprovalModal: React.FC<TradeApprovalModalProps> = ({
       // Notify parent of success
       onApproved?.(approval);
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to execute trade');
+      setError(err.message || 'Failed to execute trade');
     } finally {
       setLoading(false);
     }
