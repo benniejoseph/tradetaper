@@ -3,6 +3,8 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { useSelector } from 'react-redux';
+import { RootState } from '@/store/store';
 import { CandleData } from '@/components/backtesting/workbench/mockData';
 import ChartEngine, { ChartEngineRef } from '@/components/backtesting/workbench/ChartEngine';
 import ReplayControls from '@/components/backtesting/workbench/ReplayControls';
@@ -14,6 +16,9 @@ import { SeriesMarker, SeriesMarkerPosition, SeriesMarkerShape, UTCTimestamp } f
 
 export default function BacktestSessionPage({ params }: { params: { id: string } }) {
   const searchParams = useSearchParams();
+
+  // Get auth token from Redux store
+  const token = useSelector((state: RootState) => state.auth.token);
 
   // Session Configuration from query params
   const [symbol, setSymbol] = useState(searchParams.get('symbol') || 'XAUUSD');
@@ -57,6 +62,7 @@ export default function BacktestSessionPage({ params }: { params: { id: string }
           credentials: 'include',
           headers: {
             'Content-Type': 'application/json',
+            ...(token && { 'Authorization': `Bearer ${token}` }),
           },
         }
       );
@@ -255,9 +261,13 @@ export default function BacktestSessionPage({ params }: { params: { id: string }
       const winRate = totalTrades > 0 ? (winningTrades / totalTrades) * 100 : 0;
       const totalPnl = balance - 100000;
 
-      const response = await fetch(`/api/v1/backtesting/sessions/${params.id}`, {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || '/api/v1';
+      const response = await fetch(`${apiUrl}/backtesting/sessions/${params.id}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { 'Authorization': `Bearer ${token}` }),
+        },
         credentials: 'include',
         body: JSON.stringify({
           trades,
