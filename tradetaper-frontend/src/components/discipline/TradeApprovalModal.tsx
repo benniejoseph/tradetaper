@@ -171,7 +171,7 @@ export const TradeApprovalModal: React.FC<TradeApprovalModalProps> = ({
       const newTrade = response.data;
       
       // Navigate to trade view
-      router.push(`/trades/${newTrade.id}`);
+      router.push(`/journal/view/${newTrade.id}`);
       
       // Close modal
       resetAndClose();
