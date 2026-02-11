@@ -31,53 +31,67 @@ const ChartEngine = forwardRef<ChartEngineRef, ChartEngineProps>((props, ref) =>
   useEffect(() => {
     if (!chartContainerRef.current) return;
 
-    // Initialize Chart
-    const chart = createChart(chartContainerRef.current, {
-      layout: {
-        background: { type: ColorType.Solid, color: '#020617' }, // Matches bg-slate-950
-        textColor: '#94A3B8', // Matches text-slate-400
-      },
-      grid: {
-        vertLines: { color: 'rgba(51, 65, 85, 0.2)' },
-        horzLines: { color: 'rgba(51, 65, 85, 0.2)' },
-      },
-      width: chartContainerRef.current.clientWidth,
-      height: 500,
-    });
+    try {
+      // Initialize Chart
+      const chart = createChart(chartContainerRef.current, {
+        layout: {
+          background: { type: ColorType.Solid, color: '#020617' }, // Matches bg-slate-950
+          textColor: '#94A3B8', // Matches text-slate-400
+        },
+        grid: {
+          vertLines: { color: 'rgba(51, 65, 85, 0.2)' },
+          horzLines: { color: 'rgba(51, 65, 85, 0.2)' },
+        },
+        width: chartContainerRef.current.clientWidth,
+        height: 500,
+      });
 
-    const candleSeries = chart.addCandlestickSeries({
-      upColor: '#10B981', // Emerald 500
-      downColor: '#EF4444', // Red 500
-      borderVisible: false,
-      wickUpColor: '#10B981',
-      wickDownColor: '#EF4444',
-    });
-
-    if (props.data.length > 0) {
-      candleSeries.setData(props.data);
-    }
-    
-    // Markers Support
-    if (props.markers && props.markers.length > 0) {
-        candleSeries.setMarkers(props.markers);
-    }
-
-    chartApiRef.current = chart;
-    candleSeriesRef.current = candleSeries;
-
-    // Resize observer
-    const handleResize = () => {
-      if (chartContainerRef.current) {
-        chart.applyOptions({ width: chartContainerRef.current.clientWidth });
+      // Verify chart was created successfully
+      if (!chart || typeof chart.addCandlestickSeries !== 'function') {
+        console.error('Failed to create chart or addCandlestickSeries not available');
+        return;
       }
-    };
 
-    window.addEventListener('resize', handleResize);
+      const candleSeries = chart.addCandlestickSeries({
+        upColor: '#10B981', // Emerald 500
+        downColor: '#EF4444', // Red 500
+        borderVisible: false,
+        wickUpColor: '#10B981',
+        wickDownColor: '#EF4444',
+      });
 
-    return () => {
-      window.removeEventListener('resize', handleResize);
-      chart.remove();
-    };
+      if (props.data.length > 0) {
+        candleSeries.setData(props.data);
+      }
+
+      // Markers Support
+      if (props.markers && props.markers.length > 0) {
+          candleSeries.setMarkers(props.markers);
+      }
+
+      chartApiRef.current = chart;
+      candleSeriesRef.current = candleSeries;
+
+      // Resize observer
+      const handleResize = () => {
+        if (chartContainerRef.current) {
+          chart.applyOptions({ width: chartContainerRef.current.clientWidth });
+        }
+      };
+
+      window.addEventListener('resize', handleResize);
+
+      return () => {
+        window.removeEventListener('resize', handleResize);
+        try {
+          chart.remove();
+        } catch (e) {
+          console.error('Error removing chart:', e);
+        }
+      };
+    } catch (error) {
+      console.error('Error initializing chart:', error);
+    }
   }, []); // Run once on mount
 
   // Update data if props change significantly (though we mostly use refs for perf)

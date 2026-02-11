@@ -73,9 +73,11 @@ export default function BacktestSessionPage({ params }: { params: { id: string }
 
       const candles = await response.json();
 
-      // Transform to CandleData format (lightweight-charts expects 'time' as string)
+      // Transform to CandleData format
+      // For intraday timeframes (1m, 5m, etc.), use Unix timestamp (seconds)
+      // For daily+ timeframes, could use date strings, but timestamps work for both
       const formattedCandles: CandleData[] = candles.map((c: any) => ({
-        time: new Date(c.time * 1000).toISOString().split('T')[0], // Convert timestamp to date string
+        time: c.time, // Unix timestamp in seconds (already in correct format from backend)
         open: c.open,
         high: c.high,
         low: c.low,

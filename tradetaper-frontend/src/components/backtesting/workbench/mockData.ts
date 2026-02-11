@@ -2,7 +2,7 @@
 
 // Helper to generate some realistic-looking candle data
 export interface CandleData {
-  time: string;
+  time: string | number; // Can be date string (YYYY-MM-DD) or Unix timestamp (seconds)
   open: number;
   high: number;
   low: number;
