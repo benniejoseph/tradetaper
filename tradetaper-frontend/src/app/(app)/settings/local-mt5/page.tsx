@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { FaDesktop, FaSync, FaPlay, FaStop, FaKey, FaCopy, FaCheck, FaExclamationTriangle, FaCircle, FaChartLine, FaInfoCircle, FaDownload } from 'react-icons/fa';
+import { FaDesktop, FaSync, FaPlay, FaStop, FaCopy, FaCheck, FaExclamationTriangle, FaCircle, FaChartLine, FaInfoCircle, FaFingerprint } from 'react-icons/fa';
 import api from '@/services/api';
 import toast from 'react-hot-toast';
 
@@ -45,8 +45,7 @@ export default function LocalMT5SyncPage() {
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
   const [terminalStatus, setTerminalStatus] = useState<TerminalStatus | null>(null);
   const [positions, setPositions] = useState<LivePosition[]>([]);
-  const [token, setToken] = useState<string | null>(null);
-  const [tokenCopied, setTokenCopied] = useState(false);
+  const [terminalIdCopied, setTerminalIdCopied] = useState(false);
   const [loading, setLoading] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [statusLoading, setStatusLoading] = useState(false);
@@ -83,7 +82,7 @@ export default function LocalMT5SyncPage() {
 
   useEffect(() => {
     fetchStatus();
-    const interval = setInterval(fetchStatus, 30000); // Refresh every 30s
+    const interval = setInterval(fetchStatus, 30000);
     return () => clearInterval(interval);
   }, [fetchStatus]);
 
@@ -148,22 +147,12 @@ export default function LocalMT5SyncPage() {
     }
   };
 
-  const handleGetToken = async () => {
-    if (!selectedAccountId) return;
-    try {
-      const res = await api.get(`/mt5-accounts/${selectedAccountId}/terminal-token`);
-      setToken(res.data?.token);
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Failed to get token');
-    }
-  };
-
-  const copyToken = () => {
-    if (!token) return;
-    navigator.clipboard.writeText(token);
-    setTokenCopied(true);
-    toast.success('Token copied to clipboard');
-    setTimeout(() => setTokenCopied(false), 2000);
+  const copyTerminalId = () => {
+    if (!terminalStatus?.id) return;
+    navigator.clipboard.writeText(terminalStatus.id);
+    setTerminalIdCopied(true);
+    toast.success('Terminal ID copied');
+    setTimeout(() => setTerminalIdCopied(false), 2000);
   };
 
   const statusColor = (status?: string) => {
@@ -256,6 +245,25 @@ export default function LocalMT5SyncPage() {
                 )}
               </div>
 
+              {/* Terminal ID */}
+              {terminalStatus?.id && (
+                <div className="mb-4 p-3 bg-gray-800/60 rounded-xl border border-gray-700/50">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <FaFingerprint className="w-3.5 h-3.5 text-indigo-400" />
+                      <span className="text-xs font-semibold text-gray-400 uppercase">Terminal ID</span>
+                    </div>
+                    <button
+                      onClick={copyTerminalId}
+                      className="p-1.5 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
+                    >
+                      {terminalIdCopied ? <FaCheck className="w-3 h-3 text-emerald-400" /> : <FaCopy className="w-3 h-3 text-gray-400" />}
+                    </button>
+                  </div>
+                  <p className="mt-1 text-sm font-mono text-gray-200 truncate">{terminalStatus.id}</p>
+                </div>
+              )}
+
               {/* Status Info */}
               {terminalStatus?.status === 'RUNNING' && (
                 <div className="space-y-3 mb-6">
@@ -315,62 +323,36 @@ export default function LocalMT5SyncPage() {
             </div>
           </div>
 
-          {/* Auth Token & Setup */}
+          {/* Setup Guide Card */}
           <div className="rounded-2xl border border-gray-700/50 bg-gradient-to-br from-gray-900/80 to-gray-800/60 backdrop-blur-xl shadow-xl overflow-hidden">
             <div className="p-6">
               <div className="flex items-center gap-3 mb-6">
                 <div className="p-3 bg-gradient-to-r from-amber-500/20 to-orange-500/20 rounded-xl">
-                  <FaKey className="w-5 h-5 text-amber-400" />
+                  <FaInfoCircle className="w-5 h-5 text-amber-400" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-white">EA Configuration</h2>
-                  <p className="text-sm text-gray-400">Setup your Expert Advisor</p>
+                  <h2 className="text-lg font-semibold text-white">EA Setup Guide</h2>
+                  <p className="text-sm text-gray-400">Configure your Expert Advisor</p>
                 </div>
               </div>
 
-              {/* Token Display */}
-              {!token ? (
-                <button
-                  onClick={handleGetToken}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded-xl font-medium transition-all mb-4"
-                >
-                  <FaKey className="w-3 h-3" />
-                  Reveal Auth Token
-                </button>
-              ) : (
-                <div className="mb-4">
-                  <label className="text-xs text-gray-400 mb-1 block">Auth Token (paste into EA settings)</label>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="text"
-                      readOnly
-                      value={token}
-                      className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-xs text-gray-300 font-mono truncate"
-                    />
-                    <button
-                      onClick={copyToken}
-                      className="p-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
-                    >
-                      {tokenCopied ? <FaCheck className="w-4 h-4 text-emerald-400" /> : <FaCopy className="w-4 h-4 text-gray-400" />}
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* Setup Guide */}
               <div className="bg-gray-800/50 rounded-xl p-4 space-y-3">
-                <h3 className="text-sm font-semibold text-gray-200 flex items-center gap-2">
-                  <FaInfoCircle className="w-3 h-3 text-blue-400" />
-                  Quick Setup Guide
-                </h3>
-                <ol className="text-xs text-gray-400 space-y-2 list-decimal list-inside">
-                  <li>Download the <span className="text-blue-400">TradeTaper.mq5</span> EA file</li>
-                  <li>Place it in your MT5 <code className="text-gray-300 bg-gray-700 px-1 rounded">Experts</code> folder</li>
+                <ol className="text-sm text-gray-400 space-y-3 list-decimal list-inside">
+                  <li>Download the <span className="text-blue-400 font-medium">TradeTaper.mq5</span> EA file</li>
+                  <li>Place it in your MT5 <code className="text-gray-300 bg-gray-700 px-1.5 py-0.5 rounded text-xs">Experts</code> folder</li>
+                  <li>Click <span className="text-emerald-400 font-medium">&quot;Enable Auto-Sync&quot;</span> above to get your Terminal ID</li>
                   <li>Attach the EA to any chart in your MT5 terminal</li>
-                  <li>Paste the <span className="text-amber-400">Auth Token</span> into the EA&apos;s settings</li>
-                  <li>Enable &quot;Allow Web Requests&quot; in MT5 → Tools → Options → Expert Advisors</li>
+                  <li>Paste the <span className="text-indigo-400 font-medium">Terminal ID</span> into the EA&apos;s settings</li>
+                  <li>Enable <span className="text-gray-200">&quot;Allow Web Requests&quot;</span> in MT5 → Tools → Options → Expert Advisors</li>
                   <li>The EA will automatically sync your trades and 1-min candle data</li>
                 </ol>
+              </div>
+
+              <div className="mt-4 p-3 bg-blue-500/5 border border-blue-500/20 rounded-xl">
+                <p className="text-xs text-blue-300">
+                  <strong>Note:</strong> The EA authenticates using a shared webhook secret configured on the server. 
+                  The Terminal ID is used to identify which terminal is sending data — no separate auth token is needed.
+                </p>
               </div>
             </div>
           </div>
@@ -429,7 +411,7 @@ export default function LocalMT5SyncPage() {
         </div>
       )}
 
-      {/* About Section */}
+      {/* How It Works */}
       <div className="rounded-2xl border border-gray-700/50 bg-gradient-to-br from-gray-900/80 to-gray-800/60 backdrop-blur-xl shadow-xl overflow-hidden">
         <div className="p-6">
           <div className="flex items-center gap-3 mb-4">

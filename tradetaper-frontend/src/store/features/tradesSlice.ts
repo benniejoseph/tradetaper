@@ -103,6 +103,31 @@ function transformApiTradeToFrontend(apiTrade: any): Trade {
       externalId: apiTrade.externalId,
       account: apiTrade.account,
       marginUsed: apiTrade.marginUsed ? parseFloat(apiTrade.marginUsed) : undefined,
+      // Psychology & Emotion fields
+      emotionBefore: apiTrade.emotionBefore,
+      emotionDuring: apiTrade.emotionDuring,
+      emotionAfter: apiTrade.emotionAfter,
+      confidenceLevel: apiTrade.confidenceLevel != null ? Number(apiTrade.confidenceLevel) : undefined,
+      followedPlan: apiTrade.followedPlan,
+      ruleViolations: apiTrade.ruleViolations,
+      // Performance Metrics
+      plannedRR: apiTrade.plannedRR ? parseFloat(apiTrade.plannedRR) : undefined,
+      executionGrade: apiTrade.executionGrade,
+      // Market Context
+      marketCondition: apiTrade.marketCondition,
+      timeframe: apiTrade.timeframe,
+      htfBias: apiTrade.htfBias,
+      newsImpact: apiTrade.newsImpact,
+      // Pre-Trade Checklist
+      entryReason: apiTrade.entryReason,
+      confirmations: apiTrade.confirmations,
+      hesitated: apiTrade.hesitated,
+      preparedToLose: apiTrade.preparedToLose,
+      // Environmental Factors
+      sleepQuality: apiTrade.sleepQuality != null ? Number(apiTrade.sleepQuality) : undefined,
+      energyLevel: apiTrade.energyLevel != null ? Number(apiTrade.energyLevel) : undefined,
+      distractionLevel: apiTrade.distractionLevel != null ? Number(apiTrade.distractionLevel) : undefined,
+      tradingEnvironment: apiTrade.tradingEnvironment,
     };
   } catch (error) {
     console.error('Error transforming trade:', apiTrade, error);
@@ -152,6 +177,36 @@ function transformFrontendToApiPayload(frontendPayload: CreateTradePayload | Upd
     tagNames: frontendPayload.tagNames,
     accountId: frontendPayload.accountId,
     isStarred: frontendPayload.isStarred,
+    // Psychology & Emotion fields
+    emotionBefore: (frontendPayload as any).emotionBefore,
+    emotionDuring: (frontendPayload as any).emotionDuring,
+    emotionAfter: (frontendPayload as any).emotionAfter,
+    confidenceLevel: (frontendPayload as any).confidenceLevel,
+    followedPlan: (frontendPayload as any).followedPlan,
+    ruleViolations: (frontendPayload as any).ruleViolations,
+    // Performance Metrics
+    plannedRR: (frontendPayload as any).plannedRR,
+    executionGrade: (frontendPayload as any).executionGrade,
+    // Market Context
+    marketCondition: (frontendPayload as any).marketCondition,
+    timeframe: (frontendPayload as any).timeframe,
+    htfBias: (frontendPayload as any).htfBias,
+    newsImpact: (frontendPayload as any).newsImpact,
+    // Pre-Trade Checklist
+    entryReason: (frontendPayload as any).entryReason,
+    confirmations: (frontendPayload as any).confirmations,
+    hesitated: (frontendPayload as any).hesitated,
+    preparedToLose: (frontendPayload as any).preparedToLose,
+    // Environmental Factors
+    sleepQuality: (frontendPayload as any).sleepQuality,
+    energyLevel: (frontendPayload as any).energyLevel,
+    distractionLevel: (frontendPayload as any).distractionLevel,
+    tradingEnvironment: (frontendPayload as any).tradingEnvironment,
+    // Strategy
+    strategyId: (frontendPayload as any).strategyId,
+    // Financial
+    swap: (frontendPayload as any).swap,
+    profitOrLoss: (frontendPayload as any).profitOrLoss,
   };
 }
 

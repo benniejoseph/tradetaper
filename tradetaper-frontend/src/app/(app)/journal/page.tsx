@@ -17,7 +17,6 @@ import {
   FaChartLine, FaBookOpen, FaEye, FaEdit, FaTrash, FaInfoCircle
 } from 'react-icons/fa';
 import TradesTable from '@/components/journal/TradesTable';
-import TradePreviewDrawer from '@/components/journal/TradePreviewDrawer';
 import { useRouter } from 'next/navigation';
 import { parseISO, isAfter, isBefore, subMonths, subWeeks, subDays, endOfDay, isValid, format, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
 import DatePicker from "react-datepicker";
@@ -47,8 +46,6 @@ export default function JournalPage() {
   // State for filters and UI
   const [activePositionFilter, setActivePositionFilter] = useState<'all' | 'open' | 'closed'>('all');
   const [activeTimeFilter, setActiveTimeFilter] = useState<'all' | '1m' | '7d' | '1d'>('all');
-  const [selectedTradeForPreview, setSelectedTradeForPreview] = useState<Trade | null>(null);
-  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [customDateRange, setCustomDateRange] = useState<{ from?: Date; to?: Date }>({});
   const [searchQuery, setSearchQuery] = useState('');
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
@@ -283,24 +280,16 @@ export default function JournalPage() {
   }, [filteredTrades, summary]);
 
   const handleRowClick = (trade: Trade) => {
-    setSelectedTradeForPreview(trade);
-    setIsPreviewOpen(true);
-  };
-
-  const handleClosePreview = () => { 
-    setIsPreviewOpen(false);
-    setSelectedTradeForPreview(null);
+    router.push(`/journal/view/${trade.id}`);
   };
 
   const handleEditTrade = (tradeId: string) => {
     router.push(`/journal/edit/${tradeId}`);
-    setIsPreviewOpen(false);
   };
 
   const handleDeleteTrade = (tradeId: string) => {
     if (window.confirm('Are you sure you want to delete this trade?')) {
       dispatch(deleteTrade(tradeId));
-      setIsPreviewOpen(false);
     }
   };
 
@@ -571,14 +560,7 @@ export default function JournalPage() {
         </div>
       )}
 
-      {/* Trade Preview Drawer */}
-      <TradePreviewDrawer 
-        trade={selectedTradeForPreview} 
-        isOpen={isPreviewOpen} 
-        onClose={handleClosePreview} 
-        onEdit={handleEditTrade} 
-        onDelete={handleDeleteTrade} 
-      />
+
 
       {/* Date Picker Modal */}
       {isDatePickerOpen && (
