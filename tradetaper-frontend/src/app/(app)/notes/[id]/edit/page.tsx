@@ -398,7 +398,7 @@ const NoteEditPage: React.FC = () => {
               </button>
               <button
                 onClick={() => addBlock('list')}
-                className="flex items-center gap-2 px-3 py-2 text-sm bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-lg hover:bg-purple-200 dark:hover:bg-purple-900/50 transition-colors"
+                className="flex items-center gap-2 px-3 py-2 text-sm bg-purple-100 dark:bg-emerald-900/30 text-purple-700 dark:text-emerald-300 rounded-lg hover:bg-purple-200 dark:hover:bg-emerald-900/50 transition-colors"
               >
                 <FaListUl className="w-4 h-4" />
                 List
@@ -1021,7 +1021,7 @@ const BlockEditor: React.FC<{
       };
 
       return (
-        <div className="group relative bg-emerald-50 dark:bg-emerald-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+        <div className="group relative bg-emerald-50 dark:bg-emerald-900/20 border border-blue-200 dark:border-emerald-800 rounded-lg p-4">
           <div className="flex items-center gap-2 mb-2">
             {calloutIcons[block.content?.type as keyof typeof calloutIcons]}
             <select

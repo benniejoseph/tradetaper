@@ -5,6 +5,7 @@ export declare class User {
     password?: string;
     firstName?: string;
     lastName?: string;
+    username?: string;
     lastLoginAt?: Date;
     createdAt: Date;
     updatedAt: Date;

@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { PRICING_TIERS } from '@/config/pricing';
 import { FaCheck, FaTimes, FaQuestionCircle, FaStar, FaCrown } from 'react-icons/fa';
 import { useSelector } from 'react-redux';
@@ -30,8 +31,17 @@ export default function PricingPage() {
 
       {/* Navigation */}
       <nav className="relative z-50 p-6 flex justify-between items-center max-w-7xl mx-auto">
-         <Link href="/" className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 to-teal-400">
-            TradeTaper
+         <Link href="/" className="flex items-center gap-3">
+            <Image
+              src="/tradetaperLogo.png"
+              alt="TradeTaper"
+              width={24}
+              height={24}
+              className="h-6 w-6 object-contain"
+            />
+            <span className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 to-teal-400">
+              TradeTaper
+            </span>
          </Link>
          <div className="space-x-4 flex items-center">
             {isAuthenticated ? (

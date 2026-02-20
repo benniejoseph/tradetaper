@@ -1,24 +1,10 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
-import { Canvas, useFrame, extend, Object3DNode } from "@react-three/fiber";
-import { Color } from "three";
-import { OrbitControls } from "@react-three/drei";
-import countries from "@/data/countries.json";
+import { Canvas } from "@react-three/fiber";
 
-// Dynamically import GlobeContent to avoid SSR
 const GlobeContent = dynamic(() => import("./GlobeContent"), { ssr: false });
-
-// Extend ThreeGlobe so it can be used as a JSX element
-// We need to do this inside a component or useEffect if ThreeGlobe is dynamically imported, 
-// OR we can just use the primitive directly if we cast it. 
-// Actually, extending in module scope might fail if ThreeGlobe isn't loaded yet.
-// Let's try a different approach: Create a client-side only component for the whole Canvas or just the Globe content.
-// The error `ReferenceError: window is not defined` likely comes from `three-globe` being imported at module level or used in render.
-
-// Let's wrap the THREE part in a component that is dynamically imported with ssr: false.
-
 
 export default function HeroGlobe() {
   const [mounted, setMounted] = useState(false);
@@ -28,35 +14,62 @@ export default function HeroGlobe() {
   }, []);
 
   const globeConfig = {
-    pointSize: 4,
-    globeColor: "#062056",
+    globeImageUrl: "/textures/earth-dark.jpg",
+    nightImageUrl: "/textures/earth-night.jpg",
+    bumpImageUrl: "/textures/earth-topology.png",
     showAtmosphere: true,
-    atmosphereColor: "#3b82f6", // Blue/Purple glow
-    atmosphereAltitude: 0.25,
-    emissive: "#062056",
-    emissiveIntensity: 0.1,
-    shininess: 0.9,
-    polygonColor: "rgba(255,255,255,0.7)",
-    ambientLight: "#38bdf8",
-    directionalLeftLight: "#ffffff",
+    atmosphereColor: "#34d399",
+    atmosphereAltitude: 0.24,
+    globeColor: "#0b1020",
+    emissive: "#ffffff",
+    emissiveIntensity: 0.4,
+    shininess: 1.2,
+    ambientLight: "#34d399",
+    directionalLeftLight: "#a7f3d0",
     directionalTopLight: "#ffffff",
-    pointLight: "#ffffff",
+    pointLight: "#34d399",
     autoRotate: true,
-    autoRotateSpeed: 0.001
+    autoRotateSpeed: 0.0012,
   };
-  
+
   return (
-    <div className="absolute inset-0 z-0 h-full w-full pointer-events-none">
-       <Canvas camera={{ position: [0, 0, 450], fov: 45 }}>
-        <ambientLight color={globeConfig.ambientLight} intensity={2.0} />
-        <pointLight color={globeConfig.pointLight} position={[-200, 500, 200]} intensity={3.5} />
+    <div className="hero-globe-scene" aria-hidden="true">
+      <div className="hero-starfield"></div>
+      <div className="hero-starfield-dense"></div>
+      <div className="hero-starfield-nebula"></div>
+      <div className="hero-comets">
+        <span className="hero-comet hero-comet-a"></span>
+        <span className="hero-comet hero-comet-b"></span>
+        <span className="hero-comet hero-comet-c"></span>
+      </div>
+      <div className="hero-globe-canvas">
+        <Canvas
+          camera={{ position: [0, 0, 250], fov: 40 }}
+          dpr={[1, 1.5]}
+          gl={{ antialias: true, alpha: true }}
+        >
+          <ambientLight color={globeConfig.ambientLight} intensity={0.3} />
+          <directionalLight
+            color={globeConfig.directionalTopLight}
+            position={[200, 200, 150]}
+            intensity={0.5}
+          />
+          <pointLight
+            color={globeConfig.pointLight}
+            position={[-200, 200, 200]}
+            intensity={0.55}
+          />
         {mounted && (
-           <group position={[0, -100, 0]} scale={1.6}> {/* Moved up, High intensity */}
-             <GlobeContent globeConfig={globeConfig} />
-           </group>
-        )}
-        <OrbitControls enableZoom={false} enablePan={false} enableRotate={false} />
-      </Canvas>
+            <group position={[0, -80, 0]} scale={1.22}>
+              <GlobeContent globeConfig={globeConfig} />
+            </group>
+          )}
+        </Canvas>
+      </div>
+      <div className="hero-globe-overlay">
+        <div className="hero-globe-halo"></div>
+        <div className="hero-globe-rim"></div>
+      </div>
     </div>
   );
 }

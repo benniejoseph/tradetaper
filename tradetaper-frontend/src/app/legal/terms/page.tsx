@@ -1,6 +1,7 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import MarkdownContent from '@/components/common/MarkdownContent';
-import { FaChartLine, FaFileContract, FaArrowLeft, FaCalendarAlt, FaShieldAlt, FaUsers, FaBook } from 'react-icons/fa';
+import { FaFileContract, FaArrowLeft, FaCalendarAlt, FaShieldAlt, FaUsers, FaBook } from 'react-icons/fa';
 
 export const metadata = {
   title: 'Terms of Service | TradeTaper',
@@ -9,7 +10,7 @@ export const metadata = {
 
 export default function TermsOfServicePage() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/50 dark:from-gray-900 dark:via-slate-900 dark:to-gray-900">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/50 dark:from-gray-900 dark:via-black dark:to-gray-900">
       {/* Professional Header with Navigation */}
       <div className="relative">
         <div className="absolute inset-0 bg-gradient-to-r from-blue-600/8 via-indigo-600/8 to-purple-600/8"></div>
@@ -19,7 +20,13 @@ export default function TermsOfServicePage() {
               {/* Logo and Breadcrumb */}
               <div className="flex items-center space-x-4">
                 <Link href="/" className="flex items-center space-x-2 text-gray-900 dark:text-white hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors">
-                  <FaChartLine className="w-6 h-6 text-emerald-600" />
+                  <Image
+                    src="/tradetaperLogo.png"
+                    alt="TradeTaper"
+                    width={26}
+                    height={26}
+                    className="h-[26px] w-[26px] object-contain"
+                  />
                   <span className="text-xl font-bold">TradeTaper</span>
                 </Link>
                 <div className="flex items-center space-x-2 text-sm text-gray-500 dark:text-gray-400">
@@ -47,14 +54,14 @@ export default function TermsOfServicePage() {
       <div className="relative py-16">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           {/* Status Badge */}
-          <div className="inline-flex items-center space-x-2 bg-gradient-to-r from-blue-500/10 to-indigo-500/10 backdrop-blur-sm px-6 py-3 rounded-full text-emerald-700 dark:text-emerald-300 text-sm font-medium mb-8 border border-blue-200/30 dark:border-blue-800/30">
+          <div className="inline-flex items-center space-x-2 bg-gradient-to-r from-blue-500/10 to-indigo-500/10 backdrop-blur-sm px-6 py-3 rounded-full text-emerald-700 dark:text-emerald-300 text-sm font-medium mb-8 border border-blue-200/30 dark:border-emerald-800/30">
             <FaFileContract className="w-4 h-4" />
             <span>Legal Agreement</span>
             <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
             <span className="text-green-700 dark:text-green-400">Current</span>
           </div>
           
-          <h1 className="text-5xl md:text-6xl font-bold bg-gradient-to-r from-gray-900 via-blue-800 to-indigo-900 dark:from-white dark:via-blue-200 dark:to-indigo-200 bg-clip-text text-transparent mb-6">
+          <h1 className="text-5xl md:text-6xl font-bold bg-gradient-to-r from-gray-900 via-blue-800 to-indigo-900 dark:from-white dark:via-emerald-200 dark:to-emerald-200 bg-clip-text text-transparent mb-6">
             Terms of Service
           </h1>
           
@@ -77,7 +84,7 @@ export default function TermsOfServicePage() {
         {/* Document Container */}
         <div className="bg-white/70 dark:bg-gray-900/70 backdrop-blur-xl rounded-3xl border border-gray-200/50 dark:border-gray-700/50 shadow-2xl overflow-hidden">
           {/* Document Header */}
-          <div className="bg-gradient-to-r from-blue-50/80 to-indigo-50/80 dark:from-blue-900/20 dark:to-indigo-900/20 px-8 py-6 border-b border-gray-200/50 dark:border-gray-700/50">
+          <div className="bg-gradient-to-r from-blue-50/80 to-indigo-50/80 dark:from-emerald-900/20 dark:to-emerald-900/20 px-8 py-6 border-b border-gray-200/50 dark:border-gray-700/50">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
                 <div className="p-3 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-xl">
@@ -104,7 +111,7 @@ export default function TermsOfServicePage() {
                 prose-headings:font-bold prose-headings:tracking-tight
                 prose-h1:text-4xl prose-h1:mb-8 prose-h1:pb-4 prose-h1:border-b prose-h1:border-gray-200 dark:prose-h1:border-gray-700
                 prose-h2:text-3xl prose-h2:mt-16 prose-h2:mb-8 prose-h2:text-emerald-900 dark:prose-h2:text-emerald-100
-                prose-h3:text-2xl prose-h3:mt-12 prose-h3:mb-6 prose-h3:text-indigo-800 dark:prose-h3:text-indigo-200
+                prose-h3:text-2xl prose-h3:mt-12 prose-h3:mb-6 prose-h3:text-indigo-800 dark:prose-h3:text-emerald-200
                 prose-p:text-gray-700 dark:prose-p:text-gray-300 prose-p:leading-relaxed prose-p:mb-8 prose-p:text-lg
                 prose-a:text-emerald-600 dark:prose-a:text-emerald-400 prose-a:no-underline hover:prose-a:underline prose-a:font-medium
                 prose-strong:text-gray-900 dark:prose-strong:text-white prose-strong:font-semibold

@@ -6,8 +6,9 @@ import {
   NotificationPriority,
 } from './entities/notification.entity';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, LessThanOrEqual, MoreThan, Between } from 'typeorm';
+import { Repository, In } from 'typeorm';
 import { NotificationPreference } from './entities/notification-preference.entity';
+import { EconomicEventAlert } from '../market-intelligence/entities/economic-event-alert.entity';
 
 import { EconomicCalendarService } from '../market-intelligence/economic-calendar.service';
 
@@ -34,6 +35,8 @@ export class NotificationSchedulerService {
     private readonly economicCalendarService: EconomicCalendarService, // Injected with forwardRef
     @InjectRepository(NotificationPreference)
     private readonly preferenceRepository: Repository<NotificationPreference>,
+    @InjectRepository(EconomicEventAlert)
+    private readonly economicAlertRepository: Repository<EconomicEventAlert>,
   ) {}
 
   /**
@@ -49,6 +52,19 @@ export class NotificationSchedulerService {
     try {
       // Get upcoming events from Real Service
       const upcomingEvents = await this.getUpcomingEconomicEvents();
+      const eventIds = upcomingEvents.map((event) => event.id);
+      const alertMap = new Map<string, Set<string>>();
+
+      if (eventIds.length > 0) {
+        const subscriptions = await this.economicAlertRepository.find({
+          where: { eventId: In(eventIds) },
+        });
+        subscriptions.forEach((sub) => {
+          const list = alertMap.get(sub.eventId) || new Set<string>();
+          list.add(sub.userId);
+          alertMap.set(sub.eventId, list);
+        });
+      }
 
       for (const event of upcomingEvents) {
         const diffMs = event.scheduledTime.getTime() - now.getTime();
@@ -64,11 +80,32 @@ export class NotificationSchedulerService {
           minutesUntilEvent >= 60 - tolerance &&
           minutesUntilEvent <= 60 + tolerance
         ) {
+          if (event.importance === 'high') {
+            await this.economicCalendarService.precomputeHighImpactAnalysis(event.id);
+          }
           await this.sendEconomicAlert(
             event,
             '1h',
             NotificationType.ECONOMIC_EVENT_1H,
+            alertMap.get(event.id),
           );
+        }
+
+        const isVeryHighImpact = this.isVeryHighImpactEvent(event);
+        if (
+          isVeryHighImpact &&
+          minutesUntilEvent >= 240 - tolerance &&
+          minutesUntilEvent <= 240 + tolerance
+        ) {
+          await this.economicCalendarService.precomputeHighImpactAnalysis(event.id);
+        }
+
+        if (
+          isVeryHighImpact &&
+          minutesUntilEvent >= 120 - tolerance &&
+          minutesUntilEvent <= 120 + tolerance
+        ) {
+          await this.economicCalendarService.precomputeHighImpactAnalysis(event.id);
         }
 
         // 2. 45 Minute Alert (Use 15M type)
@@ -81,6 +118,7 @@ export class NotificationSchedulerService {
             event,
             '45m',
             NotificationType.ECONOMIC_EVENT_15M,
+            alertMap.get(event.id),
           );
         }
 
@@ -93,6 +131,7 @@ export class NotificationSchedulerService {
             event,
             '30m',
             NotificationType.ECONOMIC_EVENT_15M,
+            alertMap.get(event.id),
           );
         }
 
@@ -105,6 +144,7 @@ export class NotificationSchedulerService {
             event,
             '15m',
             NotificationType.ECONOMIC_EVENT_15M,
+            alertMap.get(event.id),
           );
         }
 
@@ -114,6 +154,7 @@ export class NotificationSchedulerService {
             event,
             'now',
             NotificationType.ECONOMIC_EVENT_NOW,
+            alertMap.get(event.id),
           );
         }
       }
@@ -153,6 +194,7 @@ export class NotificationSchedulerService {
     event: ScheduledEconomicEvent,
     alertType: '1h' | '45m' | '30m' | '15m' | 'now',
     notificationType: NotificationType,
+    explicitUserIds?: Set<string>,
   ): Promise<void> {
     // Check if we've already sent this alert
     const sentAlerts = this.alertsSent.get(event.id) || new Set();
@@ -164,11 +206,15 @@ export class NotificationSchedulerService {
       `Sending ${alertType} alert for economic event: ${event.title}`,
     );
 
-    // Get all users with preferences for this type of alert and event importance
-    const preferences = await this.getSubscribedUsers(
-      event.importance,
-      alertType,
-    );
+    let targetUserIds: string[] = [];
+    let preferences: NotificationPreference[] = [];
+    if (explicitUserIds && explicitUserIds.size > 0) {
+      targetUserIds = Array.from(explicitUserIds);
+    } else {
+      preferences = await this.getSubscribedUsers(event.importance, alertType);
+      targetUserIds = preferences.map((pref) => pref.userId);
+    }
+    const prefMap = new Map(preferences.map((pref) => [pref.userId, pref]));
 
     // Determine alert message based on timing
     let title: string;
@@ -208,19 +254,19 @@ export class NotificationSchedulerService {
     }
 
     // Send to each subscribed user
-    for (const pref of preferences) {
-      // Check currency filter if set
+    for (const userId of targetUserIds) {
+      const pref = prefMap.get(userId);
       if (
+        pref &&
         pref.economicEventCurrencies &&
         pref.economicEventCurrencies.length > 0 &&
         !pref.economicEventCurrencies.includes(event.currency)
       ) {
         continue;
       }
-
       try {
         await this.notificationsService.send({
-          userId: pref.userId,
+          userId,
           type: notificationType,
           title,
           message,
@@ -240,7 +286,7 @@ export class NotificationSchedulerService {
           icon: this.getEventIcon(event.importance),
         });
       } catch (error) {
-        this.logger.error(`Failed to send alert to user ${pref.userId}`, error);
+        this.logger.error(`Failed to send alert to user ${userId}`, error);
       }
     }
 
@@ -324,6 +370,20 @@ export class NotificationSchedulerService {
       default:
         return '📊';
     }
+  }
+
+  private isVeryHighImpactEvent(event: ScheduledEconomicEvent): boolean {
+    const title = event.title.toLowerCase();
+    return (
+      event.importance === 'high' &&
+      (title.includes('fomc') ||
+        title.includes('non-farm') ||
+        title.includes('nonfarm') ||
+        title.includes('nfp') ||
+        title.includes('interest rate') ||
+        title.includes('fed chair') ||
+        title.includes('powell'))
+    );
   }
 
   private cleanupOldAlerts(): void {

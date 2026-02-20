@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { AppDispatch } from '@/store/store';
 import {
@@ -16,8 +16,9 @@ import {
 import { 
   FaPlus, FaEdit, FaTrash, FaSave, FaTimes, FaExclamationTriangle,
   FaDollarSign, FaBuilding, FaCheck, FaCrown, FaUsers,
-  FaChartLine, FaShieldAlt, FaSpinner
+  FaChartLine, FaShieldAlt, FaSpinner, FaFilter
 } from 'react-icons/fa';
+import AlertModal from '@/components/ui/AlertModal';
 
 interface AccountFormData {
   id?: string; // Present when editing
@@ -28,6 +29,11 @@ interface AccountFormData {
   target?: string; // Input as string, convert to number on save
 }
 
+interface ManageAccountsProps {
+  addFormSignal?: number;
+  hideAddButton?: boolean;
+}
+
 const initialFormState: AccountFormData = {
   name: '',
   balance: '',
@@ -36,22 +42,34 @@ const initialFormState: AccountFormData = {
   target: ''
 };
 
-export default function ManageAccounts() {
+export default function ManageAccounts({ addFormSignal = 0, hideAddButton = false }: ManageAccountsProps) {
   const dispatch = useDispatch<AppDispatch>();
   const accounts = useSelector(selectAvailableAccounts);
   const isLoading = useSelector(selectAccountsLoading);
   const error = useSelector(selectAccountsError);
   const selectedAccountId = useSelector(selectSelectedAccountId);
+  const lastSignal = useRef(addFormSignal);
 
   const [formData, setFormData] = useState<AccountFormData>(initialFormState);
   const [isEditing, setIsEditing] = useState<string | null>(null); // Holds ID of account being edited
   const [showAddForm, setShowAddForm] = useState(false);
   const [showConfirmDelete, setShowConfirmDelete] = useState<string | null>(null); // Holds ID of account to delete
+  const [alertState, setAlertState] = useState({ isOpen: false, title: 'Notice', message: '' });
+  const closeAlert = () => setAlertState((prev) => ({ ...prev, isOpen: false }));
+  const showAlert = (message: string, title = 'Notice') =>
+    setAlertState({ isOpen: true, title, message });
 
   // Fetch accounts on component mount
   useEffect(() => {
     dispatch(fetchAccounts());
   }, [dispatch]);
+
+  useEffect(() => {
+    if (addFormSignal !== lastSignal.current) {
+      lastSignal.current = addFormSignal;
+      handleAddNewAccount();
+    }
+  }, [addFormSignal]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -87,11 +105,11 @@ export default function ManageAccounts() {
     e.preventDefault();
     const balanceNum = parseFloat(formData.balance);
     if (isNaN(balanceNum) || formData.balance.trim() === '') {
-      alert('Please enter a valid balance.');
+      showAlert('Please enter a valid balance.', 'Invalid Balance');
       return;
     }
     if (!formData.name.trim()) {
-        alert('Account name cannot be empty.');
+        showAlert('Account name cannot be empty.', 'Missing Name');
         return;
     }
 
@@ -117,7 +135,7 @@ export default function ManageAccounts() {
       handleCancelEdit(); // Close form and reset
     } catch (error) {
       console.error('Failed to save account:', error);
-      alert('Failed to save account. Please try again.');
+      showAlert('Failed to save account. Please try again.', 'Save Failed');
     }
   };
 
@@ -128,7 +146,7 @@ export default function ManageAccounts() {
       setShowConfirmDelete(null); // Close confirmation
     } catch (error) {
       console.error('Failed to delete account:', error);
-      alert('Failed to delete account. Please try again.');
+      showAlert('Failed to delete account. Please try again.', 'Delete Failed');
     }
   };
 
@@ -164,7 +182,7 @@ export default function ManageAccounts() {
     <div className="space-y-8">
       {/* Add/Edit Form Card */}
       {showAddForm && (
-        <div className="bg-gradient-to-br from-blue-50/50 to-green-50/50 dark:from-blue-900/20 dark:to-green-900/20 backdrop-blur-xl rounded-2xl border border-blue-200/50 dark:border-blue-700/50 p-6 shadow-lg">
+        <div className="bg-white/90 dark:bg-black/70 backdrop-blur-xl rounded-2xl border border-gray-200/70 dark:border-gray-800 p-6 shadow-sm">
           <div className="flex items-center space-x-3 mb-6">
             <div className="p-2 bg-gradient-to-r from-blue-500/20 to-green-500/20 rounded-xl">
               {isEditing ? <FaEdit className="w-5 h-5 text-emerald-600 dark:text-emerald-400" /> : <FaPlus className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />}
@@ -185,13 +203,13 @@ export default function ManageAccounts() {
                 Account Name
               </label>
               <div className="relative">
-                <FaBuilding className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input 
-                  type="text" 
-                  name="name" 
-                  value={formData.name} 
-                  onChange={handleInputChange}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-200/50 dark:border-gray-700/50 rounded-xl bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-gray-900 dark:text-white placeholder-gray-400"
+              <FaBuilding className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input 
+                type="text" 
+                name="name" 
+                value={formData.name} 
+                onChange={handleInputChange}
+                  className="w-full pl-10 pr-4 py-3 border border-gray-200/60 dark:border-gray-800 rounded-xl bg-white/80 dark:bg-black/60 backdrop-blur-sm focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all duration-200 text-gray-900 dark:text-white placeholder-gray-400"
                   placeholder="Enter account name"
                   required 
                 />
@@ -211,7 +229,7 @@ export default function ManageAccounts() {
                   name="balance" 
                   value={formData.balance} 
                   onChange={handleInputChange}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-200/50 dark:border-gray-700/50 rounded-xl bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-gray-900 dark:text-white placeholder-gray-400"
+                  className="w-full pl-10 pr-4 py-3 border border-gray-200/60 dark:border-gray-800 rounded-xl bg-white/80 dark:bg-black/60 backdrop-blur-sm focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all duration-200 text-gray-900 dark:text-white placeholder-gray-400"
                   placeholder="0.00"
                   required 
                 />
@@ -227,7 +245,7 @@ export default function ManageAccounts() {
                 name="currency" 
                 value={formData.currency || 'USD'} 
                 onChange={handleInputChange}
-                className="w-full px-4 py-3 border border-gray-200/50 dark:border-gray-700/50 rounded-xl bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-gray-900 dark:text-white placeholder-gray-400"
+                className="w-full px-4 py-3 border border-gray-200/60 dark:border-gray-800 rounded-xl bg-white/80 dark:bg-black/60 backdrop-blur-sm focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all duration-200 text-gray-900 dark:text-white placeholder-gray-400"
                 placeholder="USD"
                 maxLength={3}
               />
@@ -246,7 +264,7 @@ export default function ManageAccounts() {
                   name="target" 
                   value={formData.target || ''} 
                   onChange={handleInputChange}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-200/50 dark:border-gray-700/50 rounded-xl bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-gray-900 dark:text-white placeholder-gray-400"
+                  className="w-full pl-10 pr-4 py-3 border border-gray-200/60 dark:border-gray-800 rounded-xl bg-white/80 dark:bg-black/60 backdrop-blur-sm focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all duration-200 text-gray-900 dark:text-white placeholder-gray-400"
                   placeholder="Target amount"
                 />
               </div>
@@ -261,7 +279,7 @@ export default function ManageAccounts() {
                 value={formData.description || ''} 
                 onChange={handleInputChange}
                 rows={3}
-                className="w-full px-4 py-3 border border-gray-200/50 dark:border-gray-700/50 rounded-xl bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 resize-none text-gray-900 dark:text-white placeholder-gray-400"
+                className="w-full px-4 py-3 border border-gray-200/60 dark:border-gray-800 rounded-xl bg-white/80 dark:bg-black/60 backdrop-blur-sm focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all duration-200 resize-none text-gray-900 dark:text-white placeholder-gray-400"
                 placeholder="Account description..."
               />
             </div>
@@ -271,14 +289,14 @@ export default function ManageAccounts() {
                 type="button" 
                 onClick={handleCancelEdit}
                 disabled={isLoading}
-                className="flex items-center space-x-2 bg-gray-100/80 dark:bg-gray-800/80 hover:bg-gray-500 dark:hover:bg-gray-500 text-gray-600 dark:text-gray-400 hover:text-white px-6 py-3 rounded-xl font-medium transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed">
+                className="flex items-center space-x-2 bg-gray-100/80 dark:bg-gray-900/60 hover:bg-gray-500 dark:hover:bg-gray-500 text-gray-600 dark:text-gray-400 hover:text-white px-6 py-3 rounded-xl font-medium transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed">
                 <FaTimes className="w-4 h-4" />
                 <span>Cancel</span>
               </button>
               <button 
                 type="submit"
                 disabled={isLoading}
-                className="flex items-center space-x-2 bg-gradient-to-r from-blue-500 to-green-500 hover:from-blue-600 hover:to-green-600 text-white px-6 py-3 rounded-xl font-medium transition-all duration-200 hover:scale-105 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed">
+                className="flex items-center space-x-2 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white px-6 py-3 rounded-xl font-medium transition-all duration-200 hover:scale-105 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed">
                 {isLoading ? <FaSpinner className="w-4 h-4 animate-spin" /> : <FaSave className="w-4 h-4" />}
                 <span>{isEditing ? 'Save Changes' : 'Add Account'}</span>
               </button>
@@ -289,33 +307,40 @@ export default function ManageAccounts() {
 
       {/* Accounts List */}
       <div className="space-y-4">
-        <div className="flex justify-between items-center">
+        <div className="flex justify-between items-center border-b border-gray-200/60 dark:border-gray-800 pb-4">
           <div className="flex items-center space-x-3">
-            <div className="p-2 bg-gradient-to-r from-purple-500/20 to-blue-500/20 rounded-xl">
+            <div className="p-2 bg-emerald-500/10 rounded-xl">
               <FaUsers className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
             </div>
-            <div>
-              <h3 className="text-xl font-semibold text-gray-900 dark:text-white">Your Accounts</h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400">{accounts.length} account{accounts.length !== 1 ? 's' : ''} configured</p>
+            <div className="flex items-center gap-3">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Your Accounts</h3>
+              <span className="text-xs font-medium text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-900/60 px-2 py-0.5 rounded-full">
+                {accounts.length} configured
+              </span>
             </div>
           </div>
           
-          {!showAddForm && (
-            <button 
-              onClick={handleAddNewAccount}
-              disabled={isLoading}
-              className="flex items-center space-x-2 bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 text-white px-6 py-3 rounded-xl font-medium transition-all duration-200 hover:scale-105 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed">
-              <FaPlus className="w-4 h-4" />
-              <span>Add Account</span>
+          <div className="flex items-center gap-3">
+            <button className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+              <FaFilter className="w-4 h-4" />
             </button>
-          )}
+            {!showAddForm && !hideAddButton && (
+              <button 
+                onClick={handleAddNewAccount}
+                disabled={isLoading}
+                className="flex items-center space-x-2 bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed">
+                <FaPlus className="w-3.5 h-3.5" />
+                <span>Add Account</span>
+              </button>
+            )}
+          </div>
         </div>
 
         {isLoading && accounts.length === 0 ? (
-          <div className="text-center py-16 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 shadow-lg">
+          <div className="text-center py-16 bg-white/80 dark:bg-black/70 backdrop-blur-xl rounded-2xl border border-gray-200/60 dark:border-gray-800 shadow-sm">
             <div className="max-w-md mx-auto space-y-6">
-              <div className="w-20 h-20 bg-gradient-to-r from-blue-500 to-green-500 rounded-full flex items-center justify-center mx-auto">
-                <FaSpinner className="w-10 h-10 text-white animate-spin" />
+              <div className="w-20 h-20 bg-emerald-500/10 rounded-full flex items-center justify-center mx-auto">
+                <FaSpinner className="w-10 h-10 text-emerald-500 animate-spin" />
               </div>
               <div>
                 <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Loading Accounts...</h3>
@@ -324,10 +349,10 @@ export default function ManageAccounts() {
             </div>
           </div>
         ) : accounts.length === 0 && !showAddForm ? (
-          <div className="text-center py-16 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 shadow-lg">
+          <div className="text-center py-16 bg-white/80 dark:bg-black/70 backdrop-blur-xl rounded-2xl border border-gray-200/60 dark:border-gray-800 shadow-sm">
             <div className="max-w-md mx-auto space-y-6">
-              <div className="w-20 h-20 bg-gradient-to-r from-blue-500 to-green-500 rounded-full flex items-center justify-center mx-auto">
-                <FaBuilding className="w-10 h-10 text-white" />
+              <div className="w-20 h-20 bg-emerald-500/10 rounded-full flex items-center justify-center mx-auto">
+                <FaBuilding className="w-10 h-10 text-emerald-500" />
               </div>
               <div>
                 <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">No Accounts Yet</h3>
@@ -336,7 +361,7 @@ export default function ManageAccounts() {
                 </p>
                 <button 
                   onClick={handleAddNewAccount}
-                  className="inline-flex items-center space-x-2 bg-gradient-to-r from-blue-500 to-green-500 hover:from-blue-600 hover:to-green-600 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl">
+                  className="inline-flex items-center space-x-2 bg-emerald-500 hover:bg-emerald-600 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl">
                   <FaPlus className="w-4 h-4" />
                   <span>Add Your First Account</span>
                 </button>
@@ -454,6 +479,12 @@ export default function ManageAccounts() {
           </div>
         </div>
       )}
+      <AlertModal
+        isOpen={alertState.isOpen}
+        onClose={closeAlert}
+        title={alertState.title}
+        message={alertState.message}
+      />
     </div>
   );
-} 
+}

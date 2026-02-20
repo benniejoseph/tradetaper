@@ -3,10 +3,9 @@
 import React, { useState } from 'react';
 import MT5AccountsList from '@/components/settings/MT5AccountsList';
 import { StatementUpload } from '@/components/settings/StatementUpload';
-import { FaServer, FaUpload, FaList, FaBookOpen } from 'react-icons/fa';
-import MT5SetupGuide from '@/components/settings/MT5SetupGuide';
+import { FaServer, FaUpload, FaList } from 'react-icons/fa';
 
-type TabType = 'accounts' | 'upload' | 'guide';
+type TabType = 'accounts' | 'upload';
 
 export default function MT5AccountsPage() {
   const [activeTab, setActiveTab] = useState<TabType>('accounts');
@@ -16,11 +15,16 @@ export default function MT5AccountsPage() {
       {/* Header Section */}
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
         <div className="space-y-2">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-emerald-500 to-emerald-600 bg-clip-text text-transparent">
-            MetaTrader Integration
-          </h1>
+          <div className="flex flex-wrap items-center gap-3">
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-emerald-500 to-emerald-600 bg-clip-text text-transparent">
+              MetaApi Integration
+            </h1>
+            <span className="px-3 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
+              Paid plans only
+            </span>
+          </div>
           <p className="text-gray-600 dark:text-gray-300">
-            Import your MT4/MT5 trading data via file upload
+            Connect MetaTrader accounts via MetaApi or import trades manually
           </p>
         </div>
       </div>
@@ -53,19 +57,6 @@ export default function MT5AccountsPage() {
           <FaUpload className="w-4 h-4" />
           Import Trades
         </button>
-        <button
-          onClick={() => setActiveTab('guide')}
-          className={`
-            flex items-center gap-2 px-4 py-3 font-medium transition-colors
-            ${activeTab === 'guide'
-              ? 'text-emerald-400 border-b-2 border-emerald-400'
-              : 'text-gray-400 hover:text-gray-300'
-            }
-          `}
-        >
-          <FaBookOpen className="w-4 h-4" />
-          Setup Guide
-        </button>
       </div>
 
       {/* Tab Content */}
@@ -79,23 +70,23 @@ export default function MT5AccountsPage() {
                   <FaServer className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
                 </div>
                 <div>
-                  <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">About MT Integration</h2>
-                  <p className="text-gray-500 dark:text-gray-400">How TradeTaper connects with your MetaTrader accounts</p>
+                  <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">About MetaApi Integration</h2>
+                  <p className="text-gray-500 dark:text-gray-400">Seamless MT4/MT5 sync with full history by default</p>
                 </div>
               </div>
               
               <div className="prose prose-blue dark:prose-invert max-w-none">
                 <p>
-                  Import your trading data from MT4/MT5 into TradeTaper using the file upload feature.
-                  Export your statement from MetaTrader and upload it here to automatically import all closed trades.
+                  Connect your trading account through MetaApi for hands-off syncing and real-time updates. You can
+                  still import your history via statement upload when you need a quick backfill or for manual accounts.
                 </p>
                 
                 <h3>How It Works</h3>
                 <ul>
-                  <li>Export your account statement from MT4/MT5</li>
-                  <li>Upload the file (HTML or CSV format)</li>
-                  <li>TradeTaper parses and imports your trades</li>
-                  <li>Duplicates are automatically detected and skipped</li>
+                  <li>Securely connect your MT4/MT5 login via MetaApi</li>
+                  <li>Full account history syncs automatically</li>
+                  <li>Open positions stay updated as SL/TP changes</li>
+                  <li>Optionally import statement files for manual accounts</li>
                 </ul>
               </div>
             </div>
@@ -111,7 +102,7 @@ export default function MT5AccountsPage() {
           <div className="p-8">
             <div className="flex items-center space-x-3 mb-6">
               <div className="p-3 bg-gradient-to-r from-blue-500/20 to-blue-600/20 rounded-xl">
-                <FaUpload className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                <FaUpload className="w-6 h-6 text-blue-600 dark:text-emerald-400" />
               </div>
               <div>
                 <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">Import Trades</h2>
@@ -122,10 +113,6 @@ export default function MT5AccountsPage() {
             <StatementUpload />
           </div>
         </div>
-      )}
-
-      {activeTab === 'guide' && (
-        <MT5SetupGuide />
       )}
     </div>
   );

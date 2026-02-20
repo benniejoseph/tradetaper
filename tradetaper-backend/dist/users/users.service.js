@@ -28,11 +28,13 @@ let UsersService = class UsersService {
         if (existingUser) {
             throw new common_1.ConflictException('Email already exists');
         }
+        const username = await this.generateUniqueUsername(email);
         let user = this.usersRepository.create({
             email,
             password,
             firstName,
             lastName,
+            username,
         });
         user = await this.usersRepository.save(user);
         const response = {
@@ -40,6 +42,7 @@ let UsersService = class UsersService {
             email: user.email,
             firstName: user.firstName,
             lastName: user.lastName,
+            username: user.username,
             createdAt: user.createdAt,
             updatedAt: user.updatedAt,
         };
@@ -51,10 +54,12 @@ let UsersService = class UsersService {
         if (existingUser) {
             throw new common_1.ConflictException('Email already exists');
         }
+        const username = await this.generateUniqueUsername(email);
         const user = this.usersRepository.create({
             email,
             firstName,
             lastName,
+            username,
         });
         const savedUser = await this.usersRepository.save(user);
         return savedUser;
@@ -68,6 +73,7 @@ let UsersService = class UsersService {
                 'password',
                 'firstName',
                 'lastName',
+                'username',
                 'createdAt',
                 'updatedAt',
             ],
@@ -86,15 +92,78 @@ let UsersService = class UsersService {
             email: user.email,
             firstName: user.firstName,
             lastName: user.lastName,
+            username: user.username,
             createdAt: user.createdAt,
             updatedAt: user.updatedAt,
         };
         return response;
     }
+    async updateUsername(userId, username) {
+        const normalized = this.normalizeUsername(username);
+        if (!normalized) {
+            throw new common_1.ConflictException('Invalid username');
+        }
+        const available = await this.isUsernameAvailable(normalized, userId);
+        if (!available) {
+            throw new common_1.ConflictException('Username is already taken');
+        }
+        await this.usersRepository.update(userId, { username: normalized });
+        const updated = await this.usersRepository.findOne({ where: { id: userId } });
+        if (!updated) {
+            throw new common_1.ConflictException('User not found');
+        }
+        return {
+            id: updated.id,
+            email: updated.email,
+            firstName: updated.firstName,
+            lastName: updated.lastName,
+            username: updated.username,
+            createdAt: updated.createdAt,
+            updatedAt: updated.updatedAt,
+        };
+    }
+    async isUsernameAvailable(username, excludeUserId) {
+        const normalized = this.normalizeUsername(username);
+        if (!normalized)
+            return false;
+        const query = this.usersRepository
+            .createQueryBuilder('user')
+            .where('LOWER(user.username) = LOWER(:username)', { username: normalized });
+        if (excludeUserId) {
+            query.andWhere('user.id != :excludeUserId', { excludeUserId });
+        }
+        const existing = await query.getOne();
+        return !existing;
+    }
     async updateLastLogin(userId) {
         await this.usersRepository.update(userId, {
             lastLoginAt: new Date(),
         });
+    }
+    normalizeUsername(raw) {
+        if (!raw)
+            return '';
+        let candidate = raw.toLowerCase().trim();
+        candidate = candidate.replace(/[^a-z0-9_]/g, '');
+        if (!candidate)
+            return '';
+        if (!/^[a-z]/.test(candidate)) {
+            candidate = `trader${candidate}`;
+        }
+        return candidate.slice(0, 20);
+    }
+    async generateUniqueUsername(email) {
+        const base = this.normalizeUsername(email.split('@')[0]) || 'trader';
+        let candidate = base;
+        let suffix = 0;
+        while (!(await this.isUsernameAvailable(candidate))) {
+            suffix += 1;
+            candidate = `${base}${suffix}`;
+            if (candidate.length > 20) {
+                candidate = `${base.slice(0, 18)}${suffix}`;
+            }
+        }
+        return candidate;
     }
 };
 exports.UsersService = UsersService;

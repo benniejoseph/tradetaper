@@ -90,48 +90,98 @@ export default function TradesCalendarHeatmap({ trades, onDateClick }: TradesCal
     return `color-scale-neutral-${Math.min(intensityLevel, 4)}`;
   };
 
+  const summary = useMemo(() => {
+    const activeDays = heatmapValues.length;
+    const totalTrades = heatmapValues.reduce((sum, day) => sum + day.count, 0);
+    const totalPnl = heatmapValues.reduce((sum, day) => sum + day.totalPnl, 0);
+    const winningDays = heatmapValues.filter(day => day.totalPnl > 0).length;
+    const losingDays = heatmapValues.filter(day => day.totalPnl < 0).length;
+    return { activeDays, totalTrades, totalPnl, winningDays, losingDays };
+  }, [heatmapValues]);
+
   return (
-    <div className="relative p-2 sm:p-4 h-full flex flex-col rounded-xl bg-white dark:bg-black border border-gray-100 dark:border-gray-800 shadow-sm">
-      
+    <div className="relative p-4 sm:p-5 h-full flex flex-col rounded-2xl bg-gradient-to-b from-white via-white/90 to-emerald-50/40 dark:from-[#050505] dark:via-black dark:to-emerald-950/20 border border-emerald-500/10 dark:border-emerald-400/10 shadow-lg overflow-hidden">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_0%,rgba(16,185,129,0.12),transparent_45%)]"></div>
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-emerald-500/10 to-transparent"></div>
+
+      {/* Summary strip */}
+      <div className="relative z-10 mb-4 flex flex-wrap items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
+        <span className="inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-white/70 dark:bg-black/60 px-3 py-1 text-[11px] font-medium text-emerald-600 dark:text-emerald-300">
+          Last 12 months
+        </span>
+        <span className="inline-flex items-center gap-2 rounded-full border border-gray-200/60 dark:border-gray-800 bg-white/70 dark:bg-black/60 px-3 py-1 text-[11px] font-medium">
+          {summary.activeDays} active days
+        </span>
+        <span className="inline-flex items-center gap-2 rounded-full border border-gray-200/60 dark:border-gray-800 bg-white/70 dark:bg-black/60 px-3 py-1 text-[11px] font-medium">
+          {summary.totalTrades} trades
+        </span>
+        <span className={`inline-flex items-center gap-2 rounded-full border border-gray-200/60 dark:border-gray-800 bg-white/70 dark:bg-black/60 px-3 py-1 text-[11px] font-semibold ${
+          summary.totalPnl >= 0 ? 'text-emerald-600 dark:text-emerald-300' : 'text-red-500 dark:text-red-300'
+        }`}>
+          Net P&L <CurrencyAmount amount={summary.totalPnl} className="inline" />
+        </span>
+      </div>
+
       {/* Calendar content */}
-      <div className="relative z-10 flex-1">
-        <CalendarHeatmap
-          startDate={oneYearAgo}
-          endDate={today}
-          values={heatmapValues}
-          classForValue={classForValue}
-          showWeekdayLabels={true}
-          monthLabels={['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']}
-          titleForValue={(value: any) => value && value.date ? `${value.date}: ${value.count} trades, $${value.totalPnl?.toFixed(2)}` : ''}
-          onClick={(valueArg) => {
-            const value = valueArg as (CustomHeatmapValue & ReactCalendarHeatmapValue<string>) | undefined;
-            if (value && value.date && value.totalPnl !== undefined && value.count > 0 && onDateClick) {
-              const tradesForDate = getTradesForDate(value.date);
-              onDateClick(value, tradesForDate);
-            }
-          }}
-          gutterSize={3}
-        />
+      <div className="relative z-10 flex-1 flex justify-center">
+        <div className="w-full max-w-[1400px]">
+          <CalendarHeatmap
+            startDate={oneYearAgo}
+            endDate={today}
+            values={heatmapValues}
+            classForValue={classForValue}
+            showWeekdayLabels={true}
+            monthLabels={['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']}
+            titleForValue={(value: any) => value && value.date ? `${value.date}: ${value.count} trades, $${value.totalPnl?.toFixed(2)}` : ''}
+            onClick={(valueArg) => {
+              const value = valueArg as (CustomHeatmapValue & ReactCalendarHeatmapValue<string>) | undefined;
+              if (value && value.date && value.totalPnl !== undefined && value.count > 0 && onDateClick) {
+                const tradesForDate = getTradesForDate(value.date);
+                onDateClick(value, tradesForDate);
+              }
+            }}
+            gutterSize={4}
+          />
+        </div>
       </div>
         
       {/* Legend */}
-      <div className="flex items-center justify-end gap-2 mt-4 text-xs text-gray-500 dark:text-gray-400">
-        <span>Less</span>
-        <div className="flex gap-1">
-          <div className="w-3 h-3 rounded-sm bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700" title="No Trades"></div>
-          <div className="w-3 h-3 rounded-sm bg-emerald-200 dark:bg-emerald-900/40" title="Low Profit"></div>
-          <div className="w-3 h-3 rounded-sm bg-emerald-400 dark:bg-emerald-700/60" title="Medium Profit"></div>
-          <div className="w-3 h-3 rounded-sm bg-emerald-600 dark:bg-emerald-500" title="High Profit"></div>
+      <div className="relative z-10 mt-4 flex flex-wrap items-center justify-between gap-3 text-xs text-gray-500 dark:text-gray-400">
+        <div className="flex items-center gap-3">
+          <span className="inline-flex items-center gap-2 text-[11px] font-medium">
+            <span className="h-2 w-2 rounded-full bg-emerald-500"></span>
+            {summary.winningDays} winning days
+          </span>
+          <span className="inline-flex items-center gap-2 text-[11px] font-medium">
+            <span className="h-2 w-2 rounded-full bg-red-500"></span>
+            {summary.losingDays} losing days
+          </span>
         </div>
-        <span>More</span>
+        <div className="flex items-center gap-2">
+          <span className="text-[11px]">Less</span>
+          <div className="flex gap-1">
+            <div className="h-3 w-3 rounded-md bg-gray-100 dark:bg-[#141414] border border-gray-200/60 dark:border-gray-800" title="No trades"></div>
+            <div className="h-3 w-3 rounded-md bg-red-200 dark:bg-red-900/40" title="Low loss"></div>
+            <div className="h-3 w-3 rounded-md bg-red-400 dark:bg-red-700/60" title="Medium loss"></div>
+            <div className="h-3 w-3 rounded-md bg-red-600 dark:bg-red-500/80" title="High loss"></div>
+            <div className="h-3 w-3 rounded-md bg-emerald-200 dark:bg-emerald-900/40" title="Low profit"></div>
+            <div className="h-3 w-3 rounded-md bg-emerald-400 dark:bg-emerald-700/60" title="Medium profit"></div>
+            <div className="h-3 w-3 rounded-md bg-emerald-600 dark:bg-emerald-500" title="High profit"></div>
+          </div>
+          <span className="text-[11px]">More</span>
+        </div>
       </div>
 
       <style jsx global>{`
-        .react-calendar-heatmap rect { rx: 2px; }
-        .react-calendar-heatmap text { font-size: 10px; fill: #9CA3AF; }
+        .react-calendar-heatmap { width: 100%; }
+        .react-calendar-heatmap rect { rx: 4px; }
+        .react-calendar-heatmap text { font-size: 10px; fill: #9CA3AF; font-weight: 500; }
+        .react-calendar-heatmap rect { transition: transform 120ms ease, filter 120ms ease, stroke 120ms ease; }
+        .react-calendar-heatmap rect:hover { stroke: rgba(16, 185, 129, 0.8); stroke-width: 1; filter: drop-shadow(0 0 6px rgba(16,185,129,0.35)); transform: scale(1.06); }
+        .react-calendar-heatmap rect.color-scale-red-4:hover { stroke: rgba(239, 68, 68, 0.9); filter: drop-shadow(0 0 6px rgba(239, 68, 68, 0.35)); }
         
         .color-empty { fill: #f3f4f6; }
-        .dark .color-empty { fill: #1f2937; }
+        .dark .color-empty { fill: #141414; }
 
         .color-scale-green-1 { fill: #d1fae5; }
         .color-scale-green-2 { fill: #6ee7b7; }
@@ -141,7 +191,7 @@ export default function TradesCalendarHeatmap({ trades, onDateClick }: TradesCal
         .dark .color-scale-green-1 { fill: rgba(16, 185, 129, 0.2); }
         .dark .color-scale-green-2 { fill: rgba(16, 185, 129, 0.4); }
         .dark .color-scale-green-3 { fill: rgba(16, 185, 129, 0.6); }
-        .dark .color-scale-green-4 { fill: rgba(16, 185, 129, 0.9); }
+        .dark .color-scale-green-4 { fill: rgba(16, 185, 129, 0.95); }
 
         .color-scale-red-1 { fill: #fee2e2; }
         .color-scale-red-2 { fill: #fca5a5; }
@@ -151,7 +201,7 @@ export default function TradesCalendarHeatmap({ trades, onDateClick }: TradesCal
         .dark .color-scale-red-1 { fill: rgba(239, 68, 68, 0.2); }
         .dark .color-scale-red-2 { fill: rgba(239, 68, 68, 0.4); }
         .dark .color-scale-red-3 { fill: rgba(239, 68, 68, 0.6); }
-        .dark .color-scale-red-4 { fill: rgba(239, 68, 68, 0.9); }
+        .dark .color-scale-red-4 { fill: rgba(239, 68, 68, 0.95); }
       `}</style>
     </div>
   );

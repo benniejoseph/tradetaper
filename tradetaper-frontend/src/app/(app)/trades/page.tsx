@@ -5,18 +5,21 @@ import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '@/store/store';
 import { fetchMT5Accounts, selectMT5Accounts, MT5Account, selectSelectedMT5AccountId, setSelectedMT5Account } from '@/store/features/mt5AccountsSlice';
 import { fetchAccounts, selectAvailableAccounts, selectSelectedAccountId, setSelectedAccount } from '@/store/features/accountSlice';
-import { fetchTrades, selectAllTrades, selectTradesLoading, deleteTrade } from '@/store/features/tradesSlice';
+import { fetchTrades, fetchTradesSummary, selectAllTrades, selectTradesLoading, deleteTrade } from '@/store/features/tradesSlice';
 import { Trade } from '@/types/trade';
 import TradesTable from '@/components/journal/TradesTable';
 import TradePreviewDrawer from '@/components/journal/TradePreviewDrawer';
 import { FaPlus, FaFilter, FaSync, FaInfoCircle } from 'react-icons/fa';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import TradeActionModal from '@/components/trades/TradeActionModal';
+import LivePositionsPanel from '@/components/trades/LivePositionsPanel';
 
 
 export default function TradesPage() {
   const dispatch = useDispatch<AppDispatch>();
   const trades = useSelector((state: RootState) => selectAllTrades(state));
+  const { lastFetchKey, lastFetchAt, lastFetchIncludeTags, total, summary } = useSelector((state: RootState) => state.trades);
   const manualAccounts = useSelector((state: RootState) => selectAvailableAccounts(state));
   const mt5Accounts = useSelector((state: RootState) => selectMT5Accounts(state));
   const isLoading = useSelector((state: RootState) => selectTradesLoading(state));
@@ -28,8 +31,16 @@ export default function TradesPage() {
   
   const [selectedTrade, setSelectedTrade] = useState<Trade | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [isTradeActionOpen, setIsTradeActionOpen] = useState(false);
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(25);
   // Local state initialized with global state if available
   const [selectedAccountId, setSelectedAccountId] = useState<string>(globalSelectedManualId || globalSelectedMT5Id || '');
+  const selectedMT5Account = useMemo(
+    () => mt5Accounts.find(acc => acc.id === selectedAccountId),
+    [mt5Accounts, selectedAccountId]
+  );
+  const hasMT5Accounts = mt5Accounts.length > 0;
 
   // Sync local state when global state changes
   useEffect(() => {
@@ -47,10 +58,20 @@ export default function TradesPage() {
 
   // Fetch trades whenever selectedAccountId changes (which now responds to global changes)
   useEffect(() => {
+    const fetchKey = `account:${selectedAccountId || 'all'}:page:${page}:limit:${limit}`;
+    const isFresh = lastFetchAt && Date.now() - lastFetchAt < 60_000;
+    if (trades.length > 0 && lastFetchKey === fetchKey && isFresh && !lastFetchIncludeTags) return;
     dispatch(fetchTrades({ 
-      page: 1, 
-      limit: 1000, 
-      accountId: selectedAccountId || undefined 
+      page, 
+      limit, 
+      accountId: selectedAccountId || undefined,
+      includeTags: false
+    }));
+  }, [dispatch, selectedAccountId, lastFetchKey, lastFetchAt, lastFetchIncludeTags, trades.length, page, limit]);
+
+  useEffect(() => {
+    dispatch(fetchTradesSummary({
+      accountId: selectedAccountId || undefined,
     }));
   }, [dispatch, selectedAccountId]);
 
@@ -77,14 +98,18 @@ export default function TradesPage() {
   const handleRefresh = useCallback(() => {
     dispatch(fetchTrades({ 
       page: 1, 
-      limit: 1000, 
-      accountId: selectedAccountId || undefined 
+      limit, 
+      accountId: selectedAccountId || undefined,
+      includeTags: false,
+      force: true
     }));
-  }, [dispatch, selectedAccountId]);
+    setPage(1);
+  }, [dispatch, selectedAccountId, limit]);
 
   const handleAccountFilter = (accountId: string) => {
     // Update local state
     setSelectedAccountId(accountId);
+    setPage(1);
     
     // Dispatch to global state
     if (!accountId) {
@@ -168,13 +193,13 @@ export default function TradesPage() {
             </button>
 
             {/* Add Trade Button */}
-            <Link
-              href="/journal/new"
+            <button
+              onClick={() => setIsTradeActionOpen(true)}
               className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white rounded-lg font-medium transition-all shadow-sm hover:shadow-md"
             >
               <FaPlus className="w-4 h-4" />
               Add Trade
-            </Link>
+            </button>
           </div>
         </div>
 
@@ -182,18 +207,18 @@ export default function TradesPage() {
         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
           <div className="bg-white dark:bg-gray-800/50 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
             <p className="text-sm text-gray-500 dark:text-gray-400">Total Trades</p>
-            <p className="text-2xl font-bold text-gray-900 dark:text-white">{filteredTrades.length}</p>
+            <p className="text-2xl font-bold text-gray-900 dark:text-white">{summary?.totalTrades ?? total}</p>
           </div>
           <div className="bg-white dark:bg-gray-800/50 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
             <p className="text-sm text-gray-500 dark:text-gray-400">Winning Trades</p>
             <p className="text-2xl font-bold text-green-600 dark:text-green-400">
-              {filteredTrades.filter((t: Trade) => (t.profitOrLoss ?? 0) > 0).length}
+              {summary?.winningTrades ?? filteredTrades.filter((t: Trade) => (t.profitOrLoss ?? 0) > 0).length}
             </p>
           </div>
           <div className="bg-white dark:bg-gray-800/50 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
             <p className="text-sm text-gray-500 dark:text-gray-400">Losing Trades</p>
             <p className="text-2xl font-bold text-red-600 dark:text-red-400">
-              {filteredTrades.filter((t: Trade) => (t.profitOrLoss ?? 0) < 0).length}
+              {summary?.losingTrades ?? filteredTrades.filter((t: Trade) => (t.profitOrLoss ?? 0) < 0).length}
             </p>
           </div>
           <div className="bg-white dark:bg-gray-800/50 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
@@ -254,17 +279,33 @@ export default function TradesPage() {
           </div>
         </div>
 
+        {/* Live Positions */}
+        {hasMT5Accounts && (
+          <LivePositionsPanel
+            accountId={selectedMT5Account?.id}
+            accountName={selectedMT5Account?.accountName}
+            isMT5={Boolean(selectedMT5Account)}
+          />
+        )}
+
         {/* Trades Table */}
         <TradesTable
           trades={filteredTrades}
           accounts={allAccounts}
           onRowClick={handleRowClick}
           isLoading={isLoading}
-          itemsPerPage={25}
+          itemsPerPage={limit}
+          totalItems={total}
+          currentPage={page}
+          onPageChange={setPage}
+          onPageSizeChange={(size) => {
+            setLimit(size);
+            setPage(1);
+          }}
         />
 
         {/* Empty State */}
-        {!isLoading && filteredTrades.length === 0 && (
+        {!isLoading && total === 0 && (
           <div className="text-center py-16">
             <div className="w-16 h-16 mx-auto mb-4 bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center">
               <FaPlus className="w-8 h-8 text-emerald-600 dark:text-emerald-400" />
@@ -278,12 +319,12 @@ export default function TradesPage() {
                 : "Start by adding your first trade or importing from your MT5 account."}
             </p>
             <div className="flex items-center justify-center gap-3">
-              <Link
-                href="/journal/new"
+              <button
+                onClick={() => setIsTradeActionOpen(true)}
                 className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg font-medium transition-colors"
               >
                 Add Trade Manually
-              </Link>
+              </button>
               <Link
                 href="/settings"
                 className="px-4 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg font-medium transition-colors"
@@ -305,6 +346,11 @@ export default function TradesPage() {
           onDelete={handleDeleteTrade}
         />
       )}
+
+      <TradeActionModal
+        isOpen={isTradeActionOpen}
+        onClose={() => setIsTradeActionOpen(false)}
+      />
     </div>
   );
 }

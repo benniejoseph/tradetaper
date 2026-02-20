@@ -103,6 +103,7 @@ export class AuthService {
         email: user.email,
         firstName: user.firstName,
         lastName: user.lastName,
+        username: user.username,
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,
       };
@@ -207,6 +208,7 @@ export class AuthService {
         email: user.email,
         firstName: user.firstName,
         lastName: user.lastName,
+        username: user.username,
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,
       };

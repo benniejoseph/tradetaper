@@ -286,10 +286,10 @@ export default function BacktestingPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <Link
                   href={`/backtesting/trades?strategyId=${selectedStrategyId}`}
-                  className="flex items-center gap-4 p-4 bg-gradient-to-br from-white to-blue-50 dark:from-black dark:to-blue-950/20 rounded-xl border border-blue-200/50 dark:border-blue-700/30 hover:shadow-lg transition-all"
+                  className="flex items-center gap-4 p-4 bg-gradient-to-br from-white to-blue-50 dark:from-black dark:to-emerald-950/20 rounded-xl border border-blue-200/50 dark:border-emerald-700/30 hover:shadow-lg transition-all"
                 >
-                  <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-                    <FiList className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                  <div className="p-3 bg-blue-100 dark:bg-emerald-900/30 rounded-lg">
+                    <FiList className="w-6 h-6 text-blue-600 dark:text-emerald-400" />
                   </div>
                   <div>
                     <h3 className="font-semibold text-gray-900 dark:text-white">View All Trades</h3>
@@ -299,10 +299,10 @@ export default function BacktestingPage() {
 
                 <Link
                   href={`/backtesting/matrix?strategyId=${selectedStrategyId}`}
-                  className="flex items-center gap-4 p-4 bg-gradient-to-br from-white to-purple-50 dark:from-black dark:to-purple-950/20 rounded-xl border border-purple-200/50 dark:border-purple-700/30 hover:shadow-lg transition-all"
+                  className="flex items-center gap-4 p-4 bg-gradient-to-br from-white to-purple-50 dark:from-black dark:to-emerald-950/20 rounded-xl border border-purple-200/50 dark:border-emerald-700/30 hover:shadow-lg transition-all"
                 >
-                  <div className="p-3 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
-                    <FiGrid className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+                  <div className="p-3 bg-purple-100 dark:bg-emerald-900/30 rounded-lg">
+                    <FiGrid className="w-6 h-6 text-purple-600 dark:text-emerald-400" />
                   </div>
                   <div>
                     <h3 className="font-semibold text-gray-900 dark:text-white">Performance Matrix</h3>
@@ -391,9 +391,9 @@ export default function BacktestingPage() {
       ) : (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
            {/* Market Perception / Logs View */}
-           <div className="bg-gradient-to-br from-white to-blue-50 dark:from-black dark:to-blue-950/20 rounded-xl p-8 border border-blue-200/50 dark:border-blue-700/30 text-center">
-             <div className="p-4 bg-blue-100 dark:bg-blue-900/30 rounded-full inline-flex mb-4">
-               <FiTrendingUp className="w-8 h-8 text-blue-600 dark:text-blue-400" />
+           <div className="bg-gradient-to-br from-white to-blue-50 dark:from-black dark:to-emerald-950/20 rounded-xl p-8 border border-blue-200/50 dark:border-emerald-700/30 text-center">
+             <div className="p-4 bg-blue-100 dark:bg-emerald-900/30 rounded-full inline-flex mb-4">
+               <FiTrendingUp className="w-8 h-8 text-blue-600 dark:text-emerald-400" />
              </div>
              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Market Perception & Discovery</h3>
              <p className="text-gray-600 dark:text-gray-400 mb-6 max-w-md mx-auto">

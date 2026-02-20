@@ -20,6 +20,12 @@ import { BacktestTrade } from '../backtesting/entities/backtest-trade.entity';
 import { MarketLog } from '../backtesting/entities/market-log.entity';
 import { MarketCandle } from '../backtesting/entities/market-candle.entity';
 import { ReplaySession } from '../backtesting/entities/replay-session.entity';
+import { CommunitySettings } from '../community/entities/community-settings.entity';
+import { CommunityPost } from '../community/entities/community-post.entity';
+import { CommunityFollow } from '../community/entities/community-follow.entity';
+import { CommunityPostReply } from '../community/entities/community-post-reply.entity';
+import { EconomicEventAlert } from '../market-intelligence/entities/economic-event-alert.entity';
+import { EconomicEventAnalysis } from '../market-intelligence/entities/economic-event-analysis.entity';
 import { Connector } from '@google-cloud/cloud-sql-connector';
 
 import { Logger } from '@nestjs/common';
@@ -69,6 +75,12 @@ async function createDataSource() {
           MarketLog,
           MarketCandle,
           ReplaySession,
+          CommunitySettings,
+          CommunityPost,
+          CommunityFollow,
+          CommunityPostReply,
+          EconomicEventAlert,
+          EconomicEventAnalysis,
         ],
         migrations: ['dist/migrations/*{.ts,.js}'],
         synchronize: false,
@@ -105,6 +117,12 @@ async function createDataSource() {
           MarketLog,
           MarketCandle,
           ReplaySession,
+          CommunitySettings,
+          CommunityPost,
+          CommunityFollow,
+          CommunityPostReply,
+          EconomicEventAlert,
+          EconomicEventAnalysis,
         ],
         migrations: ['dist/migrations/*{.ts,.js}'],
         synchronize: false,
@@ -142,6 +160,12 @@ async function createDataSource() {
         MarketLog,
         MarketCandle,
         ReplaySession,
+        CommunitySettings,
+        CommunityPost,
+        CommunityFollow,
+        CommunityPostReply,
+        EconomicEventAlert,
+        EconomicEventAnalysis,
       ],
       migrations: ['src/migrations/*{.ts,.js}'],
       synchronize: false,

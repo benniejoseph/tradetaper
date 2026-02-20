@@ -52,6 +52,7 @@ let User = class User {
     password;
     firstName;
     lastName;
+    username;
     lastLoginAt;
     createdAt;
     updatedAt;
@@ -90,6 +91,10 @@ __decorate([
     (0, typeorm_1.Column)({ length: 100, nullable: true }),
     __metadata("design:type", String)
 ], User.prototype, "lastName", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ length: 30, nullable: true }),
+    __metadata("design:type", String)
+], User.prototype, "username", void 0);
 __decorate([
     (0, typeorm_1.Column)({ type: 'timestamp', nullable: true }),
     __metadata("design:type", Date)

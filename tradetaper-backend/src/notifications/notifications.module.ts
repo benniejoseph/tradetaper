@@ -3,6 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { ScheduleModule } from '@nestjs/schedule';
 import { Notification } from './entities/notification.entity';
 import { NotificationPreference } from './entities/notification-preference.entity';
+import { EconomicEventAlert } from '../market-intelligence/entities/economic-event-alert.entity';
 import { NotificationsService } from './notifications.service';
 import { NotificationsController } from './notifications.controller';
 import { NotificationSchedulerService } from './notification-scheduler.service';
@@ -12,7 +13,7 @@ import { MarketIntelligenceModule } from '../market-intelligence/market-intellig
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Notification, NotificationPreference]),
+    TypeOrmModule.forFeature([Notification, NotificationPreference, EconomicEventAlert]),
     ScheduleModule.forRoot(),
     forwardRef(() => WebSocketModule),
     forwardRef(() => UsersModule),

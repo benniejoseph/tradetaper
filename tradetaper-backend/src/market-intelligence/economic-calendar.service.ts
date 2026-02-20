@@ -1,23 +1,41 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
-import { firstValueFrom } from 'rxjs';
 import { NewsAnalysisService } from './news-analysis.service';
 import { XMLParser } from 'fast-xml-parser'; // Added
-import { parse, addHours } from 'date-fns'; // Added for date parsing // Added
-// import { MultiModelOrchestratorService } from '../agents/llm/multi-model-orchestrator.service';
+import { parse } from 'date-fns'; // Added for date parsing // Added
+import { MarketDataAggregatorService } from './market-data-aggregator.service';
+import { MultiModelOrchestratorService } from '../agents/llm/multi-model-orchestrator.service';
+import { EconomicEventAnalysis } from './entities/economic-event-analysis.entity';
 
 export interface EconomicEvent {
   id: string;
+  calendarId?: string;
   title: string;
   country: string;
   currency: string;
   date: Date;
   time: string;
   importance: 'low' | 'medium' | 'high';
+  importanceValue?: number;
   actual?: number | string;
   forecast?: number | string;
   previous?: number | string;
+  revised?: number | string;
+  teForecast?: number | string;
+  unit?: string;
+  frequency?: string;
+  category?: string;
+  reference?: string;
+  referenceDate?: string;
+  source?: string;
+  sourceUrl?: string;
+  url?: string;
+  ticker?: string;
+  symbol?: string;
+  lastUpdate?: string;
   description: string;
   impact: {
     expected: 'bullish' | 'bearish' | 'neutral';
@@ -28,20 +46,78 @@ export interface EconomicEvent {
   isNewsDerived?: boolean; // New flag
 }
 
+export interface EconomicEventHistoryItem {
+  date: string;
+  actual?: number | string;
+  forecast?: number | string;
+  previous?: number | string;
+  revised?: number | string;
+  reference?: string;
+}
+
+export interface EconomicEventAiSummary {
+  scope: 'high_event_top_movers';
+  headline: string;
+  marketPulse: string;
+  highImpactDrivers: string[];
+  watchlist: {
+    symbol: string;
+    bias: 'bullish' | 'bearish' | 'neutral';
+    confidence: number;
+    drivers: string[];
+  }[];
+  topMovers: {
+    symbol: string;
+    price: number;
+    change: number;
+    changePercent: number;
+    direction: 'up' | 'down' | 'flat';
+    source: string;
+  }[];
+  risks: string[];
+  confidence?: number;
+  sourceQuality?: {
+    high?: number;
+    medium?: number;
+    low?: number;
+    consensus?: string;
+  };
+}
+
 export interface EconomicImpactAnalysis {
   eventId: string;
+  event?: EconomicEvent;
+  history?: EconomicEventHistoryItem[];
+  aiSummary?: EconomicEventAiSummary;
+  confidence?: number;
+  sourceQuality?: {
+    high?: number;
+    medium?: number;
+    low?: number;
+    consensus?: string;
+  };
+  cachedAt?: string;
   preEventAnalysis: {
     marketExpectations: string;
     keyLevelsToWatch: number[];
     riskScenarios: string[];
   };
   detailedAnalysis?: {
+    summary?: string;
     source: string;
     measures: string;
     usualEffect: string;
     frequency: string;
     whyTradersCare: string;
     nextRelease: string;
+    sourceUrl?: string;
+    reference?: string;
+    referenceDate?: string;
+    unit?: string;
+    revised?: string | number;
+    category?: string;
+    ticker?: string;
+    url?: string;
   };
   postEventAnalysis?: {
     marketReaction: string;
@@ -64,12 +140,16 @@ export interface EconomicImpactAnalysis {
 @Injectable()
 export class EconomicCalendarService {
   private readonly logger = new Logger(EconomicCalendarService.name);
+  private fredApiKey: string | undefined;
 
   constructor(
     private readonly httpService: HttpService,
     private readonly configService: ConfigService,
     private readonly newsAnalysisService: NewsAnalysisService,
-    // private readonly orchestrator: MultiModelOrchestratorService, // Injected
+    private readonly marketDataService: MarketDataAggregatorService,
+    private readonly orchestrator: MultiModelOrchestratorService,
+    @InjectRepository(EconomicEventAnalysis)
+    private readonly economicAnalysisRepository: Repository<EconomicEventAnalysis>,
   ) {}
 
   async getEconomicCalendar(
@@ -118,7 +198,11 @@ export class EconomicCalendarService {
     this.logger.log(`Getting economic impact analysis for event ${eventId}`);
 
     try {
-      // This would analyze the specific event and its market impact
+      const cached = await this.getCachedAnalysis(eventId);
+      if (cached) {
+        return cached;
+      }
+
       return this.generateEventImpactAnalysis(eventId);
     } catch (error) {
       this.logger.error(
@@ -136,8 +220,21 @@ export class EconomicCalendarService {
   ): Promise<EconomicEvent[]> {
     const currentDate = new Date();
     const events: EconomicEvent[] = [];
+    const fromDate = from ? new Date(from) : null;
+    const toDate = to ? new Date(to) : null;
 
-    // 1. Get Real ForexFactory Events (Primary Source)
+    if (
+      this.eventCache &&
+      Date.now() - this.eventCache.timestamp < this.CACHE_TTL
+    ) {
+      return this.applyEventFilters(
+        this.eventCache.data,
+        fromDate,
+        toDate,
+        importance,
+      );
+    }
+
     try {
       const ffEvents = await this.fetchForexFactoryEvents();
       if (ffEvents.length > 0) {
@@ -145,7 +242,9 @@ export class EconomicCalendarService {
       }
     } catch (e) {
       this.logger.error('Failed to fetch ForexFactory events', e);
-      // Fallback to News Analysis if FF fails?
+    }
+
+    if (events.length === 0) {
       try {
         const newsResult = await this.newsAnalysisService.getMarketNews();
         const newsEvents = this.mapNewsToEvents(newsResult.news);
@@ -158,25 +257,58 @@ export class EconomicCalendarService {
           newsError,
         );
       }
+    }
 
-      // Fallback to Mock if both fail
-      if (events.length === 0) {
-        // Generate events for the next 7 days (Mock)
-        for (let i = 0; i < 7; i++) {
-          const eventDate = new Date(currentDate);
-          eventDate.setDate(currentDate.getDate() + i);
-          const dayEvents = this.generateEventsForDay(eventDate);
-          events.push(...dayEvents);
-        }
+    if (events.length === 0) {
+      for (let i = 0; i < 7; i++) {
+        const eventDate = new Date(currentDate);
+        eventDate.setDate(currentDate.getDate() + i);
+        const dayEvents = this.generateEventsForDay(eventDate);
+        events.push(...dayEvents);
       }
     }
 
-    // Filter by importance if specified
-    if (importance) {
-      return events.filter((e) => e.importance === importance);
-    }
+    this.eventCache = {
+      timestamp: Date.now(),
+      data: events,
+    };
 
-    return events;
+    return this.applyEventFilters(events, fromDate, toDate, importance);
+  }
+
+  private eventCache: { timestamp: number; data: EconomicEvent[] } | null = null;
+  private readonly CACHE_TTL = 60 * 60 * 1000; // 1 hour
+  private analysisCache = new Map<string, { timestamp: number; data: EconomicImpactAnalysis }>();
+  private readonly ANALYSIS_TTL = 12 * 60 * 60 * 1000; // 12 hours
+
+  private applyEventFilters(
+    events: EconomicEvent[],
+    fromDate: Date | null,
+    toDate: Date | null,
+    importance?: string,
+  ): EconomicEvent[] {
+    let result = [...events];
+    if (fromDate && !isNaN(fromDate.getTime())) {
+      result = result.filter((event) => event.date >= fromDate);
+    }
+    if (toDate && !isNaN(toDate.getTime())) {
+      const end = new Date(toDate);
+      end.setHours(23, 59, 59, 999);
+      result = result.filter((event) => event.date <= end);
+    }
+    if (importance) {
+      result = result.filter((event) => event.importance === importance);
+    }
+    return result;
+  }
+
+  private getFredApiKey(): string | undefined {
+    if (!this.fredApiKey) {
+      this.fredApiKey =
+        this.configService.get<string>('FRED_API_KEY') ||
+        this.configService.get<string>('FRED_KEY');
+    }
+    return this.fredApiKey;
   }
 
   private async fetchForexFactoryEvents(): Promise<EconomicEvent[]> {
@@ -184,7 +316,14 @@ export class EconomicCalendarService {
       const url = 'https://nfs.faireconomy.media/ff_calendar_thisweek.xml';
       this.logger.log(`Fetching FF Calendar from ${url}`);
 
-      const response = await this.httpService.axiosRef.get(url);
+      const response = await this.httpService.axiosRef.get(url, {
+        headers: {
+          'User-Agent':
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          Accept:
+            'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+        },
+      });
       const xmlData = response.data;
 
       const parser = new XMLParser();
@@ -199,7 +338,7 @@ export class EconomicCalendarService {
         rawEvents = [rawEvents];
       }
 
-      return rawEvents
+      const events = rawEvents
         .map((e: Record<string, any>) => {
           const dateStr = e.date; // MM-DD-YYYY
           const timeStr = e.time; // 1:30pm
@@ -237,6 +376,8 @@ export class EconomicCalendarService {
             actual: e.actual,
             forecast: e.forecast,
             previous: e.previous,
+            source: 'ForexFactory',
+            sourceUrl: 'https://www.forexfactory.com/calendar',
             description: `${e.title} (${e.impact} Impact)`,
             impact: {
               expected: 'neutral',
@@ -249,8 +390,240 @@ export class EconomicCalendarService {
           };
         })
         .filter((e) => e !== null) as EconomicEvent[];
+
+      return events;
     } catch (error) {
       this.logger.error('Critical error fetching FF Events', error);
+
+      return [];
+    }
+  }
+
+  private mapImportanceToImpact(
+    importance: string | number,
+  ): 'low' | 'medium' | 'high' {
+    const imp = parseFloat(String(importance)) || 1;
+    if (imp >= 3) return 'high';
+    if (imp >= 2) return 'medium';
+    return 'low';
+  }
+
+  private mapCountryToCurrency(country: string): string {
+    const mapping: { [key: string]: string } = {
+      'united states': 'USD',
+      eurozone: 'EUR',
+      'european union': 'EUR',
+      germany: 'EUR',
+      france: 'EUR',
+      italy: 'EUR',
+      spain: 'EUR',
+      'united kingdom': 'GBP',
+      japan: 'JPY',
+      canada: 'CAD',
+      australia: 'AUD',
+      'new zealand': 'NZD',
+      switzerland: 'CHF',
+    };
+    return mapping[country.toLowerCase()] || 'USD';
+  }
+
+  private mapEventToFredSeries(title: string): string | null {
+    const normalized = title.toLowerCase();
+    if (normalized.includes('consumer price') || normalized.includes('cpi')) {
+      return 'CPIAUCSL';
+    }
+    if (normalized.includes('core cpi')) {
+      return 'CPILFESL';
+    }
+    if (normalized.includes('pce price') || normalized.includes('pce inflation')) {
+      return 'PCEPI';
+    }
+    if (normalized.includes('core pce')) {
+      return 'PCEPILFE';
+    }
+    if (normalized.includes('non-farm') || normalized.includes('payroll')) {
+      return 'PAYEMS';
+    }
+    if (normalized.includes('unemployment rate')) {
+      return 'UNRATE';
+    }
+    if (normalized.includes('gdp')) {
+      return 'GDP';
+    }
+    if (normalized.includes('gdp') && normalized.includes('q/q')) {
+      return 'A191RL1Q225SBEA';
+    }
+    if (normalized.includes('retail sales')) {
+      return 'RSAFS';
+    }
+    if (normalized.includes('retail') && normalized.includes('ex autos')) {
+      return 'RSAFSNA';
+    }
+    if (normalized.includes('ppi')) {
+      return 'PPIACO';
+    }
+    if (normalized.includes('ism') && normalized.includes('manufacturing')) {
+      return 'NAPM';
+    }
+    if (normalized.includes('ism') && normalized.includes('services')) {
+      return 'NAPMNONM';
+    }
+    if (normalized.includes('jobless claims')) {
+      return 'ICSA';
+    }
+    if (normalized.includes('durable goods')) {
+      return 'DGORDER';
+    }
+    if (normalized.includes('housing starts')) {
+      return 'HOUST';
+    }
+    if (normalized.includes('building permits')) {
+      return 'PERMIT';
+    }
+    if (normalized.includes('industrial production')) {
+      return 'INDPRO';
+    }
+    if (normalized.includes('consumer confidence')) {
+      return 'CSCICP03USM665S';
+    }
+    if (normalized.includes('producer price index')) {
+      return 'PPIACO';
+    }
+    if (normalized.includes('personal income')) {
+      return 'PI';
+    }
+    return null;
+  }
+
+  private async fetchFredHistory(
+    seriesId: string,
+    limit = 12,
+  ): Promise<EconomicEventHistoryItem[]> {
+    const apiKey = this.getFredApiKey();
+    if (!apiKey) {
+      return [];
+    }
+
+    try {
+      const response = await this.httpService.axiosRef.get(
+        'https://api.stlouisfed.org/fred/series/observations',
+        {
+          params: {
+            series_id: seriesId,
+            api_key: apiKey,
+            file_type: 'json',
+          },
+          timeout: 10000,
+        },
+      );
+
+      const observations = Array.isArray(response.data?.observations)
+        ? response.data.observations
+        : [];
+      const trimmed = observations.slice(-limit);
+      return trimmed.map((obs: Record<string, any>, index: number) => ({
+        date: obs.date,
+        actual: obs.value === '.' ? undefined : obs.value,
+        previous:
+          index > 0
+            ? trimmed[index - 1].value === '.'
+              ? undefined
+              : trimmed[index - 1].value
+            : undefined,
+      }));
+    } catch (error) {
+      this.logger.warn('Failed to fetch FRED history', error.message);
+      return [];
+    }
+  }
+
+  private mapEventToEcbSeries(title: string, currency: string): string | null {
+    const normalized = title.toLowerCase();
+    if (normalized.includes('consumer price') || normalized.includes('hicp')) {
+      if (currency === 'EUR') return 'M.U2.Y.XEF000.3.INX';
+      if (currency === 'GBP') return 'M.GB.Y.XEF000.3.INX';
+      if (currency === 'JPY') return 'M.JP.Y.XEF000.3.INX';
+    }
+    if (normalized.includes('unemployment') && currency === 'EUR') {
+      return 'M.U2.S.UNEHRT.4.IX';
+    }
+    return null;
+  }
+
+  private async fetchEcbHistory(
+    seriesKey: string,
+    limit = 12,
+  ): Promise<EconomicEventHistoryItem[]> {
+    try {
+      const response = await this.httpService.axiosRef.get(
+        `https://data-api.ecb.europa.eu/service/data/ICP/${seriesKey}`,
+        {
+          params: {
+            format: 'csvdata',
+            lastNObservations: limit,
+          },
+          timeout: 10000,
+        },
+      );
+      const csv = String(response.data || '');
+      const lines = csv.trim().split('\n');
+      if (lines.length < 2) return [];
+      const header = lines[0].split(',');
+      const timeIdx = header.findIndex((h) => h.trim() === 'TIME_PERIOD');
+      const valueIdx = header.findIndex((h) => h.trim() === 'OBS_VALUE');
+      if (timeIdx === -1 || valueIdx === -1) return [];
+
+      return lines.slice(1).map((line) => {
+        const cols = line.split(',');
+        return {
+          date: cols[timeIdx],
+          actual: cols[valueIdx],
+        };
+      });
+    } catch (error) {
+      this.logger.warn('Failed to fetch ECB history', error.message);
+      return [];
+    }
+  }
+
+  private async fetchOnsCpihHistory(limit = 12): Promise<EconomicEventHistoryItem[]> {
+    try {
+      const versionRes = await this.httpService.axiosRef.get(
+        'https://api.beta.ons.gov.uk/v1/datasets/cpih01/editions/time-series/versions',
+        { timeout: 10000 },
+      );
+      const versions = Array.isArray(versionRes.data?.items)
+        ? versionRes.data.items
+        : [];
+      const latestVersion = versions
+        .map((item: Record<string, any>) => Number(item.id))
+        .filter((id: number) => Number.isFinite(id))
+        .sort((a: number, b: number) => b - a)[0];
+
+      if (!latestVersion) return [];
+
+      const obsRes = await this.httpService.axiosRef.get(
+        `https://api.beta.ons.gov.uk/v1/datasets/cpih01/editions/time-series/versions/${latestVersion}/observations`,
+        {
+          params: {
+            time: '*',
+            geography: 'K02000001',
+            aggregate: 'cpih1dim1A0',
+          },
+          timeout: 10000,
+        },
+      );
+
+      const observations = Array.isArray(obsRes.data?.observations)
+        ? obsRes.data.observations
+        : [];
+      const trimmed = observations.slice(-limit);
+      return trimmed.map((obs: Record<string, any>) => ({
+        date: obs.dimensions?.time?.id || obs.time || '',
+        actual: obs.observation || obs.value || undefined,
+      }));
+    } catch (error) {
+      this.logger.warn('Failed to fetch ONS CPIH history', error.message);
       return [];
     }
   }
@@ -612,9 +985,87 @@ export class EconomicCalendarService {
       return this.getMockImpactAnalysis(eventId);
     }
 
-    // 2. Use AI to generate analysis
-    // TEMPORARY REVERT: Use Mock for Deployment Safety
-    return this.getMockImpactAnalysis(eventId);
+    const eventKey = this.buildEventKey(event);
+    const priorAnalysis = eventKey
+      ? await this.getLatestAnalysisByEventKey(eventKey)
+      : null;
+
+    const fredSeries = this.mapEventToFredSeries(event.title);
+    let history = fredSeries ? await this.fetchFredHistory(fredSeries) : [];
+    let historySource: 'FRED' | 'ECB' | 'ONS' | undefined = fredSeries ? 'FRED' : undefined;
+
+    if (history.length === 0) {
+      const ecbSeries = this.mapEventToEcbSeries(event.title, event.currency);
+      if (ecbSeries) {
+        history = await this.fetchEcbHistory(ecbSeries);
+        if (history.length > 0) historySource = 'ECB';
+      }
+    }
+
+    if (history.length === 0 && event.currency === 'GBP') {
+      history = await this.fetchOnsCpihHistory();
+      if (history.length > 0) historySource = 'ONS';
+    }
+    const aiSummary = await this.generateAiSummary(event, history, priorAnalysis);
+    const base = this.getMockImpactAnalysis(eventId);
+
+    const confidence =
+      aiSummary?.confidence ??
+      this.calculateFallbackConfidence(history.length, event.importance);
+    const sourceQuality =
+      aiSummary?.sourceQuality ??
+      this.calculateFallbackSourceQuality(history.length);
+
+    const analysis: EconomicImpactAnalysis = {
+      ...base,
+      eventId,
+      event,
+      history,
+      aiSummary: aiSummary || undefined,
+      confidence,
+      sourceQuality,
+      cachedAt: new Date().toISOString(),
+      detailedAnalysis: {
+        ...base.detailedAnalysis,
+        summary:
+          event.description ||
+          base.detailedAnalysis?.summary ||
+          base.preEventAnalysis?.marketExpectations ||
+          'No summary available.',
+        source:
+          event.source ||
+          historySource ||
+          base.detailedAnalysis?.source ||
+          'N/A',
+        measures:
+          event.category ||
+          event.description ||
+          base.detailedAnalysis?.measures ||
+          'N/A',
+        usualEffect:
+          base.detailedAnalysis?.usualEffect ||
+          'Actual > Forecast = Good for Currency',
+        frequency: event.frequency || base.detailedAnalysis?.frequency || 'N/A',
+        nextRelease:
+          event.referenceDate ||
+          base.detailedAnalysis?.nextRelease ||
+          'TBA',
+        whyTradersCare:
+          base.detailedAnalysis?.whyTradersCare || 'Significant market impact',
+        sourceUrl: event.sourceUrl,
+        reference: event.reference,
+        referenceDate: event.referenceDate,
+        unit: event.unit,
+        revised: event.revised,
+        category: event.category,
+        ticker: event.ticker,
+        url: event.url,
+      },
+    };
+
+    await this.storeAnalysisCache(event, analysis, aiSummary, confidence, sourceQuality, eventKey);
+
+    return analysis;
 
     /*
     try {
@@ -640,6 +1091,7 @@ export class EconomicCalendarService {
         frequency: 'Monthly',
         whyTradersCare: 'Primary gauge of economic health',
         nextRelease: 'Next Month',
+        summary: 'Baseline macro release with standard market impact.',
       },
       tradingRecommendations: {
         preEvent: ['Reduce risk.'],
@@ -647,5 +1099,292 @@ export class EconomicCalendarService {
         postEvent: ['Trade the reaction.'],
       },
     };
+  }
+
+  private async generateAiSummary(
+    event: EconomicEvent,
+    history: EconomicEventHistoryItem[],
+    priorAnalysis?: EconomicEventAnalysis | null,
+  ): Promise<EconomicEventAiSummary | null> {
+    if (event.importance !== 'high') {
+      return null;
+    }
+
+    try {
+      const [newsResult, highImpactResult, moversResult] =
+        await Promise.allSettled([
+          this.newsAnalysisService.getMarketNews(),
+          this.getHighImpactToday(),
+          this.getTopMoversToday(),
+        ]);
+
+      const news =
+        newsResult.status === 'fulfilled'
+          ? newsResult.value
+          : ({ news: [] } as { news: any[] });
+      const highImpactEvents =
+        highImpactResult.status === 'fulfilled' ? highImpactResult.value : [];
+      const topMovers =
+        moversResult.status === 'fulfilled' ? moversResult.value : [];
+
+      const recentNews = (news.news as any[])
+        .filter(
+          (item) =>
+            item?.publishedAt &&
+            Date.now() - item.publishedAt.getTime() <= 7 * 24 * 60 * 60 * 1000,
+        )
+        .slice(0, 8)
+        .map((item) => ({
+          title: item.title,
+          sentiment: item.sentiment,
+          impact: item.impact,
+          symbols: item.symbols,
+        }));
+
+      const context = {
+        event: {
+          title: event.title,
+          country: event.country,
+          currency: event.currency,
+          importance: event.importance,
+          actual: event.actual,
+          forecast: event.forecast,
+          previous: event.previous,
+          revised: event.revised,
+          unit: event.unit,
+          reference: event.reference,
+        },
+        affectedSymbols: event.impact?.affectedSymbols || this.mapCurrencyToSymbols(event.currency),
+        history: history.slice(0, 6),
+        highImpactEvents: highImpactEvents.map((item) => ({
+          title: item.title,
+          currency: item.currency,
+          time: item.date.toISOString(),
+        })),
+        topMovers,
+        recentNews,
+        priorAnalysis: priorAnalysis?.analysis || null,
+        timestamp: new Date().toISOString(),
+      };
+
+      const prompt = `
+You are a senior macro strategist. Produce a high-impact briefing focused on the selected event, today's high-impact events, and top movers.
+Include guidance per trading pair (FX majors, metals, indices) with explicit bias and confidence.
+Use the affectedSymbols list and ensure watchlist covers each affected symbol plus at least 2 majors, 1 metal, and 1 index.
+Provide a confidence score (0-100) and source quality breakdown.
+
+Return JSON ONLY with this schema:
+{
+  "headline": "string",
+  "marketPulse": "string",
+  "highImpactDrivers": ["string"],
+  "watchlist": [{"symbol":"string","bias":"bullish|bearish|neutral","confidence":number,"drivers":["string"]}],
+  "topMovers": [{"symbol":"string","price":number,"change":number,"changePercent":number,"direction":"up|down|flat","source":"string"}],
+  "risks": ["string"],
+  "confidence": number,
+  "sourceQuality": {"high": number, "medium": number, "low": number, "consensus": "string"}
+}
+
+Context:
+${JSON.stringify(context)}
+`;
+
+      const response = await this.orchestrator.complete({
+        prompt,
+        modelPreference: 'gemini-2.0-flash',
+        taskComplexity: 'complex',
+        requireJson: true,
+        optimizeFor: 'quality',
+      });
+
+      const parsed = this.parseAiJson(response.content);
+
+      return {
+        scope: 'high_event_top_movers',
+        headline: parsed.headline || 'High-impact briefing',
+        marketPulse: parsed.marketPulse || 'Market focus on macro drivers.',
+        highImpactDrivers: parsed.highImpactDrivers || [],
+        watchlist: parsed.watchlist || [],
+        topMovers: parsed.topMovers || [],
+        risks: parsed.risks || [],
+        confidence: parsed.confidence,
+        sourceQuality: parsed.sourceQuality,
+      };
+    } catch (error) {
+      this.logger.warn('AI summary failed, using fallback', error.message);
+      return null;
+    }
+  }
+
+  private parseAiJson(content: string): Record<string, any> {
+    const cleaned = content.replace(/```json/g, '').replace(/```/g, '').trim();
+    const direct = this.tryParseJson(cleaned);
+    if (direct) return direct;
+
+    const match = cleaned.match(/\{[\s\S]*\}/);
+    if (match) {
+      const parsed = this.tryParseJson(match[0]);
+      if (parsed) return parsed;
+    }
+
+    throw new Error('AI response JSON parsing failed');
+  }
+
+  private tryParseJson(text: string): Record<string, any> | null {
+    try {
+      const normalized = text
+        .replace(/,\s*}/g, '}')
+        .replace(/,\s*]/g, ']');
+      return JSON.parse(normalized);
+    } catch {
+      return null;
+    }
+  }
+
+  private async getHighImpactToday(): Promise<EconomicEvent[]> {
+    const { events } = await this.getEconomicCalendar();
+    return events.filter((event) => event.importance === 'high');
+  }
+
+  private async getTopMoversToday(): Promise<
+    {
+      symbol: string;
+      price: number;
+      change: number;
+      changePercent: number;
+      direction: 'up' | 'down' | 'flat';
+      source: string;
+    }[]
+  > {
+    const symbols = [
+      'EURUSD',
+      'GBPUSD',
+      'USDJPY',
+      'XAUUSD',
+      'SPY',
+      'QQQ',
+    ];
+    const quotes = await this.marketDataService.getLiveQuotes(symbols);
+    return quotes
+      .filter((quote) => Number.isFinite(quote.changePercent))
+      .map((quote) => ({
+        symbol: quote.symbol,
+        price: quote.bid,
+        change: quote.change,
+        changePercent: quote.changePercent,
+        direction: (quote.changePercent > 0
+          ? 'up'
+          : quote.changePercent < 0
+            ? 'down'
+            : 'flat') as 'up' | 'down' | 'flat',
+        source: quote.source,
+      }))
+      .sort((a, b) => Math.abs(b.changePercent) - Math.abs(a.changePercent))
+      .slice(0, 6);
+  }
+
+  private buildEventKey(event: EconomicEvent): string {
+    return `${event.currency}:${event.title}`.toLowerCase();
+  }
+
+  private calculateFallbackConfidence(historyLength: number, importance: string): number {
+    const base = importance === 'high' ? 55 : 40;
+    const historyBoost = Math.min(25, historyLength * 3);
+    return Math.min(85, base + historyBoost);
+  }
+
+  private calculateFallbackSourceQuality(historyLength: number): {
+    high: number;
+    medium: number;
+    low: number;
+    consensus: string;
+  } {
+    const high = Math.min(5, Math.max(1, Math.ceil(historyLength / 3)));
+    const medium = Math.min(4, Math.max(1, Math.ceil(historyLength / 4)));
+    const low = Math.max(0, 5 - high - medium);
+    return {
+      high,
+      medium,
+      low,
+      consensus: historyLength >= 6 ? 'Strong' : historyLength >= 3 ? 'Moderate' : 'Thin',
+    };
+  }
+
+  private async getCachedAnalysis(eventId: string): Promise<EconomicImpactAnalysis | null> {
+    const cached = this.analysisCache.get(eventId);
+    if (cached && Date.now() - cached.timestamp < this.ANALYSIS_TTL) {
+      return cached.data;
+    }
+
+    const stored = await this.economicAnalysisRepository.findOne({
+      where: { eventId },
+    });
+
+    if (!stored || !stored.analysis) {
+      return null;
+    }
+
+    const analysis = stored.analysis as EconomicImpactAnalysis;
+    const fallbackConfidence =
+      typeof stored.confidence === 'number'
+        ? stored.confidence
+        : this.calculateFallbackConfidence(0, analysis.event?.importance || 'high');
+    const fallbackSourceQuality =
+      (stored.sourceQuality as any) ?? this.calculateFallbackSourceQuality(0);
+
+    const withMeta: EconomicImpactAnalysis = {
+      ...analysis,
+      confidence: stored.confidence ?? analysis.confidence ?? fallbackConfidence,
+      sourceQuality: (stored.sourceQuality as any) ?? analysis.sourceQuality ?? fallbackSourceQuality,
+      aiSummary: (stored.aiSummary as any) ?? analysis.aiSummary,
+      cachedAt: stored.updatedAt ? stored.updatedAt.toISOString() : analysis.cachedAt,
+    };
+
+    this.analysisCache.set(eventId, { timestamp: Date.now(), data: withMeta });
+    return withMeta;
+  }
+
+  private async getLatestAnalysisByEventKey(
+    eventKey: string,
+  ): Promise<EconomicEventAnalysis | null> {
+    return this.economicAnalysisRepository.findOne({
+      where: { eventKey },
+      order: { updatedAt: 'DESC' },
+    });
+  }
+
+  private async storeAnalysisCache(
+    event: EconomicEvent,
+    analysis: EconomicImpactAnalysis,
+    aiSummary: EconomicEventAiSummary | null,
+    confidence: number,
+    sourceQuality: Record<string, any>,
+    eventKey?: string,
+  ): Promise<void> {
+    try {
+      await this.economicAnalysisRepository.upsert(
+        {
+          eventId: event.id,
+          eventKey,
+          currency: event.currency,
+          importance: event.importance,
+          eventDate: event.date,
+          analysis: analysis as any,
+          aiSummary: aiSummary as any,
+          confidence,
+          sourceQuality,
+        },
+        ['eventId'],
+      );
+      this.analysisCache.set(event.id, { timestamp: Date.now(), data: analysis });
+    } catch (error) {
+      this.logger.warn('Failed to persist economic analysis cache', error.message);
+    }
+  }
+
+  async precomputeHighImpactAnalysis(eventId: string): Promise<void> {
+    const cached = await this.getCachedAnalysis(eventId);
+    if (cached) return;
+    await this.generateEventImpactAnalysis(eventId);
   }
 }

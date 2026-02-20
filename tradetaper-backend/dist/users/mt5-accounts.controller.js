@@ -17,17 +17,11 @@ const common_1 = require("@nestjs/common");
 const jwt_auth_guard_1 = require("../auth/guards/jwt-auth.guard");
 const mt5_accounts_service_1 = require("./mt5-accounts.service");
 const mt5_account_dto_1 = require("./dto/mt5-account.dto");
-const trade_history_parser_service_1 = require("./trade-history-parser.service");
-const trades_service_1 = require("../trades/trades.service");
 const usage_limit_guard_1 = require("../subscriptions/guards/usage-limit.guard");
 let MT5AccountsController = class MT5AccountsController {
     mt5AccountsService;
-    tradeHistoryParserService;
-    tradesService;
-    constructor(mt5AccountsService, tradeHistoryParserService, tradesService) {
+    constructor(mt5AccountsService) {
         this.mt5AccountsService = mt5AccountsService;
-        this.tradeHistoryParserService = tradeHistoryParserService;
-        this.tradesService = tradesService;
     }
     async create(req, createMT5AccountDto) {
         return this.mt5AccountsService.create(createMT5AccountDto, req.user.id);
@@ -57,6 +51,9 @@ let MT5AccountsController = class MT5AccountsController {
     async findAll(req) {
         return this.mt5AccountsService.findAllByUser(req.user.id);
     }
+    async getServers(query) {
+        return this.mt5AccountsService.getMetaApiServers(query || '');
+    }
     async findOne(req, id) {
         const account = await this.mt5AccountsService.findOne(id);
         if (!account || account.userId !== req.user.id) {
@@ -67,12 +64,14 @@ let MT5AccountsController = class MT5AccountsController {
     getLiveTrades() {
         return [];
     }
-    async syncAccount(req, id) {
+    async syncMetaApiAccount(req, id) {
         const account = await this.mt5AccountsService.findOne(id);
         if (!account || account.userId !== req.user.id) {
             throw new common_1.BadRequestException('MT5 account not found');
         }
-        await this.mt5AccountsService.syncAccount(id);
+        return this.mt5AccountsService.syncMetaApiAccount(id, {
+            fullHistory: true,
+        });
     }
     async remove(req, id) {
         const account = await this.mt5AccountsService.findOne(id);
@@ -91,7 +90,7 @@ let MT5AccountsController = class MT5AccountsController {
     healthCheck() {
         return {
             status: 'ok',
-            syncMethod: 'ftp',
+            syncMethod: 'metaapi',
             timestamp: new Date().toISOString(),
         };
     }
@@ -116,8 +115,6 @@ __decorate([
 ], MT5AccountsController.prototype, "create", null);
 __decorate([
     (0, common_1.Post)('manual'),
-    (0, common_1.UseGuards)(usage_limit_guard_1.UsageLimitGuard),
-    (0, usage_limit_guard_1.UsageFeature)('mt5Accounts'),
     __param(0, (0, common_1.Request)()),
     __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
@@ -131,6 +128,13 @@ __decorate([
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", Promise)
 ], MT5AccountsController.prototype, "findAll", null);
+__decorate([
+    (0, common_1.Get)('servers'),
+    __param(0, (0, common_1.Query)('query')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], MT5AccountsController.prototype, "getServers", null);
 __decorate([
     (0, common_1.Get)(':id'),
     __param(0, (0, common_1.Request)()),
@@ -147,13 +151,12 @@ __decorate([
 ], MT5AccountsController.prototype, "getLiveTrades", null);
 __decorate([
     (0, common_1.Post)(':id/sync'),
-    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
     __param(0, (0, common_1.Request)()),
     __param(1, (0, common_1.Param)('id')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object, String]),
     __metadata("design:returntype", Promise)
-], MT5AccountsController.prototype, "syncAccount", null);
+], MT5AccountsController.prototype, "syncMetaApiAccount", null);
 __decorate([
     (0, common_1.Delete)(':id'),
     __param(0, (0, common_1.Request)()),
@@ -188,8 +191,6 @@ __decorate([
 exports.MT5AccountsController = MT5AccountsController = __decorate([
     (0, common_1.Controller)('mt5-accounts'),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
-    __metadata("design:paramtypes", [mt5_accounts_service_1.MT5AccountsService,
-        trade_history_parser_service_1.TradeHistoryParserService,
-        trades_service_1.TradesService])
+    __metadata("design:paramtypes", [mt5_accounts_service_1.MT5AccountsService])
 ], MT5AccountsController);
 //# sourceMappingURL=mt5-accounts.controller.js.map

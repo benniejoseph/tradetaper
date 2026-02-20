@@ -13,6 +13,7 @@ export interface PerformanceMetrics {
   totalPnL: number;
   totalCommissions: number;
   netPnL: number;
+  totalTradedValue: number;
   averageWin: number;
   averageLoss: number;
   profitFactor: number;
@@ -59,6 +60,18 @@ export class PerformanceService {
     accountId?: string,
     dateFrom?: string,
     dateTo?: string,
+    filters?: {
+      status?: string;
+      direction?: string;
+      assetType?: string;
+      symbol?: string;
+      search?: string;
+      isStarred?: boolean;
+      minPnl?: number;
+      maxPnl?: number;
+      minDuration?: number;
+      maxDuration?: number;
+    },
   ): Promise<PerformanceMetrics> {
     this.logger.log(
       `Calculating performance metrics for user ${userContext.id}`,
@@ -79,6 +92,68 @@ export class PerformanceService {
 
     if (dateTo) {
       queryBuilder.andWhere('trade.openTime <= :dateTo', { dateTo });
+    }
+
+    if (filters?.status) {
+      queryBuilder.andWhere('trade.status = :statusFilter', {
+        statusFilter: filters.status,
+      });
+    }
+
+    if (filters?.direction) {
+      queryBuilder.andWhere('trade.side = :side', {
+        side: filters.direction,
+      });
+    }
+
+    if (filters?.assetType) {
+      queryBuilder.andWhere('trade.assetType = :assetType', {
+        assetType: filters.assetType,
+      });
+    }
+
+    if (filters?.symbol) {
+      queryBuilder.andWhere('trade.symbol ILIKE :symbol', {
+        symbol: `%${filters.symbol}%`,
+      });
+    }
+
+    if (filters?.isStarred) {
+      queryBuilder.andWhere('trade.isStarred = :isStarred', {
+        isStarred: true,
+      });
+    }
+
+    if (filters?.search) {
+      queryBuilder.andWhere(
+        '(trade.symbol ILIKE :search OR trade.notes ILIKE :search OR trade.setupDetails ILIKE :search)',
+        { search: `%${filters.search}%` },
+      );
+    }
+
+    if (Number.isFinite(filters?.minPnl)) {
+      queryBuilder.andWhere('trade.profitOrLoss >= :minPnl', {
+        minPnl: filters?.minPnl,
+      });
+    }
+
+    if (Number.isFinite(filters?.maxPnl)) {
+      queryBuilder.andWhere('trade.profitOrLoss <= :maxPnl', {
+        maxPnl: filters?.maxPnl,
+      });
+    }
+
+    if (Number.isFinite(filters?.minDuration)) {
+      queryBuilder.andWhere(
+        'trade.closeTime IS NOT NULL AND EXTRACT(EPOCH FROM (trade.closeTime - trade.openTime)) >= :minDuration',
+        { minDuration: filters?.minDuration },
+      );
+    }
+    if (Number.isFinite(filters?.maxDuration)) {
+      queryBuilder.andWhere(
+        'trade.closeTime IS NOT NULL AND EXTRACT(EPOCH FROM (trade.closeTime - trade.openTime)) <= :maxDuration',
+        { maxDuration: filters?.maxDuration },
+      );
     }
 
     const trades = await queryBuilder.getMany();
@@ -147,6 +222,12 @@ export class PerformanceService {
       0,
     );
     const netPnL = totalPnL - totalCommissions;
+    const totalTradedValue = trades.reduce((sum, t) => {
+      if (t.openPrice && t.quantity) {
+        return sum + Math.abs(Number(t.openPrice) * Number(t.quantity));
+      }
+      return sum;
+    }, 0);
 
     const winRate =
       totalTrades > 0 ? (winningTrades.length / totalTrades) * 100 : 0;
@@ -217,6 +298,7 @@ export class PerformanceService {
       totalPnL,
       totalCommissions,
       netPnL,
+      totalTradedValue,
       averageWin,
       averageLoss,
       profitFactor,

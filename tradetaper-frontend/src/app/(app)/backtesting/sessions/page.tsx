@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { FaChevronLeft, FaPlay, FaTrash, FaDownload } from 'react-icons/fa';
+import AlertModal from '@/components/ui/AlertModal';
 
 interface ReplaySession {
   id: string;
@@ -25,6 +26,10 @@ export default function ReplaySessionsPage() {
   const [sessions, setSessions] = useState<ReplaySession[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [alertState, setAlertState] = useState({ isOpen: false, title: 'Notice', message: '' });
+  const closeAlert = () => setAlertState((prev) => ({ ...prev, isOpen: false }));
+  const showAlert = (message: string, title = 'Notice') =>
+    setAlertState({ isOpen: true, title, message });
 
   useEffect(() => {
     fetchSessions();
@@ -80,7 +85,7 @@ export default function ReplaySessionsPage() {
       setSessions(sessions.filter((s) => s.id !== sessionId));
     } catch (err: any) {
       console.error('Error deleting session:', err);
-      alert('Failed to delete session');
+      showAlert('Failed to delete session', 'Delete Failed');
     }
   };
 
@@ -274,6 +279,12 @@ export default function ReplaySessionsPage() {
           </div>
         )}
       </main>
+      <AlertModal
+        isOpen={alertState.isOpen}
+        onClose={closeAlert}
+        title={alertState.title}
+        message={alertState.message}
+      />
     </div>
   );
 }

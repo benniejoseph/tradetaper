@@ -3,6 +3,7 @@
 import React from 'react';
 import { AnimatedCard, MetricCard, ProgressCard } from '../ui/AnimatedCard';
 import { TraderDiscipline, Badge } from '@/services/disciplineService';
+import { FaFire } from 'react-icons/fa';
 
 // Level thresholds for XP progress calculation
 const LEVEL_THRESHOLDS = [0, 100, 250, 500, 800, 1200, 1800, 2500, 3500, 5000, 7000, 10000, 15000, 22000, 30000];
@@ -44,6 +45,20 @@ export const DisciplineDashboard: React.FC<DisciplineDashboardProps> = ({
   const xpPercentage = (xpProgress / xpNeeded) * 100;
 
   const title = LEVEL_TITLES[discipline.level - 1] || 'Unknown';
+  const STREAK_MILESTONES = [3, 7, 14, 30, 60];
+  const nextMilestone = STREAK_MILESTONES.find(m => m > discipline.currentStreak) || STREAK_MILESTONES[STREAK_MILESTONES.length - 1];
+  const streakProgress = nextMilestone > 0 ? Math.min((discipline.currentStreak / nextMilestone) * 100, 100) : 0;
+
+  const cleanTrades = Math.max(discipline.totalExecutedTrades - discipline.totalRuleViolations, 0);
+  const ruleFollowingRate = discipline.totalExecutedTrades > 0
+    ? (cleanTrades / discipline.totalExecutedTrades) * 100
+    : 0;
+  const violationRate = discipline.totalExecutedTrades > 0
+    ? (discipline.totalRuleViolations / discipline.totalExecutedTrades) * 100
+    : 0;
+  const unauthorizedRate = discipline.totalExecutedTrades > 0
+    ? (discipline.totalUnauthorizedTrades / discipline.totalExecutedTrades) * 100
+    : 0;
 
   // Score color based on value
   const getScoreColor = (score: number) => {
@@ -55,6 +70,53 @@ export const DisciplineDashboard: React.FC<DisciplineDashboardProps> = ({
 
   return (
     <div className="space-y-6">
+      {/* Focus Row: Discipline Score + Streaks */}
+      <div className="grid md:grid-cols-2 gap-4">
+        <AnimatedCard animate={false} variant="default" className="p-6">
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Discipline Score</p>
+              <div className={`text-4xl font-black mt-2 ${getScoreColor(discipline.disciplineScore)}`}>
+                {discipline.disciplineScore}%
+              </div>
+              <p className="text-xs text-gray-500 mt-1">Consistency of rule-following</p>
+            </div>
+            <div className="w-16 h-16 rounded-2xl bg-emerald-500/10 flex items-center justify-center">
+              <div className={`w-10 h-10 rounded-full border-4 ${discipline.disciplineScore >= 80 ? 'border-emerald-500' : discipline.disciplineScore >= 60 ? 'border-yellow-500' : 'border-red-500'}`} />
+            </div>
+          </div>
+          <div className="mt-4 w-full h-2 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
+            <div
+              className="h-full rounded-full bg-emerald-500"
+              style={{ width: `${Math.min(discipline.disciplineScore, 100)}%` }}
+            />
+          </div>
+        </AnimatedCard>
+
+        <AnimatedCard animate={false} variant="default" className="p-6">
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Streaks</p>
+              <div className="flex items-baseline gap-3 mt-2">
+                <div className="text-4xl font-black text-gray-900 dark:text-white">
+                  {discipline.currentStreak}
+                </div>
+                <span className="text-xs text-gray-500">current days</span>
+              </div>
+              <div className="text-xs text-gray-500 mt-2">
+                Best streak: <span className="font-bold text-gray-900 dark:text-white">{discipline.longestStreak}</span> days
+              </div>
+            </div>
+            <div className="w-16 h-16 rounded-2xl bg-orange-500/10 flex items-center justify-center">
+              <FaFire className="text-orange-500 text-2xl" />
+            </div>
+          </div>
+          <div className="mt-4 text-[11px] text-gray-500">
+            Keep logging + executing to maintain streaks
+          </div>
+        </AnimatedCard>
+      </div>
+
       {/* Hero Card: Level & XP */}
       <AnimatedCard animate={false} variant="gradient" className="relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent" />
@@ -116,34 +178,56 @@ export const DisciplineDashboard: React.FC<DisciplineDashboardProps> = ({
             </p>
           </div>
 
-          {/* Streak */}
-          <div className="text-center">
-            <div className="text-4xl" />
-            <div className="text-2xl font-bold">{discipline.currentStreak}</div>
-            <div className="text-xs text-white/80">Day Streak</div>
+          <div className="hidden md:block" />
+        </div>
+      </AnimatedCard>
+
+      {/* Streak Ladder */}
+      <AnimatedCard animate={false} variant="default" className="p-6">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h3 className="text-sm font-black text-gray-900 dark:text-white uppercase tracking-wider">
+              Streak Ladder
+            </h3>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              Next milestone in {Math.max(nextMilestone - discipline.currentStreak, 0)} days
+            </p>
           </div>
+          <div className="text-xs text-gray-500 dark:text-gray-400">
+            Current: <span className="font-bold text-gray-900 dark:text-white">{discipline.currentStreak}</span> days
+          </div>
+        </div>
+        <div className="mt-4 h-2 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
+          <div className="h-full bg-orange-500 rounded-full" style={{ width: `${streakProgress}%` }} />
+        </div>
+        <div className="mt-4 flex flex-wrap gap-2">
+          {STREAK_MILESTONES.map((milestone) => (
+            <div
+              key={milestone}
+              className={`px-2 py-1 text-[10px] font-bold rounded-full ${
+                discipline.currentStreak >= milestone
+                  ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
+                  : 'bg-gray-100 dark:bg-gray-800 text-gray-500'
+              }`}
+            >
+              {milestone} days
+            </div>
+          ))}
         </div>
       </AnimatedCard>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <MetricCard
           animate={false}
-          title="Discipline Score"
-          value={`${discipline.disciplineScore}%`}
-          icon={<span className={getScoreColor(discipline.disciplineScore)}></span>}
-          trend={discipline.disciplineScore >= 80 ? 'up' : discipline.disciplineScore >= 60 ? 'neutral' : 'down'}
-        />
-        <MetricCard
-          animate={false}
-          title="Approved Trades"
-          value={discipline.totalApprovedTrades}
+          title="Executed Trades"
+          value={discipline.totalExecutedTrades}
           icon=""
           trend="up"
         />
         <MetricCard
           animate={false}
-          title="Executed Trades"
-          value={discipline.totalExecutedTrades}
+          title="Clean Trades"
+          value={cleanTrades}
           icon=""
           trend="up"
         />
@@ -154,7 +238,50 @@ export const DisciplineDashboard: React.FC<DisciplineDashboardProps> = ({
           icon=""
           trend={discipline.totalRuleViolations === 0 ? 'up' : 'down'}
         />
+        <MetricCard
+          animate={false}
+          title="Unauthorized Trades"
+          value={discipline.totalUnauthorizedTrades}
+          icon=""
+          trend={discipline.totalUnauthorizedTrades === 0 ? 'up' : 'down'}
+        />
       </div>
+
+      {/* Discipline Signals */}
+      <AnimatedCard animate={false} variant="default" className="p-6">
+        <h3 className="text-sm font-black text-gray-900 dark:text-white uppercase tracking-wider">
+          Discipline Signals
+        </h3>
+        <div className="grid md:grid-cols-3 gap-4 mt-4">
+          <div>
+            <div className="flex items-center justify-between text-xs text-gray-500">
+              <span>Rule‑Following Rate</span>
+              <span className="font-bold text-gray-900 dark:text-white">{ruleFollowingRate.toFixed(0)}%</span>
+            </div>
+            <div className="mt-2 h-2 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
+              <div className="h-full bg-emerald-500" style={{ width: `${Math.min(ruleFollowingRate, 100)}%` }} />
+            </div>
+          </div>
+          <div>
+            <div className="flex items-center justify-between text-xs text-gray-500">
+              <span>Rule Violation Rate</span>
+              <span className="font-bold text-gray-900 dark:text-white">{violationRate.toFixed(0)}%</span>
+            </div>
+            <div className="mt-2 h-2 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
+              <div className="h-full bg-red-500" style={{ width: `${Math.min(violationRate, 100)}%` }} />
+            </div>
+          </div>
+          <div>
+            <div className="flex items-center justify-between text-xs text-gray-500">
+              <span>Unauthorized Rate</span>
+              <span className="font-bold text-gray-900 dark:text-white">{unauthorizedRate.toFixed(0)}%</span>
+            </div>
+            <div className="mt-2 h-2 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
+              <div className="h-full bg-amber-500" style={{ width: `${Math.min(unauthorizedRate, 100)}%` }} />
+            </div>
+          </div>
+        </div>
+      </AnimatedCard>
 
       {/* Badges */}
       <AnimatedCard animate={false} variant="default" className="space-y-4">

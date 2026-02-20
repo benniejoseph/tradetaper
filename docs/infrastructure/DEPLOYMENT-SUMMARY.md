@@ -21,7 +21,7 @@
 
 #### 3. Deployment Status
 - **Backend Deployed**: ✅ Success
-- **Service URL**: https://tradetaper-backend-326520250422.us-central1.run.app
+- **Service URL**: https://api.tradetaper.com
 - **Revision**: tradetaper-backend-00166-9nr
 - **Region**: us-central1
 - **Serving**: 100% of traffic
@@ -30,13 +30,13 @@
 
 ##### Health Check
 ```bash
-curl https://tradetaper-backend-326520250422.us-central1.run.app/api/v1/health
+curl https://api.tradetaper.com/api/v1/health
 ```
 **Result**: ✅ `{"status":"ok","db":"connected"}`
 
 ##### CSRF Token Endpoint
 ```bash
-curl https://tradetaper-backend-326520250422.us-central1.run.app/api/v1/csrf-token
+curl https://api.tradetaper.com/api/v1/csrf-token
 ```
 **Result**: ✅ Returns CSRF token and sets `__Host-csrf` cookie
 

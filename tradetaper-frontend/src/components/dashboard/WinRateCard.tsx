@@ -29,20 +29,21 @@ export default function WinRateCard({
       title="Win Rate Analysis" 
       icon={FaPercentage}
       showInfoIcon  
+      infoContent="Percent of winning trades. Improve by filtering low-quality setups and improving entries; also raise R:R so wins outweigh losses."
       showTimeRangeSelector
       selectedTimeRange={timeRange}
       onTimeRangeChange={onTimeRangeChange}
       gridSpan="sm:col-span-2 lg:col-span-3"
     >
-      <div className="flex flex-col items-center justify-center space-y-4 h-full pb-4">
-        <div className="relative w-56 h-56">
+      <div className="flex flex-col items-center justify-center space-y-6 h-full pb-4">
+        <div className="relative w-72 h-72">
           <ResponsiveContainer width="100%" height="100%">
             <RadialBarChart 
               cx="50%" 
               cy="50%" 
-              innerRadius="80%"
-              outerRadius="110%"
-              barSize={20}
+              innerRadius="78%"
+              outerRadius="115%"
+              barSize={22}
               data={winrateChartData} 
               startAngle={90}
               endAngle={-270}
@@ -63,16 +64,16 @@ export default function WinRateCard({
             </RadialBarChart>
           </ResponsiveContainer>
           <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <div className="text-4xl font-bold text-gray-900 dark:text-white">
+            <div className="text-5xl font-bold text-gray-900 dark:text-white">
               {winRate.toFixed(1)}%
             </div>
-            <div className="text-sm text-gray-500 dark:text-gray-400 font-medium">
+            <div className="text-sm text-gray-500 dark:text-gray-400 font-medium mt-1">
               Win Rate
             </div>
           </div>
         </div>
 
-        <div className="w-full max-w-sm px-4">
+        <div className="w-full max-w-md px-6">
           <div className="flex justify-between items-center mb-2">
             <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Risk-Reward Ratio</span>
             <span className="text-sm font-bold text-gray-900 dark:text-white">{averageRR.toFixed(2)}</span>

@@ -18,6 +18,20 @@ const nextConfig: NextConfig = {
       // Add other patterns here if needed
     ],
   },
+  async redirects() {
+    return [
+      {
+        source: '/discipline',
+        destination: '/trader-mind',
+        permanent: true,
+      },
+      {
+        source: '/psychology',
+        destination: '/trader-mind',
+        permanent: true,
+      },
+    ];
+  },
   /* config options here */
   // Deployment trigger: Added NEXT_PUBLIC_API_URL environment variable for production
 };

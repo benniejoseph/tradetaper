@@ -93,7 +93,7 @@ export const AnimatedCard: React.FC<AnimatedCardProps> = ({
   }, [isInView, controls, delay, duration, animate]);
 
   const baseClasses = `
-    rounded-xl p-6 transition-all duration-300
+    rounded-xl p-5 transition-all duration-300
     ${cardVariants[variant]}
     ${disabled ? 'opacity-50 cursor-not-allowed' : ''}
     ${onClick ? 'cursor-pointer' : ''}

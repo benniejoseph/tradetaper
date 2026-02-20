@@ -89,7 +89,7 @@ export function MarketLogsList() {
                     </span>
                   )}
                   {log.movementType && (
-                    <span className="flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400">
+                    <span className="flex items-center gap-1 text-xs text-blue-600 dark:text-emerald-400">
                       <FiActivity />
                       {log.movementType}
                     </span>
@@ -115,7 +115,7 @@ export function MarketLogsList() {
 
               <div className="flex flex-wrap gap-2 items-center">
                 {log.tags?.map(tag => (
-                  <span key={tag} className="flex items-center gap-1 px-2 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-lg text-xs">
+                  <span key={tag} className="flex items-center gap-1 px-2 py-1 bg-blue-50 dark:bg-emerald-900/20 text-blue-600 dark:text-emerald-400 rounded-lg text-xs">
                     <FiTag className="w-3 h-3" />
                     {tag}
                   </span>

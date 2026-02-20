@@ -7,10 +7,13 @@ export declare class FilesService implements OnModuleInit {
     private bucket;
     private bucketName;
     private gcsPublicUrlPrefix;
+    private usingFallbackCredentials;
     constructor(configService: ConfigService);
     onModuleInit(): void;
     uploadFileToGCS(fileBuffer: Buffer, originalName: string, mimetype: string, userId: string): Promise<{
         url: string;
         gcsPath: string;
     }>;
+    private reinitializeStorageWithADC;
+    private sanitizeErrorMessage;
 }

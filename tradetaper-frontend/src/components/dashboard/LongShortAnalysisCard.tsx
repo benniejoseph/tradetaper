@@ -47,6 +47,7 @@ export default function LongShortAnalysisCard({ trades }: LongShortAnalysisCardP
       icon={FaBalanceScale}
       gridSpan="lg:col-span-3"
       showInfoIcon
+      infoContent="Compares performance by direction. Improve by focusing on the side with stronger edge and reducing bias-driven trades."
     >
       <div className="space-y-6">
         
@@ -72,7 +73,7 @@ export default function LongShortAnalysisCard({ trades }: LongShortAnalysisCardP
         <div className="grid grid-cols-2 gap-4">
           
           {/* Long Stats */}
-          <div className="space-y-3 p-3 bg-blue-50/50 dark:bg-blue-900/10 rounded-xl border border-blue-100 dark:border-blue-800/20">
+          <div className="space-y-3 p-3 bg-blue-50/50 dark:bg-emerald-900/10 rounded-xl border border-blue-100 dark:border-emerald-800/20">
             <div className="flex items-center gap-2 mb-2">
               <div className="w-2 h-2 rounded-full bg-blue-500" />
               <h4 className="text-sm font-semibold text-gray-900 dark:text-white">Long</h4>

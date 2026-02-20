@@ -82,7 +82,14 @@ async function bootstrap() {
                         req.query?._csrf);
                 },
             });
-            app.use(doubleCsrfProtection);
+            app.use((req, res, next) => {
+                if (req.path && req.path.includes('/api/v1/webhook')) {
+                    next();
+                }
+                else {
+                    doubleCsrfProtection(req, res, next);
+                }
+            });
             logger.log('CSRF protection enabled');
         }
         else {

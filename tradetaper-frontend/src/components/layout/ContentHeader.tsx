@@ -22,7 +22,7 @@ interface ContentHeaderProps {
 function ContentHeader({ toggleSidebar, isMobile, isSidebarExpanded }: ContentHeaderProps) {
   const dispatch = useDispatch<AppDispatch>();
   const pathname = usePathname();
-  const { user } = useSelector((state: RootState) => state.auth);
+  const { user, isAuthenticated } = useSelector((state: RootState) => state.auth);
   const { selectedCurrency, setSelectedCurrency, isLoading } = useCurrency();
   
   // Account selectors
@@ -70,7 +70,7 @@ function ContentHeader({ toggleSidebar, isMobile, isSidebarExpanded }: ContentHe
 
   return (
     <header className="sticky top-0 z-30 bg-white/80 dark:bg-black/80 backdrop-blur-xl border-b border-gray-200/50 dark:border-gray-700/50">
-      <div className="px-4 sm:px-6 py-4">
+      <div className="px-4 sm:px-5 py-3">
         <div className="flex items-center justify-between gap-2 max-w-full">
           {/* Left side - Menu button, title, and account selector */}
           <div className={`flex items-center flex-shrink-0 ${isMobile ? 'space-x-2' : !isSidebarExpanded ? 'space-x-4' : 'space-x-6'} min-w-0 overflow-hidden`}>
@@ -83,50 +83,54 @@ function ContentHeader({ toggleSidebar, isMobile, isSidebarExpanded }: ContentHe
                 <FaBars className="w-5 h-5" />
               </button>
             )}
-            <h1 className={`font-semibold text-gray-900 dark:text-white truncate ${isMobile ? 'text-base' : isSidebarExpanded ? 'text-2xl' : 'text-xl'}`}>
+            <h1 className={`font-semibold text-gray-900 dark:text-white truncate ${isMobile ? 'text-base' : isSidebarExpanded ? 'text-xl' : 'text-lg'}`}>
               {getPageTitle()}
             </h1>
             
-            {/* Account Selector - Show on all pages */}
-            <div className="relative flex-shrink-0">
-              <select
-                value={selectedAccount?.id || ''}
-                onChange={(e) => handleAccountChange(e.target.value || null)}
-                className={`content-header-input appearance-none bg-white/80 dark:bg-[#0A0A0A]/80 border border-gray-200/50 dark:border-gray-700/50 rounded-lg px-2 py-2 pr-6 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:focus:ring-emerald-400 transition-all duration-200 ${isMobile ? 'w-20 text-xs' : isSidebarExpanded ? 'w-44 text-sm' : 'w-36 text-sm'}`}
-              >
-                <option value="">{isMobile ? 'All' : 'All Accounts'}</option>
-                {allAccounts.map(account => (
-                  <option key={account.id} value={account.id}>
-                    {isMobile ? account.name.substring(0, 8) + (account.name.length > 8 ? '...' : '') : `${account.name} (${account.type}) - $${Number(account.balance || 0).toFixed(2)}`}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown className="absolute right-1 top-1/2 transform -translate-y-1/2 w-3 h-3 text-gray-400 pointer-events-none" />
-            </div>
+            {isAuthenticated && (
+              <>
+                {/* Account Selector */}
+                <div className="relative flex-shrink-0">
+                  <select
+                    value={selectedAccount?.id || ''}
+                    onChange={(e) => handleAccountChange(e.target.value || null)}
+                  className={`content-header-input appearance-none bg-white/80 dark:bg-[#0A0A0A]/80 border border-gray-200/50 dark:border-gray-700/50 rounded-lg px-2 py-1.5 pr-6 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:focus:ring-emerald-400 transition-all duration-200 ${isMobile ? 'w-20 text-xs' : isSidebarExpanded ? 'w-44 text-sm' : 'w-36 text-sm'}`}
+                  >
+                    <option value="">{isMobile ? 'All' : 'All Accounts'}</option>
+                    {allAccounts.map(account => (
+                      <option key={account.id} value={account.id}>
+                        {isMobile ? account.name.substring(0, 8) + (account.name.length > 8 ? '...' : '') : `${account.name} (${account.type}) - $${Number(account.balance || 0).toFixed(2)}`}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown className="absolute right-1 top-1/2 transform -translate-y-1/2 w-3 h-3 text-gray-400 pointer-events-none" />
+                </div>
 
-            {/* Currency Selector */}
-            <div className="relative flex-shrink-0">
-              <select
-                value={selectedCurrency}
-                onChange={(e) => setSelectedCurrency(e.target.value as CurrencyCode)}
-                disabled={isLoading}
-                className={`content-header-input appearance-none bg-white/80 dark:bg-[#0A0A0A]/80 border border-gray-200/50 dark:border-gray-700/50 rounded-lg px-2 py-2 pr-6 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:focus:ring-emerald-400 transition-all duration-200 disabled:opacity-50 ${isMobile ? 'w-16' : 'w-24'}`}
-                title="Select display currency"
-              >
-                {Object.entries(CURRENCIES).map(([code, currency]) => (
-                  <option key={code} value={code}>
-                    {code}
-                  </option>
-                ))}
-              </select>
-              <div className="absolute right-1 top-1/2 transform -translate-y-1/2 flex items-center">
-                {isLoading ? (
-                  <div className="w-3 h-3 border-2 border-gray-300 border-t-emerald-500 rounded-full animate-spin"></div>
-                ) : (
-                  <ChevronDown className="w-3 h-3 text-gray-400 pointer-events-none" />
-                )}
-              </div>
-            </div>
+                {/* Currency Selector */}
+                <div className="relative flex-shrink-0">
+                  <select
+                    value={selectedCurrency}
+                    onChange={(e) => setSelectedCurrency(e.target.value as CurrencyCode)}
+                    disabled={isLoading}
+                  className={`content-header-input appearance-none bg-white/80 dark:bg-[#0A0A0A]/80 border border-gray-200/50 dark:border-gray-700/50 rounded-lg px-2 py-1.5 pr-6 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:focus:ring-emerald-400 transition-all duration-200 disabled:opacity-50 ${isMobile ? 'w-16' : 'w-24'}`}
+                    title="Select display currency"
+                  >
+                    {Object.entries(CURRENCIES).map(([code, currency]) => (
+                      <option key={code} value={code}>
+                        {code}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="absolute right-1 top-1/2 transform -translate-y-1/2 flex items-center">
+                    {isLoading ? (
+                      <div className="w-3 h-3 border-2 border-gray-300 border-t-emerald-500 rounded-full animate-spin"></div>
+                    ) : (
+                      <ChevronDown className="w-3 h-3 text-gray-400 pointer-events-none" />
+                    )}
+                  </div>
+                </div>
+              </>
+            )}
               </div>
               
           {/* Right side - Search, notifications, and theme toggle */}
@@ -137,16 +141,18 @@ function ContentHeader({ toggleSidebar, isMobile, isSidebarExpanded }: ContentHe
                 <input
                   type="text"
                   placeholder="Search..."
-                  className={`content-header-input px-4 py-2 pl-10 text-sm bg-gray-100 dark:bg-[#0A0A0A] border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:focus:ring-emerald-400 transition-all duration-200 ${isSidebarExpanded ? 'w-64' : 'w-56'}`}
+                  className={`content-header-input px-3.5 py-1.5 pl-9 text-sm bg-gray-100 dark:bg-[#0A0A0A] border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:focus:ring-emerald-400 transition-all duration-200 ${isSidebarExpanded ? 'w-60' : 'w-52'}`}
                 />
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
               </div>
             )}
 
             {/* Notifications */}
-            <div className="flex-shrink-0">
-              <NotificationBell />
-            </div>
+            {isAuthenticated && (
+              <div className="flex-shrink-0">
+                <NotificationBell />
+              </div>
+            )}
 
             {/* Theme Toggle */}
             <div className="flex-shrink-0">

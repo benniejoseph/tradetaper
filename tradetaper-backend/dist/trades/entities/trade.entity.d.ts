@@ -24,8 +24,8 @@ export declare class Trade {
     notes?: string;
     profitOrLoss?: number;
     rMultiple?: number;
-    stopLoss?: number;
-    takeProfit?: number;
+    stopLoss?: number | null;
+    takeProfit?: number | null;
     ictConcept?: ICTConcept;
     session?: TradingSession;
     setupDetails?: string;
@@ -56,6 +56,15 @@ export declare class Trade {
     timeframe?: Timeframe;
     htfBias?: HTFBias;
     newsImpact?: boolean;
+    changeLog?: {
+        at: string;
+        source: 'user' | 'mt5' | 'system';
+        changes: Record<string, {
+            from: unknown;
+            to: unknown;
+        }>;
+        note?: string;
+    }[];
     entryReason?: string;
     confirmations?: string[];
     hesitated?: boolean;

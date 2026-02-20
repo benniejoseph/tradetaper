@@ -35,6 +35,11 @@ export enum NotificationType {
   // Account notifications
   ACCOUNT_LINKED = 'account_linked',
   ACCOUNT_UNLINKED = 'account_unlinked',
+
+  // Community notifications
+  COMMUNITY_POST = 'community_post',
+  COMMUNITY_MENTION = 'community_mention',
+  COMMUNITY_REPLY = 'community_reply',
 }
 
 export enum NotificationChannel {

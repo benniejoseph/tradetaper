@@ -2,6 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { FaEnvelope, FaMapMarkerAlt, FaPaperPlane } from 'react-icons/fa';
 
 export default function ContactPage() {
@@ -14,8 +15,17 @@ export default function ContactPage() {
       </div>
 
        <nav className="relative z-50 p-6 flex justify-between items-center max-w-7xl mx-auto">
-         <Link href="/" className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 to-teal-400">
-            TradeTaper
+         <Link href="/" className="flex items-center gap-3">
+            <Image
+              src="/tradetaperLogo.png"
+              alt="TradeTaper"
+              width={24}
+              height={24}
+              className="h-6 w-6 object-contain"
+            />
+            <span className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 to-teal-400">
+              TradeTaper
+            </span>
          </Link>
          <Link href="/" className="text-slate-400 hover:text-white transition-colors">Back to Home</Link>
       </nav>

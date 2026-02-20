@@ -7,12 +7,16 @@ import {
   Param,
   HttpException,
   HttpStatus,
+  Post,
+  Delete,
+  Request,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { MarketIntelligenceService } from './market-intelligence.service';
 import { NewsAnalysisService } from './news-analysis.service';
 import { ICTAnalysisService } from './ict-analysis.service';
 import { EconomicCalendarService } from './economic-calendar.service';
+import { EconomicAlertsService } from './economic-alerts.service';
 import { AIMarketPredictionService } from './ai-market-prediction.service';
 import { MarketSentimentService } from './market-sentiment.service'; // Added
 
@@ -25,6 +29,7 @@ export class MarketIntelligenceController {
     private readonly newsAnalysisService: NewsAnalysisService,
     private readonly ictAnalysisService: ICTAnalysisService,
     private readonly economicCalendarService: EconomicCalendarService,
+    private readonly economicAlertsService: EconomicAlertsService,
     private readonly aiPredictionService: AIMarketPredictionService,
     private readonly marketSentimentService: MarketSentimentService, // Added
   ) {}
@@ -130,6 +135,24 @@ export class MarketIntelligenceController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @Get('ai-analysis/pair')
+  async getPairAnalysis(@Query('symbol') symbol: string) {
+    this.logger.log(`Getting AI pair analysis for ${symbol}`);
+    if (!symbol) {
+      throw new HttpException('symbol query param is required', HttpStatus.BAD_REQUEST);
+    }
+    try {
+      return await this.marketSentimentService.generatePairAnalysis(symbol);
+    } catch (error) {
+      this.logger.error('Failed to get AI pair analysis', error);
+      throw new HttpException(
+        'Failed to fetch AI analysis',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @UseGuards(JwtAuthGuard)
   @Get('ict-analysis/:symbol')
   async getICTAnalysis(@Param('symbol') symbol: string) {
     this.logger.log(`Getting ICT analysis for symbol: ${symbol}`);
@@ -203,6 +226,30 @@ export class MarketIntelligenceController {
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('economic-alerts')
+  async getEconomicAlerts(@Request() req) {
+    return this.economicAlertsService.listUserAlerts(req.user.id);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('economic-alerts/:eventId')
+  async createEconomicAlert(
+    @Request() req,
+    @Param('eventId') eventId: string,
+  ) {
+    return this.economicAlertsService.subscribe(req.user.id, eventId);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Delete('economic-alerts/:eventId')
+  async removeEconomicAlert(
+    @Request() req,
+    @Param('eventId') eventId: string,
+  ) {
+    return this.economicAlertsService.unsubscribe(req.user.id, eventId);
   }
 
   @UseGuards(JwtAuthGuard)

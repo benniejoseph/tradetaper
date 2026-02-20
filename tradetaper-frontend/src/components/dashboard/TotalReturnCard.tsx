@@ -39,6 +39,7 @@ export default function TotalReturnCard({
       title="Total Return" 
       icon={FaArrowUp}
       showInfoIcon 
+      infoContent="Net P&L and ROI for the period. Improve by increasing expectancy and controlling losses; focus on consistency over single big wins."
       showTimeRangeSelector 
       selectedTimeRange={timeRange} 
       onTimeRangeChange={onTimeRangeChange}

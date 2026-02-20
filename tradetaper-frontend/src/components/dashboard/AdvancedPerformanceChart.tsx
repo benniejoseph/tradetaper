@@ -135,9 +135,8 @@ export default function AdvancedPerformanceChart({ data }: AdvancedPerformanceCh
               />
               <Tooltip 
                 contentStyle={{
-                  backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                  backdropFilter: 'blur(12px)',
-                  border: '1px solid rgba(229, 231, 235, 0.5)',
+                  backgroundColor: '#FFFFFF',
+                  border: '1px solid #E5E7EB',
                   borderRadius: '12px',
                   boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)',
                   fontSize: '12px',

@@ -31,7 +31,7 @@ export default function PricingPage() {
           <div className="absolute inset-0 bg-gradient-to-r from-blue-600/10 via-purple-600/10 to-green-600/10 backdrop-blur-3xl"></div>
           <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-24">
             <div className="text-center">
-              <div className="inline-flex items-center space-x-2 bg-blue-100/80 dark:bg-blue-900/30 backdrop-blur-sm px-4 py-2 rounded-full text-blue-700 dark:text-blue-300 text-sm font-medium mb-8">
+              <div className="inline-flex items-center space-x-2 bg-blue-100/80 dark:bg-emerald-900/30 backdrop-blur-sm px-4 py-2 rounded-full text-blue-700 dark:text-emerald-300 text-sm font-medium mb-8">
                 <FaCreditCard className="w-4 h-4" />
                 <span>Simple, transparent pricing</span>
               </div>
@@ -167,8 +167,8 @@ export default function PricingPage() {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pb-24">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div className="text-center">
-              <div className="bg-blue-100/80 dark:bg-blue-900/30 backdrop-blur-sm rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
-                <FaLock className="w-8 h-8 text-blue-600 dark:text-blue-400" />
+              <div className="bg-blue-100/80 dark:bg-emerald-900/30 backdrop-blur-sm rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+                <FaLock className="w-8 h-8 text-blue-600 dark:text-emerald-400" />
               </div>
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Secure & Private</h3>
               <p className="text-gray-600 dark:text-gray-400">Your trading data is encrypted and secure. We never share your information.</p>
@@ -183,8 +183,8 @@ export default function PricingPage() {
             </div>
             
             <div className="text-center">
-              <div className="bg-purple-100/80 dark:bg-purple-900/30 backdrop-blur-sm rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
-                <FaCreditCard className="w-8 h-8 text-purple-600 dark:text-purple-400" />
+              <div className="bg-purple-100/80 dark:bg-emerald-900/30 backdrop-blur-sm rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+                <FaCreditCard className="w-8 h-8 text-purple-600 dark:text-emerald-400" />
               </div>
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Cancel Anytime</h3>
               <p className="text-gray-600 dark:text-gray-400">No long-term contracts. Cancel your subscription at any time.</p>

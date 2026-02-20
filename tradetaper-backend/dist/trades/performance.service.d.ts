@@ -9,6 +9,7 @@ export interface PerformanceMetrics {
     totalPnL: number;
     totalCommissions: number;
     netPnL: number;
+    totalTradedValue: number;
     averageWin: number;
     averageLoss: number;
     profitFactor: number;
@@ -42,7 +43,18 @@ export declare class PerformanceService {
     private readonly tradesRepository;
     private readonly logger;
     constructor(tradesRepository: Repository<Trade>);
-    getPerformanceMetrics(userContext: UserResponseDto, accountId?: string, dateFrom?: string, dateTo?: string): Promise<PerformanceMetrics>;
+    getPerformanceMetrics(userContext: UserResponseDto, accountId?: string, dateFrom?: string, dateTo?: string, filters?: {
+        status?: string;
+        direction?: string;
+        assetType?: string;
+        symbol?: string;
+        search?: string;
+        isStarred?: boolean;
+        minPnl?: number;
+        maxPnl?: number;
+        minDuration?: number;
+        maxDuration?: number;
+    }): Promise<PerformanceMetrics>;
     getDailyPerformance(userContext: UserResponseDto, accountId?: string, days?: number): Promise<DailyPerformance[]>;
     getMonthlyPerformance(userContext: UserResponseDto, accountId?: string, months?: number): Promise<MonthlyPerformance[]>;
     private calculateMetrics;

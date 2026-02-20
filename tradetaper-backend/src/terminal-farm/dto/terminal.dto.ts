@@ -169,6 +169,14 @@ export class TerminalPositionDto {
 
   @IsString()
   openTime: string;
+
+  @IsOptional()
+  @IsNumber()
+  stopLoss?: number;
+
+  @IsOptional()
+  @IsNumber()
+  takeProfit?: number;
 }
 
 export class TerminalPositionsDto {
@@ -182,6 +190,14 @@ export class TerminalPositionsDto {
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => TerminalPositionDto)
+  positions: TerminalPositionDto[];
+}
+
+export class TerminalLivePositionsResponseDto {
+  enabled: boolean;
+  status?: TerminalStatus;
+  lastHeartbeat?: Date;
+  positionsUpdatedAt?: string;
   positions: TerminalPositionDto[];
 }
 

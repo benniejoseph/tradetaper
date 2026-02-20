@@ -34,6 +34,7 @@ import { TerminalFarmModule } from './terminal-farm/terminal-farm.module';
 import { DisciplineModule } from './discipline/discipline.module';
 import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 import { UploadModule } from './upload/upload.module';
+import { CommunityModule } from './community/community.module';
 
 @Module({
   imports: [
@@ -92,6 +93,7 @@ import { UploadModule } from './upload/upload.module';
     StatementParserModule, // MT4/MT5 statement file upload and parsing
     TerminalFarmModule, // MT5 terminal auto-sync infrastructure
     DisciplineModule, // Trade discipline, gamification, pre-trade approvals
+    CommunityModule, // Public community + leaderboards
     SubscriptionsModule,
     UploadModule, // File upload (screenshots, documents)
   ],

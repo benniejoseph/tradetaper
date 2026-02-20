@@ -10,16 +10,23 @@ import {
   deleteMT5Account,
   syncMT5Account,
   createMT5Account,
-  updateMT5Account
+  updateMT5Account,
+  MT5Account
 } from '@/store/features/mt5AccountsSlice';
-import { MT5Account } from '@/types/mt5Account';
-import { 
-  FaPlus, FaEdit, FaTrash, FaSync, FaExclamationTriangle,
-  FaServer, FaUser, FaMoneyBill, FaChevronDown, FaChevronUp,
-  FaSpinner, FaCircle
+import {
+  FaPlus,
+  FaEdit,
+  FaTrash,
+  FaSync,
+  FaServer,
+  FaUser,
+  FaChevronDown,
+  FaChevronUp,
+  FaSpinner,
 } from 'react-icons/fa';
 import MT5AccountForm from './MT5AccountForm';
 import TerminalStatusCard from './TerminalStatusCard';
+import MetaApiStatusCard from './MetaApiStatusCard';
 
 const MT5AccountsList: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
@@ -105,9 +112,9 @@ const MT5AccountsList: React.FC = () => {
             <FaServer className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
           </div>
           <div>
-            <h3 className="text-lg font-bold text-gray-900 dark:text-white leading-tight">MT5 Accounts</h3>
+            <h3 className="text-lg font-bold text-gray-900 dark:text-white leading-tight">MetaApi Accounts</h3>
             <p className="text-xs text-gray-500 dark:text-gray-400">
-               Manage connections to your MetaTrader 5 terminals
+               Connect MT4/MT5 accounts with full-history sync via MetaApi
             </p>
           </div>
         </div>
@@ -170,7 +177,7 @@ const MT5AccountsList: React.FC = () => {
                    <th className="px-5 py-3 font-medium text-gray-500 dark:text-gray-400">Account</th>
                    <th className="px-5 py-3 font-medium text-gray-500 dark:text-gray-400">Server</th>
                    <th className="px-5 py-3 font-medium text-gray-500 dark:text-gray-400">Balance</th>
-                   <th className="px-5 py-3 font-medium text-gray-500 dark:text-gray-400 text-center">Auto-Sync</th>
+                   <th className="px-5 py-3 font-medium text-gray-500 dark:text-gray-400 text-center">MetaApi Status</th>
                    <th className="px-5 py-3 font-medium text-gray-500 dark:text-gray-400 text-right">Actions</th>
                 </tr>
               </thead>
@@ -199,12 +206,26 @@ const MT5AccountsList: React.FC = () => {
                         {account.currency} {(account.balance ?? 0).toLocaleString()}
                       </td>
                       <td className="px-5 py-3 text-center" onClick={(e) => e.stopPropagation()}>
-                        {/* We use the TerminalStatusCard for the actual logic, but here acts as a preview or we just rely on expanding */}
-                        {/* For compactness, we just show "Click to Manage" or a status dot if we had it in the account object (we don't right now without fetching) */}
-                        <div className="inline-flex items-center justify-center px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-800 text-xs text-gray-500 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700" onClick={() => toggleExpand(account.id)}>
-                           Click to Manage
-                           {expandedAccountId === account.id ? <FaChevronUp className="ml-1 w-3 h-3" /> : <FaChevronDown className="ml-1 w-3 h-3" />}
-                        </div>
+                        <button
+                          onClick={() => toggleExpand(account.id)}
+                          className="inline-flex items-center justify-center px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-800 text-xs text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                        >
+                          <span className="inline-flex items-center gap-2">
+                            <span
+                              className={`h-2 w-2 rounded-full ${
+                                account.connectionStatus === 'CONNECTED'
+                                  ? 'bg-emerald-500'
+                                  : 'bg-gray-400'
+                              }`}
+                            />
+                            {(account.connectionStatus || 'disconnected').toLowerCase()}
+                          </span>
+                          {expandedAccountId === account.id ? (
+                            <FaChevronUp className="ml-2 w-3 h-3" />
+                          ) : (
+                            <FaChevronDown className="ml-2 w-3 h-3" />
+                          )}
+                        </button>
                       </td>
                       <td className="px-5 py-3 text-right space-x-2" onClick={(e) => e.stopPropagation()}>
                         {confirmDelete === account.id ? (
@@ -235,7 +256,7 @@ const MT5AccountsList: React.FC = () => {
                             </button>
                             <button
                               onClick={(e) => { e.stopPropagation(); handleEditAccount(account); }}
-                              className="p-1.5 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors"
+                              className="p-1.5 text-blue-500 hover:bg-blue-50 dark:hover:bg-emerald-900/20 rounded transition-colors"
                               title="Edit Account"
                             >
                               <FaEdit className="w-4 h-4" />
@@ -256,10 +277,18 @@ const MT5AccountsList: React.FC = () => {
                     {expandedAccountId === account.id && (
                       <tr>
                         <td colSpan={5} className="bg-gray-50/50 dark:bg-gray-800/20 p-4 border-b border-gray-100 dark:border-gray-800 animate-slideDown">
-                          <TerminalStatusCard 
-                             accountId={account.id} 
-                             accountName={account.accountName} 
-                          />
+                          <div className="grid gap-4 lg:grid-cols-2">
+                            <MetaApiStatusCard account={account} />
+                            <div className="space-y-2">
+                              <div className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                                Terminal Farm (Optional)
+                              </div>
+                              <TerminalStatusCard
+                                accountId={account.id}
+                                accountName={account.accountName}
+                              />
+                            </div>
+                          </div>
                         </td>
                       </tr>
                     )}

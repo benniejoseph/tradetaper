@@ -1,13 +1,15 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import ThreeGlobe from "three-globe";
-import { useFrame, useThree } from "@react-three/fiber";
-import { Color } from "three";
-import countries from "@/data/countries.json";
+import { useFrame } from "@react-three/fiber";
+import { Color, MeshPhongMaterial, TextureLoader } from "three";
 
 export type GlobeConfig = {
   pointSize?: number;
+  globeImageUrl?: string;
+  nightImageUrl?: string;
+  bumpImageUrl?: string;
   globeColor?: string;
   showAtmosphere?: boolean;
   atmosphereColor?: string;
@@ -37,18 +39,20 @@ interface WorldProps {
 }
 
 export default function GlobeContent({ globeConfig }: WorldProps) {
-  const globeRef = useRef<ThreeGlobe>(null);
   const [globeObj, setGlobeObj] = useState<ThreeGlobe | null>(null);
 
   const defaultProps = {
-    pointSize: 1,
+    pointSize: 0.6,
+    globeImageUrl: "/textures/earth-dark.jpg",
+    nightImageUrl: "/textures/earth-night.jpg",
+    bumpImageUrl: "/textures/earth-topology.png",
     atmosphereColor: "#ffffff",
     showAtmosphere: true,
-    atmosphereAltitude: 0.1,
+    atmosphereAltitude: 0.2,
     polygonColor: "rgba(255,255,255,0.7)",
-    emissive: "#000000",
-    emissiveIntensity: 0.1,
-    shininess: 0.9,
+    emissive: "#ffffff",
+    emissiveIntensity: 0.6,
+    shininess: 1.1,
     arcTime: 2000,
     arcLength: 0.9,
     rings: 1,
@@ -57,33 +61,73 @@ export default function GlobeContent({ globeConfig }: WorldProps) {
   };
 
   useEffect(() => {
-    // Instantiate ThreeGlobe manually
     const globe = new ThreeGlobe()
-      .hexPolygonsData(countries.features)
-      .hexPolygonResolution(3)
-      .hexPolygonMargin(0.7)
+      .globeImageUrl(defaultProps.globeImageUrl)
+      .bumpImageUrl(defaultProps.bumpImageUrl)
       .showAtmosphere(defaultProps.showAtmosphere)
       .atmosphereColor(defaultProps.atmosphereColor)
-      .atmosphereAltitude(defaultProps.atmosphereAltitude)
-      .hexPolygonColor(() => {
-        return "rgba(255,255,255, 1)";
-      });
+      .atmosphereAltitude(defaultProps.atmosphereAltitude);
 
-    // Rotate to initial position
     globe.rotateY(-Math.PI * (5 / 9));
     globe.rotateZ(-Math.PI / 6);
-    
-    // Apply material props to the globe sphere itself (ocean)
-    const globeMaterial = globe.globeMaterial() as THREE.MeshPhongMaterial;
-    globeMaterial.color = new Color(globeConfig.globeColor || "#60a5fa");
-    globeMaterial.emissive = new Color(globeConfig.emissive || "#3b82f6");
-    globeMaterial.emissiveIntensity = 0.9;
-    globeMaterial.shininess = 0.9;
-    globeMaterial.opacity = 1; 
+
+    const globeMaterial = globe.globeMaterial() as MeshPhongMaterial;
+    const textureLoader = new TextureLoader();
+    const dayTexture = textureLoader.load(defaultProps.globeImageUrl);
+    globeMaterial.map = dayTexture;
+    if (defaultProps.nightImageUrl) {
+      const nightTexture = textureLoader.load(defaultProps.nightImageUrl);
+      globeMaterial.emissiveMap = nightTexture;
+    }
+
+    globeMaterial.color = new Color(globeConfig.globeColor || "#0b1020");
+    globeMaterial.emissive = new Color(globeConfig.emissive || "#ffffff");
+    globeMaterial.emissiveIntensity = globeConfig.emissiveIntensity ?? 0.55;
+    globeMaterial.shininess = globeConfig.shininess ?? 1.1;
+    globeMaterial.specular = new Color("#64748b");
+    globeMaterial.bumpScale = 0.55;
+    globeMaterial.opacity = 1;
     globeMaterial.transparent = true;
+    globeMaterial.needsUpdate = true;
 
     setGlobeObj(globe);
-  }, []);
+  }, [
+    globeConfig.emissive,
+    globeConfig.emissiveIntensity,
+    globeConfig.globeColor,
+    globeConfig.shininess,
+    defaultProps.atmosphereAltitude,
+    defaultProps.atmosphereColor,
+    defaultProps.bumpImageUrl,
+    defaultProps.globeImageUrl,
+    defaultProps.nightImageUrl,
+    defaultProps.showAtmosphere,
+  ]);
+
+  useEffect(() => {
+    if (!globeObj) return;
+    let active = true;
+
+    fetch("/data/ne_110m_admin_0_countries.geojson")
+      .then((res) => res.json())
+      .then((geo) => {
+        if (!active) return;
+        const features = geo?.features ?? [];
+        globeObj
+          .hexPolygonsData(features)
+          .hexPolygonResolution(3)
+          .hexPolygonMargin(0.45)
+          .hexPolygonAltitude(0.008)
+          .hexPolygonUseDots(true)
+          .hexPolygonDotResolution(6)
+          .hexPolygonColor(() => "rgba(16, 185, 129, 0.85)");
+      })
+      .catch(() => null);
+
+    return () => {
+      active = false;
+    };
+  }, [globeObj]);
 
   useFrame(() => {
     if (globeObj && globeConfig.autoRotate) {

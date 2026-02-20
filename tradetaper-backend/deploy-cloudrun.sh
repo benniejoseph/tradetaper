@@ -41,6 +41,7 @@ gcloud run deploy ${SERVICE_NAME} \
   --min-instances 0 \
   --max-instances 5 \
   --cpu-boost \
+  --no-cpu-throttling \
   --vpc-connector trade-taper-connector \
   --vpc-egress private-ranges-only \
   --set-secrets=GOOGLE_APPLICATION_CREDENTIALS=firebase-adminsdk:latest \

@@ -108,7 +108,7 @@ export default function BillingSuccessPage() {
           </Link>
           <Link
             href="/billing"
-            className="block text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+            className="block text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-emerald-400 transition-colors"
           >
             Manage Billing Settings
           </Link>

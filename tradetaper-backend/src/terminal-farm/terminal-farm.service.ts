@@ -25,18 +25,45 @@ import {
   EnableAutoSyncDto,
 } from './dto/terminal.dto';
 import { TradesService } from '../trades/trades.service';
+import { Trade } from '../trades/entities/trade.entity';
 import { TradeStatus, TradeDirection, AssetType } from '../types/enums';
 import { TerminalCommandsQueue } from './queue/terminal-commands.queue';
 import { TerminalFailedTradesQueue } from './queue/terminal-failed-trades.queue';
 import { TerminalTokenService } from './terminal-token.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { NotificationType, NotificationPriority } from '../notifications/entities/notification.entity';
+import { MT5PositionsGateway } from '../websocket/mt5-positions.gateway';
 
 @Injectable()
 export class TerminalFarmService {
   // ... (imports fixed)
 
   private readonly logger = new Logger(TerminalFarmService.name);
+
+  private normalizeTerminalTime(
+    value?: string | number | Date,
+  ): string | undefined {
+    if (value === undefined || value === null) return undefined;
+    if (value instanceof Date) {
+      return value.toISOString();
+    }
+    if (typeof value === 'number') {
+      const ms = value < 1e12 ? value * 1000 : value;
+      return new Date(ms).toISOString();
+    }
+    if (typeof value === 'string') {
+      const numeric = Number(value);
+      if (!Number.isNaN(numeric) && value.trim() !== '') {
+        const ms = numeric < 1e12 ? numeric * 1000 : numeric;
+        return new Date(ms).toISOString();
+      }
+      const parsed = new Date(value);
+      if (!Number.isNaN(parsed.getTime())) {
+        return parsed.toISOString();
+      }
+    }
+    return value;
+  }
 
   constructor(
     @InjectRepository(TerminalInstance)
@@ -51,6 +78,7 @@ export class TerminalFarmService {
     private readonly terminalTokenService: TerminalTokenService,
     @Inject(forwardRef(() => NotificationsService))
     private readonly notificationsService: NotificationsService,
+    private readonly mt5PositionsGateway: MT5PositionsGateway,
   ) {}
 
   /**
@@ -201,6 +229,100 @@ export class TerminalFarmService {
     return { token };
   }
 
+  async requestManualSync(
+    accountId: string,
+    userId: string,
+  ): Promise<{ queued: boolean; message: string }> {
+    const account = await this.mt5AccountRepository.findOne({
+      where: { id: accountId, userId },
+    });
+
+    if (!account) {
+      throw new NotFoundException('Account not found');
+    }
+
+    const terminal = await this.terminalRepository.findOne({
+      where: { accountId },
+    });
+
+    if (!terminal) {
+      throw new BadRequestException(
+        'Auto-sync is not enabled for this account. Enable Auto-Sync first.',
+      );
+    }
+
+    if (
+      terminal.status === TerminalStatus.STOPPED ||
+      terminal.status === TerminalStatus.ERROR
+    ) {
+      throw new BadRequestException(
+        'Terminal is not running. Enable Auto-Sync to start it before syncing.',
+      );
+    }
+
+    await this.queueCommand(terminal.id, 'SYNC_TRADES', '');
+    this.logger.log(
+      `Queued SYNC_TRADES for account ${accountId} (terminal ${terminal.id})`,
+    );
+
+    return {
+      queued: true,
+      message: 'Sync command queued. Trades will appear shortly.',
+    };
+  }
+
+  /**
+   * Get live positions for an MT5 account (from terminal metadata)
+   */
+  async getLivePositions(
+    accountId: string,
+    userId: string,
+  ): Promise<{
+    enabled: boolean;
+    accountId?: string;
+    accountName?: string;
+    terminalId?: string;
+    status?: TerminalStatus;
+    lastHeartbeat?: Date;
+    positionsUpdatedAt?: string;
+    positions: any[];
+  }> {
+    const account = await this.mt5AccountRepository.findOne({
+      where: { id: accountId, userId },
+    });
+
+    if (!account) {
+      throw new NotFoundException('Account not found');
+    }
+
+    const terminal = await this.terminalRepository.findOne({
+      where: { accountId },
+    });
+
+    if (!terminal) {
+      return {
+        enabled: false,
+        accountId: account.id,
+        accountName: account.accountName,
+        positions: [],
+      };
+    }
+
+    const livePositions = terminal.metadata?.livePositions || [];
+    const positionsUpdatedAt = terminal.metadata?.positionsUpdatedAt;
+
+    return {
+      enabled: true,
+      accountId: terminal.accountId,
+      accountName: account.accountName,
+      terminalId: terminal.id,
+      status: terminal.status,
+      lastHeartbeat: terminal.lastHeartbeat,
+      positionsUpdatedAt,
+      positions: livePositions,
+    };
+  }
+
   /**
    * Queue a command for a terminal
    * UPDATED: Now uses persistent Redis queue via TerminalCommandsQueue
@@ -212,6 +334,27 @@ export class TerminalFarmService {
   ): Promise<void> {
     await this.terminalCommandsQueue.queueCommand(terminalId, command, payload);
     this.logger.debug(`Queued command ${command} for terminal ${terminalId}`);
+
+    if (this.terminalCommandsQueue.isUsingInMemory()) {
+      const terminal = await this.terminalRepository.findOne({
+        where: { id: terminalId },
+      });
+      if (terminal) {
+        const pending = Array.isArray(terminal.metadata?.pendingCommands)
+          ? terminal.metadata?.pendingCommands?.slice()
+          : [];
+        pending.push({
+          command,
+          payload,
+          queuedAt: new Date().toISOString(),
+        });
+        terminal.metadata = {
+          ...(terminal.metadata || {}),
+          pendingCommands: pending,
+        };
+        await this.terminalRepository.save(terminal);
+      }
+    }
   }
 
   /**
@@ -252,6 +395,23 @@ export class TerminalFarmService {
       data.terminalId,
     );
 
+    if (nextCmd && this.terminalCommandsQueue.isUsingInMemory()) {
+      const pending = Array.isArray(terminal.metadata?.pendingCommands)
+        ? terminal.metadata?.pendingCommands?.slice()
+        : [];
+      const idx = pending.findIndex(
+        (cmd) => cmd.command === nextCmd.command && cmd.payload === nextCmd.payload,
+      );
+      if (idx >= 0) {
+        pending.splice(idx, 1);
+        terminal.metadata = {
+          ...(terminal.metadata || {}),
+          pendingCommands: pending,
+        };
+        await this.terminalRepository.save(terminal);
+      }
+    }
+
     if (nextCmd) {
       this.logger.log(
         `Dispatching command ${nextCmd.command} to terminal ${data.terminalId}`,
@@ -260,6 +420,24 @@ export class TerminalFarmService {
         success: true,
         command: nextCmd.command,
         payload: nextCmd.payload,
+      };
+    }
+
+    const pending = Array.isArray(terminal.metadata?.pendingCommands)
+      ? terminal.metadata?.pendingCommands?.slice()
+      : [];
+    if (pending.length > 0) {
+      const nextPending = pending.shift();
+      terminal.metadata = {
+        ...(terminal.metadata || {}),
+        pendingCommands: pending,
+      };
+      await this.terminalRepository.save(terminal);
+      return {
+        success: true,
+        command: nextPending.command,
+        payload: nextPending.payload,
+        fallback: true,
       };
     }
 
@@ -301,14 +479,32 @@ export class TerminalFarmService {
       const existingTrades = await this.tradesService.findManyByExternalIds(
         terminal.account.userId,
         positionIds,
+        terminal.accountId,
       );
 
-      // Create a map for O(1) lookup
+      const groupedByExternalId = new Map<string, any[]>();
+
       existingTrades.forEach((trade) => {
-        if (trade.externalId) {
-          existingTradesMap.set(trade.externalId, trade);
-        }
+        if (!trade.externalId) return;
+        const list = groupedByExternalId.get(trade.externalId) || [];
+        list.push(trade);
+        groupedByExternalId.set(trade.externalId, list);
       });
+
+      for (const [externalId, trades] of groupedByExternalId.entries()) {
+        if (trades.length > 1) {
+          const merged = await this.tradesService.mergeDuplicateExternalTrades(
+            terminal.account.userId,
+            externalId,
+            terminal.accountId,
+          );
+          if (merged) {
+            existingTradesMap.set(externalId, merged);
+          }
+        } else {
+          existingTradesMap.set(externalId, trades[0]);
+        }
+      }
 
       this.logger.debug(
         `Fetched ${existingTrades.length} existing trades for batch processing`,
@@ -318,6 +514,9 @@ export class TerminalFarmService {
     const duplicateCache = new Set<string>();
     for (const trade of data.trades) {
       try {
+        const normalizedOpenTime = this.normalizeTerminalTime(trade.openTime);
+        const normalizedCloseTime = this.normalizeTerminalTime(trade.closeTime);
+
         // --- 1. Position-Based Logic (New) ---
         if (trade.positionId) {
           const positionIdString = trade.positionId.toString();
@@ -331,14 +530,54 @@ export class TerminalFarmService {
           if (isEntry) {
             // If it's an entry and we already have it, skip (idempotent)
             if (existingTrade) {
-              // Optional: Update open fields if they changed?
-              // For now, assume Entry is immutable once recorded.
-              skipped++;
+              const entryUpdates: Record<string, any> = {};
+
+              if (!existingTrade.openTime && normalizedOpenTime) {
+                entryUpdates.openTime = normalizedOpenTime;
+              }
+              if (!existingTrade.openPrice && trade.openPrice) {
+                entryUpdates.openPrice = trade.openPrice;
+              }
+              if (!existingTrade.quantity && trade.volume) {
+                entryUpdates.quantity = trade.volume;
+              }
+              if (!existingTrade.side && trade.type) {
+                entryUpdates.side =
+                  trade.type === 'BUY'
+                    ? TradeDirection.LONG
+                    : TradeDirection.SHORT;
+              }
+              if (!existingTrade.stopLoss && trade.stopLoss) {
+                entryUpdates.stopLoss = trade.stopLoss;
+              }
+              if (!existingTrade.takeProfit && trade.takeProfit) {
+                entryUpdates.takeProfit = trade.takeProfit;
+              }
+              if (!existingTrade.contractSize && trade.contractSize) {
+                entryUpdates.contractSize = trade.contractSize;
+              }
+              if (!existingTrade.externalDealId && trade.ticket) {
+                entryUpdates.externalDealId = trade.ticket;
+              }
+              if (!existingTrade.mt5Magic && trade.magic) {
+                entryUpdates.mt5Magic = trade.magic;
+              }
+
+              if (Object.keys(entryUpdates).length > 0) {
+                const updatedTrade = await this.tradesService.updateFromSync(
+                  existingTrade.id,
+                  entryUpdates,
+                );
+                existingTradesMap.set(positionIdString, updatedTrade);
+                imported++;
+              } else {
+                skipped++;
+              }
               continue;
             }
 
             // Create New OPEN Trade
-            await this.tradesService.create(
+            const createdTrade = await this.tradesService.create(
               {
                 symbol: trade.symbol,
                 assetType: this.detectAssetType(trade.symbol),
@@ -347,7 +586,7 @@ export class TerminalFarmService {
                     ? TradeDirection.LONG
                     : TradeDirection.SHORT,
                 status: TradeStatus.OPEN, // Explicitly OPEN
-                openTime: trade.openTime || new Date().toISOString(),
+                openTime: normalizedOpenTime || new Date().toISOString(),
                 // No close time yet
                 openPrice: trade.openPrice || 0,
                 // No close price yet
@@ -365,6 +604,7 @@ export class TerminalFarmService {
               },
               { id: terminal.account.userId } as any,
             );
+            existingTradesMap.set(positionIdString, createdTrade);
             imported++;
           } else if (isExit) {
             // If it's an exit, we need to close the existing trade
@@ -375,11 +615,11 @@ export class TerminalFarmService {
                 existingTrade.status !== TradeStatus.CLOSED ||
                 !existingTrade.contractSize
               ) {
-                await this.tradesService.update(
+                const updatedTrade = await this.tradesService.update(
                   existingTrade.id, // We need ID, assuming findOneByExternalId returns broad entity or we fetch it
                   {
                     status: TradeStatus.CLOSED,
-                    closeTime: trade.openTime, // MT5 "Time" is the event time
+                    closeTime: normalizedOpenTime, // MT5 "Time" is the event time
                     closePrice: trade.openPrice, // MT5 Deal Price is the execution price
                     profitOrLoss: trade.profit, // Final profit is on the exit deal
                     commission:
@@ -391,31 +631,32 @@ export class TerminalFarmService {
                     contractSize: trade.contractSize,
                     // We typically don't update SL/TP on close, but we could if the exit deal has it (unlikely helpful vs entry)
                   },
-
                   { id: terminal.account.userId } as any,
+                  { changeSource: 'mt5' },
                 );
+                existingTradesMap.set(positionIdString, updatedTrade);
                 imported++;
 
                 // Queue FETCH_CANDLES command for this closed trade (2h before entry, 2h after exit)
                 const entryTime = existingTrade.openTime
                   ? new Date(existingTrade.openTime)
                   : new Date();
-                const exitTime = trade.openTime
-                  ? new Date(trade.openTime)
+                const exitTime = normalizedOpenTime
+                  ? new Date(normalizedOpenTime)
                   : new Date();
                 const bufferMs = 2 * 60 * 60 * 1000; // 2 hours
 
                 const startTime = new Date(entryTime.getTime() - bufferMs);
                 const endTime = new Date(exitTime.getTime() + bufferMs);
 
-                const startStr = startTime
-                  .toISOString()
-                  .replace('T', ' ')
-                  .substring(0, 19);
-                const endStr = endTime
-                  .toISOString()
-                  .replace('T', ' ')
-                  .substring(0, 19);
+                const formatMt5Time = (value: Date) =>
+                  value
+                    .toISOString()
+                    .replace('T', ' ')
+                    .substring(0, 19)
+                    .replace(/-/g, '.');
+                const startStr = formatMt5Time(startTime);
+                const endStr = formatMt5Time(endTime);
                 const payload = `${trade.symbol},1m,${startStr},${endStr},${existingTrade.id}`;
 
                 this.queueCommand(terminal.id, 'FETCH_CANDLES', payload);
@@ -428,7 +669,7 @@ export class TerminalFarmService {
             } else {
               // Edge Case: Exit arrived but we missed the Entry?
               // Create a standalone CLOSED trade so user sees the PnL
-              await this.tradesService.create(
+              const createdTrade = await this.tradesService.create(
                 {
                   symbol: trade.symbol,
                   assetType: this.detectAssetType(trade.symbol),
@@ -447,8 +688,8 @@ export class TerminalFarmService {
                       : TradeDirection.SHORT,
 
                   status: TradeStatus.CLOSED,
-                  openTime: trade.openTime || new Date().toISOString(), // Use execution time as fallback
-                  closeTime: trade.openTime,
+                  openTime: normalizedOpenTime || new Date().toISOString(), // Use execution time as fallback
+                  closeTime: normalizedOpenTime,
                   openPrice: 0, // Unknown
                   closePrice: trade.openPrice,
                   quantity: trade.volume || 0,
@@ -465,6 +706,7 @@ export class TerminalFarmService {
                 },
                 { id: terminal.account.userId } as any,
               );
+              existingTradesMap.set(positionIdString, createdTrade);
               imported++;
             }
           }
@@ -473,7 +715,7 @@ export class TerminalFarmService {
 
         // --- 2. Legacy Ticket-Based Logic (Fallback) ---
         // Check for duplicate by ticket
-        const duplicateKey = `${trade.ticket}:${trade.symbol}:${trade.openTime || ''}`;
+        const duplicateKey = `${trade.ticket}:${trade.symbol}:${normalizedOpenTime || ''}`;
         if (duplicateCache.has(duplicateKey)) {
           skipped++;
           continue;
@@ -483,7 +725,7 @@ export class TerminalFarmService {
         const existing = await this.tradesService.findDuplicate(
           terminal.account.userId,
           trade.symbol,
-          new Date(trade.openTime || Date.now()),
+          new Date(normalizedOpenTime || Date.now()),
           trade.ticket,
         );
 
@@ -500,8 +742,8 @@ export class TerminalFarmService {
             side:
               trade.type === 'BUY' ? TradeDirection.LONG : TradeDirection.SHORT,
             status: trade.closeTime ? TradeStatus.CLOSED : TradeStatus.OPEN,
-            openTime: trade.openTime || new Date().toISOString(),
-            closeTime: trade.closeTime,
+            openTime: normalizedOpenTime || new Date().toISOString(),
+            closeTime: normalizedCloseTime,
             openPrice: trade.openPrice || 0,
             closePrice: trade.closePrice,
             quantity: trade.volume || 0,
@@ -595,15 +837,115 @@ export class TerminalFarmService {
       return;
     }
 
+    const normalizeTargetValue = (value?: number | null) => {
+      if (value === null || value === undefined) return null;
+      const numeric = Number(value);
+      if (!Number.isFinite(numeric) || numeric === 0) return null;
+      return numeric;
+    };
+
+    const normalizedPositions = data.positions.map((position) => ({
+      ...position,
+      openTime: this.normalizeTerminalTime(position.openTime),
+      stopLoss: normalizeTargetValue(position.stopLoss),
+      takeProfit: normalizeTargetValue(position.takeProfit),
+    }));
+
     // Store positions in metadata for now
     // In a full implementation, you might want a separate positions table
     terminal.metadata = {
       ...terminal.metadata,
-      livePositions: data.positions,
+      livePositions: normalizedPositions,
       positionsUpdatedAt: new Date().toISOString(),
     };
 
     await this.terminalRepository.save(terminal);
+
+    const account = await this.mt5AccountRepository.findOne({
+      where: { id: terminal.accountId },
+    });
+
+    if (!account) {
+      return;
+    }
+
+    const externalIds = normalizedPositions
+      .map((pos) => pos.ticket?.toString())
+      .filter(Boolean) as string[];
+
+    if (externalIds.length > 0) {
+      const trades = await this.tradesService.findManyByExternalIds(
+        account.userId,
+        externalIds,
+        terminal.accountId,
+      );
+      const tradeMap = new Map(trades.map((trade) => [trade.externalId, trade]));
+
+      for (const position of normalizedPositions) {
+        const externalId = position.ticket?.toString();
+        if (!externalId) continue;
+        const trade = tradeMap.get(externalId);
+        if (!trade) continue;
+
+        const updates: Partial<Trade> = {};
+        const changes: Record<string, { from: unknown; to: unknown }> = {};
+
+        const nextStopLoss = normalizeTargetValue(position.stopLoss);
+        const nextTakeProfit = normalizeTargetValue(position.takeProfit);
+        const nextQuantity = Number(position.volume);
+        const nextOpenPrice = Number(position.openPrice);
+
+        const currentStopLoss = normalizeTargetValue(trade.stopLoss);
+        const currentTakeProfit = normalizeTargetValue(trade.takeProfit);
+        const currentQuantity =
+          trade.quantity === null || trade.quantity === undefined
+            ? null
+            : Number(trade.quantity);
+        const currentOpenPrice =
+          trade.openPrice === null || trade.openPrice === undefined
+            ? null
+            : Number(trade.openPrice);
+
+        if (currentStopLoss !== nextStopLoss) {
+          updates.stopLoss = nextStopLoss;
+          changes.stopLoss = { from: currentStopLoss, to: nextStopLoss };
+        }
+
+        if (currentTakeProfit !== nextTakeProfit) {
+          updates.takeProfit = nextTakeProfit;
+          changes.takeProfit = { from: currentTakeProfit, to: nextTakeProfit };
+        }
+
+        if (Number.isFinite(nextQuantity) && currentQuantity !== nextQuantity) {
+          updates.quantity = nextQuantity;
+          changes.quantity = { from: trade.quantity, to: nextQuantity };
+        }
+
+        if (Number.isFinite(nextOpenPrice) && currentOpenPrice !== nextOpenPrice) {
+          updates.openPrice = nextOpenPrice;
+          changes.openPrice = { from: trade.openPrice, to: nextOpenPrice };
+        }
+
+        if (Object.keys(updates).length > 0) {
+          await this.tradesService.updateFromSync(trade.id, updates, {
+            source: 'mt5',
+            changes,
+            note: 'Live position update',
+          });
+        }
+      }
+    }
+
+    this.mt5PositionsGateway.emitPositionsUpdate(account.userId, {
+      enabled: true,
+      accountId: terminal.accountId,
+      accountName: account.accountName,
+      terminalId: terminal.id,
+      status: terminal.status,
+      lastHeartbeat: terminal.lastHeartbeat,
+      positionsUpdatedAt: terminal.metadata?.positionsUpdatedAt,
+      positions: normalizedPositions,
+    });
   }
 
   /**

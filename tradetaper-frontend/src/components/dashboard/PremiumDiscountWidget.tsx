@@ -185,7 +185,7 @@ export default function PremiumDiscountWidget({ symbol = 'XAUUSD' }: Props) {
         </div>
         
         {/* Visual Bar */}
-        <div className="relative w-full h-6 bg-gradient-to-r from-green-200 via-blue-200 to-red-200 dark:from-green-900 dark:via-blue-900 dark:to-red-900 rounded-full overflow-hidden mb-3">
+        <div className="relative w-full h-6 bg-gradient-to-r from-green-200 via-blue-200 to-red-200 dark:from-green-900 dark:via-emerald-900 dark:to-red-900 rounded-full overflow-hidden mb-3">
           {/* Equilibrium Line */}
           <div className="absolute left-1/2 top-0 w-0.5 h-full bg-gray-900 dark:bg-white z-10"></div>
           

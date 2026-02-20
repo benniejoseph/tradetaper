@@ -38,7 +38,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
           }
 
           const config = {
-            type: 'postgres' as const,
+            type: 'postgres',
             ...hostConfig,
             database:
               configService.get<string>('DB_DATABASE') ||
@@ -56,9 +56,16 @@ import { TypeOrmModule } from '@nestjs/typeorm';
             migrations: [__dirname + '/../migrations/*{.ts,.js}'],
             logging: ['error', 'warn'] as ('error' | 'warn')[],
             retryAttempts: 10,
-            retryDelay: 5000,
-            connectTimeoutMS: 60000,
-          };
+            retryDelay: 3000,
+            // Connection Pool Settings for Cloud Run
+            extra: {
+              max: 10, // Max DB connections per container
+              connectionTimeoutMillis: 5000, // 5s timeout for new connection
+              idleTimeoutMillis: 5000, // Close idle connections after 5s to avoid cold starts
+              query_timeout: 60000, // 60s query timeout
+              keepAlive: true, // Internal keepalive
+            },
+          } as any;
 
           logger.log(`Final database config: type=${config.type}, database=${config.database}, username=${config.username}, hasPassword=${!!config.password}`);
 

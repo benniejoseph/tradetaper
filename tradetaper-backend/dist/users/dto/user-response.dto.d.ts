@@ -3,6 +3,7 @@ export declare class UserResponseDto {
     email: string;
     firstName?: string;
     lastName?: string;
+    username?: string;
     createdAt: Date;
     updatedAt: Date;
     subscription?: any;

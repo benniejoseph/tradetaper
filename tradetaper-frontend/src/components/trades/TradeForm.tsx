@@ -110,6 +110,28 @@ export default function TradeForm({ initialData, isEditMode = false, onFormSubmi
   const [isUploading, setIsUploading] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [strategies, setStrategies] = useState<Strategy[]>([]);
+  const displayError = useMemo(() => {
+    const raw = formError || tradeSubmitError;
+    if (!raw) return null;
+    if (Array.isArray(raw)) {
+      return raw.map((item: any) => {
+        if (typeof item === 'string') return item;
+        if (item?.field && Array.isArray(item?.errors)) return `${item.field}: ${item.errors.join(', ')}`;
+        return JSON.stringify(item);
+      }).join(' | ');
+    }
+    if (typeof raw === 'object') {
+      try {
+        if ((raw as any).field && Array.isArray((raw as any).errors)) {
+          return `${(raw as any).field}: ${(raw as any).errors.join(', ')}`;
+        }
+        return JSON.stringify(raw);
+      } catch {
+        return 'Submission failed';
+      }
+    }
+    return String(raw);
+  }, [formError, tradeSubmitError]);
 
   // Merge accounts
   const allAccounts = useMemo(() => {
@@ -162,7 +184,6 @@ export default function TradeForm({ initialData, isEditMode = false, onFormSubmi
     energyLevel: initialData?.energyLevel || undefined,
     distractionLevel: initialData?.distractionLevel || undefined,
     tradingEnvironment: initialData?.tradingEnvironment || '',
-    ictConcept: initialData?.ictConcept || '',
   });
 
   // Effects
@@ -308,9 +329,9 @@ export default function TradeForm({ initialData, isEditMode = false, onFormSubmi
   return (
     <div className="w-full">
       {/* Error Display */}
-      {(formError || tradeSubmitError) && (
+      {displayError && (
         <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl text-red-700 dark:text-red-400 text-sm flex items-center gap-2">
-          <span className="font-bold">Error:</span> {formError || tradeSubmitError}
+          <span className="font-bold">Error:</span> {displayError}
         </div>
       )}
 
@@ -379,7 +400,7 @@ export default function TradeForm({ initialData, isEditMode = false, onFormSubmi
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
                  <div className="p-4 rounded-xl border border-zinc-200 dark:border-white/5 bg-zinc-50/50 dark:bg-white/[0.02]">
                     <div className="flex items-center gap-2 mb-3">
-                       <div className="p-1 bg-blue-100 dark:bg-blue-500/10 rounded text-blue-600 dark:text-blue-400"><TrendingUp className="w-3 h-3" /></div>
+                       <div className="p-1 bg-blue-100 dark:bg-emerald-500/10 rounded text-blue-600 dark:text-emerald-400"><TrendingUp className="w-3 h-3" /></div>
                        <span className="text-xs font-bold text-zinc-500 uppercase">Entry</span>
                     </div>
                     <div className="space-y-3">
@@ -394,7 +415,7 @@ export default function TradeForm({ initialData, isEditMode = false, onFormSubmi
 
                  <div className="p-4 rounded-xl border border-zinc-200 dark:border-white/5 bg-zinc-50/50 dark:bg-white/[0.02]">
                     <div className="flex items-center gap-2 mb-3">
-                       <div className="p-1 bg-purple-100 dark:bg-purple-500/10 rounded text-purple-600 dark:text-purple-400"><TrendingDown className="w-3 h-3" /></div>
+                       <div className="p-1 bg-purple-100 dark:bg-emerald-500/10 rounded text-purple-600 dark:text-emerald-400"><TrendingDown className="w-3 h-3" /></div>
                        <span className="text-xs font-bold text-zinc-500 uppercase">Exit</span>
                     </div>
                     <div className="space-y-3">
@@ -452,17 +473,13 @@ export default function TradeForm({ initialData, isEditMode = false, onFormSubmi
            
            <div className="space-y-6">
               {/* Strategy Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                  <div>
                     <label className={labelClass}>Strategy</label>
                     <select name="strategyId" value={formData.strategyId || ''} onChange={handleChange} className={inputClass}>
                       <option value="">Select...</option>
                       {strategies.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                     </select>
-                 </div>
-                 <div>
-                    <label className={labelClass}>ICT Concept</label>
-                    <input type="text" name="ictConcept" value={formData.ictConcept || ''} onChange={handleChange} placeholder="FVG, OB, BMS..." className={inputClass} />
                  </div>
                  <div>
                     <label className={labelClass}>Trading Session</label>

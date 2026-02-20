@@ -11,6 +11,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.CreateTradeDto = void 0;
 const class_validator_1 = require("class-validator");
+const class_transformer_1 = require("class-transformer");
 const enums_1 = require("../../types/enums");
 class CreateTradeDto {
     assetType;
@@ -121,7 +122,6 @@ __decorate([
 __decorate([
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsNumber)({ maxDecimalPlaces: 2 }),
-    (0, class_validator_1.Min)(0),
     __metadata("design:type", Number)
 ], CreateTradeDto.prototype, "commission", void 0);
 __decorate([
@@ -143,6 +143,7 @@ __decorate([
 ], CreateTradeDto.prototype, "takeProfit", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
+    (0, class_transformer_1.Transform)(({ value }) => value === '' || value === 'None' || value === null ? undefined : value),
     (0, class_validator_1.IsEnum)(enums_1.ICTConcept),
     __metadata("design:type", String)
 ], CreateTradeDto.prototype, "ictConcept", void 0);

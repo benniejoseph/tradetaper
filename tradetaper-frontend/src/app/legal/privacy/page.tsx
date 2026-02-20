@@ -1,6 +1,7 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import MarkdownContent from '@/components/common/MarkdownContent';
-import { FaChartLine, FaShieldAlt, FaArrowLeft, FaCalendarAlt, FaLock, FaDatabase, FaUserShield, FaEye } from 'react-icons/fa';
+import { FaShieldAlt, FaArrowLeft, FaCalendarAlt, FaLock, FaDatabase, FaUserShield, FaEye } from 'react-icons/fa';
 
 export const metadata = {
   title: 'Privacy Policy | TradeTaper',
@@ -9,7 +10,7 @@ export const metadata = {
 
 export default function PrivacyPolicyPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-emerald-50/30 to-teal-50/50 dark:from-gray-900 dark:via-slate-900 dark:to-gray-900">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-emerald-50/30 to-teal-50/50 dark:from-gray-900 dark:via-black dark:to-gray-900">
       {/* Professional Header with Navigation */}
       <div className="relative">
         <div className="absolute inset-0 bg-gradient-to-r from-green-600/8 via-emerald-600/8 to-teal-600/8"></div>
@@ -19,7 +20,13 @@ export default function PrivacyPolicyPage() {
               {/* Logo and Breadcrumb */}
               <div className="flex items-center space-x-4">
                 <Link href="/" className="flex items-center space-x-2 text-gray-900 dark:text-white hover:text-green-600 dark:hover:text-green-400 transition-colors">
-                  <FaChartLine className="w-6 h-6 text-green-600" />
+                  <Image
+                    src="/tradetaperLogo.png"
+                    alt="TradeTaper"
+                    width={26}
+                    height={26}
+                    className="h-[26px] w-[26px] object-contain"
+                  />
                   <span className="text-xl font-bold">TradeTaper</span>
                 </Link>
                 <div className="flex items-center space-x-2 text-sm text-gray-500 dark:text-gray-400">

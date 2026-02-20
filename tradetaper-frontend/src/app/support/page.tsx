@@ -2,6 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { FaSearch, FaBook, FaYoutube, FaHeadset, FaTerminal } from 'react-icons/fa';
 
 export default function SupportPage() {
@@ -11,8 +12,17 @@ export default function SupportPage() {
       <div className="fixed inset-0 pointer-events-none bg-[radial-gradient(ellipse_at_top,rgba(16,185,129,0.15),transparent_50%)]"></div>
 
       <nav className="relative z-50 p-6 flex justify-between items-center max-w-7xl mx-auto border-b border-white/5 bg-slate-950/50 backdrop-blur-md">
-         <Link href="/" className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 to-teal-400">
-            TradeTaper <span className="text-white font-light opacity-50">Docs</span>
+         <Link href="/" className="flex items-center gap-3">
+            <Image
+              src="/tradetaperLogo.png"
+              alt="TradeTaper"
+              width={24}
+              height={24}
+              className="h-6 w-6 object-contain"
+            />
+            <span className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 to-teal-400">
+              TradeTaper <span className="text-white font-light opacity-50">Docs</span>
+            </span>
          </Link>
          <Link href="/" className="text-slate-400 hover:text-white transition-colors">Back to App</Link>
       </nav>

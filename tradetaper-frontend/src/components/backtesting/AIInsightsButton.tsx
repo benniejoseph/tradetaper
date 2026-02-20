@@ -71,8 +71,8 @@ export default function AIInsightsButton({
             {/* Header */}
             <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-purple-100 dark:bg-purple-900/20 rounded-lg">
-                  <FaBrain className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                <div className="p-2 bg-purple-100 dark:bg-emerald-900/20 rounded-lg">
+                  <FaBrain className="w-5 h-5 text-purple-600 dark:text-emerald-400" />
                 </div>
                 <div>
                   <h2 className="text-xl font-bold text-gray-900 dark:text-white">

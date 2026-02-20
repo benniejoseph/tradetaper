@@ -97,14 +97,13 @@ let TradesService = TradesService_1 = class TradesService {
                     const bufferMs = 2 * 60 * 60 * 1000;
                     const startTime = new Date(entryTime - bufferMs);
                     const endTime = new Date(exitTime + bufferMs);
-                    const startStr = startTime
+                    const formatMt5Time = (value) => value
                         .toISOString()
                         .replace('T', ' ')
-                        .substring(0, 19);
-                    const endStr = endTime
-                        .toISOString()
-                        .replace('T', ' ')
-                        .substring(0, 19);
+                        .substring(0, 19)
+                        .replace(/-/g, '.');
+                    const startStr = formatMt5Time(startTime);
+                    const endStr = formatMt5Time(endTime);
                     const payload = `${trade.symbol},1m,${startStr},${endStr},${trade.id}`;
                     this.terminalFarmService.queueCommand(terminal.id, 'FETCH_CANDLES', payload);
                     return [
@@ -273,6 +272,132 @@ let TradesService = TradesService_1 = class TradesService {
             limit,
         };
     }
+    async findAllLite(userContext, accountId, page = 1, limit = 50, includeTags = false, filters) {
+        this.logger.log(`User ${userContext.id} fetching trades (lite), account: ${accountId || 'all'}, page: ${page}, limit: ${limit}`);
+        const queryBuilder = this.tradesRepository
+            .createQueryBuilder('trade')
+            .where('trade.userId = :userId', { userId: userContext.id });
+        if (accountId) {
+            queryBuilder.andWhere('trade.accountId = :accountId', { accountId });
+        }
+        if (filters?.status) {
+            queryBuilder.andWhere('trade.status = :status', {
+                status: filters.status,
+            });
+        }
+        if (filters?.direction) {
+            queryBuilder.andWhere('trade.side = :side', {
+                side: filters.direction,
+            });
+        }
+        if (filters?.assetType) {
+            queryBuilder.andWhere('trade.assetType = :assetType', {
+                assetType: filters.assetType,
+            });
+        }
+        if (filters?.symbol) {
+            queryBuilder.andWhere('trade.symbol ILIKE :symbol', {
+                symbol: `%${filters.symbol}%`,
+            });
+        }
+        if (filters?.isStarred) {
+            queryBuilder.andWhere('trade.isStarred = :isStarred', {
+                isStarred: true,
+            });
+        }
+        if (filters?.dateFrom) {
+            queryBuilder.andWhere('trade.openTime >= :dateFrom', {
+                dateFrom: filters.dateFrom,
+            });
+        }
+        if (filters?.dateTo) {
+            queryBuilder.andWhere('trade.openTime <= :dateTo', {
+                dateTo: filters.dateTo,
+            });
+        }
+        if (filters?.search) {
+            queryBuilder.andWhere('(trade.symbol ILIKE :search OR trade.notes ILIKE :search OR trade.setupDetails ILIKE :search)', { search: `%${filters.search}%` });
+        }
+        if (Number.isFinite(filters?.minPnl)) {
+            queryBuilder.andWhere('trade.profitOrLoss >= :minPnl', {
+                minPnl: filters?.minPnl,
+            });
+        }
+        if (Number.isFinite(filters?.maxPnl)) {
+            queryBuilder.andWhere('trade.profitOrLoss <= :maxPnl', {
+                maxPnl: filters?.maxPnl,
+            });
+        }
+        if (Number.isFinite(filters?.minDuration)) {
+            queryBuilder.andWhere('trade.closeTime IS NOT NULL AND EXTRACT(EPOCH FROM (trade.closeTime - trade.openTime)) >= :minDuration', { minDuration: filters?.minDuration });
+        }
+        if (Number.isFinite(filters?.maxDuration)) {
+            queryBuilder.andWhere('trade.closeTime IS NOT NULL AND EXTRACT(EPOCH FROM (trade.closeTime - trade.openTime)) <= :maxDuration', { maxDuration: filters?.maxDuration });
+        }
+        if (includeTags) {
+            queryBuilder.leftJoinAndSelect('trade.tags', 'tag');
+        }
+        const sortBy = filters?.sortBy || 'openTime';
+        const sortDir = String(filters?.sortDir || 'DESC').toUpperCase() === 'ASC'
+            ? 'ASC'
+            : 'DESC';
+        if (sortBy === 'duration') {
+            queryBuilder.addSelect('EXTRACT(EPOCH FROM (trade.closeTime - trade.openTime))', 'durationSeconds');
+            queryBuilder.orderBy('durationSeconds', sortDir);
+        }
+        else if ([
+            'openTime',
+            'closeTime',
+            'profitOrLoss',
+            'rMultiple',
+            'quantity',
+            'symbol',
+            'status',
+        ].includes(sortBy)) {
+            queryBuilder.orderBy(`trade.${sortBy}`, sortDir);
+        }
+        else {
+            queryBuilder.orderBy('trade.openTime', 'DESC');
+        }
+        queryBuilder
+            .skip((page - 1) * limit)
+            .take(limit)
+            .select([
+            'trade.id',
+            'trade.userId',
+            'trade.assetType',
+            'trade.symbol',
+            'trade.side',
+            'trade.status',
+            'trade.openTime',
+            'trade.openPrice',
+            'trade.closeTime',
+            'trade.closePrice',
+            'trade.quantity',
+            'trade.stopLoss',
+            'trade.takeProfit',
+            'trade.commission',
+            'trade.profitOrLoss',
+            'trade.rMultiple',
+            'trade.session',
+            'trade.notes',
+            'trade.isStarred',
+            'trade.accountId',
+            'trade.createdAt',
+            'trade.updatedAt',
+        ]);
+        if (includeTags) {
+            queryBuilder.addSelect(['tag.id', 'tag.name']);
+        }
+        const [trades, total] = await queryBuilder.getManyAndCount();
+        const populatedTrades = await this._populateAccountDetails(trades, userContext.id);
+        return {
+            data: populatedTrades,
+            total,
+            page,
+            limit,
+        };
+    }
     async findDuplicate(userId, symbol, entryDate, externalId) {
         const queryBuilder = this.tradesRepository
             .createQueryBuilder('trade')
@@ -291,21 +416,136 @@ let TradesService = TradesService_1 = class TradesService {
         }
         return await queryBuilder.getOne();
     }
-    async findOneByExternalId(userId, externalId) {
+    async findOneByExternalId(userId, externalId, accountId) {
+        const where = { userId, externalId };
+        if (accountId) {
+            where.accountId = accountId;
+        }
         return await this.tradesRepository.findOne({
-            where: { userId, externalId },
+            where,
         });
     }
-    async findManyByExternalIds(userId, externalIds) {
+    async findManyByExternalIds(userId, externalIds, accountId) {
         if (!externalIds || externalIds.length === 0) {
             return [];
         }
-        return await this.tradesRepository.find({
-            where: {
-                userId,
-                externalId: (0, typeorm_2.In)(externalIds),
-            },
+        const where = {
+            userId,
+            externalId: (0, typeorm_2.In)(externalIds),
+        };
+        if (accountId) {
+            where.accountId = accountId;
+        }
+        return await this.tradesRepository.find({ where });
+    }
+    async mergeDuplicateExternalTrades(userId, externalId, accountId) {
+        const where = { userId, externalId };
+        if (accountId) {
+            where.accountId = accountId;
+        }
+        const trades = await this.tradesRepository.find({
+            where,
+            order: { openTime: 'ASC', createdAt: 'ASC' },
         });
+        if (trades.length <= 1) {
+            return trades[0] || null;
+        }
+        const merged = this.mergeTradeRecords(trades);
+        await this.tradesRepository.save(merged);
+        const deleteIds = trades.filter((t) => t.id !== merged.id).map((t) => t.id);
+        if (deleteIds.length > 0) {
+            await this.tradesRepository.delete({ id: (0, typeorm_2.In)(deleteIds), userId });
+        }
+        this.logger.log(`Merged ${trades.length} trades for externalId ${externalId} into ${merged.id}`);
+        return merged;
+    }
+    async mergeDuplicateExternalTradesForUser(userId, accountId) {
+        const queryBuilder = this.tradesRepository
+            .createQueryBuilder('trade')
+            .select('trade.externalId', 'externalId')
+            .addSelect('COUNT(*)', 'count')
+            .where('trade.userId = :userId', { userId })
+            .andWhere('trade.externalId IS NOT NULL');
+        if (accountId) {
+            queryBuilder.andWhere('trade.accountId = :accountId', { accountId });
+        }
+        const duplicates = await queryBuilder
+            .groupBy('trade.externalId')
+            .having('COUNT(*) > 1')
+            .getRawMany();
+        let merged = 0;
+        for (const row of duplicates) {
+            const externalId = row.externalId;
+            const result = await this.mergeDuplicateExternalTrades(userId, externalId, accountId);
+            if (result) {
+                merged += 1;
+            }
+        }
+        return { merged, totalDuplicates: duplicates.length };
+    }
+    mergeTradeRecords(trades) {
+        const sortedByOpen = [...trades].sort((a, b) => new Date(a.openTime).getTime() - new Date(b.openTime).getTime());
+        const sortedByClose = trades
+            .filter((t) => t.closeTime)
+            .sort((a, b) => new Date(a.closeTime).getTime() -
+            new Date(b.closeTime).getTime());
+        const hasClosed = trades.some((t) => t.status === enums_1.TradeStatus.CLOSED || t.closeTime || t.closePrice);
+        const primary = trades.find((t) => t.status === enums_1.TradeStatus.CLOSED) || sortedByOpen[0];
+        const entryCandidate = sortedByOpen[0];
+        const closeCandidate = sortedByClose.length > 0 ? sortedByClose[sortedByClose.length - 1] : null;
+        if (entryCandidate) {
+            primary.openTime = entryCandidate.openTime || primary.openTime;
+            if (!primary.openPrice && entryCandidate.openPrice) {
+                primary.openPrice = entryCandidate.openPrice;
+            }
+            if (!primary.quantity && entryCandidate.quantity) {
+                primary.quantity = entryCandidate.quantity;
+            }
+            primary.side = entryCandidate.side || primary.side;
+            primary.stopLoss = entryCandidate.stopLoss ?? primary.stopLoss;
+            primary.takeProfit = entryCandidate.takeProfit ?? primary.takeProfit;
+            primary.externalDealId =
+                entryCandidate.externalDealId || primary.externalDealId;
+        }
+        if (closeCandidate) {
+            primary.closeTime = closeCandidate.closeTime || primary.closeTime;
+            if (!primary.closePrice && closeCandidate.closePrice) {
+                primary.closePrice = closeCandidate.closePrice;
+            }
+            primary.contractSize =
+                primary.contractSize ?? closeCandidate.contractSize;
+            primary.mt5Magic = primary.mt5Magic ?? closeCandidate.mt5Magic;
+        }
+        if (!primary.contractSize && entryCandidate?.contractSize) {
+            primary.contractSize = entryCandidate.contractSize;
+        }
+        if (!primary.mt5Magic && entryCandidate?.mt5Magic) {
+            primary.mt5Magic = entryCandidate.mt5Magic;
+        }
+        primary.status = hasClosed ? enums_1.TradeStatus.CLOSED : primary.status;
+        const hasCommission = trades.some((t) => t.commission !== null && t.commission !== undefined);
+        const commissionSum = trades.reduce((sum, t) => sum + (Number(t.commission) || 0), 0);
+        if (hasCommission) {
+            primary.commission = commissionSum;
+        }
+        const hasSwap = trades.some((t) => t.swap !== null && t.swap !== undefined);
+        const swapSum = trades.reduce((sum, t) => sum + (Number(t.swap) || 0), 0);
+        if (hasSwap) {
+            primary.swap = swapSum;
+        }
+        if (hasClosed) {
+            const pnlCandidate = [...trades]
+                .filter((t) => t.profitOrLoss !== null && t.profitOrLoss !== undefined)
+                .sort((a, b) => {
+                const at = a.closeTime ? new Date(a.closeTime).getTime() : 0;
+                const bt = b.closeTime ? new Date(b.closeTime).getTime() : 0;
+                return bt - at;
+            })[0];
+            if (pnlCandidate?.profitOrLoss !== undefined) {
+                primary.profitOrLoss = pnlCandidate.profitOrLoss;
+            }
+        }
+        return primary;
     }
     async findOne(id, userContext) {
         this.logger.log(`User ${userContext.id} fetching trade with ID ${id}`);
@@ -328,7 +568,58 @@ let TradesService = TradesService_1 = class TradesService {
             throw new common_1.NotFoundException(`Trade with ID "${id}" not found or does not belong to user.`);
         }
     }
-    async update(id, updateTradeDto, userContext) {
+    normalizeChangeValue(value) {
+        if (value instanceof Date) {
+            return value.toISOString();
+        }
+        if (value === undefined)
+            return null;
+        if (typeof value === 'number')
+            return Number(value);
+        return value;
+    }
+    buildChangeLogEntry(trade, updateTradeDto, partialUpdateData, source) {
+        const fieldsToTrack = [
+            'openTime',
+            'closeTime',
+            'openPrice',
+            'closePrice',
+            'quantity',
+            'stopLoss',
+            'takeProfit',
+            'status',
+            'notes',
+            'commission',
+            'swap',
+            'profitOrLoss',
+        ];
+        const changes = {};
+        for (const field of fieldsToTrack) {
+            if (!Object.prototype.hasOwnProperty.call(updateTradeDto, field)) {
+                continue;
+            }
+            const updateValue = updateTradeDto[field];
+            const nextValue = Object.prototype.hasOwnProperty.call(partialUpdateData, field)
+                ? partialUpdateData[field]
+                : updateValue;
+            const fromValue = this.normalizeChangeValue(trade[field]);
+            const toValue = this.normalizeChangeValue(updateValue === null && (field === 'closeTime' || field === 'openTime')
+                ? null
+                : nextValue);
+            if (JSON.stringify(fromValue) !== JSON.stringify(toValue)) {
+                changes[field] = { from: fromValue, to: toValue };
+            }
+        }
+        if (Object.keys(changes).length === 0) {
+            return null;
+        }
+        return {
+            at: new Date().toISOString(),
+            source,
+            changes,
+        };
+    }
+    async update(id, updateTradeDto, userContext, options) {
         this.logger.log(`User ${userContext.id} updating trade with ID ${id}`);
         const trade = await this.tradesRepository.findOne({
             where: { id, userId: userContext.id },
@@ -349,6 +640,12 @@ let TradesService = TradesService_1 = class TradesService {
         else if (Object.prototype.hasOwnProperty.call(updateTradeDto, 'closeTime') &&
             closeTime === null) {
             partialUpdateData.closeTime = undefined;
+        }
+        if (options?.logChanges !== false) {
+            const changeEntry = this.buildChangeLogEntry(trade, updateTradeDto, partialUpdateData, options?.changeSource || 'user');
+            if (changeEntry) {
+                trade.changeLog = [...(trade.changeLog || []), changeEntry];
+            }
         }
         this.tradesRepository.merge(trade, partialUpdateData);
         if (tagNames !== undefined) {
@@ -393,6 +690,33 @@ let TradesService = TradesService_1 = class TradesService {
             this.logger.error(`Failed to send trade update notification: ${error.message}`);
         }
         return updatedTrade;
+    }
+    async updateFromSync(id, updateData, changeLog) {
+        const trade = await this.tradesRepository.findOne({ where: { id } });
+        if (!trade) {
+            throw new common_1.NotFoundException(`Trade with ID "${id}" not found for sync.`);
+        }
+        const normalized = { ...updateData };
+        if (typeof updateData.openTime === 'string') {
+            normalized.openTime = new Date(updateData.openTime);
+        }
+        if (typeof updateData.closeTime === 'string') {
+            normalized.closeTime = new Date(updateData.closeTime);
+        }
+        if (changeLog && Object.keys(changeLog.changes || {}).length > 0) {
+            trade.changeLog = [
+                ...(trade.changeLog || []),
+                {
+                    at: new Date().toISOString(),
+                    source: changeLog.source,
+                    changes: changeLog.changes,
+                    note: changeLog.note,
+                },
+            ];
+        }
+        this.tradesRepository.merge(trade, normalized);
+        const saved = await this.tradesRepository.save(trade);
+        return saved;
     }
     async remove(id, userContext) {
         const trade = await this.findOne(id, userContext);

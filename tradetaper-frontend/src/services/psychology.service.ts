@@ -13,9 +13,4 @@ export const psychologyService = {
     const response = await authApiClient.get('/psychological-profile/summary');
     return response.data;
   },
-
-  analyzeNote: async (noteId: string) => {
-    const response = await authApiClient.post(`/notes/${noteId}/psychological-insights/analyze`);
-    return response.data;
-  },
-}; 
+};

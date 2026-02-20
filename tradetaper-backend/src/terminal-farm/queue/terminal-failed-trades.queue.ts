@@ -151,11 +151,16 @@ export class TerminalFailedTradesQueue implements OnModuleInit, OnModuleDestroy 
       return;
     }
 
+    const sanitizeJobId = (value: string) =>
+      value.replace(/[^a-zA-Z0-9_-]/g, '-');
+
     await this.queue.add(
       'retry-trade',
       payload,
       {
-        jobId: `${terminalId}:${trade.ticket}:${trade.positionId || 'legacy'}`,
+        jobId: sanitizeJobId(
+          `${terminalId}_${trade.ticket}_${trade.positionId || 'legacy'}`,
+        ),
       },
     );
   }
@@ -214,10 +219,36 @@ export class TerminalFailedTradesQueue implements OnModuleInit, OnModuleDestroy 
     terminal: TerminalInstance,
     trade: TerminalTradeDto,
   ): Promise<void> {
+    const normalizeTerminalTime = (
+      value?: string | number | Date,
+    ): string | undefined => {
+      if (value === undefined || value === null) return undefined;
+      if (value instanceof Date) return value.toISOString();
+      if (typeof value === 'number') {
+        const ms = value < 1e12 ? value * 1000 : value;
+        return new Date(ms).toISOString();
+      }
+      if (typeof value === 'string') {
+        const numeric = Number(value);
+        if (!Number.isNaN(numeric) && value.trim() !== '') {
+          const ms = numeric < 1e12 ? numeric * 1000 : numeric;
+          return new Date(ms).toISOString();
+        }
+        const parsed = new Date(value);
+        if (!Number.isNaN(parsed.getTime())) {
+          return parsed.toISOString();
+        }
+      }
+      return value;
+    };
+
+    const normalizedOpenTime = normalizeTerminalTime(trade.openTime);
+
     const positionIdString = trade.positionId!.toString();
     const existingTrade = await this.tradesService.findOneByExternalId(
       terminal.account.userId,
       positionIdString,
+      terminal.accountId,
     );
 
     const isEntry = trade.entryType === 0;
@@ -225,6 +256,43 @@ export class TerminalFailedTradesQueue implements OnModuleInit, OnModuleDestroy 
 
     if (isEntry) {
       if (existingTrade) {
+        const entryUpdates: Record<string, any> = {};
+
+        if (!existingTrade.openTime && normalizedOpenTime) {
+          entryUpdates.openTime = normalizedOpenTime;
+        }
+        if (!existingTrade.openPrice && trade.openPrice) {
+          entryUpdates.openPrice = trade.openPrice;
+        }
+        if (!existingTrade.quantity && trade.volume) {
+          entryUpdates.quantity = trade.volume;
+        }
+        if (!existingTrade.side && trade.type) {
+          entryUpdates.side =
+            trade.type === 'BUY' ? TradeDirection.LONG : TradeDirection.SHORT;
+        }
+        if (!existingTrade.stopLoss && trade.stopLoss) {
+          entryUpdates.stopLoss = trade.stopLoss;
+        }
+        if (!existingTrade.takeProfit && trade.takeProfit) {
+          entryUpdates.takeProfit = trade.takeProfit;
+        }
+        if (!existingTrade.contractSize && trade.contractSize) {
+          entryUpdates.contractSize = trade.contractSize;
+        }
+        if (!existingTrade.externalDealId && trade.ticket) {
+          entryUpdates.externalDealId = trade.ticket;
+        }
+        if (!existingTrade.mt5Magic && trade.magic) {
+          entryUpdates.mt5Magic = trade.magic;
+        }
+
+        if (Object.keys(entryUpdates).length > 0) {
+          await this.tradesService.updateFromSync(
+            existingTrade.id,
+            entryUpdates,
+          );
+        }
         return;
       }
 
@@ -237,7 +305,7 @@ export class TerminalFailedTradesQueue implements OnModuleInit, OnModuleDestroy 
               ? TradeDirection.LONG
               : TradeDirection.SHORT,
           status: TradeStatus.OPEN,
-          openTime: trade.openTime || new Date().toISOString(),
+          openTime: normalizedOpenTime || new Date().toISOString(),
           openPrice: trade.openPrice || 0,
           quantity: trade.volume || 0,
           commission: trade.commission,
@@ -262,7 +330,7 @@ export class TerminalFailedTradesQueue implements OnModuleInit, OnModuleDestroy 
           existingTrade.id,
           {
             status: TradeStatus.CLOSED,
-            closeTime: trade.openTime,
+            closeTime: normalizedOpenTime,
             closePrice: trade.openPrice,
             profitOrLoss: trade.profit,
             commission:
@@ -274,24 +342,27 @@ export class TerminalFailedTradesQueue implements OnModuleInit, OnModuleDestroy 
             contractSize: trade.contractSize,
           },
           { id: terminal.account.userId } as any,
+          { changeSource: 'mt5' },
         );
 
         if (terminal.status === 'RUNNING') {
           const entryTime = existingTrade.openTime
             ? new Date(existingTrade.openTime)
             : new Date();
-          const exitTime = trade.openTime ? new Date(trade.openTime) : new Date();
+          const exitTime = normalizedOpenTime
+            ? new Date(normalizedOpenTime)
+            : new Date();
           const bufferMs = 2 * 60 * 60 * 1000;
           const startTime = new Date(entryTime.getTime() - bufferMs);
           const endTime = new Date(exitTime.getTime() + bufferMs);
-          const startStr = startTime
-            .toISOString()
-            .replace('T', ' ')
-            .substring(0, 19);
-          const endStr = endTime
-            .toISOString()
-            .replace('T', ' ')
-            .substring(0, 19);
+          const formatMt5Time = (value: Date) =>
+            value
+              .toISOString()
+              .replace('T', ' ')
+              .substring(0, 19)
+              .replace(/-/g, '.');
+          const startStr = formatMt5Time(startTime);
+          const endStr = formatMt5Time(endTime);
           const payload = `${trade.symbol},1m,${startStr},${endStr},${existingTrade.id}`;
           await this.terminalCommandsQueue.queueCommand(
             terminal.id,
@@ -311,8 +382,8 @@ export class TerminalFailedTradesQueue implements OnModuleInit, OnModuleDestroy 
               ? TradeDirection.LONG
               : TradeDirection.SHORT,
           status: TradeStatus.CLOSED,
-          openTime: trade.openTime || new Date().toISOString(),
-          closeTime: trade.openTime,
+          openTime: normalizedOpenTime || new Date().toISOString(),
+          closeTime: normalizedOpenTime,
           openPrice: 0,
           closePrice: trade.openPrice,
           quantity: trade.volume || 0,

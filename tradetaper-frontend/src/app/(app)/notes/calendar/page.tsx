@@ -241,7 +241,7 @@ const NotesCalendarPage: React.FC = () => {
                   : ''
                 }
                 ${day.hasEvents 
-                  ? 'bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20' 
+                  ? 'bg-gradient-to-br from-purple-50 to-blue-50 dark:from-emerald-900/20 dark:to-emerald-900/20' 
                   : ''
                 }
               `}
@@ -261,7 +261,7 @@ const NotesCalendarPage: React.FC = () => {
                         ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300'
                         : day.noteCount <= 3
                           ? 'bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300'
-                          : 'bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-300'
+                          : 'bg-purple-100 text-purple-700 dark:bg-emerald-900/50 dark:text-emerald-300'
                       }
                     `}>
                       <FaStickyNote className="w-2.5 h-2.5" />
@@ -312,8 +312,8 @@ const NotesCalendarPage: React.FC = () => {
 
           <AnimatedCard variant="glass" className="p-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
-                <FaCalendarAlt className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+              <div className="p-2 bg-purple-100 dark:bg-emerald-900/30 rounded-lg">
+                <FaCalendarAlt className="w-5 h-5 text-purple-600 dark:text-emerald-400" />
               </div>
               <div>
                 <div className="text-2xl font-bold text-gray-900 dark:text-white">

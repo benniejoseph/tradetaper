@@ -16,6 +16,7 @@ import {
   FaMoon,
   FaClock,
   FaSave,
+  FaUsers,
 } from 'react-icons/fa';
 
 export default function NotificationSettings() {
@@ -102,6 +103,15 @@ export default function NotificationSettings() {
       types: [
         { type: NotificationType.SYSTEM_UPDATE, label: 'System Updates' },
         { type: NotificationType.SUBSCRIPTION_EXPIRY, label: 'Subscription Expiry' },
+      ],
+    },
+    {
+      title: 'Community',
+      icon: <FaUsers className="text-emerald-500" />,
+      types: [
+        { type: NotificationType.COMMUNITY_POST, label: 'New Community Posts' },
+        { type: NotificationType.COMMUNITY_REPLY, label: 'Replies to Your Posts' },
+        { type: NotificationType.COMMUNITY_MENTION, label: 'Mentions' },
       ],
     },
   ];

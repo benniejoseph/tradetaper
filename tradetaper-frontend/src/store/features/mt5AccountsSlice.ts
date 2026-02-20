@@ -17,8 +17,17 @@ export interface MT5Account {
   currency?: string;
   connectionStatus?: string;
   deploymentState?: string;
+  connectionState?: string;
+  isStreamingActive?: boolean;
   lastSyncAt?: string;
+  lastHeartbeatAt?: string;
+  lastSyncError?: string;
+  syncAttempts?: number;
   totalTradesImported?: number;
+  metaApiAccountId?: string;
+  provisioningProfileId?: string;
+  region?: string;
+  metadata?: Record<string, any>;
   createdAt?: string;
   updatedAt?: string;
   target?: number;
@@ -119,13 +128,13 @@ export const deleteMT5Account = createAsyncThunk(
   }
 );
 
-// Sync MT5 account (placeholder for FTP-based sync)
+// Sync MT5 account (Terminal Farm)
 export const syncMT5Account = createAsyncThunk(
   'mt5Accounts/syncAccount',
   async (id: string, { rejectWithValue, dispatch }) => {
     try {
       await authApiClient.post(`/mt5-accounts/${id}/sync`);
-      toast.success('Sync requested - FTP sync coming soon');
+      toast.success('Sync requested. Trades will update shortly.');
       dispatch(fetchMT5Accounts());
       return id;
     } catch (error: any) {

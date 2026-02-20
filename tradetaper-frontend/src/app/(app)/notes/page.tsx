@@ -24,6 +24,7 @@ import { format, parseISO, startOfMonth, endOfMonth } from 'date-fns';
 import { NotesService } from '@/services/notesService';
 import VoiceRecorder from '@/components/notes/VoiceRecorder';
 import toast from 'react-hot-toast';
+import AlertModal from '@/components/ui/AlertModal';
 
 interface Note {
   id: string;
@@ -73,6 +74,10 @@ const NotesPage: React.FC = () => {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [sortBy, setSortBy] = useState<'updatedAt' | 'createdAt' | 'title' | 'wordCount'>('updatedAt');
   const [sortOrder, setSortOrder] = useState<'ASC' | 'DESC'>('DESC');
+  const [alertState, setAlertState] = useState({ isOpen: false, title: 'Notice', message: '' });
+  const closeAlert = () => setAlertState((prev) => ({ ...prev, isOpen: false }));
+  const showAlert = (message: string, title = 'Notice') =>
+    setAlertState({ isOpen: true, title, message });
   const [showFilters, setShowFilters] = useState(false);
   const [dateFilter, setDateFilter] = useState<{ from?: string; to?: string }>({});
   const [pinnedOnly, setPinnedOnly] = useState(false);
@@ -277,10 +282,10 @@ const NotesPage: React.FC = () => {
               try {
                 const testResult = await NotesService.getNotes({ search: 'test', limit: 5 });
                 console.log('🔍 Direct search test result:', testResult);
-                alert(`Found ${testResult.notes.length} notes with search "test"`);
+                showAlert(`Found ${testResult.notes.length} notes with search "test"`, 'Search Test');
               } catch (error) {
                 console.error('❌ Direct search test failed:', error);
-                alert('Search test failed - check console');
+                showAlert('Search test failed - check console', 'Search Test Failed');
               }
             }}
             className="bg-red-500 text-white px-4 py-2 rounded-lg"
@@ -295,10 +300,13 @@ const NotesPage: React.FC = () => {
               try {
                 const allNotes = await NotesService.getNotes({ limit: 100 });
                 console.log('📝 All notes:', allNotes.notes.map(n => ({ id: n.id, title: n.title })));
-                alert(`Total notes: ${allNotes.total}\nTitles: ${allNotes.notes.map(n => n.title).join(', ')}`);
+                showAlert(
+                  `Total notes: ${allNotes.total}\nTitles: ${allNotes.notes.map(n => n.title).join(', ')}`,
+                  'Notes Summary'
+                );
               } catch (error) {
                 console.error('❌ Failed to get all notes:', error);
-                alert('Failed to get notes - check console');
+                showAlert('Failed to get notes - check console', 'Notes Error');
               }
             }}
             className="bg-emerald-500 text-white px-4 py-2 rounded-lg text-sm"
@@ -519,6 +527,12 @@ const NotesPage: React.FC = () => {
         isOpen={showVoiceRecorder}
         onClose={() => setShowVoiceRecorder(false)}
         onTranscriptionComplete={handleVoiceTranscription}
+      />
+      <AlertModal
+        isOpen={alertState.isOpen}
+        onClose={closeAlert}
+        title={alertState.title}
+        message={alertState.message}
       />
     </div>
   );

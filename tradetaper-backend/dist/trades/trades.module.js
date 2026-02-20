@@ -13,6 +13,7 @@ const trade_entity_1 = require("./entities/trade.entity");
 const trades_service_1 = require("./trades.service");
 const gemini_vision_service_1 = require("../notes/gemini-vision.service");
 const trades_controller_1 = require("./trades.controller");
+const performance_service_1 = require("./performance.service");
 const users_module_1 = require("../users/users.module");
 const tags_module_1 = require("../tags/tags.module");
 const trade_journal_sync_service_1 = require("./services/trade-journal-sync.service");
@@ -34,7 +35,7 @@ exports.TradesModule = TradesModule = __decorate([
             tags_module_1.TagsModule,
             subscriptions_module_1.SubscriptionsModule,
         ],
-        providers: [trades_service_1.TradesService, gemini_vision_service_1.GeminiVisionService, trade_journal_sync_service_1.TradeJournalSyncService],
+        providers: [trades_service_1.TradesService, gemini_vision_service_1.GeminiVisionService, trade_journal_sync_service_1.TradeJournalSyncService, performance_service_1.PerformanceService],
         controllers: [trades_controller_1.TradesController],
         exports: [trades_service_1.TradesService, trade_journal_sync_service_1.TradeJournalSyncService],
     })

@@ -11,6 +11,7 @@ const common_1 = require("@nestjs/common");
 const simple_trades_gateway_1 = require("./simple-trades.gateway");
 const ict_gateway_1 = require("./ict.gateway");
 const notifications_gateway_1 = require("./notifications.gateway");
+const mt5_positions_gateway_1 = require("./mt5-positions.gateway");
 const websocket_service_1 = require("./websocket.service");
 const market_intelligence_module_1 = require("../market-intelligence/market-intelligence.module");
 let SimpleWebSocketModule = class SimpleWebSocketModule {
@@ -24,12 +25,14 @@ exports.SimpleWebSocketModule = SimpleWebSocketModule = __decorate([
             simple_trades_gateway_1.SimpleTradesGateway,
             ict_gateway_1.ICTGateway,
             notifications_gateway_1.NotificationsGateway,
+            mt5_positions_gateway_1.MT5PositionsGateway,
             websocket_service_1.WebSocketService,
         ],
         exports: [
             simple_trades_gateway_1.SimpleTradesGateway,
             ict_gateway_1.ICTGateway,
             notifications_gateway_1.NotificationsGateway,
+            mt5_positions_gateway_1.MT5PositionsGateway,
             websocket_service_1.WebSocketService,
         ],
     })

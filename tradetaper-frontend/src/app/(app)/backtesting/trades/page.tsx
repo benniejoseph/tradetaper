@@ -10,6 +10,7 @@ import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import ExportButton from '@/components/backtesting/ExportButton';
 import { useBacktestTrades, useDeleteBacktestTrade } from '@/hooks/useBacktesting';
 import { FiArrowLeft, FiPlus, FiTrash2, FiFilter, FiTrendingUp, FiTrendingDown } from 'react-icons/fi';
+import AlertModal from '@/components/ui/AlertModal';
 
 function ContentHeader({ title, description }: { title: string; description?: string }) {
   return (
@@ -35,6 +36,10 @@ function BacktestTradesContent() {
   const [sessionFilter, setSessionFilter] = useState<string>('');
   const [timeframeFilter, setTimeframeFilter] = useState<string>('');
   const [outcomeFilter, setOutcomeFilter] = useState<string>('');
+  const [alertState, setAlertState] = useState({ isOpen: false, title: 'Notice', message: '' });
+  const closeAlert = () => setAlertState((prev) => ({ ...prev, isOpen: false }));
+  const showAlert = (message: string, title = 'Notice') =>
+    setAlertState({ isOpen: true, title, message });
 
   // Pagination
   const [page, setPage] = useState<number>(1);
@@ -91,7 +96,7 @@ function BacktestTradesContent() {
     deleteTradeMutation.mutate(id, {
       onError: (err) => {
         console.error('Failed to delete trade:', err);
-        alert('Failed to delete trade. Please try again.');
+        showAlert('Failed to delete trade. Please try again.', 'Delete Failed');
       },
     });
   };
@@ -110,7 +115,8 @@ function BacktestTradesContent() {
   }
 
   return (
-    <div className="space-y-6">
+    <>
+      <div className="space-y-6">
       <div className="flex items-center gap-4">
         <Link
           href="/backtesting"
@@ -388,7 +394,14 @@ function BacktestTradesContent() {
           </div>
         </div>
       )}
-    </div>
+      </div>
+      <AlertModal
+        isOpen={alertState.isOpen}
+        onClose={closeAlert}
+        title={alertState.title}
+        message={alertState.message}
+      />
+    </>
   );
 }
 

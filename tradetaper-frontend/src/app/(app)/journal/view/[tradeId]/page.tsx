@@ -158,7 +158,7 @@ export default function ViewTradePage() {
                  <div>
                     <div className="flex items-center gap-3 mb-1">
                        <h1 className="text-3xl font-black text-zinc-900 dark:text-white tracking-tight">{trade.symbol}</h1>
-                       <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wide border ${trade.status === 'Closed' ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 border-emerald-200 dark:border-emerald-500/20' : 'bg-blue-50 dark:bg-blue-500/10 text-blue-600 border-blue-200 dark:border-blue-500/20'}`}>
+                       <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wide border ${trade.status === 'Closed' ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 border-emerald-200 dark:border-emerald-500/20' : 'bg-blue-50 dark:bg-emerald-500/10 text-blue-600 border-blue-200 dark:border-emerald-500/20'}`}>
                           {trade.status}
                        </span>
                     </div>

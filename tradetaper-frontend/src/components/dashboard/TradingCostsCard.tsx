@@ -41,6 +41,7 @@ export default function TradingCostsCard({
       selectedTimeRange={timeRange} 
       onTimeRangeChange={onTimeRangeChange} 
       showInfoIcon
+      infoContent="Commissions and fees impact profitability. Improve by reducing overtrading, using lower-cost venues, and scaling position sizes."
     >
       <div className="space-y-4">
         {costItems.map((item, index) => (

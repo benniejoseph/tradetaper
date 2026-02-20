@@ -4,6 +4,7 @@ export class UserResponseDto {
   email: string;
   firstName?: string;
   lastName?: string;
+  username?: string;
   createdAt: Date;
   updatedAt: Date;
   subscription?: any; // We'll type this properly if needed, but 'any' is safe for DTO flexibility for now

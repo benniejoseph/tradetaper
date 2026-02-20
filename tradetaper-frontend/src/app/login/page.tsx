@@ -7,9 +7,9 @@ import { AppDispatch, RootState } from '@/store/store';
 import { loginUser, forgotPassword } from '@/services/authService';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import { GoogleAuthService } from '@/services/googleAuthService';
 import { 
-  FaChartLine, 
   FaEye, 
   FaEyeSlash, 
   FaArrowRight, 
@@ -94,7 +94,7 @@ export default function LoginPage() {
   // Forgot Password Modal/View
   if (showForgotPassword) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4 relative overflow-hidden">
+    <div className="min-h-screen bg-black flex items-center justify-center p-4 relative overflow-hidden">
         {/* Animated Background Elements */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
            <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-emerald-500/10 rounded-full blur-[100px] animate-float"></div>
@@ -147,7 +147,7 @@ export default function LoginPage() {
                     onChange={(e) => setForgotEmail(e.target.value)}
                     placeholder="Enter your email address"
                     required
-                    className="w-full pl-12 pr-4 py-4 bg-slate-900/50 border border-white/10 rounded-2xl text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all"
+                    className="w-full pl-12 pr-4 py-4 bg-black/60 border border-white/10 rounded-2xl text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all"
                   />
                 </div>
 
@@ -178,28 +178,25 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 flex relative overflow-hidden font-sans text-white">
+    <div className="min-h-screen bg-black flex relative overflow-hidden font-sans text-white">
       {/* 3D Background Elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
          {/* Grid Floor */}
-         <div className="absolute inset-0 bg-[linear-gradient(rgba(16,185,129,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(16,185,129,0.03)_1px,transparent_1px)] bg-[size:100px_100px] [transform:perspective(1000px)_rotateX(60deg)_translateY(-100px)_scale(3)] origin-top opacity-50"></div>
+         <div className="absolute inset-0 bg-[linear-gradient(rgba(16,185,129,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(16,185,129,0.03)_1px,transparent_1px)] bg-[size:100px_100px] [transform:perspective(1000px)_rotateX(60deg)_translateY(-100px)_scale(3)] origin-top opacity-40"></div>
          
-         <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-emerald-500/10 rounded-full blur-[100px] animate-float"></div>
-         <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-teal-500/10 rounded-full blur-[100px] animate-float delay-1000"></div>
+         <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-emerald-500/8 rounded-full blur-[120px] animate-float"></div>
+         <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-emerald-500/6 rounded-full blur-[140px] animate-float delay-1000"></div>
       </div>
 
       {/* Left Side - 3D Visual & Benefits */}
-      <div className="hidden lg:flex lg:w-1/2 relative z-10 p-12 flex-col justify-center border-r border-white/5 bg-slate-900/40 backdrop-blur-sm">
+      <div className="hidden lg:flex lg:w-1/2 relative z-10 p-12 flex-col justify-center border-r border-white/5 bg-black/60 backdrop-blur-sm">
         <div className="max-w-lg mx-auto">
           <div className="mb-12">
-            <Link href="/" className="flex items-center mb-8 group">
-              <div className="p-3 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl shadow-lg shadow-emerald-500/20 mr-4 group-hover:scale-110 transition-transform">
-                <FaChartLine className="h-8 w-8 text-white" />
-              </div>
-              <h1 className="text-3xl font-bold text-white">
+            <div className="mb-8">
+              <h1 className="text-5xl font-semibold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-emerald-300 via-teal-200 to-white">
                 TradeTaper
               </h1>
-            </Link>
+            </div>
             <h2 className="text-4xl font-bold text-white mb-6 leading-tight">
               Master the Markets with <span className="text-gradient-emerald">Precision</span>
             </h2>
@@ -253,23 +250,20 @@ export default function LoginPage() {
       {/* Right Side - Login Form */}
       <div className="w-full lg:w-1/2 flex items-center justify-center p-8 relative z-10">
         <div className="w-full max-w-md">
-          {/* Mobile Logo */}
-          <div className="lg:hidden text-center mb-10">
-            <Link href="/" className="inline-flex items-center justify-center mb-6">
-              <div className="p-3 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl shadow-lg shadow-emerald-500/20 mr-3">
-                <FaChartLine className="h-6 w-6 text-white" />
-              </div>
-              <h1 className="text-2xl font-bold text-white">
-                TradeTaper
-              </h1>
-            </Link>
-          </div>
-
-          <div className="glass-card p-8 rounded-3xl border border-white/10 relative">
+          <div className="glass-card p-8 rounded-3xl border border-white/10 bg-black/70 relative">
             {/* Top Glow */}
              <div className="absolute -top-10 left-1/2 -translate-x-1/2 w-20 h-20 bg-emerald-500/20 rounded-full blur-xl pointer-events-none"></div>
 
             <div className="text-center mb-8">
+              <Link href="/" className="inline-flex flex-col items-center justify-center mb-6">
+                <Image
+                  src="/tradetaperLogo.png"
+                  alt="TradeTaper"
+                  width={140}
+                  height={140}
+                  className="h-24 w-24 md:h-32 md:w-32 object-contain"
+                />
+              </Link>
               <h2 className="text-2xl font-bold text-white mb-2">Welcome Back</h2>
               <p className="text-slate-400 text-sm">Sign in to your dashboard</p>
             </div>
@@ -303,7 +297,7 @@ export default function LoginPage() {
                   <div className="w-full border-t border-white/10"></div>
                 </div>
                 <div className="relative flex justify-center text-xs uppercase">
-                  <span className="px-4 bg-slate-900/50 backdrop-blur-xl text-slate-500">Or continue with email</span>
+                  <span className="px-4 bg-black/60 backdrop-blur-xl text-slate-500">Or continue with email</span>
                 </div>
               </div>
 
@@ -319,7 +313,7 @@ export default function LoginPage() {
                     placeholder="Email address"
                     autoComplete="email"
                     required
-                    className="w-full pl-12 pr-4 py-3.5 bg-slate-900/50 border border-white/10 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all text-sm"
+                    className="w-full pl-12 pr-4 py-3.5 bg-black/60 border border-white/10 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all text-sm"
                   />
                 </div>
 
@@ -334,7 +328,7 @@ export default function LoginPage() {
                     placeholder="Password"
                     autoComplete="current-password"
                     required
-                    className="w-full pl-12 pr-12 py-3.5 bg-slate-900/50 border border-white/10 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all text-sm"
+                    className="w-full pl-12 pr-12 py-3.5 bg-black/60 border border-white/10 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all text-sm"
                   />
                   <button
                     type="button"

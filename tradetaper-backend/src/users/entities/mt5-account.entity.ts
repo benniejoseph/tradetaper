@@ -86,16 +86,16 @@ export class MT5Account {
   connectionStatus: string;
 
   @Column({ type: 'timestamp', nullable: true })
-  lastSyncAt: Date;
+  lastSyncAt?: Date | null;
 
   @Column({ type: 'int', default: 0 })
   syncAttempts: number;
 
   @Column({ type: 'timestamp', nullable: true })
-  lastSyncErrorAt: Date;
+  lastSyncErrorAt?: Date | null;
 
   @Column({ type: 'text', nullable: true })
-  lastSyncError: string;
+  lastSyncError?: string | null;
 
   @Column({ type: 'jsonb', nullable: true, default: () => "'{}'" })
   metadata: Record<string, any>;
@@ -111,7 +111,7 @@ export class MT5Account {
 
   // MetaApi connection and sync status
   @Column({ type: 'timestamp', nullable: true })
-  lastHeartbeatAt: Date;
+  lastHeartbeatAt?: Date | null;
 
   @Column({ type: 'boolean', default: false })
   isStreamingActive: boolean;

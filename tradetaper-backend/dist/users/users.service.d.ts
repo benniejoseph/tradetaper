@@ -14,6 +14,10 @@ export declare class UsersService {
     createGoogleUser(googleUserDto: CreateGoogleUserDto): Promise<User>;
     findOneByEmail(email: string): Promise<User | undefined>;
     findOneById(id: string): Promise<UserResponseDto | undefined>;
+    updateUsername(userId: string, username: string): Promise<UserResponseDto>;
+    isUsernameAvailable(username: string, excludeUserId?: string): Promise<boolean>;
     updateLastLogin(userId: string): Promise<void>;
+    private normalizeUsername;
+    private generateUniqueUsername;
 }
 export {};

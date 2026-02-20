@@ -8,9 +8,9 @@ import { AppDispatch, RootState } from '@/store/store';
 import { registerUser } from '@/services/authService';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import { GoogleAuthService } from '@/services/googleAuthService';
 import { 
-  FaChartLine, 
   FaEye, 
   FaEyeSlash, 
   FaArrowRight, 
@@ -173,8 +173,14 @@ export default function RegisterPage() {
         <div className="max-w-lg mx-auto">
           <div className="mb-12">
             <Link href="/" className="flex items-center mb-8 group">
-              <div className="p-3 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl shadow-lg shadow-emerald-500/20 mr-4 group-hover:scale-110 transition-transform">
-                <FaChartLine className="h-8 w-8 text-white" />
+              <div className="p-3 rounded-xl mr-4 group-hover:scale-110 transition-transform">
+                <Image
+                  src="/tradetaperLogo.png"
+                  alt="TradeTaper"
+                  width={32}
+                  height={32}
+                  className="h-8 w-8 object-contain"
+                />
               </div>
               <h1 className="text-3xl font-bold text-white">
                 TradeTaper
@@ -239,7 +245,13 @@ export default function RegisterPage() {
            {/* Mobile Header */}
            <div className="lg:hidden text-center mb-8">
                <Link href="/" className="inline-flex items-center gap-2 mb-4">
-                  <FaChartLine className="text-emerald-500 text-2xl" />
+                  <Image
+                    src="/tradetaperLogo.png"
+                    alt="TradeTaper"
+                    width={24}
+                    height={24}
+                    className="h-6 w-6 object-contain"
+                  />
                   <span className="text-xl font-bold text-white">TradeTaper</span>
                </Link>
                <h2 className="text-2xl font-bold text-white">Create Account</h2>

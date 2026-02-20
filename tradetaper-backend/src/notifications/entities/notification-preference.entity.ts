@@ -81,6 +81,11 @@ export class NotificationPreference {
         // Account
         [NotificationType.ACCOUNT_LINKED]: DEFAULT_CHANNEL_PREFERENCE,
         [NotificationType.ACCOUNT_UNLINKED]: DEFAULT_CHANNEL_PREFERENCE,
+
+        // Community
+        [NotificationType.COMMUNITY_POST]: DEFAULT_CHANNEL_PREFERENCE,
+        [NotificationType.COMMUNITY_MENTION]: DEFAULT_CHANNEL_PREFERENCE,
+        [NotificationType.COMMUNITY_REPLY]: DEFAULT_CHANNEL_PREFERENCE,
       })}'`,
   })
   channelPreferences: Record<NotificationType, ChannelPreference>;

@@ -4,10 +4,11 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { mainNavItems, userNavItems, settingsNavItems } from '@/config/navigation';
 import { 
-  FaSignOutAlt, FaUserCircle, FaTimes, FaChartLine, FaChevronLeft, 
+  FaSignOutAlt, FaUserCircle, FaTimes, FaChevronLeft, 
   FaChevronRight, FaBars, FaCog, FaExpand, FaCompress, FaCrown
 } from 'react-icons/fa';
 import { useDispatch, useSelector } from 'react-redux';
@@ -28,7 +29,10 @@ export default function Sidebar({ isOpen, toggleSidebar, isMobile, onExpandChang
   const pathname = usePathname();
   const dispatch = useDispatch<AppDispatch>();
   const router = useRouter();
-  const { user } = useSelector((state: RootState) => state.auth);
+  const { user, isAuthenticated } = useSelector((state: RootState) => state.auth);
+  const visibleMainNavItems = isAuthenticated
+    ? mainNavItems
+    : mainNavItems.filter((item) => item.href === '/community');
   
   // Expandable sidebar state - collapsed by default
   const [isExpanded, setIsExpanded] = useState(false);
@@ -95,10 +99,15 @@ export default function Sidebar({ isOpen, toggleSidebar, isMobile, onExpandChang
                   className="flex items-center space-x-3 group focus:outline-none"
                   onClick={handleLinkClick}>
               <div className="relative -ml-2">
-                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-xl flex items-center justify-center text-white font-bold text-xl shadow-lg dark:shadow-emerald-md group-hover:shadow-xl group-hover:scale-105 transition-all duration-300">
-                  <FaChartLine className="w-5 h-5 sm:w-6 sm:h-6" />
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center group-hover:scale-105 transition-all duration-300">
+                  <Image
+                    src="/tradetaperLogo.png"
+                    alt="TradeTaper"
+                    width={24}
+                    height={24}
+                    className="h-5 w-5 sm:h-6 sm:w-6 object-contain"
+                  />
                 </div>
-                <div className="absolute -inset-1 bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-xl opacity-20 group-hover:opacity-40 transition-opacity duration-300 -z-10"></div>
               </div>
               <div className={`transition-all duration-500 overflow-hidden ${isExpanded ? 'opacity-100 w-auto' : 'opacity-0 w-0'}`}>
                 <h1 className="text-lg sm:text-xl font-bold bg-gradient-to-r from-emerald-600 to-emerald-500 bg-clip-text text-transparent whitespace-nowrap">
@@ -137,7 +146,7 @@ export default function Sidebar({ isOpen, toggleSidebar, isMobile, onExpandChang
               Main Menu
             </h2>
             <div className="space-y-1">
-              {mainNavItems.map((item) => {
+              {visibleMainNavItems.map((item) => {
                 const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href));
                 return (
                   <div key={item.label} className="relative group/tooltip">
@@ -191,6 +200,7 @@ export default function Sidebar({ isOpen, toggleSidebar, isMobile, onExpandChang
         </nav>
 
         {/* User Navigation - Moved outside scrolling nav to allow tooltips to overflow */}
+        {isAuthenticated && (
         <div className="p-3 sm:p-4 space-y-2 flex-shrink-0">
           <div className="mb-2">
             <h2 className={`text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-3 px-3 transition-all duration-500 overflow-hidden ${isExpanded ? 'opacity-100 h-auto' : 'opacity-0 h-0'}`}>
@@ -274,6 +284,7 @@ export default function Sidebar({ isOpen, toggleSidebar, isMobile, onExpandChang
             </div>
           </div>
         </div>
+        )}
 
         {/* Footer Section */}
         <div className="p-4 border-t border-gray-200/50 dark:border-gray-700/50">
@@ -286,29 +297,32 @@ export default function Sidebar({ isOpen, toggleSidebar, isMobile, onExpandChang
                   <FaUserCircle className="w-5 h-5" />
                 </div>
               )}
-              <div className={`transition-all duration-500 overflow-hidden ${isExpanded ? 'opacity-100 w-auto' : 'opacity-0 w-0'}`}>
-                <div className="flex items-center gap-2">
-                  <p className="text-sm font-medium text-gray-900 dark:text-white whitespace-nowrap">
-                    {user?.firstName || user?.email?.split('@')[0] || 'User'}
+              {isAuthenticated && (
+                <div className={`transition-all duration-500 overflow-hidden ${isExpanded ? 'opacity-100 w-auto' : 'opacity-0 w-0'}`}>
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-medium text-gray-900 dark:text-white whitespace-nowrap">
+                      {user?.firstName || user?.email?.split('@')[0] || 'User'}
+                    </p>
+                    {user?.subscription?.plan === 'premium' && (
+                      <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-gradient-to-r from-amber-400 to-amber-600 text-white shadow-sm flex items-center gap-1">
+                        <FaCrown className="w-2.5 h-2.5" /> PRO
+                      </span>
+                    )}
+                     {user?.subscription?.plan === 'essential' && (
+                      <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-gradient-to-r from-blue-400 to-blue-600 text-white shadow-sm">
+                        PLUS
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                    {user?.email || 'user@example.com'}
                   </p>
-                  {user?.subscription?.plan === 'premium' && (
-                    <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-gradient-to-r from-amber-400 to-amber-600 text-white shadow-sm flex items-center gap-1">
-                      <FaCrown className="w-2.5 h-2.5" /> PRO
-                    </span>
-                  )}
-                   {user?.subscription?.plan === 'essential' && (
-                    <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-gradient-to-r from-blue-400 to-blue-600 text-white shadow-sm">
-                      PLUS
-                    </span>
-                  )}
                 </div>
-                <p className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
-                  {user?.email || 'user@example.com'}
-                </p>
-              </div>
+              )}
             </div>
             
             {/* Logout button - position based on expanded state */}
+            {isAuthenticated ? (
             <div className={`${isExpanded ? '' : 'absolute bottom-6 left-1/2 transform -translate-x-1/2'}`}>
               <div className="relative group/tooltip">
                 <button
@@ -327,6 +341,14 @@ export default function Sidebar({ isOpen, toggleSidebar, isMobile, onExpandChang
                 )}
               </div>
             </div>
+            ) : (
+              <Link
+                href="/login"
+                className={`text-xs font-semibold text-emerald-500 ${isExpanded ? '' : 'absolute bottom-6 left-1/2 transform -translate-x-1/2'}`}
+              >
+                Sign In
+              </Link>
+            )}
           </div>
           
 

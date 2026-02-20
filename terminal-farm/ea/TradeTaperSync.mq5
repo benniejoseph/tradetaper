@@ -9,9 +9,9 @@
 #property strict
 
 //--- Input parameters
-input string   APIEndpoint = "https://api.tradetaper.io";  // TradeTaper API URL
+input string   APIEndpoint = "https://api.tradetaper.com";  // TradeTaper API URL
 input string   APIKey = "";                                 // API Key (provided by TradeTaper)
-input string   TerminalId = "";                             // Terminal ID (auto-generated)
+input string   TerminalId = "232ed79f-8990-4bf8-bb98-81a21b9c6c0b";                             // Terminal ID (auto-generated)
 input string   AuthToken = "";                              // Per-terminal JWT (preferred)
 input int      HeartbeatInterval = 30;                      // Heartbeat interval (seconds)
 input int      SyncInterval = 60;                           // Trade sync interval (seconds)
@@ -22,16 +22,7 @@ datetime lastSync = 0;
 int lastDealCount = 0;
 bool isInitialized = false;
 
-//--- Trade Discipline / Gating variables
-bool g_tradingUnlocked = false;        // Is trading currently allowed?
-datetime g_unlockExpiry = 0;           // When does the unlock expire?
-string g_approvedSymbol = "";          // Symbol allowed to trade
-int g_approvedDirection = 0;           // 0=none, 1=BUY, 2=SELL
-double g_maxLotSize = 0.01;            // Maximum lot size allowed
-double g_requiredSL = 0;               // Required stop loss price
-double g_requiredTP = 0;               // Required take profit price
-string g_approvalId = "";              // Approval UUID from backend
-double g_maxRiskPercent = 1.0;         // Maximum risk per trade (1%)
+//--- Trade Discipline / Gating variables removed (no approval flow)
 
 //+------------------------------------------------------------------+
 //| Expert initialization function                                     |
@@ -75,18 +66,6 @@ void OnDeinit(const int reason)
 void OnTimer()
 {
     datetime now = TimeCurrent();
-    
-    // Check unlock expiry
-    if(g_tradingUnlocked && now >= g_unlockExpiry)
-    {
-        g_tradingUnlocked = false;
-        g_approvedSymbol = "";
-        g_approvedDirection = 0;
-        g_approvalId = "";
-        Print("🔒 Trading lock EXPIRED. Complete checklist for next trade.");
-        WriteLog("Trading lock expired at " + TimeToString(now));
-        Comment("🔒 TRADING LOCKED\nComplete checklist in TradeTaper app to unlock");
-    }
     
     // Heartbeat
     if(now - lastHeartbeat >= HeartbeatInterval)
@@ -149,15 +128,67 @@ void FetchCandles(string symbol, string timeframeStr, string startStr, string en
     else if(timeframeStr == "1h") period = PERIOD_H1;
     else if(timeframeStr == "4h") period = PERIOD_H4;
     else if(timeframeStr == "1d") period = PERIOD_D1;
+
+    if(!SymbolSelect(symbol, true))
+    {
+        WriteLog("SymbolSelect failed for " + symbol + ". Error=" + IntegerToString(GetLastError()));
+        return;
+    }
     
-    datetime start = StringToTime(startStr);
-    datetime end = StringToTime(endStr);
+    datetime start = 0;
+    datetime end = 0;
+    bool startIsNumeric = (StringLen(startStr) >= 8 && StringFind(startStr, ".") == -1 && StringFind(startStr, "-") == -1 && StringFind(startStr, ":") == -1);
+    bool endIsNumeric = (StringLen(endStr) >= 8 && StringFind(endStr, ".") == -1 && StringFind(endStr, "-") == -1 && StringFind(endStr, ":") == -1);
+    if(startIsNumeric && endIsNumeric)
+    {
+        start = (datetime)StringToInteger(startStr);
+        end = (datetime)StringToInteger(endStr);
+    }
+    else
+    {
+        string normalizedStart = startStr;
+        string normalizedEnd = endStr;
+        StringReplace(normalizedStart, "T", " ");
+        StringReplace(normalizedEnd, "T", " ");
+        StringReplace(normalizedStart, "-", ".");
+        StringReplace(normalizedEnd, "-", ".");
+
+        start = StringToTime(normalizedStart);
+        end = StringToTime(normalizedEnd);
+    }
+    if(start == 0 || end == 0)
+    {
+        WriteLog("Invalid candle time range. start=" + startStr + " end=" + endStr);
+        return;
+    }
+    if(end < start)
+    {
+        datetime tmp = start;
+        start = end;
+        end = tmp;
+    }
     
     // Ensure we get data including the range (+ buffer if needed, but start/end should cover it)
     MqlRates rates[];
     ArraySetAsSeries(rates, true);
     
+    ResetLastError();
+    MqlTick tick;
     int copied = CopyRates(symbol, period, start, end, rates);
+    if(copied <= 0)
+    {
+        int err = GetLastError();
+        WriteLog("CopyRates initial failed for " + symbol + " (" + IntegerToString(err) + "). Retrying history sync...");
+        for(int attempt = 0; attempt < 10; attempt++)
+        {
+            if(SeriesInfoInteger(symbol, period, SERIES_SYNCHRONIZED))
+                break;
+            SymbolInfoTick(symbol, tick);
+            Sleep(500);
+        }
+        ResetLastError();
+        copied = CopyRates(symbol, period, start, end, rates);
+    }
     if(copied > 0)
     {
         string json = "{";
@@ -251,6 +282,7 @@ void SendHeartbeat()
     
     // Send request
     string result = SendRequest(url, json);
+    WriteLog("Heartbeat response: " + result);
     
     if(StringFind(result, "success") >= 0)
     {
@@ -258,6 +290,10 @@ void SendHeartbeat()
         
         // Check for commands
         string command = GetJsonValue(result, "command");
+        if(command == "")
+        {
+            WriteLog("No command in heartbeat response");
+        }
         if(command == "FETCH_CANDLES")
         {
             string payload = GetJsonValue(result, "payload");
@@ -274,41 +310,6 @@ void SendHeartbeat()
             else
             {
                 WriteLog("Error: Invalid FETCH_CANDLES args count: " + IntegerToString(count));
-            }
-        }
-        else if(command == "UNLOCK_TRADING")
-        {
-            // Payload format: SYMBOL,DIRECTION,LOT_SIZE,SL,TP,APPROVAL_ID
-            string payload = GetJsonValue(result, "payload");
-            WriteLog("Received Command: UNLOCK_TRADING. Args: " + payload);
-            
-            string args[];
-            int count = StringSplit(payload, ',', args);
-            
-            if(count >= 6)
-            {
-                g_approvedSymbol = args[0];
-                g_approvedDirection = (args[1] == "BUY") ? 1 : 2;
-                g_maxLotSize = StringToDouble(args[2]);
-                g_requiredSL = StringToDouble(args[3]);
-                g_requiredTP = StringToDouble(args[4]);
-                g_approvalId = args[5];
-                g_unlockExpiry = TimeCurrent() + 60; // 60 second unlock window
-                g_tradingUnlocked = true;
-                
-                Print("🔓 Trading UNLOCKED for ", g_approvedSymbol, " ", args[1], " Max Lot: ", g_maxLotSize);
-                WriteLog("Trading UNLOCKED: " + g_approvedSymbol + " " + args[1] + " ExpireAt: " + TimeToString(g_unlockExpiry));
-                
-                // Show alert on chart
-                Comment("✅ TRADING UNLOCKED\n",
-                        "Symbol: ", g_approvedSymbol, "\n",
-                        "Direction: ", args[1], "\n",
-                        "Max Lot: ", DoubleToString(g_maxLotSize, 2), "\n",
-                        "Expires: ", TimeToString(g_unlockExpiry, TIME_MINUTES));
-            }
-            else
-            {
-                WriteLog("Error: Invalid UNLOCK_TRADING args count: " + IntegerToString(count));
             }
         }
     }
@@ -391,7 +392,7 @@ void SyncDealHistory()
         tradesJson += "\"commission\":" + DoubleToString(commission, 2) + ",";
         tradesJson += "\"swap\":" + DoubleToString(swap, 2) + ",";
         tradesJson += "\"profit\":" + DoubleToString(profit, 2) + ",";
-        tradesJson += "\"openTime\":\"" + TimeToString(time, TIME_DATE|TIME_SECONDS) + "\",";
+        tradesJson += "\"openTime\":\"" + IntegerToString((long)time) + "\",";
         tradesJson += "\"comment\":\"" + EscapeJSON(comment) + "\",";
         tradesJson += "\"positionId\":" + IntegerToString(positionId) + ",";
         tradesJson += "\"magic\":" + IntegerToString(magic) + ",";
@@ -454,6 +455,8 @@ void SyncPositions()
         double openPrice = PositionGetDouble(POSITION_PRICE_OPEN);
         double currentPrice = PositionGetDouble(POSITION_PRICE_CURRENT);
         double profit = PositionGetDouble(POSITION_PROFIT);
+        double sl = PositionGetDouble(POSITION_SL);
+        double tp = PositionGetDouble(POSITION_TP);
         datetime openTime = (datetime)PositionGetInteger(POSITION_TIME);
         
         if(!firstPosition) positionsJson += ",";
@@ -467,7 +470,9 @@ void SyncPositions()
         positionsJson += "\"openPrice\":" + DoubleToString(openPrice, 5) + ",";
         positionsJson += "\"currentPrice\":" + DoubleToString(currentPrice, 5) + ",";
         positionsJson += "\"profit\":" + DoubleToString(profit, 2) + ",";
-        positionsJson += "\"openTime\":\"" + TimeToString(openTime, TIME_DATE|TIME_SECONDS) + "\"";
+        positionsJson += "\"openTime\":\"" + IntegerToString((long)openTime) + "\",";
+        positionsJson += "\"stopLoss\":" + DoubleToString(sl, 5) + ",";
+        positionsJson += "\"takeProfit\":" + DoubleToString(tp, 5);
         positionsJson += "}";
     }
     
@@ -581,69 +586,6 @@ double CalculateMaxLotForRisk(string symbol, double riskPercent, double entryPri
     maxLot = MathMax(minLot, MathMin(maxLot, maxLotSymbol));
     
     return maxLot;
-}
-
-//+------------------------------------------------------------------+
-//| Report trade execution to backend (for approval tracking)         |
-//+------------------------------------------------------------------+
-void ReportTradeExecuted(ulong ticket, string approvalId)
-{
-    if(StringLen(approvalId) == 0) return;
-    
-    string url = APIEndpoint + "/webhook/terminal/trade-executed";
-    
-    string json = "{";
-    json += "\"terminalId\":\"" + TerminalId + "\",";
-    if(StringLen(AuthToken) > 0)
-    {
-        json += "\"authToken\":\"" + AuthToken + "\",";
-    }
-    json += "\"approvalId\":\"" + approvalId + "\",";
-    json += "\"ticket\":" + IntegerToString(ticket);
-    json += "}";
-    
-    SendRequest(url, json);
-    WriteLog("Reported trade execution: Ticket=" + IntegerToString(ticket) + " ApprovalId=" + approvalId);
-}
-
-//+------------------------------------------------------------------+
-//| Check if current trade attempt is authorized                      |
-//+------------------------------------------------------------------+
-bool IsTradeAuthorized(string symbol, int direction, double lotSize)
-{
-    if(!g_tradingUnlocked)
-    {
-        Alert("⛔ Trading is LOCKED. Complete checklist in TradeTaper app first!");
-        return false;
-    }
-    
-    if(TimeCurrent() >= g_unlockExpiry)
-    {
-        Alert("⏰ Unlock window EXPIRED. Request new approval.");
-        g_tradingUnlocked = false;
-        return false;
-    }
-    
-    if(symbol != g_approvedSymbol)
-    {
-        Alert("❌ Wrong symbol! Approved: " + g_approvedSymbol + ", Attempted: " + symbol);
-        return false;
-    }
-    
-    if(direction != g_approvedDirection)
-    {
-        string dirStr = (g_approvedDirection == 1) ? "BUY" : "SELL";
-        Alert("❌ Wrong direction! Approved: " + dirStr);
-        return false;
-    }
-    
-    if(lotSize > g_maxLotSize)
-    {
-        Alert("⚠️ Lot size " + DoubleToString(lotSize, 2) + " exceeds max allowed " + DoubleToString(g_maxLotSize, 2));
-        return false;
-    }
-    
-    return true;
 }
 
 //+------------------------------------------------------------------+

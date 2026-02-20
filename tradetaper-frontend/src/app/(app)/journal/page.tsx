@@ -4,7 +4,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '@/store/store';
-import { fetchTrades, deleteTrade, setCurrentTrade } from '@/store/features/tradesSlice';
+import { fetchTrades, fetchTradesSummary, deleteTrade, setCurrentTrade } from '@/store/features/tradesSlice';
 import { selectSelectedAccountId, selectAvailableAccounts, selectSelectedAccount, fetchAccounts } from '@/store/features/accountSlice';
 import { selectSelectedMT5AccountId, fetchMT5Accounts, selectMT5Accounts } from '@/store/features/mt5AccountsSlice';
 import Link from 'next/link';
@@ -22,20 +22,27 @@ import { useRouter } from 'next/navigation';
 import { parseISO, isAfter, isBefore, subMonths, subWeeks, subDays, endOfDay, isValid, format, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-import { applyAllFilters } from '@/utils/tradeFilters';
 import { useDebounce } from '@/hooks/useDebounce';
 import { CurrencyAmount } from '@/components/common/CurrencyAmount';
+import TradeActionModal from '@/components/trades/TradeActionModal';
+import LivePositionsPanel from '@/components/trades/LivePositionsPanel';
 
 export default function JournalPage() {
   const dispatch = useDispatch<AppDispatch>();
   const router = useRouter();
-  const { trades: allTrades, isLoading, error } = useSelector((state: RootState) => state.trades);
+  const { trades: allTrades, isLoading, error, lastFetchKey, lastFetchAt, lastFetchIncludeTags, total, summary } = useSelector((state: RootState) => state.trades);
   const { isAuthenticated } = useSelector((state: RootState) => state.auth);
   const selectedAccountId = useSelector(selectSelectedAccountId);
   const selectedMT5AccountId = useSelector(selectSelectedMT5AccountId);
   const selectedAccount = useSelector(selectSelectedAccount);
   const manualAccounts = useSelector(selectAvailableAccounts);
   const mt5Accounts = useSelector(selectMT5Accounts);
+  const [isTradeActionOpen, setIsTradeActionOpen] = useState(false);
+  const selectedMT5Account = useMemo(
+    () => mt5Accounts.find(acc => acc.id === selectedMT5AccountId),
+    [mt5Accounts, selectedMT5AccountId]
+  );
+  const hasMT5Accounts = mt5Accounts.length > 0;
 
   // State for filters and UI
   const [activePositionFilter, setActivePositionFilter] = useState<'all' | 'open' | 'closed'>('all');
@@ -49,20 +56,118 @@ export default function JournalPage() {
   const [pickerEndDate, setPickerEndDate] = useState<Date | null>(null);
   const [showOnlyStarred, setShowOnlyStarred] = useState(false);
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(25);
 
   const debouncedSearchQuery = useDebounce(searchQuery, 300);
 
   useEffect(() => {
     if (isAuthenticated) {
-      // Fetch accounts first
       dispatch(fetchAccounts());
       dispatch(fetchMT5Accounts());
-      
-      // Get the actual selected account ID (could be MT5 or regular account)
-      const currentAccountId = selectedAccountId || selectedMT5AccountId;
-      dispatch(fetchTrades({ accountId: currentAccountId || undefined, limit: 1000 })); 
     }
-  }, [dispatch, isAuthenticated, selectedAccountId, selectedMT5AccountId]);
+  }, [dispatch, isAuthenticated]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [
+    selectedAccountId,
+    selectedMT5AccountId,
+    activePositionFilter,
+    activeTimeFilter,
+    customDateRange,
+    debouncedSearchQuery,
+    showOnlyStarred,
+  ]);
+
+  const dateRange = useMemo(() => {
+    if (customDateRange.from || customDateRange.to) {
+      return {
+        from: customDateRange.from ? customDateRange.from.toISOString() : undefined,
+        to: customDateRange.to ? endOfDay(customDateRange.to).toISOString() : undefined,
+      };
+    }
+    if (activeTimeFilter === 'all') return { from: undefined, to: undefined };
+    const now = new Date();
+    const from =
+      activeTimeFilter === '1m'
+        ? subMonths(now, 1)
+        : activeTimeFilter === '7d'
+          ? subWeeks(now, 1)
+          : activeTimeFilter === '1d'
+            ? subDays(now, 1)
+            : undefined;
+    return {
+      from: from ? from.toISOString() : undefined,
+      to: now.toISOString(),
+    };
+  }, [customDateRange, activeTimeFilter]);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    const currentAccountId = selectedAccountId || selectedMT5AccountId;
+    const status =
+      activePositionFilter === 'all'
+        ? undefined
+        : activePositionFilter === 'open'
+          ? TradeStatus.OPEN
+          : TradeStatus.CLOSED;
+
+    dispatch(
+      fetchTrades({
+        accountId: currentAccountId || undefined,
+        page,
+        limit,
+        includeTags: true,
+        status,
+        search: debouncedSearchQuery || undefined,
+        dateFrom: dateRange.from,
+        dateTo: dateRange.to,
+        isStarred: showOnlyStarred || undefined,
+      }),
+    );
+  }, [
+    dispatch,
+    isAuthenticated,
+    selectedAccountId,
+    selectedMT5AccountId,
+    page,
+    limit,
+    activePositionFilter,
+    debouncedSearchQuery,
+    dateRange,
+    showOnlyStarred,
+  ]);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    const currentAccountId = selectedAccountId || selectedMT5AccountId;
+    const status =
+      activePositionFilter === 'all'
+        ? undefined
+        : activePositionFilter === 'open'
+          ? TradeStatus.OPEN
+          : TradeStatus.CLOSED;
+    dispatch(
+      fetchTradesSummary({
+        accountId: currentAccountId || undefined,
+        status,
+        search: debouncedSearchQuery || undefined,
+        dateFrom: dateRange.from,
+        dateTo: dateRange.to,
+        isStarred: showOnlyStarred || undefined,
+      }),
+    );
+  }, [
+    dispatch,
+    isAuthenticated,
+    selectedAccountId,
+    selectedMT5AccountId,
+    activePositionFilter,
+    debouncedSearchQuery,
+    dateRange,
+    showOnlyStarred,
+  ]);
 
   // Merge and normalize accounts
   const allAccounts = useMemo(() => {
@@ -91,23 +196,20 @@ export default function JournalPage() {
     });
   }, [manualAccounts, mt5Accounts]);
 
-  const filteredTrades = useMemo(() => {
-    // Use the currently selected account (MT5 or regular)
-    const currentAccountId = selectedAccountId || selectedMT5AccountId;
-    
-    // When no account is selected ("All Accounts"), show all trades
-    // When a specific account is selected, only show trades for that account
-    return applyAllFilters(allTrades, {
-      accountId: currentAccountId, // null means show all trades
-      positionFilter: activePositionFilter,
-      timeFilter: activeTimeFilter,
-      customDateRange,
-      searchQuery: debouncedSearchQuery,
-      showOnlyStarred
-    });
-  }, [allTrades, selectedAccountId, selectedMT5AccountId, activePositionFilter, activeTimeFilter, customDateRange, debouncedSearchQuery, showOnlyStarred]);
+  const filteredTrades = allTrades;
 
   const headerStats = useMemo(() => {
+    if (summary) {
+      return {
+        winRate: summary.winRate || 0,
+        longTrades: 0,
+        shortTrades: 0,
+        totalPnl: summary.netPnL || 0,
+        monthlyPnl: 0,
+        winningTradesCount: summary.winningTrades || 0,
+        losingTradesCount: summary.losingTrades || 0,
+      };
+    }
     if (!filteredTrades || filteredTrades.length === 0) {
       return { winRate: 0, longTrades: 0, shortTrades: 0, totalPnl: 0, monthlyPnl: 0, winningTradesCount: 0, losingTradesCount: 0 };
     }
@@ -135,9 +237,20 @@ export default function JournalPage() {
     const monthlyPnl = monthlyClosedTrades.reduce((sum, t) => sum + (t.profitOrLoss || 0), 0);
 
     return { winRate, longTrades, shortTrades, totalPnl, monthlyPnl, winningTradesCount: winningTrades.length, losingTradesCount: losingTrades.length };
-  }, [filteredTrades]);
+  }, [filteredTrades, summary]);
 
   const footerStats = useMemo(() => {
+    if (summary) {
+      return {
+        totalNetPnl: summary.netPnL || 0,
+        totalTrades: summary.totalTrades || 0,
+        totalCommissions: summary.totalCommissions || 0,
+        averageWin: summary.averageWin || 0,
+        averageLoss: summary.averageLoss || 0,
+        averageRR: summary.averageRMultiple || 0,
+        totalTradedValue: summary.totalTradedValue || 0,
+      };
+    }
     if (!filteredTrades || filteredTrades.length === 0) {
       return {
         totalNetPnl: 0,
@@ -167,7 +280,7 @@ export default function JournalPage() {
       averageRR: dashboardCalculatedStats.averageRR,
       totalTradedValue,
     };
-  }, [filteredTrades]);
+  }, [filteredTrades, summary]);
 
   const handleRowClick = (trade: Trade) => {
     setSelectedTradeForPreview(trade);
@@ -214,6 +327,7 @@ export default function JournalPage() {
   }
 
   return (
+    <>
     <div className="space-y-8">
       {/* Compact Header */}
       <div className="flex flex-col lg:flex-row justify-between items-center gap-4 bg-white dark:bg-[#0A0A0A] border border-zinc-200 dark:border-white/5 p-4 rounded-xl shadow-sm">
@@ -238,14 +352,22 @@ export default function JournalPage() {
             {showOnlyStarred ? <FaStarSolid className="w-4 h-4" /> : <FaStarOutline className="w-4 h-4" />}
           </button>
           
-          <Link 
-            href="/journal/new" 
+          <button 
+            onClick={() => setIsTradeActionOpen(true)}
             className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-2 px-4 rounded-lg shadow-lg hover:shadow-emerald-500/20 transition-all hover:scale-105">
             <FaPlus className="w-3 h-3" />
             <span>New Trade</span>
-          </Link>
+          </button>
         </div>
       </div>
+
+      {hasMT5Accounts && (
+        <LivePositionsPanel
+          accountId={selectedMT5Account?.id}
+          accountName={selectedMT5Account?.accountName}
+          isMT5={Boolean(selectedMT5Account)}
+        />
+      )}
 
       {/* Compact Stats Strip */}
       <div className="grid grid-cols-2 lg:grid-cols-6 gap-3">
@@ -382,9 +504,7 @@ export default function JournalPage() {
             </div>
             {/* Only show "Log Your First Trade" if no trades exist for the current context */}
             {(() => {
-              const currentAccountId = selectedAccountId || selectedMT5AccountId;
-              const accountTrades = currentAccountId ? allTrades.filter(t => t.accountId === currentAccountId) : allTrades;
-              return filteredTrades.length === 0 && accountTrades.length === 0 && (
+              return filteredTrades.length === 0 && total === 0 && (
                 <Link 
                   href="/journal/new" 
                   className="inline-flex items-center space-x-2 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl">
@@ -404,7 +524,14 @@ export default function JournalPage() {
             trades={filteredTrades} 
             accounts={allAccounts} 
             onRowClick={handleRowClick} 
-            isLoading={isLoading} 
+            isLoading={isLoading}
+            totalItems={total}
+            currentPage={page}
+            onPageChange={setPage}
+            onPageSizeChange={(size) => {
+              setLimit(size);
+              setPage(1);
+            }}
           />
         </div>
       )}
@@ -512,5 +639,11 @@ export default function JournalPage() {
         </div>
       )}
     </div>
+
+    <TradeActionModal
+      isOpen={isTradeActionOpen}
+      onClose={() => setIsTradeActionOpen(false)}
+    />
+    </>
   );
 }

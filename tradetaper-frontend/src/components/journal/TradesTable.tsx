@@ -10,6 +10,7 @@ import { FaChevronLeft, FaChevronRight, FaEdit, FaCheck, FaTimes, FaTrash, FaPen
 import { CurrencyAmount } from '@/components/common/CurrencyAmount';
 import { AppDispatch } from '@/store/store';
 import { FaSpinner } from 'react-icons/fa';
+import AlertModal from '@/components/ui/AlertModal';
 
 const TableLoader = ({ text }: { text: string }) => (
   <div className="flex flex-col items-center justify-center p-8 text-gray-500 dark:text-gray-400">
@@ -24,13 +25,16 @@ interface TradesTableProps {
   onRowClick: (trade: Trade) => void;
   isLoading?: boolean; // Optional: to show a loading state
   itemsPerPage?: number; // Optional: default pagination size
+  totalItems?: number;
+  currentPage?: number;
+  onPageChange?: (page: number) => void;
+  onPageSizeChange?: (size: number) => void;
 }
 
-const getAccountName = (trade: Trade, accounts: Account[]): string => {
+const getAccountName = (trade: Trade, accountMap: Map<string, string>): string => {
   if (trade.account?.name) return trade.account.name;
   if (!trade.accountId) return 'N/A';
-  const account = accounts.find(acc => acc.id === trade.accountId);
-  return account ? account.name : 'Unknown Account';
+  return accountMap.get(trade.accountId) || 'Unknown Account';
 };
 
 export const formatPrice = (price: number | undefined | null): string => {
@@ -55,7 +59,17 @@ export const formatPnl = (pnl: number | undefined | null): React.ReactNode => {
 
 
 
-export default function TradesTable({ trades, accounts, onRowClick, isLoading, itemsPerPage = 25 }: TradesTableProps) {
+export default function TradesTable({
+  trades,
+  accounts,
+  onRowClick,
+  isLoading,
+  itemsPerPage = 25,
+  totalItems,
+  currentPage,
+  onPageChange,
+  onPageSizeChange,
+}: TradesTableProps) {
   const dispatch = useDispatch<AppDispatch>();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<Partial<Trade>>({});
@@ -64,10 +78,25 @@ export default function TradesTable({ trades, accounts, onRowClick, isLoading, i
   // Bulk Edit State
   const [isBulkEditing, setIsBulkEditing] = useState(false);
   const [bulkUpdates, setBulkUpdates] = useState<Partial<Trade>>({});
+  const [alertState, setAlertState] = useState({ isOpen: false, title: 'Notice', message: '' });
+  const closeAlert = () => setAlertState((prev) => ({ ...prev, isOpen: false }));
+  const showAlert = (message: string, title = 'Notice') =>
+    setAlertState({ isOpen: true, title, message });
+
+  const accountMap = useMemo(() => {
+    const map = new Map<string, string>();
+    accounts.forEach((account) => {
+      map.set(account.id, account.name);
+    });
+    return map;
+  }, [accounts]);
 
   // Simple inline pagination
-  const [currentPage, setCurrentPage] = useState(1);
-  const [rowsPerPage, setRowsPerPage] = useState(itemsPerPage || 25);
+  const [currentPageState, setCurrentPageState] = useState(1);
+  const [rowsPerPageState, setRowsPerPageState] = useState(itemsPerPage || 25);
+  const serverMode = typeof totalItems === 'number' && typeof onPageChange === 'function';
+  const activePage = serverMode ? (currentPage || 1) : currentPageState;
+  const activeRowsPerPage = serverMode ? (itemsPerPage || 25) : rowsPerPageState;
   
   const handleSelectAll = useCallback((e: React.ChangeEvent<HTMLInputElement>, currentData: Trade[]) => {
     if (e.target.checked) {
@@ -100,7 +129,7 @@ export default function TradesTable({ trades, accounts, onRowClick, isLoading, i
         setSelectedIds(new Set());
       } catch (error) {
         console.error('Failed to delete trades:', error);
-        alert('Failed to delete some trades. Please try again.');
+        showAlert('Failed to delete some trades. Please try again.', 'Delete Failed');
       }
     }
   }, [selectedIds, dispatch]);
@@ -121,7 +150,7 @@ export default function TradesTable({ trades, accounts, onRowClick, isLoading, i
         setSelectedIds(new Set());
       } catch (error) {
         console.error('Failed to bulk update trades:', error);
-        alert('Failed to update some trades. Please try again.');
+        showAlert('Failed to update some trades. Please try again.', 'Update Failed');
       }
     }
   }, [selectedIds, bulkUpdates, dispatch]);
@@ -161,28 +190,55 @@ export default function TradesTable({ trades, accounts, onRowClick, isLoading, i
   }, [dispatch, editForm]);
 
   const pagination = useMemo(() => {
-    const totalItems = trades.length;
-    const totalPages = Math.ceil(totalItems / rowsPerPage);
-    const startIndex = (currentPage - 1) * rowsPerPage;
-    const endIndex = Math.min(startIndex + rowsPerPage, totalItems);
-    const currentData = trades.slice(startIndex, endIndex);
+    const totalCount = serverMode ? (totalItems || 0) : trades.length;
+    const totalPages = Math.ceil(totalCount / activeRowsPerPage) || 1;
+    const startIndex = (activePage - 1) * activeRowsPerPage;
+    const endIndex = Math.min(startIndex + activeRowsPerPage, totalCount);
+    const currentData = serverMode ? trades : trades.slice(startIndex, endIndex);
 
     return {
-      currentPage,
+      currentPage: activePage,
       totalPages,
       currentData,
-      goToPage: (page: number) => setCurrentPage(Math.max(1, Math.min(page, totalPages))),
-      nextPage: () => setCurrentPage(prev => Math.min(prev + 1, totalPages)),
-      prevPage: () => setCurrentPage(prev => Math.max(prev - 1, 1)),
-      canGoNext: currentPage < totalPages,
-      canGoPrev: currentPage > 1,
+      goToPage: (page: number) => {
+        const nextPage = Math.max(1, Math.min(page, totalPages));
+        if (serverMode) {
+          onPageChange?.(nextPage);
+        } else {
+          setCurrentPageState(nextPage);
+        }
+      },
+      nextPage: () => {
+        const nextPage = Math.min(activePage + 1, totalPages);
+        if (serverMode) {
+          onPageChange?.(nextPage);
+        } else {
+          setCurrentPageState(nextPage);
+        }
+      },
+      prevPage: () => {
+        const prevPage = Math.max(activePage - 1, 1);
+        if (serverMode) {
+          onPageChange?.(prevPage);
+        } else {
+          setCurrentPageState(prevPage);
+        }
+      },
+      canGoNext: activePage < totalPages,
+      canGoPrev: activePage > 1,
       startIndex: startIndex + 1,
       endIndex,
-      totalItems,
-      itemsPerPage: rowsPerPage,
-      setItemsPerPage: setRowsPerPage,
+      totalItems: totalCount,
+      itemsPerPage: activeRowsPerPage,
+      setItemsPerPage: (size: number) => {
+        if (serverMode) {
+          onPageSizeChange?.(size);
+        } else {
+          setRowsPerPageState(size);
+        }
+      },
     };
-  }, [trades, currentPage, rowsPerPage]);
+  }, [trades, activePage, activeRowsPerPage, serverMode, totalItems, onPageChange, onPageSizeChange]);
 
   const allPageIdsSelected = pagination.currentData.length > 0 && pagination.currentData.every(t => selectedIds.has(t.id));
 
@@ -200,12 +256,13 @@ export default function TradesTable({ trades, accounts, onRowClick, isLoading, i
   const tdClasses = "px-3 py-2 whitespace-nowrap text-xs";
 
   return (
-    <div className="bg-gradient-to-br from-white to-emerald-50 dark:from-black dark:to-emerald-950/20 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 shadow-lg overflow-hidden">
+    <>
+      <div className="bg-gradient-to-br from-white to-emerald-50 dark:from-black dark:to-emerald-950/20 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 shadow-lg overflow-hidden">
       {/* Pagination Controls - Top */}
       {pagination.totalPages > 1 && (
         <div className="px-4 py-2 border-b border-gray-200/30 dark:border-gray-700/30 flex justify-between items-center bg-zinc-50 dark:bg-white/[0.02]">
           <div className="text-xs text-zinc-500 font-medium">
-            Showing <span className="font-bold text-zinc-700 dark:text-zinc-300">{((pagination.currentPage - 1) * pagination.itemsPerPage) + 1}-{Math.min(pagination.currentPage * pagination.itemsPerPage, trades.length)}</span> of {trades.length}
+            Showing <span className="font-bold text-zinc-700 dark:text-zinc-300">{pagination.startIndex}-{pagination.endIndex}</span> of {pagination.totalItems}
           </div>
           <div className="flex items-center space-x-2">
             <button
@@ -406,7 +463,7 @@ export default function TradesTable({ trades, accounts, onRowClick, isLoading, i
                 </td>
                 <td className={`${tdClasses} text-gray-700 dark:text-gray-300`}>
                   <span className="px-2 py-1 bg-gradient-to-r from-emerald-100 to-emerald-200 dark:from-emerald-900/30 dark:to-emerald-800/30 text-emerald-700 dark:text-emerald-300 rounded-lg text-xs font-medium">
-                    {getAccountName(trade, accounts)}
+                    {getAccountName(trade, accountMap)}
                   </span>
                 </td>
 
@@ -584,7 +641,7 @@ export default function TradesTable({ trades, accounts, onRowClick, isLoading, i
                           e.stopPropagation();
                           window.location.href = `/journal/view/${trade.id}`;
                         }}
-                        className="p-1.5 text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-all"
+                        className="p-1.5 text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-emerald-900/20 rounded-lg transition-all"
                         title="View Details"
                       >
                         <FaExternalLinkAlt className="w-3.5 h-3.5" />
@@ -596,7 +653,7 @@ export default function TradesTable({ trades, accounts, onRowClick, isLoading, i
                           e.stopPropagation();
                           onRowClick(trade);
                         }}
-                        className="p-1.5 text-gray-400 hover:text-purple-500 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-lg transition-all"
+                        className="p-1.5 text-gray-400 hover:text-purple-500 hover:bg-purple-50 dark:hover:bg-emerald-900/20 rounded-lg transition-all"
                         title="Quick View"
                       >
                         <FaEye className="w-3.5 h-3.5" />
@@ -660,6 +717,13 @@ export default function TradesTable({ trades, accounts, onRowClick, isLoading, i
           </div>
         </div>
       )}
-    </div>
+      </div>
+      <AlertModal
+        isOpen={alertState.isOpen}
+        onClose={closeAlert}
+        title={alertState.title}
+        message={alertState.message}
+      />
+    </>
   );
 } 

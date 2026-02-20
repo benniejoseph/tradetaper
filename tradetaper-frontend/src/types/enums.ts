@@ -1,9 +1,10 @@
 // Trading session enums
 export enum TradingSession {
-  ASIAN = 'Asian',
+  ASIA = 'Asia',
   LONDON = 'London',
   NEW_YORK = 'New York',
-  SYDNEY = 'Sydney'
+  LONDON_NY_OVERLAP = 'London-NY Overlap',
+  OTHER = 'Other',
 }
 
 // ICT Concept enums

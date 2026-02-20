@@ -5,6 +5,7 @@ export interface UserResponseDto {
     email: string;
     firstName?: string;
     lastName?: string;
+    username?: string;
     role?: string;
     createdAt?: string;
     updatedAt?: string;

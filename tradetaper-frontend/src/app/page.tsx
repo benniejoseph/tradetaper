@@ -3,6 +3,7 @@
 
 import React, { useEffect, Suspense } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useSelector } from 'react-redux';
 import { RootState } from '@/store/store';
 import { useRouter } from 'next/navigation';
@@ -74,11 +75,16 @@ export default function LandingPage() {
       <nav className="fixed top-0 w-full bg-black/50 backdrop-blur-xl border-b border-white/5 z-50">
         <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
           {/* Logo */}
-          <Link href="/" className="flex items-center space-x-3 group z-50">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center shadow-lg shadow-emerald-500/20 group-hover:shadow-emerald-500/40 transition-all">
-              <FaChartLine className="text-white text-lg" />
-            </div>
-            <span className="text-2xl font-bold tracking-tight text-white group-hover:text-emerald-400 transition-colors">
+          <Link href="/" className="flex items-center gap-4 group z-50">
+            <Image
+              src="/tradetaperLogo.png"
+              alt="TradeTaper"
+              width={64}
+              height={64}
+              className="h-14 w-14 object-contain"
+              priority
+            />
+            <span className="text-3xl md:text-4xl font-semibold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white via-emerald-200 to-teal-300">
               TradeTaper
             </span>
           </Link>
@@ -163,17 +169,9 @@ export default function LandingPage() {
         </div>
         
         {/* Gradient Overlay for Readability */}
-        <div className="absolute inset-0 bg-gradient-to-b from-black/0 via-black/50 to-black z-0 pointer-events-none"></div>
+        <div className="absolute inset-0 bg-gradient-to-b from-black/5 via-black/25 to-black/70 z-0 pointer-events-none"></div>
 
         <div className="relative max-w-7xl mx-auto px-6 text-center z-10">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 text-emerald-400 text-sm font-medium mb-8 backdrop-blur-md animate-fade-in-up">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-            </span>
-            AI-Powered Trading Journal v2.0
-          </div>
-          
           <h1 className="text-5xl md:text-8xl font-bold tracking-tight mb-8 leading-tight">
             Trade with <br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-teal-200 to-white animate-text-shimmer">
@@ -376,10 +374,14 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-6">
           <div className="grid md:grid-cols-4 gap-12 mb-20">
             <div className="col-span-2">
-               <Link href="/" className="flex items-center space-x-3 mb-8">
-                <div className="w-8 h-8 rounded bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center">
-                  <FaChartLine className="text-white text-sm" />
-                </div>
+              <Link href="/" className="flex items-center space-x-3 mb-8">
+                <Image
+                  src="/tradetaperLogo.png"
+                  alt="TradeTaper"
+                  width={22}
+                  height={22}
+                  className="h-[22px] w-[22px] object-contain"
+                />
                 <span className="text-xl font-bold text-white">TradeTaper</span>
               </Link>
               <p className="text-slate-400 max-w-sm mb-8 leading-relaxed">

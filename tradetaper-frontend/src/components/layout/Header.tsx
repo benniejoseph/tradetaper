@@ -1,5 +1,6 @@
 "use client";
 import React from 'react';
+import Image from 'next/image';
 import { FaBars, FaTimes } from 'react-icons/fa'; // Icons for menu toggle
 import NotificationBell from '@/components/notifications/NotificationBell';
 
@@ -16,9 +17,15 @@ export default function Header({ isSidebarOpen, toggleSidebar }: HeaderProps) {
                      border-b border-[var(--color-light-border)] dark:border-transparent">
       <div className="container mx-auto flex justify-between items-center">
         {/* Placeholder for Logo or Page Title on mobile if needed */}
-        <div className="text-xl font-semibold text-[var(--color-text-dark-primary)] dark:text-text-light-primary">
-          {/* Could be dynamic based on page, or App Logo */}
-          Tradetaper
+        <div className="flex items-center gap-2 text-xl font-semibold text-[var(--color-text-dark-primary)] dark:text-text-light-primary">
+          <Image
+            src="/tradetaperLogo.png"
+            alt="TradeTaper"
+            width={24}
+            height={24}
+            className="h-6 w-6 object-contain"
+          />
+          <span>TradeTaper</span>
         </div>
         <div className="flex items-center space-x-2"> {/* Wrapper for buttons */}
           {/* Notification Bell */}

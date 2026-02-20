@@ -77,7 +77,13 @@ const authSlice = createSlice({
                 }
             }
         }
-    }
+    },
+    updateUser(state, action: PayloadAction<UserResponseDto>) {
+      state.user = action.payload;
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('user', JSON.stringify(action.payload));
+      }
+    },
   },
 });
 
@@ -87,6 +93,7 @@ export const {
   authFailure,
   logout,
   loadUserFromStorage,
+  updateUser,
 } = authSlice.actions;
 
 export default authSlice.reducer;

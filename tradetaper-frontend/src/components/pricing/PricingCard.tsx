@@ -7,6 +7,7 @@ import { pricingApi } from '@/services/pricingApi';
 import { useSelector } from 'react-redux';
 import { RootState } from '@/store/store';
 import { useRouter } from 'next/navigation';
+import AlertModal from '@/components/ui/AlertModal';
 
 interface PricingCardProps {
   tier: PricingTier;
@@ -17,8 +18,12 @@ interface PricingCardProps {
 
 export default function PricingCard({ tier, isPopular = false, currentTier, onUpgrade }: PricingCardProps) {
   const [isLoading, setIsLoading] = useState(false);
+  const [alertState, setAlertState] = useState({ isOpen: false, title: 'Notice', message: '' });
   const isAuthenticated = useSelector((state: RootState) => state.auth.isAuthenticated);
   const router = useRouter();
+  const closeAlert = () => setAlertState((prev) => ({ ...prev, isOpen: false }));
+  const showAlert = (message: string, title = 'Notice') =>
+    setAlertState({ isOpen: true, title, message });
 
   const handleSelectPlan = async () => {
     if (!isAuthenticated) {
@@ -43,7 +48,7 @@ export default function PricingCard({ tier, isPopular = false, currentTier, onUp
 
       if (!(window as any).Razorpay) {
         console.error('Razorpay SDK not loaded');
-        alert('Payment system is loading. Please try again in a moment.');
+        showAlert('Payment system is loading. Please try again in a moment.', 'Payment Loading');
         setIsLoading(false);
         return;
       }
@@ -86,9 +91,10 @@ export default function PricingCard({ tier, isPopular = false, currentTier, onUp
   const isFree = tier.id === 'free';
 
   return (
-    <div className={`relative bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border border-gray-200/50 dark:border-gray-700/50 rounded-2xl p-8 shadow-lg hover:shadow-2xl transition-all duration-300 ${
-      isPopular ? 'ring-2 ring-blue-500 scale-105' : ''
-    } ${isCurrentTier ? 'ring-2 ring-green-500' : ''}`}>
+    <>
+      <div className={`relative bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border border-gray-200/50 dark:border-gray-700/50 rounded-2xl p-8 shadow-lg hover:shadow-2xl transition-all duration-300 ${
+        isPopular ? 'ring-2 ring-blue-500 scale-105' : ''
+      } ${isCurrentTier ? 'ring-2 ring-green-500' : ''}`}>
       
       {/* Popular Badge */}
       {isPopular && (
@@ -143,9 +149,9 @@ export default function PricingCard({ tier, isPopular = false, currentTier, onUp
                   {tier.tradeLimit === Infinity ? 'Unlimited' : tier.tradeLimit} trades/{tier.interval}
                 </div>
               )}
-              {tier.accountLimit && (
+              {tier.accountLimit !== undefined && (
                 <div>
-                  {tier.accountLimit === Infinity ? 'Unlimited' : tier.accountLimit} accounts
+                  {tier.accountLimit === Infinity ? 'Unlimited' : tier.accountLimit} MetaApi accounts
                 </div>
               )}
             </div>
@@ -194,6 +200,13 @@ export default function PricingCard({ tier, isPopular = false, currentTier, onUp
           `Upgrade to ${tier.name}`
         )}
       </button>
-    </div>
+      </div>
+      <AlertModal
+        isOpen={alertState.isOpen}
+        onClose={closeAlert}
+        title={alertState.title}
+        message={alertState.message}
+      />
+    </>
   );
 } 

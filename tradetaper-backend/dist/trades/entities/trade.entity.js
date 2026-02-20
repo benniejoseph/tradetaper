@@ -70,6 +70,7 @@ let Trade = class Trade {
     timeframe;
     htfBias;
     newsImpact;
+    changeLog;
     entryReason;
     confirmations;
     hesitated;
@@ -103,13 +104,27 @@ let Trade = class Trade {
             this.quantity) {
             const contractSize = this.getContractSize();
             let pnl = 0;
+            const openPrice = Number(this.openPrice);
+            const closePrice = Number(this.closePrice);
+            const quantity = Number(this.quantity);
+            const commission = Number(this.commission || 0);
+            const swap = Number(this.swap || 0);
+            if (!Number.isFinite(openPrice) ||
+                !Number.isFinite(closePrice) ||
+                !Number.isFinite(quantity)) {
+                this.profitOrLoss = undefined;
+                return;
+            }
             if (this.side === enums_1.TradeDirection.LONG) {
-                pnl = (this.closePrice - this.openPrice) * this.quantity * contractSize;
+                pnl = (closePrice - openPrice) * quantity * contractSize;
             }
             else if (this.side === enums_1.TradeDirection.SHORT) {
-                pnl = (this.openPrice - this.closePrice) * this.quantity * contractSize;
+                pnl = (openPrice - closePrice) * quantity * contractSize;
             }
-            this.profitOrLoss = parseFloat((pnl + (this.commission || 0) + (this.swap || 0)).toFixed(4));
+            const total = pnl + commission + swap;
+            this.profitOrLoss = Number.isFinite(total)
+                ? parseFloat(total.toFixed(4))
+                : undefined;
         }
         else {
             this.profitOrLoss = undefined;
@@ -234,12 +249,12 @@ __decorate([
 __decorate([
     (0, class_transformer_1.Type)(() => Number),
     (0, typeorm_1.Column)('decimal', { precision: 19, scale: 8, nullable: true }),
-    __metadata("design:type", Number)
+    __metadata("design:type", Object)
 ], Trade.prototype, "stopLoss", void 0);
 __decorate([
     (0, class_transformer_1.Type)(() => Number),
     (0, typeorm_1.Column)('decimal', { precision: 19, scale: 8, nullable: true }),
-    __metadata("design:type", Number)
+    __metadata("design:type", Object)
 ], Trade.prototype, "takeProfit", void 0);
 __decorate([
     (0, typeorm_1.Column)({
@@ -416,6 +431,10 @@ __decorate([
     (0, typeorm_1.Column)({ type: 'boolean', nullable: true }),
     __metadata("design:type", Boolean)
 ], Trade.prototype, "newsImpact", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'jsonb', nullable: true, default: () => "'[]'::jsonb" }),
+    __metadata("design:type", Array)
+], Trade.prototype, "changeLog", void 0);
 __decorate([
     (0, typeorm_1.Column)('text', { nullable: true }),
     __metadata("design:type", String)

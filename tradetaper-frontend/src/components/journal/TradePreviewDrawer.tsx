@@ -308,7 +308,6 @@ export default function TradePreviewDrawer({
       ...(trade.notes && { notes: trade.notes }),
       ...(trade.stopLoss && { stopLoss: trade.stopLoss }),
       ...(trade.takeProfit && { takeProfit: trade.takeProfit }),
-      ...(trade.ictConcept && { ictConcept: trade.ictConcept }),
       ...(trade.session && { session: trade.session }),
       ...(trade.setupDetails && { setupDetails: trade.setupDetails }),
       ...(trade.mistakesMade && { mistakesMade: trade.mistakesMade }),
@@ -595,15 +594,9 @@ export default function TradePreviewDrawer({
 
                 {/* Additional Data: Concepts & Tags */}
                 <div className="flex flex-wrap gap-4">
-                  {trade.ictConcept && (
-                    <div className="bg-emerald-500/10 border border-emerald-500/20 px-4 py-2 rounded-xl">
-                      <p className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest mb-1">ICT Concept</p>
-                      <p className="text-sm font-bold text-gray-900 dark:text-white uppercase">{trade.ictConcept}</p>
-                    </div>
-                  )}
                   {trade.session && (
                     <div className="bg-blue-500/10 border border-blue-500/20 px-4 py-2 rounded-xl">
-                      <p className="text-[10px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest mb-1">Session</p>
+                      <p className="text-[10px] font-black text-blue-600 dark:text-emerald-400 uppercase tracking-widest mb-1">Session</p>
                       <p className="text-sm font-bold text-gray-900 dark:text-white uppercase">{trade.session}</p>
                     </div>
                   )}

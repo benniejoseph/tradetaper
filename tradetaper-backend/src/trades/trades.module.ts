@@ -5,6 +5,7 @@ import { Trade } from './entities/trade.entity';
 import { TradesService } from './trades.service';
 import { GeminiVisionService } from '../notes/gemini-vision.service';
 import { TradesController } from './trades.controller';
+import { PerformanceService } from './performance.service';
 import { UsersModule } from '../users/users.module';
 import { TagsModule } from '../tags/tags.module';
 import { TradeJournalSyncService } from './services/trade-journal-sync.service';
@@ -25,7 +26,7 @@ import { NotificationsModule } from '../notifications/notifications.module';
     TagsModule,
     SubscriptionsModule,
   ],
-  providers: [TradesService, GeminiVisionService, TradeJournalSyncService],
+  providers: [TradesService, GeminiVisionService, TradeJournalSyncService, PerformanceService],
   controllers: [TradesController],
   exports: [TradesService, TradeJournalSyncService],
 })

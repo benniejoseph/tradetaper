@@ -13,7 +13,7 @@ import {
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { TerminalFarmService } from './terminal-farm.service';
-import { TerminalResponseDto, EnableAutoSyncDto } from './dto/terminal.dto';
+import { TerminalResponseDto, EnableAutoSyncDto, TerminalLivePositionsResponseDto } from './dto/terminal.dto';
 
 /**
  * Controller for user-facing terminal management operations
@@ -74,5 +74,31 @@ export class TerminalFarmController {
       accountId,
       req.user.id,
     );
+  }
+
+  /**
+   * Request a manual trade sync from the terminal
+   */
+  @Post(':accountId/sync')
+  @HttpCode(HttpStatus.OK)
+  async requestSync(
+    @Param('accountId') accountId: string,
+    @Request() req,
+  ): Promise<{ queued: boolean; message: string }> {
+    return this.terminalFarmService.requestManualSync(
+      accountId,
+      req.user.id,
+    );
+  }
+
+  /**
+   * Get live positions for an account (from terminal metadata)
+   */
+  @Get(':accountId/live-positions')
+  async getLivePositions(
+    @Param('accountId') accountId: string,
+    @Request() req,
+  ): Promise<TerminalLivePositionsResponseDto> {
+    return this.terminalFarmService.getLivePositions(accountId, req.user.id);
   }
 }

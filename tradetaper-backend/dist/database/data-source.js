@@ -23,6 +23,12 @@ const backtest_trade_entity_1 = require("../backtesting/entities/backtest-trade.
 const market_log_entity_1 = require("../backtesting/entities/market-log.entity");
 const market_candle_entity_1 = require("../backtesting/entities/market-candle.entity");
 const replay_session_entity_1 = require("../backtesting/entities/replay-session.entity");
+const community_settings_entity_1 = require("../community/entities/community-settings.entity");
+const community_post_entity_1 = require("../community/entities/community-post.entity");
+const community_follow_entity_1 = require("../community/entities/community-follow.entity");
+const community_post_reply_entity_1 = require("../community/entities/community-post-reply.entity");
+const economic_event_alert_entity_1 = require("../market-intelligence/entities/economic-event-alert.entity");
+const economic_event_analysis_entity_1 = require("../market-intelligence/entities/economic-event-analysis.entity");
 const cloud_sql_connector_1 = require("@google-cloud/cloud-sql-connector");
 const common_1 = require("@nestjs/common");
 const dbLogger = new common_1.Logger('DatabaseDataSource');
@@ -65,6 +71,12 @@ async function createDataSource() {
                     market_log_entity_1.MarketLog,
                     market_candle_entity_1.MarketCandle,
                     replay_session_entity_1.ReplaySession,
+                    community_settings_entity_1.CommunitySettings,
+                    community_post_entity_1.CommunityPost,
+                    community_follow_entity_1.CommunityFollow,
+                    community_post_reply_entity_1.CommunityPostReply,
+                    economic_event_alert_entity_1.EconomicEventAlert,
+                    economic_event_analysis_entity_1.EconomicEventAnalysis,
                 ],
                 migrations: ['dist/migrations/*{.ts,.js}'],
                 synchronize: false,
@@ -100,6 +112,12 @@ async function createDataSource() {
                     market_log_entity_1.MarketLog,
                     market_candle_entity_1.MarketCandle,
                     replay_session_entity_1.ReplaySession,
+                    community_settings_entity_1.CommunitySettings,
+                    community_post_entity_1.CommunityPost,
+                    community_follow_entity_1.CommunityFollow,
+                    community_post_reply_entity_1.CommunityPostReply,
+                    economic_event_alert_entity_1.EconomicEventAlert,
+                    economic_event_analysis_entity_1.EconomicEventAnalysis,
                 ],
                 migrations: ['dist/migrations/*{.ts,.js}'],
                 synchronize: false,
@@ -137,6 +155,12 @@ async function createDataSource() {
                 market_log_entity_1.MarketLog,
                 market_candle_entity_1.MarketCandle,
                 replay_session_entity_1.ReplaySession,
+                community_settings_entity_1.CommunitySettings,
+                community_post_entity_1.CommunityPost,
+                community_follow_entity_1.CommunityFollow,
+                community_post_reply_entity_1.CommunityPostReply,
+                economic_event_alert_entity_1.EconomicEventAlert,
+                economic_event_analysis_entity_1.EconomicEventAnalysis,
             ],
             migrations: ['src/migrations/*{.ts,.js}'],
             synchronize: false,

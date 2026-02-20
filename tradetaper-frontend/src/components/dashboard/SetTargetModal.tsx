@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { FaTimes } from 'react-icons/fa';
+import AlertModal from '@/components/ui/AlertModal';
 
 interface SetTargetModalProps {
   isOpen: boolean;
@@ -21,6 +22,10 @@ export default function SetTargetModal({
   title = "Set Your Personal Target"
 }: SetTargetModalProps) {
   const [goalAmount, setGoalAmount] = useState<string>(currentGoal.toString());
+  const [alertState, setAlertState] = useState({ isOpen: false, title: 'Notice', message: '' });
+  const closeAlert = () => setAlertState((prev) => ({ ...prev, isOpen: false }));
+  const showAlert = (message: string, title = 'Notice') =>
+    setAlertState({ isOpen: true, title, message });
 
   useEffect(() => {
     // Update local state if the prop changes (e.g., if loaded async or changed elsewhere)
@@ -35,8 +40,7 @@ export default function SetTargetModal({
       onSave(newGoal);
       onClose(); // Close modal on successful save
     } else {
-      // Basic validation feedback, could be enhanced with a state variable and displayed message
-      alert("Please enter a valid positive number for the goal.");
+      showAlert("Please enter a valid positive number for the goal.", "Invalid Goal");
     }
   };
 
@@ -107,6 +111,12 @@ export default function SetTargetModal({
           </button>
         </div>
       </div>
+      <AlertModal
+        isOpen={alertState.isOpen}
+        onClose={closeAlert}
+        title={alertState.title}
+        message={alertState.message}
+      />
     </div>
   );
 } 

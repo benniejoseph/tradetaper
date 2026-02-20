@@ -14,7 +14,6 @@ import {
   HTF_BIASES,
   OUTCOMES,
   COMMON_SYMBOLS,
-  ICT_CONCEPTS,
   SETUP_TYPES,
   Timeframe,
   TradingSession,
@@ -87,7 +86,6 @@ function NewBacktestTradeContent() {
     exitTime: '',
     tradeDate: new Date().toISOString().split('T')[0],
     setupType: 'Order Block Entry',
-    ictConcept: 'Power of Three (AMD)',
     marketStructure: 'bullish',
     htfBias: 'bullish',
     outcome: 'win',
@@ -210,7 +208,7 @@ function NewBacktestTradeContent() {
         </div>
 
         {/* Trade Details */}
-        <div className="bg-gradient-to-br from-white to-blue-50 dark:from-black dark:to-blue-950/20 rounded-xl p-6 border border-blue-200/50 dark:border-blue-700/30">
+        <div className="bg-gradient-to-br from-white to-blue-50 dark:from-black dark:to-emerald-950/20 rounded-xl p-6 border border-blue-200/50 dark:border-emerald-700/30">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Trade Details</h2>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -219,7 +217,7 @@ function NewBacktestTradeContent() {
               <select
                 value={formData.symbol}
                 onChange={(e) => updateField('symbol', e.target.value)}
-                className="w-full px-4 py-2 border border-blue-300 dark:border-blue-600/30 rounded-lg bg-white dark:bg-black text-gray-900 dark:text-white"
+                className="w-full px-4 py-2 border border-blue-300 dark:border-emerald-600/30 rounded-lg bg-white dark:bg-black text-gray-900 dark:text-white"
               >
                 {COMMON_SYMBOLS.map(s => (
                   <option key={s} value={s}>{s}</option>
@@ -259,7 +257,7 @@ function NewBacktestTradeContent() {
                 required
                 value={formData.entryPrice || ''}
                 onChange={(e) => updateField('entryPrice', parseFloat(e.target.value))}
-                className="w-full px-4 py-2 border border-blue-300 dark:border-blue-600/30 rounded-lg bg-white dark:bg-black text-gray-900 dark:text-white"
+                className="w-full px-4 py-2 border border-blue-300 dark:border-emerald-600/30 rounded-lg bg-white dark:bg-black text-gray-900 dark:text-white"
               />
             </div>
 
@@ -270,7 +268,7 @@ function NewBacktestTradeContent() {
                 step="any"
                 value={formData.exitPrice || ''}
                 onChange={(e) => updateField('exitPrice', parseFloat(e.target.value) || undefined)}
-                className="w-full px-4 py-2 border border-blue-300 dark:border-blue-600/30 rounded-lg bg-white dark:bg-black text-gray-900 dark:text-white"
+                className="w-full px-4 py-2 border border-blue-300 dark:border-emerald-600/30 rounded-lg bg-white dark:bg-black text-gray-900 dark:text-white"
               />
             </div>
 
@@ -281,7 +279,7 @@ function NewBacktestTradeContent() {
                 step="any"
                 value={formData.stopLoss || ''}
                 onChange={(e) => updateField('stopLoss', parseFloat(e.target.value) || undefined)}
-                className="w-full px-4 py-2 border border-blue-300 dark:border-blue-600/30 rounded-lg bg-white dark:bg-black text-gray-900 dark:text-white"
+                className="w-full px-4 py-2 border border-blue-300 dark:border-emerald-600/30 rounded-lg bg-white dark:bg-black text-gray-900 dark:text-white"
               />
             </div>
 
@@ -292,7 +290,7 @@ function NewBacktestTradeContent() {
                 step="any"
                 value={formData.takeProfit || ''}
                 onChange={(e) => updateField('takeProfit', parseFloat(e.target.value) || undefined)}
-                className="w-full px-4 py-2 border border-blue-300 dark:border-blue-600/30 rounded-lg bg-white dark:bg-black text-gray-900 dark:text-white"
+                className="w-full px-4 py-2 border border-blue-300 dark:border-emerald-600/30 rounded-lg bg-white dark:bg-black text-gray-900 dark:text-white"
               />
             </div>
 
@@ -303,14 +301,14 @@ function NewBacktestTradeContent() {
                 step="0.01"
                 value={formData.lotSize || ''}
                 onChange={(e) => updateField('lotSize', parseFloat(e.target.value) || undefined)}
-                className="w-full px-4 py-2 border border-blue-300 dark:border-blue-600/30 rounded-lg bg-white dark:bg-black text-gray-900 dark:text-white"
+                className="w-full px-4 py-2 border border-blue-300 dark:border-emerald-600/30 rounded-lg bg-white dark:bg-black text-gray-900 dark:text-white"
               />
             </div>
           </div>
         </div>
 
         {/* Timing */}
-        <div className="bg-gradient-to-br from-white to-purple-50 dark:from-black dark:to-purple-950/20 rounded-xl p-6 border border-purple-200/50 dark:border-purple-700/30">
+        <div className="bg-gradient-to-br from-white to-purple-50 dark:from-black dark:to-emerald-950/20 rounded-xl p-6 border border-purple-200/50 dark:border-emerald-700/30">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Timing</h2>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -321,7 +319,7 @@ function NewBacktestTradeContent() {
                 required
                 value={formData.tradeDate}
                 onChange={(e) => updateField('tradeDate', e.target.value)}
-                className="w-full px-4 py-2 border border-purple-300 dark:border-purple-600/30 rounded-lg bg-white dark:bg-black text-gray-900 dark:text-white"
+                className="w-full px-4 py-2 border border-purple-300 dark:border-emerald-600/30 rounded-lg bg-white dark:bg-black text-gray-900 dark:text-white"
               />
             </div>
 
@@ -331,7 +329,7 @@ function NewBacktestTradeContent() {
                 type="time"
                 value={formData.entryTime || ''}
                 onChange={(e) => updateField('entryTime', e.target.value)}
-                className="w-full px-4 py-2 border border-purple-300 dark:border-purple-600/30 rounded-lg bg-white dark:bg-black text-gray-900 dark:text-white"
+                className="w-full px-4 py-2 border border-purple-300 dark:border-emerald-600/30 rounded-lg bg-white dark:bg-black text-gray-900 dark:text-white"
               />
             </div>
 
@@ -341,7 +339,7 @@ function NewBacktestTradeContent() {
                 type="time"
                 value={formData.exitTime || ''}
                 onChange={(e) => updateField('exitTime', e.target.value)}
-                className="w-full px-4 py-2 border border-purple-300 dark:border-purple-600/30 rounded-lg bg-white dark:bg-black text-gray-900 dark:text-white"
+                className="w-full px-4 py-2 border border-purple-300 dark:border-emerald-600/30 rounded-lg bg-white dark:bg-black text-gray-900 dark:text-white"
               />
             </div>
 
@@ -350,7 +348,7 @@ function NewBacktestTradeContent() {
               <select
                 value={formData.timeframe}
                 onChange={(e) => updateField('timeframe', e.target.value as Timeframe)}
-                className="w-full px-4 py-2 border border-purple-300 dark:border-purple-600/30 rounded-lg bg-white dark:bg-black text-gray-900 dark:text-white"
+                className="w-full px-4 py-2 border border-purple-300 dark:border-emerald-600/30 rounded-lg bg-white dark:bg-black text-gray-900 dark:text-white"
               >
                 {TIMEFRAMES.map(t => (
                   <option key={t.value} value={t.value}>{t.label}</option>
@@ -363,7 +361,7 @@ function NewBacktestTradeContent() {
               <select
                 value={formData.session || ''}
                 onChange={(e) => updateField('session', e.target.value as TradingSession || undefined)}
-                className="w-full px-4 py-2 border border-purple-300 dark:border-purple-600/30 rounded-lg bg-white dark:bg-black text-gray-900 dark:text-white"
+                className="w-full px-4 py-2 border border-purple-300 dark:border-emerald-600/30 rounded-lg bg-white dark:bg-black text-gray-900 dark:text-white"
               >
                 <option value="">Select Session</option>
                 {SESSIONS.map(s => (
@@ -377,7 +375,7 @@ function NewBacktestTradeContent() {
               <select
                 value={formData.killZone || ''}
                 onChange={(e) => updateField('killZone', e.target.value as KillZone || undefined)}
-                className="w-full px-4 py-2 border border-purple-300 dark:border-purple-600/30 rounded-lg bg-white dark:bg-black text-gray-900 dark:text-white"
+                className="w-full px-4 py-2 border border-purple-300 dark:border-emerald-600/30 rounded-lg bg-white dark:bg-black text-gray-900 dark:text-white"
               >
                 <option value="">Select Kill Zone</option>
                 {KILL_ZONES.map(k => (
@@ -391,7 +389,7 @@ function NewBacktestTradeContent() {
               <select
                 value={formData.dayOfWeek || ''}
                 onChange={(e) => updateField('dayOfWeek', e.target.value as DayOfWeek || undefined)}
-                className="w-full px-4 py-2 border border-purple-300 dark:border-purple-600/30 rounded-lg bg-white dark:bg-black text-gray-900 dark:text-white"
+                className="w-full px-4 py-2 border border-purple-300 dark:border-emerald-600/30 rounded-lg bg-white dark:bg-black text-gray-900 dark:text-white"
               >
                 <option value="">Select Day</option>
                 {DAYS_OF_WEEK.map(d => (
@@ -417,20 +415,6 @@ function NewBacktestTradeContent() {
                 <option value="">Select Setup</option>
                 {SETUP_TYPES.map(s => (
                   <option key={s} value={s}>{s}</option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">ICT Concept</label>
-              <select
-                value={formData.ictConcept || ''}
-                onChange={(e) => updateField('ictConcept', e.target.value || undefined)}
-                className="w-full px-4 py-2 border border-amber-300 dark:border-amber-600/30 rounded-lg bg-white dark:bg-black text-gray-900 dark:text-white"
-              >
-                <option value="">Select Concept</option>
-                {ICT_CONCEPTS.map(c => (
-                  <option key={c} value={c}>{c}</option>
                 ))}
               </select>
             </div>

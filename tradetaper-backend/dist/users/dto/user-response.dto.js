@@ -6,6 +6,7 @@ class UserResponseDto {
     email;
     firstName;
     lastName;
+    username;
     createdAt;
     updatedAt;
     subscription;

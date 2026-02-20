@@ -66,12 +66,12 @@ export const FeatureGate: React.FC<FeatureGateProps> = ({ feature, children, blu
             </div>
             
             <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">
-                {feature === 'discipline' ? 'Discipline Locked' : 'Unlock Advanced Analytics'}
+                {feature === 'discipline' ? 'Trader Mind Locked' : 'Unlock Advanced Analytics'}
             </h3>
             
             <p className="text-gray-600 dark:text-gray-400 mb-8 font-medium text-sm leading-relaxed">
                 {feature === 'discipline' 
-                  ? 'Master your trading psychology with our Discipline tools. Upgrade to Essential or Premium to unlock.'
+                  ? 'Master your trading psychology with Trader Mind. Upgrade to Essential or Premium to unlock.'
                   : `Gain deeper insights with ${feature === 'aiAnalysis' ? 'AI Analysis' : 'Advanced Analytics'}. Analyze performance, session breakdowns, and more.`
                 }
             </p>

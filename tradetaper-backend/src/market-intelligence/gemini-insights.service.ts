@@ -105,20 +105,24 @@ export class GeminiInsightsService {
     try {
       const response = await this.orchestrator.complete({
         prompt: prompt,
-        modelPreference: 'gemini-2.0-flash', // Use the fast new model
-        taskComplexity: 'medium',
+        modelPreference: 'gemini-3-pro-preview', // User requested model
+        taskComplexity: 'complex', // Upgrade complexity
         requireJson: true,
-        optimizeFor: 'speed',
+        optimizeFor: 'quality', // Optimize for quality
       });
 
       const text = response.content;
 
-      // Clean potential markdown blocks
-      const cleanText = text
-        .replace(/```json/g, '')
-        .replace(/```/g, '')
-        .trim();
-      return JSON.parse(cleanText);
+      // robust JSON extraction
+      const jsonStart = text.indexOf('{');
+      const jsonEnd = text.lastIndexOf('}');
+      
+      if (jsonStart !== -1 && jsonEnd !== -1) {
+        const jsonString = text.substring(jsonStart, jsonEnd + 1);
+        return JSON.parse(jsonString);
+      }
+      
+      throw new Error('No valid JSON object found in response');
     } catch (error) {
       this.logger.error(`AI Analysis failed: ${error.message}`);
 

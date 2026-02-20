@@ -24,6 +24,7 @@ export default function PersonalTargetCard({
       title="Personal Target" 
       icon={FaBullseye}
       showInfoIcon={true} 
+      infoContent="Your P&L progress toward a target. Improve by setting realistic milestones and focusing on process metrics over outcome."
       gridSpan="sm:col-span-1 lg:col-span-2"
     >
       <div className="space-y-3">

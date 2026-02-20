@@ -1,10 +1,10 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { 
   FaFileContract, 
   FaShieldAlt, 
   FaMoneyBillWave, 
   FaQuestionCircle, 
-  FaChartLine, 
   FaArrowRight,
   FaGavel,
   FaLock,
@@ -130,7 +130,7 @@ export default function LegalIndexPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white dark:from-gray-950 dark:to-gray-900">
       {/* Professional Header */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-gray-900 via-blue-900 to-gray-900 dark:from-black dark:via-blue-950 dark:to-black">
+      <div className="relative overflow-hidden bg-gradient-to-br from-gray-900 via-blue-900 to-gray-900 dark:from-black dark:via-emerald-950 dark:to-black">
         <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center opacity-10"></div>
         <div className="absolute inset-0 bg-gradient-to-t from-gray-900/50 to-transparent"></div>
         
@@ -139,7 +139,13 @@ export default function LegalIndexPage() {
             {/* Breadcrumb */}
             <div className="flex items-center justify-center space-x-2 text-sm text-gray-300 mb-8">
               <Link href="/" className="hover:text-white transition-colors flex items-center">
-                <FaChartLine className="inline-block mr-2" />
+                <Image
+                  src="/tradetaperLogo.png"
+                  alt="TradeTaper"
+                  width={18}
+                  height={18}
+                  className="mr-2 h-[18px] w-[18px] object-contain"
+                />
                 TradeTaper
               </Link>
               <span className="text-gray-500">/</span>

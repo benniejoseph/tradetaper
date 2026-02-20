@@ -9,6 +9,10 @@ import { Providers } from "./providers";
 export const metadata: Metadata = {
   title: "Trade Taper",
   description: "Your advanced trading journal",
+  icons: {
+    icon: "/tradetaperLogo.png",
+    apple: "/tradetaperLogo.png",
+  },
 };
 
 export default function RootLayout({

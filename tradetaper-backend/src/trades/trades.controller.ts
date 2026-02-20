@@ -15,6 +15,7 @@ import {
   Logger, // New import
 } from '@nestjs/common';
 import { TradesService } from './trades.service';
+import { PerformanceService } from './performance.service';
 import { CreateTradeDto } from './dto/create-trade.dto';
 import { UpdateTradeDto } from './dto/update-trade.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -29,7 +30,10 @@ import {
 @Controller('trades')
 export class TradesController {
   private readonly logger = new Logger(TradesController.name); // New logger
-  constructor(private readonly tradesService: TradesService) {}
+  constructor(
+    private readonly tradesService: TradesService,
+    private readonly performanceService: PerformanceService,
+  ) {}
 
   @Post()
   @UseGuards(UsageLimitGuard)
@@ -62,6 +66,91 @@ export class TradesController {
       undefined,
       page,
       safeLimit,
+    );
+  }
+
+  @Get('list')
+  findAllLite(
+    @Request() req,
+    @Query('accountId') accountId?: string,
+    @Query('page') page = 1,
+    @Query('limit') limit = 10,
+    @Query('includeTags') includeTags = 'false',
+    @Query('status') status?: string,
+    @Query('direction') direction?: string,
+    @Query('assetType') assetType?: string,
+    @Query('symbol') symbol?: string,
+    @Query('search') search?: string,
+    @Query('from') dateFrom?: string,
+    @Query('to') dateTo?: string,
+    @Query('isStarred') isStarred?: string,
+    @Query('minPnl') minPnl?: string,
+    @Query('maxPnl') maxPnl?: string,
+    @Query('minDuration') minDuration?: string,
+    @Query('maxDuration') maxDuration?: string,
+    @Query('sortBy') sortBy?: string,
+    @Query('sortDir') sortDir?: string,
+  ): Promise<PaginatedResponseDto<Trade>> {
+    const safeLimit = Math.min(1000, Number(limit) || 10);
+    return this.tradesService.findAllLite(
+      req.user,
+      accountId,
+      Number(page) || 1,
+      safeLimit,
+      includeTags === 'true',
+      {
+        status,
+        direction,
+        assetType,
+        symbol,
+        search,
+        dateFrom,
+        dateTo,
+        isStarred: isStarred === 'true',
+        minPnl: minPnl ? Number(minPnl) : undefined,
+        maxPnl: maxPnl ? Number(maxPnl) : undefined,
+        minDuration: minDuration ? Number(minDuration) : undefined,
+        maxDuration: maxDuration ? Number(maxDuration) : undefined,
+        sortBy,
+        sortDir,
+      },
+    );
+  }
+
+  @Get('summary')
+  getSummary(
+    @Request() req,
+    @Query('accountId') accountId?: string,
+    @Query('from') dateFrom?: string,
+    @Query('to') dateTo?: string,
+    @Query('status') status?: string,
+    @Query('direction') direction?: string,
+    @Query('assetType') assetType?: string,
+    @Query('symbol') symbol?: string,
+    @Query('search') search?: string,
+    @Query('isStarred') isStarred?: string,
+    @Query('minPnl') minPnl?: string,
+    @Query('maxPnl') maxPnl?: string,
+    @Query('minDuration') minDuration?: string,
+    @Query('maxDuration') maxDuration?: string,
+  ) {
+    return this.performanceService.getPerformanceMetrics(
+      req.user,
+      accountId,
+      dateFrom,
+      dateTo,
+      {
+        status,
+        direction,
+        assetType,
+        symbol,
+        search,
+        isStarred: isStarred === 'true',
+        minPnl: minPnl ? Number(minPnl) : undefined,
+        maxPnl: maxPnl ? Number(maxPnl) : undefined,
+        minDuration: minDuration ? Number(minDuration) : undefined,
+        maxDuration: maxDuration ? Number(maxDuration) : undefined,
+      },
     );
   }
 
@@ -128,5 +217,17 @@ export class TradesController {
     @Request() req,
   ): Promise<{ importedCount: number; trades: Trade[] }> {
     return this.tradesService.bulkImport(body.trades, req.user);
+  }
+
+  @Post('maintenance/merge-duplicates')
+  @HttpCode(HttpStatus.OK)
+  mergeDuplicates(
+    @Request() req,
+    @Query('accountId') accountId?: string,
+  ): Promise<{ merged: number; totalDuplicates: number }> {
+    return this.tradesService.mergeDuplicateExternalTradesForUser(
+      req.user.id,
+      accountId,
+    );
   }
 }

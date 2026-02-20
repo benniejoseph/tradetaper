@@ -149,7 +149,7 @@ __decorate([
 ], MT5Account.prototype, "connectionStatus", void 0);
 __decorate([
     (0, typeorm_1.Column)({ type: 'timestamp', nullable: true }),
-    __metadata("design:type", Date)
+    __metadata("design:type", Object)
 ], MT5Account.prototype, "lastSyncAt", void 0);
 __decorate([
     (0, typeorm_1.Column)({ type: 'int', default: 0 }),
@@ -157,11 +157,11 @@ __decorate([
 ], MT5Account.prototype, "syncAttempts", void 0);
 __decorate([
     (0, typeorm_1.Column)({ type: 'timestamp', nullable: true }),
-    __metadata("design:type", Date)
+    __metadata("design:type", Object)
 ], MT5Account.prototype, "lastSyncErrorAt", void 0);
 __decorate([
     (0, typeorm_1.Column)({ type: 'text', nullable: true }),
-    __metadata("design:type", String)
+    __metadata("design:type", Object)
 ], MT5Account.prototype, "lastSyncError", void 0);
 __decorate([
     (0, typeorm_1.Column)({ type: 'jsonb', nullable: true, default: () => "'{}'" }),
@@ -181,7 +181,7 @@ __decorate([
 ], MT5Account.prototype, "lastKnownIp", void 0);
 __decorate([
     (0, typeorm_1.Column)({ type: 'timestamp', nullable: true }),
-    __metadata("design:type", Date)
+    __metadata("design:type", Object)
 ], MT5Account.prototype, "lastHeartbeatAt", void 0);
 __decorate([
     (0, typeorm_1.Column)({ type: 'boolean', default: false }),

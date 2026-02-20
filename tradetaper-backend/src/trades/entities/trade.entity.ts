@@ -129,11 +129,11 @@ export class Trade {
   // Fields for planned Stop Loss / Take Profit
   @Type(() => Number)
   @Column('decimal', { precision: 19, scale: 8, nullable: true })
-  stopLoss?: number;
+  stopLoss?: number | null;
 
   @Type(() => Number)
   @Column('decimal', { precision: 19, scale: 8, nullable: true })
-  takeProfit?: number;
+  takeProfit?: number | null;
 
   // strategiaTag was removed, this section is placeholder for its previous location.
   // It was previously defined as:
@@ -292,6 +292,14 @@ export class Trade {
   @Column({ type: 'boolean', nullable: true })
   newsImpact?: boolean; // Was high-impact news nearby?
 
+  @Column({ type: 'jsonb', nullable: true, default: () => "'[]'::jsonb" })
+  changeLog?: {
+    at: string;
+    source: 'user' | 'mt5' | 'system';
+    changes: Record<string, { from: unknown; to: unknown }>;
+    note?: string;
+  }[];
+
   // ========== PHASE 4: Pre-Trade Checklist ==========
   @Column('text', { nullable: true })
   entryReason?: string; // Specific reason for entering
@@ -361,14 +369,30 @@ export class Trade {
       const contractSize = this.getContractSize();
       let pnl = 0;
 
-      if (this.side === TradeDirection.LONG) {
-        pnl = (this.closePrice - this.openPrice) * this.quantity * contractSize;
-      } else if (this.side === TradeDirection.SHORT) {
-        pnl = (this.openPrice - this.closePrice) * this.quantity * contractSize;
+      const openPrice = Number(this.openPrice);
+      const closePrice = Number(this.closePrice);
+      const quantity = Number(this.quantity);
+      const commission = Number(this.commission || 0);
+      const swap = Number(this.swap || 0);
+
+      if (
+        !Number.isFinite(openPrice) ||
+        !Number.isFinite(closePrice) ||
+        !Number.isFinite(quantity)
+      ) {
+        this.profitOrLoss = undefined;
+        return;
       }
-      this.profitOrLoss = parseFloat(
-        (pnl + (this.commission || 0) + (this.swap || 0)).toFixed(4),
-      );
+
+      if (this.side === TradeDirection.LONG) {
+        pnl = (closePrice - openPrice) * quantity * contractSize;
+      } else if (this.side === TradeDirection.SHORT) {
+        pnl = (openPrice - closePrice) * quantity * contractSize;
+      }
+      const total = pnl + commission + swap;
+      this.profitOrLoss = Number.isFinite(total)
+        ? parseFloat(total.toFixed(4))
+        : undefined;
     } else {
       this.profitOrLoss = undefined;
     }

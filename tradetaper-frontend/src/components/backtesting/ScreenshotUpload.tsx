@@ -98,7 +98,7 @@ export default function ScreenshotUpload({ value, onChange, disabled }: Screensh
           className={`
             relative border-2 border-dashed rounded-lg p-8 text-center
             transition-all duration-200
-            ${dragActive ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-950/20' : 'border-gray-300 dark:border-gray-700'}
+            ${dragActive ? 'border-indigo-500 bg-indigo-50 dark:bg-emerald-950/20' : 'border-gray-300 dark:border-gray-700'}
             ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-gray-400 dark:hover:border-gray-600'}
           `}
           onDragEnter={handleDrag}
@@ -118,7 +118,7 @@ export default function ScreenshotUpload({ value, onChange, disabled }: Screensh
 
           {uploading ? (
             <div className="flex flex-col items-center gap-3">
-              <Loader2 className="w-10 h-10 text-indigo-600 dark:text-indigo-400 animate-spin" />
+              <Loader2 className="w-10 h-10 text-indigo-600 dark:text-emerald-400 animate-spin" />
               <p className="text-sm text-gray-600 dark:text-gray-400">Uploading screenshot...</p>
             </div>
           ) : (

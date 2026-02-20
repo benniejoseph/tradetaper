@@ -2,83 +2,86 @@
 
 import React, { useState } from 'react';
 import ManageAccounts from '@/components/settings/ManageAccounts';
-import MT5AccountsTab from '@/components/settings/MT5AccountsTab';
-import { FaCogs, FaUserCircle, FaUsers, FaServer } from 'react-icons/fa';
-
-interface TabItem {
-  id: string;
-  label: string;
-  icon: React.ReactNode;
-}
+import { FaCogs, FaUserCircle, FaFileImport, FaPenFancy } from 'react-icons/fa';
+import AlertModal from '@/components/ui/AlertModal';
 
 export default function AccountSettingsPage() {
-  const tabs: TabItem[] = [
-    { id: 'manual', label: 'Manual Accounts', icon: <FaUsers className="w-5 h-5" /> },
-    { id: 'mt5', label: 'MetaTrader 5', icon: <FaServer className="w-5 h-5" /> },
-    // Future tabs can be added here, e.g.:
-    // { id: 'tradingview', label: 'TradingView', icon: <FaChartLine className="w-5 h-5" /> },
-  ];
-
-  const [activeTab, setActiveTab] = useState<string>('manual');
+  const [addFormSignal, setAddFormSignal] = useState(0);
+  const [alertState, setAlertState] = useState({ isOpen: false, title: 'Notice', message: '' });
+  const closeAlert = () => setAlertState((prev) => ({ ...prev, isOpen: false }));
+  const showAlert = (message: string, title = 'Notice') =>
+    setAlertState({ isOpen: true, title, message });
 
   return (
     <div className="space-y-8">
       {/* Header Section */}
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
         <div className="space-y-2">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-emerald-500 to-emerald-600 bg-clip-text text-transparent">
-            Trading Accounts
+          <h1 className="text-3xl sm:text-4xl font-bold text-emerald-600 dark:text-emerald-300">
+            Manual Account / Import
           </h1>
-          <p className="text-gray-600 dark:text-gray-300">
-            Manage your trading accounts and connections
+          <p className="text-gray-600 dark:text-gray-400 max-w-2xl">
+            Manage your trading ecosystem. Connect new data sources manually or import historical data to fuel your AI agent workflow.
           </p>
         </div>
         
         <div className="flex items-center space-x-3">
-          <button className="p-3 rounded-xl bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-950/20 dark:to-emerald-900/20 hover:bg-emerald-500 dark:hover:bg-emerald-500 text-gray-600 dark:text-gray-400 hover:text-white transition-all duration-200 hover:scale-105">
+          <button className="p-2.5 rounded-xl bg-white/80 dark:bg-black/60 border border-gray-200/60 dark:border-gray-800 hover:border-emerald-400/60 hover:text-emerald-600 dark:hover:text-emerald-300 transition-all duration-200">
             <FaUserCircle className="w-4 h-4" />
           </button>
           
-          <button className="p-3 rounded-xl bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-950/20 dark:to-emerald-900/20 hover:bg-emerald-500 dark:hover:bg-emerald-500 text-gray-600 dark:text-gray-400 hover:text-white transition-all duration-200 hover:scale-105">
+          <button className="p-2.5 rounded-xl bg-white/80 dark:bg-black/60 border border-gray-200/60 dark:border-gray-800 hover:border-emerald-400/60 hover:text-emerald-600 dark:hover:text-emerald-300 transition-all duration-200">
             <FaCogs className="w-4 h-4" />
           </button>
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="bg-gradient-to-br from-white to-emerald-50 dark:from-black dark:to-emerald-950/20 backdrop-blur-xl rounded-t-2xl border border-emerald-200/50 dark:border-emerald-700/30 overflow-hidden">
-        <div className="border-b border-emerald-200 dark:border-emerald-700">
-          <div className="flex overflow-x-auto">
-            {tabs.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`inline-flex items-center px-6 py-4 text-sm font-medium border-b-2 whitespace-nowrap focus:outline-none ${
-                  activeTab === tab.id
-                    ? 'border-emerald-500 text-emerald-600 dark:text-emerald-400'
-                    : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-emerald-300 dark:hover:border-emerald-600'
-                }`}
-              >
-                <span className="mr-2">{tab.icon}</span>
-                {tab.label}
-              </button>
-            ))}
+      {/* Action Cards */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        <div className="rounded-2xl border border-gray-200/70 dark:border-gray-800 bg-white/90 dark:bg-black/70 p-6 shadow-sm">
+          <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center mb-4">
+            <FaPenFancy className="w-5 h-5" />
           </div>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Create Manual Account</h3>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
+            Ideal for real-time tracking. Enter your broker details, configure leverage, and set your initial balance manually.
+          </p>
+          <button
+            onClick={() => setAddFormSignal((prev) => prev + 1)}
+            className="mt-4 inline-flex items-center gap-2 text-emerald-600 dark:text-emerald-300 font-semibold text-sm hover:text-emerald-500"
+          >
+            Start Configuration <span aria-hidden>→</span>
+          </button>
         </div>
 
-        {/* Tab Content */}
-        <div className="p-8">
-          {activeTab === 'manual' && (
-            <ManageAccounts />
-          )}
-          
-          {activeTab === 'mt5' && (
-            <MT5AccountsTab />
-          )}
-          
-          {/* Additional tab contents can be added here */}
+        <div className="rounded-2xl border border-gray-200/70 dark:border-gray-800 bg-white/90 dark:bg-black/70 p-6 shadow-sm">
+          <div className="w-12 h-12 rounded-2xl bg-blue-500/10 text-blue-500 flex items-center justify-center mb-4">
+            <FaFileImport className="w-5 h-5" />
+          </div>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Import from File</h3>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
+            Upload your CSV, Excel, or broker statements. The AI will parse your history and generate performance metrics automatically.
+          </p>
+          <button
+            onClick={() => showAlert('File import will be available soon.', 'Import from File')}
+            className="mt-4 inline-flex items-center gap-2 text-emerald-600 dark:text-emerald-300 font-semibold text-sm hover:text-emerald-500"
+          >
+            Select File <span aria-hidden>→</span>
+          </button>
         </div>
       </div>
+
+      {/* Manual Accounts Section */}
+      <div className="rounded-2xl border border-gray-200/70 dark:border-gray-800 bg-white/90 dark:bg-black/70 p-6 shadow-sm">
+        <ManageAccounts addFormSignal={addFormSignal} hideAddButton />
+      </div>
+
+      <AlertModal
+        isOpen={alertState.isOpen}
+        onClose={closeAlert}
+        title={alertState.title}
+        message={alertState.message}
+      />
     </div>
   );
-} 
+}

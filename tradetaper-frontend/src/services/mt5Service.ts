@@ -5,7 +5,7 @@ export interface MT5ConnectionStatus {
   state: string;
   connectionStatus: string;
   deployed: boolean;
-  ftpConfigured: boolean;
+  autoSyncEnabled: boolean;
 }
 
 export const mt5Service = {
@@ -20,9 +20,20 @@ export const mt5Service = {
   },
 
   /**
-   * Trigger sync (placeholder for FTP sync)
+   * Trigger sync (Terminal Farm)
    */
   async syncAccount(accountId: string): Promise<void> {
     await authApiClient.post(`/mt5-accounts/${accountId}/sync`);
+  },
+
+  /**
+   * Search MetaApi MT5 servers
+   */
+  async searchServers(query: string): Promise<Array<{ name: string; broker?: string; type?: string }>> {
+    if (!query || query.trim().length < 2) return [];
+    const response = await authApiClient.get(`/mt5-accounts/servers`, {
+      params: { query },
+    });
+    return response.data as Array<{ name: string; broker?: string; type?: string }>;
   },
 };

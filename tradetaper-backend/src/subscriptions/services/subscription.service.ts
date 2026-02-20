@@ -26,7 +26,7 @@ import { MT5Account } from '../../users/entities/mt5-account.entity';
 import { Note } from '../../notes/entities/note.entity';
 import { Strategy } from '../../strategies/entities/strategy.entity';
 import { RazorpayService } from './razorpay.service';
-import { Between } from 'typeorm';
+import { Between, IsNull, Not } from 'typeorm';
 import { NotificationsService } from '../../notifications/notifications.service';
 import { NotificationType, NotificationPriority } from '../../notifications/entities/notification.entity';
 
@@ -107,7 +107,7 @@ export class SubscriptionService {
         displayName: 'Free',
         description: 'Get started with basic journaling.',
         features: [
-          '1 Manual Account',
+          'Unlimited Manual & Import Accounts',
           '50 Trade Records',
           '3 Strategies',
           'Minimum Storage',
@@ -116,7 +116,7 @@ export class SubscriptionService {
           'Restriction on Notes Page',
           'Restriction on Backtesting',
           'Restriction on Psychology',
-          'No MetaTrader Connect',
+          'No MetaApi Connect',
           'No Live Chart & AI Analysis',
           'No Reports',
         ],
@@ -126,7 +126,7 @@ export class SubscriptionService {
         razorpayPlanMonthlyId: '',
         razorpayPlanYearlyId: '',
         limits: {
-          manualAccounts: 1,
+          manualAccounts: 'unlimited',
           mt5Accounts: 0,
           trades: 50,
           strategies: 3,
@@ -146,8 +146,8 @@ export class SubscriptionService {
         displayName: 'Essential',
         description: 'Perfect for growing traders.',
         features: [
-          '3 Manual Accounts',
-          'Connect 2 MetaTrader Accounts',
+          'Unlimited Manual & Import Accounts',
+          'Connect 2 MetaApi Accounts',
           '500 Trade Records',
           '7 Strategies',
           '1GB Storage',
@@ -168,7 +168,7 @@ export class SubscriptionService {
           this.configService.get<string>('RAZORPAY_PLAN_ESSENTIAL_YEARLY') ||
           '',
         limits: {
-          manualAccounts: 3,
+          manualAccounts: 'unlimited',
           mt5Accounts: 2,
           trades: 500,
           strategies: 7,
@@ -188,8 +188,8 @@ export class SubscriptionService {
         displayName: 'Premium',
         description: 'Unlimited access for pros.',
         features: [
-          'Unlimited Manual Accounts',
-          'Unlimited MetaTrader Accounts',
+          'Unlimited Manual & Import Accounts',
+          'Connect 4 MetaApi Accounts',
           'Unlimited Trade Records',
           'Unlimited Strategies',
           'Unlimited Notes',
@@ -208,7 +208,7 @@ export class SubscriptionService {
           this.configService.get<string>('RAZORPAY_PLAN_PREMIUM_YEARLY') || '',
         limits: {
           manualAccounts: 'unlimited',
-          mt5Accounts: 'unlimited',
+          mt5Accounts: 4,
           trades: 'unlimited',
           strategies: 'unlimited',
           notes: 'unlimited',
@@ -351,6 +351,7 @@ export class SubscriptionService {
       where: {
         userId,
         isActive: true,
+        metaApiAccountId: Not(IsNull()),
       },
     });
 

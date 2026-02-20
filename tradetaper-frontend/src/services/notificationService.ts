@@ -37,6 +37,9 @@ export enum NotificationType {
   SUBSCRIPTION_RENEWED = 'subscription_renewed',
   ACCOUNT_LINKED = 'account_linked',
   ACCOUNT_UNLINKED = 'account_unlinked',
+  COMMUNITY_POST = 'community_post',
+  COMMUNITY_MENTION = 'community_mention',
+  COMMUNITY_REPLY = 'community_reply',
 }
 
 export interface ChannelPreference {

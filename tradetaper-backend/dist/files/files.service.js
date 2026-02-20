@@ -41,6 +41,9 @@ var __importStar = (this && this.__importStar) || (function () {
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 var FilesService_1;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.FilesService = void 0;
@@ -49,6 +52,7 @@ const config_1 = require("@nestjs/config");
 const storage_1 = require("@google-cloud/storage");
 const uuid_1 = require("uuid");
 const path = __importStar(require("path"));
+const sharp_1 = __importDefault(require("sharp"));
 let FilesService = FilesService_1 = class FilesService {
     configService;
     logger = new common_1.Logger(FilesService_1.name);
@@ -56,6 +60,7 @@ let FilesService = FilesService_1 = class FilesService {
     bucket;
     bucketName;
     gcsPublicUrlPrefix;
+    usingFallbackCredentials = false;
     constructor(configService) {
         this.configService = configService;
         const keyFilePath = this.configService.get('GOOGLE_APPLICATION_CREDENTIALS');
@@ -73,8 +78,22 @@ let FilesService = FilesService_1 = class FilesService {
             }
         }
         else if (keyFilePath) {
-            storageConfig = { keyFilename: keyFilePath };
-            this.logger.log(`Using GCP credentials from file: ${keyFilePath} (development mode)`);
+            const trimmed = keyFilePath.trim();
+            if (trimmed.startsWith('{')) {
+                try {
+                    const credentials = JSON.parse(trimmed);
+                    storageConfig = { credentials };
+                    this.logger.log('Using GCP credentials from GOOGLE_APPLICATION_CREDENTIALS JSON content');
+                }
+                catch (error) {
+                    this.logger.error('Failed to parse GOOGLE_APPLICATION_CREDENTIALS JSON content:', error.message);
+                    throw new Error('Invalid GOOGLE_APPLICATION_CREDENTIALS JSON format');
+                }
+            }
+            else {
+                storageConfig = { keyFilename: keyFilePath };
+                this.logger.log(`Using GCP credentials from file: ${keyFilePath} (development mode)`);
+            }
         }
         else {
             this.logger.warn('No GCP credentials configured. Attempting to use Application Default Credentials.');
@@ -104,22 +123,85 @@ let FilesService = FilesService_1 = class FilesService {
             this.logger.error('GCS bucket is not initialized. Cannot upload file.');
             throw new common_1.HttpException('File upload service is not configured properly (bucket missing).', common_1.HttpStatus.INTERNAL_SERVER_ERROR);
         }
-        const fileExtension = path.extname(originalName) || '.tmp';
+        let uploadBuffer = fileBuffer;
+        let uploadMimeType = mimetype;
+        let fileExtension = path.extname(originalName) || '.tmp';
+        const shouldCompress = ['image/jpeg', 'image/jpg', 'image/png'].includes(mimetype);
+        if (shouldCompress) {
+            try {
+                const image = (0, sharp_1.default)(fileBuffer).rotate();
+                const metadata = await image.metadata();
+                const resizeWidth = metadata.width && metadata.width > 1600 ? 1600 : metadata.width;
+                const pipeline = resizeWidth
+                    ? image.resize({ width: resizeWidth, withoutEnlargement: true })
+                    : image;
+                const processedBuffer = await pipeline.webp({ quality: 80 }).toBuffer();
+                uploadBuffer = processedBuffer;
+                uploadMimeType = 'image/webp';
+                fileExtension = '.webp';
+                this.logger.log(`Compressed image upload from ${mimetype} to webp for user ${userId}`);
+            }
+            catch (error) {
+                this.logger.warn(`Image compression failed, using original file: ${error.message}`);
+            }
+        }
         const uniqueFileName = `${(0, uuid_1.v4)()}${fileExtension}`;
         const gcsFilePath = `users/${userId}/trades/images/${uniqueFileName}`;
-        const gcsFile = this.bucket.file(gcsFilePath);
-        try {
-            await gcsFile.save(fileBuffer, {
-                metadata: { contentType: mimetype },
+        const attemptUpload = async () => {
+            if (!this.bucket) {
+                throw new common_1.HttpException('File upload service is not configured properly (bucket missing).', common_1.HttpStatus.INTERNAL_SERVER_ERROR);
+            }
+            const gcsFile = this.bucket.file(gcsFilePath);
+            await gcsFile.save(uploadBuffer, {
+                metadata: { contentType: uploadMimeType },
             });
-            this.logger.log(`File uploaded successfully to GCS: gs://${this.bucketName}/${gcsFilePath}`);
-            const publicUrl = `${this.gcsPublicUrlPrefix}/${gcsFilePath}`;
-            return { url: publicUrl, gcsPath: gcsFilePath };
+        };
+        try {
+            await attemptUpload();
         }
         catch (error) {
-            this.logger.error('Error uploading file to GCS:', error.message);
-            throw new common_1.HttpException('Failed to upload file to GCS.', common_1.HttpStatus.INTERNAL_SERVER_ERROR);
+            const rawMessage = `${error?.message || error}`;
+            const safeMessage = this.sanitizeErrorMessage(rawMessage);
+            if (!this.usingFallbackCredentials &&
+                rawMessage.toLowerCase().includes('invalid_grant')) {
+                this.logger.warn('Invalid GCS credential signature detected. Falling back to ADC and retrying upload.');
+                this.reinitializeStorageWithADC();
+                try {
+                    await attemptUpload();
+                }
+                catch (retryError) {
+                    const retryRaw = `${retryError?.message || retryError}`;
+                    this.logger.error('Error uploading file to GCS after ADC fallback:', this.sanitizeErrorMessage(retryRaw));
+                    throw new common_1.HttpException('Failed to upload file to GCS.', common_1.HttpStatus.INTERNAL_SERVER_ERROR);
+                }
+            }
+            else {
+                this.logger.error('Error uploading file to GCS:', safeMessage);
+                throw new common_1.HttpException('Failed to upload file to GCS.', common_1.HttpStatus.INTERNAL_SERVER_ERROR);
+            }
         }
+        this.logger.log(`File uploaded successfully to GCS: gs://${this.bucketName}/${gcsFilePath}`);
+        const publicUrl = `${this.gcsPublicUrlPrefix}/${gcsFilePath}`;
+        return { url: publicUrl, gcsPath: gcsFilePath };
+    }
+    reinitializeStorageWithADC() {
+        delete process.env.GOOGLE_APPLICATION_CREDENTIALS;
+        delete process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON;
+        this.storage = new storage_1.Storage();
+        if (this.bucketName) {
+            this.bucket = this.storage.bucket(this.bucketName);
+        }
+        this.usingFallbackCredentials = true;
+    }
+    sanitizeErrorMessage(message) {
+        if (!message)
+            return message;
+        if (message.includes('"private_key"') ||
+            message.includes('BEGIN PRIVATE KEY') ||
+            message.includes('"service_account"')) {
+            return 'GCS credential error (redacted)';
+        }
+        return message;
     }
 };
 exports.FilesService = FilesService;

@@ -1,9 +1,11 @@
 "use client";
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useSelector } from 'react-redux';
 import { RootState } from '@/store/store';
-import { FaRobot, FaCheckCircle, FaExclamationTriangle, FaLightbulb, FaSpinner } from 'react-icons/fa';
+import { FaRobot, FaCheckCircle, FaExclamationTriangle, FaLightbulb, FaSpinner, FaRedo } from 'react-icons/fa';
 import { AnimatedCard } from '@/components/ui/AnimatedCard';
+import { formatDistanceToNow } from 'date-fns';
+import { Trade } from '@/types/trade';
 
 interface Insight {
   type: 'STRENGTH' | 'WEAKNESS' | 'FOCUS_AREA';
@@ -18,18 +20,94 @@ interface AIReport {
   insights: Insight[];
 }
 
+interface CachedReport {
+    data: AIReport;
+    timestamp: number;
+}
+
 export default function AIInsightsCard() {
-  const { token } = useSelector((state: RootState) => state.auth);
+  const { token, user } = useSelector((state: RootState) => state.auth);
+  const { trades } = useSelector((state: RootState) => state.trades);
+  
   const [report, setReport] = useState<AIReport | null>(null);
   const [loading, setLoading] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<number | null>(null);
 
+  // robustly determine the latest trade date
+  const latestTradeDate = useMemo(() => {
+    if (!trades || trades.length === 0) return null;
+    
+    // Sort trades by exit date or entry date to find the latest
+    const sorted = [...trades].sort((a, b) => {
+        const dateA = new Date(a.exitDate || a.entryDate || 0).getTime();
+        const dateB = new Date(b.exitDate || b.entryDate || 0).getTime();
+        return dateB - dateA; // Descending
+    });
+    
+    const latest = sorted[0];
+    return latest ? new Date(latest.exitDate || latest.entryDate || 0).getTime() : null;
+  }, [trades]);
+
+  const cacheKey = useMemo(() => user ? `trading_coach_report_${user.id}` : null, [user]);
+
+  // Load from cache on mount
   useEffect(() => {
-    if (token) {
-        fetchInsights();
+    if (cacheKey) {
+        const cachedStr = localStorage.getItem(cacheKey);
+        if (cachedStr) {
+            try {
+                const cached: CachedReport = JSON.parse(cachedStr);
+                setReport(cached.data);
+                setLastUpdated(cached.timestamp);
+            } catch (e) {
+                console.error("Failed to parse cached insights", e);
+                localStorage.removeItem(cacheKey);
+            }
+        }
     }
-  }, [token]);
+  }, [cacheKey]);
+
+  // Fetch logic (Initial or Auto-Refresh)
+  useEffect(() => {
+    if (!token || !cacheKey) return;
+
+    const checkAndFetch = async () => {
+        const cachedStr = localStorage.getItem(cacheKey);
+        let shouldFetch = false;
+
+        if (!cachedStr) {
+            // No cache, fetch immediately
+            shouldFetch = true;
+        } else {
+            // Check Smart Refresh Logic
+            try {
+                const cached: CachedReport = JSON.parse(cachedStr);
+                const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+                const isCacheOld = (Date.now() - cached.timestamp) > ONE_DAY_MS;
+                
+                // If cache is old AND we have a newer trade
+                if (isCacheOld && latestTradeDate) {
+                    if (latestTradeDate > cached.timestamp) {
+                       console.log("Auto-refreshing Trading Coach: Cache invalid and new trades detected.");
+                       shouldFetch = true;
+                    }
+                }
+            } catch {
+                shouldFetch = true;
+            }
+        }
+
+        if (shouldFetch && !loading) {
+            fetchInsights();
+        }
+    };
+
+    checkAndFetch();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token, cacheKey, latestTradeDate]); // Intentionally not including 'loading' to avoid loops
 
   const fetchInsights = async () => {
+    if (loading) return;
     setLoading(true);
     try {
         const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/analytics/insights`, {
@@ -38,12 +116,25 @@ export default function AIInsightsCard() {
         if (res.ok) {
             const data = await res.json();
             setReport(data);
+            
+            const now = Date.now();
+            setLastUpdated(now);
+            
+            if (cacheKey) {
+                const cacheData: CachedReport = { data, timestamp: now };
+                localStorage.setItem(cacheKey, JSON.stringify(cacheData));
+            }
         }
     } catch (e) {
         console.error("Failed to fetch AI insights", e);
     } finally {
         setLoading(false);
     }
+  };
+
+  const handleManualRefresh = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    fetchInsights();
   };
 
   if (!report && !loading) return null;
@@ -61,12 +152,29 @@ export default function AIInsightsCard() {
                    <div className="flex items-center gap-2 mt-1">
                       <span className="text-emerald-50 text-sm opacity-80">AI-Powered Analysis</span>
                       {loading && <FaSpinner className="animate-spin text-white" />}
+                      {!loading && lastUpdated && (
+                          <span className="text-emerald-100/60 text-xs border-l border-emerald-500/50 pl-2 ml-1">
+                              Updated {formatDistanceToNow(lastUpdated, { addSuffix: true })}
+                          </span>
+                      )}
                    </div>
                </div>
           </div>
-          <div className="text-right mt-3 md:mt-0">
-             <div className="text-3xl font-black">{report?.traderScore || 0}</div>
-             <div className="text-[10px] uppercase tracking-widest opacity-60">Trader Score</div>
+          <div className="flex items-center gap-4 mt-3 md:mt-0">
+             <div className="text-right">
+                <div className="text-3xl font-black">{report?.traderScore || 0}</div>
+                <div className="text-[10px] uppercase tracking-widest opacity-60">Trader Score</div>
+             </div>
+             
+             {/* Refresh Button */}
+             <button 
+                onClick={handleManualRefresh}
+                disabled={loading}
+                className={`p-2 rounded-full bg-white/10 hover:bg-white/20 transition-all text-white/80 hover:text-white ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                title="Refresh Analysis"
+             >
+                <FaRedo className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+             </button>
           </div>
       </div>
 

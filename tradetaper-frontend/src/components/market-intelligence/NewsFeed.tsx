@@ -27,7 +27,15 @@ const NewsFeed: React.FC = () => {
     setLoading(true);
     try {
       const response = await api.get(`/market-intelligence/news?category=${category}`);
-      setNews(response.data);
+      const payload = response.data;
+      const items = Array.isArray(payload)
+        ? payload
+        : Array.isArray(payload?.items)
+          ? payload.items
+          : Array.isArray(payload?.news)
+            ? payload.news
+            : [];
+      setNews(items);
     } catch (error) {
       console.error('Failed to fetch news', error);
     } finally {
@@ -48,7 +56,7 @@ const NewsFeed: React.FC = () => {
              className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
                activeCategory === cat.toLowerCase()
                  ? 'bg-emerald-600 text-white'
-                 : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-100'
+                 : 'bg-white dark:bg-black/70 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-emerald-950/40'
              }`}
            >
              {cat}
@@ -60,13 +68,13 @@ const NewsFeed: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {loading ? (
           [...Array(6)].map((_, i) => (
-            <div key={i} className="animate-pulse bg-gray-200 dark:bg-gray-800 rounded-lg h-64"></div>
+            <div key={i} className="animate-pulse bg-gray-200 dark:bg-emerald-950/40 rounded-lg h-64"></div>
           ))
         ) : (
           news.map((item, idx) => (
-            <div key={idx} className="bg-white dark:bg-gray-800 rounded-lg shadow-sm overflow-hidden flex flex-col hover:shadow-md transition-shadow">
+            <div key={idx} className="bg-white dark:bg-black/70 rounded-lg shadow-sm overflow-hidden flex flex-col hover:shadow-md transition-shadow">
               {/* Image / Video */}
-              <div className="relative h-48 bg-gray-200 dark:bg-gray-700">
+              <div className="relative h-48 bg-gray-200 dark:bg-emerald-950/40">
                 {item.hasVideo && item.videoUrl ? (
                    <iframe 
                      src={item.videoUrl} 

@@ -101,7 +101,16 @@ async function bootstrap() {
             req.query?._csrf) as string;
         },
       });
-      app.use(doubleCsrfProtection);
+
+      // Custom middleware wrapper to exclude webhook endpoints from CSRF protection
+      app.use((req: any, res: any, next: any) => {
+        if (req.path && req.path.includes('/api/v1/webhook')) {
+          next();
+        } else {
+          doubleCsrfProtection(req, res, next);
+        }
+      });
+      
       logger.log('CSRF protection enabled');
     } else {
       logger.warn(

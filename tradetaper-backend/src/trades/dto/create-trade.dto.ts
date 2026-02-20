@@ -73,7 +73,6 @@ export class CreateTradeDto {
 
   @IsOptional()
   @IsNumber({ maxDecimalPlaces: 2 })
-  @Min(0)
   commission?: number = 0;
 
   @IsOptional()
@@ -91,6 +90,9 @@ export class CreateTradeDto {
   takeProfit?: number;
 
   @IsOptional()
+  @Transform(({ value }) =>
+    value === '' || value === 'None' || value === null ? undefined : value,
+  )
   @IsEnum(ICTConcept)
   ictConcept?: ICTConcept;
 

@@ -129,6 +129,9 @@ export class TerminalCommandsQueue implements OnModuleInit, OnModuleDestroy {
       return;
     }
 
+    const sanitizeJobId = (value: string) =>
+      value.replace(/[^a-zA-Z0-9_-]/g, '-');
+
     try {
       await this.queue.add(
         'execute-command',
@@ -142,7 +145,9 @@ export class TerminalCommandsQueue implements OnModuleInit, OnModuleDestroy {
           // Priority: higher number = higher priority
           priority: command === 'FETCH_CANDLES' ? 5 : 10,
           // Job ID ensures idempotency for duplicate commands
-          jobId: `${terminalId}:${command}:${payload.substring(0, 50)}`,
+          jobId: sanitizeJobId(
+            `${terminalId}_${command}_${payload.substring(0, 50)}`,
+          ),
         },
       );
 
@@ -155,6 +160,10 @@ export class TerminalCommandsQueue implements OnModuleInit, OnModuleDestroy {
         error.stack,
       );
     }
+  }
+
+  isUsingInMemory(): boolean {
+    return this.useInMemory || !this.queue;
   }
 
   /**

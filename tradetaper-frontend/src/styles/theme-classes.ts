@@ -62,7 +62,7 @@ export const themeClasses = {
     success: 'text-emerald-600 dark:text-emerald-400',
     error: 'text-red-600 dark:text-red-400',
     warning: 'text-amber-600 dark:text-amber-400',
-    info: 'text-blue-600 dark:text-blue-400',
+    info: 'text-blue-600 dark:text-emerald-400',
   },
 
   // Badge Classes
@@ -72,7 +72,7 @@ export const themeClasses = {
     success: 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300',
     error: 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 dark:bg-red-950 text-red-800 dark:text-red-300',
     warning: 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300',
-    info: 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-300',
+    info: 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 dark:bg-emerald-950 text-blue-800 dark:text-emerald-300',
   },
 
   // Alert/Notification Classes
@@ -80,7 +80,7 @@ export const themeClasses = {
     success: 'p-4 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300',
     error: 'p-4 rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-300',
     warning: 'p-4 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300',
-    info: 'p-4 rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 text-blue-800 dark:text-blue-300',
+    info: 'p-4 rounded-lg bg-blue-50 dark:bg-emerald-950/30 border border-blue-200 dark:border-emerald-800 text-blue-800 dark:text-emerald-300',
   },
 
   // Table Classes

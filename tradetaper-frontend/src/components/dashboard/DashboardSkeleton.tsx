@@ -111,8 +111,8 @@ export function DataSourceBadge({ source, isDemo = false }: DataSourceBadgeProps
       case 'tradingview':
         return {
           label: 'TradingView',
-          bgClass: 'bg-blue-100 dark:bg-blue-900/30',
-          textClass: 'text-blue-800 dark:text-blue-400',
+          bgClass: 'bg-blue-100 dark:bg-emerald-900/30',
+          textClass: 'text-blue-800 dark:text-emerald-400',
           dotClass: 'bg-blue-500 animate-pulse',
         };
       case 'twelvedata':

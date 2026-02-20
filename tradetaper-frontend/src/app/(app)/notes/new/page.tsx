@@ -413,7 +413,7 @@ const NewNotePage: React.FC = () => {
                 </button>
                 <button
                   onClick={() => addBlock('video')}
-                  className="flex items-center gap-1 px-3 py-2 text-sm text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-md transition-colors"
+                  className="flex items-center gap-1 px-3 py-2 text-sm text-purple-600 hover:bg-purple-50 dark:hover:bg-emerald-900/20 rounded-md transition-colors"
                   title="Add Video"
                 >
                   <FaVideo />
@@ -958,7 +958,7 @@ const BlockEditor: React.FC<{
       };
 
       return (
-        <div className="group relative bg-emerald-50 dark:bg-emerald-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+        <div className="group relative bg-emerald-50 dark:bg-emerald-900/20 border border-blue-200 dark:border-emerald-800 rounded-lg p-4">
           <div className="flex items-center gap-2 mb-2">
             {calloutIcons[block.content.type as keyof typeof calloutIcons]}
             <select

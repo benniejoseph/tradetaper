@@ -32,6 +32,7 @@ import {
 import { format } from 'date-fns';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
+import AlertModal from '@/components/ui/AlertModal';
 
 const formatDate = (date: string | Date | undefined | null) => {
   if (!date) return 'N/A';
@@ -56,6 +57,10 @@ export default function BillingPage() {
   // Load Razorpay Script
   const [isRazorpayLoaded, setIsRazorpayLoaded] = useState(false);
   const [initUpgrade, setInitUpgrade] = useState(false);
+  const [alertState, setAlertState] = useState({ isOpen: false, title: 'Notice', message: '' });
+  const closeAlert = () => setAlertState((prev) => ({ ...prev, isOpen: false }));
+  const showAlert = (message: string, title = 'Notice') =>
+    setAlertState({ isOpen: true, title, message });
 
   useEffect(() => {
     const loadRazorpayScript = () => {
@@ -108,7 +113,7 @@ export default function BillingPage() {
             if (currentSubscription && currentSubscription.planId === planId) {
                 console.log("Already on this plan.");
                 setInitUpgrade(false);
-                alert("You are already subscribed to this plan.");
+                showAlert("You are already subscribed to this plan.", "Already Subscribed");
                 // Remove params
                 router.replace('/billing');
                 return;
@@ -156,7 +161,10 @@ export default function BillingPage() {
     try {
       // For Razorpay, we might not have a portal, but keeping for legacy or if implemented
       // If Razorpay, usually management is via their email or custom flow.
-      alert("Please contact support to manage payment methods directly for now, or start a new subscription to update card.");
+      showAlert(
+        "Please contact support to manage payment methods directly for now, or start a new subscription to update card.",
+        "Manage Billing"
+      );
     } catch (error) {
       console.error('Failed to manage billing:', error);
     } finally {
@@ -174,7 +182,7 @@ export default function BillingPage() {
           console.log("Subscription created, opening Razorpay...", data);
 
           if (!window.Razorpay) {
-              alert("Razorpay SDK failed to load. Please refresh.");
+              showAlert("Razorpay SDK failed to load. Please refresh.", "Payment Error");
               setActionLoading(null);
               return;
           }
@@ -208,7 +216,7 @@ export default function BillingPage() {
       } catch (error: any) {
           console.error("Upgrade failed:", error);
           const errorMessage = error?.response?.data?.message || error?.message || "Failed to initiate upgrade. Please try again.";
-          alert(`Upgrade Error: ${errorMessage}`);
+          showAlert(`Upgrade Error: ${errorMessage}`, "Upgrade Failed");
           setActionLoading(null);
       }
   };
@@ -428,6 +436,12 @@ export default function BillingPage() {
 
             </div>
         </div>
+      <AlertModal
+        isOpen={alertState.isOpen}
+        onClose={closeAlert}
+        title={alertState.title}
+        message={alertState.message}
+      />
     </div>
   );
-} 
+}

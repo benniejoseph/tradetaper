@@ -31,11 +31,46 @@ export declare class TradesService {
     create(createTradeDto: CreateTradeDto, userContext: UserResponseDto): Promise<Trade>;
     findAllByUser(userId: string): Promise<Trade[]>;
     findAll(userContext: UserResponseDto, accountId?: string, options?: FindManyOptions<Trade>, page?: number, limit?: number): Promise<PaginatedResponseDto<Trade>>;
+    findAllLite(userContext: UserResponseDto, accountId?: string, page?: number, limit?: number, includeTags?: boolean, filters?: {
+        status?: string;
+        direction?: string;
+        assetType?: string;
+        symbol?: string;
+        search?: string;
+        dateFrom?: string;
+        dateTo?: string;
+        isStarred?: boolean;
+        minPnl?: number;
+        maxPnl?: number;
+        minDuration?: number;
+        maxDuration?: number;
+        sortBy?: string;
+        sortDir?: string;
+    }): Promise<PaginatedResponseDto<Trade>>;
     findDuplicate(userId: string, symbol: string, entryDate: Date, externalId?: string): Promise<Trade | null>;
-    findOneByExternalId(userId: string, externalId: string): Promise<Trade | null>;
-    findManyByExternalIds(userId: string, externalIds: string[]): Promise<Trade[]>;
+    findOneByExternalId(userId: string, externalId: string, accountId?: string): Promise<Trade | null>;
+    findManyByExternalIds(userId: string, externalIds: string[], accountId?: string): Promise<Trade[]>;
+    mergeDuplicateExternalTrades(userId: string, externalId: string, accountId?: string): Promise<Trade | null>;
+    mergeDuplicateExternalTradesForUser(userId: string, accountId?: string): Promise<{
+        merged: number;
+        totalDuplicates: number;
+    }>;
+    private mergeTradeRecords;
     findOne(id: string, userContext: UserResponseDto): Promise<Trade>;
-    update(id: string, updateTradeDto: UpdateTradeDto, userContext: UserResponseDto): Promise<Trade>;
+    private normalizeChangeValue;
+    private buildChangeLogEntry;
+    update(id: string, updateTradeDto: UpdateTradeDto, userContext: UserResponseDto, options?: {
+        logChanges?: boolean;
+        changeSource?: 'user' | 'mt5' | 'system';
+    }): Promise<Trade>;
+    updateFromSync(id: string, updateData: Partial<Trade>, changeLog?: {
+        source: 'mt5' | 'system' | 'user';
+        changes: Record<string, {
+            from: unknown;
+            to: unknown;
+        }>;
+        note?: string;
+    }): Promise<Trade>;
     remove(id: string, userContext: UserResponseDto): Promise<void>;
     bulkDelete(tradeIds: string[], userContext: UserResponseDto): Promise<{
         deletedCount: number;

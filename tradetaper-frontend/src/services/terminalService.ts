@@ -12,6 +12,30 @@ export interface TerminalStatus {
   createdAt: string;
 }
 
+export interface LivePosition {
+  ticket: string;
+  symbol: string;
+  type: 'BUY' | 'SELL';
+  volume: number;
+  openPrice: number;
+  currentPrice: number;
+  profit: number;
+  openTime: string;
+  stopLoss?: number;
+  takeProfit?: number;
+}
+
+export interface LivePositionsResponse {
+  enabled: boolean;
+  accountId?: string;
+  accountName?: string;
+  terminalId?: string;
+  status?: TerminalStatus['status'];
+  lastHeartbeat?: string;
+  positionsUpdatedAt?: string;
+  positions: LivePosition[];
+}
+
 export const terminalService = {
   /**
    * Enable auto-sync for an MT5 account
@@ -47,6 +71,16 @@ export const terminalService = {
   async getTerminalToken(accountId: string): Promise<{ token: string }> {
     const response = await authApiClient.get<{ token: string }>(
       `/mt5-accounts/${accountId}/terminal-token`
+    );
+    return response.data;
+  },
+
+  /**
+   * Get live positions for an MT5 account
+   */
+  async getLivePositions(accountId: string): Promise<LivePositionsResponse> {
+    const response = await authApiClient.get<LivePositionsResponse>(
+      `/mt5-accounts/${accountId}/live-positions`
     );
     return response.data;
   },

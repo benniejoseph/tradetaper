@@ -9,9 +9,8 @@ import {
   UseGuards,
   Request,
   BadRequestException,
-  HttpCode,
-  HttpStatus,
   Put,
+  Query,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { MT5AccountsService } from './mt5-accounts.service';
@@ -21,8 +20,6 @@ import {
   UpdateMT5AccountDto,
   MT5AccountResponseDto,
 } from './dto/mt5-account.dto';
-import { TradeHistoryParserService } from './trade-history-parser.service';
-import { TradesService } from '../trades/trades.service';
 import {
   UsageLimitGuard,
   UsageFeature,
@@ -30,12 +27,9 @@ import {
 
 @Controller('mt5-accounts')
 @UseGuards(JwtAuthGuard)
-// Version: 20260127.v1 - Removed MetaAPI integration, preparing for FTP sync
 export class MT5AccountsController {
   constructor(
     private readonly mt5AccountsService: MT5AccountsService,
-    private readonly tradeHistoryParserService: TradeHistoryParserService,
-    private readonly tradesService: TradesService,
   ) {}
 
   @Post('create')
@@ -49,8 +43,6 @@ export class MT5AccountsController {
   }
 
   @Post('manual')
-  @UseGuards(UsageLimitGuard)
-  @UsageFeature('mt5Accounts')
   async createManual(
     @Request() req,
     @Body() createMT5AccountDto: CreateManualMT5AccountDto,
@@ -84,6 +76,11 @@ export class MT5AccountsController {
     return this.mt5AccountsService.findAllByUser(req.user.id);
   }
 
+  @Get('servers')
+  async getServers(@Query('query') query: string) {
+    return this.mt5AccountsService.getMetaApiServers(query || '');
+  }
+
   @Get(':id')
   async findOne(
     @Request() req,
@@ -103,13 +100,15 @@ export class MT5AccountsController {
   }
 
   @Post(':id/sync')
-  @HttpCode(HttpStatus.OK)
-  async syncAccount(@Request() req, @Param('id') id: string): Promise<void> {
+  async syncMetaApiAccount(@Request() req, @Param('id') id: string) {
     const account = await this.mt5AccountsService.findOne(id);
     if (!account || account.userId !== req.user.id) {
       throw new BadRequestException('MT5 account not found');
     }
-    await this.mt5AccountsService.syncAccount(id);
+
+    return this.mt5AccountsService.syncMetaApiAccount(id, {
+      fullHistory: true,
+    });
   }
 
   @Delete(':id')
@@ -138,7 +137,7 @@ export class MT5AccountsController {
   healthCheck() {
     return {
       status: 'ok',
-      syncMethod: 'ftp', // Changed from 'metaapi'
+      syncMethod: 'metaapi',
       timestamp: new Date().toISOString(),
     };
   }

@@ -1,12 +1,16 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { FaSave, FaTimes, FaSearch } from 'react-icons/fa';
+import AlertModal from '@/components/ui/AlertModal';
+import { mt5Service } from '@/services/mt5Service';
 
 // MT5Server type for server dropdown
 export interface MT5Server {
   name: string;
   address?: string;
+  broker?: string;
+  type?: string;
 }
 
 interface MT5AccountFormProps {
@@ -38,10 +42,16 @@ export default function MT5AccountForm({
     leverage: '100', // Default leverage
     currency: 'USD',
   });
+  const [alertState, setAlertState] = useState({ isOpen: false, title: 'Notice', message: '' });
+  const closeAlert = () => setAlertState((prev) => ({ ...prev, isOpen: false }));
+  const showAlert = (message: string, title = 'Notice') =>
+    setAlertState({ isOpen: true, title, message });
   
   const [serverSearch, setServerSearch] = useState('');
   const [showServerDropdown, setShowServerDropdown] = useState(false);
   const [filteredServers, setFilteredServers] = useState<MT5Server[]>([]);
+  const [serverSource, setServerSource] = useState<'metaapi' | 'local'>('local');
+  const [serverLoading, setServerLoading] = useState(false);
   const serverInputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -71,20 +81,56 @@ export default function MT5AccountForm({
     }
   }, [account]);
 
-  // Filter servers based on search
+  const fallbackServers = useMemo(
+    () => (servers.length > 0 ? servers : loadedServers),
+    [servers, loadedServers],
+  );
+
+  // Filter servers based on search (MetaApi first, fallback to local list)
   useEffect(() => {
-    const allServersList = servers.length > 0 ? servers : (loadedServers.length > 0 ? loadedServers : []);
-    
-    if (serverSearch.trim() === '') {
-      setFilteredServers(allServersList.slice(0, 15));
-    } else {
-      const searchLower = serverSearch.toLowerCase();
-      const filtered = allServersList.filter(s => 
-        s.name.toLowerCase().includes(searchLower)
-      ).slice(0, 50); // Show more results
-      setFilteredServers(filtered);
-    }
-  }, [serverSearch, servers, loadedServers]);
+    if (!showServerDropdown) return;
+
+    const query = serverSearch.trim();
+    let isActive = true;
+    const timeout = setTimeout(async () => {
+      if (query.length < 2) {
+        setFilteredServers(fallbackServers.slice(0, 15));
+        setServerSource('local');
+        setServerLoading(false);
+        return;
+      }
+
+      setServerLoading(true);
+      try {
+        const metaApiResults = await mt5Service.searchServers(query);
+        if (!isActive) return;
+        if (metaApiResults.length > 0) {
+          setFilteredServers(metaApiResults);
+          setServerSource('metaapi');
+        } else {
+          const filtered = fallbackServers
+            .filter((s) => s.name.toLowerCase().includes(query.toLowerCase()))
+            .slice(0, 50);
+          setFilteredServers(filtered);
+          setServerSource('local');
+        }
+      } catch (error) {
+        if (!isActive) return;
+        const filtered = fallbackServers
+          .filter((s) => s.name.toLowerCase().includes(query.toLowerCase()))
+          .slice(0, 50);
+        setFilteredServers(filtered);
+        setServerSource('local');
+      } finally {
+        if (isActive) setServerLoading(false);
+      }
+    }, 250);
+
+    return () => {
+      isActive = false;
+      clearTimeout(timeout);
+    };
+  }, [serverSearch, fallbackServers, showServerDropdown]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -115,12 +161,12 @@ export default function MT5AccountForm({
     e.preventDefault();
     
     if (!formData.name || !formData.server || !formData.login) {
-      alert('Please fill in all required fields');
+      showAlert('Please fill in all required fields', 'Missing Information');
       return;
     }
     
     if (!account && !formData.password) {
-      alert('Password is required for new accounts');
+      showAlert('Password is required for new accounts', 'Missing Password');
       return;
     }
 
@@ -139,7 +185,8 @@ export default function MT5AccountForm({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <>
+      <form onSubmit={handleSubmit} className="space-y-6">
       {/* Account Name */}
       <div>
         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -160,29 +207,41 @@ export default function MT5AccountForm({
         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
           Server * <span className="text-gray-500 font-normal">(Type to search)</span>
         </label>
-        {loadingServers ? (
-          <div className="flex items-center text-gray-500 py-3">
-            <svg className="animate-spin h-5 w-5 mr-2" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-            </svg>
-            Loading servers...
+        <>
+          <div className="relative">
+            <FaSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+            <input
+              ref={serverInputRef}
+              type="text"
+              value={serverSearch}
+              onChange={handleServerInputChange}
+              onFocus={() => setShowServerDropdown(true)}
+              className="w-full pl-11 pr-10 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+              placeholder="Search for your broker server (e.g., Exness, ICMarkets, FTMO)"
+              required
+            />
+            {(loadingServers || serverLoading) && (
+              <svg
+                className="absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-emerald-400"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                  fill="none"
+                />
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                />
+              </svg>
+            )}
           </div>
-        ) : (
-          <>
-            <div className="relative">
-              <FaSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
-              <input
-                ref={serverInputRef}
-                type="text"
-                value={serverSearch}
-                onChange={handleServerInputChange}
-                onFocus={() => setShowServerDropdown(true)}
-                className="w-full pl-11 pr-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
-                placeholder="Search for your broker server (e.g., Exness, ICMarkets, FTMO)"
-                required
-              />
-            </div>
             
             {/* Server Dropdown */}
             {showServerDropdown && (
@@ -190,6 +249,14 @@ export default function MT5AccountForm({
                 ref={dropdownRef}
                 className="absolute z-50 w-full mt-1 max-h-60 overflow-y-auto bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg"
               >
+                <div className="px-4 py-2 text-xs uppercase tracking-wide text-gray-400 dark:text-gray-500 border-b border-gray-100 dark:border-gray-700">
+                  {serverSource === 'metaapi' ? 'MetaApi servers' : 'Local server list'}
+                </div>
+                {(loadingServers || serverLoading) && (
+                  <div className="px-4 py-3 text-xs text-gray-500 dark:text-gray-400">
+                    Searching servers...
+                  </div>
+                )}
                 {filteredServers.length > 0 ? (
                   filteredServers.map((server) => (
                     <button
@@ -199,8 +266,10 @@ export default function MT5AccountForm({
                       className="w-full text-left px-4 py-3 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 text-gray-900 dark:text-white border-b border-gray-100 dark:border-gray-700 last:border-b-0 transition-colors"
                     >
                       {server.name}
-                      {server.address && (
-                        <span className="text-xs text-gray-500 ml-2">{server.address}</span>
+                      {(server.broker || server.type || server.address) && (
+                        <span className="text-xs text-gray-500 ml-2">
+                          {[server.broker, server.type, server.address].filter(Boolean).join(' • ')}
+                        </span>
                       )}
                     </button>
                   ))
@@ -225,8 +294,7 @@ export default function MT5AccountForm({
             )}
               </div>
             )}
-          </>
-        )}
+        </>
         <p className="mt-2 text-xs text-gray-500 flex items-start gap-1">
           <span className="text-emerald-500 font-bold">Tip:</span> <span>If your server isn't listed, simply type the exact name from your MT5 login screen and click "Use custom server".</span>
         </p>
@@ -343,6 +411,13 @@ export default function MT5AccountForm({
           {isSubmitting ? 'Saving...' : (account ? 'Update Account' : 'Add Account')}
         </button>
       </div>
-    </form>
+      </form>
+      <AlertModal
+        isOpen={alertState.isOpen}
+        onClose={closeAlert}
+        title={alertState.title}
+        message={alertState.message}
+      />
+    </>
   );
 }

@@ -105,7 +105,7 @@ export default function PatternAnalysisPage() {
                     <FiTag className="text-blue-500" />
                     {pattern.tag}
                   </h3>
-                  <span className="bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 text-xs font-bold px-3 py-1 rounded-full">
+                  <span className="bg-purple-100 dark:bg-emerald-900/30 text-purple-700 dark:text-emerald-300 text-xs font-bold px-3 py-1 rounded-full">
                     {pattern.occurrences} matches
                   </span>
                 </div>

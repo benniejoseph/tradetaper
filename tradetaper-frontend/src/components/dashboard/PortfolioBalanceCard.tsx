@@ -72,10 +72,9 @@ export default function PortfolioBalanceCard({
               </defs>
               <Tooltip
                 contentStyle={{ 
-                  backgroundColor: theme === 'dark' ? 'rgba(17, 24, 39, 0.9)' : 'rgba(255, 255, 255, 0.9)', 
-                  border: '1px solid #E5E7EB', 
-                  borderRadius: '12px',
-                  backdropFilter: 'blur(12px)'
+                  backgroundColor: theme === 'dark' ? '#111827' : '#FFFFFF', 
+                  border: theme === 'dark' ? '1px solid #1F2937' : '1px solid #E5E7EB', 
+                  borderRadius: '12px'
                 }} 
                 labelStyle={{color: rechartsTextFill, fontWeight: 'bold'}}
                 itemStyle={{color: '#10B981'}}

@@ -1,14 +1,18 @@
 import { TradesService } from './trades.service';
+import { PerformanceService } from './performance.service';
 import { CreateTradeDto } from './dto/create-trade.dto';
 import { UpdateTradeDto } from './dto/update-trade.dto';
 import { Trade } from './entities/trade.entity';
 import { PaginatedResponseDto } from '../common/dto/paginated-response.dto';
 export declare class TradesController {
     private readonly tradesService;
+    private readonly performanceService;
     private readonly logger;
-    constructor(tradesService: TradesService);
+    constructor(tradesService: TradesService, performanceService: PerformanceService);
     create(createTradeDto: CreateTradeDto, req: any): Promise<Trade>;
     findAll(req: any, accountId?: string, page?: number, limit?: number): Promise<PaginatedResponseDto<Trade>>;
+    findAllLite(req: any, accountId?: string, page?: number, limit?: number, includeTags?: string, status?: string, direction?: string, assetType?: string, symbol?: string, search?: string, dateFrom?: string, dateTo?: string, isStarred?: string, minPnl?: string, maxPnl?: string, minDuration?: string, maxDuration?: string, sortBy?: string, sortDir?: string): Promise<PaginatedResponseDto<Trade>>;
+    getSummary(req: any, accountId?: string, dateFrom?: string, dateTo?: string, status?: string, direction?: string, assetType?: string, symbol?: string, search?: string, isStarred?: string, minPnl?: string, maxPnl?: string, minDuration?: string, maxDuration?: string): Promise<import("./performance.service").PerformanceMetrics>;
     findOne(id: string, req: any): Promise<Trade>;
     getCandles(id: string, timeframe: string, req: any): Promise<any[]>;
     update(id: string, updateTradeDto: UpdateTradeDto, req: any): Promise<Trade>;
@@ -32,5 +36,9 @@ export declare class TradesController {
     }, req: any): Promise<{
         importedCount: number;
         trades: Trade[];
+    }>;
+    mergeDuplicates(req: any, accountId?: string): Promise<{
+        merged: number;
+        totalDuplicates: number;
     }>;
 }

@@ -3,7 +3,7 @@
 import { createSlice, PayloadAction, createAsyncThunk } from '@reduxjs/toolkit';
 import { authApiClient } from '@/services/api'; // Use authenticated client
 import { Trade, CreateTradePayload, UpdateTradePayload, AssetType, TradeDirection, TradeStatus } from '@/types/trade';
-// import { RootState } from '../store';
+import { RootState } from '../store';
 
 export interface TradeFilters { // New interface for filters
   dateFrom?: string; // ISO string
@@ -29,6 +29,14 @@ interface TradesState {
   total: number;
   page: number;
   limit: number;
+  lastFetchKey: string | null;
+  lastFetchAt: number | null;
+  lastFetchIncludeTags: boolean;
+  summary: any | null;
+  summaryLoading: boolean;
+  summaryError: string | null;
+  lastSummaryKey: string | null;
+  lastSummaryAt: number | null;
 }
 
 const initialState: TradesState = {
@@ -44,6 +52,14 @@ const initialState: TradesState = {
   total: 0,
   page: 1,
   limit: 10,
+  lastFetchKey: null,
+  lastFetchAt: null,
+  lastFetchIncludeTags: false,
+  summary: null,
+  summaryLoading: false,
+  summaryError: null,
+  lastSummaryKey: null,
+  lastSummaryAt: null,
 };
 
 // Helper function to transform API response to frontend Trade interface
@@ -140,23 +156,128 @@ function transformFrontendToApiPayload(frontendPayload: CreateTradePayload | Upd
 }
 
 // Async Thunks for API calls
+const normalizeErrorMessage = (error: any, fallback: string) => {
+  const raw = error?.response?.data?.message ?? error?.message ?? fallback;
+  if (Array.isArray(raw)) {
+    return raw.map((item) => {
+      if (typeof item === 'string') return item;
+      if (item?.field && Array.isArray(item?.errors)) return `${item.field}: ${item.errors.join(', ')}`;
+      return JSON.stringify(item);
+    }).join(' | ');
+  }
+  if (raw && typeof raw === 'object') {
+    try {
+      if ((raw as any).field && Array.isArray((raw as any).errors)) {
+        return `${(raw as any).field}: ${(raw as any).errors.join(', ')}`;
+      }
+      return JSON.stringify(raw);
+    } catch {
+      return fallback;
+    }
+  }
+  return String(raw);
+};
 export const fetchTrades = createAsyncThunk<
   { data: Trade[]; total: number; page: number; limit: number },
-  { accountId?: string; page?: number; limit?: number },
+  {
+    accountId?: string;
+    page?: number;
+    limit?: number;
+    includeTags?: boolean;
+    force?: boolean;
+    status?: string;
+    direction?: string;
+    assetType?: string;
+    symbol?: string;
+    search?: string;
+    dateFrom?: string;
+    dateTo?: string;
+    isStarred?: boolean;
+    minPnl?: number;
+    maxPnl?: number;
+    minDuration?: number;
+    maxDuration?: number;
+    sortBy?: string;
+    sortDir?: string;
+  },
   { rejectValue: string }
 >(
   'trades/fetchTrades',
-  async ({ accountId, page = 1, limit = 10 }, { rejectWithValue }) => {
+  async (
+    {
+      accountId,
+      page = 1,
+      limit = 10,
+      includeTags = false,
+      status,
+      direction,
+      assetType,
+      symbol,
+      search,
+      dateFrom,
+      dateTo,
+      isStarred,
+      minPnl,
+      maxPnl,
+      minDuration,
+      maxDuration,
+      sortBy,
+      sortDir,
+    },
+    { rejectWithValue },
+  ) => {
     try {
-      let url = `/trades?page=${page}&limit=${limit}`;
+      let url = `/trades/list?page=${page}&limit=${limit}`;
       if (accountId) {
         url += `&accountId=${accountId}`;
       }
+      if (includeTags) {
+        url += `&includeTags=true`;
+      }
+      if (status) {
+        url += `&status=${encodeURIComponent(status)}`;
+      }
+      if (direction) {
+        url += `&direction=${encodeURIComponent(direction)}`;
+      }
+      if (assetType) {
+        url += `&assetType=${encodeURIComponent(assetType)}`;
+      }
+      if (symbol) {
+        url += `&symbol=${encodeURIComponent(symbol)}`;
+      }
+      if (search) {
+        url += `&search=${encodeURIComponent(search)}`;
+      }
+      if (dateFrom) {
+        url += `&from=${encodeURIComponent(dateFrom)}`;
+      }
+      if (dateTo) {
+        url += `&to=${encodeURIComponent(dateTo)}`;
+      }
+      if (isStarred) {
+        url += `&isStarred=true`;
+      }
+      if (Number.isFinite(minPnl)) {
+        url += `&minPnl=${minPnl}`;
+      }
+      if (Number.isFinite(maxPnl)) {
+        url += `&maxPnl=${maxPnl}`;
+      }
+      if (Number.isFinite(minDuration)) {
+        url += `&minDuration=${minDuration}`;
+      }
+      if (Number.isFinite(maxDuration)) {
+        url += `&maxDuration=${maxDuration}`;
+      }
+      if (sortBy) {
+        url += `&sortBy=${encodeURIComponent(sortBy)}`;
+      }
+      if (sortDir) {
+        url += `&sortDir=${encodeURIComponent(sortDir)}`;
+      }
       const response = await authApiClient.get<any>(url);
-      console.log(`Raw fetchTrades from API (accountId: ${accountId || 'all'}):`, response.data);
-
       const transformedTrades = response.data.data.map(transformApiTradeToFrontend);
-      console.log('Transformed trades for frontend:', transformedTrades);
 
       return {
         data: transformedTrades,
@@ -165,8 +286,49 @@ export const fetchTrades = createAsyncThunk<
         limit: response.data.limit,
       };
     } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || error.message || 'Failed to fetch trades');
+      return rejectWithValue(normalizeErrorMessage(error, 'Failed to fetch trades'));
     }
+  },
+  {
+    condition: (args, { getState }) => {
+      if (args?.force) return true;
+      const state = getState() as RootState;
+      const accountKey = args?.accountId || 'all';
+      const page = args?.page ?? 1;
+      const limit = args?.limit ?? 10;
+      const includeTags = Boolean(args?.includeTags);
+      const filterKey = [
+        accountKey,
+        page,
+        limit,
+        includeTags ? 'tags' : 'no-tags',
+        args?.status || '',
+        args?.direction || '',
+        args?.assetType || '',
+        args?.symbol || '',
+        args?.search || '',
+        args?.dateFrom || '',
+        args?.dateTo || '',
+        args?.isStarred ? 'starred' : '',
+        Number.isFinite(args?.minPnl) ? `minPnl:${args?.minPnl}` : '',
+        Number.isFinite(args?.maxPnl) ? `maxPnl:${args?.maxPnl}` : '',
+        Number.isFinite(args?.minDuration) ? `minDur:${args?.minDuration}` : '',
+        Number.isFinite(args?.maxDuration) ? `maxDur:${args?.maxDuration}` : '',
+        args?.sortBy || '',
+        args?.sortDir || '',
+      ].join('|');
+      const fetchKey = `account:${filterKey}`;
+      const isFresh = state.trades.lastFetchAt && Date.now() - state.trades.lastFetchAt < 60_000;
+      if (
+        state.trades.trades.length > 0 &&
+        state.trades.lastFetchKey === fetchKey &&
+        isFresh &&
+        state.trades.lastFetchIncludeTags === includeTags
+      ) {
+        return false;
+      }
+      return true;
+    },
   }
 );
 
@@ -175,15 +337,13 @@ export const fetchTradeById = createAsyncThunk<Trade, string, { rejectValue: str
   async (tradeId, { rejectWithValue }) => {
     try {
       const response = await authApiClient.get<any>(`/trades/${tradeId}`);
-      console.log('Raw fetchTradeById from API:', response.data);
       
       // Transform API response to frontend format
       const transformedTrade = transformApiTradeToFrontend(response.data);
-      console.log('Transformed trade for frontend:', transformedTrade);
       
       return transformedTrade;
     } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || error.message || 'Failed to fetch trade');
+      return rejectWithValue(normalizeErrorMessage(error, 'Failed to fetch trade'));
     }
   }
 );
@@ -194,19 +354,14 @@ export const createTrade = createAsyncThunk<Trade, CreateTradePayload, { rejectV
     try {
       // Transform frontend payload to backend API format
       const apiPayload = transformFrontendToApiPayload(payload);
-      console.log('Frontend payload:', payload);
-      console.log('Transformed API payload:', apiPayload);
-      
       const response = await authApiClient.post<any>('/trades', apiPayload);
-      console.log('Raw createTrade from API:', response.data);
       
       // Transform API response to frontend format
       const transformedTrade = transformApiTradeToFrontend(response.data);
-      console.log('Transformed created trade for frontend:', transformedTrade);
       
       return transformedTrade;
     } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || error.message || 'Failed to create trade');
+      return rejectWithValue(normalizeErrorMessage(error, 'Failed to create trade'));
     }
   }
 );
@@ -217,19 +372,15 @@ export const updateTrade = createAsyncThunk<Trade, { id: string; payload: Update
     try {
       // Transform frontend payload to backend API format
       const apiPayload = transformFrontendToApiPayload(payload);
-      console.log('Frontend updateTrade payload:', payload);
-      console.log('Transformed updateTrade API payload:', apiPayload);
       
       const response = await authApiClient.patch<any>(`/trades/${id}`, apiPayload);
-      console.log('Raw updateTrade from API:', response.data);
       
       // Transform API response to frontend format
       const transformedTrade = transformApiTradeToFrontend(response.data);
-      console.log('Transformed updated trade for frontend:', transformedTrade);
       
       return transformedTrade;
     } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || error.message || 'Failed to update trade');
+      return rejectWithValue(normalizeErrorMessage(error, 'Failed to update trade'));
     }
   }
 );
@@ -243,7 +394,7 @@ export const deleteTrade = createAsyncThunk<string, string, { rejectValue: strin
       // console.log('Raw deleteTrade from API:', response?.data);
       return tradeId;
     } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || error.message || 'Failed to delete trade');
+      return rejectWithValue(normalizeErrorMessage(error, 'Failed to delete trade'));
     }
   }
 );
@@ -256,7 +407,7 @@ export const deleteTrades = createAsyncThunk<string[], string[], { rejectValue: 
       await authApiClient.post('/trades/bulk/delete', { tradeIds });
       return tradeIds;
     } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || error.message || 'Failed to delete trades');
+      return rejectWithValue(normalizeErrorMessage(error, 'Failed to delete trades'));
     }
   }
 );
@@ -272,12 +423,11 @@ export const bulkUpdateTrades = createAsyncThunk<Trade[], { ids: string[]; data:
       }));
 
       const response = await authApiClient.post<any>('/trades/bulk/update', { updates });
-      console.log('Raw bulkUpdateTrades from API:', response.data);
 
       const transformedTrades = response.data.trades.map(transformApiTradeToFrontend);
       return transformedTrades;
     } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || error.message || 'Failed to bulk update trades');
+      return rejectWithValue(normalizeErrorMessage(error, 'Failed to bulk update trades'));
     }
   }
 );
@@ -298,6 +448,98 @@ export const analyzeChart = createAsyncThunk<any, File, { rejectValue: string }>
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || error.message || 'Failed to analyze chart');
     }
+  }
+);
+
+export const fetchTradesSummary = createAsyncThunk<
+  any,
+  {
+    accountId?: string;
+    dateFrom?: string;
+    dateTo?: string;
+    status?: string;
+    direction?: string;
+    assetType?: string;
+    symbol?: string;
+    search?: string;
+    isStarred?: boolean;
+    minPnl?: number;
+    maxPnl?: number;
+    minDuration?: number;
+    maxDuration?: number;
+    force?: boolean;
+  },
+  { rejectValue: string }
+>(
+  'trades/fetchTradesSummary',
+  async (
+    {
+      accountId,
+      dateFrom,
+      dateTo,
+      status,
+      direction,
+      assetType,
+      symbol,
+      search,
+      isStarred,
+      minPnl,
+      maxPnl,
+      minDuration,
+      maxDuration,
+    },
+    { rejectWithValue },
+  ) => {
+    try {
+      let url = `/trades/summary?`;
+      const params: string[] = [];
+      if (accountId) params.push(`accountId=${accountId}`);
+      if (dateFrom) params.push(`from=${encodeURIComponent(dateFrom)}`);
+      if (dateTo) params.push(`to=${encodeURIComponent(dateTo)}`);
+      if (status) params.push(`status=${encodeURIComponent(status)}`);
+      if (direction) params.push(`direction=${encodeURIComponent(direction)}`);
+      if (assetType) params.push(`assetType=${encodeURIComponent(assetType)}`);
+      if (symbol) params.push(`symbol=${encodeURIComponent(symbol)}`);
+      if (search) params.push(`search=${encodeURIComponent(search)}`);
+      if (isStarred) params.push(`isStarred=true`);
+      if (Number.isFinite(minPnl)) params.push(`minPnl=${minPnl}`);
+      if (Number.isFinite(maxPnl)) params.push(`maxPnl=${maxPnl}`);
+      if (Number.isFinite(minDuration)) params.push(`minDuration=${minDuration}`);
+      if (Number.isFinite(maxDuration)) params.push(`maxDuration=${maxDuration}`);
+      url += params.join('&');
+
+      const response = await authApiClient.get<any>(url);
+      return response.data;
+    } catch (error: any) {
+      return rejectWithValue(normalizeErrorMessage(error, 'Failed to fetch trade summary'));
+    }
+  },
+  {
+    condition: (args, { getState }) => {
+      if (args?.force) return true;
+      const state = getState() as RootState;
+      const accountKey = args?.accountId || 'all';
+      const filterKey = [
+        accountKey,
+        args?.dateFrom || '',
+        args?.dateTo || '',
+        args?.status || '',
+        args?.direction || '',
+        args?.assetType || '',
+        args?.symbol || '',
+        args?.search || '',
+        args?.isStarred ? 'starred' : '',
+        Number.isFinite(args?.minPnl) ? `minPnl:${args?.minPnl}` : '',
+        Number.isFinite(args?.maxPnl) ? `maxPnl:${args?.maxPnl}` : '',
+        Number.isFinite(args?.minDuration) ? `minDur:${args?.minDuration}` : '',
+        Number.isFinite(args?.maxDuration) ? `maxDur:${args?.maxDuration}` : '',
+      ].join('|');
+      const isFresh = state.trades.lastSummaryAt && Date.now() - state.trades.lastSummaryAt < 60_000;
+      if (state.trades.summary && state.trades.lastSummaryKey === filterKey && isFresh) {
+        return false;
+      }
+      return true;
+    },
   }
 );
 
@@ -361,13 +603,32 @@ const tradesSlice = createSlice({
         state.isLoading = true;
         state.error = null;
       })
-      .addCase(fetchTrades.fulfilled, (state, action) => {
-        state.isLoading = false;
-        state.trades = action.payload.data;
-        state.total = action.payload.total;
-        state.page = action.payload.page;
-        state.limit = action.payload.limit;
-      })
+    .addCase(fetchTrades.fulfilled, (state, action) => {
+      state.isLoading = false;
+      state.trades = action.payload.data;
+      state.total = action.payload.total;
+      state.page = action.payload.page;
+      state.limit = action.payload.limit;
+      const accountKey = (action.meta.arg as any)?.accountId || 'all';
+      const filterKey = [
+        accountKey,
+        action.payload.page,
+        action.payload.limit,
+        (action.meta.arg as any)?.includeTags ? 'tags' : 'no-tags',
+        (action.meta.arg as any)?.status || '',
+        (action.meta.arg as any)?.direction || '',
+        (action.meta.arg as any)?.assetType || '',
+        (action.meta.arg as any)?.symbol || '',
+        (action.meta.arg as any)?.search || '',
+        (action.meta.arg as any)?.dateFrom || '',
+        (action.meta.arg as any)?.dateTo || '',
+        (action.meta.arg as any)?.isStarred ? 'starred' : '',
+      ].join('|');
+      state.lastFetchKey = `account:${filterKey}`;
+      state.lastFetchAt = Date.now();
+      // includeTags tracked in action.meta.arg
+      state.lastFetchIncludeTags = Boolean((action.meta.arg as any)?.includeTags);
+    })
       .addCase(fetchTrades.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload as string;
@@ -456,12 +717,42 @@ const tradesSlice = createSlice({
       })
       .addCase(analyzeChart.fulfilled, (state, action: PayloadAction<any>) => {
         state.isLoading = false;
-        // Handle the analyzed chart data if needed, e.g., update a temporary state or log it
-        console.log('Chart analysis successful:', action.payload);
+        // Chart analysis data handled by caller if needed
       })
       .addCase(analyzeChart.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload as string;
+      })
+      // fetchTradesSummary
+      .addCase(fetchTradesSummary.pending, (state) => {
+        state.summaryLoading = true;
+        state.summaryError = null;
+      })
+      .addCase(fetchTradesSummary.fulfilled, (state, action: PayloadAction<any>) => {
+        state.summaryLoading = false;
+        state.summary = action.payload;
+        const accountKey = (action.meta.arg as any)?.accountId || 'all';
+        const filterKey = [
+          accountKey,
+          (action.meta.arg as any)?.dateFrom || '',
+          (action.meta.arg as any)?.dateTo || '',
+          (action.meta.arg as any)?.status || '',
+          (action.meta.arg as any)?.direction || '',
+          (action.meta.arg as any)?.assetType || '',
+          (action.meta.arg as any)?.symbol || '',
+          (action.meta.arg as any)?.search || '',
+          (action.meta.arg as any)?.isStarred ? 'starred' : '',
+          Number.isFinite((action.meta.arg as any)?.minPnl) ? `minPnl:${(action.meta.arg as any)?.minPnl}` : '',
+          Number.isFinite((action.meta.arg as any)?.maxPnl) ? `maxPnl:${(action.meta.arg as any)?.maxPnl}` : '',
+          Number.isFinite((action.meta.arg as any)?.minDuration) ? `minDur:${(action.meta.arg as any)?.minDuration}` : '',
+          Number.isFinite((action.meta.arg as any)?.maxDuration) ? `maxDur:${(action.meta.arg as any)?.maxDuration}` : '',
+        ].join('|');
+        state.lastSummaryKey = filterKey;
+        state.lastSummaryAt = Date.now();
+      })
+      .addCase(fetchTradesSummary.rejected, (state, action) => {
+        state.summaryLoading = false;
+        state.summaryError = action.payload as string;
       })
       // bulkUpdateTrades
       .addCase(bulkUpdateTrades.pending, (state) => {

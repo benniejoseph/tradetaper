@@ -13,6 +13,7 @@ import { aggregateCandles } from '@/utils/candleAggregation';
 import Link from 'next/link';
 import { FaChevronLeft, FaCog, FaSave } from 'react-icons/fa';
 import { SeriesMarker, SeriesMarkerPosition, SeriesMarkerShape, UTCTimestamp } from 'lightweight-charts';
+import AlertModal from '@/components/ui/AlertModal';
 
 export default function BacktestSessionPage({ params }: { params: { id: string } }) {
   const searchParams = useSearchParams();
@@ -44,6 +45,10 @@ export default function BacktestSessionPage({ params }: { params: { id: string }
   const [trades, setTrades] = useState<any[]>([]); // Log of trades
   const [markers, setMarkers] = useState<SeriesMarker<any>[]>([]);
   const [openPosition, setOpenPosition] = useState<any | null>(null);
+  const [alertState, setAlertState] = useState({ isOpen: false, title: 'Notice', message: '' });
+  const closeAlert = () => setAlertState((prev) => ({ ...prev, isOpen: false }));
+  const showAlert = (message: string, title = 'Notice') =>
+    setAlertState({ isOpen: true, title, message });
 
   // Refs
   const chartRef = useRef<ChartEngineRef>(null);
@@ -314,10 +319,10 @@ export default function BacktestSessionPage({ params }: { params: { id: string }
         throw new Error('Failed to save session');
       }
 
-      alert('Session saved successfully!');
+      showAlert('Session saved successfully!', 'Session Saved');
     } catch (err: any) {
       console.error('Error saving session:', err);
-      alert('Failed to save session');
+      showAlert('Failed to save session', 'Save Failed');
     }
   };
 
@@ -436,6 +441,12 @@ export default function BacktestSessionPage({ params }: { params: { id: string }
                 </>
             )}
         </main>
+        <AlertModal
+          isOpen={alertState.isOpen}
+          onClose={closeAlert}
+          title={alertState.title}
+          message={alertState.message}
+        />
     </div>
   );
 }

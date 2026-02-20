@@ -54,6 +54,7 @@ export default function TradeStatisticsCard({
       selectedTimeRange={timeRange} 
       onTimeRangeChange={onTimeRangeChange} 
       showInfoIcon
+      infoContent="Counts of wins, losses, and breakevens plus activity rate. Improve by increasing quality setups and reducing avoidable losses."
     >
       <div className="flex flex-col sm:flex-row items-center justify-between h-full gap-4 px-2">
         {/* Donut Chart Section */}
@@ -98,9 +99,9 @@ export default function TradeStatisticsCard({
                 <span className="text-xs text-gray-500 dark:text-gray-400">Breakeven</span>
                 <span className="text-lg font-bold text-gray-700 dark:text-gray-300">{breakevenTrades}</span>
             </div>
-            <div className="bg-blue-50 dark:bg-blue-900/10 p-2 rounded-lg flex flex-col items-center justify-center">
+            <div className="bg-blue-50 dark:bg-emerald-900/10 p-2 rounded-lg flex flex-col items-center justify-center">
                 <span className="text-xs text-gray-500 dark:text-gray-400">Avg / Day</span>
-                <span className="text-lg font-bold text-blue-600 dark:text-blue-400">{avgTradesPerDay.toFixed(1)}</span>
+                <span className="text-lg font-bold text-blue-600 dark:text-emerald-400">{avgTradesPerDay.toFixed(1)}</span>
             </div>
         </div>
       </div>

@@ -53,6 +53,23 @@ export interface PnlByDay {
   };
 }
 
+export interface DrawdownPoint {
+  date: string;
+  drawdownPct: number;
+  drawdownAbs: number;
+}
+
+export interface RollingMetricPoint {
+  date: string;
+  value: number;
+}
+
+export interface RollingExpectancyPoint {
+  date: string;
+  expectancy: number;
+  averageR: number;
+}
+
 function calculateMaxDrawdownFromPnlSeries(pnlSeries: number[]): number {
     if (pnlSeries.length === 0) {
         return 0;
@@ -200,6 +217,119 @@ export function calculateEquityCurveData(trades: Trade[]): { date: string; value
         return [{ date: dayBeforeFirstTrade, value: 0 }, ...equityData];
     }
     return [{date: new Date().toISOString(), value: 0}];
+}
+
+export function calculateDrawdownSeriesFromEquityCurve(
+  equityCurve: { date: string; value: number }[]
+): DrawdownPoint[] {
+  if (!equityCurve || equityCurve.length === 0) return [];
+
+  let peak = equityCurve[0].value;
+  return equityCurve.map(point => {
+    if (point.value > peak) peak = point.value;
+    const drawdownAbs = peak - point.value;
+    const drawdownPct = peak > 0 ? (drawdownAbs / peak) * 100 : 0;
+    return {
+      date: point.date,
+      drawdownPct,
+      drawdownAbs,
+    };
+  });
+}
+
+export function calculateRollingReturns(
+  trades: Trade[],
+  windowSize: number,
+  initialBalance: number
+): RollingMetricPoint[] {
+  const closedTrades = trades
+    .filter(t => t.status === TradeStatus.CLOSED && t.profitOrLoss !== undefined && t.exitDate)
+    .sort((a, b) => new Date(a.exitDate!).getTime() - new Date(b.exitDate!).getTime());
+
+  if (closedTrades.length < windowSize || windowSize <= 1) return [];
+
+  const cumulativePnl: number[] = [];
+  closedTrades.forEach((trade, idx) => {
+    const pnl = trade.profitOrLoss || 0;
+    cumulativePnl[idx] = (cumulativePnl[idx - 1] || 0) + pnl;
+  });
+
+  const points: RollingMetricPoint[] = [];
+  for (let i = windowSize - 1; i < closedTrades.length; i++) {
+    const startIndex = i - windowSize + 1;
+    const pnlBeforeWindow = cumulativePnl[startIndex - 1] || 0;
+    const pnlEnd = cumulativePnl[i] || 0;
+    const startEquity = initialBalance + pnlBeforeWindow;
+    const endEquity = initialBalance + pnlEnd;
+    const base = startEquity > 0 ? startEquity : 1;
+    const returnPct = ((endEquity - startEquity) / base) * 100;
+
+    points.push({
+      date: closedTrades[i].exitDate!,
+      value: returnPct,
+    });
+  }
+  return points;
+}
+
+export function calculateRollingProfitFactor(
+  trades: Trade[],
+  windowSize: number
+): RollingMetricPoint[] {
+  const closedTrades = trades
+    .filter(t => t.status === TradeStatus.CLOSED && t.profitOrLoss !== undefined && t.exitDate)
+    .sort((a, b) => new Date(a.exitDate!).getTime() - new Date(b.exitDate!).getTime());
+
+  if (closedTrades.length < windowSize || windowSize <= 1) return [];
+
+  const points: RollingMetricPoint[] = [];
+  for (let i = windowSize - 1; i < closedTrades.length; i++) {
+    const windowTrades = closedTrades.slice(i - windowSize + 1, i + 1);
+    const grossProfit = windowTrades.reduce((sum, t) => sum + ((t.profitOrLoss || 0) > 0 ? (t.profitOrLoss || 0) : 0), 0);
+    const grossLoss = Math.abs(windowTrades.reduce((sum, t) => sum + ((t.profitOrLoss || 0) < 0 ? (t.profitOrLoss || 0) : 0), 0));
+    const profitFactor = grossLoss > 0 ? grossProfit / grossLoss : (grossProfit > 0 ? 999 : 0);
+
+    points.push({
+      date: closedTrades[i].exitDate!,
+      value: profitFactor,
+    });
+  }
+  return points;
+}
+
+export function calculateRollingExpectancy(
+  trades: Trade[],
+  windowSize: number
+): RollingExpectancyPoint[] {
+  const closedTrades = trades
+    .filter(t => t.status === TradeStatus.CLOSED && t.profitOrLoss !== undefined && t.exitDate)
+    .sort((a, b) => new Date(a.exitDate!).getTime() - new Date(b.exitDate!).getTime());
+
+  if (closedTrades.length < windowSize || windowSize <= 1) return [];
+
+  const points: RollingExpectancyPoint[] = [];
+  for (let i = windowSize - 1; i < closedTrades.length; i++) {
+    const windowTrades = closedTrades.slice(i - windowSize + 1, i + 1);
+    const wins = windowTrades.filter(t => (t.profitOrLoss || 0) > 0);
+    const losses = windowTrades.filter(t => (t.profitOrLoss || 0) < 0);
+    const winRate = windowTrades.length > 0 ? wins.length / windowTrades.length : 0;
+    const lossRate = windowTrades.length > 0 ? losses.length / windowTrades.length : 0;
+    const avgWin = wins.length > 0 ? wins.reduce((sum, t) => sum + (t.profitOrLoss || 0), 0) / wins.length : 0;
+    const avgLoss = losses.length > 0 ? Math.abs(losses.reduce((sum, t) => sum + (t.profitOrLoss || 0), 0)) / losses.length : 0;
+    const expectancy = (winRate * avgWin) - (lossRate * avgLoss);
+
+    const rMultiples = windowTrades
+      .map(t => t.rMultiple)
+      .filter((r): r is number => r !== undefined && r !== null);
+    const averageR = rMultiples.length > 0 ? rMultiples.reduce((sum, r) => sum + r, 0) / rMultiples.length : 0;
+
+    points.push({
+      date: closedTrades[i].exitDate!,
+      expectancy,
+      averageR,
+    });
+  }
+  return points;
 }
 
 // calculateStatsByStrategyTag function - REMAINS UNCHANGED

@@ -60,7 +60,7 @@ let SubscriptionService = SubscriptionService_1 = class SubscriptionService {
                 displayName: 'Free',
                 description: 'Get started with basic journaling.',
                 features: [
-                    '1 Manual Account',
+                    'Unlimited Manual & Import Accounts',
                     '50 Trade Records',
                     '3 Strategies',
                     'Minimum Storage',
@@ -69,7 +69,7 @@ let SubscriptionService = SubscriptionService_1 = class SubscriptionService {
                     'Restriction on Notes Page',
                     'Restriction on Backtesting',
                     'Restriction on Psychology',
-                    'No MetaTrader Connect',
+                    'No MetaApi Connect',
                     'No Live Chart & AI Analysis',
                     'No Reports',
                 ],
@@ -78,7 +78,7 @@ let SubscriptionService = SubscriptionService_1 = class SubscriptionService {
                 razorpayPlanMonthlyId: '',
                 razorpayPlanYearlyId: '',
                 limits: {
-                    manualAccounts: 1,
+                    manualAccounts: 'unlimited',
                     mt5Accounts: 0,
                     trades: 50,
                     strategies: 3,
@@ -98,8 +98,8 @@ let SubscriptionService = SubscriptionService_1 = class SubscriptionService {
                 displayName: 'Essential',
                 description: 'Perfect for growing traders.',
                 features: [
-                    '3 Manual Accounts',
-                    'Connect 2 MetaTrader Accounts',
+                    'Unlimited Manual & Import Accounts',
+                    'Connect 2 MetaApi Accounts',
                     '500 Trade Records',
                     '7 Strategies',
                     '1GB Storage',
@@ -118,7 +118,7 @@ let SubscriptionService = SubscriptionService_1 = class SubscriptionService {
                 razorpayPlanYearlyId: this.configService.get('RAZORPAY_PLAN_ESSENTIAL_YEARLY') ||
                     '',
                 limits: {
-                    manualAccounts: 3,
+                    manualAccounts: 'unlimited',
                     mt5Accounts: 2,
                     trades: 500,
                     strategies: 7,
@@ -138,8 +138,8 @@ let SubscriptionService = SubscriptionService_1 = class SubscriptionService {
                 displayName: 'Premium',
                 description: 'Unlimited access for pros.',
                 features: [
-                    'Unlimited Manual Accounts',
-                    'Unlimited MetaTrader Accounts',
+                    'Unlimited Manual & Import Accounts',
+                    'Connect 4 MetaApi Accounts',
                     'Unlimited Trade Records',
                     'Unlimited Strategies',
                     'Unlimited Notes',
@@ -156,7 +156,7 @@ let SubscriptionService = SubscriptionService_1 = class SubscriptionService {
                 razorpayPlanYearlyId: this.configService.get('RAZORPAY_PLAN_PREMIUM_YEARLY') || '',
                 limits: {
                     manualAccounts: 'unlimited',
-                    mt5Accounts: 'unlimited',
+                    mt5Accounts: 4,
                     trades: 'unlimited',
                     strategies: 'unlimited',
                     notes: 'unlimited',
@@ -251,6 +251,7 @@ let SubscriptionService = SubscriptionService_1 = class SubscriptionService {
             where: {
                 userId,
                 isActive: true,
+                metaApiAccountId: (0, typeorm_3.Not)((0, typeorm_3.IsNull)()),
             },
         });
         const notesCount = await this.noteRepository.count({

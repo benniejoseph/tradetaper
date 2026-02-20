@@ -27,7 +27,7 @@
 
 ### Deployment Info
 - **Revision**: tradetaper-backend-00171-584
-- **Service URL**: https://tradetaper-backend-326520250422.us-central1.run.app
+- **Service URL**: https://api.tradetaper.com
 - **Custom Domain**: https://api.tradetaper.com
 - **Redis URL Configured**: ✅ Yes
 

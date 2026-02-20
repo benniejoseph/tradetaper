@@ -356,7 +356,7 @@ Monthly:
    ```
 3. **Send test request** (observe cold start):
    ```bash
-   time curl https://tradetaper-backend-326520250422.us-central1.run.app/health
+   time curl https://api.tradetaper.com/health
    ```
 4. **Expected**: First request: 1-3s (cold start), subsequent: <100ms
 

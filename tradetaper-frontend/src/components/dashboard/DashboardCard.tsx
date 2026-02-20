@@ -9,11 +9,13 @@ interface DashboardCardProps {
   className?: string; // For additional styling/grid positioning
   icon?: IconType;
   showInfoIcon?: boolean;
+  infoContent?: string;
   showMenuIcon?: boolean;
   showTimeRangeSelector?: boolean;
   timeRangeOptions?: string[]; // e.g., ['7d', '1m', '3m']
   selectedTimeRange?: string;
   onTimeRangeChange?: (newRange: string) => void;
+  headerContent?: ReactNode;
   gridSpan?: string; // e.g., 'col-span-1', 'col-span-2'
   // Add any other common props these cards might need
 }
@@ -24,16 +26,18 @@ export default function DashboardCard({
   className = "",
   icon: IconComponent,
   showInfoIcon = false,
+  infoContent,
   showMenuIcon = false,
   showTimeRangeSelector = false,
   timeRangeOptions = ['7d', '1M', '3M', '1Y', 'All'], // Default options
   selectedTimeRange = '7d', // Default selected
   onTimeRangeChange,
+  headerContent,
   gridSpan = "col-span-1", // Default to single column span
 }: DashboardCardProps) {
 
   return (
-    <div className={`group relative bg-white/80 dark:bg-black/80 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 overflow-hidden ${gridSpan} ${className}`}>
+    <div className={`group relative bg-white/80 dark:bg-black/80 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 overflow-visible ${gridSpan} ${className}`}>
       
       {/* Gradient overlay for hover effect */}
       <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-emerald-600/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
@@ -54,13 +58,23 @@ export default function DashboardCard({
             {/* Removed the underline bar to save space and reduce clutter */}
           </div>
           {showInfoIcon && (
-            <button className="p-1 rounded-md text-gray-400 hover:text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 transition-all duration-200">
+            <button
+              className="group relative p-1 rounded-md text-gray-400 hover:text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 transition-all duration-200"
+              aria-label="Metric info"
+            >
               <FaInfoCircle className="w-3.5 h-3.5" />
+              {infoContent && (
+                <span className="pointer-events-none absolute left-1/2 bottom-full z-40 mb-2 w-64 -translate-x-1/2 rounded-lg border border-gray-900 bg-gray-900 p-2 text-[11px] leading-relaxed text-white shadow-2xl opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+                  {infoContent}
+                  <span className="absolute left-1/2 top-full h-2 w-2 -translate-x-1/2 -translate-y-1/2 rotate-45 bg-gray-900"></span>
+                </span>
+              )}
             </button>
           )}
         </div>
         
         <div className="flex items-center space-x-2">
+          {headerContent}
           {showTimeRangeSelector && (
             <div className="flex items-center bg-gray-100/80 dark:bg-[#141414]/80 p-0.5 rounded-lg backdrop-blur-sm">
               {timeRangeOptions.map(range => (
