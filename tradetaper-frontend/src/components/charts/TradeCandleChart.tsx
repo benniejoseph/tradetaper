@@ -25,6 +25,8 @@ interface TradeCandleChartProps {
   takeProfit?: number;
 }
 
+const MAX_POLL_RETRIES = 10; // Max 10 polls × 3s = 30s max wait
+
 const TradeCandleChart: React.FC<TradeCandleChartProps> = ({
   tradeId,
   symbol,
@@ -47,6 +49,8 @@ const TradeCandleChart: React.FC<TradeCandleChartProps> = ({
   const [timeframe, setTimeframe] = useState<string>('1m');
   // Polling for queued data
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const pollCountRef = useRef<number>(0);
+  const hasFetchedRef = useRef<boolean>(false);
 
   // Aggregate 1m candles into higher timeframes
   const aggregateCandles = (candles: CandlestickData[], targetTf: string): CandlestickData[] => {
@@ -118,47 +122,57 @@ const TradeCandleChart: React.FC<TradeCandleChartProps> = ({
   }, [rawCandles, timeframe]);
 
   const fetchCandles = async () => {
+    // Prevent duplicate initial fetches
+    if (hasFetchedRef.current && !pollIntervalRef.current) return;
+    hasFetchedRef.current = true;
+
     try {
       setLoading(true);
-      // We generally want '1m' or '5m' for execution accuracy
-      // Backend handles "queued" status
       const response = await api.get(`/trades/${tradeId}/candles?timeframe=${timeframe}`);
       
       const data = response.data;
       
       if (Array.isArray(data)) {
         if (data.length > 0 && 'status' in data[0] && data[0].status === 'queued') {
-          setStatusMessage(data[0].message);
-          // Start polling
+          pollCountRef.current += 1;
+          
+          if (pollCountRef.current >= MAX_POLL_RETRIES) {
+            // Stop polling after max retries
+            if (pollIntervalRef.current) {
+              clearInterval(pollIntervalRef.current);
+              pollIntervalRef.current = null;
+            }
+            setStatusMessage(null);
+            setError('Candle data not available — MT5 terminal may be offline.');
+            setLoading(false);
+            return;
+          }
+          
+          setStatusMessage(data[0].message || 'Waiting for candle data...');
+          // Start polling only if not already polling
           if (!pollIntervalRef.current) {
-            pollIntervalRef.current = setInterval(fetchCandles, 3000); // Poll every 3s
+            pollIntervalRef.current = setInterval(fetchCandles, 3000);
           }
         } else {
-            // Data received
+            // Data received — stop polling
             if (pollIntervalRef.current) {
                 clearInterval(pollIntervalRef.current);
                 pollIntervalRef.current = null;
             }
+            pollCountRef.current = 0;
 
-            // Transform data if needed (MT5 sends time as unix timestamp (seconds))
-            // Lightweight charts expects seconds for UTCTimestamp
             const formattedData = data
-              .filter((c: any) => c && c.time) // Filter out invalid candles
+              .filter((c: any) => c && c.time)
               .map((c: any) => {
                 let timestamp: number;
                 
                 if (typeof c.time === 'string') {
-                  // If string, try to parse as date
                   const date = new Date(c.time);
-                  if (isNaN(date.getTime())) {
-                    console.warn('Invalid date string in candle data:', c.time);
-                    return null;
-                  }
+                  if (isNaN(date.getTime())) return null;
                   timestamp = date.getTime() / 1000;
                 } else if (typeof c.time === 'number') {
                   timestamp = c.time;
                 } else {
-                  console.warn('Invalid time format in candle data:', c.time);
                   return null;
                 }
                 
@@ -170,23 +184,32 @@ const TradeCandleChart: React.FC<TradeCandleChartProps> = ({
                   close: Number(c.close),
                 };
               })
-              .filter((c): c is NonNullable<typeof c> => c !== null); // Remove nulls from failed conversions
+              .filter((c): c is NonNullable<typeof c> => c !== null);
 
-            // Sort by time just in case
             formattedData.sort((a, b) => (a.time as number) - (b.time as number));
             
             setRawCandles(formattedData);
             setStatusMessage(null);
         }
       } else {
-        setError("Invalid data format received");
+        setError('Invalid data format received');
       }
     } catch (err: any) {
-        if (err.response?.status === 404) {
-             setError("No candle data available yet.");
+        // Stop polling on any error
+        if (pollIntervalRef.current) {
+          clearInterval(pollIntervalRef.current);
+          pollIntervalRef.current = null;
+        }
+
+        const status = err.response?.status;
+        if (status === 404) {
+          setError('No candle data available for this trade.');
+        } else if (status === 502 || status === 503) {
+          setError('MT5 terminal is offline — candle data unavailable.');
+        } else if (status >= 500) {
+          setError('Server error loading chart data. Try again later.');
         } else {
-            console.error(err);
-            setError("Failed to load chart data");
+          setError('Failed to load chart data.');
         }
     } finally {
       setLoading(false);
@@ -194,6 +217,10 @@ const TradeCandleChart: React.FC<TradeCandleChartProps> = ({
   };
 
   useEffect(() => {
+    hasFetchedRef.current = false;
+    pollCountRef.current = 0;
+    setError(null);
+    setRawCandles([]);
     fetchCandles();
     
     return () => {
@@ -202,7 +229,7 @@ const TradeCandleChart: React.FC<TradeCandleChartProps> = ({
             pollIntervalRef.current = null;
         }
     };
-  }, [tradeId, timeframe]);
+  }, [tradeId]);
 
   useEffect(() => {
     if (!chartContainerRef.current || displayCandles.length === 0) return;
@@ -431,8 +458,6 @@ const TradeCandleChart: React.FC<TradeCandleChartProps> = ({
     );
   }
 
-  // Debug props for entry/exit
-  console.log('TradeCandleChart props:', { tradeId, symbol, entryPrice, exitPrice, entryDate, exitDate, direction, stopLoss, takeProfit });
 
   return (
     <div className="w-full bg-white dark:bg-[#0A0A0A] rounded-[2rem] border border-gray-200/50 dark:border-white/5 p-6 shadow-xl space-y-4">
