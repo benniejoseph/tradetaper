@@ -16,6 +16,7 @@ import { TerminalTradeDto } from '../dto/terminal.dto';
 import { TradesService } from '../../trades/trades.service';
 import { TradeDirection, TradeStatus, AssetType } from '../../types/enums';
 import { TerminalCommandsQueue } from './terminal-commands.queue';
+import { TradeProcessorService } from '../trade-processor.service';
 
 export interface FailedTradeJob {
   terminalId: string;
@@ -40,6 +41,7 @@ export class TerminalFailedTradesQueue implements OnModuleInit, OnModuleDestroy 
     @Inject(forwardRef(() => TradesService))
     private readonly tradesService: TradesService,
     private readonly terminalCommandsQueue: TerminalCommandsQueue,
+    private readonly tradeProcessorService: TradeProcessorService,
   ) {}
 
   async onModuleInit() {
@@ -180,11 +182,32 @@ export class TerminalFailedTradesQueue implements OnModuleInit, OnModuleDestroy 
       return;
     }
 
+    // Position-based trades: delegate to TradeProcessorService
     if (trade.positionId) {
-      await this.processPositionTradeRetry(terminal, trade);
+      const positionIdString = trade.positionId.toString();
+      const existingTrade = (await this.tradesService.findOneByExternalId(
+        terminal.account.userId,
+        positionIdString,
+        terminal.accountId,
+      )) ?? undefined;
+
+      if (trade.entryType === 0) {
+        await this.tradeProcessorService.processEntryDeal(
+          trade, existingTrade, terminal.accountId, terminal.account.userId, 'local_ea',
+        );
+      } else if (trade.entryType === 1) {
+        await this.tradeProcessorService.processExitDeal(
+          trade, existingTrade, terminal.accountId, terminal.account.userId, terminal.id, 'local_ea',
+        );
+      } else if (trade.entryType === 2) {
+        await this.tradeProcessorService.processInOutDeal(
+          trade, existingTrade, terminal.accountId, terminal.account.userId, terminal.id, 'local_ea',
+        );
+      }
       return;
     }
 
+    // Legacy ticket-based retry
     const existing = await this.tradesService.findDuplicate(
       terminal.account.userId,
       trade.symbol,
@@ -192,14 +215,12 @@ export class TerminalFailedTradesQueue implements OnModuleInit, OnModuleDestroy 
       trade.ticket,
     );
 
-    if (existing) {
-      return;
-    }
+    if (existing) return;
 
     await this.tradesService.create(
       {
         symbol: trade.symbol,
-        assetType: this.detectAssetType(trade.symbol),
+        assetType: this.tradeProcessorService.detectAssetType(trade.symbol),
         side: trade.type === 'BUY' ? TradeDirection.LONG : TradeDirection.SHORT,
         status: trade.closeTime ? TradeStatus.CLOSED : TradeStatus.OPEN,
         openTime: trade.openTime || new Date().toISOString(),
@@ -210,223 +231,9 @@ export class TerminalFailedTradesQueue implements OnModuleInit, OnModuleDestroy 
         commission: trade.commission,
         notes: `Auto-synced from MT5 retry. Ticket: ${trade.ticket}`,
         accountId: terminal.accountId,
+        syncSource: 'local_ea',
       },
       { id: terminal.account.userId } as any,
     );
-  }
-
-  private async processPositionTradeRetry(
-    terminal: TerminalInstance,
-    trade: TerminalTradeDto,
-  ): Promise<void> {
-    const normalizeTerminalTime = (
-      value?: string | number | Date,
-    ): string | undefined => {
-      if (value === undefined || value === null) return undefined;
-      if (value instanceof Date) return value.toISOString();
-      if (typeof value === 'number') {
-        const ms = value < 1e12 ? value * 1000 : value;
-        return new Date(ms).toISOString();
-      }
-      if (typeof value === 'string') {
-        const numeric = Number(value);
-        if (!Number.isNaN(numeric) && value.trim() !== '') {
-          const ms = numeric < 1e12 ? numeric * 1000 : numeric;
-          return new Date(ms).toISOString();
-        }
-        const parsed = new Date(value);
-        if (!Number.isNaN(parsed.getTime())) {
-          return parsed.toISOString();
-        }
-      }
-      return value;
-    };
-
-    const normalizedOpenTime = normalizeTerminalTime(trade.openTime);
-
-    const positionIdString = trade.positionId!.toString();
-    const existingTrade = await this.tradesService.findOneByExternalId(
-      terminal.account.userId,
-      positionIdString,
-      terminal.accountId,
-    );
-
-    const isEntry = trade.entryType === 0;
-    const isExit = trade.entryType === 1;
-
-    if (isEntry) {
-      if (existingTrade) {
-        const entryUpdates: Record<string, any> = {};
-
-        if (!existingTrade.openTime && normalizedOpenTime) {
-          entryUpdates.openTime = normalizedOpenTime;
-        }
-        if (!existingTrade.openPrice && trade.openPrice) {
-          entryUpdates.openPrice = trade.openPrice;
-        }
-        if (!existingTrade.quantity && trade.volume) {
-          entryUpdates.quantity = trade.volume;
-        }
-        if (!existingTrade.side && trade.type) {
-          entryUpdates.side =
-            trade.type === 'BUY' ? TradeDirection.LONG : TradeDirection.SHORT;
-        }
-        if (!existingTrade.stopLoss && trade.stopLoss) {
-          entryUpdates.stopLoss = trade.stopLoss;
-        }
-        if (!existingTrade.takeProfit && trade.takeProfit) {
-          entryUpdates.takeProfit = trade.takeProfit;
-        }
-        if (!existingTrade.contractSize && trade.contractSize) {
-          entryUpdates.contractSize = trade.contractSize;
-        }
-        if (!existingTrade.externalDealId && trade.ticket) {
-          entryUpdates.externalDealId = trade.ticket;
-        }
-        if (!existingTrade.mt5Magic && trade.magic) {
-          entryUpdates.mt5Magic = trade.magic;
-        }
-
-        if (Object.keys(entryUpdates).length > 0) {
-          await this.tradesService.updateFromSync(
-            existingTrade.id,
-            entryUpdates,
-          );
-        }
-        return;
-      }
-
-      await this.tradesService.create(
-        {
-          symbol: trade.symbol,
-          assetType: this.detectAssetType(trade.symbol),
-          side:
-            trade.type === 'BUY'
-              ? TradeDirection.LONG
-              : TradeDirection.SHORT,
-          status: TradeStatus.OPEN,
-          openTime: normalizedOpenTime || new Date().toISOString(),
-          openPrice: trade.openPrice || 0,
-          quantity: trade.volume || 0,
-          commission: trade.commission,
-          swap: trade.swap,
-          notes: `Auto-synced via Position ID retry: ${trade.positionId}`,
-          accountId: terminal.accountId,
-          stopLoss: trade.stopLoss,
-          takeProfit: trade.takeProfit,
-          externalId: positionIdString,
-          externalDealId: trade.ticket,
-          mt5Magic: trade.magic,
-          contractSize: trade.contractSize,
-        },
-        { id: terminal.account.userId } as any,
-      );
-      return;
-    }
-
-    if (isExit) {
-      if (existingTrade) {
-        await this.tradesService.update(
-          existingTrade.id,
-          {
-            status: TradeStatus.CLOSED,
-            closeTime: normalizedOpenTime,
-            closePrice: trade.openPrice,
-            profitOrLoss: trade.profit,
-            commission:
-              parseFloat(String(existingTrade.commission || 0)) +
-              (trade.commission || 0),
-            swap:
-              parseFloat(String(existingTrade.swap || 0)) +
-              (trade.swap || 0),
-            contractSize: trade.contractSize,
-          },
-          { id: terminal.account.userId } as any,
-          { changeSource: 'mt5' },
-        );
-
-        if (terminal.status === 'RUNNING') {
-          const entryTime = existingTrade.openTime
-            ? new Date(existingTrade.openTime)
-            : new Date();
-          const exitTime = normalizedOpenTime
-            ? new Date(normalizedOpenTime)
-            : new Date();
-          const bufferMs = 2 * 60 * 60 * 1000;
-          const startTime = new Date(entryTime.getTime() - bufferMs);
-          const endTime = new Date(exitTime.getTime() + bufferMs);
-          const formatMt5Time = (value: Date) =>
-            value
-              .toISOString()
-              .replace('T', ' ')
-              .substring(0, 19)
-              .replace(/-/g, '.');
-          const startStr = formatMt5Time(startTime);
-          const endStr = formatMt5Time(endTime);
-          const payload = `${trade.symbol},1m,${startStr},${endStr},${existingTrade.id}`;
-          await this.terminalCommandsQueue.queueCommand(
-            terminal.id,
-            'FETCH_CANDLES',
-            payload,
-          );
-        }
-        return;
-      }
-
-      await this.tradesService.create(
-        {
-          symbol: trade.symbol,
-          assetType: this.detectAssetType(trade.symbol),
-          side:
-            trade.type === 'SELL'
-              ? TradeDirection.LONG
-              : TradeDirection.SHORT,
-          status: TradeStatus.CLOSED,
-          openTime: normalizedOpenTime || new Date().toISOString(),
-          closeTime: normalizedOpenTime,
-          openPrice: 0,
-          closePrice: trade.openPrice,
-          quantity: trade.volume || 0,
-          profitOrLoss: trade.profit,
-          commission: trade.commission,
-          swap: trade.swap,
-          stopLoss: trade.stopLoss,
-          takeProfit: trade.takeProfit,
-          notes: `Orphan Exit Synced (Retry). Position ID: ${trade.positionId}`,
-          accountId: terminal.accountId,
-          externalId: positionIdString,
-          externalDealId: trade.ticket,
-          mt5Magic: trade.magic,
-        },
-        { id: terminal.account.userId } as any,
-      );
-    }
-  }
-
-  private detectAssetType(symbol: string): AssetType {
-    const upper = symbol.toUpperCase();
-    const forexPairs = ['EUR', 'USD', 'GBP', 'JPY', 'AUD', 'NZD', 'CAD', 'CHF'];
-    const forexMatch = forexPairs.filter((c) => upper.includes(c)).length >= 2;
-
-    if (forexMatch && upper.length <= 7) return AssetType.FOREX;
-    if (upper.includes('BTC') || upper.includes('ETH')) return AssetType.CRYPTO;
-    if (upper.includes('XAU') || upper.includes('GOLD'))
-      return AssetType.COMMODITIES;
-
-    const indices = [
-      'US30',
-      'DJ30',
-      'NAS100',
-      'NDX',
-      'SPX',
-      'SP500',
-      'GER30',
-      'DE30',
-      'UK100',
-      'JP225',
-    ];
-    if (indices.some((i) => upper.includes(i))) return AssetType.INDICES;
-
-    return AssetType.FOREX;
   }
 }

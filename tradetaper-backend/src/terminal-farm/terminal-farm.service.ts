@@ -33,37 +33,11 @@ import { TerminalTokenService } from './terminal-token.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { NotificationType, NotificationPriority } from '../notifications/entities/notification.entity';
 import { MT5PositionsGateway } from '../websocket/mt5-positions.gateway';
+import { TradeProcessorService } from './trade-processor.service';
 
 @Injectable()
 export class TerminalFarmService {
-  // ... (imports fixed)
-
   private readonly logger = new Logger(TerminalFarmService.name);
-
-  private normalizeTerminalTime(
-    value?: string | number | Date,
-  ): string | undefined {
-    if (value === undefined || value === null) return undefined;
-    if (value instanceof Date) {
-      return value.toISOString();
-    }
-    if (typeof value === 'number') {
-      const ms = value < 1e12 ? value * 1000 : value;
-      return new Date(ms).toISOString();
-    }
-    if (typeof value === 'string') {
-      const numeric = Number(value);
-      if (!Number.isNaN(numeric) && value.trim() !== '') {
-        const ms = numeric < 1e12 ? numeric * 1000 : numeric;
-        return new Date(ms).toISOString();
-      }
-      const parsed = new Date(value);
-      if (!Number.isNaN(parsed.getTime())) {
-        return parsed.toISOString();
-      }
-    }
-    return value;
-  }
 
   constructor(
     @InjectRepository(TerminalInstance)
@@ -79,6 +53,7 @@ export class TerminalFarmService {
     @Inject(forwardRef(() => NotificationsService))
     private readonly notificationsService: NotificationsService,
     private readonly mt5PositionsGateway: MT5PositionsGateway,
+    private readonly tradeProcessorService: TradeProcessorService,
   ) {}
 
   /**
@@ -446,7 +421,8 @@ export class TerminalFarmService {
 
   /**
    * Process trade sync from terminal EA
-   * OPTIMIZED: Uses batch queries to prevent N+1 problem
+   * REFACTORED: Delegates to TradeProcessorService for individual trade processing.
+   * Keeps batch prefetch logic and notification handling here.
    */
   async processTrades(
     data: TerminalSyncDto,
@@ -468,7 +444,7 @@ export class TerminalFarmService {
     let skipped = 0;
     let failed = 0;
 
-    // OPTIMIZATION: Batch fetch all external IDs upfront to prevent N+1 queries
+    // BATCH: Pre-fetch all existing trades by position ID to prevent N+1 queries
     const positionIds = data.trades
       .filter((t) => t.positionId)
       .map((t) => t.positionId!.toString());
@@ -483,7 +459,6 @@ export class TerminalFarmService {
       );
 
       const groupedByExternalId = new Map<string, any[]>();
-
       existingTrades.forEach((trade) => {
         if (!trade.externalId) return;
         const list = groupedByExternalId.get(trade.externalId) || [];
@@ -498,9 +473,7 @@ export class TerminalFarmService {
             externalId,
             terminal.accountId,
           );
-          if (merged) {
-            existingTradesMap.set(externalId, merged);
-          }
+          if (merged) existingTradesMap.set(externalId, merged);
         } else {
           existingTradesMap.set(externalId, trades[0]);
         }
@@ -514,212 +487,46 @@ export class TerminalFarmService {
     const duplicateCache = new Set<string>();
     for (const trade of data.trades) {
       try {
-        const normalizedOpenTime = this.normalizeTerminalTime(trade.openTime);
-        const normalizedCloseTime = this.normalizeTerminalTime(trade.closeTime);
-
-        // --- 1. Position-Based Logic (New) ---
+        // --- Position-Based Logic (delegates to TradeProcessorService) ---
         if (trade.positionId) {
           const positionIdString = trade.positionId.toString();
-
-          // Use pre-fetched map instead of individual query
           const existingTrade = existingTradesMap.get(positionIdString);
 
-          const isEntry = trade.entryType === 0; // DEAL_ENTRY_IN
-          const isExit = trade.entryType === 1; // DEAL_ENTRY_OUT
-
-          if (isEntry) {
-            // If it's an entry and we already have it, skip (idempotent)
-            if (existingTrade) {
-              const entryUpdates: Record<string, any> = {};
-
-              if (!existingTrade.openTime && normalizedOpenTime) {
-                entryUpdates.openTime = normalizedOpenTime;
-              }
-              if (!existingTrade.openPrice && trade.openPrice) {
-                entryUpdates.openPrice = trade.openPrice;
-              }
-              if (!existingTrade.quantity && trade.volume) {
-                entryUpdates.quantity = trade.volume;
-              }
-              if (!existingTrade.side && trade.type) {
-                entryUpdates.side =
-                  trade.type === 'BUY'
-                    ? TradeDirection.LONG
-                    : TradeDirection.SHORT;
-              }
-              if (!existingTrade.stopLoss && trade.stopLoss) {
-                entryUpdates.stopLoss = trade.stopLoss;
-              }
-              if (!existingTrade.takeProfit && trade.takeProfit) {
-                entryUpdates.takeProfit = trade.takeProfit;
-              }
-              if (!existingTrade.contractSize && trade.contractSize) {
-                entryUpdates.contractSize = trade.contractSize;
-              }
-              if (!existingTrade.externalDealId && trade.ticket) {
-                entryUpdates.externalDealId = trade.ticket;
-              }
-              if (!existingTrade.mt5Magic && trade.magic) {
-                entryUpdates.mt5Magic = trade.magic;
-              }
-
-              if (Object.keys(entryUpdates).length > 0) {
-                const updatedTrade = await this.tradesService.updateFromSync(
-                  existingTrade.id,
-                  entryUpdates,
-                );
-                existingTradesMap.set(positionIdString, updatedTrade);
-                imported++;
-              } else {
-                skipped++;
-              }
-              continue;
-            }
-
-            // Create New OPEN Trade
-            const createdTrade = await this.tradesService.create(
-              {
-                symbol: trade.symbol,
-                assetType: this.detectAssetType(trade.symbol),
-                side:
-                  trade.type === 'BUY'
-                    ? TradeDirection.LONG
-                    : TradeDirection.SHORT,
-                status: TradeStatus.OPEN, // Explicitly OPEN
-                openTime: normalizedOpenTime || new Date().toISOString(),
-                // No close time yet
-                openPrice: trade.openPrice || 0,
-                // No close price yet
-                quantity: trade.volume || 0,
-                commission: trade.commission,
-                swap: trade.swap,
-                notes: `Auto-synced via Position ID: ${trade.positionId}`,
-                accountId: terminal.accountId,
-                stopLoss: trade.stopLoss,
-                takeProfit: trade.takeProfit,
-                externalId: positionIdString, // The common link
-                externalDealId: trade.ticket, // The entry ticket
-                mt5Magic: trade.magic,
-                contractSize: trade.contractSize,
-              },
-              { id: terminal.account.userId } as any,
+          let result;
+          if (trade.entryType === 0) {
+            // DEAL_ENTRY_IN
+            result = await this.tradeProcessorService.processEntryDeal(
+              trade, existingTrade, terminal.accountId, terminal.account.userId, 'local_ea',
             );
-            existingTradesMap.set(positionIdString, createdTrade);
-            imported++;
-          } else if (isExit) {
-            // If it's an exit, we need to close the existing trade
-            if (existingTrade) {
-              // Only update if it's not already closed (or if we want to update the close info)
-              // OR if it's missing contractSize (Self-healing for legacy trades)
-              if (
-                existingTrade.status !== TradeStatus.CLOSED ||
-                !existingTrade.contractSize
-              ) {
-                const updatedTrade = await this.tradesService.update(
-                  existingTrade.id, // We need ID, assuming findOneByExternalId returns broad entity or we fetch it
-                  {
-                    status: TradeStatus.CLOSED,
-                    closeTime: normalizedOpenTime, // MT5 "Time" is the event time
-                    closePrice: trade.openPrice, // MT5 Deal Price is the execution price
-                    profitOrLoss: trade.profit, // Final profit is on the exit deal
-                    commission:
-                      parseFloat(String(existingTrade.commission || 0)) +
-                      (trade.commission || 0), // Accumulate
-                    swap:
-                      parseFloat(String(existingTrade.swap || 0)) +
-                      (trade.swap || 0), // Accumulate
-                    contractSize: trade.contractSize,
-                    // We typically don't update SL/TP on close, but we could if the exit deal has it (unlikely helpful vs entry)
-                  },
-                  { id: terminal.account.userId } as any,
-                  { changeSource: 'mt5' },
-                );
-                existingTradesMap.set(positionIdString, updatedTrade);
-                imported++;
-
-                // Queue FETCH_CANDLES command for this closed trade (2h before entry, 2h after exit)
-                const entryTime = existingTrade.openTime
-                  ? new Date(existingTrade.openTime)
-                  : new Date();
-                const exitTime = normalizedOpenTime
-                  ? new Date(normalizedOpenTime)
-                  : new Date();
-                const bufferMs = 2 * 60 * 60 * 1000; // 2 hours
-
-                const startTime = new Date(entryTime.getTime() - bufferMs);
-                const endTime = new Date(exitTime.getTime() + bufferMs);
-
-                const formatMt5Time = (value: Date) =>
-                  value
-                    .toISOString()
-                    .replace('T', ' ')
-                    .substring(0, 19)
-                    .replace(/-/g, '.');
-                const startStr = formatMt5Time(startTime);
-                const endStr = formatMt5Time(endTime);
-                const payload = `${trade.symbol},1m,${startStr},${endStr},${existingTrade.id}`;
-
-                this.queueCommand(terminal.id, 'FETCH_CANDLES', payload);
-                this.logger.debug(
-                  `Queued FETCH_CANDLES for closed trade ${existingTrade.id}`,
-                );
-              } else {
-                skipped++; // Already closed
-              }
-            } else {
-              // Edge Case: Exit arrived but we missed the Entry?
-              // Create a standalone CLOSED trade so user sees the PnL
-              const createdTrade = await this.tradesService.create(
-                {
-                  symbol: trade.symbol,
-                  assetType: this.detectAssetType(trade.symbol),
-                  // If Exit is SELL, Position was BUY.
-                  // actually, MT5 Exit Deal Type is the direction of the *closing* order?
-                  // No, DEAL_TYPE_BUY means we bought. If we bought to close, we were Short.
-                  // This is tricky without knowing the specific MT5 Deal Type semantics for 'entry out'.
-                  // Usually: Exit Deal Type is opposite to Position Type.
-                  // Safest assumption: If EntryType=OUT and Type=SELL, we Sold to Close -> Position was LONG.
-                  // If EntryType=OUT and Type=BUY, we Bought to Close -> Position was SHORT.
-
-                  // Let's invert the side for the record if it's an orphan exit
-                  side:
-                    trade.type === 'SELL'
-                      ? TradeDirection.LONG
-                      : TradeDirection.SHORT,
-
-                  status: TradeStatus.CLOSED,
-                  openTime: normalizedOpenTime || new Date().toISOString(), // Use execution time as fallback
-                  closeTime: normalizedOpenTime,
-                  openPrice: 0, // Unknown
-                  closePrice: trade.openPrice,
-                  quantity: trade.volume || 0,
-                  profitOrLoss: trade.profit,
-                  commission: trade.commission,
-                  swap: trade.swap,
-                  stopLoss: trade.stopLoss,
-                  takeProfit: trade.takeProfit,
-                  notes: `Orphan Exit Synced (Entry missing). Position ID: ${trade.positionId}`,
-                  accountId: terminal.accountId,
-                  externalId: positionIdString,
-                  externalDealId: trade.ticket, // Exit ticket
-                  mt5Magic: trade.magic,
-                },
-                { id: terminal.account.userId } as any,
-              );
-              existingTradesMap.set(positionIdString, createdTrade);
-              imported++;
-            }
+          } else if (trade.entryType === 1) {
+            // DEAL_ENTRY_OUT
+            result = await this.tradeProcessorService.processExitDeal(
+              trade, existingTrade, terminal.accountId, terminal.account.userId, terminal.id, 'local_ea',
+            );
+          } else if (trade.entryType === 2) {
+            // DEAL_ENTRY_INOUT (partial close / reverse)
+            result = await this.tradeProcessorService.processInOutDeal(
+              trade, existingTrade, terminal.accountId, terminal.account.userId, terminal.id, 'local_ea',
+            );
+          } else {
+            // Unknown entryType — skip
+            skipped++;
+            continue;
           }
-          continue; // Done with this trade (Position Logic)
-        }
 
-        // --- 2. Legacy Ticket-Based Logic (Fallback) ---
-        // Check for duplicate by ticket
-        const duplicateKey = `${trade.ticket}:${trade.symbol}:${normalizedOpenTime || ''}`;
-        if (duplicateCache.has(duplicateKey)) {
-          skipped++;
+          if (result.trade) existingTradesMap.set(positionIdString, result.trade);
+
+          if (result.action === 'created' || result.action === 'updated') imported++;
+          else if (result.action === 'skipped' || result.action === 'conflict') skipped++;
+
           continue;
         }
+
+        // --- Legacy Ticket-Based Logic (fallback for trades without positionId) ---
+        const normalizedOpenTime = this.tradeProcessorService.normalizeTerminalTime(trade.openTime);
+        const normalizedCloseTime = this.tradeProcessorService.normalizeTerminalTime(trade.closeTime);
+        const duplicateKey = `${trade.ticket}:${trade.symbol}:${normalizedOpenTime || ''}`;
+        if (duplicateCache.has(duplicateKey)) { skipped++; continue; }
         duplicateCache.add(duplicateKey);
 
         const existing = await this.tradesService.findDuplicate(
@@ -728,19 +535,13 @@ export class TerminalFarmService {
           new Date(normalizedOpenTime || Date.now()),
           trade.ticket,
         );
+        if (existing) { skipped++; continue; }
 
-        if (existing) {
-          skipped++;
-          continue;
-        }
-
-        // Create trade (Legacy)
         await this.tradesService.create(
           {
             symbol: trade.symbol,
-            assetType: this.detectAssetType(trade.symbol),
-            side:
-              trade.type === 'BUY' ? TradeDirection.LONG : TradeDirection.SHORT,
+            assetType: this.tradeProcessorService.detectAssetType(trade.symbol),
+            side: trade.type === 'BUY' ? TradeDirection.LONG : TradeDirection.SHORT,
             status: trade.closeTime ? TradeStatus.CLOSED : TradeStatus.OPEN,
             openTime: normalizedOpenTime || new Date().toISOString(),
             closeTime: normalizedCloseTime,
@@ -750,10 +551,10 @@ export class TerminalFarmService {
             commission: trade.commission,
             notes: `Auto-synced from MT5. Ticket: ${trade.ticket}`,
             accountId: terminal.accountId,
+            syncSource: 'local_ea',
           },
           { id: terminal.account.userId } as any,
         );
-
         imported++;
       } catch (error) {
         this.logger.error(
@@ -762,12 +563,9 @@ export class TerminalFarmService {
         );
         failed++;
         await this.terminalFailedTradesQueue.queueFailedTrade(
-          terminal.id,
-          trade,
-          error.message,
+          terminal.id, trade, error.message,
         );
 
-        // Send MT5_SYNC_ERROR notification
         try {
           await this.notificationsService.send({
             userId: terminal.account.userId,
@@ -846,7 +644,7 @@ export class TerminalFarmService {
 
     const normalizedPositions = data.positions.map((position) => ({
       ...position,
-      openTime: this.normalizeTerminalTime(position.openTime),
+      openTime: this.tradeProcessorService.normalizeTerminalTime(position.openTime),
       stopLoss: normalizeTargetValue(position.stopLoss),
       takeProfit: normalizeTargetValue(position.takeProfit),
     }));
@@ -1102,36 +900,6 @@ export class TerminalFarmService {
     }
   }
 
-  /**
-   * Detect asset type from symbol
-   */
-  private detectAssetType(symbol: string): AssetType {
-    const upper = symbol.toUpperCase();
-    const forexPairs = ['EUR', 'USD', 'GBP', 'JPY', 'AUD', 'NZD', 'CAD', 'CHF'];
-    const forexMatch = forexPairs.filter((c) => upper.includes(c)).length >= 2;
-
-    if (forexMatch && upper.length <= 7) return AssetType.FOREX;
-    if (upper.includes('BTC') || upper.includes('ETH')) return AssetType.CRYPTO;
-    if (upper.includes('XAU') || upper.includes('GOLD'))
-      return AssetType.COMMODITIES;
-
-    // Indices Common Symbols
-    const indices = [
-      'US30',
-      'DJ30',
-      'NAS100',
-      'NDX',
-      'SPX',
-      'SP500',
-      'GER30',
-      'DE30',
-      'UK100',
-      'JP225',
-    ];
-    if (indices.some((i) => upper.includes(i))) return AssetType.INDICES;
-
-    return AssetType.FOREX;
-  }
 
   /**
    * Map entity to response DTO

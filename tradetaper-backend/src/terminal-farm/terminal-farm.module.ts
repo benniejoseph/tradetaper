@@ -1,7 +1,7 @@
 // src/terminal-farm/terminal-farm.module.ts
 import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { TerminalInstance } from './entities/terminal-instance.entity';
 import { TerminalFarmService } from './terminal-farm.service';
@@ -14,12 +14,19 @@ import { TerminalCommandsQueue } from './queue/terminal-commands.queue';
 import { TerminalFailedTradesQueue } from './queue/terminal-failed-trades.queue';
 import { TerminalTokenService } from './terminal-token.service';
 import { TerminalHealthController } from './terminal-health.controller';
+import { TradeProcessorService } from './trade-processor.service';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([TerminalInstance, MT5Account]),
     ConfigModule,
-    JwtModule.register({}),
+    JwtModule.registerAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => ({
+        secret: configService.get<string>('JWT_SECRET', 'test-secret-key-change-in-prod'),
+      }),
+    }),
     forwardRef(() => TradesModule),
     forwardRef(() => NotificationsModule),
   ],
@@ -33,12 +40,14 @@ import { TerminalHealthController } from './terminal-health.controller';
     TerminalCommandsQueue,
     TerminalFailedTradesQueue,
     TerminalTokenService,
+    TradeProcessorService,
   ],
   exports: [
     TerminalFarmService,
     TerminalCommandsQueue,
     TerminalFailedTradesQueue,
     TerminalTokenService,
+    TradeProcessorService,
   ],
 })
 export class TerminalFarmModule {}

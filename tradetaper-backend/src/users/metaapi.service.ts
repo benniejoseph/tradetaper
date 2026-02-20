@@ -200,7 +200,9 @@ export class MetaApiService {
         magic: 1000,
         reliability: 'regular' as const,
         tags: ['TradeTaper-User'],
-        region: this.configService.get<string>('METAAPI_REGION', 'new-york'),
+        keywords: [credentials.server.split('-')[0]], // Ensure MetaApi can resolve the server broker
+        platform: 'mt5', // Required when provisioning profile is not provided
+        type: 'cloud-g2',
         baseCurrency: this.configService.get<string>(
           'METAAPI_BASE_CURRENCY',
           'USD',
@@ -231,7 +233,7 @@ export class MetaApiService {
 
       return {
         metaApiAccountId: metaApiAccount.id,
-        provisioningProfileId: profile.id,
+        provisioningProfileId: profile?.id,
         deploymentState: metaApiAccount.state,
         region: metaApiAccount.region || 'new-york',
       };

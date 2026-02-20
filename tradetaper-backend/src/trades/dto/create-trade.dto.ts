@@ -159,6 +159,10 @@ export class CreateTradeDto {
   @IsNumber()
   contractSize?: number;
 
+  @IsOptional()
+  @IsString()
+  syncSource?: 'local_ea' | 'metaapi' | 'manual';
+
   // ========== PHASE 1: Psychology & Emotion Tracking ==========
   @IsOptional()
   @IsEnum(EmotionalState)

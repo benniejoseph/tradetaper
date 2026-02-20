@@ -31,7 +31,7 @@ export default function QuickActionCards() {
         {/* Journal Card */}
         <div 
           className="relative bg-gradient-to-br from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white rounded-xl p-4 overflow-hidden cursor-pointer transition-all duration-200 hover:scale-[1.01] shadow-md hover:shadow-lg"
-          onClick={() => window.location.href = '/trades'}
+          onClick={() => window.location.href = '/journal'}
         >
           <div className="relative z-10 flex items-center justify-between">
              <div className="flex items-center space-x-3">

@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 // src/config/navigation.ts
 import { IconType } from 'react-icons';
-import { FaTachometerAlt, FaListAlt, FaChartBar, FaPenSquare, FaCog, FaBook, FaCalendarAlt, FaChartPie, FaBalanceScale, FaUsers, FaCreditCard, FaDollarSign, FaBullseye, FaStickyNote, FaChartLine, FaFlask, FaBell, FaBolt, FaServer, FaUserCircle } from 'react-icons/fa';
+import { FaTachometerAlt, FaListAlt, FaChartBar, FaPenSquare, FaCog, FaBook, FaCalendarAlt, FaChartPie, FaBalanceScale, FaUsers, FaCreditCard, FaDollarSign, FaBullseye, FaStickyNote, FaChartLine, FaFlask, FaBell, FaBolt, FaServer, FaUserCircle, FaDesktop } from 'react-icons/fa';
 
 export interface NavItem {
   label: string;
@@ -29,7 +29,8 @@ export const userNavItems: NavItem[] = [
 
 export const settingsNavItems: NavItem[] = [
   { label: 'Manual Account / Import', href: '/settings/accounts', icon: FaUsers },
-  { label: 'Connect MT5', href: '/settings/mt5-accounts', icon: FaServer }, 
+  { label: 'Cloud MT5 (MetaApi)', href: '/settings/mt5-accounts', icon: FaServer }, 
+  { label: 'Local MT5 Sync', href: '/settings/local-mt5', icon: FaDesktop },
   { label: 'Billing', href: '/billing', icon: FaCreditCard }, // Moved Billing here
 ];
 

@@ -204,6 +204,10 @@ export class Trade {
   @Column({ type: 'jsonb', nullable: true })
   executionCandles?: Record<string, unknown>[]; // Array of { time, open, high, low, close }
 
+  // Track which sync mechanism created/owns this trade
+  @Column({ type: 'varchar', length: 20, nullable: true, default: 'manual' })
+  syncSource?: 'local_ea' | 'metaapi' | 'manual';
+
   // ========== PHASE 1: Psychology & Emotion Tracking ==========
   @Column({
     type: 'enum',

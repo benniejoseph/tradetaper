@@ -847,6 +847,7 @@ export class MT5AccountsService {
           externalDealId: deal.id,
           mt5Magic: deal.magic,
           contractSize,
+          syncSource: 'metaapi',
         },
         { id: account.userId } as any,
       );
@@ -900,6 +901,7 @@ export class MT5AccountsService {
           externalDealId: deal.id,
           mt5Magic: deal.magic,
           contractSize,
+          syncSource: 'metaapi',
         },
         { id: account.userId } as any,
       );
