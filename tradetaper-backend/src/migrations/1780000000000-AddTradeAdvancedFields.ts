@@ -57,7 +57,7 @@ export class AddTradeAdvancedFields1780000000000
     ) => {
       await queryRunner.query(`
         DO $$ BEGIN
-          ALTER TABLE "trade" ADD COLUMN "${col}" ${type} ${extra};
+          ALTER TABLE "trades" ADD COLUMN "${col}" ${type} ${extra};
         EXCEPTION WHEN duplicate_column THEN NULL;
         END $$;
       `);
@@ -122,7 +122,7 @@ export class AddTradeAdvancedFields1780000000000
 
     for (const col of cols) {
       await queryRunner.query(`
-        ALTER TABLE "trade" DROP COLUMN IF EXISTS "${col}";
+        ALTER TABLE "trades" DROP COLUMN IF EXISTS "${col}";
       `);
     }
 
