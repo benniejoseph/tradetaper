@@ -1,6 +1,6 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class AddTradeAdvancedFields1708463900000
+export class AddTradeAdvancedFields1780000000000
   implements MigrationInterface
 {
   public async up(queryRunner: QueryRunner): Promise<void> {
