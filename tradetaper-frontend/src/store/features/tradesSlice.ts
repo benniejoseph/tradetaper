@@ -154,6 +154,8 @@ function transformFrontendToApiPayload(frontendPayload: CreateTradePayload | Upd
     }
   };
 
+  const sanitizeVal = (val: any) => val === '' ? undefined : val;
+
   return {
     assetType: frontendPayload.assetType,
     symbol: frontendPayload.symbol,
@@ -178,32 +180,32 @@ function transformFrontendToApiPayload(frontendPayload: CreateTradePayload | Upd
     accountId: frontendPayload.accountId,
     isStarred: frontendPayload.isStarred,
     // Psychology & Emotion fields
-    emotionBefore: (frontendPayload as any).emotionBefore,
-    emotionDuring: (frontendPayload as any).emotionDuring,
-    emotionAfter: (frontendPayload as any).emotionAfter,
-    confidenceLevel: (frontendPayload as any).confidenceLevel,
-    followedPlan: (frontendPayload as any).followedPlan,
-    ruleViolations: (frontendPayload as any).ruleViolations,
+    emotionBefore: sanitizeVal((frontendPayload as any).emotionBefore),
+    emotionDuring: sanitizeVal((frontendPayload as any).emotionDuring),
+    emotionAfter: sanitizeVal((frontendPayload as any).emotionAfter),
+    confidenceLevel: sanitizeVal((frontendPayload as any).confidenceLevel),
+    followedPlan: sanitizeVal((frontendPayload as any).followedPlan),
+    ruleViolations: sanitizeVal((frontendPayload as any).ruleViolations),
     // Performance Metrics
-    plannedRR: (frontendPayload as any).plannedRR,
-    executionGrade: (frontendPayload as any).executionGrade,
+    plannedRR: sanitizeVal((frontendPayload as any).plannedRR),
+    executionGrade: sanitizeVal((frontendPayload as any).executionGrade),
     // Market Context
-    marketCondition: (frontendPayload as any).marketCondition,
-    timeframe: (frontendPayload as any).timeframe,
-    htfBias: (frontendPayload as any).htfBias,
-    newsImpact: (frontendPayload as any).newsImpact,
+    marketCondition: sanitizeVal((frontendPayload as any).marketCondition),
+    timeframe: sanitizeVal((frontendPayload as any).timeframe),
+    htfBias: sanitizeVal((frontendPayload as any).htfBias),
+    newsImpact: sanitizeVal((frontendPayload as any).newsImpact),
     // Pre-Trade Checklist
-    entryReason: (frontendPayload as any).entryReason,
-    confirmations: (frontendPayload as any).confirmations,
-    hesitated: (frontendPayload as any).hesitated,
-    preparedToLose: (frontendPayload as any).preparedToLose,
+    entryReason: sanitizeVal((frontendPayload as any).entryReason),
+    confirmations: sanitizeVal((frontendPayload as any).confirmations),
+    hesitated: sanitizeVal((frontendPayload as any).hesitated),
+    preparedToLose: sanitizeVal((frontendPayload as any).preparedToLose),
     // Environmental Factors
-    sleepQuality: (frontendPayload as any).sleepQuality,
-    energyLevel: (frontendPayload as any).energyLevel,
-    distractionLevel: (frontendPayload as any).distractionLevel,
-    tradingEnvironment: (frontendPayload as any).tradingEnvironment,
+    sleepQuality: sanitizeVal((frontendPayload as any).sleepQuality),
+    energyLevel: sanitizeVal((frontendPayload as any).energyLevel),
+    distractionLevel: sanitizeVal((frontendPayload as any).distractionLevel),
+    tradingEnvironment: sanitizeVal((frontendPayload as any).tradingEnvironment),
     // Strategy
-    strategyId: (frontendPayload as any).strategyId,
+    strategyId: sanitizeVal((frontendPayload as any).strategyId),
     // Financial
     swap: (frontendPayload as any).swap,
     profitOrLoss: (frontendPayload as any).profitOrLoss,
