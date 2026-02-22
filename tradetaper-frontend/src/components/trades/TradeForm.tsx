@@ -591,6 +591,8 @@ export default function TradeForm({ initialData, isEditMode = false, onFormSubmi
                     <div className="h-8 w-px bg-zinc-200 dark:bg-white/10 hidden md:block"></div>
                     
                     <ToggleChip label="Followed Plan" value={formData.followedPlan} onChange={(v) => setFormData((p: any) => ({ ...p, followedPlan: v }))} />
+                    <ToggleChip label="Hesitated" value={formData.hesitated} onChange={(v) => setFormData((p: any) => ({ ...p, hesitated: v }))} />
+                    <ToggleChip label="Prepared to Lose" value={formData.preparedToLose} onChange={(v) => setFormData((p: any) => ({ ...p, preparedToLose: v }))} />
                  </div>
               </div>
 
