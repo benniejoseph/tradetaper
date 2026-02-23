@@ -369,124 +369,159 @@ export default function AnalyticsPage() {
           </div>
         )}
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
-          <WinRateCard
-            winRate={dashboardStats?.winRate || 0}
-            averageRR={dashboardStats?.averageRR || 0}
-            timeRange={timeRange}
-            onTimeRangeChange={setTimeRange}
-          />
+        {/* Section 1: Overview */}
+        <div className="mb-10">
+          <div className="flex items-center gap-2 mb-4">
+            <FaTachometerAlt className="w-5 h-5 text-emerald-500" />
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white">Performance Overview</h2>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
+            <PerformanceStatsCard
+              trades={filteredTrades || []}
+              currentBalance={dashboardStats?.currentBalance || 0}
+              timeRange={timeRange}
+              onTimeRangeChange={setTimeRange}
+            />
+            <WinRateCard
+              winRate={dashboardStats?.winRate || 0}
+              averageRR={dashboardStats?.averageRR || 0}
+              timeRange={timeRange}
+              onTimeRangeChange={setTimeRange}
+            />
+            <TradeStatisticsCard
+              closedTrades={dashboardStats?.closedTrades || 0}
+              winningTrades={dashboardStats?.winningTrades || 0}
+              losingTrades={dashboardStats?.losingTrades || 0}
+              breakevenTrades={dashboardStats?.breakevenTrades || 0}
+              avgTradesPerDay={avgTradesPerDay}
+              timeRange={timeRange}
+              onTimeRangeChange={setTimeRange}
+            />
+            <TradingCostsCard
+              totalCommissions={dashboardStats?.totalCommissions || 0}
+              closedTrades={dashboardStats?.closedTrades || 0}
+              totalNetPnl={dashboardStats?.totalNetPnl || 0}
+              avgFeesPerDay={avgFeesPerDay}
+              timeRange={timeRange}
+              onTimeRangeChange={setTimeRange}
+            />
+          </div>
+        </div>
 
-          <TradingCostsCard
-            totalCommissions={dashboardStats?.totalCommissions || 0}
-            closedTrades={dashboardStats?.closedTrades || 0}
-            totalNetPnl={dashboardStats?.totalNetPnl || 0}
-            avgFeesPerDay={avgFeesPerDay}
-            timeRange={timeRange}
-            onTimeRangeChange={setTimeRange}
-          />
+        {/* Section 2: Equity & Drawdown */}
+        <div className="mb-10">
+          <div className="flex items-center gap-2 mb-4">
+            <FaChartLine className="w-5 h-5 text-indigo-500" />
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white">Equity & Drawdown</h2>
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-6 gap-4">
+            <div className="lg:col-span-4">
+              <AdvancedPerformanceChart data={chartData} />
+            </div>
+            <div className="lg:col-span-2 contents">
+              <DrawdownCurveCard
+                data={drawdownSeries}
+                timeRange={timeRange}
+                onTimeRangeChange={setTimeRange}
+              />
+            </div>
+          </div>
+        </div>
 
-          <TradeStatisticsCard
-            closedTrades={dashboardStats?.closedTrades || 0}
-            winningTrades={dashboardStats?.winningTrades || 0}
-            losingTrades={dashboardStats?.losingTrades || 0}
-            breakevenTrades={dashboardStats?.breakevenTrades || 0}
-            avgTradesPerDay={avgTradesPerDay}
-            timeRange={timeRange}
-            onTimeRangeChange={setTimeRange}
-          />
+        {/* Section 3: Consistency & Rolling Stats */}
+        <div className="mb-10">
+          <div className="flex items-center gap-2 mb-4">
+            <FaChartLine className="w-5 h-5 text-blue-500" />
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white">Rolling Consistency (Last {rollingWindowSize} Trades)</h2>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
+            <RollingReturnCard
+              data={rollingReturns}
+              timeRange={timeRange}
+              onTimeRangeChange={setTimeRange}
+              windowSize={rollingWindowSize}
+              onWindowSizeChange={setRollingWindowSize}
+            />
+            <RollingProfitFactorCard
+              data={rollingProfitFactor}
+              timeRange={timeRange}
+              onTimeRangeChange={setTimeRange}
+              windowSize={rollingWindowSize}
+            />
+            <RollingExpectancyCard
+              data={rollingExpectancy}
+              timeRange={timeRange}
+              onTimeRangeChange={setTimeRange}
+              windowSize={rollingWindowSize}
+            />
+          </div>
+        </div>
 
-          <DrawdownCurveCard
-            data={drawdownSeries}
-            timeRange={timeRange}
-            onTimeRangeChange={setTimeRange}
-          />
+        {/* Section 4: Performance Analysis */}
+        <div className="mb-10">
+          <div className="flex items-center gap-2 mb-4">
+            <FaListOl className="w-5 h-5 text-purple-500" />
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white">Detailed Analysis</h2>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
+            <div className="lg:col-span-6">
+              <PairsPerformanceTable data={pairsPerformance} />
+            </div>
+            <LongShortAnalysisCard trades={filteredTrades || []} />
+            <MaeMfeScatterCard
+              pipsData={maeMfePipsData}
+              priceData={maeMfePriceData}
+              timeRange={timeRange}
+              onTimeRangeChange={setTimeRange}
+            />
+          </div>
+        </div>
 
-          <PerformanceStatsCard
-            trades={filteredTrades || []}
-            currentBalance={dashboardStats?.currentBalance || 0}
-            timeRange={timeRange}
-            onTimeRangeChange={setTimeRange}
-          />
+        {/* Section 5: Activity & Logs */}
+        <div className="mb-10">
+          <div className="flex items-center gap-2 mb-4">
+            <FaCalendarAlt className="w-5 h-5 text-amber-500" />
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white">Trading Activity</h2>
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-6 gap-4">
+            <DashboardCard title="Top Performing Trades" icon={FaListOl} gridSpan="lg:col-span-3" showInfoIcon>
+              <TopTradesByReturn trades={filteredTrades || []} topN={5} />
+            </DashboardCard>
+            
+            <DashboardCard title="Trading Activity Heatmap" icon={FaCalendarAlt} gridSpan="lg:col-span-3">
+              <TradesCalendarHeatmap trades={filteredTrades || []} onDateClick={handleHeatmapDateClick} />
+            </DashboardCard>
 
-          <RollingReturnCard
-            data={rollingReturns}
-            timeRange={timeRange}
-            onTimeRangeChange={setTimeRange}
-            windowSize={rollingWindowSize}
-            onWindowSizeChange={setRollingWindowSize}
-          />
+            <DashboardCard title="P&L Calendar" icon={FaCalendarDay} gridSpan="lg:col-span-6" showInfoIcon>
+              <DashboardPnlCalendar trades={filteredTrades || []} />
+            </DashboardCard>
+          </div>
+        </div>
 
-          <RollingProfitFactorCard
-            data={rollingProfitFactor}
-            timeRange={timeRange}
-            onTimeRangeChange={setTimeRange}
-            windowSize={rollingWindowSize}
-          />
+        {/* Section 6: AI Market Intelligence */}
+        {analyticsData && (
+          <div className="mb-10">
+            <FeatureGate feature="advancedAnalytics" blur={true}>
+              <div className="flex items-center gap-2 mb-4">
+                <FaBrain className="text-indigo-500 w-5 h-5" />
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white">Market Intelligence</h2>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
+                <DashboardCard title="Performance by Hour" icon={FaClock} gridSpan="lg:col-span-6">
+                  <HourlyPerformanceChart data={analyticsData.hourlyPerformance} />
+                </DashboardCard>
 
-          <RollingExpectancyCard
-            data={rollingExpectancy}
-            timeRange={timeRange}
-            onTimeRangeChange={setTimeRange}
-            windowSize={rollingWindowSize}
-          />
+                <DashboardCard title="Session Performance" icon={FaGlobeAmericas} gridSpan="lg:col-span-3">
+                  <SessionBreakdownChart data={analyticsData.sessionPerformance} />
+                </DashboardCard>
 
-          <MaeMfeScatterCard
-            pipsData={maeMfePipsData}
-            priceData={maeMfePriceData}
-            timeRange={timeRange}
-            onTimeRangeChange={setTimeRange}
-          />
-
-          <DashboardCard title="Top Performing Trades" icon={FaListOl} gridSpan="lg:col-span-3" showInfoIcon>
-            <TopTradesByReturn trades={filteredTrades || []} topN={5} />
-          </DashboardCard>
-
-          <LongShortAnalysisCard trades={filteredTrades || []} />
-
-          <DashboardCard title="P&L Calendar" icon={FaCalendarDay} gridSpan="lg:col-span-6" showInfoIcon>
-            <DashboardPnlCalendar trades={filteredTrades || []} />
-          </DashboardCard>
-
-          <div className="lg:col-span-6 contents">
-            <FeatureGate feature="advancedAnalytics" blur={true} className="lg:col-span-6">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4 lg:col-span-6 w-full">
-                <div className="lg:col-span-6">
-                  <AdvancedPerformanceChart data={chartData} />
-                </div>
-
-                <div className="lg:col-span-6">
-                  <PairsPerformanceTable data={pairsPerformance} />
-                </div>
-
-                {analyticsData && (
-                  <>
-                    <div className="lg:col-span-6 flex items-center gap-2 mt-4 mb-2">
-                      <FaBrain className="text-indigo-500 w-5 h-5" />
-                      <h2 className="text-xl font-bold text-gray-900 dark:text-white">Market Intelligence</h2>
-                    </div>
-
-                    <DashboardCard title="Performance by Hour" icon={FaClock} gridSpan="lg:col-span-6">
-                      <HourlyPerformanceChart data={analyticsData.hourlyPerformance} />
-                    </DashboardCard>
-
-                    <DashboardCard title="Session Performance" icon={FaGlobeAmericas} gridSpan="lg:col-span-3">
-                      <SessionBreakdownChart data={analyticsData.sessionPerformance} />
-                    </DashboardCard>
-
-                    <DashboardCard title="Holding Time vs PnL" icon={FaHourglassHalf} gridSpan="lg:col-span-3">
-                      <HoldingTimeScatter data={analyticsData.holdingTimeAnalysis} />
-                    </DashboardCard>
-                  </>
-                )}
-
-                <DashboardCard title="Trading Activity Heatmap" icon={FaCalendarAlt} gridSpan="lg:col-span-6">
-                  <TradesCalendarHeatmap trades={filteredTrades || []} onDateClick={handleHeatmapDateClick} />
+                <DashboardCard title="Holding Time vs PnL" icon={FaHourglassHalf} gridSpan="lg:col-span-3">
+                  <HoldingTimeScatter data={analyticsData.holdingTimeAnalysis} />
                 </DashboardCard>
               </div>
             </FeatureGate>
           </div>
-        </div>
+        )}
 
         {(!filteredTrades || filteredTrades.length === 0) && !tradesLoading && (
           <div className="text-center py-16 bg-gradient-to-br from-emerald-50/80 to-white/80 dark:from-emerald-950/20 dark:to-black/80 backdrop-blur-xl rounded-2xl border border-emerald-200/50 dark:border-emerald-700/50">
