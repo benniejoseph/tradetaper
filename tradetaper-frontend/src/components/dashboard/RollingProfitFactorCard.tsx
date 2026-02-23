@@ -20,6 +20,7 @@ interface RollingProfitFactorCardProps {
   timeRange: string;
   onTimeRangeChange: (range: string) => void;
   windowSize: number;
+  gridSpan?: string;
 }
 
 export default function RollingProfitFactorCard({
@@ -27,6 +28,7 @@ export default function RollingProfitFactorCard({
   timeRange,
   onTimeRangeChange,
   windowSize,
+  gridSpan = "sm:col-span-2 lg:col-span-3",
 }: RollingProfitFactorCardProps) {
   const { theme } = useTheme();
   const rechartsTextFill = theme === 'dark' ? '#9CA3AF' : '#6B7280';
@@ -41,7 +43,7 @@ export default function RollingProfitFactorCard({
       showTimeRangeSelector
       selectedTimeRange={timeRange}
       onTimeRangeChange={onTimeRangeChange}
-      gridSpan="sm:col-span-2 lg:col-span-3"
+      gridSpan={gridSpan}
     >
       <div className="h-64">
         {data.length > 0 ? (

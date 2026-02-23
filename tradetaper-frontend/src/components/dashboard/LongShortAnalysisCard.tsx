@@ -8,9 +8,10 @@ import { CurrencyAmount } from '@/components/common/CurrencyAmount';
 
 interface LongShortAnalysisCardProps {
   trades: Trade[];
+  gridSpan?: string;
 }
 
-export default function LongShortAnalysisCard({ trades }: LongShortAnalysisCardProps) {
+export default function LongShortAnalysisCard({ trades, gridSpan = "lg:col-span-3" }: LongShortAnalysisCardProps) {
   
   const stats = useMemo(() => {
     const longTrades = trades.filter(t => t.direction === TradeDirection.LONG && t.status === TradeStatus.CLOSED);
@@ -45,7 +46,7 @@ export default function LongShortAnalysisCard({ trades }: LongShortAnalysisCardP
     <DashboardCard 
       title="Long vs Short Analysis" 
       icon={FaBalanceScale}
-      gridSpan="lg:col-span-3"
+      gridSpan={gridSpan}
       showInfoIcon
       infoContent="Compares performance by direction. Improve by focusing on the side with stronger edge and reducing bias-driven trades."
     >

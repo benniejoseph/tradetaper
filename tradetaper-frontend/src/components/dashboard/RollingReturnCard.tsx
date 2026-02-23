@@ -22,6 +22,7 @@ interface RollingReturnCardProps {
   windowSize: number;
   windowOptions?: number[];
   onWindowSizeChange?: (size: number) => void;
+  gridSpan?: string;
 }
 
 export default function RollingReturnCard({
@@ -31,6 +32,7 @@ export default function RollingReturnCard({
   windowSize,
   windowOptions = [10, 20, 30, 50],
   onWindowSizeChange,
+  gridSpan = "sm:col-span-2 lg:col-span-3",
 }: RollingReturnCardProps) {
   const { theme } = useTheme();
   const rechartsTextFill = theme === 'dark' ? '#9CA3AF' : '#6B7280';
@@ -64,7 +66,7 @@ export default function RollingReturnCard({
           </div>
         ) : null
       }
-      gridSpan="sm:col-span-2 lg:col-span-3"
+      gridSpan={gridSpan}
     >
       <div className="h-64">
         {data.length > 0 ? (

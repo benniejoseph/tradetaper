@@ -418,7 +418,7 @@ export default function AnalyticsPage() {
             <div className="lg:col-span-4">
               <AdvancedPerformanceChart data={chartData} />
             </div>
-            <div className="lg:col-span-2 contents">
+            <div className="lg:col-span-2">
               <DrawdownCurveCard
                 data={drawdownSeries}
                 timeRange={timeRange}
@@ -441,18 +441,21 @@ export default function AnalyticsPage() {
               onTimeRangeChange={setTimeRange}
               windowSize={rollingWindowSize}
               onWindowSizeChange={setRollingWindowSize}
+              gridSpan="sm:col-span-2 lg:col-span-2"
             />
             <RollingProfitFactorCard
               data={rollingProfitFactor}
               timeRange={timeRange}
               onTimeRangeChange={setTimeRange}
               windowSize={rollingWindowSize}
+              gridSpan="sm:col-span-2 lg:col-span-2"
             />
             <RollingExpectancyCard
               data={rollingExpectancy}
               timeRange={timeRange}
               onTimeRangeChange={setTimeRange}
               windowSize={rollingWindowSize}
+              gridSpan="sm:col-span-2 lg:col-span-2"
             />
           </div>
         </div>
@@ -467,7 +470,7 @@ export default function AnalyticsPage() {
             <div className="lg:col-span-6">
               <PairsPerformanceTable data={pairsPerformance} />
             </div>
-            <LongShortAnalysisCard trades={filteredTrades || []} />
+            <LongShortAnalysisCard trades={filteredTrades || []} gridSpan="lg:col-span-6" />
             <MaeMfeScatterCard
               pipsData={maeMfePipsData}
               priceData={maeMfePriceData}
