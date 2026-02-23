@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // src/store/features/tradesSlice.ts
-import { createSlice, PayloadAction, createAsyncThunk } from '@reduxjs/toolkit';
+import { createSlice, PayloadAction, createAsyncThunk, createSelector } from '@reduxjs/toolkit';
 import { authApiClient } from '@/services/api'; // Use authenticated client
 import { Trade, CreateTradePayload, UpdateTradePayload, AssetType, TradeDirection, TradeStatus } from '@/types/trade';
 import { RootState } from '../store';
@@ -840,12 +840,36 @@ const tradesSlice = createSlice({
 });
 
 export const { clearTradesError, setCurrentTrade, setTradeFilters, resetTradeFilters, setAnalyticsDateFilters, resetAnalyticsDateFilters, addTrade, updateTradeRealtime, removeTrade, setTrades } = tradesSlice.actions;
+const selectTradesState = (state: RootState) => state.trades;
 
-export const selectAllTrades = (state: { trades: TradesState }) => state.trades.trades;
-export const selectTradesLoading = (state: { trades: TradesState }) => state.trades.isLoading;
-export const selectTradesError = (state: { trades: TradesState }) => state.trades.error;
-export const selectTotalTrades = (state: { trades: TradesState }) => state.trades.total;
-export const selectCurrentPage = (state: { trades: TradesState }) => state.trades.page;
-export const selectTradesLimit = (state: { trades: TradesState }) => state.trades.limit;
+export const selectAllTrades = createSelector(
+  [selectTradesState],
+  (tradesState) => tradesState.trades
+);
+
+export const selectTradesLoading = createSelector(
+  [selectTradesState],
+  (tradesState) => tradesState.isLoading
+);
+
+export const selectTradesError = createSelector(
+  [selectTradesState],
+  (tradesState) => tradesState.error
+);
+
+export const selectTotalTrades = createSelector(
+  [selectTradesState],
+  (tradesState) => tradesState.total
+);
+
+export const selectCurrentPage = createSelector(
+  [selectTradesState],
+  (tradesState) => tradesState.page
+);
+
+export const selectTradesLimit = createSelector(
+  [selectTradesState],
+  (tradesState) => tradesState.limit
+);
 
 export default tradesSlice.reducer;

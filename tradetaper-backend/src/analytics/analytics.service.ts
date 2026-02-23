@@ -84,91 +84,90 @@ export class AnalyticsService {
   }
 
   private getRadarMetrics(trades: Trade[]) {
-    const wins = trades.filter((t) => (t.profitOrLoss || 0) > 0).length;
     const total = trades.length;
-    const winRate = total > 0 ? (wins / total) * 100 : 0;
+    if (total === 0) return [];
 
-    // 2. Risk Reward (Normalized 0-100 for chart, where 1:3 = 100)
-    const avgWin =
-      trades
-        .filter((t) => (t.profitOrLoss || 0) > 0)
-        .reduce((sum, t) => sum + (t.profitOrLoss || 0), 0) / (wins || 1);
-    const avgLoss =
-      Math.abs(
-        trades
-          .filter((t) => (t.profitOrLoss || 0) < 0)
-          .reduce((sum, t) => sum + (t.profitOrLoss || 0), 0),
-      ) / (total - wins || 1);
+    let wins = 0;
+    let grossProfit = 0;
+    let grossLoss = 0;
+    let tradesWithSL = 0;
+    let peak = -Infinity;
+    let maxDd = 0;
+    let runningPnl = 0;
+    const winningPnLs: number[] = [];
+
+    // Check if the array is chronological (for Drawdown calc)
+    // Most DB queries return DESC (newest first), so we should iterate backwards if so.
+    let isChronological = true;
+    if (total > 1) {
+      const firstTime = new Date(trades[0].openTime).getTime();
+      const lastTime = new Date(trades[total - 1].openTime).getTime();
+      if (firstTime > lastTime) isChronological = false;
+    }
+
+    for (let i = 0; i < total; i++) {
+      const t = trades[i];
+      const pnl = Number(t.profitOrLoss || 0);
+
+      // Aggregations
+      if (pnl > 0) {
+        wins++;
+        grossProfit += pnl;
+        winningPnLs.push(pnl);
+      } else if (pnl < 0) {
+        grossLoss += Math.abs(pnl);
+      }
+
+      if (t.stopLoss !== null && t.stopLoss !== undefined) {
+        tradesWithSL++;
+      }
+
+      // Drawdown calc using chronological index
+      const ddIndex = isChronological ? i : total - 1 - i;
+      const ddTrade = trades[ddIndex];
+      runningPnl += Number(ddTrade.profitOrLoss || 0);
+      if (runningPnl > peak) peak = runningPnl;
+      const dd = peak - runningPnl;
+      if (dd > maxDd) maxDd = dd;
+    }
+
+    const winRate = total > 0 ? (wins / total) * 100 : 0;
+    const avgWin = wins > 0 ? grossProfit / wins : 0;
+    const totalLosses = total - wins;
+    const avgLoss = totalLosses > 0 ? grossLoss / totalLosses : 0;
+    
+    // 2. Risk Reward
     const rr = avgLoss > 0 ? avgWin / avgLoss : 0;
     const rrScore = Math.min((rr / 3) * 100, 100);
 
-    // 3. Consistency (Win Streak Stability / Low Variance)
-    const winningPnLs = trades
-      .filter((t) => (t.profitOrLoss || 0) > 0)
-      .map((t) => Number(t.profitOrLoss || 0));
-    let consistencyScore = 50; // Default
+    // 3. Consistency
+    let consistencyScore = 50;
     if (winningPnLs.length > 2) {
-      const meanWin =
-        winningPnLs.reduce((a, b) => a + b, 0) / winningPnLs.length;
-      const variance =
-        winningPnLs.reduce((a, b) => a + Math.pow(b - meanWin, 2), 0) /
-        winningPnLs.length;
-      const stdev = Math.sqrt(variance);
+      const meanWin = grossProfit / winningPnLs.length;
+      let varianceSum = 0;
+      for (let i = 0; i < winningPnLs.length; i++) {
+        varianceSum += Math.pow(winningPnLs[i] - meanWin, 2);
+      }
+      const stdev = Math.sqrt(varianceSum / winningPnLs.length);
       const cov = meanWin > 0 ? stdev / meanWin : 1;
       consistencyScore = Math.max(0, Math.min(100, 100 - cov * 50));
     }
 
-    // 4. Calmar Ratio (Annualized Return / Max Drawdown)
-    let peak = -Infinity;
-    let maxDd = 0;
-    let runningPnl = 0;
-    // Process trades chronologically (oldest to newest) for drawdown
-    const sortedTrades = [...trades].sort(
-      (a, b) => new Date(a.openTime).getTime() - new Date(b.openTime).getTime(),
-    );
-    sortedTrades.forEach((t) => {
-      runningPnl += Number(t.profitOrLoss || 0);
-      if (runningPnl > peak) peak = runningPnl;
-      const dd = peak - runningPnl;
-      if (dd > maxDd) maxDd = dd;
-    });
-    const totalReturn = trades.reduce(
-      (sum, t) => sum + Number(t.profitOrLoss || 0),
-      0,
-    );
-    const calmar = maxDd > 0 ? totalReturn / maxDd : totalReturn > 0 ? 5 : 0; // If no DD, high score
+    // 4. Calmar Ratio
+    const totalReturn = grossProfit - grossLoss;
+    const calmar = maxDd > 0 ? totalReturn / maxDd : totalReturn > 0 ? 5 : 0;
     const calmarScore = Math.min((calmar / 3) * 100, 100);
 
     // 5. Daily Return (Profit Factor proxy)
-    const grossProfit = trades
-      .filter((t) => (t.profitOrLoss || 0) > 0)
-      .reduce((s, t) => s + (t.profitOrLoss || 0), 0);
-    const grossLoss = Math.abs(
-      trades
-        .filter((t) => (t.profitOrLoss || 0) < 0)
-        .reduce((s, t) => s + (t.profitOrLoss || 0), 0),
-    );
-    const profitFactor =
-      grossLoss > 0 ? grossProfit / grossLoss : grossProfit > 0 ? 5 : 1;
+    const profitFactor = grossLoss > 0 ? grossProfit / grossLoss : grossProfit > 0 ? 5 : 1;
     const dailyReturnScore = Math.min((profitFactor / 3) * 100, 100);
 
     // 6. SL Usage
-    const tradesWithSL = trades.filter(
-      (t) => t.stopLoss !== null && t.stopLoss !== undefined,
-    ).length;
     const slUsageScore = total > 0 ? (tradesWithSL / total) * 100 : 0;
 
     return [
-      {
-        subject: 'Consistency',
-        A: Math.round(consistencyScore),
-        fullMark: 100,
-      },
-      {
-        subject: 'Daily Return',
-        A: Math.round(dailyReturnScore),
-        fullMark: 100,
-      },
+      { subject: 'Consistency', A: Math.round(consistencyScore), fullMark: 100 },
+      { subject: 'Daily Return', A: Math.round(dailyReturnScore), fullMark: 100 },
       { subject: 'RR', A: Math.round(rrScore), fullMark: 100 },
       { subject: 'Win Rate', A: Math.round(winRate), fullMark: 100 },
       { subject: 'SL Usage', A: Math.round(slUsageScore), fullMark: 100 },

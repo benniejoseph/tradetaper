@@ -83,7 +83,7 @@ export default function AnalyticsPage() {
   const { token } = useSelector((state: RootState) => state.auth);
 
   useEffect(() => {
-    if (false && isAuthenticated && token) {
+    if (isAuthenticated && token) {
       fetch(`${process.env.NEXT_PUBLIC_API_URL}/analytics/advanced${selectedAccountId ? `?accountId=${selectedAccountId}` : ''}`, {
         headers: { Authorization: `Bearer ${token}` },
       })
