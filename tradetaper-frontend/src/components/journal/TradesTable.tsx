@@ -468,7 +468,7 @@ export default function TradesTable({
                 </td>
 
                 {/* Editable Asset Type */}
-                <td className={`${tdClasses} text-gray-700 dark:text-gray-300`} onClick={(e) => e.stopPropagation()}>
+                <td className={`${tdClasses} text-gray-700 dark:text-gray-300`} onClick={(e) => { if (isEditing) e.stopPropagation(); }}>
                   {isEditing ? (
                     <select
                       value={editForm.assetType || ''}
@@ -487,7 +487,7 @@ export default function TradesTable({
                 </td>
 
                 {/* Editable Direction */}
-                <td className={`${tdClasses} text-gray-700 dark:text-gray-300`} onClick={(e) => e.stopPropagation()}>
+                <td className={`${tdClasses} text-gray-700 dark:text-gray-300`} onClick={(e) => { if (isEditing) e.stopPropagation(); }}>
                   {isEditing ? (
                     <select
                       value={editForm.direction || ''}
@@ -510,7 +510,7 @@ export default function TradesTable({
                 </td>
 
                 {/* Editable Status */}
-                <td className={`${tdClasses} text-gray-700 dark:text-gray-300`} onClick={(e) => e.stopPropagation()}>
+                <td className={`${tdClasses} text-gray-700 dark:text-gray-300`} onClick={(e) => { if (isEditing) e.stopPropagation(); }}>
                   {isEditing ? (
                     <select
                       value={editForm.status || ''}
@@ -534,7 +534,7 @@ export default function TradesTable({
                 </td>
                 
                 {/* Editable Session */}
-                <td className={`${tdClasses} text-gray-700 dark:text-gray-300`} onClick={(e) => e.stopPropagation()}>
+                <td className={`${tdClasses} text-gray-700 dark:text-gray-300`} onClick={(e) => { if (isEditing) e.stopPropagation(); }}>
                   {isEditing ? (
                     <select
                       value={editForm.session || ''}
@@ -559,7 +559,7 @@ export default function TradesTable({
                 <td className={`${tdClasses} font-mono text-gray-900 dark:text-white`}>{formatPrice(trade.exitPrice)}</td>
                 
                 {/* Editable P&L */}
-                <td className={`${tdClasses} font-mono`} onClick={(e) => e.stopPropagation()}>
+                <td className={`${tdClasses} font-mono`} onClick={(e) => { if (isEditing) e.stopPropagation(); }}>
                   {isEditing ? (
                     <input
                       type="number"
@@ -575,7 +575,7 @@ export default function TradesTable({
                 </td>
 
                 {/* Editable Commission */}
-                <td className={`${tdClasses} font-mono text-gray-700 dark:text-gray-300`} onClick={(e) => e.stopPropagation()}>
+                <td className={`${tdClasses} font-mono text-gray-700 dark:text-gray-300`} onClick={(e) => { if (isEditing) e.stopPropagation(); }}>
                   {isEditing ? (
                     <input
                       type="number"
@@ -591,7 +591,7 @@ export default function TradesTable({
                 </td>
 
                 {/* Editable R-Multiple */}
-                <td className={`${tdClasses} text-gray-700 dark:text-gray-300`} onClick={(e) => e.stopPropagation()}>
+                <td className={`${tdClasses} text-gray-700 dark:text-gray-300`} onClick={(e) => { if (isEditing) e.stopPropagation(); }}>
                   {isEditing ? (
                     <input
                       type="number"

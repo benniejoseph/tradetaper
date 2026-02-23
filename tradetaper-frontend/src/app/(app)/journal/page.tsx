@@ -280,6 +280,7 @@ export default function JournalPage() {
   }, [filteredTrades, summary]);
 
   const handleRowClick = (trade: Trade) => {
+    dispatch(setCurrentTrade(trade));
     router.push(`/journal/view/${trade.id}`);
   };
 
@@ -304,16 +305,7 @@ export default function JournalPage() {
     setCustomDateRange({});
   };
 
-  if (isLoading && allTrades.length === 0) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-emerald-500 mx-auto mb-4"></div>
-          <p className="text-gray-600 dark:text-gray-300 text-lg">Loading your trading journal...</p>
-        </div>
-      </div>
-    );
-  }
+
 
   return (
     <>
