@@ -39,6 +39,7 @@ export declare class Trade {
     mt5Magic?: number;
     contractSize?: number;
     executionCandles?: Record<string, unknown>[];
+    syncSource?: 'local_ea' | 'metaapi' | 'manual';
     emotionBefore?: EmotionalState;
     emotionDuring?: EmotionalState;
     emotionAfter?: EmotionalState;

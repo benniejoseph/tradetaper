@@ -177,6 +177,7 @@ export class TradesController {
     @Body() updateTradeDto: UpdateTradeDto,
     @Request() req,
   ): Promise<Trade> {
+    this.logger.debug(`📥 Received update trade ${id} payload: ${JSON.stringify(updateTradeDto)}`);
     return this.tradesService.update(id, updateTradeDto, req.user);
   }
 

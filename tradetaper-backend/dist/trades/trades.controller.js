@@ -78,6 +78,7 @@ let TradesController = TradesController_1 = class TradesController {
         return this.tradesService.getTradeCandles(id, timeframe || '1h', req.user);
     }
     update(id, updateTradeDto, req) {
+        this.logger.debug(`📥 Received update trade ${id} payload: ${JSON.stringify(updateTradeDto)}`);
         return this.tradesService.update(id, updateTradeDto, req.user);
     }
     remove(id, req) {

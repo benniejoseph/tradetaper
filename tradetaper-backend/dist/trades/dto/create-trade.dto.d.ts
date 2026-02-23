@@ -29,6 +29,7 @@ export declare class CreateTradeDto {
     externalDealId?: string;
     mt5Magic?: number;
     contractSize?: number;
+    syncSource?: 'local_ea' | 'metaapi' | 'manual';
     emotionBefore?: EmotionalState;
     emotionDuring?: EmotionalState;
     emotionAfter?: EmotionalState;

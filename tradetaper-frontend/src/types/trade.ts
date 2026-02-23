@@ -108,6 +108,10 @@ export interface Trade {
   energyLevel?: number; // 1-5 scale
   distractionLevel?: number; // 1-5 scale
   tradingEnvironment?: string;
+  
+  // ========== Strategy ==========
+  strategyId?: string;
+  strategy?: any;
 }
 
 export interface CreateTradePayload extends Omit<Partial<Trade>, 'id' | 'userId' | 'createdAt' | 'updatedAt' | 'profitOrLoss' | 'tags'> {
@@ -132,6 +136,7 @@ export interface CreateTradePayload extends Omit<Partial<Trade>, 'id' | 'userId'
   commission?: number;
   accountId?: string; // Added: To link trade to an account
   isStarred?: boolean; // New field for starring trades
+  strategyId?: string;
 }
 
 export interface UpdateTradePayload extends Partial<Omit<CreateTradePayload, 'tagNames'>> {

@@ -1,0 +1,1109 @@
+[
+  {
+    "insertId": "699ab2d200012731e0e234e6",
+    "labels": {
+      "instanceId": "00da6cd2c4da375e01dce148e5be6b34bf10a9208063fcb13f22b4914920a5bc51f68eb16db0077c1d2f5c9e38555374a0ff77fc903c8e7738d2937abd720534b9a29728464a6a5f3a69710ecd6789"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-02-22T07:40:02.346242854Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00259-z4p",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "\u001b[32m[Nest] 1  - \u001b[39m02/22/2026, 7:40:02 AM \u001b[32m    LOG\u001b[39m \u001b[38;5;3m[NotificationsService] \u001b[39m\u001b[32mProcessing 0 scheduled notifications\u001b[39m",
+    "timestamp": "2026-02-22T07:40:02.075569Z"
+  },
+  {
+    "insertId": "699ab2d2000123cc5ecc4902",
+    "labels": {
+      "instanceId": "00da6cd2c4da375e01dce148e5be6b34bf10a9208063fcb13f22b4914920a5bc51f68eb16db0077c1d2f5c9e38555374a0ff77fc903c8e7738d2937abd720534b9a29728464a6a5f3a69710ecd6789"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-02-22T07:40:02.346242854Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00259-z4p",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "\u001b[32m[Nest] 1  - \u001b[39m02/22/2026, 7:40:02 AM \u001b[32m    LOG\u001b[39m \u001b[38;5;3m[NotificationsService] \u001b[39m\u001b[32mProcessing 0 scheduled notifications\u001b[39m",
+    "timestamp": "2026-02-22T07:40:02.074700Z"
+  },
+  {
+    "insertId": "699ab2d0000038fc04f5bdde",
+    "labels": {
+      "instanceId": "00da6cd2c4da375e01dce148e5be6b34bf10a9208063fcb13f22b4914920a5bc51f68eb16db0077c1d2f5c9e38555374a0ff77fc903c8e7738d2937abd720534b9a29728464a6a5f3a69710ecd6789"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-02-22T07:40:00.347873144Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00259-z4p",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "\u001b[32m[Nest] 1  - \u001b[39m02/22/2026, 7:40:00 AM \u001b[32m    LOG\u001b[39m \u001b[38;5;3m[EconomicCalendarService] \u001b[39m\u001b[32mGetting economic calendar events\u001b[39m",
+    "timestamp": "2026-02-22T07:40:00.014588Z"
+  },
+  {
+    "insertId": "699ab2d0000038a6b5ddf44e",
+    "labels": {
+      "instanceId": "00da6cd2c4da375e01dce148e5be6b34bf10a9208063fcb13f22b4914920a5bc51f68eb16db0077c1d2f5c9e38555374a0ff77fc903c8e7738d2937abd720534b9a29728464a6a5f3a69710ecd6789"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-02-22T07:40:00.347873144Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00259-z4p",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "\u001b[32m[Nest] 1  - \u001b[39m02/22/2026, 7:40:00 AM \u001b[32m    LOG\u001b[39m \u001b[38;5;3m[NotificationSchedulerService] \u001b[39m\u001b[32mChecking for upcoming economic events...\u001b[39m",
+    "timestamp": "2026-02-22T07:40:00.014502Z"
+  },
+  {
+    "insertId": "699ab2d00000226b8c480590",
+    "labels": {
+      "instanceId": "00da6cd2c4da375e01dce148e5be6b34bf10a9208063fcb13f22b4914920a5bc51f68eb16db0077c1d2f5c9e38555374a0ff77fc903c8e7738d2937abd720534b9a29728464a6a5f3a69710ecd6789"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-02-22T07:40:00.015401946Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00259-z4p",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "\u001b[32m[Nest] 1  - \u001b[39m02/22/2026, 7:40:00 AM \u001b[32m    LOG\u001b[39m \u001b[38;5;3m[EconomicCalendarService] \u001b[39m\u001b[32mGetting economic calendar events\u001b[39m",
+    "timestamp": "2026-02-22T07:40:00.008811Z"
+  },
+  {
+    "insertId": "699ab2d00000220e3759ba5a",
+    "labels": {
+      "instanceId": "00da6cd2c4da375e01dce148e5be6b34bf10a9208063fcb13f22b4914920a5bc51f68eb16db0077c1d2f5c9e38555374a0ff77fc903c8e7738d2937abd720534b9a29728464a6a5f3a69710ecd6789"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-02-22T07:40:00.015401946Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00259-z4p",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "\u001b[32m[Nest] 1  - \u001b[39m02/22/2026, 7:40:00 AM \u001b[32m    LOG\u001b[39m \u001b[38;5;3m[NotificationSchedulerService] \u001b[39m\u001b[32mChecking for upcoming economic events...\u001b[39m",
+    "timestamp": "2026-02-22T07:40:00.008718Z"
+  },
+  {
+    "insertId": "699ab2960001fead4f04c6c1",
+    "labels": {
+      "instanceId": "00da6cd2c4da375e01dce148e5be6b34bf10a9208063fcb13f22b4914920a5bc51f68eb16db0077c1d2f5c9e38555374a0ff77fc903c8e7738d2937abd720534b9a29728464a6a5f3a69710ecd6789"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-02-22T07:39:02.424147222Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00259-z4p",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "\u001b[32m[Nest] 1  - \u001b[39m02/22/2026, 7:39:02 AM \u001b[32m    LOG\u001b[39m \u001b[38;5;3m[NotificationsService] \u001b[39m\u001b[32mProcessing 0 scheduled notifications\u001b[39m",
+    "timestamp": "2026-02-22T07:39:02.130733Z"
+  },
+  {
+    "insertId": "699ab2960001519ac1761a2d",
+    "labels": {
+      "instanceId": "00da6cd2c4da375e01dce148e5be6b34bf10a9208063fcb13f22b4914920a5bc51f68eb16db0077c1d2f5c9e38555374a0ff77fc903c8e7738d2937abd720534b9a29728464a6a5f3a69710ecd6789"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-02-22T07:39:02.091791438Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00259-z4p",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "\u001b[32m[Nest] 1  - \u001b[39m02/22/2026, 7:39:02 AM \u001b[32m    LOG\u001b[39m \u001b[38;5;3m[NotificationsService] \u001b[39m\u001b[32mProcessing 0 scheduled notifications\u001b[39m",
+    "timestamp": "2026-02-22T07:39:02.086426Z"
+  },
+  {
+    "insertId": "699ab26d000a8debf551c4f1",
+    "labels": {
+      "instanceId": "00da6cd2c4da375e01dce148e5be6b34bf10a9208063fcb13f22b4914920a5bc51f68eb16db0077c1d2f5c9e38555374a0ff77fc903c8e7738d2937abd720534b9a29728464a6a5f3a69710ecd6789"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-02-22T07:38:22.025702245Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00259-z4p",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "\u001b[95m[Nest] 1  - \u001b[39m02/22/2026, 7:38:21 AM \u001b[95m  DEBUG\u001b[39m \u001b[38;5;3m[TerminalFarmService] \u001b[39m\u001b[95mQueued command FETCH_CANDLES for terminal e2b7ad48-5cef-49ab-9223-35a38c5d2e5f\u001b[39m",
+    "timestamp": "2026-02-22T07:38:21.691691Z"
+  },
+  {
+    "insertId": "699ab26d000a8da27edbc70a",
+    "labels": {
+      "instanceId": "00da6cd2c4da375e01dce148e5be6b34bf10a9208063fcb13f22b4914920a5bc51f68eb16db0077c1d2f5c9e38555374a0ff77fc903c8e7738d2937abd720534b9a29728464a6a5f3a69710ecd6789"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-02-22T07:38:22.025702245Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00259-z4p",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "\u001b[95m[Nest] 1  - \u001b[39m02/22/2026, 7:38:21 AM \u001b[95m  DEBUG\u001b[39m \u001b[38;5;3m[TerminalCommandsQueue] \u001b[39m\u001b[95mQueued command FETCH_CANDLES for terminal e2b7ad48-5cef-49ab-9223-35a38c5d2e5f\u001b[39m",
+    "timestamp": "2026-02-22T07:38:21.691618Z"
+  },
+  {
+    "insertId": "699ab26c000db86451e5eeab",
+    "labels": {
+      "instanceId": "00da6cd2c4da375e01dce148e5be6b34bf10a9208063fcb13f22b4914920a5bc51f68eb16db0077c1d2f5c9e38555374a0ff77fc903c8e7738d2937abd720534b9a29728464a6a5f3a69710ecd6789"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-02-22T07:38:21.027623995Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00259-z4p",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "\u001b[32m[Nest] 1  - \u001b[39m02/22/2026, 7:38:20 AM \u001b[32m    LOG\u001b[39m \u001b[38;5;3m[TradesService] \u001b[39m\u001b[32mUser 8e3ee56a-79af-4937-89b4-ff796ee0c3ed fetching trade with ID ad4cc430-08d4-4c71-bd8e-6abec7f56164\u001b[39m",
+    "timestamp": "2026-02-22T07:38:20.899172Z"
+  },
+  {
+    "insertId": "699ab26c000db852e81fade5",
+    "labels": {
+      "instanceId": "00da6cd2c4da375e01dce148e5be6b34bf10a9208063fcb13f22b4914920a5bc51f68eb16db0077c1d2f5c9e38555374a0ff77fc903c8e7738d2937abd720534b9a29728464a6a5f3a69710ecd6789"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-02-22T07:38:21.027623995Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00259-z4p",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "\u001b[95m[Nest] 1  - \u001b[39m02/22/2026, 7:38:20 AM \u001b[95m  DEBUG\u001b[39m \u001b[38;5;3m[TradesService] \u001b[39m\u001b[95mCache MISS for trade ad4cc430-08d4-4c71-bd8e-6abec7f56164\u001b[39m",
+    "timestamp": "2026-02-22T07:38:20.899154Z"
+  },
+  {
+    "insertId": "699ab26c0009c1eec2d81007",
+    "labels": {
+      "instanceId": "00da6cd2c4da375e01dce148e5be6b34bf10a9208063fcb13f22b4914920a5bc51f68eb16db0077c1d2f5c9e38555374a0ff77fc903c8e7738d2937abd720534b9a29728464a6a5f3a69710ecd6789"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-02-22T07:38:20.695716380Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00259-z4p",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "\u001b[95m[Nest] 1  - \u001b[39m02/22/2026, 7:38:20 AM \u001b[95m  DEBUG\u001b[39m \u001b[38;5;3m[TradesService] \u001b[39m\u001b[95mFetching candles for trade ad4cc430-08d4-4c71-bd8e-6abec7f56164, timeframe 1m\u001b[39m",
+    "timestamp": "2026-02-22T07:38:20.639470Z"
+  },
+  {
+    "insertId": "699ab26c0005caaa389b6707",
+    "labels": {
+      "instanceId": "00da6cd2c4da375e01dce148e5be6b34bf10a9208063fcb13f22b4914920a5bc51f68eb16db0077c1d2f5c9e38555374a0ff77fc903c8e7738d2937abd720534b9a29728464a6a5f3a69710ecd6789"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-02-22T07:38:20.695716380Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00259-z4p",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "\u001b[95m[Nest] 1  - \u001b[39m02/22/2026, 7:38:20 AM \u001b[95m  DEBUG\u001b[39m \u001b[38;5;3m[JwtStrategy] \u001b[39m\u001b[95mValidating JWT for user ID: 8e3ee56a-79af-4937-89b4-ff796ee0c3ed and email: tradetaper@gmail.com\u001b[39m",
+    "timestamp": "2026-02-22T07:38:20.379562Z"
+  },
+  {
+    "httpRequest": {
+      "latency": "1.314448895s",
+      "protocol": "HTTP/1.1",
+      "referer": "https://www.tradetaper.com/",
+      "remoteIp": "2409:40f2:103d:e8f6:d0a5:e592:5357:2aa5",
+      "requestMethod": "GET",
+      "requestSize": "1301",
+      "requestUrl": "https://api.tradetaper.com/api/v1/trades/ad4cc430-08d4-4c71-bd8e-6abec7f56164/candles?timeframe=1m",
+      "responseSize": "880",
+      "serverIp": "2404:6800:4007:80f::2013",
+      "status": 304,
+      "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36"
+    },
+    "insertId": "699ab26d000a881c7590446c",
+    "labels": {
+      "instanceId": "00da6cd2c4da375e01dce148e5be6b34bf10a9208063fcb13f22b4914920a5bc51f68eb16db0077c1d2f5c9e38555374a0ff77fc903c8e7738d2937abd720534b9a29728464a6a5f3a69710ecd6789"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Frequests",
+    "receiveTimestamp": "2026-02-22T07:38:21.717872492Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00259-z4p",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "severity": "INFO",
+    "spanId": "4ee5264046de7969",
+    "timestamp": "2026-02-22T07:38:20.374256Z",
+    "trace": "projects/trade-taper/traces/938c64ad811d8d87d49e682d2df4b9aa",
+    "traceSampled": true
+  },
+  {
+    "insertId": "699ab26a000d97fb9eed8e5b",
+    "labels": {
+      "instanceId": "00da6cd2c4da375e01dce148e5be6b34bf10a9208063fcb13f22b4914920a5bc51f68eb16db0077c1d2f5c9e38555374a0ff77fc903c8e7738d2937abd720534b9a29728464a6a5f3a69710ecd6789"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-02-22T07:38:19.029710716Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00259-z4p",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "\u001b[95m[Nest] 1  - \u001b[39m02/22/2026, 7:38:18 AM \u001b[95m  DEBUG\u001b[39m \u001b[38;5;3m[TerminalFarmService] \u001b[39m\u001b[95mQueued command FETCH_CANDLES for terminal e2b7ad48-5cef-49ab-9223-35a38c5d2e5f\u001b[39m",
+    "timestamp": "2026-02-22T07:38:18.890875Z"
+  },
+  {
+    "insertId": "699ab26a000d97ed36d09f91",
+    "labels": {
+      "instanceId": "00da6cd2c4da375e01dce148e5be6b34bf10a9208063fcb13f22b4914920a5bc51f68eb16db0077c1d2f5c9e38555374a0ff77fc903c8e7738d2937abd720534b9a29728464a6a5f3a69710ecd6789"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-02-22T07:38:19.029710716Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00259-z4p",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "\u001b[95m[Nest] 1  - \u001b[39m02/22/2026, 7:38:18 AM \u001b[95m  DEBUG\u001b[39m \u001b[38;5;3m[TerminalCommandsQueue] \u001b[39m\u001b[95mQueued command FETCH_CANDLES for terminal e2b7ad48-5cef-49ab-9223-35a38c5d2e5f\u001b[39m",
+    "timestamp": "2026-02-22T07:38:18.890861Z"
+  },
+  {
+    "insertId": "699ab26a00018c3646895399",
+    "labels": {
+      "instanceId": "00da6cd2c4da375e01dce148e5be6b34bf10a9208063fcb13f22b4914920a5bc51f68eb16db0077c1d2f5c9e38555374a0ff77fc903c8e7738d2937abd720534b9a29728464a6a5f3a69710ecd6789"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-02-22T07:38:18.364319560Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00259-z4p",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "\u001b[32m[Nest] 1  - \u001b[39m02/22/2026, 7:38:18 AM \u001b[32m    LOG\u001b[39m \u001b[38;5;3m[TradesService] \u001b[39m\u001b[32mUser 8e3ee56a-79af-4937-89b4-ff796ee0c3ed fetching trade with ID ad4cc430-08d4-4c71-bd8e-6abec7f56164\u001b[39m",
+    "timestamp": "2026-02-22T07:38:18.101430Z"
+  },
+  {
+    "insertId": "699ab26a00018b4bdd1f4dcb",
+    "labels": {
+      "instanceId": "00da6cd2c4da375e01dce148e5be6b34bf10a9208063fcb13f22b4914920a5bc51f68eb16db0077c1d2f5c9e38555374a0ff77fc903c8e7738d2937abd720534b9a29728464a6a5f3a69710ecd6789"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-02-22T07:38:18.364319560Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00259-z4p",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "\u001b[95m[Nest] 1  - \u001b[39m02/22/2026, 7:38:18 AM \u001b[95m  DEBUG\u001b[39m \u001b[38;5;3m[TradesService] \u001b[39m\u001b[95mCache MISS for trade ad4cc430-08d4-4c71-bd8e-6abec7f56164\u001b[39m",
+    "timestamp": "2026-02-22T07:38:18.101195Z"
+  },
+  {
+    "insertId": "699ab269000cd2edf00200d6",
+    "labels": {
+      "instanceId": "00da6cd2c4da375e01dce148e5be6b34bf10a9208063fcb13f22b4914920a5bc51f68eb16db0077c1d2f5c9e38555374a0ff77fc903c8e7738d2937abd720534b9a29728464a6a5f3a69710ecd6789"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-02-22T07:38:18.029579787Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00259-z4p",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "\u001b[95m[Nest] 1  - \u001b[39m02/22/2026, 7:38:17 AM \u001b[95m  DEBUG\u001b[39m \u001b[38;5;3m[TradesService] \u001b[39m\u001b[95mFetching candles for trade ad4cc430-08d4-4c71-bd8e-6abec7f56164, timeframe 1m\u001b[39m",
+    "timestamp": "2026-02-22T07:38:17.840429Z"
+  },
+  {
+    "insertId": "699ab2690008d8affd96a1be",
+    "labels": {
+      "instanceId": "00da6cd2c4da375e01dce148e5be6b34bf10a9208063fcb13f22b4914920a5bc51f68eb16db0077c1d2f5c9e38555374a0ff77fc903c8e7738d2937abd720534b9a29728464a6a5f3a69710ecd6789"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-02-22T07:38:17.696933559Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00259-z4p",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "\u001b[95m[Nest] 1  - \u001b[39m02/22/2026, 7:38:17 AM \u001b[95m  DEBUG\u001b[39m \u001b[38;5;3m[JwtStrategy] \u001b[39m\u001b[95mValidating JWT for user ID: 8e3ee56a-79af-4937-89b4-ff796ee0c3ed and email: tradetaper@gmail.com\u001b[39m",
+    "timestamp": "2026-02-22T07:38:17.579759Z"
+  },
+  {
+    "httpRequest": {
+      "latency": "1.313984526s",
+      "protocol": "HTTP/1.1",
+      "referer": "https://www.tradetaper.com/",
+      "remoteIp": "2409:40f2:103d:e8f6:d0a5:e592:5357:2aa5",
+      "requestMethod": "GET",
+      "requestSize": "1300",
+      "requestUrl": "https://api.tradetaper.com/api/v1/trades/ad4cc430-08d4-4c71-bd8e-6abec7f56164/candles?timeframe=1m",
+      "responseSize": "880",
+      "serverIp": "2404:6800:4007:80f::2013",
+      "status": 304,
+      "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36"
+    },
+    "insertId": "699ab26a000d932c2c007824",
+    "labels": {
+      "instanceId": "00da6cd2c4da375e01dce148e5be6b34bf10a9208063fcb13f22b4914920a5bc51f68eb16db0077c1d2f5c9e38555374a0ff77fc903c8e7738d2937abd720534b9a29728464a6a5f3a69710ecd6789"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Frequests",
+    "receiveTimestamp": "2026-02-22T07:38:19.050947229Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00259-z4p",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "severity": "INFO",
+    "spanId": "ab5790ddfda73d3c",
+    "timestamp": "2026-02-22T07:38:17.573915Z",
+    "trace": "projects/trade-taper/traces/457fa7324ddfc7706bb0a85be7b0cd05"
+  },
+  {
+    "httpRequest": {
+      "latency": "0.002887777s",
+      "protocol": "HTTP/1.1",
+      "referer": "https://www.tradetaper.com/",
+      "remoteIp": "2409:40f2:103d:e8f6:d0a5:e592:5357:2aa5",
+      "requestMethod": "OPTIONS",
+      "requestSize": "722",
+      "requestUrl": "https://api.tradetaper.com/api/v1/trades/ad4cc430-08d4-4c71-bd8e-6abec7f56164/candles?timeframe=1m",
+      "responseSize": "352",
+      "serverIp": "2404:6800:4007:80f::2013",
+      "status": 204,
+      "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36"
+    },
+    "insertId": "699ab269000449244d7d9e18",
+    "labels": {
+      "instanceId": "00da6cd2c4da375e01dce148e5be6b34bf10a9208063fcb13f22b4914920a5bc51f68eb16db0077c1d2f5c9e38555374a0ff77fc903c8e7738d2937abd720534b9a29728464a6a5f3a69710ecd6789"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Frequests",
+    "receiveTimestamp": "2026-02-22T07:38:17.381309207Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00259-z4p",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "severity": "INFO",
+    "spanId": "78d91cfd04a49d41",
+    "timestamp": "2026-02-22T07:38:17.276045Z",
+    "trace": "projects/trade-taper/traces/334ef1db6ba969d06179270e70b3815f"
+  },
+  {
+    "insertId": "699ab2670008f5cdb03c425d",
+    "labels": {
+      "instanceId": "00da6cd2c4da375e01dce148e5be6b34bf10a9208063fcb13f22b4914920a5bc51f68eb16db0077c1d2f5c9e38555374a0ff77fc903c8e7738d2937abd720534b9a29728464a6a5f3a69710ecd6789"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-02-22T07:38:15.698051751Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00259-z4p",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "\u001b[95m[Nest] 1  - \u001b[39m02/22/2026, 7:38:15 AM \u001b[95m  DEBUG\u001b[39m \u001b[38;5;3m[TerminalFarmService] \u001b[39m\u001b[95mQueued command FETCH_CANDLES for terminal e2b7ad48-5cef-49ab-9223-35a38c5d2e5f\u001b[39m",
+    "timestamp": "2026-02-22T07:38:15.587213Z"
+  },
+  {
+    "insertId": "699ab2670008f57de31d32b1",
+    "labels": {
+      "instanceId": "00da6cd2c4da375e01dce148e5be6b34bf10a9208063fcb13f22b4914920a5bc51f68eb16db0077c1d2f5c9e38555374a0ff77fc903c8e7738d2937abd720534b9a29728464a6a5f3a69710ecd6789"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-02-22T07:38:15.698051751Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00259-z4p",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "\u001b[95m[Nest] 1  - \u001b[39m02/22/2026, 7:38:15 AM \u001b[95m  DEBUG\u001b[39m \u001b[38;5;3m[TerminalCommandsQueue] \u001b[39m\u001b[95mQueued command FETCH_CANDLES for terminal e2b7ad48-5cef-49ab-9223-35a38c5d2e5f\u001b[39m",
+    "timestamp": "2026-02-22T07:38:15.587133Z"
+  },
+  {
+    "insertId": "699ab266000c19eda9dcb010",
+    "labels": {
+      "instanceId": "00da6cd2c4da375e01dce148e5be6b34bf10a9208063fcb13f22b4914920a5bc51f68eb16db0077c1d2f5c9e38555374a0ff77fc903c8e7738d2937abd720534b9a29728464a6a5f3a69710ecd6789"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-02-22T07:38:15.032814821Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00259-z4p",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "\u001b[32m[Nest] 1  - \u001b[39m02/22/2026, 7:38:14 AM \u001b[32m    LOG\u001b[39m \u001b[38;5;3m[TradesService] \u001b[39m\u001b[32mUser 8e3ee56a-79af-4937-89b4-ff796ee0c3ed fetching trade with ID ad4cc430-08d4-4c71-bd8e-6abec7f56164\u001b[39m",
+    "timestamp": "2026-02-22T07:38:14.793069Z"
+  },
+  {
+    "insertId": "699ab266000c19e04f5d9eda",
+    "labels": {
+      "instanceId": "00da6cd2c4da375e01dce148e5be6b34bf10a9208063fcb13f22b4914920a5bc51f68eb16db0077c1d2f5c9e38555374a0ff77fc903c8e7738d2937abd720534b9a29728464a6a5f3a69710ecd6789"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-02-22T07:38:15.032814821Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00259-z4p",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "\u001b[95m[Nest] 1  - \u001b[39m02/22/2026, 7:38:14 AM \u001b[95m  DEBUG\u001b[39m \u001b[38;5;3m[TradesService] \u001b[39m\u001b[95mCache MISS for trade ad4cc430-08d4-4c71-bd8e-6abec7f56164\u001b[39m",
+    "timestamp": "2026-02-22T07:38:14.793056Z"
+  },
+  {
+    "insertId": "699ab26600082142fe20024d",
+    "labels": {
+      "instanceId": "00da6cd2c4da375e01dce148e5be6b34bf10a9208063fcb13f22b4914920a5bc51f68eb16db0077c1d2f5c9e38555374a0ff77fc903c8e7738d2937abd720534b9a29728464a6a5f3a69710ecd6789"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-02-22T07:38:14.699172582Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00259-z4p",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "\u001b[95m[Nest] 1  - \u001b[39m02/22/2026, 7:38:14 AM \u001b[95m  DEBUG\u001b[39m \u001b[38;5;3m[TradesService] \u001b[39m\u001b[95mFetching candles for trade ad4cc430-08d4-4c71-bd8e-6abec7f56164, timeframe 1m\u001b[39m",
+    "timestamp": "2026-02-22T07:38:14.532802Z"
+  },
+  {
+    "insertId": "699ab2660004251d1634d563",
+    "labels": {
+      "instanceId": "00da6cd2c4da375e01dce148e5be6b34bf10a9208063fcb13f22b4914920a5bc51f68eb16db0077c1d2f5c9e38555374a0ff77fc903c8e7738d2937abd720534b9a29728464a6a5f3a69710ecd6789"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-02-22T07:38:14.367118111Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00259-z4p",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "\u001b[95m[Nest] 1  - \u001b[39m02/22/2026, 7:38:14 AM \u001b[95m  DEBUG\u001b[39m \u001b[38;5;3m[JwtStrategy] \u001b[39m\u001b[95mValidating JWT for user ID: 8e3ee56a-79af-4937-89b4-ff796ee0c3ed and email: tradetaper@gmail.com\u001b[39m",
+    "timestamp": "2026-02-22T07:38:14.271645Z"
+  },
+  {
+    "httpRequest": {
+      "latency": "1.314323046s",
+      "protocol": "HTTP/1.1",
+      "referer": "https://www.tradetaper.com/",
+      "remoteIp": "2409:40f2:103d:e8f6:d0a5:e592:5357:2aa5",
+      "requestMethod": "GET",
+      "requestSize": "1301",
+      "requestUrl": "https://api.tradetaper.com/api/v1/trades/ad4cc430-08d4-4c71-bd8e-6abec7f56164/candles?timeframe=1m",
+      "responseSize": "880",
+      "serverIp": "2404:6800:4007:80f::2013",
+      "status": 304,
+      "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36"
+    },
+    "insertId": "699ab2670008dd0c5d2a0eb2",
+    "labels": {
+      "instanceId": "00da6cd2c4da375e01dce148e5be6b34bf10a9208063fcb13f22b4914920a5bc51f68eb16db0077c1d2f5c9e38555374a0ff77fc903c8e7738d2937abd720534b9a29728464a6a5f3a69710ecd6789"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Frequests",
+    "receiveTimestamp": "2026-02-22T07:38:15.718506610Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00259-z4p",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "severity": "INFO",
+    "spanId": "c41a9a202b511450",
+    "timestamp": "2026-02-22T07:38:14.264665Z",
+    "trace": "projects/trade-taper/traces/6cdd774b2358dd926bb0a85be7b0c954"
+  },
+  {
+    "insertId": "699ab26500020282234e1273",
+    "labels": {
+      "instanceId": "00da6cd2c4da375e01dce148e5be6b34bf10a9208063fcb13f22b4914920a5bc51f68eb16db0077c1d2f5c9e38555374a0ff77fc903c8e7738d2937abd720534b9a29728464a6a5f3a69710ecd6789"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-02-22T07:38:13.376045560Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00259-z4p",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "\u001b[95m[Nest] 1  - \u001b[39m02/22/2026, 7:38:13 AM \u001b[95m  DEBUG\u001b[39m \u001b[38;5;3m[TerminalFarmService] \u001b[39m\u001b[95mQueued command FETCH_CANDLES for terminal e2b7ad48-5cef-49ab-9223-35a38c5d2e5f\u001b[39m",
+    "timestamp": "2026-02-22T07:38:13.131714Z"
+  },
+  {
+    "insertId": "699ab2650002023d339a511f",
+    "labels": {
+      "instanceId": "00da6cd2c4da375e01dce148e5be6b34bf10a9208063fcb13f22b4914920a5bc51f68eb16db0077c1d2f5c9e38555374a0ff77fc903c8e7738d2937abd720534b9a29728464a6a5f3a69710ecd6789"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-02-22T07:38:13.376045560Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00259-z4p",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "\u001b[95m[Nest] 1  - \u001b[39m02/22/2026, 7:38:13 AM \u001b[95m  DEBUG\u001b[39m \u001b[38;5;3m[TerminalCommandsQueue] \u001b[39m\u001b[95mQueued command FETCH_CANDLES for terminal e2b7ad48-5cef-49ab-9223-35a38c5d2e5f\u001b[39m",
+    "timestamp": "2026-02-22T07:38:13.131645Z"
+  },
+  {
+    "insertId": "699ab2640005461b55e0854a",
+    "labels": {
+      "instanceId": "00da6cd2c4da375e01dce148e5be6b34bf10a9208063fcb13f22b4914920a5bc51f68eb16db0077c1d2f5c9e38555374a0ff77fc903c8e7738d2937abd720534b9a29728464a6a5f3a69710ecd6789"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-02-22T07:38:12.369120365Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00259-z4p",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "\u001b[32m[Nest] 1  - \u001b[39m02/22/2026, 7:38:12 AM \u001b[32m    LOG\u001b[39m \u001b[38;5;3m[TradesService] \u001b[39m\u001b[32mUser 8e3ee56a-79af-4937-89b4-ff796ee0c3ed fetching trade with ID ad4cc430-08d4-4c71-bd8e-6abec7f56164\u001b[39m",
+    "timestamp": "2026-02-22T07:38:12.345627Z"
+  },
+  {
+    "insertId": "699ab2640005460eba5612d0",
+    "labels": {
+      "instanceId": "00da6cd2c4da375e01dce148e5be6b34bf10a9208063fcb13f22b4914920a5bc51f68eb16db0077c1d2f5c9e38555374a0ff77fc903c8e7738d2937abd720534b9a29728464a6a5f3a69710ecd6789"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-02-22T07:38:12.369120365Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00259-z4p",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "\u001b[95m[Nest] 1  - \u001b[39m02/22/2026, 7:38:12 AM \u001b[95m  DEBUG\u001b[39m \u001b[38;5;3m[TradesService] \u001b[39m\u001b[95mCache MISS for trade ad4cc430-08d4-4c71-bd8e-6abec7f56164\u001b[39m",
+    "timestamp": "2026-02-22T07:38:12.345614Z"
+  },
+  {
+    "insertId": "699ab26400013eb2c577e59c",
+    "labels": {
+      "instanceId": "00da6cd2c4da375e01dce148e5be6b34bf10a9208063fcb13f22b4914920a5bc51f68eb16db0077c1d2f5c9e38555374a0ff77fc903c8e7738d2937abd720534b9a29728464a6a5f3a69710ecd6789"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-02-22T07:38:12.369120365Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00259-z4p",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "\u001b[95m[Nest] 1  - \u001b[39m02/22/2026, 7:38:12 AM \u001b[95m  DEBUG\u001b[39m \u001b[38;5;3m[TradesService] \u001b[39m\u001b[95mFetching candles for trade ad4cc430-08d4-4c71-bd8e-6abec7f56164, timeframe 1m\u001b[39m",
+    "timestamp": "2026-02-22T07:38:12.081586Z"
+  },
+  {
+    "insertId": "699ab263000c856c1df0a2fd",
+    "labels": {
+      "instanceId": "00da6cd2c4da375e01dce148e5be6b34bf10a9208063fcb13f22b4914920a5bc51f68eb16db0077c1d2f5c9e38555374a0ff77fc903c8e7738d2937abd720534b9a29728464a6a5f3a69710ecd6789"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-02-22T07:38:12.034947358Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00259-z4p",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "\u001b[95m[Nest] 1  - \u001b[39m02/22/2026, 7:38:11 AM \u001b[95m  DEBUG\u001b[39m \u001b[38;5;3m[JwtStrategy] \u001b[39m\u001b[95mValidating JWT for user ID: 8e3ee56a-79af-4937-89b4-ff796ee0c3ed and email: tradetaper@gmail.com\u001b[39m",
+    "timestamp": "2026-02-22T07:38:11.820588Z"
+  },
+  {
+    "httpRequest": {
+      "latency": "1.314537056s",
+      "protocol": "HTTP/1.1",
+      "referer": "https://www.tradetaper.com/",
+      "remoteIp": "2409:40f2:103d:e8f6:d0a5:e592:5357:2aa5",
+      "requestMethod": "GET",
+      "requestSize": "1302",
+      "requestUrl": "https://api.tradetaper.com/api/v1/trades/ad4cc430-08d4-4c71-bd8e-6abec7f56164/candles?timeframe=1m",
+      "responseSize": "880",
+      "serverIp": "2404:6800:4007:80f::2013",
+      "status": 304,
+      "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36"
+    },
+    "insertId": "699ab2650001fd7a8bbd96ba",
+    "labels": {
+      "instanceId": "00da6cd2c4da375e01dce148e5be6b34bf10a9208063fcb13f22b4914920a5bc51f68eb16db0077c1d2f5c9e38555374a0ff77fc903c8e7738d2937abd720534b9a29728464a6a5f3a69710ecd6789"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Frequests",
+    "receiveTimestamp": "2026-02-22T07:38:13.389854255Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00259-z4p",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "severity": "INFO",
+    "spanId": "e0133f95cc3eede8",
+    "timestamp": "2026-02-22T07:38:11.814078Z",
+    "trace": "projects/trade-taper/traces/1a389f46fe4a2c8338dbb8464d804c38"
+  },
+  {
+    "httpRequest": {
+      "latency": "0.003036936s",
+      "protocol": "HTTP/1.1",
+      "referer": "https://www.tradetaper.com/",
+      "remoteIp": "2409:40f2:103d:e8f6:d0a5:e592:5357:2aa5",
+      "requestMethod": "OPTIONS",
+      "requestSize": "721",
+      "requestUrl": "https://api.tradetaper.com/api/v1/trades/ad4cc430-08d4-4c71-bd8e-6abec7f56164/candles?timeframe=1m",
+      "responseSize": "352",
+      "serverIp": "2404:6800:4007:80f::2013",
+      "status": 204,
+      "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36"
+    },
+    "insertId": "699ab26300056d3ba2708660",
+    "labels": {
+      "instanceId": "00da6cd2c4da375e01dce148e5be6b34bf10a9208063fcb13f22b4914920a5bc51f68eb16db0077c1d2f5c9e38555374a0ff77fc903c8e7738d2937abd720534b9a29728464a6a5f3a69710ecd6789"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Frequests",
+    "receiveTimestamp": "2026-02-22T07:38:11.389767556Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00259-z4p",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "severity": "INFO",
+    "spanId": "a3ff3bf2db8d8320",
+    "timestamp": "2026-02-22T07:38:11.349422Z",
+    "trace": "projects/trade-taper/traces/58c71b788c61009aeec640cc171cc96f"
+  },
+  {
+    "insertId": "699ab2610009162067b74950",
+    "labels": {
+      "instanceId": "00da6cd2c4da375e01dce148e5be6b34bf10a9208063fcb13f22b4914920a5bc51f68eb16db0077c1d2f5c9e38555374a0ff77fc903c8e7738d2937abd720534b9a29728464a6a5f3a69710ecd6789"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-02-22T07:38:09.704247459Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00259-z4p",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "\u001b[95m[Nest] 1  - \u001b[39m02/22/2026, 7:38:09 AM \u001b[95m  DEBUG\u001b[39m \u001b[38;5;3m[TerminalFarmService] \u001b[39m\u001b[95mQueued command FETCH_CANDLES for terminal e2b7ad48-5cef-49ab-9223-35a38c5d2e5f\u001b[39m",
+    "timestamp": "2026-02-22T07:38:09.595488Z"
+  },
+  {
+    "insertId": "699ab26100091602235e67be",
+    "labels": {
+      "instanceId": "00da6cd2c4da375e01dce148e5be6b34bf10a9208063fcb13f22b4914920a5bc51f68eb16db0077c1d2f5c9e38555374a0ff77fc903c8e7738d2937abd720534b9a29728464a6a5f3a69710ecd6789"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-02-22T07:38:09.704247459Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00259-z4p",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "\u001b[95m[Nest] 1  - \u001b[39m02/22/2026, 7:38:09 AM \u001b[95m  DEBUG\u001b[39m \u001b[38;5;3m[TerminalCommandsQueue] \u001b[39m\u001b[95mQueued command FETCH_CANDLES for terminal e2b7ad48-5cef-49ab-9223-35a38c5d2e5f\u001b[39m",
+    "timestamp": "2026-02-22T07:38:09.595458Z"
+  },
+  {
+    "insertId": "699ab260000c54b1d54bb042",
+    "labels": {
+      "instanceId": "00da6cd2c4da375e01dce148e5be6b34bf10a9208063fcb13f22b4914920a5bc51f68eb16db0077c1d2f5c9e38555374a0ff77fc903c8e7738d2937abd720534b9a29728464a6a5f3a69710ecd6789"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-02-22T07:38:09.038685227Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00259-z4p",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "\u001b[32m[Nest] 1  - \u001b[39m02/22/2026, 7:38:08 AM \u001b[32m    LOG\u001b[39m \u001b[38;5;3m[TradesService] \u001b[39m\u001b[32mUser 8e3ee56a-79af-4937-89b4-ff796ee0c3ed fetching trade with ID ad4cc430-08d4-4c71-bd8e-6abec7f56164\u001b[39m",
+    "timestamp": "2026-02-22T07:38:08.808113Z"
+  },
+  {
+    "insertId": "699ab260000c54664feba7c6",
+    "labels": {
+      "instanceId": "00da6cd2c4da375e01dce148e5be6b34bf10a9208063fcb13f22b4914920a5bc51f68eb16db0077c1d2f5c9e38555374a0ff77fc903c8e7738d2937abd720534b9a29728464a6a5f3a69710ecd6789"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-02-22T07:38:09.038685227Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00259-z4p",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "\u001b[95m[Nest] 1  - \u001b[39m02/22/2026, 7:38:08 AM \u001b[95m  DEBUG\u001b[39m \u001b[38;5;3m[TradesService] \u001b[39m\u001b[95mCache MISS for trade ad4cc430-08d4-4c71-bd8e-6abec7f56164\u001b[39m",
+    "timestamp": "2026-02-22T07:38:08.808038Z"
+  },
+  {
+    "insertId": "699ab26000085f2174412ff8",
+    "labels": {
+      "instanceId": "00da6cd2c4da375e01dce148e5be6b34bf10a9208063fcb13f22b4914920a5bc51f68eb16db0077c1d2f5c9e38555374a0ff77fc903c8e7738d2937abd720534b9a29728464a6a5f3a69710ecd6789"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-02-22T07:38:08.705029661Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00259-z4p",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "\u001b[95m[Nest] 1  - \u001b[39m02/22/2026, 7:38:08 AM \u001b[95m  DEBUG\u001b[39m \u001b[38;5;3m[TradesService] \u001b[39m\u001b[95mFetching candles for trade ad4cc430-08d4-4c71-bd8e-6abec7f56164, timeframe 1m\u001b[39m",
+    "timestamp": "2026-02-22T07:38:08.548641Z"
+  },
+  {
+    "insertId": "699ab260000461d0ddf6f5e1",
+    "labels": {
+      "instanceId": "00da6cd2c4da375e01dce148e5be6b34bf10a9208063fcb13f22b4914920a5bc51f68eb16db0077c1d2f5c9e38555374a0ff77fc903c8e7738d2937abd720534b9a29728464a6a5f3a69710ecd6789"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-02-22T07:38:08.371372924Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00259-z4p",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "\u001b[95m[Nest] 1  - \u001b[39m02/22/2026, 7:38:08 AM \u001b[95m  DEBUG\u001b[39m \u001b[38;5;3m[JwtStrategy] \u001b[39m\u001b[95mValidating JWT for user ID: 8e3ee56a-79af-4937-89b4-ff796ee0c3ed and email: tradetaper@gmail.com\u001b[39m",
+    "timestamp": "2026-02-22T07:38:08.287184Z"
+  },
+  {
+    "httpRequest": {
+      "latency": "1.313155262s",
+      "protocol": "HTTP/1.1",
+      "referer": "https://www.tradetaper.com/",
+      "remoteIp": "2409:40f2:103d:e8f6:d0a5:e592:5357:2aa5",
+      "requestMethod": "GET",
+      "requestSize": "1301",
+      "requestUrl": "https://api.tradetaper.com/api/v1/trades/ad4cc430-08d4-4c71-bd8e-6abec7f56164/candles?timeframe=1m",
+      "responseSize": "880",
+      "serverIp": "2404:6800:4007:80f::2013",
+      "status": 304,
+      "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36"
+    },
+    "insertId": "699ab2610009133caab56e93",
+    "labels": {
+      "instanceId": "00da6cd2c4da375e01dce148e5be6b34bf10a9208063fcb13f22b4914920a5bc51f68eb16db0077c1d2f5c9e38555374a0ff77fc903c8e7738d2937abd720534b9a29728464a6a5f3a69710ecd6789"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Frequests",
+    "receiveTimestamp": "2026-02-22T07:38:09.721766196Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00259-z4p",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "severity": "INFO",
+    "spanId": "afd985cc38fab8c3",
+    "timestamp": "2026-02-22T07:38:08.279430Z",
+    "trace": "projects/trade-taper/traces/3d7f3a9806b2f43c38dbb8464d804cf0",
+    "traceSampled": true
+  },
+  {
+    "insertId": "699ab25f0004f5502eeba78c",
+    "labels": {
+      "instanceId": "00da6cd2c4da375e01dce148e5be6b34bf10a9208063fcb13f22b4914920a5bc51f68eb16db0077c1d2f5c9e38555374a0ff77fc903c8e7738d2937abd720534b9a29728464a6a5f3a69710ecd6789"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-02-22T07:38:07.373141475Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00259-z4p",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "\u001b[95m[Nest] 1  - \u001b[39m02/22/2026, 7:38:07 AM \u001b[95m  DEBUG\u001b[39m \u001b[38;5;3m[TerminalFarmService] \u001b[39m\u001b[95mQueued command FETCH_CANDLES for terminal e2b7ad48-5cef-49ab-9223-35a38c5d2e5f\u001b[39m",
+    "timestamp": "2026-02-22T07:38:07.324944Z"
+  },
+  {
+    "insertId": "699ab25f0004f4de03ae2293",
+    "labels": {
+      "instanceId": "00da6cd2c4da375e01dce148e5be6b34bf10a9208063fcb13f22b4914920a5bc51f68eb16db0077c1d2f5c9e38555374a0ff77fc903c8e7738d2937abd720534b9a29728464a6a5f3a69710ecd6789"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-02-22T07:38:07.373141475Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00259-z4p",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "\u001b[95m[Nest] 1  - \u001b[39m02/22/2026, 7:38:07 AM \u001b[95m  DEBUG\u001b[39m \u001b[38;5;3m[TerminalCommandsQueue] \u001b[39m\u001b[95mQueued command FETCH_CANDLES for terminal e2b7ad48-5cef-49ab-9223-35a38c5d2e5f\u001b[39m",
+    "timestamp": "2026-02-22T07:38:07.324830Z"
+  },
+  {
+    "insertId": "699ab25e0007f4f8dc246f7b",
+    "labels": {
+      "instanceId": "00da6cd2c4da375e01dce148e5be6b34bf10a9208063fcb13f22b4914920a5bc51f68eb16db0077c1d2f5c9e38555374a0ff77fc903c8e7738d2937abd720534b9a29728464a6a5f3a69710ecd6789"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-02-22T07:38:06.705485975Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00259-z4p",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "\u001b[32m[Nest] 1  - \u001b[39m02/22/2026, 7:38:06 AM \u001b[32m    LOG\u001b[39m \u001b[38;5;3m[TradesService] \u001b[39m\u001b[32mUser 8e3ee56a-79af-4937-89b4-ff796ee0c3ed fetching trade with ID ad4cc430-08d4-4c71-bd8e-6abec7f56164\u001b[39m",
+    "timestamp": "2026-02-22T07:38:06.521464Z"
+  },
+  {
+    "insertId": "699ab25e0007f0b149bce66f",
+    "labels": {
+      "instanceId": "00da6cd2c4da375e01dce148e5be6b34bf10a9208063fcb13f22b4914920a5bc51f68eb16db0077c1d2f5c9e38555374a0ff77fc903c8e7738d2937abd720534b9a29728464a6a5f3a69710ecd6789"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-02-22T07:38:06.705485975Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00259-z4p",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "\u001b[95m[Nest] 1  - \u001b[39m02/22/2026, 7:38:06 AM \u001b[95m  DEBUG\u001b[39m \u001b[38;5;3m[TradesService] \u001b[39m\u001b[95mCache MISS for trade ad4cc430-08d4-4c71-bd8e-6abec7f56164\u001b[39m",
+    "timestamp": "2026-02-22T07:38:06.520369Z"
+  },
+  {
+    "insertId": "699ab25e0003f7b87b5b8f45",
+    "labels": {
+      "instanceId": "00da6cd2c4da375e01dce148e5be6b34bf10a9208063fcb13f22b4914920a5bc51f68eb16db0077c1d2f5c9e38555374a0ff77fc903c8e7738d2937abd720534b9a29728464a6a5f3a69710ecd6789"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-02-22T07:38:06.373168771Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00259-z4p",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "\u001b[95m[Nest] 1  - \u001b[39m02/22/2026, 7:38:06 AM \u001b[95m  DEBUG\u001b[39m \u001b[38;5;3m[TradesService] \u001b[39m\u001b[95mFetching candles for trade ad4cc430-08d4-4c71-bd8e-6abec7f56164, timeframe 1m\u001b[39m",
+    "timestamp": "2026-02-22T07:38:06.260024Z"
+  }
+]

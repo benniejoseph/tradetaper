@@ -53,6 +53,7 @@ let Trade = class Trade {
     mt5Magic;
     contractSize;
     executionCandles;
+    syncSource;
     emotionBefore;
     emotionDuring;
     emotionAfter;
@@ -329,6 +330,10 @@ __decorate([
     (0, typeorm_1.Column)({ type: 'jsonb', nullable: true }),
     __metadata("design:type", Array)
 ], Trade.prototype, "executionCandles", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'varchar', length: 20, nullable: true, default: 'manual' }),
+    __metadata("design:type", String)
+], Trade.prototype, "syncSource", void 0);
 __decorate([
     (0, typeorm_1.Column)({
         type: 'enum',

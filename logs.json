@@ -1,0 +1,2035 @@
+[
+  {
+    "insertId": "699aa32e00051fe55e81db5b",
+    "labels": {
+      "instanceId": "00da6cd2c4f4834db017510db32da3bc04a6ecfe5f3e7014041652ebbec36838726d7272a41989bd34352cad5a77e6275227844d3f89c8024eb2b3c5b6af8f69f02d0770804a71fbe4b20a6f047b7e"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fvarlog%2Fsystem",
+    "receiveTimestamp": "2026-02-22T06:33:18.439545738Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00258-v2m",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "severity": "ERROR",
+    "textPayload": "Default STARTUP TCP probe failed 1 time consecutively for container \"tradetaper-backend-1\" on port 8080. The instance was not started.\nConnection failed with status CANCELLED.",
+    "timestamp": "2026-02-22T06:33:18.335845Z"
+  },
+  {
+    "insertId": "699aa32e00018bad23fe4aeb",
+    "labels": {
+      "container_name": "tradetaper-backend-1",
+      "instanceId": "00da6cd2c4f4834db017510db32da3bc04a6ecfe5f3e7014041652ebbec36838726d7272a41989bd34352cad5a77e6275227844d3f89c8024eb2b3c5b6af8f69f02d0770804a71fbe4b20a6f047b7e"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fvarlog%2Fsystem",
+    "receiveTimestamp": "2026-02-22T06:33:18.104500979Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00258-v2m",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "severity": "WARNING",
+    "textPayload": "Container called exit(1).",
+    "timestamp": "2026-02-22T06:33:18.101189112Z"
+  },
+  {
+    "insertId": "699aa32d0005fa1c5718ccf7",
+    "labels": {
+      "instanceId": "00da6cd2c4f4834db017510db32da3bc04a6ecfe5f3e7014041652ebbec36838726d7272a41989bd34352cad5a77e6275227844d3f89c8024eb2b3c5b6af8f69f02d0770804a71fbe4b20a6f047b7e"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstderr",
+    "receiveTimestamp": "2026-02-22T06:33:17.557069608Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00258-v2m",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "}",
+    "timestamp": "2026-02-22T06:33:17.391708Z"
+  },
+  {
+    "insertId": "699aa32d0005fa1610f0f30d",
+    "labels": {
+      "instanceId": "00da6cd2c4f4834db017510db32da3bc04a6ecfe5f3e7014041652ebbec36838726d7272a41989bd34352cad5a77e6275227844d3f89c8024eb2b3c5b6af8f69f02d0770804a71fbe4b20a6f047b7e"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstderr",
+    "receiveTimestamp": "2026-02-22T06:33:17.557069608Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00258-v2m",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "  routine: \u001b[32m'RangeVarGetRelidExtended'\u001b[39m",
+    "timestamp": "2026-02-22T06:33:17.391702Z"
+  },
+  {
+    "insertId": "699aa32d0005fa10d47f41e9",
+    "labels": {
+      "instanceId": "00da6cd2c4f4834db017510db32da3bc04a6ecfe5f3e7014041652ebbec36838726d7272a41989bd34352cad5a77e6275227844d3f89c8024eb2b3c5b6af8f69f02d0770804a71fbe4b20a6f047b7e"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstderr",
+    "receiveTimestamp": "2026-02-22T06:33:17.557069608Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00258-v2m",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "  line: \u001b[32m'636'\u001b[39m,",
+    "timestamp": "2026-02-22T06:33:17.391696Z"
+  },
+  {
+    "insertId": "699aa32d0005fa0aec0259d8",
+    "labels": {
+      "instanceId": "00da6cd2c4f4834db017510db32da3bc04a6ecfe5f3e7014041652ebbec36838726d7272a41989bd34352cad5a77e6275227844d3f89c8024eb2b3c5b6af8f69f02d0770804a71fbe4b20a6f047b7e"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstderr",
+    "receiveTimestamp": "2026-02-22T06:33:17.557069608Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00258-v2m",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "  file: \u001b[32m'namespace.c'\u001b[39m,",
+    "timestamp": "2026-02-22T06:33:17.391690Z"
+  },
+  {
+    "insertId": "699aa32d0005fa00c3dae30b",
+    "labels": {
+      "instanceId": "00da6cd2c4f4834db017510db32da3bc04a6ecfe5f3e7014041652ebbec36838726d7272a41989bd34352cad5a77e6275227844d3f89c8024eb2b3c5b6af8f69f02d0770804a71fbe4b20a6f047b7e"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstderr",
+    "receiveTimestamp": "2026-02-22T06:33:17.557069608Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00258-v2m",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "  constraint: \u001b[90mundefined\u001b[39m,",
+    "timestamp": "2026-02-22T06:33:17.391680Z"
+  },
+  {
+    "insertId": "699aa32d0005f9fa3266aacf",
+    "labels": {
+      "instanceId": "00da6cd2c4f4834db017510db32da3bc04a6ecfe5f3e7014041652ebbec36838726d7272a41989bd34352cad5a77e6275227844d3f89c8024eb2b3c5b6af8f69f02d0770804a71fbe4b20a6f047b7e"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstderr",
+    "receiveTimestamp": "2026-02-22T06:33:17.557069608Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00258-v2m",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "  dataType: \u001b[90mundefined\u001b[39m,",
+    "timestamp": "2026-02-22T06:33:17.391674Z"
+  },
+  {
+    "insertId": "699aa32d0005f9f44c6eb6e5",
+    "labels": {
+      "instanceId": "00da6cd2c4f4834db017510db32da3bc04a6ecfe5f3e7014041652ebbec36838726d7272a41989bd34352cad5a77e6275227844d3f89c8024eb2b3c5b6af8f69f02d0770804a71fbe4b20a6f047b7e"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstderr",
+    "receiveTimestamp": "2026-02-22T06:33:17.557069608Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00258-v2m",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "  column: \u001b[90mundefined\u001b[39m,",
+    "timestamp": "2026-02-22T06:33:17.391668Z"
+  },
+  {
+    "insertId": "699aa32d0005f9eff86be769",
+    "labels": {
+      "instanceId": "00da6cd2c4f4834db017510db32da3bc04a6ecfe5f3e7014041652ebbec36838726d7272a41989bd34352cad5a77e6275227844d3f89c8024eb2b3c5b6af8f69f02d0770804a71fbe4b20a6f047b7e"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstderr",
+    "receiveTimestamp": "2026-02-22T06:33:17.557069608Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00258-v2m",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "  table: \u001b[90mundefined\u001b[39m,",
+    "timestamp": "2026-02-22T06:33:17.391663Z"
+  },
+  {
+    "insertId": "699aa32d0005f9e948717ea0",
+    "labels": {
+      "instanceId": "00da6cd2c4f4834db017510db32da3bc04a6ecfe5f3e7014041652ebbec36838726d7272a41989bd34352cad5a77e6275227844d3f89c8024eb2b3c5b6af8f69f02d0770804a71fbe4b20a6f047b7e"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstderr",
+    "receiveTimestamp": "2026-02-22T06:33:17.557069608Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00258-v2m",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "  schema: \u001b[90mundefined\u001b[39m,",
+    "timestamp": "2026-02-22T06:33:17.391657Z"
+  },
+  {
+    "insertId": "699aa32d0005f9e3793b8915",
+    "labels": {
+      "instanceId": "00da6cd2c4f4834db017510db32da3bc04a6ecfe5f3e7014041652ebbec36838726d7272a41989bd34352cad5a77e6275227844d3f89c8024eb2b3c5b6af8f69f02d0770804a71fbe4b20a6f047b7e"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstderr",
+    "receiveTimestamp": "2026-02-22T06:33:17.557069608Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00258-v2m",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "  where: \u001b[32m'SQL statement \"ALTER TABLE \"trade\" ADD COLUMN \"emotionBefore\" emotional_state_enum\"\\nPL/pgSQL function inline_code_block line 2 at SQL statement'\u001b[39m,",
+    "timestamp": "2026-02-22T06:33:17.391651Z"
+  },
+  {
+    "insertId": "699aa32d0005f9dc38324d88",
+    "labels": {
+      "instanceId": "00da6cd2c4f4834db017510db32da3bc04a6ecfe5f3e7014041652ebbec36838726d7272a41989bd34352cad5a77e6275227844d3f89c8024eb2b3c5b6af8f69f02d0770804a71fbe4b20a6f047b7e"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstderr",
+    "receiveTimestamp": "2026-02-22T06:33:17.557069608Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00258-v2m",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "  internalQuery: \u001b[90mundefined\u001b[39m,",
+    "timestamp": "2026-02-22T06:33:17.391644Z"
+  },
+  {
+    "insertId": "699aa32d0005f9d71bbaf57f",
+    "labels": {
+      "instanceId": "00da6cd2c4f4834db017510db32da3bc04a6ecfe5f3e7014041652ebbec36838726d7272a41989bd34352cad5a77e6275227844d3f89c8024eb2b3c5b6af8f69f02d0770804a71fbe4b20a6f047b7e"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstderr",
+    "receiveTimestamp": "2026-02-22T06:33:17.557069608Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00258-v2m",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "  internalPosition: \u001b[90mundefined\u001b[39m,",
+    "timestamp": "2026-02-22T06:33:17.391639Z"
+  },
+  {
+    "insertId": "699aa32d0005f9d1806a7139",
+    "labels": {
+      "instanceId": "00da6cd2c4f4834db017510db32da3bc04a6ecfe5f3e7014041652ebbec36838726d7272a41989bd34352cad5a77e6275227844d3f89c8024eb2b3c5b6af8f69f02d0770804a71fbe4b20a6f047b7e"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstderr",
+    "receiveTimestamp": "2026-02-22T06:33:17.557069608Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00258-v2m",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "  position: \u001b[90mundefined\u001b[39m,",
+    "timestamp": "2026-02-22T06:33:17.391633Z"
+  },
+  {
+    "insertId": "699aa32d0005f9cccd1ab91d",
+    "labels": {
+      "instanceId": "00da6cd2c4f4834db017510db32da3bc04a6ecfe5f3e7014041652ebbec36838726d7272a41989bd34352cad5a77e6275227844d3f89c8024eb2b3c5b6af8f69f02d0770804a71fbe4b20a6f047b7e"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstderr",
+    "receiveTimestamp": "2026-02-22T06:33:17.557069608Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00258-v2m",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "  hint: \u001b[90mundefined\u001b[39m,",
+    "timestamp": "2026-02-22T06:33:17.391628Z"
+  },
+  {
+    "insertId": "699aa32d0005f9c51bff4d40",
+    "labels": {
+      "instanceId": "00da6cd2c4f4834db017510db32da3bc04a6ecfe5f3e7014041652ebbec36838726d7272a41989bd34352cad5a77e6275227844d3f89c8024eb2b3c5b6af8f69f02d0770804a71fbe4b20a6f047b7e"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstderr",
+    "receiveTimestamp": "2026-02-22T06:33:17.557069608Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00258-v2m",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "  detail: \u001b[90mundefined\u001b[39m,",
+    "timestamp": "2026-02-22T06:33:17.391621Z"
+  },
+  {
+    "insertId": "699aa32d0005f9bfab40b034",
+    "labels": {
+      "instanceId": "00da6cd2c4f4834db017510db32da3bc04a6ecfe5f3e7014041652ebbec36838726d7272a41989bd34352cad5a77e6275227844d3f89c8024eb2b3c5b6af8f69f02d0770804a71fbe4b20a6f047b7e"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstderr",
+    "receiveTimestamp": "2026-02-22T06:33:17.557069608Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00258-v2m",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "  code: \u001b[32m'42P01'\u001b[39m,",
+    "timestamp": "2026-02-22T06:33:17.391615Z"
+  },
+  {
+    "insertId": "699aa32d0005f9b9627db444",
+    "labels": {
+      "instanceId": "00da6cd2c4f4834db017510db32da3bc04a6ecfe5f3e7014041652ebbec36838726d7272a41989bd34352cad5a77e6275227844d3f89c8024eb2b3c5b6af8f69f02d0770804a71fbe4b20a6f047b7e"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstderr",
+    "receiveTimestamp": "2026-02-22T06:33:17.557069608Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00258-v2m",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "  severity: \u001b[32m'ERROR'\u001b[39m,",
+    "timestamp": "2026-02-22T06:33:17.391609Z"
+  },
+  {
+    "insertId": "699aa32d0005f9b45e86f9f6",
+    "labels": {
+      "instanceId": "00da6cd2c4f4834db017510db32da3bc04a6ecfe5f3e7014041652ebbec36838726d7272a41989bd34352cad5a77e6275227844d3f89c8024eb2b3c5b6af8f69f02d0770804a71fbe4b20a6f047b7e"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstderr",
+    "receiveTimestamp": "2026-02-22T06:33:17.557069608Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00258-v2m",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "  length: \u001b[33m248\u001b[39m,",
+    "timestamp": "2026-02-22T06:33:17.391604Z"
+  },
+  {
+    "insertId": "699aa32d0005f9ae6b3fe2b7",
+    "labels": {
+      "instanceId": "00da6cd2c4f4834db017510db32da3bc04a6ecfe5f3e7014041652ebbec36838726d7272a41989bd34352cad5a77e6275227844d3f89c8024eb2b3c5b6af8f69f02d0770804a71fbe4b20a6f047b7e"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstderr",
+    "receiveTimestamp": "2026-02-22T06:33:17.557069608Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00258-v2m",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "  },",
+    "timestamp": "2026-02-22T06:33:17.391598Z"
+  },
+  {
+    "insertId": "699aa32d0005f9a8bf4f3ec1",
+    "labels": {
+      "instanceId": "00da6cd2c4f4834db017510db32da3bc04a6ecfe5f3e7014041652ebbec36838726d7272a41989bd34352cad5a77e6275227844d3f89c8024eb2b3c5b6af8f69f02d0770804a71fbe4b20a6f047b7e"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstderr",
+    "receiveTimestamp": "2026-02-22T06:33:17.557069608Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00258-v2m",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "    routine: \u001b[32m'RangeVarGetRelidExtended'\u001b[39m",
+    "timestamp": "2026-02-22T06:33:17.391592Z"
+  },
+  {
+    "insertId": "699aa32d0005f9a2727891fa",
+    "labels": {
+      "instanceId": "00da6cd2c4f4834db017510db32da3bc04a6ecfe5f3e7014041652ebbec36838726d7272a41989bd34352cad5a77e6275227844d3f89c8024eb2b3c5b6af8f69f02d0770804a71fbe4b20a6f047b7e"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstderr",
+    "receiveTimestamp": "2026-02-22T06:33:17.557069608Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00258-v2m",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "    line: \u001b[32m'636'\u001b[39m,",
+    "timestamp": "2026-02-22T06:33:17.391586Z"
+  },
+  {
+    "insertId": "699aa32d0005f99c104e7ad8",
+    "labels": {
+      "instanceId": "00da6cd2c4f4834db017510db32da3bc04a6ecfe5f3e7014041652ebbec36838726d7272a41989bd34352cad5a77e6275227844d3f89c8024eb2b3c5b6af8f69f02d0770804a71fbe4b20a6f047b7e"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstderr",
+    "receiveTimestamp": "2026-02-22T06:33:17.557069608Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00258-v2m",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "    file: \u001b[32m'namespace.c'\u001b[39m,",
+    "timestamp": "2026-02-22T06:33:17.391580Z"
+  },
+  {
+    "insertId": "699aa32d0005f996e6047aa0",
+    "labels": {
+      "instanceId": "00da6cd2c4f4834db017510db32da3bc04a6ecfe5f3e7014041652ebbec36838726d7272a41989bd34352cad5a77e6275227844d3f89c8024eb2b3c5b6af8f69f02d0770804a71fbe4b20a6f047b7e"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstderr",
+    "receiveTimestamp": "2026-02-22T06:33:17.557069608Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00258-v2m",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "    constraint: \u001b[90mundefined\u001b[39m,",
+    "timestamp": "2026-02-22T06:33:17.391574Z"
+  },
+  {
+    "insertId": "699aa32d0005f99021fec884",
+    "labels": {
+      "instanceId": "00da6cd2c4f4834db017510db32da3bc04a6ecfe5f3e7014041652ebbec36838726d7272a41989bd34352cad5a77e6275227844d3f89c8024eb2b3c5b6af8f69f02d0770804a71fbe4b20a6f047b7e"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstderr",
+    "receiveTimestamp": "2026-02-22T06:33:17.557069608Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00258-v2m",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "    dataType: \u001b[90mundefined\u001b[39m,",
+    "timestamp": "2026-02-22T06:33:17.391568Z"
+  },
+  {
+    "insertId": "699aa32d0005f98af0d0e95b",
+    "labels": {
+      "instanceId": "00da6cd2c4f4834db017510db32da3bc04a6ecfe5f3e7014041652ebbec36838726d7272a41989bd34352cad5a77e6275227844d3f89c8024eb2b3c5b6af8f69f02d0770804a71fbe4b20a6f047b7e"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstderr",
+    "receiveTimestamp": "2026-02-22T06:33:17.557069608Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00258-v2m",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "    column: \u001b[90mundefined\u001b[39m,",
+    "timestamp": "2026-02-22T06:33:17.391562Z"
+  },
+  {
+    "insertId": "699aa32d0005f9846eeca34a",
+    "labels": {
+      "instanceId": "00da6cd2c4f4834db017510db32da3bc04a6ecfe5f3e7014041652ebbec36838726d7272a41989bd34352cad5a77e6275227844d3f89c8024eb2b3c5b6af8f69f02d0770804a71fbe4b20a6f047b7e"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstderr",
+    "receiveTimestamp": "2026-02-22T06:33:17.557069608Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00258-v2m",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "    table: \u001b[90mundefined\u001b[39m,",
+    "timestamp": "2026-02-22T06:33:17.391556Z"
+  },
+  {
+    "insertId": "699aa32d0005f97e22d2f89f",
+    "labels": {
+      "instanceId": "00da6cd2c4f4834db017510db32da3bc04a6ecfe5f3e7014041652ebbec36838726d7272a41989bd34352cad5a77e6275227844d3f89c8024eb2b3c5b6af8f69f02d0770804a71fbe4b20a6f047b7e"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstderr",
+    "receiveTimestamp": "2026-02-22T06:33:17.557069608Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00258-v2m",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "    schema: \u001b[90mundefined\u001b[39m,",
+    "timestamp": "2026-02-22T06:33:17.391550Z"
+  },
+  {
+    "insertId": "699aa32d0005f97903ba3818",
+    "labels": {
+      "instanceId": "00da6cd2c4f4834db017510db32da3bc04a6ecfe5f3e7014041652ebbec36838726d7272a41989bd34352cad5a77e6275227844d3f89c8024eb2b3c5b6af8f69f02d0770804a71fbe4b20a6f047b7e"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstderr",
+    "receiveTimestamp": "2026-02-22T06:33:17.557069608Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00258-v2m",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "    where: \u001b[32m'SQL statement \"ALTER TABLE \"trade\" ADD COLUMN \"emotionBefore\" emotional_state_enum\"\\nPL/pgSQL function inline_code_block line 2 at SQL statement'\u001b[39m,",
+    "timestamp": "2026-02-22T06:33:17.391545Z"
+  },
+  {
+    "insertId": "699aa32d0005f97296700c61",
+    "labels": {
+      "instanceId": "00da6cd2c4f4834db017510db32da3bc04a6ecfe5f3e7014041652ebbec36838726d7272a41989bd34352cad5a77e6275227844d3f89c8024eb2b3c5b6af8f69f02d0770804a71fbe4b20a6f047b7e"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstderr",
+    "receiveTimestamp": "2026-02-22T06:33:17.557069608Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00258-v2m",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "    internalQuery: \u001b[90mundefined\u001b[39m,",
+    "timestamp": "2026-02-22T06:33:17.391538Z"
+  },
+  {
+    "insertId": "699aa32d0005f96cc98a90dc",
+    "labels": {
+      "instanceId": "00da6cd2c4f4834db017510db32da3bc04a6ecfe5f3e7014041652ebbec36838726d7272a41989bd34352cad5a77e6275227844d3f89c8024eb2b3c5b6af8f69f02d0770804a71fbe4b20a6f047b7e"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstderr",
+    "receiveTimestamp": "2026-02-22T06:33:17.557069608Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00258-v2m",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "    internalPosition: \u001b[90mundefined\u001b[39m,",
+    "timestamp": "2026-02-22T06:33:17.391532Z"
+  },
+  {
+    "insertId": "699aa32d0005f9666b79b16b",
+    "labels": {
+      "instanceId": "00da6cd2c4f4834db017510db32da3bc04a6ecfe5f3e7014041652ebbec36838726d7272a41989bd34352cad5a77e6275227844d3f89c8024eb2b3c5b6af8f69f02d0770804a71fbe4b20a6f047b7e"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstderr",
+    "receiveTimestamp": "2026-02-22T06:33:17.557069608Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00258-v2m",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "    position: \u001b[90mundefined\u001b[39m,",
+    "timestamp": "2026-02-22T06:33:17.391526Z"
+  },
+  {
+    "insertId": "699aa32d0005f9610831b550",
+    "labels": {
+      "instanceId": "00da6cd2c4f4834db017510db32da3bc04a6ecfe5f3e7014041652ebbec36838726d7272a41989bd34352cad5a77e6275227844d3f89c8024eb2b3c5b6af8f69f02d0770804a71fbe4b20a6f047b7e"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstderr",
+    "receiveTimestamp": "2026-02-22T06:33:17.557069608Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00258-v2m",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "    hint: \u001b[90mundefined\u001b[39m,",
+    "timestamp": "2026-02-22T06:33:17.391521Z"
+  },
+  {
+    "insertId": "699aa32d0005f9592826ddc9",
+    "labels": {
+      "instanceId": "00da6cd2c4f4834db017510db32da3bc04a6ecfe5f3e7014041652ebbec36838726d7272a41989bd34352cad5a77e6275227844d3f89c8024eb2b3c5b6af8f69f02d0770804a71fbe4b20a6f047b7e"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstderr",
+    "receiveTimestamp": "2026-02-22T06:33:17.557069608Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00258-v2m",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "    detail: \u001b[90mundefined\u001b[39m,",
+    "timestamp": "2026-02-22T06:33:17.391513Z"
+  },
+  {
+    "insertId": "699aa32d0005f954c9a18780",
+    "labels": {
+      "instanceId": "00da6cd2c4f4834db017510db32da3bc04a6ecfe5f3e7014041652ebbec36838726d7272a41989bd34352cad5a77e6275227844d3f89c8024eb2b3c5b6af8f69f02d0770804a71fbe4b20a6f047b7e"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstderr",
+    "receiveTimestamp": "2026-02-22T06:33:17.557069608Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00258-v2m",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "    code: \u001b[32m'42P01'\u001b[39m,",
+    "timestamp": "2026-02-22T06:33:17.391508Z"
+  },
+  {
+    "insertId": "699aa32d0005f94d1ac4b7d7",
+    "labels": {
+      "instanceId": "00da6cd2c4f4834db017510db32da3bc04a6ecfe5f3e7014041652ebbec36838726d7272a41989bd34352cad5a77e6275227844d3f89c8024eb2b3c5b6af8f69f02d0770804a71fbe4b20a6f047b7e"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstderr",
+    "receiveTimestamp": "2026-02-22T06:33:17.557069608Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00258-v2m",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "    severity: \u001b[32m'ERROR'\u001b[39m,",
+    "timestamp": "2026-02-22T06:33:17.391501Z"
+  },
+  {
+    "insertId": "699aa32d0005f9476b5a0e01",
+    "labels": {
+      "instanceId": "00da6cd2c4f4834db017510db32da3bc04a6ecfe5f3e7014041652ebbec36838726d7272a41989bd34352cad5a77e6275227844d3f89c8024eb2b3c5b6af8f69f02d0770804a71fbe4b20a6f047b7e"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstderr",
+    "receiveTimestamp": "2026-02-22T06:33:17.557069608Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00258-v2m",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "    length: \u001b[33m248\u001b[39m,",
+    "timestamp": "2026-02-22T06:33:17.391495Z"
+  },
+  {
+    "insertId": "699aa32d0005f941f36b4089",
+    "labels": {
+      "instanceId": "00da6cd2c4f4834db017510db32da3bc04a6ecfe5f3e7014041652ebbec36838726d7272a41989bd34352cad5a77e6275227844d3f89c8024eb2b3c5b6af8f69f02d0770804a71fbe4b20a6f047b7e"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstderr",
+    "receiveTimestamp": "2026-02-22T06:33:17.557069608Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00258-v2m",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "      at async DataSource.initialize \u001b[90m(/app/\u001b[39mnode_modules/\u001b[4mtypeorm\u001b[24m/data-source/DataSource.js:152:17\u001b[90m)\u001b[39m {",
+    "timestamp": "2026-02-22T06:33:17.391489Z"
+  },
+  {
+    "insertId": "699aa32d0005f93bf029148d",
+    "labels": {
+      "instanceId": "00da6cd2c4f4834db017510db32da3bc04a6ecfe5f3e7014041652ebbec36838726d7272a41989bd34352cad5a77e6275227844d3f89c8024eb2b3c5b6af8f69f02d0770804a71fbe4b20a6f047b7e"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstderr",
+    "receiveTimestamp": "2026-02-22T06:33:17.557069608Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00258-v2m",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "      at async DataSource.runMigrations \u001b[90m(/app/\u001b[39mnode_modules/\u001b[4mtypeorm\u001b[24m/data-source/DataSource.js:266:35\u001b[90m)\u001b[39m",
+    "timestamp": "2026-02-22T06:33:17.391483Z"
+  },
+  {
+    "insertId": "699aa32d0005f936455072a7",
+    "labels": {
+      "instanceId": "00da6cd2c4f4834db017510db32da3bc04a6ecfe5f3e7014041652ebbec36838726d7272a41989bd34352cad5a77e6275227844d3f89c8024eb2b3c5b6af8f69f02d0770804a71fbe4b20a6f047b7e"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstderr",
+    "receiveTimestamp": "2026-02-22T06:33:17.557069608Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00258-v2m",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "      at async MigrationExecutor.executePendingMigrations \u001b[90m(/app/\u001b[39mnode_modules/\u001b[4mtypeorm\u001b[24m/migration/MigrationExecutor.js:225:17\u001b[90m)\u001b[39m",
+    "timestamp": "2026-02-22T06:33:17.391478Z"
+  },
+  {
+    "insertId": "699aa32d0005f930150b285b",
+    "labels": {
+      "instanceId": "00da6cd2c4f4834db017510db32da3bc04a6ecfe5f3e7014041652ebbec36838726d7272a41989bd34352cad5a77e6275227844d3f89c8024eb2b3c5b6af8f69f02d0770804a71fbe4b20a6f047b7e"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstderr",
+    "receiveTimestamp": "2026-02-22T06:33:17.557069608Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00258-v2m",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "      at async AddTradeAdvancedFields1780000000000.up \u001b[90m(/app/\u001b[39mdist/migrations/1780000000000-AddTradeAdvancedFields.js:53:9\u001b[90m)\u001b[39m",
+    "timestamp": "2026-02-22T06:33:17.391472Z"
+  },
+  {
+    "insertId": "699aa32d0005f92937556ae8",
+    "labels": {
+      "instanceId": "00da6cd2c4f4834db017510db32da3bc04a6ecfe5f3e7014041652ebbec36838726d7272a41989bd34352cad5a77e6275227844d3f89c8024eb2b3c5b6af8f69f02d0770804a71fbe4b20a6f047b7e"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstderr",
+    "receiveTimestamp": "2026-02-22T06:33:17.557069608Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00258-v2m",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "      at async addCol \u001b[90m(/app/\u001b[39mdist/migrations/1780000000000-AddTradeAdvancedFields.js:46:13\u001b[90m)\u001b[39m",
+    "timestamp": "2026-02-22T06:33:17.391465Z"
+  },
+  {
+    "insertId": "699aa32d0005f9231c0404e5",
+    "labels": {
+      "instanceId": "00da6cd2c4f4834db017510db32da3bc04a6ecfe5f3e7014041652ebbec36838726d7272a41989bd34352cad5a77e6275227844d3f89c8024eb2b3c5b6af8f69f02d0770804a71fbe4b20a6f047b7e"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstderr",
+    "receiveTimestamp": "2026-02-22T06:33:17.557069608Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00258-v2m",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "      at async PostgresQueryRunner.query \u001b[90m(/app/\u001b[39mnode_modules/\u001b[4mtypeorm\u001b[24m/driver/postgres/PostgresQueryRunner.js:181:25\u001b[90m)\u001b[39m",
+    "timestamp": "2026-02-22T06:33:17.391459Z"
+  },
+  {
+    "insertId": "699aa32d0005f91eadbfc7e2",
+    "labels": {
+      "instanceId": "00da6cd2c4f4834db017510db32da3bc04a6ecfe5f3e7014041652ebbec36838726d7272a41989bd34352cad5a77e6275227844d3f89c8024eb2b3c5b6af8f69f02d0770804a71fbe4b20a6f047b7e"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstderr",
+    "receiveTimestamp": "2026-02-22T06:33:17.557069608Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00258-v2m",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "  \u001b[90m    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)\u001b[39m",
+    "timestamp": "2026-02-22T06:33:17.391454Z"
+  },
+  {
+    "insertId": "699aa32d0005f9192d4f22c1",
+    "labels": {
+      "instanceId": "00da6cd2c4f4834db017510db32da3bc04a6ecfe5f3e7014041652ebbec36838726d7272a41989bd34352cad5a77e6275227844d3f89c8024eb2b3c5b6af8f69f02d0770804a71fbe4b20a6f047b7e"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstderr",
+    "receiveTimestamp": "2026-02-22T06:33:17.557069608Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00258-v2m",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "      at \u001b[90m/app/\u001b[39mnode_modules/\u001b[4mpg\u001b[24m/lib/client.js:624:17",
+    "timestamp": "2026-02-22T06:33:17.391449Z"
+  },
+  {
+    "insertId": "699aa32d0005f91484d08833",
+    "labels": {
+      "instanceId": "00da6cd2c4f4834db017510db32da3bc04a6ecfe5f3e7014041652ebbec36838726d7272a41989bd34352cad5a77e6275227844d3f89c8024eb2b3c5b6af8f69f02d0770804a71fbe4b20a6f047b7e"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstderr",
+    "receiveTimestamp": "2026-02-22T06:33:17.557069608Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00258-v2m",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "  driverError: error: relation \"trade\" does not exist",
+    "timestamp": "2026-02-22T06:33:17.391444Z"
+  },
+  {
+    "insertId": "699aa32d0005f9068fd2b6d4",
+    "labels": {
+      "instanceId": "00da6cd2c4f4834db017510db32da3bc04a6ecfe5f3e7014041652ebbec36838726d7272a41989bd34352cad5a77e6275227844d3f89c8024eb2b3c5b6af8f69f02d0770804a71fbe4b20a6f047b7e"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstderr",
+    "receiveTimestamp": "2026-02-22T06:33:17.557069608Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00258-v2m",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "  parameters: \u001b[90mundefined\u001b[39m,",
+    "timestamp": "2026-02-22T06:33:17.391430Z"
+  },
+  {
+    "insertId": "699aa32d0005f8ff288e3738",
+    "labels": {
+      "instanceId": "00da6cd2c4f4834db017510db32da3bc04a6ecfe5f3e7014041652ebbec36838726d7272a41989bd34352cad5a77e6275227844d3f89c8024eb2b3c5b6af8f69f02d0770804a71fbe4b20a6f047b7e"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstderr",
+    "receiveTimestamp": "2026-02-22T06:33:17.557069608Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00258-v2m",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "  query: \u001b[32m'\\n        DO $$ BEGIN\\n          ALTER TABLE \"trade\" ADD COLUMN \"emotionBefore\" emotional_state_enum ;\\n        EXCEPTION WHEN duplicate_column THEN NULL;\\n        END $$;\\n      '\u001b[39m,",
+    "timestamp": "2026-02-22T06:33:17.391423Z"
+  },
+  {
+    "insertId": "699aa32d0005f8f8eec9bd05",
+    "labels": {
+      "instanceId": "00da6cd2c4f4834db017510db32da3bc04a6ecfe5f3e7014041652ebbec36838726d7272a41989bd34352cad5a77e6275227844d3f89c8024eb2b3c5b6af8f69f02d0770804a71fbe4b20a6f047b7e"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstderr",
+    "receiveTimestamp": "2026-02-22T06:33:17.557069608Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00258-v2m",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "    at async DataSource.initialize \u001b[90m(/app/\u001b[39mnode_modules/\u001b[4mtypeorm\u001b[24m/data-source/DataSource.js:152:17\u001b[90m)\u001b[39m {",
+    "timestamp": "2026-02-22T06:33:17.391416Z"
+  },
+  {
+    "insertId": "699aa32d0005f8f2b312aa32",
+    "labels": {
+      "instanceId": "00da6cd2c4f4834db017510db32da3bc04a6ecfe5f3e7014041652ebbec36838726d7272a41989bd34352cad5a77e6275227844d3f89c8024eb2b3c5b6af8f69f02d0770804a71fbe4b20a6f047b7e"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstderr",
+    "receiveTimestamp": "2026-02-22T06:33:17.557069608Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00258-v2m",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "    at async DataSource.runMigrations \u001b[90m(/app/\u001b[39mnode_modules/\u001b[4mtypeorm\u001b[24m/data-source/DataSource.js:266:35\u001b[90m)\u001b[39m",
+    "timestamp": "2026-02-22T06:33:17.391410Z"
+  },
+  {
+    "insertId": "699aa32d0005f8ed4eea1f45",
+    "labels": {
+      "instanceId": "00da6cd2c4f4834db017510db32da3bc04a6ecfe5f3e7014041652ebbec36838726d7272a41989bd34352cad5a77e6275227844d3f89c8024eb2b3c5b6af8f69f02d0770804a71fbe4b20a6f047b7e"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstderr",
+    "receiveTimestamp": "2026-02-22T06:33:17.557069608Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00258-v2m",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "    at async MigrationExecutor.executePendingMigrations \u001b[90m(/app/\u001b[39mnode_modules/\u001b[4mtypeorm\u001b[24m/migration/MigrationExecutor.js:225:17\u001b[90m)\u001b[39m",
+    "timestamp": "2026-02-22T06:33:17.391405Z"
+  },
+  {
+    "insertId": "699aa32d0005f8e7d1d2c01c",
+    "labels": {
+      "instanceId": "00da6cd2c4f4834db017510db32da3bc04a6ecfe5f3e7014041652ebbec36838726d7272a41989bd34352cad5a77e6275227844d3f89c8024eb2b3c5b6af8f69f02d0770804a71fbe4b20a6f047b7e"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstderr",
+    "receiveTimestamp": "2026-02-22T06:33:17.557069608Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00258-v2m",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "    at async AddTradeAdvancedFields1780000000000.up \u001b[90m(/app/\u001b[39mdist/migrations/1780000000000-AddTradeAdvancedFields.js:53:9\u001b[90m)\u001b[39m",
+    "timestamp": "2026-02-22T06:33:17.391399Z"
+  },
+  {
+    "insertId": "699aa32d0005f8e285a98066",
+    "labels": {
+      "instanceId": "00da6cd2c4f4834db017510db32da3bc04a6ecfe5f3e7014041652ebbec36838726d7272a41989bd34352cad5a77e6275227844d3f89c8024eb2b3c5b6af8f69f02d0770804a71fbe4b20a6f047b7e"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstderr",
+    "receiveTimestamp": "2026-02-22T06:33:17.557069608Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00258-v2m",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "    at async addCol \u001b[90m(/app/\u001b[39mdist/migrations/1780000000000-AddTradeAdvancedFields.js:46:13\u001b[90m)\u001b[39m",
+    "timestamp": "2026-02-22T06:33:17.391394Z"
+  },
+  {
+    "insertId": "699aa32d0005f8dc2bba26af",
+    "labels": {
+      "instanceId": "00da6cd2c4f4834db017510db32da3bc04a6ecfe5f3e7014041652ebbec36838726d7272a41989bd34352cad5a77e6275227844d3f89c8024eb2b3c5b6af8f69f02d0770804a71fbe4b20a6f047b7e"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstderr",
+    "receiveTimestamp": "2026-02-22T06:33:17.557069608Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00258-v2m",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "\u001b[90m    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)\u001b[39m",
+    "timestamp": "2026-02-22T06:33:17.391388Z"
+  },
+  {
+    "insertId": "699aa32d0005f8d70b1e8dcb",
+    "labels": {
+      "instanceId": "00da6cd2c4f4834db017510db32da3bc04a6ecfe5f3e7014041652ebbec36838726d7272a41989bd34352cad5a77e6275227844d3f89c8024eb2b3c5b6af8f69f02d0770804a71fbe4b20a6f047b7e"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstderr",
+    "receiveTimestamp": "2026-02-22T06:33:17.557069608Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00258-v2m",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "    at PostgresQueryRunner.query \u001b[90m(/app/\u001b[39mnode_modules/\u001b[4mtypeorm\u001b[24m/driver/postgres/PostgresQueryRunner.js:216:19\u001b[90m)\u001b[39m",
+    "timestamp": "2026-02-22T06:33:17.391383Z"
+  },
+  {
+    "insertId": "699aa32d0005f8cd3298fdbe",
+    "labels": {
+      "instanceId": "00da6cd2c4f4834db017510db32da3bc04a6ecfe5f3e7014041652ebbec36838726d7272a41989bd34352cad5a77e6275227844d3f89c8024eb2b3c5b6af8f69f02d0770804a71fbe4b20a6f047b7e"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstderr",
+    "receiveTimestamp": "2026-02-22T06:33:17.557069608Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00258-v2m",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "\u001b[31m[Nest] 1  - \u001b[39m02/22/2026, 6:33:17 AM \u001b[31m  ERROR\u001b[39m \u001b[38;5;3m[ExceptionHandler] \u001b[39mQueryFailedError: relation \"trade\" does not exist",
+    "timestamp": "2026-02-22T06:33:17.391373Z"
+  },
+  {
+    "errorGroups": [
+      {
+        "id": "CN6-5NLr98TXYw"
+      }
+    ],
+    "insertId": "699aa32d0005f8c0d3a9bb80",
+    "labels": {
+      "instanceId": "00da6cd2c4f4834db017510db32da3bc04a6ecfe5f3e7014041652ebbec36838726d7272a41989bd34352cad5a77e6275227844d3f89c8024eb2b3c5b6af8f69f02d0770804a71fbe4b20a6f047b7e"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstderr",
+    "receiveTimestamp": "2026-02-22T06:33:17.557069608Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00258-v2m",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "severity": "ERROR",
+    "textPayload": "QueryFailedError: relation \"trade\" does not exist\n    at PostgresQueryRunner.query (/app/node_modules/typeorm/driver/postgres/PostgresQueryRunner.js:216:19)\n    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)\n    at async addCol (/app/dist/migrations/1780000000000-AddTradeAdvancedFields.js:46:13)\n    at async AddTradeAdvancedFields1780000000000.up (/app/dist/migrations/1780000000000-AddTradeAdvancedFields.js:53:9)\n    at async MigrationExecutor.executePendingMigrations (/app/node_modules/typeorm/migration/MigrationExecutor.js:225:17)\n    at async DataSource.runMigrations (/app/node_modules/typeorm/data-source/DataSource.js:266:35)\n    at async DataSource.initialize (/app/node_modules/typeorm/data-source/DataSource.js:152:17)",
+    "timestamp": "2026-02-22T06:33:17.391360Z"
+  },
+  {
+    "insertId": "699aa32d0005e05099d539eb",
+    "labels": {
+      "instanceId": "00da6cd2c4f4834db017510db32da3bc04a6ecfe5f3e7014041652ebbec36838726d7272a41989bd34352cad5a77e6275227844d3f89c8024eb2b3c5b6af8f69f02d0770804a71fbe4b20a6f047b7e"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstderr",
+    "receiveTimestamp": "2026-02-22T06:33:17.557069608Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00258-v2m",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "\u001b[31m[Nest] 1  - \u001b[39m02/22/2026, 6:33:17 AM \u001b[31m  ERROR\u001b[39m \u001b[38;5;3m[TypeOrmModule] \u001b[39m\u001b[31mUnable to connect to the database. Retrying (10)...\u001b[39m",
+    "timestamp": "2026-02-22T06:33:17.385104Z"
+  },
+  {
+    "insertId": "699aa32d0001d351571a41e8",
+    "labels": {
+      "instanceId": "00da6cd2c4f4834db017510db32da3bc04a6ecfe5f3e7014041652ebbec36838726d7272a41989bd34352cad5a77e6275227844d3f89c8024eb2b3c5b6af8f69f02d0770804a71fbe4b20a6f047b7e"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-02-22T06:33:17.138274410Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00258-v2m",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "Migration \"AddTradeAdvancedFields1780000000000\" failed, error: relation \"trade\" does not exist",
+    "timestamp": "2026-02-22T06:33:17.119633Z"
+  },
+  {
+    "insertId": "699aa32d0001d121fa8530a1",
+    "labels": {
+      "instanceId": "00da6cd2c4f4834db017510db32da3bc04a6ecfe5f3e7014041652ebbec36838726d7272a41989bd34352cad5a77e6275227844d3f89c8024eb2b3c5b6af8f69f02d0770804a71fbe4b20a6f047b7e"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-02-22T06:33:17.138274410Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00258-v2m",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "error: error: relation \"trade\" does not exist",
+    "timestamp": "2026-02-22T06:33:17.119073Z"
+  },
+  {
+    "insertId": "699aa32d0001d0a0bf6c2214",
+    "labels": {
+      "instanceId": "00da6cd2c4f4834db017510db32da3bc04a6ecfe5f3e7014041652ebbec36838726d7272a41989bd34352cad5a77e6275227844d3f89c8024eb2b3c5b6af8f69f02d0770804a71fbe4b20a6f047b7e"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-02-22T06:33:17.138274410Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00258-v2m",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "      ",
+    "timestamp": "2026-02-22T06:33:17.118944Z"
+  },
+  {
+    "insertId": "699aa32d0001d09b1b8ad179",
+    "labels": {
+      "instanceId": "00da6cd2c4f4834db017510db32da3bc04a6ecfe5f3e7014041652ebbec36838726d7272a41989bd34352cad5a77e6275227844d3f89c8024eb2b3c5b6af8f69f02d0770804a71fbe4b20a6f047b7e"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-02-22T06:33:17.138274410Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00258-v2m",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "        END $$;",
+    "timestamp": "2026-02-22T06:33:17.118939Z"
+  },
+  {
+    "insertId": "699aa32d0001d096837a45e6",
+    "labels": {
+      "instanceId": "00da6cd2c4f4834db017510db32da3bc04a6ecfe5f3e7014041652ebbec36838726d7272a41989bd34352cad5a77e6275227844d3f89c8024eb2b3c5b6af8f69f02d0770804a71fbe4b20a6f047b7e"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-02-22T06:33:17.138274410Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00258-v2m",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "        EXCEPTION WHEN duplicate_column THEN NULL;",
+    "timestamp": "2026-02-22T06:33:17.118934Z"
+  },
+  {
+    "insertId": "699aa32d0001d09197af8345",
+    "labels": {
+      "instanceId": "00da6cd2c4f4834db017510db32da3bc04a6ecfe5f3e7014041652ebbec36838726d7272a41989bd34352cad5a77e6275227844d3f89c8024eb2b3c5b6af8f69f02d0770804a71fbe4b20a6f047b7e"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-02-22T06:33:17.138274410Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00258-v2m",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "          ALTER TABLE \"trade\" ADD COLUMN \"emotionBefore\" emotional_state_enum ;",
+    "timestamp": "2026-02-22T06:33:17.118929Z"
+  },
+  {
+    "insertId": "699aa32d0001d08bb61c431f",
+    "labels": {
+      "instanceId": "00da6cd2c4f4834db017510db32da3bc04a6ecfe5f3e7014041652ebbec36838726d7272a41989bd34352cad5a77e6275227844d3f89c8024eb2b3c5b6af8f69f02d0770804a71fbe4b20a6f047b7e"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-02-22T06:33:17.138274410Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00258-v2m",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "        DO $$ BEGIN",
+    "timestamp": "2026-02-22T06:33:17.118923Z"
+  },
+  {
+    "insertId": "699aa32d0001d07cc34073e1",
+    "labels": {
+      "instanceId": "00da6cd2c4f4834db017510db32da3bc04a6ecfe5f3e7014041652ebbec36838726d7272a41989bd34352cad5a77e6275227844d3f89c8024eb2b3c5b6af8f69f02d0770804a71fbe4b20a6f047b7e"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-02-22T06:33:17.138274410Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00258-v2m",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "query failed: ",
+    "timestamp": "2026-02-22T06:33:17.118908Z"
+  },
+  {
+    "errorGroups": [
+      {
+        "id": "CN6-5NLr98TXYw"
+      }
+    ],
+    "insertId": "699aa325000ef983c3755d05",
+    "labels": {
+      "instanceId": "00da6cd2c4f4834db017510db32da3bc04a6ecfe5f3e7014041652ebbec36838726d7272a41989bd34352cad5a77e6275227844d3f89c8024eb2b3c5b6af8f69f02d0770804a71fbe4b20a6f047b7e"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstderr",
+    "receiveTimestamp": "2026-02-22T06:33:10.228653203Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00258-v2m",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "severity": "ERROR",
+    "textPayload": "QueryFailedError: relation \"trade\" does not exist\n    at PostgresQueryRunner.query (/app/node_modules/typeorm/driver/postgres/PostgresQueryRunner.js:216:19)\n    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)\n    at async addCol (/app/dist/migrations/1780000000000-AddTradeAdvancedFields.js:46:13)\n    at async AddTradeAdvancedFields1780000000000.up (/app/dist/migrations/1780000000000-AddTradeAdvancedFields.js:53:9)\n    at async MigrationExecutor.executePendingMigrations (/app/node_modules/typeorm/migration/MigrationExecutor.js:225:17)\n    at async DataSource.runMigrations (/app/node_modules/typeorm/data-source/DataSource.js:266:35)\n    at async DataSource.initialize (/app/node_modules/typeorm/data-source/DataSource.js:152:17)",
+    "timestamp": "2026-02-22T06:33:09.981379Z"
+  },
+  {
+    "insertId": "699aa324000d604077e4251e",
+    "labels": {
+      "instanceId": "00da6cd2c4f4834db017510db32da3bc04a6ecfe5f3e7014041652ebbec36838726d7272a41989bd34352cad5a77e6275227844d3f89c8024eb2b3c5b6af8f69f02d0770804a71fbe4b20a6f047b7e"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstderr",
+    "receiveTimestamp": "2026-02-22T06:33:08.894708894Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00258-v2m",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "\u001b[31m[Nest] 1  - \u001b[39m02/22/2026, 6:33:08 AM \u001b[31m  ERROR\u001b[39m \u001b[38;5;3m[TypeOrmModule] \u001b[39m\u001b[31mUnable to connect to the database. Retrying (9)...\u001b[39m",
+    "timestamp": "2026-02-22T06:33:08.876608Z"
+  },
+  {
+    "insertId": "699aa32400095bbbb7c84b29",
+    "labels": {
+      "instanceId": "00da6cd2c4f4834db017510db32da3bc04a6ecfe5f3e7014041652ebbec36838726d7272a41989bd34352cad5a77e6275227844d3f89c8024eb2b3c5b6af8f69f02d0770804a71fbe4b20a6f047b7e"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-02-22T06:33:08.812965736Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00258-v2m",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "Migration \"AddTradeAdvancedFields1780000000000\" failed, error: relation \"trade\" does not exist",
+    "timestamp": "2026-02-22T06:33:08.613307Z"
+  },
+  {
+    "insertId": "699aa324000959b600ec48b1",
+    "labels": {
+      "instanceId": "00da6cd2c4f4834db017510db32da3bc04a6ecfe5f3e7014041652ebbec36838726d7272a41989bd34352cad5a77e6275227844d3f89c8024eb2b3c5b6af8f69f02d0770804a71fbe4b20a6f047b7e"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-02-22T06:33:08.812965736Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00258-v2m",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "error: error: relation \"trade\" does not exist",
+    "timestamp": "2026-02-22T06:33:08.612790Z"
+  },
+  {
+    "insertId": "699aa3240009598970258302",
+    "labels": {
+      "instanceId": "00da6cd2c4f4834db017510db32da3bc04a6ecfe5f3e7014041652ebbec36838726d7272a41989bd34352cad5a77e6275227844d3f89c8024eb2b3c5b6af8f69f02d0770804a71fbe4b20a6f047b7e"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-02-22T06:33:08.812965736Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00258-v2m",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "      ",
+    "timestamp": "2026-02-22T06:33:08.612745Z"
+  },
+  {
+    "insertId": "699aa324000959834bf6bdda",
+    "labels": {
+      "instanceId": "00da6cd2c4f4834db017510db32da3bc04a6ecfe5f3e7014041652ebbec36838726d7272a41989bd34352cad5a77e6275227844d3f89c8024eb2b3c5b6af8f69f02d0770804a71fbe4b20a6f047b7e"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-02-22T06:33:08.812965736Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00258-v2m",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "        END $$;",
+    "timestamp": "2026-02-22T06:33:08.612739Z"
+  },
+  {
+    "insertId": "699aa3240009597e65a7672c",
+    "labels": {
+      "instanceId": "00da6cd2c4f4834db017510db32da3bc04a6ecfe5f3e7014041652ebbec36838726d7272a41989bd34352cad5a77e6275227844d3f89c8024eb2b3c5b6af8f69f02d0770804a71fbe4b20a6f047b7e"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-02-22T06:33:08.812965736Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00258-v2m",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "        EXCEPTION WHEN duplicate_column THEN NULL;",
+    "timestamp": "2026-02-22T06:33:08.612734Z"
+  },
+  {
+    "insertId": "699aa3240009597739af5621",
+    "labels": {
+      "instanceId": "00da6cd2c4f4834db017510db32da3bc04a6ecfe5f3e7014041652ebbec36838726d7272a41989bd34352cad5a77e6275227844d3f89c8024eb2b3c5b6af8f69f02d0770804a71fbe4b20a6f047b7e"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-02-22T06:33:08.812965736Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00258-v2m",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "          ALTER TABLE \"trade\" ADD COLUMN \"emotionBefore\" emotional_state_enum ;",
+    "timestamp": "2026-02-22T06:33:08.612727Z"
+  },
+  {
+    "insertId": "699aa3240009597138db05a1",
+    "labels": {
+      "instanceId": "00da6cd2c4f4834db017510db32da3bc04a6ecfe5f3e7014041652ebbec36838726d7272a41989bd34352cad5a77e6275227844d3f89c8024eb2b3c5b6af8f69f02d0770804a71fbe4b20a6f047b7e"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-02-22T06:33:08.812965736Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00258-v2m",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "        DO $$ BEGIN",
+    "timestamp": "2026-02-22T06:33:08.612721Z"
+  },
+  {
+    "insertId": "699aa3240009596091adfb75",
+    "labels": {
+      "instanceId": "00da6cd2c4f4834db017510db32da3bc04a6ecfe5f3e7014041652ebbec36838726d7272a41989bd34352cad5a77e6275227844d3f89c8024eb2b3c5b6af8f69f02d0770804a71fbe4b20a6f047b7e"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-02-22T06:33:08.812965736Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00258-v2m",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "query failed: ",
+    "timestamp": "2026-02-22T06:33:08.612704Z"
+  },
+  {
+    "errorGroups": [
+      {
+        "id": "CN6-5NLr98TXYw"
+      }
+    ],
+    "insertId": "699aa31d0005f8141c90b431",
+    "labels": {
+      "instanceId": "00da6cd2c4f4834db017510db32da3bc04a6ecfe5f3e7014041652ebbec36838726d7272a41989bd34352cad5a77e6275227844d3f89c8024eb2b3c5b6af8f69f02d0770804a71fbe4b20a6f047b7e"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstderr",
+    "receiveTimestamp": "2026-02-22T06:33:01.570554487Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00258-v2m",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "severity": "ERROR",
+    "textPayload": "QueryFailedError: relation \"trade\" does not exist\n    at PostgresQueryRunner.query (/app/node_modules/typeorm/driver/postgres/PostgresQueryRunner.js:216:19)\n    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)\n    at async addCol (/app/dist/migrations/1780000000000-AddTradeAdvancedFields.js:46:13)\n    at async AddTradeAdvancedFields1780000000000.up (/app/dist/migrations/1780000000000-AddTradeAdvancedFields.js:53:9)\n    at async MigrationExecutor.executePendingMigrations (/app/node_modules/typeorm/migration/MigrationExecutor.js:225:17)\n    at async DataSource.runMigrations (/app/node_modules/typeorm/data-source/DataSource.js:266:35)\n    at async DataSource.initialize (/app/node_modules/typeorm/data-source/DataSource.js:152:17)",
+    "timestamp": "2026-02-22T06:33:01.391188Z"
+  },
+  {
+    "insertId": "699aa31c000569ce89c37f7e",
+    "labels": {
+      "instanceId": "00da6cd2c4f4834db017510db32da3bc04a6ecfe5f3e7014041652ebbec36838726d7272a41989bd34352cad5a77e6275227844d3f89c8024eb2b3c5b6af8f69f02d0770804a71fbe4b20a6f047b7e"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstderr",
+    "receiveTimestamp": "2026-02-22T06:33:00.570636568Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00258-v2m",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "\u001b[31m[Nest] 1  - \u001b[39m02/22/2026, 6:33:00 AM \u001b[31m  ERROR\u001b[39m \u001b[38;5;3m[TypeOrmModule] \u001b[39m\u001b[31mUnable to connect to the database. Retrying (8)...\u001b[39m",
+    "timestamp": "2026-02-22T06:33:00.354766Z"
+  },
+  {
+    "insertId": "699aa31c00016c242a00c839",
+    "labels": {
+      "instanceId": "00da6cd2c4f4834db017510db32da3bc04a6ecfe5f3e7014041652ebbec36838726d7272a41989bd34352cad5a77e6275227844d3f89c8024eb2b3c5b6af8f69f02d0770804a71fbe4b20a6f047b7e"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-02-22T06:33:00.153162792Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00258-v2m",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "Migration \"AddTradeAdvancedFields1780000000000\" failed, error: relation \"trade\" does not exist",
+    "timestamp": "2026-02-22T06:33:00.093220Z"
+  },
+  {
+    "insertId": "699aa31c0001697a6f7f9c22",
+    "labels": {
+      "instanceId": "00da6cd2c4f4834db017510db32da3bc04a6ecfe5f3e7014041652ebbec36838726d7272a41989bd34352cad5a77e6275227844d3f89c8024eb2b3c5b6af8f69f02d0770804a71fbe4b20a6f047b7e"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-02-22T06:33:00.153162792Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00258-v2m",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "error: error: relation \"trade\" does not exist",
+    "timestamp": "2026-02-22T06:33:00.092538Z"
+  },
+  {
+    "insertId": "699aa31c00016946d09e3a69",
+    "labels": {
+      "instanceId": "00da6cd2c4f4834db017510db32da3bc04a6ecfe5f3e7014041652ebbec36838726d7272a41989bd34352cad5a77e6275227844d3f89c8024eb2b3c5b6af8f69f02d0770804a71fbe4b20a6f047b7e"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-02-22T06:33:00.153162792Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00258-v2m",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "      ",
+    "timestamp": "2026-02-22T06:33:00.092486Z"
+  },
+  {
+    "insertId": "699aa31c000169414250fa95",
+    "labels": {
+      "instanceId": "00da6cd2c4f4834db017510db32da3bc04a6ecfe5f3e7014041652ebbec36838726d7272a41989bd34352cad5a77e6275227844d3f89c8024eb2b3c5b6af8f69f02d0770804a71fbe4b20a6f047b7e"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-02-22T06:33:00.153162792Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00258-v2m",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "        END $$;",
+    "timestamp": "2026-02-22T06:33:00.092481Z"
+  },
+  {
+    "insertId": "699aa31c0001693cb0ec3216",
+    "labels": {
+      "instanceId": "00da6cd2c4f4834db017510db32da3bc04a6ecfe5f3e7014041652ebbec36838726d7272a41989bd34352cad5a77e6275227844d3f89c8024eb2b3c5b6af8f69f02d0770804a71fbe4b20a6f047b7e"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-02-22T06:33:00.153162792Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00258-v2m",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "        EXCEPTION WHEN duplicate_column THEN NULL;",
+    "timestamp": "2026-02-22T06:33:00.092476Z"
+  },
+  {
+    "insertId": "699aa31c0001693537017804",
+    "labels": {
+      "instanceId": "00da6cd2c4f4834db017510db32da3bc04a6ecfe5f3e7014041652ebbec36838726d7272a41989bd34352cad5a77e6275227844d3f89c8024eb2b3c5b6af8f69f02d0770804a71fbe4b20a6f047b7e"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-02-22T06:33:00.153162792Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00258-v2m",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "          ALTER TABLE \"trade\" ADD COLUMN \"emotionBefore\" emotional_state_enum ;",
+    "timestamp": "2026-02-22T06:33:00.092469Z"
+  },
+  {
+    "insertId": "699aa31c0001692f2fecc2fc",
+    "labels": {
+      "instanceId": "00da6cd2c4f4834db017510db32da3bc04a6ecfe5f3e7014041652ebbec36838726d7272a41989bd34352cad5a77e6275227844d3f89c8024eb2b3c5b6af8f69f02d0770804a71fbe4b20a6f047b7e"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-02-22T06:33:00.153162792Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00258-v2m",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "        DO $$ BEGIN",
+    "timestamp": "2026-02-22T06:33:00.092463Z"
+  },
+  {
+    "insertId": "699aa31c000169209b9a776c",
+    "labels": {
+      "instanceId": "00da6cd2c4f4834db017510db32da3bc04a6ecfe5f3e7014041652ebbec36838726d7272a41989bd34352cad5a77e6275227844d3f89c8024eb2b3c5b6af8f69f02d0770804a71fbe4b20a6f047b7e"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-02-22T06:33:00.153162792Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00258-v2m",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "query failed: ",
+    "timestamp": "2026-02-22T06:33:00.092448Z"
+  },
+  {
+    "errorGroups": [
+      {
+        "id": "CN6-5NLr98TXYw"
+      }
+    ],
+    "insertId": "699aa314000e453677ba6142",
+    "labels": {
+      "instanceId": "00da6cd2c4f4834db017510db32da3bc04a6ecfe5f3e7014041652ebbec36838726d7272a41989bd34352cad5a77e6275227844d3f89c8024eb2b3c5b6af8f69f02d0770804a71fbe4b20a6f047b7e"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstderr",
+    "receiveTimestamp": "2026-02-22T06:32:53.241128319Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00258-v2m",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "severity": "ERROR",
+    "textPayload": "QueryFailedError: relation \"trade\" does not exist\n    at PostgresQueryRunner.query (/app/node_modules/typeorm/driver/postgres/PostgresQueryRunner.js:216:19)\n    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)\n    at async addCol (/app/dist/migrations/1780000000000-AddTradeAdvancedFields.js:46:13)\n    at async AddTradeAdvancedFields1780000000000.up (/app/dist/migrations/1780000000000-AddTradeAdvancedFields.js:53:9)\n    at async MigrationExecutor.executePendingMigrations (/app/node_modules/typeorm/migration/MigrationExecutor.js:225:17)\n    at async DataSource.runMigrations (/app/node_modules/typeorm/data-source/DataSource.js:266:35)\n    at async DataSource.initialize (/app/node_modules/typeorm/data-source/DataSource.js:152:17)",
+    "timestamp": "2026-02-22T06:32:52.935222Z"
+  },
+  {
+    "insertId": "699aa313000cb8c067a2dddb",
+    "labels": {
+      "instanceId": "00da6cd2c4f4834db017510db32da3bc04a6ecfe5f3e7014041652ebbec36838726d7272a41989bd34352cad5a77e6275227844d3f89c8024eb2b3c5b6af8f69f02d0770804a71fbe4b20a6f047b7e"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstderr",
+    "receiveTimestamp": "2026-02-22T06:32:51.912065565Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00258-v2m",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "\u001b[31m[Nest] 1  - \u001b[39m02/22/2026, 6:32:51 AM \u001b[31m  ERROR\u001b[39m \u001b[38;5;3m[TypeOrmModule] \u001b[39m\u001b[31mUnable to connect to the database. Retrying (7)...\u001b[39m",
+    "timestamp": "2026-02-22T06:32:51.833728Z"
+  },
+  {
+    "insertId": "699aa3130008bf684e719d08",
+    "labels": {
+      "instanceId": "00da6cd2c4f4834db017510db32da3bc04a6ecfe5f3e7014041652ebbec36838726d7272a41989bd34352cad5a77e6275227844d3f89c8024eb2b3c5b6af8f69f02d0770804a71fbe4b20a6f047b7e"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-02-22T06:32:51.827967132Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00258-v2m",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "Migration \"AddTradeAdvancedFields1780000000000\" failed, error: relation \"trade\" does not exist",
+    "timestamp": "2026-02-22T06:32:51.573288Z"
+  },
+  {
+    "insertId": "699aa3130008bde61bc7d323",
+    "labels": {
+      "instanceId": "00da6cd2c4f4834db017510db32da3bc04a6ecfe5f3e7014041652ebbec36838726d7272a41989bd34352cad5a77e6275227844d3f89c8024eb2b3c5b6af8f69f02d0770804a71fbe4b20a6f047b7e"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-02-22T06:32:51.827967132Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00258-v2m",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "error: error: relation \"trade\" does not exist",
+    "timestamp": "2026-02-22T06:32:51.572902Z"
+  },
+  {
+    "insertId": "699aa3130008bdca2edb323c",
+    "labels": {
+      "instanceId": "00da6cd2c4f4834db017510db32da3bc04a6ecfe5f3e7014041652ebbec36838726d7272a41989bd34352cad5a77e6275227844d3f89c8024eb2b3c5b6af8f69f02d0770804a71fbe4b20a6f047b7e"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-02-22T06:32:51.827967132Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00258-v2m",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "      ",
+    "timestamp": "2026-02-22T06:32:51.572874Z"
+  },
+  {
+    "insertId": "699aa3130008bdc41a412d9e",
+    "labels": {
+      "instanceId": "00da6cd2c4f4834db017510db32da3bc04a6ecfe5f3e7014041652ebbec36838726d7272a41989bd34352cad5a77e6275227844d3f89c8024eb2b3c5b6af8f69f02d0770804a71fbe4b20a6f047b7e"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-02-22T06:32:51.827967132Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00258-v2m",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "        END $$;",
+    "timestamp": "2026-02-22T06:32:51.572868Z"
+  },
+  {
+    "insertId": "699aa3130008bdbf2236b60d",
+    "labels": {
+      "instanceId": "00da6cd2c4f4834db017510db32da3bc04a6ecfe5f3e7014041652ebbec36838726d7272a41989bd34352cad5a77e6275227844d3f89c8024eb2b3c5b6af8f69f02d0770804a71fbe4b20a6f047b7e"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-02-22T06:32:51.827967132Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00258-v2m",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "        EXCEPTION WHEN duplicate_column THEN NULL;",
+    "timestamp": "2026-02-22T06:32:51.572863Z"
+  },
+  {
+    "insertId": "699aa3130008bdba7d9473b5",
+    "labels": {
+      "instanceId": "00da6cd2c4f4834db017510db32da3bc04a6ecfe5f3e7014041652ebbec36838726d7272a41989bd34352cad5a77e6275227844d3f89c8024eb2b3c5b6af8f69f02d0770804a71fbe4b20a6f047b7e"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-02-22T06:32:51.827967132Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00258-v2m",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "          ALTER TABLE \"trade\" ADD COLUMN \"emotionBefore\" emotional_state_enum ;",
+    "timestamp": "2026-02-22T06:32:51.572858Z"
+  },
+  {
+    "insertId": "699aa3130008bdb36a3a0bbc",
+    "labels": {
+      "instanceId": "00da6cd2c4f4834db017510db32da3bc04a6ecfe5f3e7014041652ebbec36838726d7272a41989bd34352cad5a77e6275227844d3f89c8024eb2b3c5b6af8f69f02d0770804a71fbe4b20a6f047b7e"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-02-22T06:32:51.827967132Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00258-v2m",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "        DO $$ BEGIN",
+    "timestamp": "2026-02-22T06:32:51.572851Z"
+  },
+  {
+    "insertId": "699aa3130008bda34b309842",
+    "labels": {
+      "instanceId": "00da6cd2c4f4834db017510db32da3bc04a6ecfe5f3e7014041652ebbec36838726d7272a41989bd34352cad5a77e6275227844d3f89c8024eb2b3c5b6af8f69f02d0770804a71fbe4b20a6f047b7e"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-02-22T06:32:51.827967132Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00258-v2m",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "query failed: ",
+    "timestamp": "2026-02-22T06:32:51.572835Z"
+  },
+  {
+    "errorGroups": [
+      {
+        "id": "CN6-5NLr98TXYw"
+      }
+    ],
+    "insertId": "699aa30c0005465851cc8286",
+    "labels": {
+      "instanceId": "00da6cd2c4f4834db017510db32da3bc04a6ecfe5f3e7014041652ebbec36838726d7272a41989bd34352cad5a77e6275227844d3f89c8024eb2b3c5b6af8f69f02d0770804a71fbe4b20a6f047b7e"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstderr",
+    "receiveTimestamp": "2026-02-22T06:32:44.583694301Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00258-v2m",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "severity": "ERROR",
+    "textPayload": "QueryFailedError: relation \"trade\" does not exist\n    at PostgresQueryRunner.query (/app/node_modules/typeorm/driver/postgres/PostgresQueryRunner.js:216:19)\n    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)\n    at async addCol (/app/dist/migrations/1780000000000-AddTradeAdvancedFields.js:46:13)\n    at async AddTradeAdvancedFields1780000000000.up (/app/dist/migrations/1780000000000-AddTradeAdvancedFields.js:53:9)\n    at async MigrationExecutor.executePendingMigrations (/app/node_modules/typeorm/migration/MigrationExecutor.js:225:17)\n    at async DataSource.runMigrations (/app/node_modules/typeorm/data-source/DataSource.js:266:35)\n    at async DataSource.initialize (/app/node_modules/typeorm/data-source/DataSource.js:152:17)",
+    "timestamp": "2026-02-22T06:32:44.345688Z"
+  },
+  {
+    "insertId": "699aa30b00048cd2dc2186ae",
+    "labels": {
+      "instanceId": "00da6cd2c4f4834db017510db32da3bc04a6ecfe5f3e7014041652ebbec36838726d7272a41989bd34352cad5a77e6275227844d3f89c8024eb2b3c5b6af8f69f02d0770804a71fbe4b20a6f047b7e"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstderr",
+    "receiveTimestamp": "2026-02-22T06:32:43.586756955Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00258-v2m",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "\u001b[31m[Nest] 1  - \u001b[39m02/22/2026, 6:32:43 AM \u001b[31m  ERROR\u001b[39m \u001b[38;5;3m[TypeOrmModule] \u001b[39m\u001b[31mUnable to connect to the database. Retrying (6)...\u001b[39m",
+    "timestamp": "2026-02-22T06:32:43.298194Z"
+  },
+  {
+    "insertId": "699aa30b000097bf6f2e1a09",
+    "labels": {
+      "instanceId": "00da6cd2c4f4834db017510db32da3bc04a6ecfe5f3e7014041652ebbec36838726d7272a41989bd34352cad5a77e6275227844d3f89c8024eb2b3c5b6af8f69f02d0770804a71fbe4b20a6f047b7e"
+    },
+    "logName": "projects/trade-taper/logs/run.googleapis.com%2Fstdout",
+    "receiveTimestamp": "2026-02-22T06:32:43.168983171Z",
+    "resource": {
+      "labels": {
+        "configuration_name": "tradetaper-backend",
+        "location": "us-central1",
+        "project_id": "trade-taper",
+        "revision_name": "tradetaper-backend-00258-v2m",
+        "service_name": "tradetaper-backend"
+      },
+      "type": "cloud_run_revision"
+    },
+    "textPayload": "Migration \"AddTradeAdvancedFields1780000000000\" failed, error: relation \"trade\" does not exist",
+    "timestamp": "2026-02-22T06:32:43.038847Z"
+  }
+]

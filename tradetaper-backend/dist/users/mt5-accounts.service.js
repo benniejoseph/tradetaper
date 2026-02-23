@@ -657,6 +657,7 @@ let MT5AccountsService = MT5AccountsService_1 = class MT5AccountsService {
                 externalDealId: deal.id,
                 mt5Magic: deal.magic,
                 contractSize,
+                syncSource: 'metaapi',
             }, { id: account.userId });
             return { status: 'imported', trade: createdTrade };
         }
@@ -697,6 +698,7 @@ let MT5AccountsService = MT5AccountsService_1 = class MT5AccountsService {
                 externalDealId: deal.id,
                 mt5Magic: deal.magic,
                 contractSize,
+                syncSource: 'metaapi',
             }, { id: account.userId });
             return { status: 'imported', trade: createdTrade };
         }

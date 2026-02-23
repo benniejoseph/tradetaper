@@ -128,6 +128,9 @@ function transformApiTradeToFrontend(apiTrade: any): Trade {
       energyLevel: apiTrade.energyLevel != null ? Number(apiTrade.energyLevel) : undefined,
       distractionLevel: apiTrade.distractionLevel != null ? Number(apiTrade.distractionLevel) : undefined,
       tradingEnvironment: apiTrade.tradingEnvironment,
+      // Strategy
+      strategyId: apiTrade.strategyId,
+      strategy: apiTrade.strategy,
     };
   } catch (error) {
     console.error('Error transforming trade:', apiTrade, error);

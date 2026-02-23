@@ -374,7 +374,7 @@ export class TradesService {
 
     const [trades, total] = await this.tradesRepository.findAndCount({
       where: whereClause,
-      relations: ['tags'],
+      relations: ['tags', 'strategy'],
       order: { openTime: 'DESC' },
       take: limit,
       skip: (page - 1) * limit,
@@ -509,6 +509,9 @@ export class TradesService {
     if (includeTags) {
       queryBuilder.leftJoinAndSelect('trade.tags', 'tag');
     }
+    
+    // Always include Strategy for the UI
+    queryBuilder.leftJoinAndSelect('trade.strategy', 'strategy');
 
     const sortBy = filters?.sortBy || 'openTime';
     const sortDir =
@@ -564,11 +567,14 @@ export class TradesService {
         'trade.accountId',
         'trade.createdAt',
         'trade.updatedAt',
+        'trade.strategyId',
       ]);
 
     if (includeTags) {
       queryBuilder.addSelect(['tag.id', 'tag.name']);
     }
+
+    queryBuilder.addSelect(['strategy.id', 'strategy.name']);
 
     const [trades, total] = await queryBuilder.getManyAndCount();
 
@@ -823,6 +829,7 @@ export class TradesService {
       const trade = await this.tradesRepository
         .createQueryBuilder('trade')
         .leftJoinAndSelect('trade.tags', 'tag')
+        .leftJoinAndSelect('trade.strategy', 'strategy')
         .where('trade.id = :id', { id })
         .andWhere('trade.userId = :userId', { userId: userContext.id })
         .getOneOrFail();
