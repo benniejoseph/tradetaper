@@ -932,7 +932,7 @@ export class BacktestingService {
     // Helper to escape CSV values
     const escapeCSV = (value: unknown): string => {
       if (value === null || value === undefined) return '';
-      const str = String(value);
+      const str = String(value as any);
       // Escape quotes and wrap in quotes if contains comma, quote, or newline
       if (str.includes(',') || str.includes('"') || str.includes('\n')) {
         return `"${str.replace(/"/g, '""')}"`;
