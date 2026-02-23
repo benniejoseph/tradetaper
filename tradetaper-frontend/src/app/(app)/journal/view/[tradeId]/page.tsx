@@ -11,7 +11,7 @@ import {
   ArrowLeft, Edit3, Download, TrendingUp, TrendingDown, DollarSign,
   BarChart3, Clock, Brain, Tag, Target, Calendar, Layers, Terminal,
   CheckCircle, XCircle, Newspaper, Star, AlertCircle, Loader2,
-  Shield, Eye, Zap, Moon, Activity, Crosshair, MessageSquare, Flame
+  Shield, Eye, Zap, Moon, Activity, Crosshair, MessageSquare, Flame, ChevronDown
 } from 'lucide-react';
 
 // ────────────────────────────────────────────────
@@ -34,8 +34,8 @@ const StatCard: React.FC<{
 const SectionCard: React.FC<{
   title: string; icon: React.ReactNode; color?: string; children: React.ReactNode;
 }> = ({ title, icon, color = 'emerald', children }) => (
-  <div className="bg-white dark:bg-[#0A0A0A] border border-zinc-200 dark:border-white/5 rounded-2xl p-5 shadow-sm">
-    <div className="flex items-center gap-2 mb-4 pb-2 border-b border-zinc-100 dark:border-white/5">
+  <div className="bg-white dark:bg-[#0A0A0A] border border-zinc-200 dark:border-white/5 rounded-2xl p-4 shadow-sm">
+    <div className="flex items-center gap-2 mb-3 pb-2 border-b border-zinc-100 dark:border-white/5">
       <div className={`p-1.5 rounded-lg bg-${color}-50 dark:bg-${color}-500/10 text-${color}-500`}>{icon}</div>
       <h3 className="text-sm font-bold text-zinc-900 dark:text-white uppercase tracking-tight">{title}</h3>
     </div>
@@ -143,7 +143,7 @@ export default function ViewTradePage() {
   const isWin = (trade.profitOrLoss ?? 0) >= 0;
 
   return (
-    <div className="max-w-[1600px] mx-auto px-4 md:px-8 py-6 space-y-6">
+    <div className="max-w-[1600px] mx-auto px-4 md:px-8 py-4 space-y-4">
       
       {/* ═══ NAV & ACTIONS ═══ */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -232,41 +232,13 @@ export default function ViewTradePage() {
         </div>
       </div>
 
-      {/* ═══ CHART ═══ */}
-      <div className="bg-white dark:bg-[#0A0A0A] border border-zinc-200 dark:border-white/5 rounded-2xl p-1 shadow-md h-[500px]">
-        <div className="h-full w-full rounded-xl overflow-hidden relative">
-          <div className="absolute top-4 left-4 z-10 bg-white/90 dark:bg-black/50 backdrop-blur-sm px-3 py-1.5 rounded-lg border border-zinc-200 dark:border-white/10 flex items-center gap-2">
-            <BarChart3 className="w-3.5 h-3.5 text-zinc-500" />
-            <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-600 dark:text-zinc-300">Price Action</span>
-          </div>
-          <TradeCandleChart 
-            tradeId={trade.id} symbol={trade.symbol} 
-            entryPrice={trade.entryPrice} exitPrice={trade.exitPrice}
-            entryDate={trade.entryDate} exitDate={trade.exitDate}
-            direction={trade.direction as 'Long' | 'Short'}
-            stopLoss={trade.stopLoss} takeProfit={trade.takeProfit}
-          />
-        </div>
-      </div>
 
-      {/* Chart Snapshot */}
-      {trade.imageUrl && (
-        <div className="bg-white dark:bg-[#0A0A0A] border border-zinc-200 dark:border-white/5 rounded-2xl overflow-hidden shadow-sm">
-          <div className="p-4 border-b border-zinc-100 dark:border-white/5 flex items-center gap-2">
-            <Newspaper className="w-4 h-4 text-indigo-500" />
-            <h3 className="text-sm font-bold text-zinc-900 dark:text-white uppercase">Chart Snapshot</h3>
-          </div>
-          <div className="bg-zinc-50 dark:bg-black/20">
-            <img src={trade.imageUrl} alt="Trade Snapshot" className="max-h-[500px] w-full object-contain" />
-          </div>
-        </div>
-      )}
 
       {/* ═══ 2-COLUMN GRID: Analysis & Psychology ═══ */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
 
         {/* LEFT: Analysis & Review */}
-        <div className="space-y-6">
+        <div className="space-y-4">
           {/* Entry Reasoning */}
           <SectionCard title="Trade Analysis" icon={<Brain className="w-4 h-4" />} color="purple">
             <div className="space-y-4">
@@ -332,7 +304,7 @@ export default function ViewTradePage() {
         </div>
 
         {/* RIGHT: Psychology & Environment */}
-        <div className="space-y-6">
+        <div className="space-y-4">
           {/* Psychology */}
           <SectionCard title="Mindset & Psychology" icon={<Brain className="w-4 h-4" />} color="amber">
             {/* Emotion Timeline */}
@@ -411,6 +383,54 @@ export default function ViewTradePage() {
           )}
         </div>
       </div>
+
+      {/* ═══ COLLAPSIBLE CHARTS & MEDIA ═══ */}
+      <div className="space-y-4">
+        <details className="group bg-white dark:bg-[#0A0A0A] border border-zinc-200 dark:border-white/5 rounded-2xl shadow-sm overflow-hidden" open={false}>
+          <summary className="p-4 flex items-center justify-between cursor-pointer select-none bg-zinc-50/50 dark:bg-white/[0.02] hover:bg-zinc-100 dark:hover:bg-white/[0.05] transition-colors">
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-500/10 text-emerald-500">
+                <BarChart3 className="w-4 h-4" />
+              </div>
+              <h3 className="text-sm font-bold text-zinc-900 dark:text-white uppercase tracking-tight">Trading Chart</h3>
+            </div>
+            <ChevronDown className="w-5 h-5 text-zinc-400 group-open:-rotate-180 transition-transform duration-200" />
+          </summary>
+          <div className="p-1 border-t border-zinc-100 dark:border-white/5 h-[500px]">
+            <div className="h-full w-full rounded-b-xl overflow-hidden relative">
+              <div className="absolute top-4 left-4 z-10 bg-white/90 dark:bg-black/50 backdrop-blur-sm px-3 py-1.5 rounded-lg border border-zinc-200 dark:border-white/10 flex items-center gap-2">
+                <BarChart3 className="w-3.5 h-3.5 text-zinc-500" />
+                <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-600 dark:text-zinc-300">Price Action</span>
+              </div>
+              <TradeCandleChart 
+                tradeId={trade.id} symbol={trade.symbol} 
+                entryPrice={trade.entryPrice} exitPrice={trade.exitPrice}
+                entryDate={trade.entryDate} exitDate={trade.exitDate}
+                direction={trade.direction as 'Long' | 'Short'}
+                stopLoss={trade.stopLoss} takeProfit={trade.takeProfit}
+              />
+            </div>
+          </div>
+        </details>
+
+        {trade.imageUrl && (
+          <details className="group bg-white dark:bg-[#0A0A0A] border border-zinc-200 dark:border-white/5 rounded-2xl shadow-sm overflow-hidden" open={false}>
+            <summary className="p-4 flex items-center justify-between cursor-pointer select-none bg-zinc-50/50 dark:bg-white/[0.02] hover:bg-zinc-100 dark:hover:bg-white/[0.05] transition-colors">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-500/10 text-indigo-500">
+                  <Newspaper className="w-4 h-4" />
+                </div>
+                <h3 className="text-sm font-bold text-zinc-900 dark:text-white uppercase tracking-tight">Chart Snapshot</h3>
+              </div>
+              <ChevronDown className="w-5 h-5 text-zinc-400 group-open:-rotate-180 transition-transform duration-200" />
+            </summary>
+            <div className="p-0 border-t border-zinc-100 dark:border-white/5 bg-zinc-50 dark:bg-black/20">
+              <img src={trade.imageUrl} alt="Trade Snapshot" className="max-h-[700px] w-full object-contain" />
+            </div>
+          </details>
+        )}
+      </div>
+
     </div>
   );
 }
