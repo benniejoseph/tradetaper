@@ -8,7 +8,20 @@ import {
   DollarSign, 
   ShieldAlert, 
   Flame, 
-  Minus 
+  Minus,
+  Frown,
+  Activity,
+  ThumbsUp,
+  Clock,
+  Coffee,
+  Battery,
+  Sun,
+  Heart,
+  Layers,
+  PauseCircle,
+  FastForward,
+  EyeOff,
+  Crosshair
 } from 'lucide-react';
 
 interface EmotionChipPickerProps {
@@ -21,11 +34,25 @@ const emotions = [
   { value: 'Calm', icon: Smile, color: 'emerald' },
   { value: 'Confident', icon: TrendingUp, color: 'blue' },
   { value: 'Anxious', icon: AlertCircle, color: 'yellow' },
-  { value: 'FOMO', icon: Zap, color: 'orange' },
-  { value: 'Greedy', icon: DollarSign, color: 'amber' },
   { value: 'Fearful', icon: ShieldAlert, color: 'red' },
-  { value: 'Revenge', icon: Flame, color: 'red' },
-  { value: 'Neutral', icon: Minus, color: 'gray' },
+  { value: 'Greedy', icon: DollarSign, color: 'amber' },
+  { value: 'Frustrated', icon: Frown, color: 'red' },
+  { value: 'Overconfident', icon: ThumbsUp, color: 'orange' },
+  { value: 'Impatient', icon: Clock, color: 'orange' },
+  { value: 'FOMO', icon: Zap, color: 'orange' },
+  { value: 'Revenge Trading', icon: Flame, color: 'red' },
+  { value: 'Bored', icon: Coffee, color: 'gray' },
+  { value: 'Fatigued', icon: Battery, color: 'gray' },
+  { value: 'Excited', icon: Zap, color: 'emerald' },
+  { value: 'Nervous', icon: Activity, color: 'yellow' },
+  { value: 'Hopeful', icon: Sun, color: 'blue' },
+  { value: 'Disappointed', icon: Frown, color: 'gray' },
+  { value: 'Relieved', icon: Heart, color: 'emerald' },
+  { value: 'Overwhelmed', icon: Layers, color: 'red' },
+  { value: 'Hesitant', icon: PauseCircle, color: 'yellow' },
+  { value: 'Rushed', icon: FastForward, color: 'orange' },
+  { value: 'Distracted', icon: EyeOff, color: 'gray' },
+  { value: 'Focused', icon: Crosshair, color: 'blue' },
 ];
 
 export const EmotionChipPicker: React.FC<EmotionChipPickerProps> = ({ value, onChange, label }) => {

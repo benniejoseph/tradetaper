@@ -73,6 +73,16 @@ export enum EmotionalState {
   REVENGE = 'Revenge Trading',
   BORED = 'Bored',
   FATIGUED = 'Fatigued',
+  EXCITED = 'Excited',
+  NERVOUS = 'Nervous',
+  HOPEFUL = 'Hopeful',
+  DISAPPOINTED = 'Disappointed',
+  RELIEVED = 'Relieved',
+  OVERWHELMED = 'Overwhelmed',
+  HESITANT = 'Hesitant',
+  RUSHED = 'Rushed',
+  DISTRACTED = 'Distracted',
+  FOCUSED = 'Focused',
 }
 
 // ========== PHASE 2: Execution Grading ==========

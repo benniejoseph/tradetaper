@@ -48,7 +48,7 @@ const TextBlock: React.FC<{
 }> = ({ label, content, color }) => (
   <div>
     <h4 className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2">{label}</h4>
-    <div className={`${color ? `bg-${color}-50 dark:bg-${color}-500/5 border-${color}-100 dark:border-${color}-500/10 text-${color}-900/80 dark:text-${color}-200/80` : 'bg-zinc-50 dark:bg-white/[0.02] border-zinc-100 dark:border-white/5 text-zinc-800 dark:text-zinc-200'} p-4 rounded-xl border text-sm leading-relaxed whitespace-pre-wrap`}>
+    <div className={`${color ? `bg-${color}-50 dark:bg-${color}-500/10 border-${color}-100 dark:border-${color}-500/20 text-${color}-900 dark:text-${color}-100 font-medium` : 'bg-zinc-50 dark:bg-white/[0.02] border-zinc-100 dark:border-white/5 text-zinc-800 dark:text-zinc-100'} p-4 rounded-xl border text-sm leading-relaxed whitespace-pre-wrap`}>
       {content || <span className="text-zinc-400 italic">Not recorded</span>}
     </div>
   </div>
@@ -270,9 +270,10 @@ export default function ViewTradePage() {
             </div>
           </SectionCard>
 
-          {/* Market Context */}
-          <SectionCard title="Market Context" icon={<BarChart3 className="w-4 h-4" />} color="blue">
-            <div className="grid grid-cols-2 gap-3">
+          {/* Market Context & Environment */}
+          <SectionCard title="Environment & Context" icon={<BarChart3 className="w-4 h-4" />} color="blue">
+            <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
+              <StatCard label="Strategy" value={trade.strategy?.name} icon={<Target className="w-3.5 h-3.5" />} color="purple" />
               <StatCard label="Session" value={trade.session} icon={<Clock className="w-3.5 h-3.5" />} color="blue" />
               <StatCard label="Timeframe" value={trade.timeframe} icon={<Clock className="w-3.5 h-3.5" />} color="indigo" />
               <StatCard label="Market" value={trade.marketCondition} icon={<TrendingUp className="w-3.5 h-3.5" />} color="emerald" />

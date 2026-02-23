@@ -75,6 +75,16 @@ var EmotionalState;
     EmotionalState["REVENGE"] = "Revenge Trading";
     EmotionalState["BORED"] = "Bored";
     EmotionalState["FATIGUED"] = "Fatigued";
+    EmotionalState["EXCITED"] = "Excited";
+    EmotionalState["NERVOUS"] = "Nervous";
+    EmotionalState["HOPEFUL"] = "Hopeful";
+    EmotionalState["DISAPPOINTED"] = "Disappointed";
+    EmotionalState["RELIEVED"] = "Relieved";
+    EmotionalState["OVERWHELMED"] = "Overwhelmed";
+    EmotionalState["HESITANT"] = "Hesitant";
+    EmotionalState["RUSHED"] = "Rushed";
+    EmotionalState["DISTRACTED"] = "Distracted";
+    EmotionalState["FOCUSED"] = "Focused";
 })(EmotionalState || (exports.EmotionalState = EmotionalState = {}));
 var ExecutionGrade;
 (function (ExecutionGrade) {

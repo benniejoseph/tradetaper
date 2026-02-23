@@ -63,7 +63,17 @@ export declare enum EmotionalState {
     FOMO = "FOMO",
     REVENGE = "Revenge Trading",
     BORED = "Bored",
-    FATIGUED = "Fatigued"
+    FATIGUED = "Fatigued",
+    EXCITED = "Excited",
+    NERVOUS = "Nervous",
+    HOPEFUL = "Hopeful",
+    DISAPPOINTED = "Disappointed",
+    RELIEVED = "Relieved",
+    OVERWHELMED = "Overwhelmed",
+    HESITANT = "Hesitant",
+    RUSHED = "Rushed",
+    DISTRACTED = "Distracted",
+    FOCUSED = "Focused"
 }
 export declare enum ExecutionGrade {
     A = "A",
