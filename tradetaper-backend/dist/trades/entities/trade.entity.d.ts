@@ -9,6 +9,8 @@ export declare class Trade {
     strategyId?: string;
     accountId?: string;
     isStarred?: boolean;
+    groupId?: string;
+    isGroupLeader: boolean;
     assetType: AssetType;
     symbol: string;
     side: TradeDirection;

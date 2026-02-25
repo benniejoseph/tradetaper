@@ -19,7 +19,7 @@ export const FeatureGate: React.FC<FeatureGateProps> = ({ feature, children, blu
   // We handle the case where subscription might not be loaded yet by defaulting to empty limits
   // In a real app we might want a 'loading' state check here too, but failing closed is safer
   const planDetails = user?.subscription?.planDetails || null;
-  const limits = planDetails?.limits || {};
+  const limits: Record<string, any> = planDetails?.limits || {};
 
   let hasAccess = false;
 

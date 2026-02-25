@@ -26,7 +26,9 @@ async function bootstrap() {
                 'https://api.tradetaper.com',
                 'https://tradetaper-frontend.vercel.app',
                 'https://tradetaper-admin.vercel.app',
-                ...(process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',') : []),
+                ...(process.env.ALLOWED_ORIGINS
+                    ? process.env.ALLOWED_ORIGINS.split(',')
+                    : []),
                 process.env.FRONTEND_URL || 'https://tradetaper.com',
             ],
             methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],

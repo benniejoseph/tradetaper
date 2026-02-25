@@ -15,7 +15,10 @@ import { TradeStatus, TradeDirection, AssetType } from '../types/enums';
 import { Tag } from '../tags/entities/tag.entity';
 import { CreateTradeDto } from './dto/create-trade.dto';
 import { UpdateTradeDto } from './dto/update-trade.dto';
+import { GroupTradesDto } from './dto/group-trades.dto';
+import { CopyJournalDto } from './dto/copy-journal.dto';
 import { UserResponseDto } from '../users/dto/user-response.dto';
+import { v4 as uuidv4 } from 'uuid';
 import { SimpleTradesGateway } from '../websocket/simple-trades.gateway';
 import { GeminiVisionService } from '../notes/gemini-vision.service';
 import { Express } from 'express';
@@ -28,6 +31,8 @@ import { TradeCandle } from './entities/trade-candle.entity';
 import { TerminalFarmService } from '../terminal-farm/terminal-farm.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { NotificationType } from '../notifications/entities/notification.entity';
+import { MultiModelOrchestratorService } from '../agents/llm/multi-model-orchestrator.service';
+import { VoiceJournalResponseDto } from './dto/voice-journal.dto';
 
 @Injectable()
 export class TradesService {
@@ -52,7 +57,68 @@ export class TradesService {
     private readonly terminalFarmService: TerminalFarmService,
     @Inject(forwardRef(() => NotificationsService))
     private readonly notificationsService: NotificationsService,
+    private readonly orchestratorService: MultiModelOrchestratorService,
   ) {}
+
+  async parseVoiceJournal(
+    audioBuffer: Buffer,
+    mimeType: string,
+    userContext: UserResponseDto,
+  ): Promise<VoiceJournalResponseDto> {
+    this.logger.debug(`Parsing voice journal for user ${userContext.id} [${mimeType}]`);
+
+    const base64Audio = audioBuffer.toString('base64');
+    const dataUrl = `data:${mimeType};base64,${base64Audio}`;
+
+    const prompt = `
+You are an expert ICT (Inner Circle Trader) Assistant. The user has recorded an audio log for a specific trade they took. 
+Listen to the audio and extract the relevant information to populate their Trade Journal.
+
+Focus on these concepts if mentioned: Fair Value Gaps, Order Blocks, Liquidity Sweeps, Market Structure Shifts, Premium/Discount, OTE (Optimal Trade Entry), Judas Swing, Timeframes.
+Also listen closely for their psychological state before, during, and after the trade.
+Valid emotional states include: Calm, Confident, Anxious, Fearful, Greedy, Frustrated, Overconfident, Impatient, FOMO, Revenge_Trading, Bored, Excited, Apathetic, Hesitant, Optimistic, Pessimistic, Nervous, Relieved, Disappointed, Satisfied.
+Listen for metrics like entry/exit, planned risk/reward, or whether they hesitated or broke rules.
+
+Return a JSON object strictly matching this schema:
+{
+  "updates": {
+    // any fields you can solidly extract from the audio. Valid keys: 
+    // emotionBefore (string), emotionDuring (string), emotionAfter (string),
+    // entryReason (string), 
+    // marketCondition (string, MUST BE EXACTLY ONE OF: 'Trending Up', 'Trending Down', 'Ranging', 'Choppy', 'High Volatility', 'Low Volatility', 'News Driven', 'Pre-News'), 
+    // timeframe (string, MUST BE EXACTLY ONE OF: '1m', '5m', '15m', '30m', '1H', '4H', '1D', '1W', '1M'), 
+    // htfBias (string), newsImpact (string), 
+    // confirmations (array of strings, e.g. ["RSI Divergence", "Order Block"]),
+    // hesitated (boolean), followedPlan (boolean), ruleViolations (array of strings),
+    // sleepQuality (number 1-5), energyLevel (number 1-5), distractionLevel (number 1-5),
+    // tradingEnvironment (string), mistakesMade (string), lessonsLearned (string)
+  },
+  "missingPrompts": [
+    // Array of string questions asking the user for critical info they missed (e.g. "What was your higher timeframe bias?")
+  ],
+  "transcriptSummary": "A very brief 1-2 sentence summary of what they said."
+}
+`;
+
+    try {
+      const response = await this.orchestratorService.complete({
+        prompt: "Extract the trading journal data from the attached audio.",
+        system: prompt,
+        taskComplexity: 'complex',
+        modelPreference: 'gemini-1.5-pro',
+        optimizeFor: 'quality',
+        requireJson: true,
+        images: [dataUrl], // The orchestrator treats all InlineDataParts (audio/video/image) via the images array
+        userId: userContext.id,
+      });
+
+      const parsedData: VoiceJournalResponseDto = JSON.parse(response.content);
+      return parsedData;
+    } catch (error) {
+      this.logger.error(`Voice parsing failed: ${error.message}`);
+      throw new BadRequestException('Failed to process audio recording');
+    }
+  }
 
   async getTradeCandles(
     tradeId: string,
@@ -336,7 +402,9 @@ export class TradesService {
         },
       });
     } catch (error) {
-      this.logger.error(`Failed to send trade created notification: ${error.message}`);
+      this.logger.error(
+        `Failed to send trade created notification: ${error.message}`,
+      );
     }
 
     this.logger.log(`Trade created successfully: ${savedTrade.id}`);
@@ -509,7 +577,7 @@ export class TradesService {
     if (includeTags) {
       queryBuilder.leftJoinAndSelect('trade.tags', 'tag');
     }
-    
+
     // Always include Strategy for the UI
     queryBuilder.leftJoinAndSelect('trade.strategy', 'strategy');
 
@@ -524,7 +592,7 @@ export class TradesService {
         'EXTRACT(EPOCH FROM (trade.closeTime - trade.openTime))',
         'durationSeconds',
       );
-      queryBuilder.orderBy('durationSeconds', sortDir as 'ASC' | 'DESC');
+      queryBuilder.orderBy('durationSeconds', sortDir);
     } else if (
       [
         'openTime',
@@ -536,7 +604,7 @@ export class TradesService {
         'status',
       ].includes(sortBy)
     ) {
-      queryBuilder.orderBy(`trade.${sortBy}`, sortDir as 'ASC' | 'DESC');
+      queryBuilder.orderBy(`trade.${sortBy}`, sortDir);
     } else {
       queryBuilder.orderBy('trade.openTime', 'DESC');
     }
@@ -568,6 +636,8 @@ export class TradesService {
         'trade.createdAt',
         'trade.updatedAt',
         'trade.strategyId',
+        'trade.groupId',
+        'trade.isGroupLeader',
       ]);
 
     if (includeTags) {
@@ -579,7 +649,7 @@ export class TradesService {
     const [trades, total] = await queryBuilder.getManyAndCount();
 
     const populatedTrades = await this._populateAccountDetails(
-      trades as Trade[],
+      trades,
       userContext.id,
     );
 
@@ -794,22 +864,15 @@ export class TradesService {
       primary.commission = commissionSum;
     }
 
-    const hasSwap = trades.some(
-      (t) => t.swap !== null && t.swap !== undefined,
-    );
-    const swapSum = trades.reduce(
-      (sum, t) => sum + (Number(t.swap) || 0),
-      0,
-    );
+    const hasSwap = trades.some((t) => t.swap !== null && t.swap !== undefined);
+    const swapSum = trades.reduce((sum, t) => sum + (Number(t.swap) || 0), 0);
     if (hasSwap) {
       primary.swap = swapSum;
     }
 
     if (hasClosed) {
       const pnlCandidate = [...trades]
-        .filter(
-          (t) => t.profitOrLoss !== null && t.profitOrLoss !== undefined,
-        )
+        .filter((t) => t.profitOrLoss !== null && t.profitOrLoss !== undefined)
         .sort((a, b) => {
           const at = a.closeTime ? new Date(a.closeTime).getTime() : 0;
           const bt = b.closeTime ? new Date(b.closeTime).getTime() : 0;
@@ -867,7 +930,12 @@ export class TradesService {
     updateTradeDto: UpdateTradeDto,
     partialUpdateData: Partial<Trade>,
     source: 'user' | 'mt5' | 'system',
-  ): { at: string; source: 'user' | 'mt5' | 'system'; changes: Record<string, { from: unknown; to: unknown }>; note?: string } | null {
+  ): {
+    at: string;
+    source: 'user' | 'mt5' | 'system';
+    changes: Record<string, { from: unknown; to: unknown }>;
+    note?: string;
+  } | null {
     const fieldsToTrack = [
       'openTime',
       'closeTime',
@@ -891,7 +959,10 @@ export class TradesService {
       }
 
       const updateValue = (updateTradeDto as any)[field];
-      const nextValue = Object.prototype.hasOwnProperty.call(partialUpdateData, field)
+      const nextValue = Object.prototype.hasOwnProperty.call(
+        partialUpdateData,
+        field,
+      )
         ? (partialUpdateData as any)[field]
         : updateValue;
 
@@ -922,7 +993,10 @@ export class TradesService {
     id: string,
     updateTradeDto: UpdateTradeDto,
     userContext: UserResponseDto,
-    options?: { logChanges?: boolean; changeSource?: 'user' | 'mt5' | 'system' },
+    options?: {
+      logChanges?: boolean;
+      changeSource?: 'user' | 'mt5' | 'system';
+    },
   ): Promise<Trade> {
     this.logger.log(`User ${userContext.id} updating trade with ID ${id}`);
     const trade = await this.tradesRepository.findOne({
@@ -979,7 +1053,10 @@ export class TradesService {
 
     // Send notification for closed trades
     try {
-      if (updatedTrade.status === TradeStatus.CLOSED && trade.status !== TradeStatus.CLOSED) {
+      if (
+        updatedTrade.status === TradeStatus.CLOSED &&
+        trade.status !== TradeStatus.CLOSED
+      ) {
         await this.notificationsService.send({
           userId: userContext.id,
           type: NotificationType.TRADE_CLOSED,
@@ -1009,7 +1086,9 @@ export class TradesService {
         });
       }
     } catch (error) {
-      this.logger.error(`Failed to send trade update notification: ${error.message}`);
+      this.logger.error(
+        `Failed to send trade update notification: ${error.message}`,
+      );
     }
 
     return updatedTrade;
@@ -1096,6 +1175,139 @@ export class TradesService {
     );
 
     return { deletedCount };
+  }
+
+  async groupTrades(
+    groupTradesDto: GroupTradesDto,
+    userContext: UserResponseDto,
+  ): Promise<{ groupId: string; updatedCount: number }> {
+    const { tradeIds } = groupTradesDto;
+
+    if (tradeIds.length < 2) {
+      throw new BadRequestException('At least two trades are required to form a group');
+    }
+
+    const trades = await this.tradesRepository.find({
+      where: { id: In(tradeIds), userId: userContext.id },
+    });
+
+    if (trades.length !== tradeIds.length) {
+      throw new NotFoundException('Some trades not found or do not belong to user');
+    }
+
+    // Sort to predict leader by open time
+    trades.sort((a, b) => a.openTime.getTime() - b.openTime.getTime());
+
+    const groupId = uuidv4();
+
+    trades.forEach((trade, index) => {
+      trade.groupId = groupId;
+      trade.isGroupLeader = index === 0;
+    });
+
+    const savedTrades = await this.tradesRepository.save(trades);
+    this.logger.log(`User ${userContext.id} grouped ${savedTrades.length} trades into group ${groupId}`);
+
+    return { groupId, updatedCount: savedTrades.length };
+  }
+
+  async copyJournalToGroup(
+    id: string,
+    copyJournalDto: CopyJournalDto,
+    userContext: UserResponseDto,
+  ): Promise<{ updatedCount: number }> {
+    const sourceTrade = await this.tradesRepository.findOne({
+      where: { id, userId: userContext.id },
+      relations: ['tags'],
+    });
+
+    if (!sourceTrade) {
+      throw new NotFoundException('Source trade not found');
+    }
+
+    if (!sourceTrade.groupId) {
+      throw new BadRequestException('Trade does not belong to any group');
+    }
+
+    const groupTrades = await this.tradesRepository.find({
+      where: { groupId: sourceTrade.groupId, userId: userContext.id },
+      relations: ['tags'],
+    });
+
+    const targetTrades = groupTrades.filter((t) => t.id !== sourceTrade.id);
+
+    if (targetTrades.length === 0) {
+      throw new BadRequestException('No other trades found in this group');
+    }
+
+    const { mode } = copyJournalDto;
+
+    const fieldsToCopy: (keyof Trade)[] = [
+      'emotionBefore',
+      'emotionDuring',
+      'emotionAfter',
+      'confidenceLevel',
+      'followedPlan',
+      'ruleViolations',
+      'setupDetails',
+      'mistakesMade',
+      'lessonsLearned',
+      'marketCondition',
+      'timeframe',
+      'htfBias',
+      'newsImpact',
+      'executionGrade',
+      'notes',
+    ];
+
+    let updatedCount = 0;
+
+    for (const targetTrade of targetTrades) {
+      let isUpdated = false;
+
+      for (const field of fieldsToCopy) {
+        if (mode === 'OVERRIDE') {
+          if (sourceTrade[field] !== undefined) {
+            (targetTrade as any)[field] = sourceTrade[field];
+            isUpdated = true;
+          }
+        } else if (mode === 'PARTIAL') {
+          if ((targetTrade[field] === null || targetTrade[field] === undefined) && sourceTrade[field] !== undefined) {
+            (targetTrade as any)[field] = sourceTrade[field];
+            isUpdated = true;
+          }
+        }
+      }
+
+      // Copy tags logic
+      if (sourceTrade.tags && sourceTrade.tags.length > 0) {
+        if (mode === 'OVERRIDE') {
+          targetTrade.tags = [...sourceTrade.tags];
+          isUpdated = true;
+        } else if (mode === 'PARTIAL') {
+          const existingTagIds = new Set(targetTrade.tags?.map((t) => t.id) || []);
+          const newTags = sourceTrade.tags.filter((t) => !existingTagIds.has(t.id));
+          if (newTags.length > 0) {
+            targetTrade.tags = [...(targetTrade.tags || []), ...newTags];
+            isUpdated = true;
+          }
+        }
+      } else if (mode === 'OVERRIDE' && (!sourceTrade.tags || sourceTrade.tags.length === 0)) {
+        targetTrade.tags = [];
+        isUpdated = true;
+      }
+
+      if (isUpdated) {
+        updatedCount++;
+      }
+    }
+
+    if (updatedCount > 0) {
+      await this.tradesRepository.save(targetTrades);
+      this.logger.log(`User ${userContext.id} copied journal to ${updatedCount} trades in group ${sourceTrade.groupId}`);
+    }
+
+    return { updatedCount };
   }
 
   async bulkUpdate(

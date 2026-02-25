@@ -38,9 +38,15 @@ export class CreateEconomicEventAnalyses1779000000000
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query(`DROP INDEX IF EXISTS "IDX_economic_event_analyses_eventDate";`);
-    await queryRunner.query(`DROP INDEX IF EXISTS "IDX_economic_event_analyses_eventKey";`);
-    await queryRunner.query(`DROP INDEX IF EXISTS "IDX_economic_event_analyses_eventId";`);
+    await queryRunner.query(
+      `DROP INDEX IF EXISTS "IDX_economic_event_analyses_eventDate";`,
+    );
+    await queryRunner.query(
+      `DROP INDEX IF EXISTS "IDX_economic_event_analyses_eventKey";`,
+    );
+    await queryRunner.query(
+      `DROP INDEX IF EXISTS "IDX_economic_event_analyses_eventId";`,
+    );
     await queryRunner.query(`DROP TABLE IF EXISTS "economic_event_analyses";`);
   }
 }

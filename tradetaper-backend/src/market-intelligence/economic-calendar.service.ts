@@ -156,7 +156,10 @@ export class EconomicCalendarService {
     from?: string,
     to?: string,
     importance?: string,
-  ): Promise<{ events: EconomicEvent[]; weeklyAnalysis: Record<string, unknown> }> {
+  ): Promise<{
+    events: EconomicEvent[];
+    weeklyAnalysis: Record<string, unknown>;
+  }> {
     this.logger.log('Getting economic calendar events');
 
     try {
@@ -276,9 +279,13 @@ export class EconomicCalendarService {
     return this.applyEventFilters(events, fromDate, toDate, importance);
   }
 
-  private eventCache: { timestamp: number; data: EconomicEvent[] } | null = null;
+  private eventCache: { timestamp: number; data: EconomicEvent[] } | null =
+    null;
   private readonly CACHE_TTL = 60 * 60 * 1000; // 1 hour
-  private analysisCache = new Map<string, { timestamp: number; data: EconomicImpactAnalysis }>();
+  private analysisCache = new Map<
+    string,
+    { timestamp: number; data: EconomicImpactAnalysis }
+  >();
   private readonly ANALYSIS_TTL = 12 * 60 * 60 * 1000; // 12 hours
 
   private applyEventFilters(
@@ -435,7 +442,10 @@ export class EconomicCalendarService {
     if (normalized.includes('core cpi')) {
       return 'CPILFESL';
     }
-    if (normalized.includes('pce price') || normalized.includes('pce inflation')) {
+    if (
+      normalized.includes('pce price') ||
+      normalized.includes('pce inflation')
+    ) {
       return 'PCEPI';
     }
     if (normalized.includes('core pce')) {
@@ -586,7 +596,9 @@ export class EconomicCalendarService {
     }
   }
 
-  private async fetchOnsCpihHistory(limit = 12): Promise<EconomicEventHistoryItem[]> {
+  private async fetchOnsCpihHistory(
+    limit = 12,
+  ): Promise<EconomicEventHistoryItem[]> {
     try {
       const versionRes = await this.httpService.axiosRef.get(
         'https://api.beta.ons.gov.uk/v1/datasets/cpih01/editions/time-series/versions',
@@ -992,7 +1004,9 @@ export class EconomicCalendarService {
 
     const fredSeries = this.mapEventToFredSeries(event.title);
     let history = fredSeries ? await this.fetchFredHistory(fredSeries) : [];
-    let historySource: 'FRED' | 'ECB' | 'ONS' | undefined = fredSeries ? 'FRED' : undefined;
+    let historySource: 'FRED' | 'ECB' | 'ONS' | undefined = fredSeries
+      ? 'FRED'
+      : undefined;
 
     if (history.length === 0) {
       const ecbSeries = this.mapEventToEcbSeries(event.title, event.currency);
@@ -1006,7 +1020,11 @@ export class EconomicCalendarService {
       history = await this.fetchOnsCpihHistory();
       if (history.length > 0) historySource = 'ONS';
     }
-    const aiSummary = await this.generateAiSummary(event, history, priorAnalysis);
+    const aiSummary = await this.generateAiSummary(
+      event,
+      history,
+      priorAnalysis,
+    );
     const base = this.getMockImpactAnalysis(eventId);
 
     const confidence =
@@ -1047,9 +1065,7 @@ export class EconomicCalendarService {
           'Actual > Forecast = Good for Currency',
         frequency: event.frequency || base.detailedAnalysis?.frequency || 'N/A',
         nextRelease:
-          event.referenceDate ||
-          base.detailedAnalysis?.nextRelease ||
-          'TBA',
+          event.referenceDate || base.detailedAnalysis?.nextRelease || 'TBA',
         whyTradersCare:
           base.detailedAnalysis?.whyTradersCare || 'Significant market impact',
         sourceUrl: event.sourceUrl,
@@ -1063,7 +1079,14 @@ export class EconomicCalendarService {
       },
     };
 
-    await this.storeAnalysisCache(event, analysis, aiSummary, confidence, sourceQuality, eventKey);
+    await this.storeAnalysisCache(
+      event,
+      analysis,
+      aiSummary,
+      confidence,
+      sourceQuality,
+      eventKey,
+    );
 
     return analysis;
 
@@ -1127,7 +1150,7 @@ export class EconomicCalendarService {
       const topMovers =
         moversResult.status === 'fulfilled' ? moversResult.value : [];
 
-      const recentNews = (news.news as any[])
+      const recentNews = news.news
         .filter(
           (item) =>
             item?.publishedAt &&
@@ -1154,7 +1177,9 @@ export class EconomicCalendarService {
           unit: event.unit,
           reference: event.reference,
         },
-        affectedSymbols: event.impact?.affectedSymbols || this.mapCurrencyToSymbols(event.currency),
+        affectedSymbols:
+          event.impact?.affectedSymbols ||
+          this.mapCurrencyToSymbols(event.currency),
         history: history.slice(0, 6),
         highImpactEvents: highImpactEvents.map((item) => ({
           title: item.title,
@@ -1217,7 +1242,10 @@ ${JSON.stringify(context)}
   }
 
   private parseAiJson(content: string): Record<string, any> {
-    const cleaned = content.replace(/```json/g, '').replace(/```/g, '').trim();
+    const cleaned = content
+      .replace(/```json/g, '')
+      .replace(/```/g, '')
+      .trim();
     const direct = this.tryParseJson(cleaned);
     if (direct) return direct;
 
@@ -1232,9 +1260,7 @@ ${JSON.stringify(context)}
 
   private tryParseJson(text: string): Record<string, any> | null {
     try {
-      const normalized = text
-        .replace(/,\s*}/g, '}')
-        .replace(/,\s*]/g, ']');
+      const normalized = text.replace(/,\s*}/g, '}').replace(/,\s*]/g, ']');
       return JSON.parse(normalized);
     } catch {
       return null;
@@ -1256,14 +1282,7 @@ ${JSON.stringify(context)}
       source: string;
     }[]
   > {
-    const symbols = [
-      'EURUSD',
-      'GBPUSD',
-      'USDJPY',
-      'XAUUSD',
-      'SPY',
-      'QQQ',
-    ];
+    const symbols = ['EURUSD', 'GBPUSD', 'USDJPY', 'XAUUSD', 'SPY', 'QQQ'];
     const quotes = await this.marketDataService.getLiveQuotes(symbols);
     return quotes
       .filter((quote) => Number.isFinite(quote.changePercent))
@@ -1272,11 +1291,12 @@ ${JSON.stringify(context)}
         price: quote.bid,
         change: quote.change,
         changePercent: quote.changePercent,
-        direction: (quote.changePercent > 0
-          ? 'up'
-          : quote.changePercent < 0
-            ? 'down'
-            : 'flat') as 'up' | 'down' | 'flat',
+        direction:
+          (quote.changePercent > 0
+            ? 'up'
+            : quote.changePercent < 0
+              ? 'down'
+              : 'flat') as 'up' | 'down' | 'flat',
         source: quote.source,
       }))
       .sort((a, b) => Math.abs(b.changePercent) - Math.abs(a.changePercent))
@@ -1287,7 +1307,10 @@ ${JSON.stringify(context)}
     return `${event.currency}:${event.title}`.toLowerCase();
   }
 
-  private calculateFallbackConfidence(historyLength: number, importance: string): number {
+  private calculateFallbackConfidence(
+    historyLength: number,
+    importance: string,
+  ): number {
     const base = importance === 'high' ? 55 : 40;
     const historyBoost = Math.min(25, historyLength * 3);
     return Math.min(85, base + historyBoost);
@@ -1306,11 +1329,18 @@ ${JSON.stringify(context)}
       high,
       medium,
       low,
-      consensus: historyLength >= 6 ? 'Strong' : historyLength >= 3 ? 'Moderate' : 'Thin',
+      consensus:
+        historyLength >= 6
+          ? 'Strong'
+          : historyLength >= 3
+            ? 'Moderate'
+            : 'Thin',
     };
   }
 
-  private async getCachedAnalysis(eventId: string): Promise<EconomicImpactAnalysis | null> {
+  private async getCachedAnalysis(
+    eventId: string,
+  ): Promise<EconomicImpactAnalysis | null> {
     const cached = this.analysisCache.get(eventId);
     if (cached && Date.now() - cached.timestamp < this.ANALYSIS_TTL) {
       return cached.data;
@@ -1328,16 +1358,25 @@ ${JSON.stringify(context)}
     const fallbackConfidence =
       typeof stored.confidence === 'number'
         ? stored.confidence
-        : this.calculateFallbackConfidence(0, analysis.event?.importance || 'high');
+        : this.calculateFallbackConfidence(
+            0,
+            analysis.event?.importance || 'high',
+          );
     const fallbackSourceQuality =
       (stored.sourceQuality as any) ?? this.calculateFallbackSourceQuality(0);
 
     const withMeta: EconomicImpactAnalysis = {
       ...analysis,
-      confidence: stored.confidence ?? analysis.confidence ?? fallbackConfidence,
-      sourceQuality: (stored.sourceQuality as any) ?? analysis.sourceQuality ?? fallbackSourceQuality,
+      confidence:
+        stored.confidence ?? analysis.confidence ?? fallbackConfidence,
+      sourceQuality:
+        (stored.sourceQuality as any) ??
+        analysis.sourceQuality ??
+        fallbackSourceQuality,
       aiSummary: (stored.aiSummary as any) ?? analysis.aiSummary,
-      cachedAt: stored.updatedAt ? stored.updatedAt.toISOString() : analysis.cachedAt,
+      cachedAt: stored.updatedAt
+        ? stored.updatedAt.toISOString()
+        : analysis.cachedAt,
     };
 
     this.analysisCache.set(eventId, { timestamp: Date.now(), data: withMeta });
@@ -1376,9 +1415,15 @@ ${JSON.stringify(context)}
         },
         ['eventId'],
       );
-      this.analysisCache.set(event.id, { timestamp: Date.now(), data: analysis });
+      this.analysisCache.set(event.id, {
+        timestamp: Date.now(),
+        data: analysis,
+      });
     } catch (error) {
-      this.logger.warn('Failed to persist economic analysis cache', error.message);
+      this.logger.warn(
+        'Failed to persist economic analysis cache',
+        error.message,
+      );
     }
   }
 

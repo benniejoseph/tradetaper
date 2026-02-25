@@ -112,6 +112,10 @@ export interface Trade {
   // ========== Strategy ==========
   strategyId?: string;
   strategy?: any;
+  
+  // ========== Grouping ==========
+  groupId?: string;
+  isGroupLeader?: boolean;
 }
 
 export interface CreateTradePayload extends Omit<Partial<Trade>, 'id' | 'userId' | 'createdAt' | 'updatedAt' | 'profitOrLoss' | 'tags'> {

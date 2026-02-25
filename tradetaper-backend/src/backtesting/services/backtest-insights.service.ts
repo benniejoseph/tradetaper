@@ -27,20 +27,26 @@ export class BacktestInsightsService {
   constructor() {
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
-      this.logger.warn('GEMINI_API_KEY not found - AI insights will be unavailable');
+      this.logger.warn(
+        'GEMINI_API_KEY not found - AI insights will be unavailable',
+      );
     } else {
       this.genAI = new GoogleGenerativeAI(apiKey);
     }
   }
 
-  async *generateInsights(data: BacktestInsightsRequest): AsyncGenerator<string> {
+  async *generateInsights(
+    data: BacktestInsightsRequest,
+  ): AsyncGenerator<string> {
     if (!this.genAI) {
       yield 'AI insights are currently unavailable. Please configure GEMINI_API_KEY.';
       return;
     }
 
     try {
-      const model = this.genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+      const model = this.genAI.getGenerativeModel({
+        model: 'gemini-1.5-flash',
+      });
 
       const prompt = this.buildPrompt(data);
 
@@ -73,7 +79,8 @@ export class BacktestInsightsService {
 
     // Find best and worst performing dimensions
     const bestSymbol = dimensionAnalysis.bySymbol[0];
-    const worstSymbol = dimensionAnalysis.bySymbol[dimensionAnalysis.bySymbol.length - 1];
+    const worstSymbol =
+      dimensionAnalysis.bySymbol[dimensionAnalysis.bySymbol.length - 1];
     const bestSession = dimensionAnalysis.bySession[0];
     const bestTimeframe = dimensionAnalysis.byTimeframe[0];
     const bestSetup = dimensionAnalysis.bySetup[0];
@@ -83,8 +90,10 @@ export class BacktestInsightsService {
     if (stats.winRate < 50) weakAreas.push('win rate');
     if (stats.profitFactor < 1.5) weakAreas.push('profit factor');
     if (stats.averageRMultiple < 1.5) weakAreas.push('risk-reward ratio');
-    if (stats.ruleFollowingRate < 80) weakAreas.push('discipline/rule following');
-    if (stats.averageChecklistScore < 70) weakAreas.push('pre-trade checklist completion');
+    if (stats.ruleFollowingRate < 80)
+      weakAreas.push('discipline/rule following');
+    if (stats.averageChecklistScore < 70)
+      weakAreas.push('pre-trade checklist completion');
 
     const prompt = `You are an expert ICT (Inner Circle Trader) trading coach analyzing backtesting results. Provide actionable insights and recommendations based on this data.
 

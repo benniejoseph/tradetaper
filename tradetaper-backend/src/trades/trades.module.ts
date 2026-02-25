@@ -26,7 +26,12 @@ import { NotificationsModule } from '../notifications/notifications.module';
     TagsModule,
     SubscriptionsModule,
   ],
-  providers: [TradesService, GeminiVisionService, TradeJournalSyncService, PerformanceService],
+  providers: [
+    TradesService,
+    GeminiVisionService,
+    TradeJournalSyncService,
+    PerformanceService,
+  ],
   controllers: [TradesController],
   exports: [TradesService, TradeJournalSyncService],
 })

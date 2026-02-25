@@ -1,6 +1,8 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class AddCommunityNotificationTypes1774000000001 implements MigrationInterface {
+export class AddCommunityNotificationTypes1774000000001
+  implements MigrationInterface
+{
   name = 'AddCommunityNotificationTypes1774000000001';
 
   public async up(queryRunner: QueryRunner): Promise<void> {

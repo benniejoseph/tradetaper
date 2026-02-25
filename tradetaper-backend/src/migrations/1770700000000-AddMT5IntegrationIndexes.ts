@@ -43,12 +43,24 @@ export class AddMT5IntegrationIndexes1770700000000
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query(`DROP INDEX IF EXISTS "IDX_trades_userId_externalId"`);
-    await queryRunner.query(`DROP INDEX IF EXISTS "IDX_trades_userId_accountId"`);
-    await queryRunner.query(`DROP INDEX IF EXISTS "IDX_trades_userId_symbol_openTime"`);
+    await queryRunner.query(
+      `DROP INDEX IF EXISTS "IDX_trades_userId_externalId"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX IF EXISTS "IDX_trades_userId_accountId"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX IF EXISTS "IDX_trades_userId_symbol_openTime"`,
+    );
     await queryRunner.query(`DROP INDEX IF EXISTS "IDX_trades_userId_status"`);
-    await queryRunner.query(`DROP INDEX IF EXISTS "IDX_terminal_instances_lastHeartbeat"`);
-    await queryRunner.query(`DROP INDEX IF EXISTS "IDX_terminal_instances_status"`);
-    await queryRunner.query(`DROP INDEX IF EXISTS "IDX_mt5_accounts_userId_isActive"`);
+    await queryRunner.query(
+      `DROP INDEX IF EXISTS "IDX_terminal_instances_lastHeartbeat"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX IF EXISTS "IDX_terminal_instances_status"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX IF EXISTS "IDX_mt5_accounts_userId_isActive"`,
+    );
   }
 }

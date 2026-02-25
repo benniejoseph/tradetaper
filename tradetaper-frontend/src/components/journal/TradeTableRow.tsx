@@ -67,25 +67,25 @@ export const TradeTableRow = memo<TradeTableRowProps>(({
       <td className={tdClasses}>{trade.symbol || '-'}</td>
       <td className={tdClasses}>
         <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-          trade.direction === TradeDirection.BUY
+          trade.direction === TradeDirection.LONG
             ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
             : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
         }`}>
           {trade.direction || '-'}
         </span>
       </td>
-      <td className={tdClasses}>{trade.lotSize?.toFixed(2) || '-'}</td>
+      <td className={tdClasses}>{trade.quantity?.toFixed(2) || '-'}</td>
       <td className={tdClasses}>{formatPrice(trade.entryPrice)}</td>
       <td className={tdClasses}>{formatPrice(trade.exitPrice)}</td>
-      <td className={tdClasses}>{formatPnl(trade.pnl)}</td>
+      <td className={tdClasses}>{formatPnl(trade.profitOrLoss)}</td>
       <td className={tdClasses}>
-        {trade.entryTime
-          ? format(parseISO(trade.entryTime as unknown as string), 'MMM dd, HH:mm')
+        {trade.entryDate
+          ? format(parseISO(trade.entryDate as unknown as string), 'MMM dd, HH:mm')
           : '-'}
       </td>
       <td className={tdClasses}>
-        {trade.exitTime
-          ? format(parseISO(trade.exitTime as unknown as string), 'MMM dd, HH:mm')
+        {trade.exitDate
+          ? format(parseISO(trade.exitDate as unknown as string), 'MMM dd, HH:mm')
           : '-'}
       </td>
       <td className={`${tdClasses} pr-4`}>{getAccountName(trade, accounts)}</td>
@@ -97,7 +97,7 @@ export const TradeTableRow = memo<TradeTableRowProps>(({
     prevProps.trade.id === nextProps.trade.id &&
     prevProps.isSelected === nextProps.isSelected &&
     prevProps.isEditing === nextProps.isEditing &&
-    prevProps.trade.pnl === nextProps.trade.pnl &&
+    prevProps.trade.profitOrLoss === nextProps.trade.profitOrLoss &&
     prevProps.trade.status === nextProps.trade.status
   );
 });

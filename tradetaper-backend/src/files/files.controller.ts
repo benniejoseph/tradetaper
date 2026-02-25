@@ -80,9 +80,7 @@ export class FilesController {
       return { url, gcsPath, message: 'File uploaded successfully to GCS' };
     } catch (error) {
       const safeMessage =
-        error instanceof HttpException
-          ? error.message
-          : 'File upload failed.';
+        error instanceof HttpException ? error.message : 'File upload failed.';
       this.instanceLogger.error(
         `GCS Upload Controller Error for user ${user.id}: ${safeMessage}`,
       );

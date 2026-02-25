@@ -2,7 +2,13 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { AgentOrchestratorService } from './agent-orchestrator.service';
 import { AgentRegistryService } from './agent-registry.service';
 import { EventBusService } from './event-bus.service';
-import { IAgent, AgentCapability, AgentHealth, AgentMessage, AgentResponse } from './interfaces/agent.interface';
+import {
+  IAgent,
+  AgentCapability,
+  AgentHealth,
+  AgentMessage,
+  AgentResponse,
+} from './interfaces/agent.interface';
 
 class MockTestAgent implements IAgent {
   agentId = 'test-agent';
@@ -17,9 +23,9 @@ class MockTestAgent implements IAgent {
   }
 
   async handleMessage(message: AgentMessage): Promise<AgentResponse> {
-    return { 
-      success: true, 
-      data: { 
+    return {
+      success: true,
+      data: {
         echo: message.payload,
         agentId: this.agentId,
       },
@@ -41,7 +47,9 @@ describe('AgentOrchestratorService', () => {
       ],
     }).compile();
 
-    orchestrator = module.get<AgentOrchestratorService>(AgentOrchestratorService);
+    orchestrator = module.get<AgentOrchestratorService>(
+      AgentOrchestratorService,
+    );
     registry = module.get<AgentRegistryService>(AgentRegistryService);
     eventBus = module.get<EventBusService>(EventBusService);
 
@@ -81,7 +89,11 @@ describe('AgentOrchestratorService', () => {
       await registry.register(testAgent);
 
       const context = orchestrator.createContext('user-1');
-      const response = await orchestrator.sendToAgent('test-agent', { test: 'data' }, context);
+      const response = await orchestrator.sendToAgent(
+        'test-agent',
+        { test: 'data' },
+        context,
+      );
 
       expect(response.success).toBe(true);
       expect(response.data.agentId).toBe('test-agent');
@@ -90,7 +102,11 @@ describe('AgentOrchestratorService', () => {
 
     it('should return error for unregistered agent', async () => {
       const context = orchestrator.createContext('user-1');
-      const response = await orchestrator.sendToAgent('non-existent', { test: 'data' }, context);
+      const response = await orchestrator.sendToAgent(
+        'non-existent',
+        { test: 'data' },
+        context,
+      );
 
       expect(response.success).toBe(false);
       expect(response.error?.code).toBe('AGENT_NOT_FOUND');
@@ -103,7 +119,11 @@ describe('AgentOrchestratorService', () => {
       await registry.register(testAgent);
 
       const context = orchestrator.createContext('user-1');
-      const response = await orchestrator.routeToCapability('test-cap', { data: 'value' }, context);
+      const response = await orchestrator.routeToCapability(
+        'test-cap',
+        { data: 'value' },
+        context,
+      );
 
       expect(response.success).toBe(true);
       expect(response.data.agentId).toBe('test-agent');
@@ -111,7 +131,11 @@ describe('AgentOrchestratorService', () => {
 
     it('should return error when no agent has capability', async () => {
       const context = orchestrator.createContext('user-1');
-      const response = await orchestrator.routeToCapability('unknown-cap', {}, context);
+      const response = await orchestrator.routeToCapability(
+        'unknown-cap',
+        {},
+        context,
+      );
 
       expect(response.success).toBe(false);
       expect(response.error?.code).toBe('NO_CAPABLE_AGENT');
@@ -122,21 +146,22 @@ describe('AgentOrchestratorService', () => {
     it('should execute multi-step workflow', async () => {
       const agent1 = new MockTestAgent();
       agent1.agentId = 'agent-1';
-      agent1.capabilities = [{ id: 'step-1', description: 'Step 1', keywords: [] }];
+      agent1.capabilities = [
+        { id: 'step-1', description: 'Step 1', keywords: [] },
+      ];
 
       const agent2 = new MockTestAgent();
       agent2.agentId = 'agent-2';
-      agent2.capabilities = [{ id: 'step-2', description: 'Step 2', keywords: [] }];
+      agent2.capabilities = [
+        { id: 'step-2', description: 'Step 2', keywords: [] },
+      ];
 
       await registry.register(agent1);
       await registry.register(agent2);
 
       const context = orchestrator.createContext('user-1');
       const response = await orchestrator.executeWorkflow(
-        [
-          { capability: 'step-1' },
-          { capability: 'step-2' },
-        ],
+        [{ capability: 'step-1' }, { capability: 'step-2' }],
         { initial: 'payload' },
         context,
       );
@@ -146,7 +171,9 @@ describe('AgentOrchestratorService', () => {
 
     it('should stop workflow on failure', async () => {
       const failingAgent = new MockTestAgent();
-      failingAgent.capabilities = [{ id: 'failing-step', description: 'Fails', keywords: [] }];
+      failingAgent.capabilities = [
+        { id: 'failing-step', description: 'Fails', keywords: [] },
+      ];
       failingAgent.handleMessage = async () => ({
         success: false,
         error: { code: 'FAILED', message: 'Intentional failure' },
@@ -170,7 +197,10 @@ describe('AgentOrchestratorService', () => {
       const publishSpy = jest.spyOn(eventBus, 'publish');
       const context = orchestrator.createContext('user-1');
 
-      await orchestrator.broadcast({ eventType: 'test-event', data: 'value' }, context);
+      await orchestrator.broadcast(
+        { eventType: 'test-event', data: 'value' },
+        context,
+      );
 
       expect(publishSpy).toHaveBeenCalled();
       const call = publishSpy.mock.calls[0][0];

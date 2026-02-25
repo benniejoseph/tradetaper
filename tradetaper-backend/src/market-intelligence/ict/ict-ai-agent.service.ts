@@ -6,7 +6,10 @@ import { FairValueGapService } from './fair-value-gap.service';
 import { OrderBlockService } from './order-block.service';
 import { KillZoneService } from './kill-zone.service';
 import { PremiumDiscountService } from './premium-discount.service';
-import { PowerOfThreeService, PowerOfThreeAnalysis } from './power-of-three.service';
+import {
+  PowerOfThreeService,
+  PowerOfThreeAnalysis,
+} from './power-of-three.service';
 import { Candle } from './market-data-provider.service';
 import { LiquidityPool } from './liquidity-analysis.service';
 import { MarketStructure } from './market-structure.service';

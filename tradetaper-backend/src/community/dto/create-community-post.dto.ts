@@ -1,5 +1,15 @@
-import { IsIn, IsOptional, IsString, IsUUID, MaxLength, IsArray } from 'class-validator';
-import { COMMUNITY_POST_TYPES, COMMUNITY_VISIBILITIES } from '../community.constants';
+import {
+  IsIn,
+  IsOptional,
+  IsString,
+  IsUUID,
+  MaxLength,
+  IsArray,
+} from 'class-validator';
+import {
+  COMMUNITY_POST_TYPES,
+  COMMUNITY_VISIBILITIES,
+} from '../community.constants';
 
 export class CreateCommunityPostDto {
   @IsIn(COMMUNITY_POST_TYPES)

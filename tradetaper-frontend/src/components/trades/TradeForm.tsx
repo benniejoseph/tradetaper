@@ -25,6 +25,8 @@ import { EmotionChipPicker } from '../ui/EmotionChipPicker';
 import { StarRating } from '../ui/StarRating';
 import { ToggleChip } from '../ui/ToggleChip';
 import { ChipSelector } from '../ui/ChipSelector';
+import Modal from '../ui/Modal';
+import VoiceJournalButton from './VoiceJournalButton';
 import { 
   BarChart3, 
   Target, 
@@ -41,8 +43,10 @@ import {
   FileText,
   Home,
   Zap,
-  Layers
+  Layers,
+  RefreshCw
 } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 // Types
 type ValidationError = { field: string; message: string };
@@ -110,6 +114,12 @@ export default function TradeForm({ initialData, isEditMode = false, onFormSubmi
   const [isUploading, setIsUploading] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [strategies, setStrategies] = useState<Strategy[]>([]);
+  
+  // Sync Modal State
+  const [isSyncModalOpen, setIsSyncModalOpen] = useState(false);
+  const [syncMode, setSyncMode] = useState<'OVERRIDE' | 'PARTIAL'>('PARTIAL');
+  const [isSyncing, setIsSyncing] = useState(false);
+
   const displayError = useMemo(() => {
     const raw = formError || tradeSubmitError;
     if (!raw) return null;
@@ -226,6 +236,15 @@ export default function TradeForm({ initialData, isEditMode = false, onFormSubmi
   }, [formData.entryPrice, formData.stopLoss, formData.takeProfit, formData.direction]);
 
   // Handlers
+  const handleVoiceDataParsed = (parsedData: any) => {
+    if (parsedData?.updates) {
+      setFormData((prev: any) => ({
+        ...prev,
+        ...parsedData.updates,
+      }));
+    }
+  };
+
   const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
     if (name === 'isStarred' && type === 'checkbox') {
@@ -247,6 +266,21 @@ export default function TradeForm({ initialData, isEditMode = false, onFormSubmi
       setImagePreviewUrl(URL.createObjectURL(file));
       setFormData((prev: any) => ({ ...prev, imageUrl: '' }));
       setFormError(null);
+    }
+  };
+
+  const handleSyncJournalToGroup = async () => {
+    if (!initialData?.id || !initialData.groupId) return;
+    setIsSyncing(true);
+    try {
+      await authApiClient.post(`/trades/${initialData.id}/copy-journal`, { mode: syncMode });
+      setIsSyncModalOpen(false);
+      toast.success('Journal successfully synced to group trades!');
+    } catch (error: any) {
+      console.error('Failed to sync journal to group:', error);
+      toast.error(error?.response?.data?.message || 'Failed to sync journal to group trades.');
+    } finally {
+      setIsSyncing(false);
     }
   };
 
@@ -334,6 +368,25 @@ export default function TradeForm({ initialData, isEditMode = false, onFormSubmi
           <span className="font-bold">Error:</span> {displayError}
         </div>
       )}
+
+      {/* Voice Journal AI Banner */}
+      <div className="flex items-center justify-between mb-8 bg-gradient-to-r from-emerald-500/10 to-transparent p-5 rounded-2xl border border-emerald-500/20 shadow-sm">
+         <div className="flex gap-4 items-center">
+           <div className="w-12 h-12 rounded-full bg-emerald-500/20 flex flex-shrink-0 items-center justify-center">
+             <Brain className="w-6 h-6 text-emerald-500" />
+           </div>
+           <div>
+             <h3 className="font-bold text-emerald-700 dark:text-emerald-400 text-lg">TradeTaper AI Voice Journal</h3>
+             <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-2">Tap the mic to dictate your trade analysis. AI will automatically extract and fill out the form sections below.</p>
+             <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-emerald-700/80 dark:text-emerald-400/80">
+                <span className="flex items-center gap-1.5"><Target className="w-3.5 h-3.5"/> Mention entry criteria & market conditions</span>
+                <span className="flex items-center gap-1.5"><Brain className="w-3.5 h-3.5"/> Discuss emotions before, during, and after</span>
+                <span className="flex items-center gap-1.5"><FileText className="w-3.5 h-3.5"/> State rule violations and lessons learned</span>
+             </div>
+           </div>
+        </div>
+        <VoiceJournalButton onParsedData={handleVoiceDataParsed} />
+      </div>
 
       <form onSubmit={handleSubmit} className="space-y-8">
         
@@ -637,6 +690,16 @@ export default function TradeForm({ initialData, isEditMode = false, onFormSubmi
 
         {/* Submit Buttons */}
         <div className="flex items-center justify-end gap-4 pt-6 border-t border-zinc-200 dark:border-white/10 sticky bottom-0 bg-zinc-50/95 dark:bg-black/95 backdrop-blur-sm p-4 -mx-4 -mb-6 md:mx-0 md:mb-0 md:bg-transparent md:backdrop-filter-none">
+          {isEditMode && initialData?.groupId && (
+            <button
+              type="button"
+              onClick={() => setIsSyncModalOpen(true)}
+              className="px-6 py-3 text-sm font-bold rounded-xl bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-500/20 hover:bg-blue-100 dark:hover:bg-blue-500/20 transition-all shadow-sm flex items-center gap-2"
+            >
+              <RefreshCw className="w-4 h-4" />
+              Sync Journal to Group
+            </button>
+          )}
           {onCancel && (
             <button type="button" onClick={onCancel}
               className="px-6 py-3 text-sm font-bold rounded-xl bg-white dark:bg-white/5 text-zinc-600 dark:text-zinc-400 border border-zinc-200 dark:border-white/10 hover:bg-zinc-50 dark:hover:bg-white/10 transition-all shadow-sm">
@@ -654,6 +717,66 @@ export default function TradeForm({ initialData, isEditMode = false, onFormSubmi
           </button>
         </div>
       </form>
+
+      {/* Sync Journal Modal */}
+      <Modal
+        isOpen={isSyncModalOpen}
+        onClose={() => setIsSyncModalOpen(false)}
+        title="Sync Journal to Group"
+        description="This trade is part of a larger position group. Do you want to copy your analysis, notes, and tags downward to the other trades?"
+        size="sm"
+        footer={
+          <div className="flex items-center justify-end gap-3">
+            <button 
+              onClick={() => setIsSyncModalOpen(false)}
+              disabled={isSyncing}
+              className="px-4 py-2 text-sm font-bold text-zinc-600 dark:text-zinc-400 bg-zinc-100 dark:bg-white/5 hover:bg-zinc-200 dark:hover:bg-white/10 rounded-lg transition-colors disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            <button 
+              onClick={handleSyncJournalToGroup}
+              disabled={isSyncing}
+              className="px-5 py-2 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-all shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            >
+              {isSyncing ? (
+                <>
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                  Syncing...
+                </>
+              ) : 'Confirm Sync'}
+            </button>
+          </div>
+        }
+      >
+        <div className="flex flex-col gap-3">
+          <label 
+            className={`flex items-start gap-3 p-4 rounded-xl border cursor-pointer transition-all ${syncMode === 'PARTIAL' ? 'border-blue-500 bg-blue-50/50 dark:bg-blue-500/10' : 'border-zinc-200 dark:border-white/10 hover:bg-zinc-50 dark:hover:bg-white/5'}`}
+            onClick={() => setSyncMode('PARTIAL')}
+          >
+            <div className={`w-5 h-5 rounded-full border flex items-center justify-center flex-shrink-0 mt-0.5 ${syncMode === 'PARTIAL' ? 'border-blue-500' : 'border-zinc-300 dark:border-zinc-600'}`}>
+              {syncMode === 'PARTIAL' && <div className="w-2.5 h-2.5 rounded-full bg-blue-500" />}
+            </div>
+            <div>
+              <div className="text-sm font-semibold text-zinc-900 dark:text-white mb-1">Fill Empty Only (Recommended)</div>
+              <div className="text-xs text-zinc-500 dark:text-zinc-400">Only copies notes/analysis fields to other trades if they are currently blank. Preserves existing notes.</div>
+            </div>
+          </label>
+
+          <label 
+            className={`flex items-start gap-3 p-4 rounded-xl border cursor-pointer transition-all ${syncMode === 'OVERRIDE' ? 'border-blue-500 bg-blue-50/50 dark:bg-blue-500/10' : 'border-zinc-200 dark:border-white/10 hover:bg-zinc-50 dark:hover:bg-white/5'}`}
+            onClick={() => setSyncMode('OVERRIDE')}
+          >
+            <div className={`w-5 h-5 rounded-full border flex items-center justify-center flex-shrink-0 mt-0.5 ${syncMode === 'OVERRIDE' ? 'border-blue-500' : 'border-zinc-300 dark:border-zinc-600'}`}>
+              {syncMode === 'OVERRIDE' && <div className="w-2.5 h-2.5 rounded-full bg-blue-500" />}
+            </div>
+            <div>
+              <div className="text-sm font-semibold text-zinc-900 dark:text-white mb-1">Override All</div>
+              <div className="text-xs text-zinc-500 dark:text-zinc-400">Replaces all analysis on the other grouped trades with the exact analysis written here. Data will be lost.</div>
+            </div>
+          </label>
+        </div>
+      </Modal>
     </div>
   );
 }

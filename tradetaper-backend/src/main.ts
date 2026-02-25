@@ -31,7 +31,9 @@ async function bootstrap() {
         'https://api.tradetaper.com',
         'https://tradetaper-frontend.vercel.app',
         'https://tradetaper-admin.vercel.app',
-        ...(process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',') : []),
+        ...(process.env.ALLOWED_ORIGINS
+          ? process.env.ALLOWED_ORIGINS.split(',')
+          : []),
         process.env.FRONTEND_URL || 'https://tradetaper.com',
       ],
       methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
@@ -45,7 +47,9 @@ async function bootstrap() {
       credentials: true,
     };
     app.enableCors(corsOptions);
-    logger.log(`CORS enabled for origins: ${JSON.stringify(corsOptions.origin)}`);
+    logger.log(
+      `CORS enabled for origins: ${JSON.stringify(corsOptions.origin)}`,
+    );
 
     // SECURITY: Use JWT-authenticated WebSocket adapter
     app.useWebSocketAdapter(new WsJwtAdapter(app));
@@ -110,12 +114,10 @@ async function bootstrap() {
           doubleCsrfProtection(req, res, next);
         }
       });
-      
+
       logger.log('CSRF protection enabled');
     } else {
-      logger.warn(
-        'CSRF protection disabled (set ENABLE_CSRF=true to enable)',
-      );
+      logger.warn('CSRF protection disabled (set ENABLE_CSRF=true to enable)');
     }
 
     const port = process.env.PORT || 3000;

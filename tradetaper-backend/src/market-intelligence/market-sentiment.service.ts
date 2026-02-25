@@ -1,7 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { MultiModelOrchestratorService } from '../agents/llm/multi-model-orchestrator.service';
 import { MarketDataAggregatorService } from './market-data-aggregator.service';
-import { EconomicCalendarService, EconomicEvent } from './economic-calendar.service';
+import {
+  EconomicCalendarService,
+  EconomicEvent,
+} from './economic-calendar.service';
 import { NewsAnalysisService } from './news-analysis.service';
 
 export interface PairAnalysisReport {
@@ -315,10 +318,9 @@ ${JSON.stringify(context)}
     symbol: string,
     events: EconomicEvent[],
   ): EconomicEvent[] {
-    const currencies = [
-      symbol.slice(0, 3),
-      symbol.slice(3, 6),
-    ].filter((c) => c.length === 3);
+    const currencies = [symbol.slice(0, 3), symbol.slice(3, 6)].filter(
+      (c) => c.length === 3,
+    );
     return events.filter((event) => {
       if (event.impact?.affectedSymbols?.includes(symbol)) return true;
       if (currencies.includes(event.currency)) return true;
@@ -327,10 +329,9 @@ ${JSON.stringify(context)}
   }
 
   private filterNewsForSymbol(symbol: string, news: any[]): any[] {
-    const currencies = [
-      symbol.slice(0, 3),
-      symbol.slice(3, 6),
-    ].filter((c) => c.length === 3);
+    const currencies = [symbol.slice(0, 3), symbol.slice(3, 6)].filter(
+      (c) => c.length === 3,
+    );
     return news.filter((item) => {
       if (item.symbols?.includes(symbol)) return true;
       if (currencies.some((c) => item.title?.includes(c))) return true;
@@ -339,7 +340,10 @@ ${JSON.stringify(context)}
   }
 
   private parseAiJson(content: string): Record<string, any> {
-    const cleaned = content.replace(/```json/g, '').replace(/```/g, '').trim();
+    const cleaned = content
+      .replace(/```json/g, '')
+      .replace(/```/g, '')
+      .trim();
     const direct = this.tryParseJson(cleaned);
     if (direct) return direct;
 
@@ -354,9 +358,7 @@ ${JSON.stringify(context)}
 
   private tryParseJson(text: string): Record<string, any> | null {
     try {
-      const normalized = text
-        .replace(/,\s*}/g, '}')
-        .replace(/,\s*]/g, ']');
+      const normalized = text.replace(/,\s*}/g, '}').replace(/,\s*]/g, ']');
       return JSON.parse(normalized);
     } catch {
       return null;

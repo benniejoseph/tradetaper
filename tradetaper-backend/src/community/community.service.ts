@@ -21,7 +21,10 @@ import {
 } from './community.constants';
 import { TradeStatus } from '../types/enums';
 import { NotificationsService } from '../notifications/notifications.service';
-import { NotificationType, NotificationPriority } from '../notifications/entities/notification.entity';
+import {
+  NotificationType,
+  NotificationPriority,
+} from '../notifications/entities/notification.entity';
 import { ConfigService } from '@nestjs/config';
 
 interface FeedQuery {
@@ -118,21 +121,21 @@ export class CommunityService {
     const qb = this.postRepo
       .createQueryBuilder('post')
       .leftJoinAndSelect('post.user', 'user')
-      .leftJoin(
-        CommunitySettings,
-        'settings',
-        'settings.userId = post.userId',
-      )
+      .leftJoin(CommunitySettings, 'settings', 'settings.userId = post.userId')
       .where('settings.publicProfile = true')
       .andWhere('post.visibility = :visibility', {
         visibility: COMMUNITY_VISIBILITIES[0],
       });
 
     if (query.assetType) {
-      qb.andWhere('post.assetType = :assetType', { assetType: query.assetType });
+      qb.andWhere('post.assetType = :assetType', {
+        assetType: query.assetType,
+      });
     }
     if (query.timeframe) {
-      qb.andWhere('post.timeframe = :timeframe', { timeframe: query.timeframe });
+      qb.andWhere('post.timeframe = :timeframe', {
+        timeframe: query.timeframe,
+      });
     }
     if (query.strategyId) {
       qb.andWhere('post.strategyId = :strategyId', {
@@ -263,7 +266,9 @@ export class CommunityService {
       throw new NotFoundException('Post not found.');
     }
     if (post.visibility !== COMMUNITY_VISIBILITIES[0]) {
-      throw new BadRequestException('Replies are only allowed on public posts.');
+      throw new BadRequestException(
+        'Replies are only allowed on public posts.',
+      );
     }
 
     const reply = this.replyRepo.create({
@@ -400,14 +405,20 @@ export class CommunityService {
     );
 
     const filteredEntries = query.accountSize
-      ? entries.filter((entry) => entry.accountSizeBand?.key === query.accountSize)
+      ? entries.filter(
+          (entry) => entry.accountSizeBand?.key === query.accountSize,
+        )
       : entries;
 
     const sorted = filteredEntries
       .filter((entry) => entry.tradeCount >= MIN_TRADES_FOR_LEADERBOARD)
       .sort((a, b) => b.score - a.score)
       .slice(0, limit)
-      .map((entry, index) => ({ ...entry, rank: index + 1, metricsHidden: false }));
+      .map((entry, index) => ({
+        ...entry,
+        rank: index + 1,
+        metricsHidden: false,
+      }));
 
     return { items: sorted, total: sorted.length };
   }
@@ -491,7 +502,9 @@ export class CommunityService {
     });
 
     const filteredEntries = query.accountSize
-      ? entries.filter((entry) => entry.accountSizeBand?.key === query.accountSize)
+      ? entries.filter(
+          (entry) => entry.accountSizeBand?.key === query.accountSize,
+        )
       : entries;
 
     const sorted = filteredEntries.sort((a, b) => b.score - a.score);

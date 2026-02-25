@@ -327,8 +327,7 @@ export class ICTMasterService {
 
     // Liquidity (which side is being targeted)
     if (liquidity.nearestLiquidity.above) {
-      const distance =
-        liquidity.nearestLiquidity.above.price - currentPrice;
+      const distance = liquidity.nearestLiquidity.above.price - currentPrice;
       if (distance / currentPrice < 0.02) {
         // Close to buy-side liquidity = likely sweep then reverse bearish
         bearishSignals += 1;
@@ -336,8 +335,7 @@ export class ICTMasterService {
     }
 
     if (liquidity.nearestLiquidity.below) {
-      const distance =
-        currentPrice - liquidity.nearestLiquidity.below.price;
+      const distance = currentPrice - liquidity.nearestLiquidity.below.price;
       if (distance / currentPrice < 0.02) {
         // Close to sell-side liquidity = likely sweep then reverse bullish
         bullishSignals += 1;
@@ -345,12 +343,8 @@ export class ICTMasterService {
     }
 
     // FVGs
-    const bullishFVGs = fvgs.bullishFVGs.filter(
-      (fvg) => !fvg.filled,
-    ).length;
-    const bearishFVGs = fvgs.bearishFVGs.filter(
-      (fvg) => !fvg.filled,
-    ).length;
+    const bullishFVGs = fvgs.bullishFVGs.filter((fvg) => !fvg.filled).length;
+    const bearishFVGs = fvgs.bearishFVGs.filter((fvg) => !fvg.filled).length;
 
     if (bullishFVGs > bearishFVGs) bullishSignals += 1;
     else if (bearishFVGs > bullishFVGs) bearishSignals += 1;

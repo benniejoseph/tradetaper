@@ -70,7 +70,11 @@ export class SimpleTradesGateway
     }
   }
 
-  notifyBulkOperation(operation: string, count: number, trades?: Record<string, unknown>[]) {
+  notifyBulkOperation(
+    operation: string,
+    count: number,
+    trades?: Record<string, unknown>[],
+  ) {
     if (this.server) {
       this.server.emit('trades:bulk', { operation, count, trades });
       this.logger.debug(

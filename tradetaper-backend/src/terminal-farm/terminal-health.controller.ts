@@ -4,7 +4,10 @@ import { TerminalFarmService } from './terminal-farm.service';
 import { TerminalCommandsQueue } from './queue/terminal-commands.queue';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, MoreThan } from 'typeorm';
-import { TerminalInstance, TerminalStatus } from './entities/terminal-instance.entity';
+import {
+  TerminalInstance,
+  TerminalStatus,
+} from './entities/terminal-instance.entity';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 /**

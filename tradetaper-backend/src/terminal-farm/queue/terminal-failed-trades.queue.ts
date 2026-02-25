@@ -26,7 +26,9 @@ export interface FailedTradeJob {
 }
 
 @Injectable()
-export class TerminalFailedTradesQueue implements OnModuleInit, OnModuleDestroy {
+export class TerminalFailedTradesQueue
+  implements OnModuleInit, OnModuleDestroy
+{
   private readonly logger = new Logger(TerminalFailedTradesQueue.name);
   private queue: Queue<FailedTradeJob>;
   private worker: Worker<FailedTradeJob>;
@@ -156,15 +158,11 @@ export class TerminalFailedTradesQueue implements OnModuleInit, OnModuleDestroy 
     const sanitizeJobId = (value: string) =>
       value.replace(/[^a-zA-Z0-9_-]/g, '-');
 
-    await this.queue.add(
-      'retry-trade',
-      payload,
-      {
-        jobId: sanitizeJobId(
-          `${terminalId}_${trade.ticket}_${trade.positionId || 'legacy'}`,
-        ),
-      },
-    );
+    await this.queue.add('retry-trade', payload, {
+      jobId: sanitizeJobId(
+        `${terminalId}_${trade.ticket}_${trade.positionId || 'legacy'}`,
+      ),
+    });
   }
 
   private async processFailedTradeJob(job: Job<FailedTradeJob>): Promise<void> {
@@ -185,23 +183,38 @@ export class TerminalFailedTradesQueue implements OnModuleInit, OnModuleDestroy 
     // Position-based trades: delegate to TradeProcessorService
     if (trade.positionId) {
       const positionIdString = trade.positionId.toString();
-      const existingTrade = (await this.tradesService.findOneByExternalId(
-        terminal.account.userId,
-        positionIdString,
-        terminal.accountId,
-      )) ?? undefined;
+      const existingTrade =
+        (await this.tradesService.findOneByExternalId(
+          terminal.account.userId,
+          positionIdString,
+          terminal.accountId,
+        )) ?? undefined;
 
       if (trade.entryType === 0) {
         await this.tradeProcessorService.processEntryDeal(
-          trade, existingTrade, terminal.accountId, terminal.account.userId, 'local_ea',
+          trade,
+          existingTrade,
+          terminal.accountId,
+          terminal.account.userId,
+          'local_ea',
         );
       } else if (trade.entryType === 1) {
         await this.tradeProcessorService.processExitDeal(
-          trade, existingTrade, terminal.accountId, terminal.account.userId, terminal.id, 'local_ea',
+          trade,
+          existingTrade,
+          terminal.accountId,
+          terminal.account.userId,
+          terminal.id,
+          'local_ea',
         );
       } else if (trade.entryType === 2) {
         await this.tradeProcessorService.processInOutDeal(
-          trade, existingTrade, terminal.accountId, terminal.account.userId, terminal.id, 'local_ea',
+          trade,
+          existingTrade,
+          terminal.accountId,
+          terminal.account.userId,
+          terminal.id,
+          'local_ea',
         );
       }
       return;

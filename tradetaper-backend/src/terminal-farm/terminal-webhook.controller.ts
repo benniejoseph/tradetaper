@@ -146,7 +146,12 @@ export class TerminalWebhookController {
   async syncTrades(
     @Body() data: TerminalSyncDto,
     @Headers('x-api-key') apiKey: string,
-  ): Promise<{ success: boolean; imported: number; skipped: number; failed: number }> {
+  ): Promise<{
+    success: boolean;
+    imported: number;
+    skipped: number;
+    failed: number;
+  }> {
     if (!this.validateAuth(apiKey, data.authToken, data.terminalId)) {
       throw new UnauthorizedException('Invalid API key');
     }

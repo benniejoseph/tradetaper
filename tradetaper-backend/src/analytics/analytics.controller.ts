@@ -18,7 +18,10 @@ export class AnalyticsController {
   ) {}
 
   @Get('insights')
-  async getAIInsights(@Req() req: AuthenticatedRequest, @Query('accountId') accountId?: string) {
+  async getAIInsights(
+    @Req() req: AuthenticatedRequest,
+    @Query('accountId') accountId?: string,
+  ) {
     const userId = req.user.id;
     const trades = await this.tradesService.findAllByUser(userId);
     const filteredTrades = accountId

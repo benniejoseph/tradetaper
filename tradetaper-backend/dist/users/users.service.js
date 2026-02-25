@@ -108,7 +108,9 @@ let UsersService = class UsersService {
             throw new common_1.ConflictException('Username is already taken');
         }
         await this.usersRepository.update(userId, { username: normalized });
-        const updated = await this.usersRepository.findOne({ where: { id: userId } });
+        const updated = await this.usersRepository.findOne({
+            where: { id: userId },
+        });
         if (!updated) {
             throw new common_1.ConflictException('User not found');
         }
@@ -128,7 +130,9 @@ let UsersService = class UsersService {
             return false;
         const query = this.usersRepository
             .createQueryBuilder('user')
-            .where('LOWER(user.username) = LOWER(:username)', { username: normalized });
+            .where('LOWER(user.username) = LOWER(:username)', {
+            username: normalized,
+        });
         if (excludeUserId) {
             query.andWhere('user.id != :excludeUserId', { excludeUserId });
         }

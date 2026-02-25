@@ -3,14 +3,18 @@
 import { Trade, AssetType, TradeDirection, TradeStatus } from '@/types/trade';
 import { Account } from '@/store/features/accountSlice'; // Assuming Account type is exported or define here
 import { format, parseISO, differenceInMinutes, differenceInHours, differenceInDays } from 'date-fns';
+import { TradingSession } from '@/types/enums';
 import React, { useState, useMemo, useCallback } from 'react'; // Added useCallback
 import { useDispatch } from 'react-redux';
-import { updateTrade, deleteTrades, bulkUpdateTrades } from '@/store/features/tradesSlice';
-import { FaChevronLeft, FaChevronRight, FaEdit, FaCheck, FaTimes, FaTrash, FaPen, FaExternalLinkAlt, FaEye } from 'react-icons/fa'; // Import icons for pagination
+import { updateTrade, deleteTrades, bulkUpdateTrades, groupTrades } from '@/store/features/tradesSlice';
+import { FaChevronLeft, FaChevronRight, FaEdit, FaCheck, FaTimes, FaTrash, FaPen, FaExternalLinkAlt, FaEye, FaLink } from 'react-icons/fa'; // Import icons for pagination
 import { CurrencyAmount } from '@/components/common/CurrencyAmount';
 import { AppDispatch } from '@/store/store';
 import { FaSpinner } from 'react-icons/fa';
+import { RefreshCw } from 'lucide-react';
+import { authApiClient } from '@/services/api';
 import AlertModal from '@/components/ui/AlertModal';
+import Modal from '@/components/ui/Modal';
 
 const TableLoader = ({ text }: { text: string }) => (
   <div className="flex flex-col items-center justify-center p-8 text-gray-500 dark:text-gray-400">
@@ -83,6 +87,16 @@ export default function TradesTable({
   const showAlert = (message: string, title = 'Notice') =>
     setAlertState({ isOpen: true, title, message });
 
+  // Sync Journal Modal State
+  const [syncModalState, setSyncModalState] = useState<{ isOpen: boolean; tradeId: string | null; groupId: string | null }>({ isOpen: false, tradeId: null, groupId: null });
+  const [syncMode, setSyncMode] = useState<'OVERRIDE' | 'PARTIAL'>('PARTIAL');
+  const [isSyncing, setIsSyncing] = useState(false);
+
+  const [confirmState, setConfirmState] = useState<{ isOpen: boolean; title: string; message: string; onConfirm: () => void }>({ isOpen: false, title: 'Confirm Action', message: '', onConfirm: () => {} });
+  const closeConfirm = () => setConfirmState((prev) => ({ ...prev, isOpen: false }));
+  const showConfirm = (message: string, onConfirm: () => void, title = 'Confirm Action') =>
+    setConfirmState({ isOpen: true, title, message, onConfirm });
+
   const accountMap = useMemo(() => {
     const map = new Map<string, string>();
     accounts.forEach((account) => {
@@ -123,7 +137,7 @@ export default function TradesTable({
   const handleBulkDelete = useCallback(async () => {
     if (selectedIds.size === 0) return;
 
-    if (confirm(`Are you sure you want to delete ${selectedIds.size} trades?`)) {
+    showConfirm(`Are you sure you want to delete ${selectedIds.size} trades?`, async () => {
       try {
         await dispatch(deleteTrades(Array.from(selectedIds))).unwrap();
         setSelectedIds(new Set());
@@ -131,15 +145,37 @@ export default function TradesTable({
         console.error('Failed to delete trades:', error);
         showAlert('Failed to delete some trades. Please try again.', 'Delete Failed');
       }
-    }
+    });
   }, [selectedIds, dispatch]);
+
+  const handleGroupTrades = useCallback(async () => {
+    if (selectedIds.size < 2) {
+      showAlert('Please select at least two trades to group together.', 'Warning');
+      return;
+    }
+
+    showConfirm(`Are you sure you want to group these ${selectedIds.size} trades into a specific position?`, async () => {
+       try {
+         const tradeIdsArray = Array.from(selectedIds);
+         const result = await dispatch(groupTrades({ tradeIds: tradeIdsArray })).unwrap();
+         setSelectedIds(new Set());
+         
+         // Immediately prompt for Sync Journal instead of just succeeding quietly
+         setSyncModalState({ isOpen: true, tradeId: tradeIdsArray[0], groupId: result.groupId });
+       } catch (error) {
+         console.error('Failed to group trades:', error);
+         showAlert('Failed to group trades. Please try again.', 'Grouping Failed');
+       }
+    });
+  }, [selectedIds, dispatch]);
+
 
 
   /* Bulk Edit Logic */
   const handleBulkUpdate = useCallback(async () => {
     if (selectedIds.size === 0 || Object.keys(bulkUpdates).length === 0) return;
 
-    if (confirm(`Are you sure you want to update ${Object.keys(bulkUpdates).length} fields for ${selectedIds.size} trades?`)) {
+    showConfirm(`Are you sure you want to update ${Object.keys(bulkUpdates).length} fields for ${selectedIds.size} trades?`, async () => {
       try {
         await dispatch(bulkUpdateTrades({
           ids: Array.from(selectedIds),
@@ -152,8 +188,22 @@ export default function TradesTable({
         console.error('Failed to bulk update trades:', error);
         showAlert('Failed to update some trades. Please try again.', 'Update Failed');
       }
-    }
+    });
   }, [selectedIds, bulkUpdates, dispatch]);
+
+  const handleSyncJournalToGroup = async () => {
+    if (!syncModalState.tradeId) return;
+    setIsSyncing(true);
+    try {
+      await authApiClient.post(`/trades/${syncModalState.tradeId}/copy-journal`, { mode: syncMode });
+      showAlert('Journal synced successfully across the group! The new links will manifest upon your next table refresh.', 'Sync Complete');
+      setSyncModalState({ isOpen: false, tradeId: null, groupId: null });
+    } catch (err: any) {
+      showAlert(err.response?.data?.message || 'Failed to sync journal', 'Sync Failed');
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   const handleEditClick = useCallback((trade: Trade, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -266,8 +316,8 @@ export default function TradesTable({
           </div>
           <div className="flex items-center space-x-2">
             <button
-              onClick={pagination.previousPage}
-              disabled={!pagination.hasPreviousPage}
+              onClick={pagination.prevPage}
+              disabled={!pagination.canGoPrev}
               className="p-1.5 rounded-lg border border-zinc-200 dark:border-white/10 hover:bg-emerald-500 hover:text-white disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-current transition-all"
             >
               <FaChevronLeft className="h-4 w-4" />
@@ -277,7 +327,7 @@ export default function TradesTable({
             </span>
             <button
               onClick={pagination.nextPage}
-              disabled={!pagination.hasNextPage}
+              disabled={!pagination.canGoNext}
               className="p-1.5 rounded-lg border border-zinc-200 dark:border-white/10 hover:bg-emerald-500 hover:text-white disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-current transition-all"
             >
               <FaChevronRight className="h-4 w-4" />
@@ -302,6 +352,14 @@ export default function TradesTable({
                     >
                       <FaPen className="w-3.5 h-3.5" />
                       Bulk Edit
+                    </button>
+                    <button
+                      onClick={handleGroupTrades}
+                      disabled={selectedIds.size < 2}
+                      className="flex items-center gap-2 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg text-sm font-medium transition-colors"
+                    >
+                      <FaLink className="w-3.5 h-3.5" />
+                      Group
                     </button>
                     <button
                       onClick={handleBulkDelete}
@@ -456,7 +514,14 @@ export default function TradesTable({
                     />
                   </td>
                   <td className={`${tdClasses} font-semibold text-gray-900 dark:text-white`}>
-                    {trade.symbol}
+                    <div className="flex items-center gap-2">
+                      <span>{trade.symbol}</span>
+                      {trade.groupId && (
+                        <div title="Part of a trade position group" className={`p-1 rounded-full ${trade.isGroupLeader ? 'bg-amber-100 text-amber-600 dark:bg-amber-900/40 dark:text-amber-400' : 'bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400'}`}>
+                          <FaLink className="w-2.5 h-2.5" />
+                        </div>
+                      )}
+                    </div>
                   </td>
                 <td className={`${tdClasses} text-gray-700 dark:text-gray-300`}>
                   {trade.entryDate ? format(parseISO(trade.entryDate), 'dd MMM, HH:mm') : '-'}
@@ -538,7 +603,7 @@ export default function TradesTable({
                   {isEditing ? (
                     <select
                       value={editForm.session || ''}
-                      onChange={(e) => setEditForm({ ...editForm, session: e.target.value })}
+                      onChange={(e) => setEditForm({ ...editForm, session: e.target.value as TradingSession })}
                       className="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded px-2 py-1.5 text-xs w-24 focus:ring-2 focus:ring-emerald-500"
                     >
                       <option value="">-</option>
@@ -724,6 +789,93 @@ export default function TradesTable({
         title={alertState.title}
         message={alertState.message}
       />
+      <Modal
+        isOpen={confirmState.isOpen}
+        onClose={closeConfirm}
+        title={confirmState.title}
+        size="sm"
+        footer={
+          <div className="flex justify-end gap-3">
+            <button
+              onClick={closeConfirm}
+              className="px-4 py-2 rounded-lg bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-gray-300 text-sm font-semibold hover:bg-gray-200 dark:hover:bg-zinc-700 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={() => {
+                closeConfirm();
+                confirmState.onConfirm();
+              }}
+              className="px-4 py-2 rounded-lg bg-emerald-500 text-white text-sm font-semibold hover:bg-emerald-600 transition-colors"
+            >
+              Confirm
+            </button>
+          </div>
+        }
+      >
+        <p className="text-sm text-gray-600 dark:text-gray-300">{confirmState.message}</p>
+      </Modal>
+
+      {/* Immediate Sync Journal Popup After Grouping */}
+      <Modal
+        isOpen={syncModalState.isOpen}
+        onClose={() => setSyncModalState({ isOpen: false, tradeId: null, groupId: null })}
+        title="Sync Journal to Group"
+        description="Trades successfully linked! Do you want to copy the leader's analysis, notes, and tags downward to the other trades immediately?"
+        size="sm"
+        footer={
+          <div className="flex items-center justify-end gap-3">
+            <button 
+              onClick={() => setSyncModalState({ isOpen: false, tradeId: null, groupId: null })}
+              disabled={isSyncing}
+              className="px-4 py-2 text-sm font-bold text-zinc-600 dark:text-zinc-400 bg-zinc-100 dark:bg-white/5 hover:bg-zinc-200 dark:hover:bg-white/10 rounded-lg transition-colors disabled:opacity-50"
+            >
+              Skip Sync
+            </button>
+            <button 
+              onClick={handleSyncJournalToGroup}
+              disabled={isSyncing}
+              className="px-5 py-2 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-all shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 disabled:opacity-50 flex items-center gap-2"
+            >
+              {isSyncing ? (
+                <>
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                  Syncing...
+                </>
+              ) : 'Confirm Sync'}
+            </button>
+          </div>
+        }
+      >
+        <div className="flex flex-col gap-3">
+          <label 
+            className={`flex items-start gap-3 p-4 rounded-xl border cursor-pointer transition-all ${syncMode === 'PARTIAL' ? 'border-blue-500 bg-blue-50/50 dark:bg-blue-500/10' : 'border-zinc-200 dark:border-white/10 hover:bg-zinc-50 dark:hover:bg-white/5'}`}
+            onClick={() => setSyncMode('PARTIAL')}
+          >
+            <div className={`w-5 h-5 rounded-full border flex items-center justify-center flex-shrink-0 mt-0.5 ${syncMode === 'PARTIAL' ? 'border-blue-500' : 'border-zinc-300 dark:border-zinc-600'}`}>
+              {syncMode === 'PARTIAL' && <div className="w-2.5 h-2.5 rounded-full bg-blue-500" />}
+            </div>
+            <div>
+              <div className="text-sm font-semibold text-zinc-900 dark:text-white mb-1">Fill Empty Only (Recommended)</div>
+              <div className="text-xs text-zinc-500 dark:text-zinc-400">Only copies downward if properties are blank. Preserves existing notes.</div>
+            </div>
+          </label>
+
+          <label 
+            className={`flex items-start gap-3 p-4 rounded-xl border cursor-pointer transition-all ${syncMode === 'OVERRIDE' ? 'border-blue-500 bg-blue-50/50 dark:bg-blue-500/10' : 'border-zinc-200 dark:border-white/10 hover:bg-zinc-50 dark:hover:bg-white/5'}`}
+            onClick={() => setSyncMode('OVERRIDE')}
+          >
+            <div className={`w-5 h-5 rounded-full border flex items-center justify-center flex-shrink-0 mt-0.5 ${syncMode === 'OVERRIDE' ? 'border-blue-500' : 'border-zinc-300 dark:border-zinc-600'}`}>
+              {syncMode === 'OVERRIDE' && <div className="w-2.5 h-2.5 rounded-full bg-blue-500" />}
+            </div>
+            <div>
+              <div className="text-sm font-semibold text-zinc-900 dark:text-white mb-1">Override All</div>
+              <div className="text-xs text-zinc-500 dark:text-zinc-400">Replaces all secondary analysis with the leader trade exact fields. Data will be lost.</div>
+            </div>
+          </label>
+        </div>
+      </Modal>
     </>
   );
 } 

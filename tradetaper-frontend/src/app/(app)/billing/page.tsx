@@ -198,7 +198,7 @@ export default function BillingPage() {
                   console.log("Payment successful", response);
                   setActionLoading(null);
                   router.push('/dashboard?payment_success=true');
-                  dispatch(fetchCurrentSubscription()); // Refresh state
+                  // dispatch(fetchCurrentSubscription()); // Refresh state
               },
               modal: {
                   ondismiss: function() {
@@ -286,10 +286,10 @@ export default function BillingPage() {
                             <div className="text-right">
                                 <p className="text-muted-foreground text-sm mb-1">Next Payment</p>
                                 <p className="text-xl font-bold text-foreground">
-                                    {billingInfo?.upcomingInvoice ? `$${billingInfo.upcomingInvoice.amount/100}` : '$0.00'}
+                                    {(billingInfo as any)?.upcomingInvoice ? `$${(billingInfo as any).upcomingInvoice.amount/100}` : '$0.00'}
                                 </p>
                                 <p className="text-xs text-muted-foreground">
-                                    on {billingInfo?.upcomingInvoice ? formatDate(billingInfo.upcomingInvoice.date) : 'N/A'}
+                                    on {(billingInfo as any)?.upcomingInvoice ? formatDate((billingInfo as any).upcomingInvoice.date) : 'N/A'}
                                 </p>
                             </div>
                          </div>

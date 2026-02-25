@@ -31,7 +31,10 @@ import { TerminalCommandsQueue } from './queue/terminal-commands.queue';
 import { TerminalFailedTradesQueue } from './queue/terminal-failed-trades.queue';
 import { TerminalTokenService } from './terminal-token.service';
 import { NotificationsService } from '../notifications/notifications.service';
-import { NotificationType, NotificationPriority } from '../notifications/entities/notification.entity';
+import {
+  NotificationType,
+  NotificationPriority,
+} from '../notifications/entities/notification.entity';
 import { MT5PositionsGateway } from '../websocket/mt5-positions.gateway';
 import { TradeProcessorService } from './trade-processor.service';
 
@@ -375,7 +378,8 @@ export class TerminalFarmService {
         ? terminal.metadata?.pendingCommands?.slice()
         : [];
       const idx = pending.findIndex(
-        (cmd) => cmd.command === nextCmd.command && cmd.payload === nextCmd.payload,
+        (cmd) =>
+          cmd.command === nextCmd.command && cmd.payload === nextCmd.payload,
       );
       if (idx >= 0) {
         pending.splice(idx, 1);
@@ -496,17 +500,31 @@ export class TerminalFarmService {
           if (trade.entryType === 0) {
             // DEAL_ENTRY_IN
             result = await this.tradeProcessorService.processEntryDeal(
-              trade, existingTrade, terminal.accountId, terminal.account.userId, 'local_ea',
+              trade,
+              existingTrade,
+              terminal.accountId,
+              terminal.account.userId,
+              'local_ea',
             );
           } else if (trade.entryType === 1) {
             // DEAL_ENTRY_OUT
             result = await this.tradeProcessorService.processExitDeal(
-              trade, existingTrade, terminal.accountId, terminal.account.userId, terminal.id, 'local_ea',
+              trade,
+              existingTrade,
+              terminal.accountId,
+              terminal.account.userId,
+              terminal.id,
+              'local_ea',
             );
           } else if (trade.entryType === 2) {
             // DEAL_ENTRY_INOUT (partial close / reverse)
             result = await this.tradeProcessorService.processInOutDeal(
-              trade, existingTrade, terminal.accountId, terminal.account.userId, terminal.id, 'local_ea',
+              trade,
+              existingTrade,
+              terminal.accountId,
+              terminal.account.userId,
+              terminal.id,
+              'local_ea',
             );
           } else {
             // Unknown entryType — skip
@@ -514,19 +532,27 @@ export class TerminalFarmService {
             continue;
           }
 
-          if (result.trade) existingTradesMap.set(positionIdString, result.trade);
+          if (result.trade)
+            existingTradesMap.set(positionIdString, result.trade);
 
-          if (result.action === 'created' || result.action === 'updated') imported++;
-          else if (result.action === 'skipped' || result.action === 'conflict') skipped++;
+          if (result.action === 'created' || result.action === 'updated')
+            imported++;
+          else if (result.action === 'skipped' || result.action === 'conflict')
+            skipped++;
 
           continue;
         }
 
         // --- Legacy Ticket-Based Logic (fallback for trades without positionId) ---
-        const normalizedOpenTime = this.tradeProcessorService.normalizeTerminalTime(trade.openTime);
-        const normalizedCloseTime = this.tradeProcessorService.normalizeTerminalTime(trade.closeTime);
+        const normalizedOpenTime =
+          this.tradeProcessorService.normalizeTerminalTime(trade.openTime);
+        const normalizedCloseTime =
+          this.tradeProcessorService.normalizeTerminalTime(trade.closeTime);
         const duplicateKey = `${trade.ticket}:${trade.symbol}:${normalizedOpenTime || ''}`;
-        if (duplicateCache.has(duplicateKey)) { skipped++; continue; }
+        if (duplicateCache.has(duplicateKey)) {
+          skipped++;
+          continue;
+        }
         duplicateCache.add(duplicateKey);
 
         const existing = await this.tradesService.findDuplicate(
@@ -535,13 +561,17 @@ export class TerminalFarmService {
           new Date(normalizedOpenTime || Date.now()),
           trade.ticket,
         );
-        if (existing) { skipped++; continue; }
+        if (existing) {
+          skipped++;
+          continue;
+        }
 
         await this.tradesService.create(
           {
             symbol: trade.symbol,
             assetType: this.tradeProcessorService.detectAssetType(trade.symbol),
-            side: trade.type === 'BUY' ? TradeDirection.LONG : TradeDirection.SHORT,
+            side:
+              trade.type === 'BUY' ? TradeDirection.LONG : TradeDirection.SHORT,
             status: trade.closeTime ? TradeStatus.CLOSED : TradeStatus.OPEN,
             openTime: normalizedOpenTime || new Date().toISOString(),
             closeTime: normalizedCloseTime,
@@ -563,7 +593,9 @@ export class TerminalFarmService {
         );
         failed++;
         await this.terminalFailedTradesQueue.queueFailedTrade(
-          terminal.id, trade, error.message,
+          terminal.id,
+          trade,
+          error.message,
         );
 
         try {
@@ -582,7 +614,9 @@ export class TerminalFarmService {
             },
           });
         } catch (notifError) {
-          this.logger.error(`Failed to send MT5 sync error notification: ${notifError.message}`);
+          this.logger.error(
+            `Failed to send MT5 sync error notification: ${notifError.message}`,
+          );
         }
       }
     }
@@ -613,7 +647,9 @@ export class TerminalFarmService {
         },
       });
     } catch (error) {
-      this.logger.error(`Failed to send MT5 sync complete notification: ${error.message}`);
+      this.logger.error(
+        `Failed to send MT5 sync complete notification: ${error.message}`,
+      );
     }
 
     return { imported, skipped, failed };
@@ -644,7 +680,9 @@ export class TerminalFarmService {
 
     const normalizedPositions = data.positions.map((position) => ({
       ...position,
-      openTime: this.tradeProcessorService.normalizeTerminalTime(position.openTime),
+      openTime: this.tradeProcessorService.normalizeTerminalTime(
+        position.openTime,
+      ),
       stopLoss: normalizeTargetValue(position.stopLoss),
       takeProfit: normalizeTargetValue(position.takeProfit),
     }));
@@ -669,7 +707,7 @@ export class TerminalFarmService {
 
     const externalIds = normalizedPositions
       .map((pos) => pos.ticket?.toString())
-      .filter(Boolean) as string[];
+      .filter(Boolean);
 
     if (externalIds.length > 0) {
       const trades = await this.tradesService.findManyByExternalIds(
@@ -677,7 +715,9 @@ export class TerminalFarmService {
         externalIds,
         terminal.accountId,
       );
-      const tradeMap = new Map(trades.map((trade) => [trade.externalId, trade]));
+      const tradeMap = new Map(
+        trades.map((trade) => [trade.externalId, trade]),
+      );
 
       for (const position of normalizedPositions) {
         const externalId = position.ticket?.toString();
@@ -719,7 +759,10 @@ export class TerminalFarmService {
           changes.quantity = { from: trade.quantity, to: nextQuantity };
         }
 
-        if (Number.isFinite(nextOpenPrice) && currentOpenPrice !== nextOpenPrice) {
+        if (
+          Number.isFinite(nextOpenPrice) &&
+          currentOpenPrice !== nextOpenPrice
+        ) {
           updates.openPrice = nextOpenPrice;
           changes.openPrice = { from: trade.openPrice, to: nextOpenPrice };
         }
@@ -899,7 +942,6 @@ export class TerminalFarmService {
       throw error;
     }
   }
-
 
   /**
    * Map entity to response DTO

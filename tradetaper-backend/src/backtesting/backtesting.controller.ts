@@ -445,19 +445,13 @@ export class BacktestingController {
   }
 
   @Delete('sessions/:id')
-  async deleteSession(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Request() req,
-  ) {
+  async deleteSession(@Param('id', ParseUUIDPipe) id: string, @Request() req) {
     await this.replaySessionService.deleteSession(id);
     return { message: 'Session deleted successfully' };
   }
 
   @Post('sessions/:id/abandon')
-  async abandonSession(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Request() req,
-  ) {
+  async abandonSession(@Param('id', ParseUUIDPipe) id: string, @Request() req) {
     return this.replaySessionService.abandonSession(id);
   }
 }

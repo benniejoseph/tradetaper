@@ -37,9 +37,7 @@ let FilesController = FilesController_1 = class FilesController {
             return { url, gcsPath, message: 'File uploaded successfully to GCS' };
         }
         catch (error) {
-            const safeMessage = error instanceof common_1.HttpException
-                ? error.message
-                : 'File upload failed.';
+            const safeMessage = error instanceof common_1.HttpException ? error.message : 'File upload failed.';
             this.instanceLogger.error(`GCS Upload Controller Error for user ${user.id}: ${safeMessage}`);
             if (error instanceof common_1.HttpException)
                 throw error;

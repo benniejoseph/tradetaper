@@ -56,7 +56,7 @@ export default function NotificationSettings() {
     channel: keyof ChannelPreference,
     value: boolean
   ) => {
-    setLocalPrefs((prev) => ({
+    setLocalPrefs((prev: Partial<NotificationPreference>) => ({
       ...prev,
       channelPreferences: {
         ...(prev.channelPreferences || {}),
@@ -64,7 +64,7 @@ export default function NotificationSettings() {
           ...(prev.channelPreferences?.[type] || { inApp: true, push: false, email: false }),
           [channel]: value,
         },
-      },
+      } as Record<NotificationType, ChannelPreference>,
     }));
   };
 
@@ -242,7 +242,7 @@ export default function NotificationSettings() {
                     onClick={() => {
                       const current = localPrefs.economicEventImportance || ['high', 'medium'];
                       const updated = isSelected
-                        ? current.filter((l) => l !== level)
+                        ? current.filter((l: string) => l !== level)
                         : [...current, level];
                       setLocalPrefs({ ...localPrefs, economicEventImportance: updated });
                     }}

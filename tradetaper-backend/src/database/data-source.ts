@@ -34,7 +34,9 @@ const dbLogger = new Logger('DatabaseDataSource');
 
 const isProduction = process.env.NODE_ENV === 'production';
 
-dbLogger.log(`Database configuration: isProduction=${isProduction}, nodeEnv=${process.env.NODE_ENV}, dbHost=${process.env.DB_HOST}`);
+dbLogger.log(
+  `Database configuration: isProduction=${isProduction}, nodeEnv=${process.env.NODE_ENV}, dbHost=${process.env.DB_HOST}`,
+);
 
 async function createDataSource() {
   const configService = new ConfigService();

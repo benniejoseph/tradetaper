@@ -15,7 +15,7 @@ export class AddRazorpayToSubscriptions1770500000000
           name: 'razorpayCustomerId',
           type: 'varchar',
           isNullable: true,
-        })
+        }),
       );
     }
 
@@ -25,7 +25,7 @@ export class AddRazorpayToSubscriptions1770500000000
           name: 'razorpaySubscriptionId',
           type: 'varchar',
           isNullable: true,
-        })
+        }),
       );
     }
 
@@ -35,7 +35,7 @@ export class AddRazorpayToSubscriptions1770500000000
           name: 'razorpayPlanId',
           type: 'varchar',
           isNullable: true,
-        })
+        }),
       );
     }
 

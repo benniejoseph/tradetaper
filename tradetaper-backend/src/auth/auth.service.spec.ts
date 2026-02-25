@@ -41,7 +41,8 @@ describe('AuthService', () => {
         id: 'u1',
         email: 'test@example.com',
         password,
-        validatePassword: async (pw: string) => await bcrypt.compare(pw, password),
+        validatePassword: async (pw: string) =>
+          await bcrypt.compare(pw, password),
       } as any;
       mockUsersService.findOneByEmail.mockResolvedValue(fakeUser);
 
@@ -62,7 +63,10 @@ describe('AuthService', () => {
 
     it('returns null when user not found', async () => {
       mockUsersService.findOneByEmail.mockResolvedValue(null);
-      const result = await service.validateUser('nouser@example.com', 'whatever');
+      const result = await service.validateUser(
+        'nouser@example.com',
+        'whatever',
+      );
       expect(result).toBeNull();
     });
 
@@ -72,7 +76,8 @@ describe('AuthService', () => {
         id: 'u1',
         email: 'test@example.com',
         password,
-        validatePassword: async (pw: string) => await bcrypt.compare(pw, password),
+        validatePassword: async (pw: string) =>
+          await bcrypt.compare(pw, password),
       } as any;
       mockUsersService.findOneByEmail.mockResolvedValue(fakeUser);
       const result = await service.validateUser('test@example.com', 'wrong');

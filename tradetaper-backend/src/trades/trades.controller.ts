@@ -13,11 +13,17 @@ import {
   HttpStatus,
   Query,
   Logger, // New import
+  UseInterceptors,
+  UploadedFile,
+  BadRequestException,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { TradesService } from './trades.service';
 import { PerformanceService } from './performance.service';
 import { CreateTradeDto } from './dto/create-trade.dto';
 import { UpdateTradeDto } from './dto/update-trade.dto';
+import { GroupTradesDto } from './dto/group-trades.dto';
+import { CopyJournalDto } from './dto/copy-journal.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { Trade } from './entities/trade.entity';
 import { PaginatedResponseDto } from '../common/dto/paginated-response.dto';
@@ -171,23 +177,26 @@ export class TradesController {
     return this.tradesService.getTradeCandles(id, timeframe || '1h', req.user);
   }
 
-  @Patch(':id')
-  update(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Body() updateTradeDto: UpdateTradeDto,
+  @Post('voice-parse')
+  @UseInterceptors(FileInterceptor('audio'))
+  async parseVoiceJournal(
+    @UploadedFile() file: Express.Multer.File,
     @Request() req,
-  ): Promise<Trade> {
-    this.logger.debug(`📥 Received update trade ${id} payload: ${JSON.stringify(updateTradeDto)}`);
-    return this.tradesService.update(id, updateTradeDto, req.user);
+  ) {
+    if (!file) {
+      throw new BadRequestException('No audio file provided');
+    }
+    return this.tradesService.parseVoiceJournal(file.buffer, file.mimetype, req.user);
   }
 
-  @Delete(':id')
-  @HttpCode(HttpStatus.NO_CONTENT)
-  remove(
-    @Param('id', ParseUUIDPipe) id: string,
+  // Group operations
+  @Patch('group')
+  @HttpCode(HttpStatus.OK)
+  groupTrades(
+    @Body() groupTradesDto: GroupTradesDto,
     @Request() req,
-  ): Promise<void> {
-    return this.tradesService.remove(id, req.user);
+  ): Promise<{ groupId: string; updatedCount: number }> {
+    return this.tradesService.groupTrades(groupTradesDto, req.user);
   }
 
   // Bulk operations
@@ -207,6 +216,37 @@ export class TradesController {
     @Request() req,
   ): Promise<{ updatedCount: number; trades: Trade[] }> {
     return this.tradesService.bulkUpdate(body.updates, req.user);
+  }
+
+  @Post(':id/copy-journal')
+  @HttpCode(HttpStatus.OK)
+  copyJournalToGroup(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() copyJournalDto: CopyJournalDto,
+    @Request() req,
+  ): Promise<{ updatedCount: number }> {
+    return this.tradesService.copyJournalToGroup(id, copyJournalDto, req.user);
+  }
+
+  @Patch(':id')
+  update(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() updateTradeDto: UpdateTradeDto,
+    @Request() req,
+  ): Promise<Trade> {
+    this.logger.debug(
+      `📥 Received update trade ${id} payload: ${JSON.stringify(updateTradeDto)}`,
+    );
+    return this.tradesService.update(id, updateTradeDto, req.user);
+  }
+
+  @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  remove(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Request() req,
+  ): Promise<void> {
+    return this.tradesService.remove(id, req.user);
   }
 
   @Post('bulk/import')

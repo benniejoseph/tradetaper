@@ -135,7 +135,7 @@ export class AnalyticsService {
     const avgWin = wins > 0 ? grossProfit / wins : 0;
     const totalLosses = total - wins;
     const avgLoss = totalLosses > 0 ? grossLoss / totalLosses : 0;
-    
+
     // 2. Risk Reward
     const rr = avgLoss > 0 ? avgWin / avgLoss : 0;
     const rrScore = Math.min((rr / 3) * 100, 100);
@@ -159,15 +159,24 @@ export class AnalyticsService {
     const calmarScore = Math.min((calmar / 3) * 100, 100);
 
     // 5. Daily Return (Profit Factor proxy)
-    const profitFactor = grossLoss > 0 ? grossProfit / grossLoss : grossProfit > 0 ? 5 : 1;
+    const profitFactor =
+      grossLoss > 0 ? grossProfit / grossLoss : grossProfit > 0 ? 5 : 1;
     const dailyReturnScore = Math.min((profitFactor / 3) * 100, 100);
 
     // 6. SL Usage
     const slUsageScore = total > 0 ? (tradesWithSL / total) * 100 : 0;
 
     return [
-      { subject: 'Consistency', A: Math.round(consistencyScore), fullMark: 100 },
-      { subject: 'Daily Return', A: Math.round(dailyReturnScore), fullMark: 100 },
+      {
+        subject: 'Consistency',
+        A: Math.round(consistencyScore),
+        fullMark: 100,
+      },
+      {
+        subject: 'Daily Return',
+        A: Math.round(dailyReturnScore),
+        fullMark: 100,
+      },
       { subject: 'RR', A: Math.round(rrScore), fullMark: 100 },
       { subject: 'Win Rate', A: Math.round(winRate), fullMark: 100 },
       { subject: 'SL Usage', A: Math.round(slUsageScore), fullMark: 100 },

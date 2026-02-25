@@ -12,16 +12,16 @@ import { MarketIntelligenceModule } from '../market-intelligence/market-intellig
   providers: [
     SimpleTradesGateway,
     ICTGateway,
-    NotificationsGateway,  // ✅ ADD NotificationsGateway
+    NotificationsGateway, // ✅ ADD NotificationsGateway
     MT5PositionsGateway,
-    WebSocketService,       // ✅ ADD WebSocketService (required by NotificationsGateway)
+    WebSocketService, // ✅ ADD WebSocketService (required by NotificationsGateway)
   ],
   exports: [
     SimpleTradesGateway,
     ICTGateway,
-    NotificationsGateway,   // ✅ EXPORT NotificationsGateway
+    NotificationsGateway, // ✅ EXPORT NotificationsGateway
     MT5PositionsGateway,
-    WebSocketService,        // ✅ EXPORT WebSocketService
+    WebSocketService, // ✅ EXPORT WebSocketService
   ],
 })
 export class SimpleWebSocketModule {}

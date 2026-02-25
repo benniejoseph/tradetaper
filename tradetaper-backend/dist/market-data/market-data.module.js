@@ -19,10 +19,7 @@ let MarketDataModule = class MarketDataModule {
 exports.MarketDataModule = MarketDataModule;
 exports.MarketDataModule = MarketDataModule = __decorate([
     (0, common_1.Module)({
-        imports: [
-            axios_1.HttpModule,
-            config_1.ConfigModule,
-        ],
+        imports: [axios_1.HttpModule, config_1.ConfigModule],
         providers: [market_data_service_1.MarketDataService, multi_provider_service_1.MultiProviderMarketDataService],
         controllers: [market_data_controller_1.MarketDataController, market_data_public_controller_1.MarketDataPublicController],
         exports: [market_data_service_1.MarketDataService, multi_provider_service_1.MultiProviderMarketDataService],

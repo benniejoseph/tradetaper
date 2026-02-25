@@ -1,13 +1,23 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AgentRegistryService } from './agent-registry.service';
-import { IAgent, AgentCapability, AgentHealth, AgentMessage, AgentResponse } from './interfaces/agent.interface';
+import {
+  IAgent,
+  AgentCapability,
+  AgentHealth,
+  AgentMessage,
+  AgentResponse,
+} from './interfaces/agent.interface';
 
 class MockAgent implements IAgent {
   agentId = 'mock-agent';
   name = 'Mock Agent';
   priority = 10;
   capabilities: AgentCapability[] = [
-    { id: 'test-capability', description: 'Test capability', keywords: ['test'] },
+    {
+      id: 'test-capability',
+      description: 'Test capability',
+      keywords: ['test'],
+    },
   ];
 
   getHealth(): AgentHealth {
@@ -157,19 +167,19 @@ describe('AgentRegistryService', () => {
   describe('recordMessage', () => {
     it('should increment message count', async () => {
       await service.register(new MockAgent());
-      
+
       service.recordMessage('mock-agent', true);
       service.recordMessage('mock-agent', true);
-      
+
       const registration = service.getRegistration('mock-agent');
       expect(registration?.messageCount).toBe(2);
     });
 
     it('should increment error count on failure', async () => {
       await service.register(new MockAgent());
-      
+
       service.recordMessage('mock-agent', false);
-      
+
       const registration = service.getRegistration('mock-agent');
       expect(registration?.errorCount).toBe(1);
     });

@@ -50,6 +50,8 @@ export class AddUsernameToUsers1773000000000 implements MigrationInterface {
 
   public async down(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`DROP INDEX IF EXISTS "UQ_users_username_lower"`);
-    await queryRunner.query(`ALTER TABLE "users" DROP COLUMN IF EXISTS "username"`);
+    await queryRunner.query(
+      `ALTER TABLE "users" DROP COLUMN IF EXISTS "username"`,
+    );
   }
 }

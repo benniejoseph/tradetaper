@@ -1,5 +1,10 @@
 // src/terminal-farm/queue/terminal-commands.queue.ts
-import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  OnModuleInit,
+  OnModuleDestroy,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Queue, Worker, Job } from 'bullmq';
 import { Redis } from 'ioredis';
@@ -38,7 +43,7 @@ export class TerminalCommandsQueue implements OnModuleInit, OnModuleDestroy {
     if (!redisUrl) {
       this.logger.warn(
         'REDIS_URL not configured. Using fallback in-memory queue. ' +
-        'Configure REDIS_URL for production persistence.',
+          'Configure REDIS_URL for production persistence.',
       );
       this.useInMemory = true;
       return;
@@ -70,19 +75,22 @@ export class TerminalCommandsQueue implements OnModuleInit, OnModuleDestroy {
         },
       });
 
-      this.logger.log('Terminal Commands Queue initialized with Redis persistence');
+      this.logger.log(
+        'Terminal Commands Queue initialized with Redis persistence',
+      );
 
       // Log queue events
       this.queue.on('error', (error) => {
         this.logger.error(`Queue error: ${error.message}`, error.stack);
       });
-
     } catch (error) {
       this.logger.error(
         `Failed to initialize Terminal Commands Queue: ${error.message}`,
         error.stack,
       );
-      this.logger.warn('Falling back to in-memory queue (NOT RECOMMENDED FOR PRODUCTION)');
+      this.logger.warn(
+        'Falling back to in-memory queue (NOT RECOMMENDED FOR PRODUCTION)',
+      );
       this.useInMemory = true;
     }
   }
@@ -151,9 +159,7 @@ export class TerminalCommandsQueue implements OnModuleInit, OnModuleDestroy {
         },
       );
 
-      this.logger.debug(
-        `Queued command ${command} for terminal ${terminalId}`,
-      );
+      this.logger.debug(`Queued command ${command} for terminal ${terminalId}`);
     } catch (error) {
       this.logger.error(
         `Failed to queue command ${command}: ${error.message}`,

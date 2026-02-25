@@ -44,7 +44,7 @@ const ChartEngine = forwardRef<ChartEngineRef, ChartEngineProps>((props, ref) =>
         // Initialize Chart
         const chart = createChart(chartContainerRef.current, {
           layout: {
-            backgroundColor: '#020617',
+            background: { type: 'solid', color: '#020617' } as any,
             textColor: '#94A3B8',
           },
           grid: {

@@ -99,8 +99,6 @@ function transformApiTradeToFrontend(apiTrade: any): Trade {
       updatedAt: apiTrade.updatedAt,
       accountId: apiTrade.accountId,
       isStarred: apiTrade.isStarred || false,
-      swap: apiTrade.swap ? parseFloat(apiTrade.swap) : undefined,
-      externalId: apiTrade.externalId,
       account: apiTrade.account,
       marginUsed: apiTrade.marginUsed ? parseFloat(apiTrade.marginUsed) : undefined,
       // Psychology & Emotion fields
@@ -492,6 +490,19 @@ export const bulkUpdateTrades = createAsyncThunk<Trade[], { ids: string[]; data:
   }
 );
 
+export const groupTrades = createAsyncThunk<{ groupId: string; tradeIds: string[]; updatedCount: number }, { tradeIds: string[] }, { rejectValue: string }>(
+  'trades/groupTrades',
+  async ({ tradeIds }, { rejectWithValue }) => {
+    try {
+      const response = await authApiClient.patch<any>('/trades/group', { tradeIds });
+      return { groupId: response.data.groupId, tradeIds, updatedCount: response.data.updatedCount };
+    } catch (error: any) {
+      return rejectWithValue(normalizeErrorMessage(error, 'Failed to group trades'));
+    }
+  }
+);
+
+
 export const analyzeChart = createAsyncThunk<any, File, { rejectValue: string }>(
   'trades/analyzeChart',
   async (file, { rejectWithValue }) => {
@@ -788,24 +799,24 @@ const tradesSlice = createSlice({
         state.summaryLoading = true;
         state.summaryError = null;
       })
-      .addCase(fetchTradesSummary.fulfilled, (state, action: PayloadAction<any>) => {
+      .addCase(fetchTradesSummary.fulfilled, (state, action: any) => {
         state.summaryLoading = false;
         state.summary = action.payload;
-        const accountKey = (action.meta.arg as any)?.accountId || 'all';
+        const accountKey = action.meta.arg?.accountId || 'all';
         const filterKey = [
           accountKey,
-          (action.meta.arg as any)?.dateFrom || '',
-          (action.meta.arg as any)?.dateTo || '',
-          (action.meta.arg as any)?.status || '',
-          (action.meta.arg as any)?.direction || '',
-          (action.meta.arg as any)?.assetType || '',
-          (action.meta.arg as any)?.symbol || '',
-          (action.meta.arg as any)?.search || '',
-          (action.meta.arg as any)?.isStarred ? 'starred' : '',
-          Number.isFinite((action.meta.arg as any)?.minPnl) ? `minPnl:${(action.meta.arg as any)?.minPnl}` : '',
-          Number.isFinite((action.meta.arg as any)?.maxPnl) ? `maxPnl:${(action.meta.arg as any)?.maxPnl}` : '',
-          Number.isFinite((action.meta.arg as any)?.minDuration) ? `minDur:${(action.meta.arg as any)?.minDuration}` : '',
-          Number.isFinite((action.meta.arg as any)?.maxDuration) ? `maxDur:${(action.meta.arg as any)?.maxDuration}` : '',
+          action.meta.arg?.dateFrom || '',
+          action.meta.arg?.dateTo || '',
+          action.meta.arg?.status || '',
+          action.meta.arg?.direction || '',
+          action.meta.arg?.assetType || '',
+          action.meta.arg?.symbol || '',
+          action.meta.arg?.search || '',
+          action.meta.arg?.isStarred ? 'starred' : '',
+          Number.isFinite(action.meta.arg?.minPnl) ? `minPnl:${action.meta.arg?.minPnl}` : '',
+          Number.isFinite(action.meta.arg?.maxPnl) ? `maxPnl:${action.meta.arg?.maxPnl}` : '',
+          Number.isFinite(action.meta.arg?.minDuration) ? `minDur:${action.meta.arg?.minDuration}` : '',
+          Number.isFinite(action.meta.arg?.maxDuration) ? `maxDur:${action.meta.arg?.maxDuration}` : '',
         ].join('|');
         state.lastSummaryKey = filterKey;
         state.lastSummaryAt = Date.now();
@@ -835,6 +846,21 @@ const tradesSlice = createSlice({
       .addCase(bulkUpdateTrades.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload as string;
+      })
+      // groupTrades
+      .addCase(groupTrades.fulfilled, (state, action) => {
+        const { groupId, tradeIds } = action.payload;
+        tradeIds.forEach((id, index) => {
+          const trade = state.trades.find(t => t.id === id);
+          if (trade) {
+            trade.groupId = groupId;
+            trade.isGroupLeader = index === 0;
+          }
+          if (state.currentTrade?.id === id) {
+            state.currentTrade.groupId = groupId;
+            state.currentTrade.isGroupLeader = index === 0;
+          }
+        });
       });
   },
 });

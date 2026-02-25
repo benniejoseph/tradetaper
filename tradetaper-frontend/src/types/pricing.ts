@@ -35,3 +35,40 @@ export interface PlanDetails {
   priceYearly: number;
   limits: PlanLimits;
 }
+
+export interface Subscription {
+  id: string;
+  userId: string;
+  planId: string;
+  status: 'active' | 'canceled' | 'past_due' | 'unpaid' | 'incomplete';
+  currentPeriodStart: string;
+  currentPeriodEnd: string;
+  cancelAtPeriodEnd: boolean;
+  provider: 'stripe' | 'razorpay';
+  providerSubscriptionId: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface BillingInfo {
+  id: string;
+  userId: string;
+  paymentMethodId?: string;
+  last4?: string;
+  brand?: string;
+  name?: string;
+  email?: string;
+  subscription: Subscription;
+}
+
+export interface CreateCheckoutSessionRequest {
+  planId: string;
+  interval: 'monthly' | 'yearly';
+}
+
+export interface CreateCheckoutSessionResponse {
+  sessionId?: string;
+  url?: string;
+  orderId?: string;
+  key?: string;
+}

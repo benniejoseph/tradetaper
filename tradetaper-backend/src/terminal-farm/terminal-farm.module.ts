@@ -24,7 +24,10 @@ import { TradeProcessorService } from './trade-processor.service';
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
-        secret: configService.get<string>('JWT_SECRET', 'test-secret-key-change-in-prod'),
+        secret: configService.get<string>(
+          'JWT_SECRET',
+          'test-secret-key-change-in-prod',
+        ),
       }),
     }),
     forwardRef(() => TradesModule),

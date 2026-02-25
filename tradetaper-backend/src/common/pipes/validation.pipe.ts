@@ -35,7 +35,10 @@ export class EnhancedValidationPipe implements PipeTransform<any> {
     this.validationPipe = new NestValidationPipe(this.options);
   }
 
-  async transform(value: unknown, metadata: ArgumentMetadata): Promise<unknown> {
+  async transform(
+    value: unknown,
+    metadata: ArgumentMetadata,
+  ): Promise<unknown> {
     // First, run standard validation
     const transformedValue = await this.validationPipe.transform(
       value,

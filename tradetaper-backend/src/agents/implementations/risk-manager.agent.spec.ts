@@ -46,7 +46,7 @@ describe('RiskManagerAgent', () => {
   });
 
   it('should have required capabilities', () => {
-    const capabilityIds = agent.capabilities.map(c => c.id);
+    const capabilityIds = agent.capabilities.map((c) => c.id);
     expect(capabilityIds).toContain('risk-calculation');
     expect(capabilityIds).toContain('portfolio-risk');
     expect(capabilityIds).toContain('trade-assessment');
@@ -62,8 +62,8 @@ describe('RiskManagerAgent', () => {
           action: 'calculate-position',
           accountBalance: 10000,
           riskPercent: 1,
-          entryPrice: 1.1000,
-          stopLoss: 1.0950,
+          entryPrice: 1.1,
+          stopLoss: 1.095,
           symbol: 'EURUSD',
         },
         context: {
@@ -91,8 +91,8 @@ describe('RiskManagerAgent', () => {
           action: 'calculate-position',
           accountBalance: 10000,
           riskPercent: 10, // Above maximum of 5%
-          entryPrice: 1.1000,
-          stopLoss: 1.0950,
+          entryPrice: 1.1,
+          stopLoss: 1.095,
         },
         context: {
           userId: 'user-1',
@@ -117,9 +117,9 @@ describe('RiskManagerAgent', () => {
         type: 'request',
         payload: {
           action: 'assess-trade',
-          entryPrice: 1.1000,
-          stopLoss: 1.0950,
-          takeProfit: 1.1100,
+          entryPrice: 1.1,
+          stopLoss: 1.095,
+          takeProfit: 1.11,
           symbol: 'EURUSD',
         },
         context: {
@@ -145,9 +145,9 @@ describe('RiskManagerAgent', () => {
         type: 'request',
         payload: {
           action: 'assess-trade',
-          entryPrice: 1.1000,
-          stopLoss: 1.0900, // 100 pips risk
-          takeProfit: 1.1050, // 50 pips reward
+          entryPrice: 1.1,
+          stopLoss: 1.09, // 100 pips risk
+          takeProfit: 1.105, // 50 pips reward
         },
         context: {
           userId: 'user-1',

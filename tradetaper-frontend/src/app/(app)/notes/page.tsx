@@ -205,7 +205,7 @@ const NotesPage: React.FC = () => {
         content: [
           {
             id: '1',
-            type: 'text',
+            type: 'text' as const,
             content: transcript,
             position: 0
           }

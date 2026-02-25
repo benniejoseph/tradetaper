@@ -116,12 +116,12 @@ export class GeminiInsightsService {
       // robust JSON extraction
       const jsonStart = text.indexOf('{');
       const jsonEnd = text.lastIndexOf('}');
-      
+
       if (jsonStart !== -1 && jsonEnd !== -1) {
         const jsonString = text.substring(jsonStart, jsonEnd + 1);
         return JSON.parse(jsonString);
       }
-      
+
       throw new Error('No valid JSON object found in response');
     } catch (error) {
       this.logger.error(`AI Analysis failed: ${error.message}`);

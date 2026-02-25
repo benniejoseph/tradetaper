@@ -94,7 +94,7 @@ export default function PowerOfThreeWidget({ symbol = 'XAUUSD' }: Props) {
       },
     };
 
-    const details = phaseDetails[randomPhase];
+    const details = phaseDetails[randomPhase as keyof typeof phaseDetails] || phaseDetails['ACCUMULATION'];
 
     return {
       symbol: sym,

@@ -61,6 +61,12 @@ export class Trade {
   @Column({ type: 'boolean', nullable: true, default: false }) // New field for starring trades
   isStarred?: boolean;
 
+  @Column({ type: 'uuid', nullable: true })
+  groupId?: string;
+
+  @Column({ type: 'boolean', default: false })
+  isGroupLeader: boolean;
+
   @Column({
     type: 'enum',
     enum: AssetType,

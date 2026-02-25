@@ -20,6 +20,7 @@ const typeorm_2 = require("typeorm");
 const trade_entity_1 = require("./entities/trade.entity");
 const enums_1 = require("../types/enums");
 const tag_entity_1 = require("../tags/entities/tag.entity");
+const uuid_1 = require("uuid");
 const simple_trades_gateway_1 = require("../websocket/simple-trades.gateway");
 const gemini_vision_service_1 = require("../notes/gemini-vision.service");
 const accounts_service_1 = require("../users/accounts.service");
@@ -28,6 +29,7 @@ const trade_candle_entity_1 = require("./entities/trade-candle.entity");
 const terminal_farm_service_1 = require("../terminal-farm/terminal-farm.service");
 const notifications_service_1 = require("../notifications/notifications.service");
 const notification_entity_1 = require("../notifications/entities/notification.entity");
+const multi_model_orchestrator_service_1 = require("../agents/llm/multi-model-orchestrator.service");
 let TradesService = TradesService_1 = class TradesService {
     tradesRepository;
     tradeCandleRepository;
@@ -38,8 +40,9 @@ let TradesService = TradesService_1 = class TradesService {
     mt5AccountsService;
     terminalFarmService;
     notificationsService;
+    orchestratorService;
     logger = new common_1.Logger(TradesService_1.name);
-    constructor(tradesRepository, tradeCandleRepository, tagRepository, tradesGateway, geminiVisionService, accountsService, mt5AccountsService, terminalFarmService, notificationsService) {
+    constructor(tradesRepository, tradeCandleRepository, tagRepository, tradesGateway, geminiVisionService, accountsService, mt5AccountsService, terminalFarmService, notificationsService, orchestratorService) {
         this.tradesRepository = tradesRepository;
         this.tradeCandleRepository = tradeCandleRepository;
         this.tagRepository = tagRepository;
@@ -49,6 +52,59 @@ let TradesService = TradesService_1 = class TradesService {
         this.mt5AccountsService = mt5AccountsService;
         this.terminalFarmService = terminalFarmService;
         this.notificationsService = notificationsService;
+        this.orchestratorService = orchestratorService;
+    }
+    async parseVoiceJournal(audioBuffer, mimeType, userContext) {
+        this.logger.debug(`Parsing voice journal for user ${userContext.id} [${mimeType}]`);
+        const base64Audio = audioBuffer.toString('base64');
+        const dataUrl = `data:${mimeType};base64,${base64Audio}`;
+        const prompt = `
+You are an expert ICT (Inner Circle Trader) Assistant. The user has recorded an audio log for a specific trade they took. 
+Listen to the audio and extract the relevant information to populate their Trade Journal.
+
+Focus on these concepts if mentioned: Fair Value Gaps, Order Blocks, Liquidity Sweeps, Market Structure Shifts, Premium/Discount, OTE (Optimal Trade Entry), Judas Swing, Timeframes.
+Also listen closely for their psychological state before, during, and after the trade.
+Valid emotional states include: Calm, Confident, Anxious, Fearful, Greedy, Frustrated, Overconfident, Impatient, FOMO, Revenge_Trading, Bored, Excited, Apathetic, Hesitant, Optimistic, Pessimistic, Nervous, Relieved, Disappointed, Satisfied.
+Listen for metrics like entry/exit, planned risk/reward, or whether they hesitated or broke rules.
+
+Return a JSON object strictly matching this schema:
+{
+  "updates": {
+    // any fields you can solidly extract from the audio. Valid keys: 
+    // emotionBefore (string), emotionDuring (string), emotionAfter (string),
+    // entryReason (string), 
+    // marketCondition (string, MUST BE EXACTLY ONE OF: 'Trending Up', 'Trending Down', 'Ranging', 'Choppy', 'High Volatility', 'Low Volatility', 'News Driven', 'Pre-News'), 
+    // timeframe (string, MUST BE EXACTLY ONE OF: '1m', '5m', '15m', '30m', '1H', '4H', '1D', '1W', '1M'), 
+    // htfBias (string), newsImpact (string), 
+    // confirmations (array of strings, e.g. ["RSI Divergence", "Order Block"]),
+    // hesitated (boolean), followedPlan (boolean), ruleViolations (array of strings),
+    // sleepQuality (number 1-5), energyLevel (number 1-5), distractionLevel (number 1-5),
+    // tradingEnvironment (string), mistakesMade (string), lessonsLearned (string)
+  },
+  "missingPrompts": [
+    // Array of string questions asking the user for critical info they missed (e.g. "What was your higher timeframe bias?")
+  ],
+  "transcriptSummary": "A very brief 1-2 sentence summary of what they said."
+}
+`;
+        try {
+            const response = await this.orchestratorService.complete({
+                prompt: "Extract the trading journal data from the attached audio.",
+                system: prompt,
+                taskComplexity: 'complex',
+                modelPreference: 'gemini-1.5-pro',
+                optimizeFor: 'quality',
+                requireJson: true,
+                images: [dataUrl],
+                userId: userContext.id,
+            });
+            const parsedData = JSON.parse(response.content);
+            return parsedData;
+        }
+        catch (error) {
+            this.logger.error(`Voice parsing failed: ${error.message}`);
+            throw new common_1.BadRequestException('Failed to process audio recording');
+        }
     }
     async getTradeCandles(tradeId, timeframe, userContext) {
         this.logger.debug(`Fetching candles for trade ${tradeId}, timeframe ${timeframe}`);
@@ -660,7 +716,8 @@ let TradesService = TradesService_1 = class TradesService {
         }
         const updatedTrade = await this.tradesRepository.save(trade);
         try {
-            if (updatedTrade.status === enums_1.TradeStatus.CLOSED && trade.status !== enums_1.TradeStatus.CLOSED) {
+            if (updatedTrade.status === enums_1.TradeStatus.CLOSED &&
+                trade.status !== enums_1.TradeStatus.CLOSED) {
                 await this.notificationsService.send({
                     userId: userContext.id,
                     type: notification_entity_1.NotificationType.TRADE_CLOSED,
@@ -746,6 +803,109 @@ let TradesService = TradesService_1 = class TradesService {
         this.logger.log(`User ${userContext.id} bulk deleted ${deletedCount} trades`);
         return { deletedCount };
     }
+    async groupTrades(groupTradesDto, userContext) {
+        const { tradeIds } = groupTradesDto;
+        if (tradeIds.length < 2) {
+            throw new common_1.BadRequestException('At least two trades are required to form a group');
+        }
+        const trades = await this.tradesRepository.find({
+            where: { id: (0, typeorm_2.In)(tradeIds), userId: userContext.id },
+        });
+        if (trades.length !== tradeIds.length) {
+            throw new common_1.NotFoundException('Some trades not found or do not belong to user');
+        }
+        trades.sort((a, b) => a.openTime.getTime() - b.openTime.getTime());
+        const groupId = (0, uuid_1.v4)();
+        trades.forEach((trade, index) => {
+            trade.groupId = groupId;
+            trade.isGroupLeader = index === 0;
+        });
+        const savedTrades = await this.tradesRepository.save(trades);
+        this.logger.log(`User ${userContext.id} grouped ${savedTrades.length} trades into group ${groupId}`);
+        return { groupId, updatedCount: savedTrades.length };
+    }
+    async copyJournalToGroup(id, copyJournalDto, userContext) {
+        const sourceTrade = await this.tradesRepository.findOne({
+            where: { id, userId: userContext.id },
+            relations: ['tags'],
+        });
+        if (!sourceTrade) {
+            throw new common_1.NotFoundException('Source trade not found');
+        }
+        if (!sourceTrade.groupId) {
+            throw new common_1.BadRequestException('Trade does not belong to any group');
+        }
+        const groupTrades = await this.tradesRepository.find({
+            where: { groupId: sourceTrade.groupId, userId: userContext.id },
+            relations: ['tags'],
+        });
+        const targetTrades = groupTrades.filter((t) => t.id !== sourceTrade.id);
+        if (targetTrades.length === 0) {
+            throw new common_1.BadRequestException('No other trades found in this group');
+        }
+        const { mode } = copyJournalDto;
+        const fieldsToCopy = [
+            'emotionBefore',
+            'emotionDuring',
+            'emotionAfter',
+            'confidenceLevel',
+            'followedPlan',
+            'ruleViolations',
+            'setupDetails',
+            'mistakesMade',
+            'lessonsLearned',
+            'marketCondition',
+            'timeframe',
+            'htfBias',
+            'newsImpact',
+            'executionGrade',
+            'notes',
+        ];
+        let updatedCount = 0;
+        for (const targetTrade of targetTrades) {
+            let isUpdated = false;
+            for (const field of fieldsToCopy) {
+                if (mode === 'OVERRIDE') {
+                    if (sourceTrade[field] !== undefined) {
+                        targetTrade[field] = sourceTrade[field];
+                        isUpdated = true;
+                    }
+                }
+                else if (mode === 'PARTIAL') {
+                    if ((targetTrade[field] === null || targetTrade[field] === undefined) && sourceTrade[field] !== undefined) {
+                        targetTrade[field] = sourceTrade[field];
+                        isUpdated = true;
+                    }
+                }
+            }
+            if (sourceTrade.tags && sourceTrade.tags.length > 0) {
+                if (mode === 'OVERRIDE') {
+                    targetTrade.tags = [...sourceTrade.tags];
+                    isUpdated = true;
+                }
+                else if (mode === 'PARTIAL') {
+                    const existingTagIds = new Set(targetTrade.tags?.map((t) => t.id) || []);
+                    const newTags = sourceTrade.tags.filter((t) => !existingTagIds.has(t.id));
+                    if (newTags.length > 0) {
+                        targetTrade.tags = [...(targetTrade.tags || []), ...newTags];
+                        isUpdated = true;
+                    }
+                }
+            }
+            else if (mode === 'OVERRIDE' && (!sourceTrade.tags || sourceTrade.tags.length === 0)) {
+                targetTrade.tags = [];
+                isUpdated = true;
+            }
+            if (isUpdated) {
+                updatedCount++;
+            }
+        }
+        if (updatedCount > 0) {
+            await this.tradesRepository.save(targetTrades);
+            this.logger.log(`User ${userContext.id} copied journal to ${updatedCount} trades in group ${sourceTrade.groupId}`);
+        }
+        return { updatedCount };
+    }
     async bulkUpdate(updates, userContext) {
         this.logger.log(`User ${userContext.id} bulk updating ${updates.length} trades`);
         const tradeIds = updates.map((u) => u.id);
@@ -825,6 +985,7 @@ exports.TradesService = TradesService = TradesService_1 = __decorate([
         accounts_service_1.AccountsService,
         mt5_accounts_service_1.MT5AccountsService,
         terminal_farm_service_1.TerminalFarmService,
-        notifications_service_1.NotificationsService])
+        notifications_service_1.NotificationsService,
+        multi_model_orchestrator_service_1.MultiModelOrchestratorService])
 ], TradesService);
 //# sourceMappingURL=trades.service.js.map

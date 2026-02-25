@@ -32,7 +32,11 @@ import { NotificationsModule } from '../notifications/notifications.module';
     forwardRef(() => NotificationsModule),
   ],
   controllers: [SubscriptionsController, SubscriptionsWebhookController],
-  providers: [SubscriptionService, RazorpayService, SubscriptionSchedulerService],
+  providers: [
+    SubscriptionService,
+    RazorpayService,
+    SubscriptionSchedulerService,
+  ],
   exports: [SubscriptionService, RazorpayService],
 })
 export class SubscriptionsModule {}

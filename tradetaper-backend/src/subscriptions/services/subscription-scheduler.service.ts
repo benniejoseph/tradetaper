@@ -15,7 +15,9 @@ export class SubscriptionSchedulerService {
       const count = await this.subscriptionService.sendExpiryWarnings();
       this.logger.log(`Sent ${count} subscription expiry warnings`);
     } catch (error) {
-      this.logger.error(`Failed to check expiring subscriptions: ${error.message}`);
+      this.logger.error(
+        `Failed to check expiring subscriptions: ${error.message}`,
+      );
     }
   }
 }

@@ -42,7 +42,13 @@ export interface AdvancedMetrics {
   // Advanced Analysis
   correlationMatrix: Record<string, Record<string, number>>;
   seasonalAnalysis: Record<string, any>;
-  drawdownAnalysis: { start: number; end: number; duration: number; peak: number; trough: number }[];
+  drawdownAnalysis: {
+    start: number;
+    end: number;
+    duration: number;
+    peak: number;
+    trough: number;
+  }[];
   tradingPatterns: { name: string; details: string }[];
 }
 
@@ -449,7 +455,9 @@ export class AdvancedAnalyticsService {
     return totalHoldingPeriod / trades.length / (1000 * 60); // In minutes
   }
 
-  private analyzeDayOfWeek(trades: Trade[]): Record<string, { pnl: number; count: number }> {
+  private analyzeDayOfWeek(
+    trades: Trade[],
+  ): Record<string, { pnl: number; count: number }> {
     const analysis: Record<string, { pnl: number; count: number }> = {};
     const days = [
       'Sunday',
@@ -473,7 +481,9 @@ export class AdvancedAnalyticsService {
     return analysis;
   }
 
-  private analyzeMonthlyPerformance(trades: Trade[]): Record<string, { pnl: number; count: number }> {
+  private analyzeMonthlyPerformance(
+    trades: Trade[],
+  ): Record<string, { pnl: number; count: number }> {
     const analysis: Record<string, { pnl: number; count: number }> = {};
 
     trades.forEach((trade) => {
@@ -542,7 +552,9 @@ export class AdvancedAnalyticsService {
     return cov / (stdDev1 * stdDev2);
   }
 
-  private analyzeSeasonality(trades: Trade[]): Record<string, Record<number, { pnl: number; count: number }>> {
+  private analyzeSeasonality(
+    trades: Trade[],
+  ): Record<string, Record<number, { pnl: number; count: number }>> {
     const hourlyAnalysis: Record<number, { pnl: number; count: number }> = {};
     const monthlyAnalysis: Record<number, { pnl: number; count: number }> = {};
 
@@ -569,8 +581,20 @@ export class AdvancedAnalyticsService {
     };
   }
 
-  private analyzeDrawdowns(drawdowns: number[]): { start: number; end: number; duration: number; peak: number; trough: number }[] {
-    const drawdownPeriods: { start: number; end: number; duration: number; peak: number; trough: number }[] = [];
+  private analyzeDrawdowns(drawdowns: number[]): {
+    start: number;
+    end: number;
+    duration: number;
+    peak: number;
+    trough: number;
+  }[] {
+    const drawdownPeriods: {
+      start: number;
+      end: number;
+      duration: number;
+      peak: number;
+      trough: number;
+    }[] = [];
     let inDrawdown = false;
     let start = 0;
     let peak = 0;
@@ -601,7 +625,9 @@ export class AdvancedAnalyticsService {
     return drawdownPeriods;
   }
 
-  private identifyTradingPatterns(trades: Trade[]): { name: string; details: string }[] {
+  private identifyTradingPatterns(
+    trades: Trade[],
+  ): { name: string; details: string }[] {
     if (trades.length < 2) {
       return [];
     }

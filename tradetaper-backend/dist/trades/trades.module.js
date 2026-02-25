@@ -35,7 +35,12 @@ exports.TradesModule = TradesModule = __decorate([
             tags_module_1.TagsModule,
             subscriptions_module_1.SubscriptionsModule,
         ],
-        providers: [trades_service_1.TradesService, gemini_vision_service_1.GeminiVisionService, trade_journal_sync_service_1.TradeJournalSyncService, performance_service_1.PerformanceService],
+        providers: [
+            trades_service_1.TradesService,
+            gemini_vision_service_1.GeminiVisionService,
+            trade_journal_sync_service_1.TradeJournalSyncService,
+            performance_service_1.PerformanceService,
+        ],
         controllers: [trades_controller_1.TradesController],
         exports: [trades_service_1.TradesService, trade_journal_sync_service_1.TradeJournalSyncService],
     })

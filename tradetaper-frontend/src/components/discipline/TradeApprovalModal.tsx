@@ -78,7 +78,7 @@ export const TradeApprovalModal: React.FC<TradeApprovalModalProps> = ({
   const handleSelectStrategy = (strat: Strategy) => {
     setSelectedStrategy(strat);
     setChecklistItems(
-      strat.checklist.map((item: ChecklistItem) => ({
+      strat.checklist.map((item: { id: string; text: string }) => ({
         itemId: item.id,
         text: item.text,
         checked: false,

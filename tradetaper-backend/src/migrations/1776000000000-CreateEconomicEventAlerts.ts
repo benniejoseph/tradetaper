@@ -1,6 +1,8 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class CreateEconomicEventAlerts1776000000000 implements MigrationInterface {
+export class CreateEconomicEventAlerts1776000000000
+  implements MigrationInterface
+{
   name = 'CreateEconomicEventAlerts1776000000000';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
@@ -27,8 +29,12 @@ export class CreateEconomicEventAlerts1776000000000 implements MigrationInterfac
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query(`DROP INDEX IF EXISTS "IDX_economic_event_alerts_event"`);
-    await queryRunner.query(`DROP INDEX IF EXISTS "UQ_economic_event_alerts_user_event"`);
+    await queryRunner.query(
+      `DROP INDEX IF EXISTS "IDX_economic_event_alerts_event"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX IF EXISTS "UQ_economic_event_alerts_user_event"`,
+    );
     await queryRunner.query(`DROP TABLE IF EXISTS "economic_event_alerts"`);
   }
 }

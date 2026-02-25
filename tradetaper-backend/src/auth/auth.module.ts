@@ -25,7 +25,9 @@ import { JwtStrategy } from './strategies/jwt.strategy';
           'temporary-fallback-jwt-secret-for-debugging-please-set-proper-secret-in-production-environment-12345';
 
         const logger = new Logger('AuthModule');
-        logger.log(`JWT Configuration - No Expiration: hasSecret=${!!jwtSecret}, secretLength=${jwtSecret.length}`);
+        logger.log(
+          `JWT Configuration - No Expiration: hasSecret=${!!jwtSecret}, secretLength=${jwtSecret.length}`,
+        );
 
         // Remove signOptions entirely to avoid the expiresIn issue
         return {

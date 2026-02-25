@@ -58,7 +58,7 @@ export default function EditStrategyPage() {
         name: strategy.name,
         description: strategy.description,
         checklist: strategy.checklist,
-        tradingSession: strategy.tradingSession,
+        tradingSession: strategy.tradingSession || undefined,
         isActive: strategy.isActive,
         color: strategy.color,
         tags: strategy.tags,

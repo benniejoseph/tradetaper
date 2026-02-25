@@ -423,7 +423,9 @@ export class NewsAnalysisService {
       .slice(0, 5); // Limit to 5 symbols
   }
 
-  private extractTickerSymbols(tickerSentiment: Record<string, any>[]): string[] {
+  private extractTickerSymbols(
+    tickerSentiment: Record<string, any>[],
+  ): string[] {
     return tickerSentiment
       .map((ticker) => ticker.ticker)
       .filter((ticker) => ticker && ticker.length >= 1 && ticker.length <= 5)

@@ -108,7 +108,11 @@ export class WebSocketService {
     this.logger.debug(`Trade deleted notification sent: ${tradeId}`);
   }
 
-  notifyBulkOperation(operation: string, count: number, trades?: Record<string, unknown>[]) {
+  notifyBulkOperation(
+    operation: string,
+    count: number,
+    trades?: Record<string, unknown>[],
+  ) {
     if (!this.server) {
       this.logger.warn(
         'WebSocket server not initialized, skipping trades:bulk notification',

@@ -85,7 +85,7 @@ export default function KillZonesWidget() {
       try {
         setLoading(true);
         const data = await getKillZones();
-        setKillZoneStatus(data);
+        setKillZoneStatus(data as unknown as KillZoneStatus);
         setLoading(false);
       } catch (error) {
         console.error('Error fetching kill zone data:', error);

@@ -146,8 +146,8 @@ export default function KillZoneBanner() {
   }
 
   const isActive = status?.currentZone !== null;
-  const currentZone = status?.currentZone;
-  const nextZone = status?.nextZone;
+  const currentZone = status?.currentZone ?? null;
+  const nextZone = status?.nextZone ?? null;
   const isOptimal = status?.isOptimal;
 
   // Get zone-specific info

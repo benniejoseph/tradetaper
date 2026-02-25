@@ -67,7 +67,9 @@ import { TypeOrmModule } from '@nestjs/typeorm';
             },
           } as any;
 
-          logger.log(`Final database config: type=${config.type}, database=${config.database}, username=${config.username}, hasPassword=${!!config.password}`);
+          logger.log(
+            `Final database config: type=${config.type}, database=${config.database}, username=${config.username}, hasPassword=${!!config.password}`,
+          );
 
           return config;
         } else {

@@ -126,8 +126,9 @@ export class FilesService implements OnModuleInit {
     let uploadMimeType = mimetype;
     let fileExtension = path.extname(originalName) || '.tmp';
 
-    const shouldCompress =
-      ['image/jpeg', 'image/jpg', 'image/png'].includes(mimetype);
+    const shouldCompress = ['image/jpeg', 'image/jpg', 'image/png'].includes(
+      mimetype,
+    );
     if (shouldCompress) {
       try {
         const image = sharp(fileBuffer).rotate();

@@ -21,7 +21,7 @@ describe('TradesController', () => {
     side: TradeDirection.LONG,
     status: TradeStatus.OPEN,
     openTime: new Date(),
-    openPrice: 1.1200,
+    openPrice: 1.12,
     quantity: 10000,
     commission: 0,
     userId: 'user-uuid-1',
@@ -55,15 +55,23 @@ describe('TradesController', () => {
             update: jest.fn().mockResolvedValue(mockTrade),
             remove: jest.fn().mockResolvedValue(undefined),
             bulkDelete: jest.fn().mockResolvedValue({ deletedCount: 1 }),
-            bulkUpdate: jest.fn().mockResolvedValue({ updatedCount: 1, trades: [mockTrade] }),
-            bulkImport: jest.fn().mockResolvedValue({ importedCount: 1, trades: [mockTrade] }),
-            analyzeChart: jest.fn().mockResolvedValue({ symbol: 'EURUSD', entryPrice: 1.1200 }),
+            bulkUpdate: jest
+              .fn()
+              .mockResolvedValue({ updatedCount: 1, trades: [mockTrade] }),
+            bulkImport: jest
+              .fn()
+              .mockResolvedValue({ importedCount: 1, trades: [mockTrade] }),
+            analyzeChart: jest
+              .fn()
+              .mockResolvedValue({ symbol: 'EURUSD', entryPrice: 1.12 }),
           },
         },
         {
           provide: GeminiVisionService,
           useValue: {
-            analyzeChartImage: jest.fn().mockResolvedValue({ symbol: 'EURUSD', entryPrice: 1.1200 }),
+            analyzeChartImage: jest
+              .fn()
+              .mockResolvedValue({ symbol: 'EURUSD', entryPrice: 1.12 }),
           },
         },
         {
@@ -92,7 +100,7 @@ describe('TradesController', () => {
         side: TradeDirection.LONG,
         status: TradeStatus.OPEN,
         openTime: new Date().toISOString(),
-        openPrice: 1.1200,
+        openPrice: 1.12,
         quantity: 10000,
         assetType: AssetType.FOREX,
       };
@@ -122,8 +130,14 @@ describe('TradesController', () => {
     it('should update a trade', async () => {
       const updateTradeDto: UpdateTradeDto = { notes: 'Updated notes' };
       const req = { user: mockUser } as any;
-      expect(await controller.update(mockTrade.id, updateTradeDto, req)).toEqual(mockTrade);
-      expect(service.update).toHaveBeenCalledWith(mockTrade.id, updateTradeDto, mockUser);
+      expect(
+        await controller.update(mockTrade.id, updateTradeDto, req),
+      ).toEqual(mockTrade);
+      expect(service.update).toHaveBeenCalledWith(
+        mockTrade.id,
+        updateTradeDto,
+        mockUser,
+      );
     });
   });
 
@@ -134,6 +148,4 @@ describe('TradesController', () => {
       expect(service.remove).toHaveBeenCalledWith(mockTrade.id, mockUser);
     });
   });
-
-  
 });

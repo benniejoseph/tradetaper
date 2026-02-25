@@ -15,10 +15,13 @@ var TradesController_1;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.TradesController = void 0;
 const common_1 = require("@nestjs/common");
+const platform_express_1 = require("@nestjs/platform-express");
 const trades_service_1 = require("./trades.service");
 const performance_service_1 = require("./performance.service");
 const create_trade_dto_1 = require("./dto/create-trade.dto");
 const update_trade_dto_1 = require("./dto/update-trade.dto");
+const group_trades_dto_1 = require("./dto/group-trades.dto");
+const copy_journal_dto_1 = require("./dto/copy-journal.dto");
 const jwt_auth_guard_1 = require("../auth/guards/jwt-auth.guard");
 const usage_limit_guard_1 = require("../subscriptions/guards/usage-limit.guard");
 let TradesController = TradesController_1 = class TradesController {
@@ -77,12 +80,24 @@ let TradesController = TradesController_1 = class TradesController {
     getCandles(id, timeframe, req) {
         return this.tradesService.getTradeCandles(id, timeframe || '1h', req.user);
     }
+    async parseVoiceJournal(file, req) {
+        if (!file) {
+            throw new common_1.BadRequestException('No audio file provided');
+        }
+        return this.tradesService.parseVoiceJournal(file.buffer, file.mimetype, req.user);
+    }
     update(id, updateTradeDto, req) {
         this.logger.debug(`📥 Received update trade ${id} payload: ${JSON.stringify(updateTradeDto)}`);
         return this.tradesService.update(id, updateTradeDto, req.user);
     }
     remove(id, req) {
         return this.tradesService.remove(id, req.user);
+    }
+    groupTrades(groupTradesDto, req) {
+        return this.tradesService.groupTrades(groupTradesDto, req.user);
+    }
+    copyJournalToGroup(id, copyJournalDto, req) {
+        return this.tradesService.copyJournalToGroup(id, copyJournalDto, req.user);
     }
     bulkDelete(body, req) {
         return this.tradesService.bulkDelete(body.tradeIds, req.user);
@@ -182,6 +197,15 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], TradesController.prototype, "getCandles", null);
 __decorate([
+    (0, common_1.Post)('voice-parse'),
+    (0, common_1.UseInterceptors)((0, platform_express_1.FileInterceptor)('audio')),
+    __param(0, (0, common_1.UploadedFile)()),
+    __param(1, (0, common_1.Request)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:returntype", Promise)
+], TradesController.prototype, "parseVoiceJournal", null);
+__decorate([
     (0, common_1.Patch)(':id'),
     __param(0, (0, common_1.Param)('id', common_1.ParseUUIDPipe)),
     __param(1, (0, common_1.Body)()),
@@ -199,6 +223,25 @@ __decorate([
     __metadata("design:paramtypes", [String, Object]),
     __metadata("design:returntype", Promise)
 ], TradesController.prototype, "remove", null);
+__decorate([
+    (0, common_1.Patch)('group'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    __param(0, (0, common_1.Body)()),
+    __param(1, (0, common_1.Request)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [group_trades_dto_1.GroupTradesDto, Object]),
+    __metadata("design:returntype", Promise)
+], TradesController.prototype, "groupTrades", null);
+__decorate([
+    (0, common_1.Post)(':id/copy-journal'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    __param(0, (0, common_1.Param)('id', common_1.ParseUUIDPipe)),
+    __param(1, (0, common_1.Body)()),
+    __param(2, (0, common_1.Request)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, copy_journal_dto_1.CopyJournalDto, Object]),
+    __metadata("design:returntype", Promise)
+], TradesController.prototype, "copyJournalToGroup", null);
 __decorate([
     (0, common_1.Post)('bulk/delete'),
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),

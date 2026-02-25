@@ -94,7 +94,12 @@ export class UploadService {
    */
   private validateScreenshot(file: Express.Multer.File): void {
     // Check file type
-    const allowedMimeTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    const allowedMimeTypes = [
+      'image/jpeg',
+      'image/jpg',
+      'image/png',
+      'image/webp',
+    ];
     if (!allowedMimeTypes.includes(file.mimetype)) {
       throw new BadRequestException(
         'Invalid file type. Only JPG, PNG, and WebP images are allowed.',
@@ -104,9 +109,7 @@ export class UploadService {
     // Check file size (5MB max)
     const maxSize = 5 * 1024 * 1024; // 5MB in bytes
     if (file.size > maxSize) {
-      throw new BadRequestException(
-        'File too large. Maximum size is 5MB.',
-      );
+      throw new BadRequestException('File too large. Maximum size is 5MB.');
     }
   }
 }

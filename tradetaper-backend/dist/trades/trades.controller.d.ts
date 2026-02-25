@@ -2,6 +2,8 @@ import { TradesService } from './trades.service';
 import { PerformanceService } from './performance.service';
 import { CreateTradeDto } from './dto/create-trade.dto';
 import { UpdateTradeDto } from './dto/update-trade.dto';
+import { GroupTradesDto } from './dto/group-trades.dto';
+import { CopyJournalDto } from './dto/copy-journal.dto';
 import { Trade } from './entities/trade.entity';
 import { PaginatedResponseDto } from '../common/dto/paginated-response.dto';
 export declare class TradesController {
@@ -15,8 +17,16 @@ export declare class TradesController {
     getSummary(req: any, accountId?: string, dateFrom?: string, dateTo?: string, status?: string, direction?: string, assetType?: string, symbol?: string, search?: string, isStarred?: string, minPnl?: string, maxPnl?: string, minDuration?: string, maxDuration?: string): Promise<import("./performance.service").PerformanceMetrics>;
     findOne(id: string, req: any): Promise<Trade>;
     getCandles(id: string, timeframe: string, req: any): Promise<any[]>;
+    parseVoiceJournal(file: Express.Multer.File, req: any): Promise<import("./dto/voice-journal.dto").VoiceJournalResponseDto>;
     update(id: string, updateTradeDto: UpdateTradeDto, req: any): Promise<Trade>;
     remove(id: string, req: any): Promise<void>;
+    groupTrades(groupTradesDto: GroupTradesDto, req: any): Promise<{
+        groupId: string;
+        updatedCount: number;
+    }>;
+    copyJournalToGroup(id: string, copyJournalDto: CopyJournalDto, req: any): Promise<{
+        updatedCount: number;
+    }>;
     bulkDelete(body: {
         tradeIds: string[];
     }, req: any): Promise<{

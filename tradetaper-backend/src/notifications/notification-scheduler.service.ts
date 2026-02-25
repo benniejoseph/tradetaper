@@ -81,7 +81,9 @@ export class NotificationSchedulerService {
           minutesUntilEvent <= 60 + tolerance
         ) {
           if (event.importance === 'high') {
-            await this.economicCalendarService.precomputeHighImpactAnalysis(event.id);
+            await this.economicCalendarService.precomputeHighImpactAnalysis(
+              event.id,
+            );
           }
           await this.sendEconomicAlert(
             event,
@@ -97,7 +99,9 @@ export class NotificationSchedulerService {
           minutesUntilEvent >= 240 - tolerance &&
           minutesUntilEvent <= 240 + tolerance
         ) {
-          await this.economicCalendarService.precomputeHighImpactAnalysis(event.id);
+          await this.economicCalendarService.precomputeHighImpactAnalysis(
+            event.id,
+          );
         }
 
         if (
@@ -105,7 +109,9 @@ export class NotificationSchedulerService {
           minutesUntilEvent >= 120 - tolerance &&
           minutesUntilEvent <= 120 + tolerance
         ) {
-          await this.economicCalendarService.precomputeHighImpactAnalysis(event.id);
+          await this.economicCalendarService.precomputeHighImpactAnalysis(
+            event.id,
+          );
         }
 
         // 2. 45 Minute Alert (Use 15M type)

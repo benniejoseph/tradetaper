@@ -28,9 +28,7 @@ import {
 @Controller('mt5-accounts')
 @UseGuards(JwtAuthGuard)
 export class MT5AccountsController {
-  constructor(
-    private readonly mt5AccountsService: MT5AccountsService,
-  ) {}
+  constructor(private readonly mt5AccountsService: MT5AccountsService) {}
 
   @Post('create')
   @UseGuards(UsageLimitGuard)

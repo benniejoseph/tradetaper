@@ -341,7 +341,7 @@ export default function EconomicCalendar() {
       <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-6 text-center">
         <FaExclamationTriangle className="mx-auto text-3xl text-red-500 mb-3" />
         <p className="text-red-700 dark:text-red-300 mb-4">{error}</p>
-        <button onClick={fetchEvents} className="btn-primary">Retry</button>
+        <button onClick={() => fetchEvents()} className="btn-primary">Retry</button>
       </div>
     );
   }

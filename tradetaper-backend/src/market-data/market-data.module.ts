@@ -8,10 +8,7 @@ import { MarketDataPublicController } from './market-data-public.controller';
 import { MultiProviderMarketDataService } from './multi-provider.service';
 
 @Module({
-  imports: [
-    HttpModule,
-    ConfigModule,
-  ],
+  imports: [HttpModule, ConfigModule],
   providers: [MarketDataService, MultiProviderMarketDataService],
   controllers: [MarketDataController, MarketDataPublicController],
   exports: [MarketDataService, MultiProviderMarketDataService],

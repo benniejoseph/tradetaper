@@ -23,6 +23,8 @@ let Trade = class Trade {
     strategyId;
     accountId;
     isStarred;
+    groupId;
+    isGroupLeader;
     assetType;
     symbol;
     side;
@@ -169,6 +171,14 @@ __decorate([
     (0, typeorm_1.Column)({ type: 'boolean', nullable: true, default: false }),
     __metadata("design:type", Boolean)
 ], Trade.prototype, "isStarred", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'uuid', nullable: true }),
+    __metadata("design:type", String)
+], Trade.prototype, "groupId", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'boolean', default: false }),
+    __metadata("design:type", Boolean)
+], Trade.prototype, "isGroupLeader", void 0);
 __decorate([
     (0, typeorm_1.Column)({
         type: 'enum',

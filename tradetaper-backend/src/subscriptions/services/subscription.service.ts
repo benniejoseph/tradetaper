@@ -28,7 +28,10 @@ import { Strategy } from '../../strategies/entities/strategy.entity';
 import { RazorpayService } from './razorpay.service';
 import { Between, IsNull, Not } from 'typeorm';
 import { NotificationsService } from '../../notifications/notifications.service';
-import { NotificationType, NotificationPriority } from '../../notifications/entities/notification.entity';
+import {
+  NotificationType,
+  NotificationPriority,
+} from '../../notifications/entities/notification.entity';
 
 export interface PricingPlan {
   id: string; // 'free' | 'essential' | 'premium'
@@ -636,7 +639,9 @@ export class SubscriptionService {
             },
           });
         } catch (error) {
-          this.logger.error(`Failed to send subscription renewed notification: ${error.message}`);
+          this.logger.error(
+            `Failed to send subscription renewed notification: ${error.message}`,
+          );
         }
         break;
 
@@ -728,11 +733,15 @@ export class SubscriptionService {
         start: sevenDaysFromNow,
         end: oneDayFromNow,
       })
-      .andWhere('subscription.status = :status', { status: SubscriptionStatus.ACTIVE })
+      .andWhere('subscription.status = :status', {
+        status: SubscriptionStatus.ACTIVE,
+      })
       .andWhere('subscription.cancelAtPeriodEnd = :cancel', { cancel: true })
       .getMany();
 
-    this.logger.log(`Found ${expiringSubscriptions.length} subscriptions expiring in 7 days`);
+    this.logger.log(
+      `Found ${expiringSubscriptions.length} subscriptions expiring in 7 days`,
+    );
 
     for (const subscription of expiringSubscriptions) {
       try {
@@ -751,7 +760,9 @@ export class SubscriptionService {
           actionUrl: '/billing',
         });
       } catch (error) {
-        this.logger.error(`Failed to send expiry warning for subscription ${subscription.id}: ${error.message}`);
+        this.logger.error(
+          `Failed to send expiry warning for subscription ${subscription.id}: ${error.message}`,
+        );
       }
     }
 

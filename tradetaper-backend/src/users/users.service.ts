@@ -117,7 +117,10 @@ export class UsersService {
     return response;
   }
 
-  async updateUsername(userId: string, username: string): Promise<UserResponseDto> {
+  async updateUsername(
+    userId: string,
+    username: string,
+  ): Promise<UserResponseDto> {
     const normalized = this.normalizeUsername(username);
     if (!normalized) {
       throw new ConflictException('Invalid username');
@@ -129,7 +132,9 @@ export class UsersService {
     }
 
     await this.usersRepository.update(userId, { username: normalized });
-    const updated = await this.usersRepository.findOne({ where: { id: userId } });
+    const updated = await this.usersRepository.findOne({
+      where: { id: userId },
+    });
     if (!updated) {
       throw new ConflictException('User not found');
     }
@@ -144,12 +149,17 @@ export class UsersService {
     };
   }
 
-  async isUsernameAvailable(username: string, excludeUserId?: string): Promise<boolean> {
+  async isUsernameAvailable(
+    username: string,
+    excludeUserId?: string,
+  ): Promise<boolean> {
     const normalized = this.normalizeUsername(username);
     if (!normalized) return false;
     const query = this.usersRepository
       .createQueryBuilder('user')
-      .where('LOWER(user.username) = LOWER(:username)', { username: normalized });
+      .where('LOWER(user.username) = LOWER(:username)', {
+        username: normalized,
+      });
     if (excludeUserId) {
       query.andWhere('user.id != :excludeUserId', { excludeUserId });
     }

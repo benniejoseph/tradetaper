@@ -223,7 +223,7 @@ export default function ViewTradePage() {
           <StatCard label="Take Profit" value={<span className="text-emerald-500">{formatPrice(trade.takeProfit)}</span>} icon={<Target className="w-3.5 h-3.5" />} color="emerald" />
           <StatCard label="Quantity" value={trade.quantity?.toLocaleString()} icon={<Layers className="w-3.5 h-3.5" />} color="blue" />
           <StatCard label="Commission" value={`$${trade.commission?.toFixed(2) || '0.00'}`} icon={<DollarSign className="w-3.5 h-3.5" />} color="zinc" />
-          <StatCard label="Swap" value={`$${trade.swap?.toFixed(2) || '0.00'}`} icon={<DollarSign className="w-3.5 h-3.5" />} color="zinc" />
+          <StatCard label="Swap" value={`$${(trade as any).swap?.toFixed(2) || '0.00'}`} icon={<DollarSign className="w-3.5 h-3.5" />} color="zinc" />
           <StatCard label="Account" value={trade.account?.name || trade.accountId?.slice(0, 8)} icon={<Layers className="w-3.5 h-3.5" />} color="indigo" />
         </div>
         <div className="grid grid-cols-2 gap-3 mt-3">

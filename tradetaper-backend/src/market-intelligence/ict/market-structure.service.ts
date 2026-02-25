@@ -319,8 +319,16 @@ export class MarketStructureService {
    */
   private generateStructureAnalysis(
     trend: string,
-    structureShift: { type: 'BOS' | 'CHoCH' | 'none'; shift: MarketStructure['lastStructureShift'] },
-    structureLevels: { higherHigh: number | null; higherLow: number | null; lowerHigh: number | null; lowerLow: number | null },
+    structureShift: {
+      type: 'BOS' | 'CHoCH' | 'none';
+      shift: MarketStructure['lastStructureShift'];
+    },
+    structureLevels: {
+      higherHigh: number | null;
+      higherLow: number | null;
+      lowerHigh: number | null;
+      lowerLow: number | null;
+    },
     swingPoints: MarketStructure['swingPoints'],
   ): string[] {
     const analysis: string[] = [];
@@ -391,7 +399,10 @@ export class MarketStructureService {
    */
   private determineTradingBias(
     trend: string,
-    structureShift: { type: 'BOS' | 'CHoCH' | 'none'; shift: MarketStructure['lastStructureShift'] },
+    structureShift: {
+      type: 'BOS' | 'CHoCH' | 'none';
+      shift: MarketStructure['lastStructureShift'];
+    },
     priceData: Candle[],
   ): 'long' | 'short' | 'neutral' {
     // If we have a recent CHoCH, bias changes

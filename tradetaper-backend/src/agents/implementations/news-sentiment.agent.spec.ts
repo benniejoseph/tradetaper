@@ -34,7 +34,7 @@ describe('NewsSentimentAgent', () => {
   });
 
   it('should have correct capabilities', () => {
-    const capIds = agent.capabilities.map(c => c.id);
+    const capIds = agent.capabilities.map((c) => c.id);
     expect(capIds).toContain('news-analysis');
     expect(capIds).toContain('sentiment-scoring');
   });
@@ -109,7 +109,13 @@ describe('NewsSentimentAgent', () => {
       const response = await agent.handleMessage(message);
 
       expect(response.success).toBe(true);
-      const validLevels = ['extreme_fear', 'fear', 'neutral', 'greed', 'extreme_greed'];
+      const validLevels = [
+        'extreme_fear',
+        'fear',
+        'neutral',
+        'greed',
+        'extreme_greed',
+      ];
       expect(validLevels).toContain(response.data.sentiment.level);
     });
   });
@@ -131,7 +137,9 @@ describe('NewsSentimentAgent', () => {
       expect(response.data.news).toBeDefined();
       expect(response.data.sentiment).toBeDefined();
       expect(response.data.tradingBias).toBeDefined();
-      expect(['bullish', 'bearish', 'neutral']).toContain(response.data.tradingBias);
+      expect(['bullish', 'bearish', 'neutral']).toContain(
+        response.data.tradingBias,
+      );
     });
   });
 });

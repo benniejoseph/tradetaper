@@ -330,7 +330,7 @@ const NoteViewPage: React.FC = () => {
         };
         
         return (
-          <div className={`p-4 rounded-lg ${calloutStyles[block.content?.type] || calloutStyles.info}`}>
+          <div className={`p-4 rounded-lg ${calloutStyles[block.content?.type as keyof typeof calloutStyles] || calloutStyles.info}`}>
             <p>{block.content?.text || ''}</p>
           </div>
         );

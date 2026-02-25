@@ -13,6 +13,7 @@ import { selectMT5Accounts, selectSelectedMT5AccountId, setSelectedMT5Account } 
 import { selectAvailableAccounts, selectSelectedAccountId, setSelectedAccount } from '@/store/features/accountSlice';
 import { useCurrency, CURRENCIES, CurrencyCode } from '@/context/CurrencyContext';
 
+
 interface ContentHeaderProps {
   toggleSidebar: () => void;
   isMobile: boolean;
@@ -158,6 +159,8 @@ function ContentHeader({ toggleSidebar, isMobile, isSidebarExpanded }: ContentHe
             <div className="flex-shrink-0">
                <ThemeToggle className="hover:bg-gray-100 dark:hover:bg-[#0A0A0A] p-2 rounded-lg" />
             </div>
+
+
 
             {/* User Avatar - Only show on desktop */}
             {!isMobile && user && (

@@ -44,7 +44,11 @@ exports.SubscriptionsModule = SubscriptionsModule = __decorate([
             (0, common_1.forwardRef)(() => notifications_module_1.NotificationsModule),
         ],
         controllers: [subscriptions_controller_1.SubscriptionsController, subscriptions_webhook_controller_1.SubscriptionsWebhookController],
-        providers: [subscription_service_1.SubscriptionService, razorpay_service_1.RazorpayService, subscription_scheduler_service_1.SubscriptionSchedulerService],
+        providers: [
+            subscription_service_1.SubscriptionService,
+            razorpay_service_1.RazorpayService,
+            subscription_scheduler_service_1.SubscriptionSchedulerService,
+        ],
         exports: [subscription_service_1.SubscriptionService, razorpay_service_1.RazorpayService],
     })
 ], SubscriptionsModule);

@@ -123,7 +123,7 @@ const NewNotePage: React.FC = () => {
   const [showTagInput, setShowTagInput] = useState(false);
   const [savedNoteId, setSavedNoteId] = useState<string | null>(null); // Track if note has been saved
   
-  const autoSaveTimer = useRef<NodeJS.Timeout>();
+  const autoSaveTimer = useRef<NodeJS.Timeout | null>(null);
   const debouncedNote = useDebounce(note, 2000);
 
   // Save note - wrapped in useCallback to prevent recreation on every render
@@ -386,6 +386,9 @@ const NewNotePage: React.FC = () => {
                 onKeyDown={(e) => handleKeyDown(e, block.id)}
                 onAddBlock={(type) => addBlock(type, block.id)}
                 onDelete={() => deleteBlock(block.id)}
+                note={note}
+                savedNoteId={savedNoteId}
+                setSavedNoteId={setSavedNoteId}
               />
             ))}
           </div>
@@ -467,7 +470,10 @@ const BlockEditor: React.FC<{
   onKeyDown: (e: React.KeyboardEvent) => void;
   onAddBlock: (type: Block['type']) => void;
   onDelete: () => void;
-}> = ({ block, onUpdate, onKeyDown, onAddBlock, onDelete }) => {
+  note: any;
+  savedNoteId: string | null;
+  setSavedNoteId: (id: string) => void;
+}> = ({ block, onUpdate, onKeyDown, onAddBlock, onDelete, note, savedNoteId, setSavedNoteId }) => {
   const [showMenu, setShowMenu] = useState(false);
 
   const handleContentChange = (field: string, value: any) => {
@@ -641,7 +647,7 @@ const BlockEditor: React.FC<{
                       try {
                         // Ensure note is saved first to get an ID for media upload
                         let currentNoteId = savedNoteId;
-                        if (!currentNoteId && (note.title || note.content.some(block => getBlockText(block)))) {
+                        if (!currentNoteId && (note.title || note.content.some((block: any) => getBlockText(block)))) {
                           const savedNote = await NotesService.createNote({
                             title: note.title || 'Untitled note',
                             content: note.content,

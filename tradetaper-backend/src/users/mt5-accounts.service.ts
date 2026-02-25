@@ -67,7 +67,10 @@ export class MT5AccountsService {
     }
   }
 
-  private readonly metaApiListeners = new Map<string, SynchronizationListener>();
+  private readonly metaApiListeners = new Map<
+    string,
+    SynchronizationListener
+  >();
 
   // Encrypt sensitive data
   private encrypt(text: string): string {
@@ -154,7 +157,8 @@ export class MT5AccountsService {
       login: encryptedLogin,
       password: this.encrypt(createDto.password),
       userId: userId,
-      accountType: createDto.accountType || (createDto.isRealAccount ? 'real' : 'demo'),
+      accountType:
+        createDto.accountType || (createDto.isRealAccount ? 'real' : 'demo'),
       currency: createDto.currency || 'USD',
       isActive: createDto.isActive ?? true,
       isRealAccount: createDto.isRealAccount ?? false,
@@ -176,7 +180,9 @@ export class MT5AccountsService {
     });
 
     const savedAccount = await this.mt5AccountRepository.save(mt5Account);
-    this.logger.log(`MT5 MetaApi account ${savedAccount.id} created successfully`);
+    this.logger.log(
+      `MT5 MetaApi account ${savedAccount.id} created successfully`,
+    );
 
     void this.syncMetaApiAccount(savedAccount.id, {
       fullHistory: true,
@@ -193,7 +199,9 @@ export class MT5AccountsService {
   /**
    * Create a manual MT5 account (for file upload workflow)
    */
-  async createManual(manualAccountData: Record<string, any>): Promise<Record<string, any>> {
+  async createManual(
+    manualAccountData: Record<string, any>,
+  ): Promise<Record<string, any>> {
     this.logger.log(
       `Creating manual MT5 account for user ${manualAccountData.userId}`,
     );
@@ -522,7 +530,11 @@ export class MT5AccountsService {
           await this.updateAccountInfo(account.id, info);
         },
         onPositionsReplaced: async (positions) => {
-          await this.syncOpenPositionsFromMetaApi(account, connection, positions);
+          await this.syncOpenPositionsFromMetaApi(
+            account,
+            connection,
+            positions,
+          );
         },
         onPositionUpdated: async (position) => {
           await this.syncMetaApiPosition(account, position, connection);
@@ -602,7 +614,9 @@ export class MT5AccountsService {
         ? TradeDirection.LONG
         : TradeDirection.SHORT;
     const contractSize = this.getContractSize(connection, position.symbol);
-    const openTime = position.time ? position.time.toISOString() : new Date().toISOString();
+    const openTime = position.time
+      ? position.time.toISOString()
+      : new Date().toISOString();
 
     if (existingTrade) {
       const updates: Record<string, any> = {};
@@ -786,7 +800,9 @@ export class MT5AccountsService {
     const shouldTreatAsEntry = isEntry || (isInOut && !tradeRecord);
     const shouldTreatAsExit = isExit || (isInOut && !!tradeRecord);
 
-    const openTime = deal.time ? deal.time.toISOString() : new Date().toISOString();
+    const openTime = deal.time
+      ? deal.time.toISOString()
+      : new Date().toISOString();
     const price = deal.price || 0;
     const contractSize = this.getContractSize(connection, deal.symbol);
 
@@ -866,9 +882,7 @@ export class MT5AccountsService {
             commission:
               parseFloat(String(tradeRecord.commission || 0)) +
               (deal.commission || 0),
-            swap:
-              parseFloat(String(tradeRecord.swap || 0)) +
-              (deal.swap || 0),
+            swap: parseFloat(String(tradeRecord.swap || 0)) + (deal.swap || 0),
             contractSize: contractSize || tradeRecord.contractSize,
           },
           { id: account.userId } as any,
@@ -1037,7 +1051,9 @@ class MetaApiSyncListener extends SynchronizationListener {
     try {
       await this.handlers.onDisconnected?.();
     } catch (error) {
-      this.logger.warn(`MetaApi onDisconnected handler failed: ${error.message}`);
+      this.logger.warn(
+        `MetaApi onDisconnected handler failed: ${error.message}`,
+      );
     }
   }
 
@@ -1048,9 +1064,7 @@ class MetaApiSyncListener extends SynchronizationListener {
     try {
       await this.handlers.onAccountInformationUpdated?.(accountInformation);
     } catch (error) {
-      this.logger.warn(
-        `MetaApi account info handler failed: ${error.message}`,
-      );
+      this.logger.warn(`MetaApi account info handler failed: ${error.message}`);
     }
   }
 

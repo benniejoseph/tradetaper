@@ -139,7 +139,10 @@ export class AgentsController {
    * Get market prediction for a symbol
    */
   @Post('market/predict')
-  async getMarketPrediction(@Req() req: AuthenticatedRequest, @Body() body: { symbol: string }) {
+  async getMarketPrediction(
+    @Req() req: AuthenticatedRequest,
+    @Body() body: { symbol: string },
+  ) {
     const context = this.orchestrator.createContext(req.user.id);
 
     const response = await this.orchestrator.routeToCapability(
@@ -217,7 +220,10 @@ export class AgentsController {
    * Chat with ICT Mentor (RAG)
    */
   @Post('mentor/chat')
-  async chatWithMentor(@Req() req: AuthenticatedRequest, @Body() body: { question: string }) {
+  async chatWithMentor(
+    @Req() req: AuthenticatedRequest,
+    @Body() body: { question: string },
+  ) {
     const context = this.orchestrator.createContext(req.user.id);
 
     const response = await this.orchestrator.routeToCapability(

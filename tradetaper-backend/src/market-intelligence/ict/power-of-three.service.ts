@@ -276,7 +276,10 @@ export class PowerOfThreeService {
   /**
    * Describe current phase
    */
-  private describePhase(phase: string, levels: PowerOfThreeAnalysis['phaseLevels']): string {
+  private describePhase(
+    phase: string,
+    levels: PowerOfThreeAnalysis['phaseLevels'],
+  ): string {
     switch (phase) {
       case 'accumulation':
         return `ACCUMULATION PHASE: Institutions are building positions quietly. Price is consolidating in a tight range (${safeToFixed(levels.accumulation?.low, 2)} - ${safeToFixed(levels.accumulation?.high, 2)}). Low volatility as smart money accumulates. This is the "basing" phase before a big move.`;

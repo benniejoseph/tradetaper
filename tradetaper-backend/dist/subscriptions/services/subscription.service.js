@@ -486,7 +486,9 @@ let SubscriptionService = SubscriptionService_1 = class SubscriptionService {
             start: sevenDaysFromNow,
             end: oneDayFromNow,
         })
-            .andWhere('subscription.status = :status', { status: subscription_entity_1.SubscriptionStatus.ACTIVE })
+            .andWhere('subscription.status = :status', {
+            status: subscription_entity_1.SubscriptionStatus.ACTIVE,
+        })
             .andWhere('subscription.cancelAtPeriodEnd = :cancel', { cancel: true })
             .getMany();
         this.logger.log(`Found ${expiringSubscriptions.length} subscriptions expiring in 7 days`);

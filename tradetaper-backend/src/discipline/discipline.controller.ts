@@ -36,7 +36,10 @@ export class DisciplineController {
   // ============== TRADE APPROVALS ==============
 
   @Post('approvals')
-  async createApproval(@Request() req: AuthenticatedRequest, @Body() dto: CreateApprovalDto) {
+  async createApproval(
+    @Request() req: AuthenticatedRequest,
+    @Body() dto: CreateApprovalDto,
+  ) {
     return this.disciplineService.createApproval(req.user.id, dto);
   }
 
@@ -85,7 +88,10 @@ export class DisciplineController {
   }
 
   @Post('cooldowns/:id/skip')
-  async skipCooldown(@Request() req: AuthenticatedRequest, @Param('id') id: string) {
+  async skipCooldown(
+    @Request() req: AuthenticatedRequest,
+    @Param('id') id: string,
+  ) {
     return this.disciplineService.skipCooldown(req.user.id, id);
   }
 

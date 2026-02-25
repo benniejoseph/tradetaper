@@ -10,7 +10,8 @@ import Sidebar from './Sidebar';
 import ContentHeader from './ContentHeader'; // Import the new ContentHeader
 import ProtectedRoute from '../auth/ProtectedRoute';
 import { useWebSocket } from '@/hooks/useWebSocket';
-import { Toaster } from 'react-hot-toast';
+import { Toaster, toast } from 'react-hot-toast';
+import NotificationToast from '@/components/notifications/NotificationToast';
 import {
   addNotification,
   notificationRead,
@@ -51,6 +52,14 @@ export default function AppLayout({ children }: AppLayoutProps) {
     const unsubscribeNew = subscribe('notification:new', (data: any) => {
       console.log('🔔 New notification received:', data);
       dispatch(addNotification(data));
+      
+      // Spawn custom toast
+      toast.custom((t) => (
+        <NotificationToast t={t} notification={data} />
+      ), { 
+        duration: 5000,
+        position: isMobile ? 'top-center' : 'top-right'
+      });
     });
 
     const unsubscribeRead = subscribe('notification:read', (data: any) => {

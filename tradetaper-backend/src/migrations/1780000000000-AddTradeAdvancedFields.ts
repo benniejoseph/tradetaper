@@ -1,8 +1,6 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class AddTradeAdvancedFields1780000000000
-  implements MigrationInterface
-{
+export class AddTradeAdvancedFields1780000000000 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
     // ── Create enum types (IF NOT EXISTS) ──────────────────
     await queryRunner.query(`
@@ -50,11 +48,7 @@ export class AddTradeAdvancedFields1780000000000
     `);
 
     // ── Helper: add column only if it doesn't already exist ───
-    const addCol = async (
-      col: string,
-      type: string,
-      extra = '',
-    ) => {
+    const addCol = async (col: string, type: string, extra = '') => {
       await queryRunner.query(`
         DO $$ BEGIN
           ALTER TABLE "trades" ADD COLUMN "${col}" ${type} ${extra};
@@ -66,40 +60,40 @@ export class AddTradeAdvancedFields1780000000000
     // Phase 1 – Psychology & Emotion
     await addCol('emotionBefore', 'emotional_state_enum');
     await addCol('emotionDuring', 'emotional_state_enum');
-    await addCol('emotionAfter',  'emotional_state_enum');
+    await addCol('emotionAfter', 'emotional_state_enum');
     await addCol('confidenceLevel', 'integer');
     await addCol('followedPlan', 'boolean');
     await addCol('ruleViolations', 'text'); // simple-array stored as comma-separated text
 
     // Phase 2 – Performance Metrics
-    await addCol('plannedRR',  'decimal(10,4)');
-    await addCol('maePrice',   'decimal(19,8)');
-    await addCol('mfePrice',   'decimal(19,8)');
-    await addCol('maePips',    'decimal(10,2)');
-    await addCol('mfePips',    'decimal(10,2)');
-    await addCol('slippage',   'decimal(10,2)');
+    await addCol('plannedRR', 'decimal(10,4)');
+    await addCol('maePrice', 'decimal(19,8)');
+    await addCol('mfePrice', 'decimal(19,8)');
+    await addCol('maePips', 'decimal(10,2)');
+    await addCol('mfePips', 'decimal(10,2)');
+    await addCol('slippage', 'decimal(10,2)');
     await addCol('executionGrade', 'execution_grade_enum');
 
     // Phase 3 – Market Context
     await addCol('marketCondition', 'market_condition_enum');
-    await addCol('timeframe',  'timeframe_enum');
-    await addCol('htfBias',    'htf_bias_enum');
+    await addCol('timeframe', 'timeframe_enum');
+    await addCol('htfBias', 'htf_bias_enum');
     await addCol('newsImpact', 'boolean');
 
     // Phase 4 – Pre-Trade Checklist
-    await addCol('entryReason',   'text');
+    await addCol('entryReason', 'text');
     await addCol('confirmations', 'text'); // simple-array
-    await addCol('hesitated',     'boolean');
-    await addCol('preparedToLose','boolean');
+    await addCol('hesitated', 'boolean');
+    await addCol('preparedToLose', 'boolean');
 
     // Phase 5 – Environmental Factors
-    await addCol('sleepQuality',      'integer');
-    await addCol('energyLevel',       'integer');
-    await addCol('distractionLevel',  'integer');
-    await addCol('tradingEnvironment','varchar(100)');
+    await addCol('sleepQuality', 'integer');
+    await addCol('energyLevel', 'integer');
+    await addCol('distractionLevel', 'integer');
+    await addCol('tradingEnvironment', 'varchar(100)');
 
     // Change log & sync source
-    await addCol('changeLog',  "jsonb DEFAULT '[]'::jsonb");
+    await addCol('changeLog', "jsonb DEFAULT '[]'::jsonb");
     await addCol('syncSource', "varchar(20) DEFAULT 'manual'");
 
     // Strategy link
@@ -111,13 +105,35 @@ export class AddTradeAdvancedFields1780000000000
 
   public async down(queryRunner: QueryRunner): Promise<void> {
     const cols = [
-      'emotionBefore','emotionDuring','emotionAfter','confidenceLevel',
-      'followedPlan','ruleViolations','plannedRR','maePrice','mfePrice',
-      'maePips','mfePips','slippage','executionGrade','marketCondition',
-      'timeframe','htfBias','newsImpact','entryReason','confirmations',
-      'hesitated','preparedToLose','sleepQuality','energyLevel',
-      'distractionLevel','tradingEnvironment','changeLog','syncSource',
-      'strategyId','executionCandles',
+      'emotionBefore',
+      'emotionDuring',
+      'emotionAfter',
+      'confidenceLevel',
+      'followedPlan',
+      'ruleViolations',
+      'plannedRR',
+      'maePrice',
+      'mfePrice',
+      'maePips',
+      'mfePips',
+      'slippage',
+      'executionGrade',
+      'marketCondition',
+      'timeframe',
+      'htfBias',
+      'newsImpact',
+      'entryReason',
+      'confirmations',
+      'hesitated',
+      'preparedToLose',
+      'sleepQuality',
+      'energyLevel',
+      'distractionLevel',
+      'tradingEnvironment',
+      'changeLog',
+      'syncSource',
+      'strategyId',
+      'executionCandles',
     ];
 
     for (const col of cols) {

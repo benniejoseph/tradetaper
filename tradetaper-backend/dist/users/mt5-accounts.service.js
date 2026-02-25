@@ -475,7 +475,9 @@ let MT5AccountsService = MT5AccountsService_1 = class MT5AccountsService {
             ? enums_1.TradeDirection.LONG
             : enums_1.TradeDirection.SHORT;
         const contractSize = this.getContractSize(connection, position.symbol);
-        const openTime = position.time ? position.time.toISOString() : new Date().toISOString();
+        const openTime = position.time
+            ? position.time.toISOString()
+            : new Date().toISOString();
         if (existingTrade) {
             const updates = {};
             if (!existingTrade.openTime && openTime) {
@@ -604,7 +606,9 @@ let MT5AccountsService = MT5AccountsService_1 = class MT5AccountsService {
         const isInOut = entryType === 'DEAL_ENTRY_INOUT';
         const shouldTreatAsEntry = isEntry || (isInOut && !tradeRecord);
         const shouldTreatAsExit = isExit || (isInOut && !!tradeRecord);
-        const openTime = deal.time ? deal.time.toISOString() : new Date().toISOString();
+        const openTime = deal.time
+            ? deal.time.toISOString()
+            : new Date().toISOString();
         const price = deal.price || 0;
         const contractSize = this.getContractSize(connection, deal.symbol);
         if (shouldTreatAsEntry) {
@@ -670,8 +674,7 @@ let MT5AccountsService = MT5AccountsService_1 = class MT5AccountsService {
                     profitOrLoss: deal.profit,
                     commission: parseFloat(String(tradeRecord.commission || 0)) +
                         (deal.commission || 0),
-                    swap: parseFloat(String(tradeRecord.swap || 0)) +
-                        (deal.swap || 0),
+                    swap: parseFloat(String(tradeRecord.swap || 0)) + (deal.swap || 0),
                     contractSize: contractSize || tradeRecord.contractSize,
                 }, { id: account.userId }, { changeSource: 'mt5' });
                 return { status: 'imported', trade: updatedTrade };

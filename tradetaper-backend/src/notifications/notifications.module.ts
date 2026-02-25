@@ -13,7 +13,11 @@ import { MarketIntelligenceModule } from '../market-intelligence/market-intellig
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Notification, NotificationPreference, EconomicEventAlert]),
+    TypeOrmModule.forFeature([
+      Notification,
+      NotificationPreference,
+      EconomicEventAlert,
+    ]),
     ScheduleModule.forRoot(),
     forwardRef(() => WebSocketModule),
     forwardRef(() => UsersModule),

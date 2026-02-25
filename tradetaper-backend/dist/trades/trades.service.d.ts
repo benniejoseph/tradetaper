@@ -3,6 +3,8 @@ import { Trade } from './entities/trade.entity';
 import { Tag } from '../tags/entities/tag.entity';
 import { CreateTradeDto } from './dto/create-trade.dto';
 import { UpdateTradeDto } from './dto/update-trade.dto';
+import { GroupTradesDto } from './dto/group-trades.dto';
+import { CopyJournalDto } from './dto/copy-journal.dto';
 import { UserResponseDto } from '../users/dto/user-response.dto';
 import { SimpleTradesGateway } from '../websocket/simple-trades.gateway';
 import { GeminiVisionService } from '../notes/gemini-vision.service';
@@ -12,6 +14,8 @@ import { MT5AccountsService } from '../users/mt5-accounts.service';
 import { TradeCandle } from './entities/trade-candle.entity';
 import { TerminalFarmService } from '../terminal-farm/terminal-farm.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { MultiModelOrchestratorService } from '../agents/llm/multi-model-orchestrator.service';
+import { VoiceJournalResponseDto } from './dto/voice-journal.dto';
 export declare class TradesService {
     private readonly tradesRepository;
     private readonly tradeCandleRepository;
@@ -22,8 +26,10 @@ export declare class TradesService {
     private readonly mt5AccountsService;
     private readonly terminalFarmService;
     private readonly notificationsService;
+    private readonly orchestratorService;
     private readonly logger;
-    constructor(tradesRepository: Repository<Trade>, tradeCandleRepository: Repository<TradeCandle>, tagRepository: Repository<Tag>, tradesGateway: SimpleTradesGateway, geminiVisionService: GeminiVisionService, accountsService: AccountsService, mt5AccountsService: MT5AccountsService, terminalFarmService: TerminalFarmService, notificationsService: NotificationsService);
+    constructor(tradesRepository: Repository<Trade>, tradeCandleRepository: Repository<TradeCandle>, tagRepository: Repository<Tag>, tradesGateway: SimpleTradesGateway, geminiVisionService: GeminiVisionService, accountsService: AccountsService, mt5AccountsService: MT5AccountsService, terminalFarmService: TerminalFarmService, notificationsService: NotificationsService, orchestratorService: MultiModelOrchestratorService);
+    parseVoiceJournal(audioBuffer: Buffer, mimeType: string, userContext: UserResponseDto): Promise<VoiceJournalResponseDto>;
     getTradeCandles(tradeId: string, timeframe: string, userContext: UserResponseDto): Promise<any[]>;
     saveExecutionCandles(tradeId: string, candles: any[]): Promise<void>;
     private _populateAccountDetails;
@@ -74,6 +80,13 @@ export declare class TradesService {
     remove(id: string, userContext: UserResponseDto): Promise<void>;
     bulkDelete(tradeIds: string[], userContext: UserResponseDto): Promise<{
         deletedCount: number;
+    }>;
+    groupTrades(groupTradesDto: GroupTradesDto, userContext: UserResponseDto): Promise<{
+        groupId: string;
+        updatedCount: number;
+    }>;
+    copyJournalToGroup(id: string, copyJournalDto: CopyJournalDto, userContext: UserResponseDto): Promise<{
+        updatedCount: number;
     }>;
     bulkUpdate(updates: {
         id: string;

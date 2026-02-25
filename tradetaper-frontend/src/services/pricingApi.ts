@@ -48,5 +48,18 @@ export const pricingApi = {
           period
       });
       return response.data;
+  },
+
+  getBillingInfo: async (): Promise<BillingInfo> => {
+      const response = await authApiClient.get('/subscriptions/billing');
+      return response.data;
+  },
+  cancelSubscription: async (): Promise<{ success: boolean }> => {
+      const response = await authApiClient.post('/subscriptions/cancel');
+      return response.data;
+  },
+  reactivateSubscription: async (): Promise<{ success: boolean }> => {
+      const response = await authApiClient.post('/subscriptions/reactivate');
+      return response.data;
   }
 }; 

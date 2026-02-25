@@ -140,7 +140,7 @@ const markdownComponents = {
         <code>{children}</code>
       </pre>
     ),
-  img: ({ src, alt }: { src?: string; alt?: string }) => (
+  img: ({ src, alt }: any) => (
     <img
       src={src || ''}
       alt={alt || 'community image'}
@@ -617,10 +617,10 @@ export default function CommunityPage() {
             { key: 'feed', label: 'Feed', icon: Send },
             { key: 'leaderboard', label: 'Leaderboards', icon: Trophy },
             { key: 'people', label: 'People', icon: Users },
-          ] as { key: TabKey; label: string; icon: React.ElementType }[]).map((tab) => (
+          ] as { key: TabKey; label: string; icon: any }[]).map((tab) => (
             <button
               key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
+              onClick={() => setActiveTab(tab.key as any)}
               className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
                 activeTab === tab.key
                   ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30'

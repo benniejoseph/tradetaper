@@ -235,7 +235,9 @@ export class ForexFactoryService {
     return mapping[country.toLowerCase()] || 'USD';
   }
 
-  private mapImportanceToImpact(importance: string | number): 'low' | 'medium' | 'high' {
+  private mapImportanceToImpact(
+    importance: string | number,
+  ): 'low' | 'medium' | 'high' {
     const imp = parseFloat(String(importance)) || 1;
     if (imp >= 3) return 'high';
     if (imp >= 2) return 'medium';

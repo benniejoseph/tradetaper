@@ -104,7 +104,7 @@ const NotesCalendarPage: React.FC = () => {
 
       transformedCalendar.days = days;
       setCalendarData(transformedCalendar);
-      setCalendarStats(statsData);
+      setCalendarStats(statsData as unknown as CalendarStats);
     } catch (error) {
       console.error('Error fetching calendar data:', error);
       toast.error('Failed to load calendar data');
@@ -186,7 +186,7 @@ const NotesCalendarPage: React.FC = () => {
             </h2>
             <AnimatedButton
               onClick={goToToday}
-              variant="outline"
+              variant="ghost"
               size="sm"
               icon={<FaCalendarAlt />}
             >

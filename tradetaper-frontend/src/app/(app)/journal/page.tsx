@@ -356,7 +356,7 @@ export default function JournalPage() {
         <div className="bg-white dark:bg-[#0A0A0A] border border-zinc-200 dark:border-white/5 rounded-xl p-3 shadow-sm flex flex-col justify-between">
             <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider">Monthly P&L</span>
             <div className={`text-lg font-black ${headerStats.monthlyPnl >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
-               <CurrencyAmount amount={headerStats.monthlyPnl} className="inline" showSign />
+               <CurrencyAmount amount={headerStats.monthlyPnl} className="inline" />
             </div>
         </div>
 

@@ -530,7 +530,10 @@ export class AdminService {
       const result = await this.dataSource.query(tablesQuery);
 
       // Group by table
-      const tableStats: Record<string, { name: string; columns: Array<{ name: string; type: string }> }> = {};
+      const tableStats: Record<
+        string,
+        { name: string; columns: Array<{ name: string; type: string }> }
+      > = {};
       result.forEach((row: Record<string, string>) => {
         if (!tableStats[row.table_name]) {
           tableStats[row.table_name] = {

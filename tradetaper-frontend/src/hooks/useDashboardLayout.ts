@@ -9,7 +9,7 @@ type Layouts = { [key: string]: Layout[] };
 const STORAGE_KEY = 'dashboard-layout';
 
 // Default layouts for different breakpoints
-const defaultLayouts: Layouts = {
+const defaultLayouts: any = {
   lg: [
     { i: 'portfolio-balance', x: 0, y: 0, w: 2, h: 2 },
     { i: 'personal-target', x: 2, y: 0, w: 2, h: 2 },

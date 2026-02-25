@@ -252,7 +252,7 @@ export const AnimatedChart: React.FC<AnimatedChartProps> = ({
       className={`w-full ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}
     >
       <ResponsiveContainer width="100%" height={height}>
-        {renderChart()}
+        {renderChart() || <div />}
       </ResponsiveContainer>
     </motion.div>
   );
@@ -442,3 +442,5 @@ export const RealTimeChart: React.FC<{
     </div>
   );
 };
+
+export default AnimatedChart;

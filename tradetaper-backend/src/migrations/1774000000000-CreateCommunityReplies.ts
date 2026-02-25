@@ -30,8 +30,12 @@ export class CreateCommunityReplies1774000000000 implements MigrationInterface {
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query(`DROP INDEX IF EXISTS "IDX_community_post_replies_userId_createdAt"`);
-    await queryRunner.query(`DROP INDEX IF EXISTS "IDX_community_post_replies_postId_createdAt"`);
+    await queryRunner.query(
+      `DROP INDEX IF EXISTS "IDX_community_post_replies_userId_createdAt"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX IF EXISTS "IDX_community_post_replies_postId_createdAt"`,
+    );
     await queryRunner.query(`DROP TABLE IF EXISTS "community_post_replies"`);
   }
 }

@@ -326,7 +326,10 @@ Please respond in JSON format:
     return mimeTypes[ext] || 'audio/mpeg';
   }
 
-  private calculateConfidence(transcript: string, geminiResponse: Record<string, unknown>): number {
+  private calculateConfidence(
+    transcript: string,
+    geminiResponse: Record<string, unknown>,
+  ): number {
     // Basic confidence calculation based on response characteristics
     let confidence = 0.8; // Base confidence
 

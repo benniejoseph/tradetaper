@@ -13,7 +13,11 @@ import {
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { TerminalFarmService } from './terminal-farm.service';
-import { TerminalResponseDto, EnableAutoSyncDto, TerminalLivePositionsResponseDto } from './dto/terminal.dto';
+import {
+  TerminalResponseDto,
+  EnableAutoSyncDto,
+  TerminalLivePositionsResponseDto,
+} from './dto/terminal.dto';
 
 /**
  * Controller for user-facing terminal management operations
@@ -85,10 +89,7 @@ export class TerminalFarmController {
     @Param('accountId') accountId: string,
     @Request() req,
   ): Promise<{ queued: boolean; message: string }> {
-    return this.terminalFarmService.requestManualSync(
-      accountId,
-      req.user.id,
-    );
+    return this.terminalFarmService.requestManualSync(accountId, req.user.id);
   }
 
   /**

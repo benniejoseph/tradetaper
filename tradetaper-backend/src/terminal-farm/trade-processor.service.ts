@@ -51,26 +51,61 @@ export class TradeProcessorService {
 
   detectAssetType(symbol: string): AssetType {
     // Strip common broker suffixes (e.g., .i, m, _SB, .raw, .pro)
-    const upper = symbol.toUpperCase().replace(/[._](I|M|SB|RAW|PRO|ECN|STD)$/i, '');
+    const upper = symbol
+      .toUpperCase()
+      .replace(/[._](I|M|SB|RAW|PRO|ECN|STD)$/i, '');
 
     const forexPairs = ['EUR', 'USD', 'GBP', 'JPY', 'AUD', 'NZD', 'CAD', 'CHF'];
     const forexMatch = forexPairs.filter((c) => upper.includes(c)).length >= 2;
     if (forexMatch && upper.length <= 7) return AssetType.FOREX;
 
     // Crypto
-    if (['BTC', 'ETH', 'LTC', 'XRP', 'ADA', 'SOL', 'DOGE'].some((c) => upper.includes(c)))
+    if (
+      ['BTC', 'ETH', 'LTC', 'XRP', 'ADA', 'SOL', 'DOGE'].some((c) =>
+        upper.includes(c),
+      )
+    )
       return AssetType.CRYPTO;
 
     // Commodities
-    if (['XAU', 'GOLD', 'XAG', 'SILVER', 'OIL', 'BRENT', 'WTI', 'USOIL', 'UKOIL', 'NGAS', 'COPPER']
-      .some((c) => upper.includes(c)))
+    if (
+      [
+        'XAU',
+        'GOLD',
+        'XAG',
+        'SILVER',
+        'OIL',
+        'BRENT',
+        'WTI',
+        'USOIL',
+        'UKOIL',
+        'NGAS',
+        'COPPER',
+      ].some((c) => upper.includes(c))
+    )
       return AssetType.COMMODITIES;
 
     // Indices
     const indices = [
-      'US30', 'DJ30', 'NAS100', 'NDX', 'USTEC', 'SPX', 'SP500', 'US500',
-      'GER30', 'GER40', 'DE30', 'DE40', 'UK100', 'JP225', 'JPN225',
-      'AUS200', 'FRA40', 'HK50', 'CHINA50',
+      'US30',
+      'DJ30',
+      'NAS100',
+      'NDX',
+      'USTEC',
+      'SPX',
+      'SP500',
+      'US500',
+      'GER30',
+      'GER40',
+      'DE30',
+      'DE40',
+      'UK100',
+      'JP225',
+      'JPN225',
+      'AUS200',
+      'FRA40',
+      'HK50',
+      'CHINA50',
     ];
     if (indices.some((i) => upper.includes(i))) return AssetType.INDICES;
 
@@ -94,31 +129,50 @@ export class TradeProcessorService {
     const positionIdString = trade.positionId!.toString();
 
     // Check syncSource conflict
-    if (existingTrade && existingTrade.syncSource && existingTrade.syncSource !== syncSource) {
+    if (
+      existingTrade &&
+      existingTrade.syncSource &&
+      existingTrade.syncSource !== syncSource
+    ) {
       this.logger.warn(
         `SyncSource conflict for position ${positionIdString}: existing=${existingTrade.syncSource}, incoming=${syncSource}. Skipping.`,
       );
-      return { action: 'conflict', reason: `Already synced via ${existingTrade.syncSource}` };
+      return {
+        action: 'conflict',
+        reason: `Already synced via ${existingTrade.syncSource}`,
+      };
     }
 
     if (existingTrade) {
       // Patch-update missing fields
       const entryUpdates: Record<string, any> = {};
 
-      if (!existingTrade.openTime && normalizedOpenTime) entryUpdates.openTime = normalizedOpenTime;
-      if (!existingTrade.openPrice && trade.openPrice) entryUpdates.openPrice = trade.openPrice;
-      if (!existingTrade.quantity && trade.volume) entryUpdates.quantity = trade.volume;
+      if (!existingTrade.openTime && normalizedOpenTime)
+        entryUpdates.openTime = normalizedOpenTime;
+      if (!existingTrade.openPrice && trade.openPrice)
+        entryUpdates.openPrice = trade.openPrice;
+      if (!existingTrade.quantity && trade.volume)
+        entryUpdates.quantity = trade.volume;
       if (!existingTrade.side && trade.type) {
-        entryUpdates.side = trade.type === 'BUY' ? TradeDirection.LONG : TradeDirection.SHORT;
+        entryUpdates.side =
+          trade.type === 'BUY' ? TradeDirection.LONG : TradeDirection.SHORT;
       }
-      if (!existingTrade.stopLoss && trade.stopLoss) entryUpdates.stopLoss = trade.stopLoss;
-      if (!existingTrade.takeProfit && trade.takeProfit) entryUpdates.takeProfit = trade.takeProfit;
-      if (!existingTrade.contractSize && trade.contractSize) entryUpdates.contractSize = trade.contractSize;
-      if (!existingTrade.externalDealId && trade.ticket) entryUpdates.externalDealId = trade.ticket;
-      if (!existingTrade.mt5Magic && trade.magic) entryUpdates.mt5Magic = trade.magic;
+      if (!existingTrade.stopLoss && trade.stopLoss)
+        entryUpdates.stopLoss = trade.stopLoss;
+      if (!existingTrade.takeProfit && trade.takeProfit)
+        entryUpdates.takeProfit = trade.takeProfit;
+      if (!existingTrade.contractSize && trade.contractSize)
+        entryUpdates.contractSize = trade.contractSize;
+      if (!existingTrade.externalDealId && trade.ticket)
+        entryUpdates.externalDealId = trade.ticket;
+      if (!existingTrade.mt5Magic && trade.magic)
+        entryUpdates.mt5Magic = trade.magic;
 
       if (Object.keys(entryUpdates).length > 0) {
-        const updated = await this.tradesService.updateFromSync(existingTrade.id, entryUpdates);
+        const updated = await this.tradesService.updateFromSync(
+          existingTrade.id,
+          entryUpdates,
+        );
         return { action: 'updated', trade: updated };
       }
 
@@ -174,10 +228,16 @@ export class TradeProcessorService {
         this.logger.warn(
           `SyncSource conflict for exit on position ${positionIdString}: existing=${existingTrade.syncSource}, incoming=${syncSource}. Skipping.`,
         );
-        return { action: 'conflict', reason: `Already synced via ${existingTrade.syncSource}` };
+        return {
+          action: 'conflict',
+          reason: `Already synced via ${existingTrade.syncSource}`,
+        };
       }
 
-      if (existingTrade.status === TradeStatus.CLOSED && existingTrade.contractSize) {
+      if (
+        existingTrade.status === TradeStatus.CLOSED &&
+        existingTrade.contractSize
+      ) {
         return { action: 'skipped' };
       }
 
@@ -189,9 +249,9 @@ export class TradeProcessorService {
           closePrice: trade.openPrice, // MT5 Deal Price = execution price
           profitOrLoss: trade.profit,
           commission:
-            parseFloat(String(existingTrade.commission || 0)) + (trade.commission || 0),
-          swap:
-            parseFloat(String(existingTrade.swap || 0)) + (trade.swap || 0),
+            parseFloat(String(existingTrade.commission || 0)) +
+            (trade.commission || 0),
+          swap: parseFloat(String(existingTrade.swap || 0)) + (trade.swap || 0),
           contractSize: trade.contractSize,
         },
         { id: userId } as any,
@@ -228,14 +288,21 @@ export class TradeProcessorService {
   ): Promise<ProcessDealResult> {
     // Treat INOUT as an exit of the current position
     const exitResult = await this.processExitDeal(
-      trade, existingTrade, accountId, userId, terminalId, syncSource,
+      trade,
+      existingTrade,
+      accountId,
+      userId,
+      terminalId,
+      syncSource,
     );
 
     if (exitResult.action === 'conflict' || exitResult.action === 'skipped') {
       return exitResult;
     }
 
-    this.logger.log(`DEAL_ENTRY_INOUT processed as exit for position ${trade.positionId}`);
+    this.logger.log(
+      `DEAL_ENTRY_INOUT processed as exit for position ${trade.positionId}`,
+    );
     return exitResult;
   }
 
@@ -257,7 +324,8 @@ export class TradeProcessorService {
         symbol: trade.symbol,
         assetType: this.detectAssetType(trade.symbol),
         // Invert: if exit is SELL, position was LONG; if exit is BUY, position was SHORT
-        side: trade.type === 'SELL' ? TradeDirection.LONG : TradeDirection.SHORT,
+        side:
+          trade.type === 'SELL' ? TradeDirection.LONG : TradeDirection.SHORT,
         status: TradeStatus.CLOSED,
         openTime: normalizedOpenTime || new Date().toISOString(),
         closeTime: normalizedOpenTime,
@@ -306,7 +374,11 @@ export class TradeProcessorService {
 
     const payload = `${symbol},1m,${formatMt5Time(startTime)},${formatMt5Time(endTime)},${tradeId}`;
 
-    this.terminalCommandsQueue.queueCommand(terminalId, 'FETCH_CANDLES', payload);
+    this.terminalCommandsQueue.queueCommand(
+      terminalId,
+      'FETCH_CANDLES',
+      payload,
+    );
     this.logger.debug(`Queued FETCH_CANDLES for closed trade ${tradeId}`);
   }
 }

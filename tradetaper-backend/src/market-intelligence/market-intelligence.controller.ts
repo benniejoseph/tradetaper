@@ -139,7 +139,10 @@ export class MarketIntelligenceController {
   async getPairAnalysis(@Query('symbol') symbol: string) {
     this.logger.log(`Getting AI pair analysis for ${symbol}`);
     if (!symbol) {
-      throw new HttpException('symbol query param is required', HttpStatus.BAD_REQUEST);
+      throw new HttpException(
+        'symbol query param is required',
+        HttpStatus.BAD_REQUEST,
+      );
     }
     try {
       return await this.marketSentimentService.generatePairAnalysis(symbol);
@@ -236,19 +239,13 @@ export class MarketIntelligenceController {
 
   @UseGuards(JwtAuthGuard)
   @Post('economic-alerts/:eventId')
-  async createEconomicAlert(
-    @Request() req,
-    @Param('eventId') eventId: string,
-  ) {
+  async createEconomicAlert(@Request() req, @Param('eventId') eventId: string) {
     return this.economicAlertsService.subscribe(req.user.id, eventId);
   }
 
   @UseGuards(JwtAuthGuard)
   @Delete('economic-alerts/:eventId')
-  async removeEconomicAlert(
-    @Request() req,
-    @Param('eventId') eventId: string,
-  ) {
+  async removeEconomicAlert(@Request() req, @Param('eventId') eventId: string) {
     return this.economicAlertsService.unsubscribe(req.user.id, eventId);
   }
 

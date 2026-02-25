@@ -27,7 +27,7 @@ describe('MarketAnalystAgent', () => {
         prediction: {
           direction: 'bullish',
           confidence: 75,
-          targetPrice: 1.10,
+          targetPrice: 1.1,
           timeToTarget: 24,
         },
         technicalAnalysis: {
@@ -69,7 +69,7 @@ describe('MarketAnalystAgent', () => {
   it('should have correct agent metadata', () => {
     expect(agent.agentId).toBe('market-analyst-agent');
     expect(agent.name).toBe('Market Analyst Agent');
-    expect(agent.capabilities.map(c => c.id)).toContain('market-prediction');
+    expect(agent.capabilities.map((c) => c.id)).toContain('market-prediction');
   });
 
   describe('handleMessage - predict', () => {
@@ -88,7 +88,9 @@ describe('MarketAnalystAgent', () => {
       expect(response.success).toBe(true);
       expect(response.data.prediction).toBeDefined();
       expect(response.data.tradingRecommendation).toBeDefined();
-      expect(mockPredictionService.generateMarketPrediction).toHaveBeenCalledWith('EURUSD');
+      expect(
+        mockPredictionService.generateMarketPrediction,
+      ).toHaveBeenCalledWith('EURUSD');
     });
 
     it('should generate trading recommendation', async () => {

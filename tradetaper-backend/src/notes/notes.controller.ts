@@ -148,7 +148,9 @@ export class NotesController {
   }
 
   @Get('psychological-profile')
-  async getPsychologicalProfile(@Request() req: AuthenticatedRequest): Promise<Record<string, unknown>> {
+  async getPsychologicalProfile(
+    @Request() req: AuthenticatedRequest,
+  ): Promise<Record<string, unknown>> {
     return this.psychologicalInsightsService.getPsychologicalSummary(
       req.user.id,
     );
