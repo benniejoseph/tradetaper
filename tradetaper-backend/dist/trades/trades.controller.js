@@ -86,24 +86,24 @@ let TradesController = TradesController_1 = class TradesController {
         }
         return this.tradesService.parseVoiceJournal(file.buffer, file.mimetype, req.user);
     }
-    update(id, updateTradeDto, req) {
-        this.logger.debug(`📥 Received update trade ${id} payload: ${JSON.stringify(updateTradeDto)}`);
-        return this.tradesService.update(id, updateTradeDto, req.user);
-    }
-    remove(id, req) {
-        return this.tradesService.remove(id, req.user);
-    }
     groupTrades(groupTradesDto, req) {
         return this.tradesService.groupTrades(groupTradesDto, req.user);
-    }
-    copyJournalToGroup(id, copyJournalDto, req) {
-        return this.tradesService.copyJournalToGroup(id, copyJournalDto, req.user);
     }
     bulkDelete(body, req) {
         return this.tradesService.bulkDelete(body.tradeIds, req.user);
     }
     bulkUpdate(body, req) {
         return this.tradesService.bulkUpdate(body.updates, req.user);
+    }
+    copyJournalToGroup(id, copyJournalDto, req) {
+        return this.tradesService.copyJournalToGroup(id, copyJournalDto, req.user);
+    }
+    update(id, updateTradeDto, req) {
+        this.logger.debug(`📥 Received update trade ${id} payload: ${JSON.stringify(updateTradeDto)}`);
+        return this.tradesService.update(id, updateTradeDto, req.user);
+    }
+    remove(id, req) {
+        return this.tradesService.remove(id, req.user);
     }
     bulkImport(body, req) {
         return this.tradesService.bulkImport(body.trades, req.user);
@@ -206,24 +206,6 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], TradesController.prototype, "parseVoiceJournal", null);
 __decorate([
-    (0, common_1.Patch)(':id'),
-    __param(0, (0, common_1.Param)('id', common_1.ParseUUIDPipe)),
-    __param(1, (0, common_1.Body)()),
-    __param(2, (0, common_1.Request)()),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, update_trade_dto_1.UpdateTradeDto, Object]),
-    __metadata("design:returntype", Promise)
-], TradesController.prototype, "update", null);
-__decorate([
-    (0, common_1.Delete)(':id'),
-    (0, common_1.HttpCode)(common_1.HttpStatus.NO_CONTENT),
-    __param(0, (0, common_1.Param)('id', common_1.ParseUUIDPipe)),
-    __param(1, (0, common_1.Request)()),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, Object]),
-    __metadata("design:returntype", Promise)
-], TradesController.prototype, "remove", null);
-__decorate([
     (0, common_1.Patch)('group'),
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
     __param(0, (0, common_1.Body)()),
@@ -232,16 +214,6 @@ __decorate([
     __metadata("design:paramtypes", [group_trades_dto_1.GroupTradesDto, Object]),
     __metadata("design:returntype", Promise)
 ], TradesController.prototype, "groupTrades", null);
-__decorate([
-    (0, common_1.Post)(':id/copy-journal'),
-    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
-    __param(0, (0, common_1.Param)('id', common_1.ParseUUIDPipe)),
-    __param(1, (0, common_1.Body)()),
-    __param(2, (0, common_1.Request)()),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, copy_journal_dto_1.CopyJournalDto, Object]),
-    __metadata("design:returntype", Promise)
-], TradesController.prototype, "copyJournalToGroup", null);
 __decorate([
     (0, common_1.Post)('bulk/delete'),
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
@@ -260,6 +232,34 @@ __decorate([
     __metadata("design:paramtypes", [Object, Object]),
     __metadata("design:returntype", Promise)
 ], TradesController.prototype, "bulkUpdate", null);
+__decorate([
+    (0, common_1.Post)(':id/copy-journal'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    __param(0, (0, common_1.Param)('id', common_1.ParseUUIDPipe)),
+    __param(1, (0, common_1.Body)()),
+    __param(2, (0, common_1.Request)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, copy_journal_dto_1.CopyJournalDto, Object]),
+    __metadata("design:returntype", Promise)
+], TradesController.prototype, "copyJournalToGroup", null);
+__decorate([
+    (0, common_1.Patch)(':id'),
+    __param(0, (0, common_1.Param)('id', common_1.ParseUUIDPipe)),
+    __param(1, (0, common_1.Body)()),
+    __param(2, (0, common_1.Request)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, update_trade_dto_1.UpdateTradeDto, Object]),
+    __metadata("design:returntype", Promise)
+], TradesController.prototype, "update", null);
+__decorate([
+    (0, common_1.Delete)(':id'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.NO_CONTENT),
+    __param(0, (0, common_1.Param)('id', common_1.ParseUUIDPipe)),
+    __param(1, (0, common_1.Request)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:returntype", Promise)
+], TradesController.prototype, "remove", null);
 __decorate([
     (0, common_1.Post)('bulk/import'),
     (0, common_1.UseGuards)(usage_limit_guard_1.UsageLimitGuard),

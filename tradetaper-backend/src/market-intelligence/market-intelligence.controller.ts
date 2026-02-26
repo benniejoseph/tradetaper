@@ -19,6 +19,8 @@ import { EconomicCalendarService } from './economic-calendar.service';
 import { EconomicAlertsService } from './economic-alerts.service';
 import { AIMarketPredictionService } from './ai-market-prediction.service';
 import { MarketSentimentService } from './market-sentiment.service'; // Added
+import { CotDataService } from './cot-data.service';
+import { CotAnalysisService } from './cot-analysis.service';
 
 @Controller('market-intelligence')
 export class MarketIntelligenceController {
@@ -32,6 +34,8 @@ export class MarketIntelligenceController {
     private readonly economicAlertsService: EconomicAlertsService,
     private readonly aiPredictionService: AIMarketPredictionService,
     private readonly marketSentimentService: MarketSentimentService, // Added
+    private readonly cotDataService: CotDataService,
+    private readonly cotAnalysisService: CotAnalysisService,
   ) {}
 
   // Public endpoint for testing live data integration
@@ -312,6 +316,31 @@ export class MarketIntelligenceController {
         'Failed to fetch market structure analysis',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
+    }
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('cot/history/:symbol')
+  async getCotHistory(@Param('symbol') symbol: string, @Query('limit') limit?: string) {
+    this.logger.log(`Getting COT history for symbol: ${symbol}`);
+    try {
+      const parsedLimit = limit ? parseInt(limit, 10) : 52;
+      return await this.cotDataService.getCotHistory(symbol, parsedLimit);
+    } catch (error) {
+      this.logger.error(`Failed to get COT history for ${symbol}`, error);
+      throw new HttpException('Failed to fetch COT history', HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('cot/analysis/:symbol')
+  async getCotAnalysis(@Param('symbol') symbol: string) {
+    this.logger.log(`Getting COT AI analysis for symbol: ${symbol}`);
+    try {
+      return await this.cotAnalysisService.generateCotAiSummary(symbol);
+    } catch (error) {
+      this.logger.error(`Failed to get COT analysis for ${symbol}`, error);
+      throw new HttpException('Failed to fetch COT analysis', HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
 }

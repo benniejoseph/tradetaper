@@ -207,26 +207,28 @@ export default function EconomicCalendar() {
     );
   };
 
-  const filteredEvents = events.filter(e => {
-    const matchesImpact = activeFilters.includes(e.importance.toLowerCase());
-    const matchesCurrency = activeCurrencies.length === 0 || activeCurrencies.includes(e.currency);
-    const matchesSearch =
-      !searchQuery ||
-      e.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      e.country.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      e.currency.toLowerCase().includes(searchQuery.toLowerCase());
-    const eventDate = new Date(e.date);
-    const now = new Date();
-    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const rangeEnd =
-      dateRange === 'today'
-        ? new Date(startOfToday.getTime() + 24 * 60 * 60 * 1000)
-        : dateRange === 'week'
-          ? new Date(startOfToday.getTime() + 7 * 24 * 60 * 60 * 1000)
-          : new Date(startOfToday.getFullYear(), startOfToday.getMonth() + 1, startOfToday.getDate());
-    const matchesDate = eventDate >= startOfToday && eventDate < rangeEnd;
-    return matchesImpact && matchesCurrency && matchesSearch && matchesDate;
-  });
+  const filteredEvents = useMemo(() => {
+    return events.filter(e => {
+      const matchesImpact = activeFilters.includes(e.importance.toLowerCase());
+      const matchesCurrency = activeCurrencies.length === 0 || activeCurrencies.includes(e.currency);
+      const matchesSearch =
+        !searchQuery ||
+        e.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        e.country.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        e.currency.toLowerCase().includes(searchQuery.toLowerCase());
+      const eventDate = new Date(e.date);
+      const now = new Date();
+      const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const rangeEnd =
+        dateRange === 'today'
+          ? new Date(startOfToday.getTime() + 24 * 60 * 60 * 1000)
+          : dateRange === 'week'
+            ? new Date(startOfToday.getTime() + 7 * 24 * 60 * 60 * 1000)
+            : new Date(startOfToday.getFullYear(), startOfToday.getMonth() + 1, startOfToday.getDate());
+      const matchesDate = eventDate >= startOfToday && eventDate < rangeEnd;
+      return matchesImpact && matchesCurrency && matchesSearch && matchesDate;
+    });
+  }, [events, activeFilters, activeCurrencies, searchQuery, dateRange]);
 
   const getSurprise = (event: EconomicEvent) => {
     const actual = Number(event.actual);
@@ -258,18 +260,18 @@ export default function EconomicCalendar() {
   };
 
   // 2. Group by Day (IST)
-  const groupedEvents: Record<string, EconomicEvent[]> = {};
-  filteredEvents.forEach(event => {
-    const dayKey = formatDateGroup(event.date);
-    if (!groupedEvents[dayKey]) {
-      groupedEvents[dayKey] = [];
-    }
-    groupedEvents[dayKey].push(event);
-  });
+  const groupedEvents = useMemo(() => {
+    const groups: Record<string, EconomicEvent[]> = {};
+    filteredEvents.forEach(event => {
+      const dayKey = formatDateGroup(event.date);
+      if (!groups[dayKey]) {
+        groups[dayKey] = [];
+      }
+      groups[dayKey].push(event);
+    });
+    return groups;
+  }, [filteredEvents]);
   
-  // Sort groups by date? (Assuming events are sorted by date from backend)
-  // But Group Keys need order.
-  // We can rely on insertion order if backend sorts.
   const groupKeys = Object.keys(groupedEvents);
 
   const nextHighImpact = useMemo(() => {
@@ -575,6 +577,33 @@ export default function EconomicCalendar() {
                   <div className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed px-2">
                     {selectedDetails?.preEventAnalysis?.marketExpectations || aiSummary?.marketPulse || 'Based on recent data, TradeTaper AI predicts a potential for better-than-expected numbers, suggesting a bullish outlook for the affected currencies. The AI indicates confidence in current market conditions aligning with these projections.'}
                   </div>
+                  
+                  {/* Detailed Analysis Context UI */}
+                  {(selectedDetails?.detailedAnalysis?.whyTradersCare || selectedDetails?.detailedAnalysis?.usualEffect) && (
+                    <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {selectedDetails.detailedAnalysis.whyTradersCare && (
+                        <div className="p-3 bg-blue-50/50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/30 rounded-lg">
+                          <p className="text-xs font-bold text-blue-800 dark:text-blue-400 mb-1 flex items-center gap-1">
+                            <FaExclamationTriangle className="w-3 h-3" /> Why Traders Care
+                          </p>
+                          <p className="text-xs text-gray-600 dark:text-gray-400">
+                            {selectedDetails.detailedAnalysis.whyTradersCare}
+                          </p>
+                        </div>
+                      )}
+                      
+                      {selectedDetails.detailedAnalysis.usualEffect && (
+                        <div className="p-3 bg-purple-50/50 dark:bg-purple-900/10 border border-purple-100 dark:border-purple-900/30 rounded-lg">
+                          <p className="text-xs font-bold text-purple-800 dark:text-purple-400 mb-1 flex items-center gap-1">
+                            <span>📖</span> How to Trade It
+                          </p>
+                          <p className="text-xs text-gray-600 dark:text-gray-400">
+                            {selectedDetails.detailedAnalysis.usualEffect}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {/* 2. Market Impact Cards */}
@@ -583,13 +612,9 @@ export default function EconomicCalendar() {
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     {/* Map through Watchlist or Fallbacks */}
                     {(() => {
-                      const list = Array.isArray(aiSummary?.watchlist) && aiSummary.watchlist.length > 0 
-                        ? aiSummary.watchlist.slice(0, 3) 
-                        : [
-                            { symbol: 'EUR/USD', bias: 'Bullish', price: '$1.0670' },
-                            { symbol: 'GBP/USD', bias: 'Bearish', price: '$1.2754' },
-                            { symbol: 'Gold/XAU', bias: 'Bullish', price: '$2118.00' }
-                          ];
+                      const list = Array.isArray(aiSummary?.watchlist) ? aiSummary.watchlist.slice(0, 3) : [];
+                      
+                      if (list.length === 0) return null;
                       
                       return list.map((item: any, idx: number) => {
                         const isBullish = item.bias === 'Bullish' || item.bias?.toLowerCase().includes('bull');

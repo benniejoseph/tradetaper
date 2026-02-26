@@ -26,6 +26,7 @@ import { CommunityFollow } from '../community/entities/community-follow.entity';
 import { CommunityPostReply } from '../community/entities/community-post-reply.entity';
 import { EconomicEventAlert } from '../market-intelligence/entities/economic-event-alert.entity';
 import { EconomicEventAnalysis } from '../market-intelligence/entities/economic-event-analysis.entity';
+import { CotWeeklyReport } from '../market-intelligence/entities/cot-weekly-report.entity';
 import { Connector } from '@google-cloud/cloud-sql-connector';
 
 import { Logger } from '@nestjs/common';
@@ -83,6 +84,7 @@ async function createDataSource() {
           CommunityPostReply,
           EconomicEventAlert,
           EconomicEventAnalysis,
+          CotWeeklyReport,
         ],
         migrations: ['dist/migrations/*{.ts,.js}'],
         synchronize: false,
@@ -125,6 +127,7 @@ async function createDataSource() {
           CommunityPostReply,
           EconomicEventAlert,
           EconomicEventAnalysis,
+          CotWeeklyReport,
         ],
         migrations: ['dist/migrations/*{.ts,.js}'],
         synchronize: false,
@@ -168,6 +171,7 @@ async function createDataSource() {
         CommunityPostReply,
         EconomicEventAlert,
         EconomicEventAnalysis,
+        CotWeeklyReport,
       ],
       migrations: ['src/migrations/*{.ts,.js}'],
       synchronize: false,

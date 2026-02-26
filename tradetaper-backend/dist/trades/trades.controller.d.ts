@@ -18,13 +18,8 @@ export declare class TradesController {
     findOne(id: string, req: any): Promise<Trade>;
     getCandles(id: string, timeframe: string, req: any): Promise<any[]>;
     parseVoiceJournal(file: Express.Multer.File, req: any): Promise<import("./dto/voice-journal.dto").VoiceJournalResponseDto>;
-    update(id: string, updateTradeDto: UpdateTradeDto, req: any): Promise<Trade>;
-    remove(id: string, req: any): Promise<void>;
     groupTrades(groupTradesDto: GroupTradesDto, req: any): Promise<{
         groupId: string;
-        updatedCount: number;
-    }>;
-    copyJournalToGroup(id: string, copyJournalDto: CopyJournalDto, req: any): Promise<{
         updatedCount: number;
     }>;
     bulkDelete(body: {
@@ -41,6 +36,11 @@ export declare class TradesController {
         updatedCount: number;
         trades: Trade[];
     }>;
+    copyJournalToGroup(id: string, copyJournalDto: CopyJournalDto, req: any): Promise<{
+        updatedCount: number;
+    }>;
+    update(id: string, updateTradeDto: UpdateTradeDto, req: any): Promise<Trade>;
+    remove(id: string, req: any): Promise<void>;
     bulkImport(body: {
         trades: CreateTradeDto[];
     }, req: any): Promise<{

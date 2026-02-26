@@ -10,6 +10,7 @@ import {
 import EconomicCalendar from '@/components/market-intelligence/EconomicCalendar';
 import NewsFeed from '@/components/market-intelligence/NewsFeed';
 import SentimentDashboard from '@/components/market-intelligence/SentimentDashboard';
+import CommitmentOfTraders from '@/components/market-intelligence/CommitmentOfTraders';
 import { FeatureGate } from '@/components/common/FeatureGate';
 
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -19,7 +20,7 @@ export default function MarketIntelligencePage() {
   const searchParams = useSearchParams();
   
   const requestedTab = searchParams.get('tab') || 'economic-calendar';
-  const validTabs = new Set(['economic-calendar', 'news', 'ai-analysis']);
+  const validTabs = new Set(['economic-calendar', 'news', 'ai-analysis', 'cot']);
   const activeTab = validTabs.has(requestedTab) ? requestedTab : 'economic-calendar';
 
   const handleTabChange = (tabId: string) => {
@@ -51,8 +52,9 @@ export default function MarketIntelligencePage() {
           <nav className="flex space-x-2 sm:space-x-4 min-w-max pb-2">
             {[
               { id: 'economic-calendar', label: 'Economic Calendar', icon: FaCalendarAlt },
+              { id: 'cot', label: 'Commitment of Traders', icon: FaChartPie },
               { id: 'news', label: 'News Hub', icon: FaNewspaper },
-              { id: 'ai-analysis', label: 'AI Analysis', icon: FaChartPie },
+              { id: 'ai-analysis', label: 'AI Analysis', icon: FaBrain },
             ].map(tab => (
               <button
                 key={tab.id}
@@ -91,6 +93,13 @@ export default function MarketIntelligencePage() {
                <SentimentDashboard />
              </div>
            </FeatureGate>
+        )}
+
+        {/* COT Tab */}
+        {activeTab === 'cot' && (
+          <div className="space-y-6">
+            <CommitmentOfTraders />
+          </div>
         )}
       </div>
     </div>

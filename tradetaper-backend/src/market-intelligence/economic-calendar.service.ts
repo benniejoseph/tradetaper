@@ -150,6 +150,7 @@ export class EconomicCalendarService {
     private readonly orchestrator: MultiModelOrchestratorService,
     @InjectRepository(EconomicEventAnalysis)
     private readonly economicAnalysisRepository: Repository<EconomicEventAnalysis>,
+    private readonly marketDataAggregator: MarketDataAggregatorService,
   ) {}
 
   async getEconomicCalendar(
@@ -1134,11 +1135,14 @@ export class EconomicCalendarService {
     }
 
     try {
-      const [newsResult, highImpactResult, moversResult] =
+      const [newsResult, highImpactResult, moversResult, liveQuotesResult] =
         await Promise.allSettled([
           this.newsAnalysisService.getMarketNews(),
           this.getHighImpactToday(),
           this.getTopMoversToday(),
+          this.marketDataAggregator.getLiveQuotes(
+            event.impact?.affectedSymbols || this.mapCurrencyToSymbols(event.currency)
+          ),
         ]);
 
       const news =
@@ -1149,6 +1153,8 @@ export class EconomicCalendarService {
         highImpactResult.status === 'fulfilled' ? highImpactResult.value : [];
       const topMovers =
         moversResult.status === 'fulfilled' ? moversResult.value : [];
+      const liveQuotes = 
+        liveQuotesResult.status === 'fulfilled' ? liveQuotesResult.value : [];
 
       const recentNews = news.news
         .filter(
@@ -1223,13 +1229,35 @@ ${JSON.stringify(context)}
       });
 
       const parsed = this.parseAiJson(response.content);
+      
+      let baseWatchlist = Array.isArray(parsed.watchlist) && parsed.watchlist.length > 0 
+          ? parsed.watchlist 
+          : [
+              { symbol: 'EURUSD', bias: 'Neutral', confidence: 50 },
+              { symbol: 'GBPUSD', bias: 'Neutral', confidence: 50 },
+              { symbol: 'XAUUSD', bias: 'Neutral', confidence: 50 }
+            ];
+
+      // Inject real live pricing data into watchlist
+      const enrichedWatchlist = baseWatchlist.map((item: any) => {
+         const trueSymbol = item.symbol?.replace('/', ''); // e.g., EUR/USD -> EURUSD
+         const quote = liveQuotes.find(q => q.symbol === trueSymbol || q.symbol === item.symbol);
+         if (quote) {
+             return {
+                 ...item,
+                 price: `$${quote.bid.toFixed(quote.bid < 10 ? 4 : 2)}`,
+                 changePercent: quote.changePercent,
+             };
+         }
+         return item;
+      });
 
       return {
         scope: 'high_event_top_movers',
         headline: parsed.headline || 'High-impact briefing',
         marketPulse: parsed.marketPulse || 'Market focus on macro drivers.',
         highImpactDrivers: parsed.highImpactDrivers || [],
-        watchlist: parsed.watchlist || [],
+        watchlist: enrichedWatchlist,
         topMovers: parsed.topMovers || [],
         risks: parsed.risks || [],
         confidence: parsed.confidence,

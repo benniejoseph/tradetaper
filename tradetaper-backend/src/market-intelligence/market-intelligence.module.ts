@@ -12,6 +12,9 @@ import { EconomicEventAlert } from './entities/economic-event-alert.entity';
 import { EconomicEventAnalysis } from './entities/economic-event-analysis.entity';
 import { AIMarketPredictionService } from './ai-market-prediction.service';
 import { MarketSentimentService } from './market-sentiment.service'; // Added
+import { CotWeeklyReport } from './entities/cot-weekly-report.entity';
+import { CotDataService } from './cot-data.service';
+import { CotAnalysisService } from './cot-analysis.service';
 import { ForexFactoryService } from './forex-factory.service';
 import { MarketDataAggregatorService } from './market-data-aggregator.service';
 import { FreeDataSourcesModule } from './free-data-sources/free-data-sources.module';
@@ -24,7 +27,11 @@ import { GeminiInsightsService } from './gemini-insights.service';
   imports: [
     HttpModule,
     ConfigModule,
-    TypeOrmModule.forFeature([EconomicEventAlert, EconomicEventAnalysis]),
+    TypeOrmModule.forFeature([
+      EconomicEventAlert, 
+      EconomicEventAnalysis, 
+      CotWeeklyReport
+    ]),
     FreeDataSourcesModule, // FREE data sources (Yahoo Finance, Binance, CoinGecko, RSS, Reddit)
     ICTModule, // NEW ICT (Inner Circle Trader) strategies
   ],
@@ -44,6 +51,8 @@ import { GeminiInsightsService } from './gemini-insights.service';
     TradingViewAdvancedService, // NEW: TradingView Advanced API Service
     GeminiInsightsService,
     MarketSentimentService, // Added
+    CotDataService,
+    CotAnalysisService,
   ],
   exports: [
     MarketIntelligenceService,
@@ -55,6 +64,8 @@ import { GeminiInsightsService } from './gemini-insights.service';
     TradingViewAdvancedService, // Export for use in other modules
     GeminiInsightsService,
     MarketSentimentService, // Added
+    CotDataService,
+    CotAnalysisService,
   ],
 })
 export class MarketIntelligenceModule {}

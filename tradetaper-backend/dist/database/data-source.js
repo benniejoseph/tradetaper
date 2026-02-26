@@ -29,6 +29,7 @@ const community_follow_entity_1 = require("../community/entities/community-follo
 const community_post_reply_entity_1 = require("../community/entities/community-post-reply.entity");
 const economic_event_alert_entity_1 = require("../market-intelligence/entities/economic-event-alert.entity");
 const economic_event_analysis_entity_1 = require("../market-intelligence/entities/economic-event-analysis.entity");
+const cot_weekly_report_entity_1 = require("../market-intelligence/entities/cot-weekly-report.entity");
 const cloud_sql_connector_1 = require("@google-cloud/cloud-sql-connector");
 const common_1 = require("@nestjs/common");
 const dbLogger = new common_1.Logger('DatabaseDataSource');
@@ -77,6 +78,7 @@ async function createDataSource() {
                     community_post_reply_entity_1.CommunityPostReply,
                     economic_event_alert_entity_1.EconomicEventAlert,
                     economic_event_analysis_entity_1.EconomicEventAnalysis,
+                    cot_weekly_report_entity_1.CotWeeklyReport,
                 ],
                 migrations: ['dist/migrations/*{.ts,.js}'],
                 synchronize: false,
@@ -118,6 +120,7 @@ async function createDataSource() {
                     community_post_reply_entity_1.CommunityPostReply,
                     economic_event_alert_entity_1.EconomicEventAlert,
                     economic_event_analysis_entity_1.EconomicEventAnalysis,
+                    cot_weekly_report_entity_1.CotWeeklyReport,
                 ],
                 migrations: ['dist/migrations/*{.ts,.js}'],
                 synchronize: false,
@@ -161,6 +164,7 @@ async function createDataSource() {
                 community_post_reply_entity_1.CommunityPostReply,
                 economic_event_alert_entity_1.EconomicEventAlert,
                 economic_event_analysis_entity_1.EconomicEventAnalysis,
+                cot_weekly_report_entity_1.CotWeeklyReport,
             ],
             migrations: ['src/migrations/*{.ts,.js}'],
             synchronize: false,

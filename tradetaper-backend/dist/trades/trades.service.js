@@ -443,6 +443,8 @@ Return a JSON object strictly matching this schema:
             'trade.createdAt',
             'trade.updatedAt',
             'trade.strategyId',
+            'trade.groupId',
+            'trade.isGroupLeader',
         ]);
         if (includeTags) {
             queryBuilder.addSelect(['tag.id', 'tag.name']);
