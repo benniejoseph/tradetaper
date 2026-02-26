@@ -368,27 +368,33 @@ export class TerminalFarmService {
       });
     }
 
-    // Check for queued commands (now from Redis queue)
+    // Check for queued commands from the primary queue
     const nextCmd = await this.terminalCommandsQueue.getNextCommand(
       data.terminalId,
     );
 
+    // [FIX #11] Consolidate all metadata changes into a single save
+    let pendingCommands = Array.isArray(terminal.metadata?.pendingCommands)
+      ? [...terminal.metadata.pendingCommands]
+      : [];
+
+    // If the primary queue returned a command AND we're using in-memory mode, dequeue from metadata too
     if (nextCmd && this.terminalCommandsQueue.isUsingInMemory()) {
-      const pending = Array.isArray(terminal.metadata?.pendingCommands)
-        ? terminal.metadata?.pendingCommands?.slice()
-        : [];
-      const idx = pending.findIndex(
-        (cmd) =>
-          cmd.command === nextCmd.command && cmd.payload === nextCmd.payload,
+      const idx = pendingCommands.findIndex(
+        (cmd) => cmd.command === nextCmd.command && cmd.payload === nextCmd.payload,
       );
-      if (idx >= 0) {
-        pending.splice(idx, 1);
-        terminal.metadata = {
-          ...(terminal.metadata || {}),
-          pendingCommands: pending,
-        };
-        await this.terminalRepository.save(terminal);
-      }
+      if (idx >= 0) pendingCommands.splice(idx, 1);
+      terminal.metadata = { ...(terminal.metadata || {}), pendingCommands };
+      await this.terminalRepository.save(terminal); // SINGLE save [FIX #11]
+
+      this.logger.log(
+        `Dispatching command ${nextCmd.command} to terminal ${data.terminalId}`,
+      );
+      return {
+        success: true,
+        command: nextCmd.command,
+        payload: nextCmd.payload,
+      };
     }
 
     if (nextCmd) {
@@ -402,16 +408,11 @@ export class TerminalFarmService {
       };
     }
 
-    const pending = Array.isArray(terminal.metadata?.pendingCommands)
-      ? terminal.metadata?.pendingCommands?.slice()
-      : [];
-    if (pending.length > 0) {
-      const nextPending = pending.shift();
-      terminal.metadata = {
-        ...(terminal.metadata || {}),
-        pendingCommands: pending,
-      };
-      await this.terminalRepository.save(terminal);
+    // Fallback: consume from in-memory pendingCommands if Redis unavailable
+    if (pendingCommands.length > 0) {
+      const nextPending = pendingCommands.shift();
+      terminal.metadata = { ...(terminal.metadata || {}), pendingCommands };
+      await this.terminalRepository.save(terminal); // SINGLE save [FIX #11]
       return {
         success: true,
         command: nextPending.command,
@@ -697,12 +698,23 @@ export class TerminalFarmService {
 
     await this.terminalRepository.save(terminal);
 
-    const account = await this.mt5AccountRepository.findOne({
-      where: { id: terminal.accountId },
-    });
+    // [FIX #5] Read accountName from cached metadata first to avoid N+1 DB reads
+    const cachedAccountName: string | undefined = (terminal.metadata as any)?.accountName;
+    let accountId = terminal.accountId;
+    let accountNameForEmit = cachedAccountName;
 
-    if (!account) {
-      return;
+    if (!cachedAccountName) {
+      const account = await this.mt5AccountRepository.findOne({
+        where: { id: terminal.accountId },
+        select: ['id', 'accountName', 'userId'],
+      });
+      if (!account) return;
+      accountNameForEmit = account.accountName;
+      accountId = account.id;
+
+      // Warm the cache for next time
+      terminal.metadata = { ...(terminal.metadata || {}), accountName: account.accountName };
+      await this.terminalRepository.save(terminal);
     }
 
     const externalIds = normalizedPositions
@@ -710,8 +722,22 @@ export class TerminalFarmService {
       .filter(Boolean);
 
     if (externalIds.length > 0) {
+      // We need userId to query trades — fetch from account only if not in cache
+      const cachedUserId: string | undefined = (terminal.metadata as any)?.userId;
+      let resolvedUserId = cachedUserId;
+      if (!resolvedUserId) {
+        const acct = await this.mt5AccountRepository.findOne({
+          where: { id: terminal.accountId },
+          select: ['id', 'userId'],
+        });
+        if (!acct) return;
+        resolvedUserId = acct.userId;
+        terminal.metadata = { ...(terminal.metadata || {}), userId: acct.userId };
+        await this.terminalRepository.save(terminal);
+      }
+
       const trades = await this.tradesService.findManyByExternalIds(
-        account.userId,
+        resolvedUserId,
         externalIds,
         terminal.accountId,
       );
@@ -777,10 +803,10 @@ export class TerminalFarmService {
       }
     }
 
-    this.mt5PositionsGateway.emitPositionsUpdate(account.userId, {
+    this.mt5PositionsGateway.emitPositionsUpdate(terminal.accountId, {
       enabled: true,
       accountId: terminal.accountId,
-      accountName: account.accountName,
+      accountName: accountNameForEmit,
       terminalId: terminal.id,
       status: terminal.status,
       lastHeartbeat: terminal.lastHeartbeat,

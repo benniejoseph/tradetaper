@@ -276,7 +276,7 @@ export class TradeProcessorService {
 
   /**
    * Process a DEAL_ENTRY_INOUT (partial close / reverse).
-   * Closes the existing trade and opens a new one with remaining volume.
+   * Closes the existing trade and opens a new one with remaining volume. [FIX #9]
    */
   async processInOutDeal(
     trade: TerminalTradeDto,
@@ -286,7 +286,7 @@ export class TradeProcessorService {
     terminalId: string,
     syncSource: 'local_ea' | 'metaapi',
   ): Promise<ProcessDealResult> {
-    // Treat INOUT as an exit of the current position
+    // Step 1: Close the existing trade (or create orphan exit)
     const exitResult = await this.processExitDeal(
       trade,
       existingTrade,
@@ -300,9 +300,48 @@ export class TradeProcessorService {
       return exitResult;
     }
 
-    this.logger.log(
-      `DEAL_ENTRY_INOUT processed as exit for position ${trade.positionId}`,
-    );
+    // Step 2: [FIX #9] Calculate remaining volume and open a new trade if applicable
+    const closedVolume = trade.volume || 0;
+    const originalVolume = existingTrade?.quantity
+      ? parseFloat(String(existingTrade.quantity))
+      : 0;
+    const remainingVolume = Math.round((originalVolume - closedVolume) * 100000) / 100000; // 5dp precision
+
+    if (remainingVolume > 0.001) {
+      this.logger.log(
+        `INOUT partial close: ${closedVolume} lots closed, opening new ${remainingVolume} lot position for ${trade.symbol}`,
+      );
+
+      // The remaining position has the same direction and entry price
+      const normalizedTime = this.normalizeTerminalTime(trade.openTime);
+      await this.tradesService.create(
+        {
+          symbol: trade.symbol,
+          assetType: this.detectAssetType(trade.symbol),
+          side: existingTrade?.side ?? (trade.type === 'BUY' ? 'LONG' as any : 'SHORT' as any),
+          status: 'OPEN' as any,
+          openTime: existingTrade?.openTime
+            ? new Date(existingTrade.openTime).toISOString()
+            : normalizedTime || new Date().toISOString(),
+          openPrice: existingTrade?.openPrice ?? trade.openPrice ?? 0,
+          quantity: remainingVolume,
+          stopLoss: existingTrade?.stopLoss ?? undefined,
+          takeProfit: existingTrade?.takeProfit ?? undefined,
+          notes: `Partial close remainder. Original position ID: ${trade.positionId}. Closed ${closedVolume} lots.`,
+          accountId,
+          externalId: `${trade.positionId}_partial_${Date.now()}`, // unique ID for the remnant
+          mt5Magic: trade.magic,
+          contractSize: trade.contractSize,
+          syncSource,
+        },
+        { id: userId } as any,
+      );
+    } else {
+      this.logger.log(
+        `INOUT treated as full close for position ${trade.positionId} (remaining=${remainingVolume})`,
+      );
+    }
+
     return exitResult;
   }
 

@@ -98,6 +98,13 @@ const formatNumber = (value: number, decimals = 2) => {
   return value.toLocaleString(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
 };
 
+// [FIX #13] Enriched position type — computed once per data update, not per render
+interface EnrichedPosition extends LivePosition {
+  _change: number;
+  _changePct: number;
+  _targets: ReturnType<typeof getTargets>;
+}
+
 export default function LivePositionsPanel({ accountId, accountName, isMT5 }: LivePositionsPanelProps) {
   const { isAuthenticated } = useSelector((state: RootState) => state.auth);
   const [data, setData] = useState<LivePositionsResponse | null>(null);
@@ -123,6 +130,7 @@ export default function LivePositionsPanel({ accountId, accountName, isMT5 }: Li
     }
   }, [accountId]);
 
+  // Initial fetch
   useEffect(() => {
     if (!accountId || !isMT5) {
       setData(null);
@@ -131,6 +139,15 @@ export default function LivePositionsPanel({ accountId, accountName, isMT5 }: Li
     fetchPositions();
   }, [accountId, isMT5, fetchPositions]);
 
+  // [FIX #8] Polling fallback when WebSocket is disconnected
+  useEffect(() => {
+    if (isConnected || !accountId || !isMT5) return;
+    // Poll every 20 seconds as fallback when WS is down
+    const interval = setInterval(fetchPositions, 20_000);
+    return () => clearInterval(interval);
+  }, [isConnected, accountId, isMT5, fetchPositions]);
+
+  // WebSocket subscription for real-time updates
   useEffect(() => {
     if (!isConnected || !accountId) return;
     const unsubscribe = subscribe('mt5:positions', (payload: any) => {
@@ -139,7 +156,6 @@ export default function LivePositionsPanel({ accountId, accountName, isMT5 }: Li
       setError(null);
       setLoading(false);
     });
-
     return () => unsubscribe();
   }, [isConnected, subscribe, accountId]);
 
@@ -148,10 +164,34 @@ export default function LivePositionsPanel({ accountId, accountName, isMT5 }: Li
     return data.positions.reduce((sum, pos) => sum + (Number(pos.profit) || 0), 0);
   }, [data?.positions]);
 
+  // [FIX #13] Memoize all derived position values — computed once per positions update
+  const enrichedPositions = useMemo<EnrichedPosition[]>(() => {
+    if (!data?.positions?.length) return [];
+    return data.positions.map((pos) => {
+      const open = Number(pos.openPrice);
+      const change = computeChange(pos);
+      const changePct = open ? (change / open) * 100 : 0;
+      return {
+        ...pos,
+        _change: change,
+        _changePct: changePct,
+        _targets: getTargets(pos),
+      };
+    });
+  }, [data?.positions]);
+
+  // [FIX #7] Tighter stale detection — 75s = 2.5x the 30s heartbeat interval
   const heartbeatAge = data?.lastHeartbeat
     ? Date.now() - new Date(data.lastHeartbeat).getTime()
     : null;
-  const isStale = heartbeatAge !== null && heartbeatAge > 2 * 60 * 1000;
+  const isHeartbeatStale = heartbeatAge !== null && heartbeatAge > 75_000;
+
+  // Differentiate position data staleness from heartbeat staleness
+  const positionAge = data?.positionsUpdatedAt
+    ? Date.now() - new Date(data.positionsUpdatedAt).getTime()
+    : null;
+  const isPositionsStale = positionAge !== null && positionAge > 90_000; // stale if >90s since last positions update
+
   const formatDistance = (value: number, symbol?: string) => {
     if (!Number.isFinite(value)) return '—';
     if (distanceUnit === 'pips') {
@@ -193,15 +233,29 @@ export default function LivePositionsPanel({ accountId, accountName, isMT5 }: Li
                 {data.status}
               </span>
             )}
-            {isStale && (
+            {/* [FIX #7] Differentiated stale indicators */}
+            {isHeartbeatStale && (
               <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-200">
                 <FaExclamationTriangle />
-                Stale
+                Terminal Offline
+              </span>
+            )}
+            {!isHeartbeatStale && isPositionsStale && (
+              <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-200">
+                <FaExclamationTriangle />
+                Positions Stale
+              </span>
+            )}
+            {/* [FIX #8] Indicator when polling fallback is active */}
+            {!isConnected && (
+              <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400">
+                Polling
               </span>
             )}
           </div>
           <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-            {accountName ? `${accountName} • ` : ''}Streaming live • Last update {formatTimeAgo(data?.positionsUpdatedAt)}
+            {accountName ? `${accountName} • ` : ''}
+            {isConnected ? 'Streaming live' : 'Polling every 20s'} • Last update {formatTimeAgo(data?.positionsUpdatedAt)}
           </p>
         </div>
 
@@ -251,13 +305,13 @@ export default function LivePositionsPanel({ accountId, accountName, isMT5 }: Li
         </div>
       )}
 
-      {data?.enabled && (!data.positions || data.positions.length === 0) && !loading && (
+      {data?.enabled && (!enrichedPositions.length) && !loading && (
         <div className="py-10 text-center text-gray-500 dark:text-gray-400">
           No open positions right now.
         </div>
       )}
 
-      {data?.enabled && data.positions && data.positions.length > 0 && (
+      {data?.enabled && enrichedPositions.length > 0 && (
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead>
@@ -274,24 +328,28 @@ export default function LivePositionsPanel({ accountId, accountName, isMT5 }: Li
               </tr>
             </thead>
             <tbody>
-              {data.positions.map((pos) => {
-                const open = Number(pos.openPrice);
-                const current = Number(pos.currentPrice);
+              {/* [FIX #13] Use pre-computed enrichedPositions — no repeated compute per render */}
+              {enrichedPositions.map((pos) => {
                 const profit = Number(pos.profit);
-                const change = computeChange(pos);
-                const changePct = open ? (change / open) * 100 : 0;
-                const targets = getTargets(pos);
                 return (
                   <tr key={pos.ticket} className="border-b border-gray-100 dark:border-emerald-900/20">
-                    <td className="py-3 font-semibold text-gray-900 dark:text-white">{pos.symbol}</td>
+                    <td className="py-3 font-semibold text-gray-900 dark:text-white">
+                      {pos.symbol}
+                      {/* [Enhancement #18] Show comment badge if present */}
+                      {(pos as any).comment && (
+                        <span className="ml-1 text-[9px] text-gray-400 dark:text-gray-500" title={(pos as any).comment}>
+                          {String((pos as any).comment).substring(0, 8)}
+                        </span>
+                      )}
+                    </td>
                     <td className={`py-3 font-semibold ${pos.type === 'BUY' ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
                       {pos.type}
                     </td>
                     <td className="py-3 text-gray-600 dark:text-gray-300">{formatNumber(Number(pos.volume), 2)}</td>
-                    <td className="py-3 text-gray-600 dark:text-gray-300">{formatNumber(open, 5)}</td>
-                    <td className="py-3 text-gray-600 dark:text-gray-300">{formatNumber(current, 5)}</td>
-                    <td className={`py-3 font-medium ${change >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
-                      {change >= 0 ? '+' : ''}{formatNumber(change, 5)} ({change >= 0 ? '+' : ''}{formatNumber(changePct, 2)}%)
+                    <td className="py-3 text-gray-600 dark:text-gray-300">{formatNumber(Number(pos.openPrice), 5)}</td>
+                    <td className="py-3 text-gray-600 dark:text-gray-300">{formatNumber(Number(pos.currentPrice), 5)}</td>
+                    <td className={`py-3 font-medium ${pos._change >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
+                      {pos._change >= 0 ? '+' : ''}{formatNumber(pos._change, 5)} ({pos._change >= 0 ? '+' : ''}{formatNumber(pos._changePct, 2)}%)
                     </td>
                     <td className={`py-3 font-semibold ${profit >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
                       {profit >= 0 ? '+' : ''}{formatNumber(profit, 2)}
@@ -303,19 +361,19 @@ export default function LivePositionsPanel({ accountId, accountName, isMT5 }: Li
                       </div>
                     </td>
                     <td className="py-3">
-                      {targets ? (
+                      {pos._targets ? (
                         <div className="min-w-[180px] space-y-1">
-                              <div className="text-[11px] text-gray-500 dark:text-gray-400">
-                                SL {formatNumber(targets.sl, 5)} • TP {formatNumber(targets.tp, 5)}
-                              </div>
-                              <div className="flex items-center gap-2 text-[11px]">
-                                <span className="text-red-500">to SL {formatDistance(targets.distanceToSL, pos.symbol)}</span>
-                                <span className="text-emerald-500">to TP {formatDistance(targets.distanceToTP, pos.symbol)}</span>
-                              </div>
+                          <div className="text-[11px] text-gray-500 dark:text-gray-400">
+                            SL {formatNumber(pos._targets.sl, 5)} • TP {formatNumber(pos._targets.tp, 5)}
+                          </div>
+                          <div className="flex items-center gap-2 text-[11px]">
+                            <span className="text-red-500">to SL {formatDistance(pos._targets.distanceToSL, pos.symbol)}</span>
+                            <span className="text-emerald-500">to TP {formatDistance(pos._targets.distanceToTP, pos.symbol)}</span>
+                          </div>
                           <div className="h-1.5 w-full rounded-full bg-gray-200 dark:bg-emerald-950/40 overflow-hidden">
                             <div
                               className="h-full bg-gradient-to-r from-red-500/70 via-amber-400/70 to-emerald-500"
-                              style={{ width: `${targets.progress * 100}%` }}
+                              style={{ width: `${pos._targets.progress * 100}%` }}
                             />
                           </div>
                         </div>
