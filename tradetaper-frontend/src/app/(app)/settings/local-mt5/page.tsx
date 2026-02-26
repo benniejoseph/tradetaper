@@ -1,7 +1,11 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { FaDesktop, FaSync, FaPlay, FaStop, FaCopy, FaCheck, FaExclamationTriangle, FaCircle, FaChartLine, FaInfoCircle, FaFingerprint } from 'react-icons/fa';
+import {
+  FaDesktop, FaSync, FaPlay, FaStop, FaCopy, FaCheck,
+  FaExclamationTriangle, FaCircle, FaChartLine, FaInfoCircle,
+  FaFingerprint, FaCloud, FaExchangeAlt, FaCheckCircle,
+} from 'react-icons/fa';
 import api from '@/services/api';
 import toast from 'react-hot-toast';
 
@@ -38,6 +42,22 @@ interface MT5Account {
   platform: string;
   balance?: number;
   equity?: number;
+  /** Whether a MetaAPI streaming connection is active for this account */
+  isStreamingActive?: boolean;
+  metaApiAccountId?: string;
+  connectionStatus?: string;
+}
+
+type SyncMode = 'metaapi' | 'terminal' | 'none';
+
+/** Derive the current active sync mode from account + terminal status */
+function getActiveSyncMode(account: MT5Account | undefined, terminal: TerminalStatus | null): SyncMode {
+  if (!account) return 'none';
+  const terminalRunning = terminal?.status === 'RUNNING';
+  const metaapiActive = !!(account.metaApiAccountId && account.isStreamingActive);
+  if (terminalRunning) return 'terminal';
+  if (metaapiActive) return 'metaapi';
+  return 'none';
 }
 
 export default function LocalMT5SyncPage() {
@@ -49,6 +69,7 @@ export default function LocalMT5SyncPage() {
   const [loading, setLoading] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [statusLoading, setStatusLoading] = useState(false);
+  const [disconnectingMetaApi, setDisconnectingMetaApi] = useState(false);
 
   // Fetch MT5 accounts
   useEffect(() => {
@@ -66,7 +87,6 @@ export default function LocalMT5SyncPage() {
     fetchAccounts();
   }, []);
 
-  // Fetch terminal status when account selected
   const fetchStatus = useCallback(async () => {
     if (!selectedAccountId) return;
     setStatusLoading(true);
@@ -86,7 +106,6 @@ export default function LocalMT5SyncPage() {
     return () => clearInterval(interval);
   }, [fetchStatus]);
 
-  // Fetch live positions
   const fetchPositions = useCallback(async () => {
     if (!selectedAccountId) return;
     try {
@@ -105,8 +124,47 @@ export default function LocalMT5SyncPage() {
     }
   }, [terminalStatus?.status, fetchPositions]);
 
+  const selectedAccount = accounts.find(a => a.id === selectedAccountId);
+  const activeMode = getActiveSyncMode(selectedAccount, terminalStatus);
+  const metaApiConflict = !!(
+    selectedAccount?.metaApiAccountId &&
+    selectedAccount?.isStreamingActive &&
+    (!terminalStatus || terminalStatus.status !== 'RUNNING')
+  );
+
+  /** Auto-disconnect MetaAPI streaming for this account before enabling terminal */
+  const disconnectMetaApi = async (): Promise<boolean> => {
+    if (!selectedAccountId) return false;
+    setDisconnectingMetaApi(true);
+    try {
+      // Disable MetaAPI auto-sync and streaming
+      await api.patch(`/mt5-accounts/${selectedAccountId}`, { autoSyncEnabled: false });
+      // Refresh account list to reflect new state
+      const res = await api.get('/mt5-accounts');
+      setAccounts(res.data || []);
+      return true;
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Failed to disconnect MetaAPI');
+      return false;
+    } finally {
+      setDisconnectingMetaApi(false);
+    }
+  };
+
   const handleEnableSync = async () => {
     if (!selectedAccountId) return;
+
+    // Conflict: MetaAPI is active — auto-disconnect before enabling Terminal
+    if (metaApiConflict) {
+      toast.loading('Disconnecting MetaAPI streaming…', { id: 'mode-switch' });
+      const success = await disconnectMetaApi();
+      if (!success) {
+        toast.dismiss('mode-switch');
+        return;
+      }
+      toast.success('MetaAPI streaming paused. Enabling Terminal sync…', { id: 'mode-switch' });
+    }
+
     setLoading(true);
     try {
       const res = await api.post(`/mt5-accounts/${selectedAccountId}/enable-autosync`, {});
@@ -175,8 +233,6 @@ export default function LocalMT5SyncPage() {
     }
   };
 
-  const selectedAccount = accounts.find(a => a.id === selectedAccountId);
-
   return (
     <div className="space-y-8">
       {/* Header */}
@@ -192,6 +248,38 @@ export default function LocalMT5SyncPage() {
         <p className="text-gray-600 dark:text-gray-300">
           Sync trades directly from your local MetaTrader 5 terminal using the TradeTaper EA
         </p>
+      </div>
+
+      {/* Sync Mode Banner */}
+      <div className="rounded-2xl border border-gray-700/40 bg-gradient-to-br from-gray-900/70 to-gray-800/50 backdrop-blur-xl p-5">
+        <div className="flex items-start gap-3 mb-4">
+          <FaExchangeAlt className="mt-0.5 w-4 h-4 text-gray-400 flex-shrink-0" />
+          <div>
+            <p className="text-sm font-semibold text-white">Sync Mode — choose one per account</p>
+            <p className="text-xs text-gray-400 mt-0.5">
+              MetaAPI Cloud and Local Terminal cannot run simultaneously. Enabling one will automatically pause the other.
+            </p>
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-3">
+          <div className={`flex items-center gap-2 px-4 py-2 rounded-xl border text-sm font-medium transition-all
+            ${activeMode === 'metaapi'
+              ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-300'
+              : 'bg-gray-800/40 border-gray-700/40 text-gray-500'}`}>
+            <FaCloud className="w-3.5 h-3.5" />
+            MetaAPI Cloud
+            {activeMode === 'metaapi' && <FaCheckCircle className="w-3 h-3 ml-1 text-emerald-400" />}
+          </div>
+          <div className="flex items-center text-gray-600 text-xs">vs</div>
+          <div className={`flex items-center gap-2 px-4 py-2 rounded-xl border text-sm font-medium transition-all
+            ${activeMode === 'terminal'
+              ? 'bg-blue-500/15 border-blue-500/40 text-blue-300'
+              : 'bg-gray-800/40 border-gray-700/40 text-gray-500'}`}>
+            <FaDesktop className="w-3.5 h-3.5" />
+            Local Terminal EA
+            {activeMode === 'terminal' && <FaCheckCircle className="w-3 h-3 ml-1 text-blue-400" />}
+          </div>
+        </div>
       </div>
 
       {/* Account Selector */}
@@ -215,7 +303,21 @@ export default function LocalMT5SyncPage() {
       {accounts.length === 0 && (
         <div className="rounded-2xl border border-gray-700/50 bg-gray-900/50 p-8 text-center">
           <FaExclamationTriangle className="w-8 h-8 text-yellow-400 mx-auto mb-3" />
-          <p className="text-gray-300">No MT5 accounts found. Add an account in Settings → Manual Account first.</p>
+          <p className="text-gray-300">No MT5 accounts found. Add an account in <strong>Settings → MetaApi Integration</strong> first.</p>
+        </div>
+      )}
+
+      {/* Conflict Warning: MetaAPI is active, about to switch */}
+      {metaApiConflict && (
+        <div className="rounded-2xl border border-amber-500/30 bg-amber-500/5 p-4 flex items-start gap-3">
+          <FaExclamationTriangle className="mt-0.5 w-4 h-4 text-amber-400 flex-shrink-0" />
+          <div className="text-sm">
+            <p className="font-semibold text-amber-300">MetaAPI Cloud is currently active for this account</p>
+            <p className="text-amber-400/80 mt-0.5">
+              Clicking <strong>Enable Auto-Sync</strong> will automatically pause MetaAPI streaming and switch to Local Terminal mode.
+              You can re-enable MetaAPI anytime from <strong>Settings → MetaApi Integration</strong>.
+            </p>
+          </div>
         </div>
       )}
 
@@ -291,11 +393,11 @@ export default function LocalMT5SyncPage() {
                 {!terminalStatus || terminalStatus.status === 'STOPPED' ? (
                   <button
                     onClick={handleEnableSync}
-                    disabled={loading}
+                    disabled={loading || disconnectingMetaApi}
                     className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white rounded-xl font-medium transition-all disabled:opacity-50"
                   >
                     <FaPlay className="w-3 h-3" />
-                    {loading ? 'Enabling...' : 'Enable Auto-Sync'}
+                    {disconnectingMetaApi ? 'Pausing MetaAPI…' : loading ? 'Enabling…' : 'Enable Auto-Sync'}
                   </button>
                 ) : (
                   <>
@@ -350,7 +452,7 @@ export default function LocalMT5SyncPage() {
 
               <div className="mt-4 p-3 bg-blue-500/5 border border-blue-500/20 rounded-xl">
                 <p className="text-xs text-blue-300">
-                  <strong>Note:</strong> The EA authenticates using a shared webhook secret configured on the server. 
+                  <strong>Note:</strong> The EA authenticates using a shared webhook secret configured on the server.
                   The Terminal ID is used to identify which terminal is sending data — no separate auth token is needed.
                 </p>
               </div>
@@ -437,7 +539,7 @@ export default function LocalMT5SyncPage() {
                 <p className="text-xs">Automatically captures 1-minute OHLC data for every trade for chart replay</p>
               </div>
               <div className="bg-gray-800/50 rounded-xl p-4">
-                <h4 className="text-white font-medium mb-1">🔒 Private & Secure</h4>
+                <h4 className="text-white font-medium mb-1">🔒 Private &amp; Secure</h4>
                 <p className="text-xs">Your credentials never leave your machine — only trade data is sent</p>
               </div>
             </div>

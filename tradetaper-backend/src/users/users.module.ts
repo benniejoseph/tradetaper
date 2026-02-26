@@ -15,7 +15,7 @@ import { TradesModule } from '../trades/trades.module';
 import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
 import { MetaApiService } from './metaapi.service';
 import { UsersController } from './users.controller';
-// We might add UsersController later if we need direct user management endpoints
+import { WebSocketModule } from '../websocket/websocket.module'; // [FIX #15]
 
 @Module({
   imports: [
@@ -23,6 +23,7 @@ import { UsersController } from './users.controller';
     ConfigModule,
     forwardRef(() => TradesModule),
     SubscriptionsModule,
+    forwardRef(() => WebSocketModule), // [FIX #15] needed for MT5PositionsGateway injection
   ],
   providers: [
     UsersService,

@@ -177,8 +177,17 @@ export default function MetaApiStatusCard({ account }: MetaApiStatusCardProps) {
       )}
 
       <div className="mt-4 flex items-center justify-end text-xs text-gray-400">
-        <FaBolt className="mr-1 h-3 w-3 text-emerald-400" />
-        MetaApi streaming enabled
+        {account.isStreamingActive ? (
+          <>
+            <FaBolt className="mr-1 h-3 w-3 text-emerald-400" />
+            <span className="text-emerald-500 dark:text-emerald-400">Streaming live</span>
+          </>
+        ) : (
+          <>
+            <FaExclamationTriangle className="mr-1 h-3 w-3 text-amber-400" />
+            <span className="text-amber-500 dark:text-amber-400">Streaming paused — waiting to reconnect</span>
+          </>
+        )}
       </div>
     </div>
   );

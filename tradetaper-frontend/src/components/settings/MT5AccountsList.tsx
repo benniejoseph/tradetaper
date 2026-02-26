@@ -25,7 +25,6 @@ import {
   FaSpinner,
 } from 'react-icons/fa';
 import MT5AccountForm from './MT5AccountForm';
-import TerminalStatusCard from './TerminalStatusCard';
 import MetaApiStatusCard from './MetaApiStatusCard';
 
 const MT5AccountsList: React.FC = () => {
@@ -273,22 +272,11 @@ const MT5AccountsList: React.FC = () => {
                       </td>
                     </tr>
                     
-                    {/* Expanded Row for Terminal Status */}
+                    {/* Expanded Row — MetaApi Status only */}
                     {expandedAccountId === account.id && (
                       <tr>
                         <td colSpan={5} className="bg-gray-50/50 dark:bg-gray-800/20 p-4 border-b border-gray-100 dark:border-gray-800 animate-slideDown">
-                          <div className="grid gap-4 lg:grid-cols-2">
-                            <MetaApiStatusCard account={account} />
-                            <div className="space-y-2">
-                              <div className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                                Terminal Farm (Optional)
-                              </div>
-                              <TerminalStatusCard
-                                accountId={account.id}
-                                accountName={account.accountName}
-                              />
-                            </div>
-                          </div>
+                          <MetaApiStatusCard account={account} />
                         </td>
                       </tr>
                     )}

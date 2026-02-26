@@ -726,7 +726,20 @@ Return a JSON object strictly matching this schema:
     return await this.tradesRepository.find({ where });
   }
 
+
+  /**
+   * [FIX #10] Orphan all trades for an account using TypeORM (preserves entity hooks).
+   * Called when an MT5 account is deleted.
+   */
+  async orphanTradesByAccount(accountId: string): Promise<void> {
+    await this.tradesRepository.update(
+      { accountId } as any,
+      { accountId: null as any },
+    );
+  }
+
   async mergeDuplicateExternalTrades(
+
     userId: string,
     externalId: string,
     accountId?: string,

@@ -22,6 +22,14 @@ export interface MetaApiProvisionResult {
   region: string;
 }
 
+interface CachedConnection {
+  connection: StreamingMetaApiConnectionInstance;
+  lastUsed: number;
+}
+
+/** [FIX #3] TTL-evicting connection cache */
+const IDLE_TTL_MS = 10 * 60 * 1000; // 10-minute idle eviction
+
 @Injectable()
 export class MetaApiService {
   private readonly logger = new Logger(MetaApiService.name);
@@ -29,13 +37,18 @@ export class MetaApiService {
   private enabled = false;
   private metaApiToken: string | null = null;
   private metaApiDomain: string | null = null;
-  private readonly connectionCache = new Map<
-    string,
-    StreamingMetaApiConnectionInstance
-  >();
+
+  /** [FIX #3] Cache now stores {connection, lastUsed} and is periodically evicted */
+  private readonly connectionCache = new Map<string, CachedConnection>();
+  private evictionTimer: ReturnType<typeof setInterval> | null = null;
 
   constructor(private readonly configService: ConfigService) {
     this.initializeMetaApi();
+    // [FIX #3] Start idle connection eviction timer
+    this.evictionTimer = setInterval(
+      () => this.evictStaleConnections(),
+      5 * 60 * 1000, // check every 5 minutes
+    );
   }
 
   isEnabled(): boolean {
@@ -86,6 +99,22 @@ export class MetaApiService {
 
     this.enabled = true;
     this.logger.log(`MetaApi initialized (domain=${domain})`);
+  }
+
+  /** [FIX #3] Evict idle connections to prevent memory leak */
+  private async evictStaleConnections(): Promise<void> {
+    const now = Date.now();
+    for (const [id, cached] of this.connectionCache.entries()) {
+      if (now - cached.lastUsed > IDLE_TTL_MS) {
+        this.logger.log(`Evicting idle MetaApi connection for account ${id}`);
+        try {
+          await cached.connection.close();
+        } catch (err) {
+          this.logger.warn(`Error closing stale connection ${id}: ${err.message}`);
+        }
+        this.connectionCache.delete(id);
+      }
+    }
   }
 
   async getKnownServers(
@@ -149,6 +178,10 @@ export class MetaApiService {
     }
   }
 
+  /**
+   * [FIX #6] Find provisioning profile with exact server name match first,
+   * then fall back to prefix match, then substring.
+   */
   private async getProvisioningProfile(server: string): Promise<any> {
     if (!this.metaApi) {
       throw new Error('MetaApi is not configured');
@@ -163,10 +196,36 @@ export class MetaApiService {
           },
         );
       const profiles = profileList.items || [];
+      const serverLower = server.toLowerCase();
 
-      const profile = profiles.find((p) =>
-        p.name.toLowerCase().includes(server.toLowerCase()),
+      // Priority 1: exact match (case-insensitive)
+      let profile = profiles.find(
+        (p) => p.name.toLowerCase() === serverLower,
       );
+
+      // Priority 2: starts-with match (e.g. profile "ICMarkets" matches server "ICMarkets-Live03")
+      if (!profile) {
+        profile = profiles.find((p) =>
+          serverLower.startsWith(p.name.toLowerCase()),
+        );
+      }
+
+      // Priority 3: legacy fuzzy includes (last resort)
+      if (!profile) {
+        profile = profiles.find((p) =>
+          p.name.toLowerCase().includes(serverLower),
+        );
+      }
+
+      if (profile) {
+        this.logger.log(
+          `Provisioning profile matched: "${profile.name}" for server "${server}"`,
+        );
+      } else {
+        this.logger.warn(
+          `No provisioning profile found for server "${server}". Will use auto-detection.`,
+        );
+      }
 
       return profile || null;
     } catch (error) {
@@ -174,76 +233,102 @@ export class MetaApiService {
         throw error;
       }
       this.logger.error(
-        `Failed to get/create provisioning profile for ${server}`,
+        `Failed to get provisioning profile for ${server}`,
         error,
       );
       return null;
     }
   }
 
-  async createAndDeployAccount(
+  /**
+   * [FIX #2] Provision account — deploy is now fire-and-forget.
+   * The caller receives the metaApiAccountId immediately; a background job
+   * waits for deployment and initiates sync.
+   */
+  async provisionAccount(
     credentials: MT5AccountCredentials,
-  ): Promise<MetaApiProvisionResult> {
+  ): Promise<{ metaApiAccountId: string; provisioningProfileId?: string; region: string }> {
     if (!this.metaApi) {
       throw new Error('MetaApi is not configured');
     }
 
-    try {
-      const profile = await this.getProvisioningProfile(credentials.server);
+    const profile = await this.getProvisioningProfile(credentials.server);
 
-      const accountData: any = {
-        login: credentials.login,
-        password: credentials.password,
-        name: credentials.accountName,
-        server: credentials.server,
-        application: 'TradeTaper',
-        magic: 1000,
-        reliability: 'regular' as const,
-        tags: ['TradeTaper-User'],
-        keywords: [credentials.server.split('-')[0]], // Ensure MetaApi can resolve the server broker
-        platform: 'mt5', // Required when provisioning profile is not provided
-        type: 'cloud-g2',
-        baseCurrency: this.configService.get<string>(
-          'METAAPI_BASE_CURRENCY',
-          'USD',
-        ),
-      };
+    const accountData: any = {
+      login: credentials.login,
+      password: credentials.password,
+      name: credentials.accountName,
+      server: credentials.server,
+      application: 'TradeTaper',
+      magic: 1000,
+      reliability: 'regular' as const,
+      tags: ['TradeTaper-User'],
+      keywords: [credentials.server.split('-')[0]],
+      platform: 'mt5',
+      type: 'cloud-g2',
+      baseCurrency: this.configService.get<string>(
+        'METAAPI_BASE_CURRENCY',
+        'USD',
+      ),
+    };
 
-      if (profile) {
-        accountData.provisioningProfileId = profile.id;
-      }
+    if (profile) {
+      accountData.provisioningProfileId = profile.id;
+    }
 
-      const metaApiAccount =
-        await this.metaApi.metatraderAccountApi.createAccount(accountData);
-      await metaApiAccount.deploy();
+    const metaApiAccount =
+      await this.metaApi.metatraderAccountApi.createAccount(accountData);
 
-      const deploymentTimeout = 300000;
-      const startTime = Date.now();
+    // [FIX #2] Start deploy but do NOT await — return immediately
+    metaApiAccount.deploy().catch((err) => {
+      this.logger.warn(
+        `Background deploy for ${metaApiAccount.id} failed: ${err.message}`,
+      );
+    });
+
+    return {
+      metaApiAccountId: metaApiAccount.id,
+      provisioningProfileId: profile?.id,
+      region: metaApiAccount.region || 'new-york',
+    };
+  }
+
+  /**
+   * [FIX #2] Wait for deployment: called from a background job, not from the HTTP handler.
+   * Returns a partial MetaApiProvisionResult.
+   */
+  async waitForDeployment(
+    metaApiAccountId: string,
+    timeoutMs = 300_000,
+  ): Promise<MetaApiProvisionResult> {
+    if (!this.metaApi) throw new Error('MetaApi is not configured');
+
+    const metaApiAccount =
+      await this.metaApi.metatraderAccountApi.getAccount(metaApiAccountId);
+
+    if (!['DEPLOYED'].includes(metaApiAccount.state)) {
+      const start = Date.now();
       while (
         !['DEPLOYED'].includes(metaApiAccount.state) &&
-        Date.now() - startTime < deploymentTimeout
+        Date.now() - start < timeoutMs
       ) {
-        await new Promise((resolve) => setTimeout(resolve, 5000));
+        await new Promise((r) => setTimeout(r, 5000));
         await metaApiAccount.reload();
       }
-
-      if (!['DEPLOYED'].includes(metaApiAccount.state)) {
-        throw new InternalServerErrorException('Account deployment timeout');
-      }
-
-      return {
-        metaApiAccountId: metaApiAccount.id,
-        provisioningProfileId: profile?.id,
-        deploymentState: metaApiAccount.state,
-        region: metaApiAccount.region || 'new-york',
-      };
-    } catch (error) {
-      this.logger.error('Failed to create MetaApi account', error);
-      if (error instanceof BadRequestException) {
-        throw error;
-      }
-      throw new InternalServerErrorException('Failed to add MT5 account');
     }
+
+    if (!['DEPLOYED'].includes(metaApiAccount.state)) {
+      throw new Error(
+        `Account ${metaApiAccountId} did not deploy within ${timeoutMs / 1000}s (state=${metaApiAccount.state})`,
+      );
+    }
+
+    return {
+      metaApiAccountId: metaApiAccount.id,
+      provisioningProfileId: '', // filled by caller from DB
+      deploymentState: metaApiAccount.state,
+      region: metaApiAccount.region || 'new-york',
+    };
   }
 
   async connectAndSync(
@@ -266,6 +351,7 @@ export class MetaApiService {
     return connection.terminalState.accountInformation;
   }
 
+  /** [FIX #3 + #8] Streaming connection with TTL cache and 30s sync timeout */
   async getStreamingConnection(
     metaApiAccountId: string,
   ): Promise<StreamingMetaApiConnectionInstance> {
@@ -273,46 +359,54 @@ export class MetaApiService {
       throw new Error('MetaApi is not configured');
     }
 
-    let connection = this.connectionCache.get(metaApiAccountId);
+    const cached = this.connectionCache.get(metaApiAccountId);
 
-    if (connection) {
+    if (cached) {
       try {
-        await connection.connect();
+        await cached.connection.connect();
+        cached.lastUsed = Date.now(); // [FIX #3] Refresh TTL on use
+        return cached.connection;
       } catch (error) {
         this.logger.warn(
           `MetaApi connection reset for account ${metaApiAccountId}: ${error.message}`,
         );
         this.connectionCache.delete(metaApiAccountId);
-        connection = undefined;
       }
     }
 
-    if (!connection) {
-      const metaApiAccount =
-        await this.metaApi.metatraderAccountApi.getAccount(metaApiAccountId);
+    const metaApiAccount =
+      await this.metaApi.metatraderAccountApi.getAccount(metaApiAccountId);
 
+    if (!['DEPLOYED'].includes(metaApiAccount.state)) {
+      // [FIX #8] Don't block here — just deploy and wait up to 30s
+      await metaApiAccount.deploy();
+      const deployStart = Date.now();
+      while (
+        !['DEPLOYED'].includes(metaApiAccount.state) &&
+        Date.now() - deployStart < 30_000
+      ) {
+        await new Promise((r) => setTimeout(r, 3000));
+        await metaApiAccount.reload();
+      }
       if (!['DEPLOYED'].includes(metaApiAccount.state)) {
-        await metaApiAccount.deploy();
-        const deploymentTimeout = 300000;
-        const startTime = Date.now();
-        while (
-          !['DEPLOYED'].includes(metaApiAccount.state) &&
-          Date.now() - startTime < deploymentTimeout
-        ) {
-          await new Promise((resolve) => setTimeout(resolve, 5000));
-          await metaApiAccount.reload();
-        }
+        throw new Error(
+          `Account ${metaApiAccountId} not deployed (state=${metaApiAccount.state}). Try again shortly.`,
+        );
       }
-
-      connection = await metaApiAccount.getStreamingConnection();
-      this.connectionCache.set(metaApiAccountId, connection);
-      await connection.connect();
     }
+
+    const connection = await metaApiAccount.getStreamingConnection();
+    this.connectionCache.set(metaApiAccountId, {
+      connection,
+      lastUsed: Date.now(),
+    });
+    await connection.connect();
 
     if (!connection.synchronized) {
+      // [FIX #8] 30s timeout instead of 300s
       await connection.waitSynchronized({
         applicationPattern: 'TradeTaper',
-        timeoutInSeconds: 300,
+        timeoutInSeconds: 30,
       });
     }
 
@@ -320,11 +414,11 @@ export class MetaApiService {
   }
 
   async closeConnection(metaApiAccountId: string): Promise<void> {
-    const connection = this.connectionCache.get(metaApiAccountId);
-    if (!connection) return;
+    const cached = this.connectionCache.get(metaApiAccountId);
+    if (!cached) return;
 
     try {
-      await connection.close();
+      await cached.connection.close();
     } finally {
       this.connectionCache.delete(metaApiAccountId);
     }
@@ -338,5 +432,30 @@ export class MetaApiService {
     const metaApiAccount =
       await this.metaApi.metatraderAccountApi.getAccount(metaApiAccountId);
     await metaApiAccount.remove();
+  }
+
+  /**
+   * Check if a MetaAPI account already exists for a given login+server combination.
+   * Returns the existing metaApiAccountId if found, or null. [FIX #16 helper]
+   */
+  async findExistingAccount(
+    login: string,
+    server: string,
+  ): Promise<string | null> {
+    if (!this.metaApi) return null;
+    try {
+      const accounts =
+        await this.metaApi.metatraderAccountApi.getAccountsWithClassicPagination({
+          limit: 100,
+        });
+      const existing = (accounts.items || []).find(
+        (a) =>
+          a.login === login &&
+          a.server?.toLowerCase() === server.toLowerCase(),
+      );
+      return existing?.id ?? null;
+    } catch {
+      return null;
+    }
   }
 }
