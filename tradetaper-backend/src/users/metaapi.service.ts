@@ -55,6 +55,20 @@ export class MetaApiService {
     return this.enabled;
   }
 
+  /**
+   * Return the cached StreamingMetaApiConnectionInstance for a given MetaAPI account ID.
+   * Used by TradesService to fetch 1m candle history for the chart.
+   * Returns null if not cached (not yet connected via syncMetaApiAccount).
+   */
+  getCachedConnection(
+    metaApiAccountId: string,
+  ): StreamingMetaApiConnectionInstance | null {
+    const cached = this.connectionCache.get(metaApiAccountId);
+    if (!cached) return null;
+    cached.lastUsed = Date.now();
+    return cached.connection;
+  }
+
   private normalizeDomain(domain: string): string {
     const cleaned = domain.replace(/^https?:\/\//, '').trim();
     if (cleaned === 'agiliumtrade.ai') {

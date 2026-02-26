@@ -16,6 +16,7 @@ import { TradeCandle } from './entities/trade-candle.entity';
 import { TerminalFarmModule } from '../terminal-farm/terminal-farm.module';
 import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { BacktestingModule } from '../backtesting/backtesting.module'; // [CANDLE STORE]
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { NotificationsModule } from '../notifications/notifications.module';
     forwardRef(() => NotificationsModule),
     TagsModule,
     SubscriptionsModule,
+    forwardRef(() => BacktestingModule), // [CANDLE STORE] exposes CandleManagementService
   ],
   providers: [
     TradesService,

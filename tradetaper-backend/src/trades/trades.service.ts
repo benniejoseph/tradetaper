@@ -33,6 +33,8 @@ import { NotificationsService } from '../notifications/notifications.service';
 import { NotificationType } from '../notifications/entities/notification.entity';
 import { MultiModelOrchestratorService } from '../agents/llm/multi-model-orchestrator.service';
 import { VoiceJournalResponseDto } from './dto/voice-journal.dto';
+import { CandleManagementService } from '../backtesting/services/candle-management.service'; // [CANDLE STORE]
+import { MetaApiService } from '../users/metaapi.service'; // [CANDLE STORE]
 
 @Injectable()
 export class TradesService {
@@ -58,6 +60,10 @@ export class TradesService {
     @Inject(forwardRef(() => NotificationsService))
     private readonly notificationsService: NotificationsService,
     private readonly orchestratorService: MultiModelOrchestratorService,
+    @Inject(forwardRef(() => CandleManagementService))
+    private readonly candleManagementService: CandleManagementService, // [CANDLE STORE]
+    @Inject(forwardRef(() => MetaApiService))
+    private readonly metaApiService: MetaApiService, // [CANDLE STORE]
   ) {}
 
   async parseVoiceJournal(
@@ -120,116 +126,89 @@ Return a JSON object strictly matching this schema:
     }
   }
 
+  /**
+   * Get 1-minute candles for a trade's time window.
+   *
+   * Data flow:
+   *   1. Resolve the trade and its MT5 account
+   *   2. Determine active sync mode (MetaAPI or Terminal EA)
+   *   3. Delegate to CandleManagementService.getCandlesForTrade()
+   *      → checks market_candles (global shared store) first
+   *      → fetches missing gaps from MetaAPI or Terminal EA
+   *   4. Return 1m candles — frontend aggregates to 5m/15m/1h/4h/D1
+   */
   async getTradeCandles(
     tradeId: string,
-    timeframe: string,
+    _timeframe: string,   // kept for controller compat — frontend always gets 1m
     userContext: UserResponseDto,
   ): Promise<any[]> {
-    this.logger.debug(
-      `Fetching candles for trade ${tradeId}, timeframe ${timeframe}`,
-    );
+    this.logger.debug(`[CandleStore] getTradeCandles for trade ${tradeId}`);
 
     try {
-      // 1. Check TradeCandle cache first
-      const cached = await this.tradeCandleRepository.findOne({
-        where: { tradeId, timeframe },
-      });
-      if (cached) {
-        this.logger.debug(`Cache HIT for trade ${tradeId}`);
-        return cached.data;
-      }
-      this.logger.debug(`Cache MISS for trade ${tradeId}`);
-
-      // 2. Get Trade details and check executionCandles
+      // 1. Resolve trade
       const trade = await this.findOne(tradeId, userContext);
 
-      // 3. Return execution candles if available (auto-fetched from MT5)
-      if (trade.executionCandles && trade.executionCandles.length > 0) {
-        this.logger.debug(
-          `Returning ${trade.executionCandles.length} execution candles from DB`,
-        );
+      // 2. Check if we have an MT5 account and what sync mode is active
+      let metaApiConnection: any = null;
+      let terminalFarmSvc: any = null;
 
-        // Cache for future requests if trade is CLOSED
-        if (trade.status === TradeStatus.CLOSED) {
-          try {
-            await this.tradeCandleRepository.save({
-              tradeId: trade.id,
-              symbol: trade.symbol,
-              timeframe,
-              data: trade.executionCandles,
-            });
-          } catch (cacheError) {
-            this.logger.error(`Failed to cache candles: ${cacheError.message}`);
+      if (trade.accountId) {
+        try {
+          const account = await this.mt5AccountsService.findOne(
+              trade.accountId,
+            );
+
+          if (account?.metaApiAccountId && this.metaApiService.isEnabled()) {
+            // Use only an already-open cached connection — don't force a reconnect
+            metaApiConnection = this.metaApiService.getCachedConnection(
+              account.metaApiAccountId,
+            );
           }
-        }
 
-        return trade.executionCandles;
-      }
-
-      // 4. Candles not yet available - return pending status
-      // (Candles are auto-fetched when trade closes via processTrades)
-      if (trade.status === TradeStatus.OPEN) {
-        return [
-          {
-            status: 'pending',
-            message: 'Candles will be fetched when trade closes',
-          },
-        ];
-      }
-
-      // 5. Trade is closed but no candles - may need manual trigger or re-sync
-      if (trade.externalId && trade.accountId) {
-        const terminal = await this.terminalFarmService.findTerminalForAccount(
-          trade.accountId,
-        );
-        if (terminal && terminal.status === 'RUNNING') {
-          // Calculate time range
-          const entryTime = new Date(trade.openTime).getTime();
-          const exitTime = trade.closeTime
-            ? new Date(trade.closeTime).getTime()
-            : Date.now();
-          const bufferMs = 2 * 60 * 60 * 1000; // 2 hours
-
-          const startTime = new Date(entryTime - bufferMs);
-          const endTime = new Date(exitTime + bufferMs);
-
-          const formatMt5Time = (value: Date) =>
-            value
-              .toISOString()
-              .replace('T', ' ')
-              .substring(0, 19)
-              .replace(/-/g, '.');
-          const startStr = formatMt5Time(startTime);
-          const endStr = formatMt5Time(endTime);
-          const payload = `${trade.symbol},1m,${startStr},${endStr},${trade.id}`;
-
-          this.terminalFarmService.queueCommand(
-            terminal.id,
-            'FETCH_CANDLES',
-            payload,
-          );
-
-          return [
-            {
-              status: 'queued',
-              message: 'Request sent to MT5 Terminal. Refresh in 30s.',
-            },
-          ];
+          // If MetaAPI not available, try Terminal EA
+          if (!metaApiConnection) {
+            const terminal = await this.terminalFarmService.findTerminalForAccount(
+              trade.accountId,
+            );
+            if (terminal?.status === 'RUNNING') {
+              terminalFarmSvc = this.terminalFarmService;
+            }
+          }
+        } catch {
+          // Account resolution failed — still try to serve from cache
         }
       }
 
-      // No terminal or not an MT5 trade
-      return [
-        {
-          status: 'unavailable',
-          message: 'Candle data not available for this trade',
-        },
-      ];
-    } catch (error) {
-      this.logger.error(
-        `Error in getTradeCandles: ${error.message}`,
-        error.stack,
+      // 3. Fetch via global candle store (gap detection + fetch only missing)
+      const { candles, source, cached } =
+        await this.candleManagementService.getCandlesForTrade(tradeId, trade, {
+          bufferHours: 1,
+          metaApiConnection,
+          terminalFarmService: terminalFarmSvc,
+          accountId: trade.accountId ?? undefined,
+        });
+
+      this.logger.log(
+        `[CandleStore] ${candles.length} 1m candles for ` +
+          `${trade.symbol} (source: ${source}, cached: ${cached})`,
       );
+
+      if (candles.length > 0) {
+        return candles;
+      }
+
+      // 4. No candles available at all — return status for the frontend
+      if (!metaApiConnection && !terminalFarmSvc) {
+        return [{ status: 'unavailable', message: 'No active sync method. Connect MetaAPI or Terminal EA.' }];
+      }
+
+      if (terminalFarmSvc) {
+        return [{ status: 'queued', message: 'Candle request sent to MT5 Terminal EA. Refresh in 30s.' }];
+      }
+
+      return [{ status: 'unavailable', message: 'Candle data not available for this trade.' }];
+    } catch (error) {
+      this.logger.error(`[CandleStore] Error: ${error.message}`, error.stack);
       throw error;
     }
   }

@@ -62,6 +62,8 @@ const TradeCandleChart: React.FC<TradeCandleChartProps> = ({
       '5m': 5,
       '15m': 15,
       '1h': 60,
+      '4h': 240,
+      '1d': 1440,
     };
     const interval = intervalMap[targetTf] || 1;
     
@@ -472,15 +474,15 @@ const TradeCandleChart: React.FC<TradeCandleChartProps> = ({
           </div>
         </div>
         
-        {/* Timeframe Selector - aggregates 1m data */}
-        <div className="flex items-center gap-2 bg-gray-100 dark:bg-white/5 p-1 rounded-xl border border-gray-200/30 dark:border-white/5">
-          {['1m', '5m', '15m', '1h'].map((tf) => (
+        {/* Timeframe Selector — aggregates 1m base data */}
+        <div className="flex items-center gap-1 bg-gray-100 dark:bg-white/5 p-1 rounded-xl border border-gray-200/30 dark:border-white/5">
+          {(['1m', '5m', '15m', '1h', '4h', '1d'] as const).map((tf) => (
             <button
               key={tf}
               onClick={() => setTimeframe(tf)}
               className={`px-3 py-1.5 text-[10px] font-bold rounded-lg transition-all duration-200 ${
-                timeframe === tf 
-                  ? 'bg-white dark:bg-emerald-500 text-emerald-600 dark:text-white shadow-sm' 
+                timeframe === tf
+                  ? 'bg-white dark:bg-emerald-500 text-emerald-600 dark:text-white shadow-sm'
                   : 'text-gray-500 hover:text-gray-900 dark:hover:text-white'
               }`}
             >
