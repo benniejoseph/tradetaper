@@ -378,7 +378,6 @@ export const fetchTrades = createAsyncThunk<
       const fetchKey = `account:${filterKey}`;
       const isFresh = state.trades.lastFetchAt && Date.now() - state.trades.lastFetchAt < 60_000;
       if (
-        state.trades.trades.length > 0 &&
         state.trades.lastFetchKey === fetchKey &&
         isFresh &&
         state.trades.lastFetchIncludeTags === includeTags
@@ -694,6 +693,12 @@ const tradesSlice = createSlice({
         (action.meta.arg as any)?.dateFrom || '',
         (action.meta.arg as any)?.dateTo || '',
         (action.meta.arg as any)?.isStarred ? 'starred' : '',
+        Number.isFinite((action.meta.arg as any)?.minPnl) ? `minPnl:${(action.meta.arg as any)?.minPnl}` : '',
+        Number.isFinite((action.meta.arg as any)?.maxPnl) ? `maxPnl:${(action.meta.arg as any)?.maxPnl}` : '',
+        Number.isFinite((action.meta.arg as any)?.minDuration) ? `minDur:${(action.meta.arg as any)?.minDuration}` : '',
+        Number.isFinite((action.meta.arg as any)?.maxDuration) ? `maxDur:${(action.meta.arg as any)?.maxDuration}` : '',
+        (action.meta.arg as any)?.sortBy || '',
+        (action.meta.arg as any)?.sortDir || '',
       ].join('|');
       state.lastFetchKey = `account:${filterKey}`;
       state.lastFetchAt = Date.now();

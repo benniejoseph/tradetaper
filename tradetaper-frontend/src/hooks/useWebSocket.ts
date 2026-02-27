@@ -6,7 +6,7 @@ import { io, Socket } from 'socket.io-client';
 // Derive WebSocket URL from API URL (remove /api/v1 suffix if present)
 // Force cache bust: 2026-02-10T06:30:00Z - JWT auth fix deployment
 const getWebSocketURL = () => {
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.tradetaper.com/api/v1';
   // Remove /api/v1 suffix and replace http with ws
   const wsUrl = apiUrl.replace('/api/v1', '').replace('https://', 'wss://').replace('http://', 'ws://');
   return wsUrl;

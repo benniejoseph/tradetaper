@@ -117,6 +117,14 @@ export class UpdateMT5AccountDto {
 
   @IsOptional()
   @IsNumber()
+  initialBalance?: number;
+
+  @IsOptional()
+  @IsNumber()
+  leverage?: number;
+
+  @IsOptional()
+  @IsNumber()
   target?: number;
 }
 

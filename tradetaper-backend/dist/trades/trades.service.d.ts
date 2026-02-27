@@ -16,6 +16,7 @@ import { TerminalFarmService } from '../terminal-farm/terminal-farm.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { MultiModelOrchestratorService } from '../agents/llm/multi-model-orchestrator.service';
 import { VoiceJournalResponseDto } from './dto/voice-journal.dto';
+import { CandleManagementService } from '../backtesting/services/candle-management.service';
 export declare class TradesService {
     private readonly tradesRepository;
     private readonly tradeCandleRepository;
@@ -27,10 +28,11 @@ export declare class TradesService {
     private readonly terminalFarmService;
     private readonly notificationsService;
     private readonly orchestratorService;
+    private readonly candleManagementService;
     private readonly logger;
-    constructor(tradesRepository: Repository<Trade>, tradeCandleRepository: Repository<TradeCandle>, tagRepository: Repository<Tag>, tradesGateway: SimpleTradesGateway, geminiVisionService: GeminiVisionService, accountsService: AccountsService, mt5AccountsService: MT5AccountsService, terminalFarmService: TerminalFarmService, notificationsService: NotificationsService, orchestratorService: MultiModelOrchestratorService);
+    constructor(tradesRepository: Repository<Trade>, tradeCandleRepository: Repository<TradeCandle>, tagRepository: Repository<Tag>, tradesGateway: SimpleTradesGateway, geminiVisionService: GeminiVisionService, accountsService: AccountsService, mt5AccountsService: MT5AccountsService, terminalFarmService: TerminalFarmService, notificationsService: NotificationsService, orchestratorService: MultiModelOrchestratorService, candleManagementService: CandleManagementService);
     parseVoiceJournal(audioBuffer: Buffer, mimeType: string, userContext: UserResponseDto): Promise<VoiceJournalResponseDto>;
-    getTradeCandles(tradeId: string, timeframe: string, userContext: UserResponseDto): Promise<any[]>;
+    getTradeCandles(tradeId: string, _timeframe: string, userContext: UserResponseDto): Promise<any[]>;
     saveExecutionCandles(tradeId: string, candles: any[]): Promise<void>;
     private _populateAccountDetails;
     private findOrCreateTags;
@@ -56,6 +58,8 @@ export declare class TradesService {
     findDuplicate(userId: string, symbol: string, entryDate: Date, externalId?: string): Promise<Trade | null>;
     findOneByExternalId(userId: string, externalId: string, accountId?: string): Promise<Trade | null>;
     findManyByExternalIds(userId: string, externalIds: string[], accountId?: string): Promise<Trade[]>;
+    findOpenTradeBySymbolAndTime(userId: string, accountId: string, symbol: string, nearOpenTime: Date, toleranceSec?: number): Promise<Trade | null>;
+    orphanTradesByAccount(accountId: string): Promise<void>;
     mergeDuplicateExternalTrades(userId: string, externalId: string, accountId?: string): Promise<Trade | null>;
     mergeDuplicateExternalTradesForUser(userId: string, accountId?: string): Promise<{
         merged: number;

@@ -16,6 +16,7 @@ import { MarketSentimentAgent } from './trading/market-sentiment-agent';
 
 // Common
 import { SecretsModule } from '../common/secrets/secrets.module';
+import { AiQuotaService } from '../ai/ai-quota.service';
 
 /**
  * Agents Module
@@ -39,6 +40,9 @@ import { SecretsModule } from '../common/secrets/secrets.module';
     LLMCostManagerService,
     SemanticCacheService,
     MultiModelOrchestratorService,
+
+    // Cost Controls
+    AiQuotaService,
 
     // Trading Agents
     MarketSentimentAgent,
@@ -77,6 +81,7 @@ import { SecretsModule } from '../common/secrets/secrets.module';
     SemanticCacheService,
     MultiModelOrchestratorService,
     MarketSentimentAgent,
+    AiQuotaService,
   ],
 })
 export class AgentsModule {}

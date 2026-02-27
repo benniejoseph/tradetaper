@@ -1,23 +1,31 @@
-import { Repository } from 'typeorm';
+import { Repository, DataSource } from 'typeorm';
 import { MT5Account } from './entities/mt5-account.entity';
 import { CreateMT5AccountDto, UpdateMT5AccountDto, MT5AccountResponseDto } from './dto/mt5-account.dto';
 import { ConfigService } from '@nestjs/config';
 import { TradesService } from '../trades/trades.service';
 import { User } from './entities/user.entity';
 import { MetaApiService } from './metaapi.service';
+import { MT5PositionsGateway } from '../websocket/mt5-positions.gateway';
+import { StreamingMetaApiConnectionInstance } from 'metaapi.cloud-sdk';
 export declare class MT5AccountsService {
     private readonly mt5AccountRepository;
     private readonly userRepository;
     private readonly configService;
     private readonly tradesService;
     private readonly metaApiService;
+    private readonly mt5PositionsGateway;
+    private readonly dataSource;
     private readonly logger;
     private readonly encryptionKey;
-    private readonly encryptionIV;
-    constructor(mt5AccountRepository: Repository<MT5Account>, userRepository: Repository<User>, configService: ConfigService, tradesService: TradesService, metaApiService: MetaApiService);
+    constructor(mt5AccountRepository: Repository<MT5Account>, userRepository: Repository<User>, configService: ConfigService, tradesService: TradesService, metaApiService: MetaApiService, mt5PositionsGateway: MT5PositionsGateway, dataSource: DataSource);
+    disconnectMetaApiAccount(accountId: string, userId: string): Promise<void>;
     private readonly metaApiListeners;
+    isMetaApiEnabled(): boolean;
+    getMetaApiService(): MetaApiService;
+    getCachedConnection(metaApiAccountId: string): StreamingMetaApiConnectionInstance | null;
     private encrypt;
     private decrypt;
+    private accountFingerprint;
     create(createDto: CreateMT5AccountDto, userId: string): Promise<MT5AccountResponseDto>;
     createManual(manualAccountData: Record<string, any>): Promise<Record<string, any>>;
     findAllByUser(userId: string): Promise<MT5AccountResponseDto[]>;
@@ -38,15 +46,19 @@ export declare class MT5AccountsService {
     }>;
     remove(id: string): Promise<void>;
     private updateAccountInfo;
+    private readonly positionUpdateDebounce;
     private ensureMetaApiListener;
+    private reconnectWithBackoff;
     private syncOpenPositionsFromMetaApi;
     private syncMetaApiPosition;
     private processMetaApiDealsBatch;
     private processMetaApiDeal;
+    private mapDealReason;
     private isSupportedDealType;
     private mapDealSide;
     private getContractSize;
     private detectAssetType;
+    private mapToListDto;
     private mapToResponseDto;
     getConnectionStatus(id: string): Promise<{
         state: string;
@@ -57,4 +69,5 @@ export declare class MT5AccountsService {
         lastSyncAt?: Date;
         lastSyncError?: string;
     }>;
+    setDefaultAccount(id: string, userId: string): Promise<MT5AccountResponseDto>;
 }

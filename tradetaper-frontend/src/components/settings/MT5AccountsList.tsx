@@ -11,6 +11,7 @@ import {
   syncMT5Account,
   createMT5Account,
   updateMT5Account,
+  setDefaultMT5Account,
   MT5Account
 } from '@/store/features/mt5AccountsSlice';
 import {
@@ -23,6 +24,8 @@ import {
   FaChevronDown,
   FaChevronUp,
   FaSpinner,
+  FaStar,
+  FaRegStar,
 } from 'react-icons/fa';
 import MT5AccountForm from './MT5AccountForm';
 import MetaApiStatusCard from './MetaApiStatusCard';
@@ -64,6 +67,15 @@ const MT5AccountsList: React.FC = () => {
       await dispatch(fetchMT5Accounts());
     } catch (err) {
       console.error('Error deleting account:', err);
+    }
+  };
+
+  const handleSetDefaultAccount = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      await dispatch(setDefaultMT5Account(id)).unwrap();
+    } catch (err) {
+      console.error('Failed to set default account:', err);
     }
   };
 
@@ -176,6 +188,7 @@ const MT5AccountsList: React.FC = () => {
                    <th className="px-5 py-3 font-medium text-gray-500 dark:text-gray-400">Account</th>
                    <th className="px-5 py-3 font-medium text-gray-500 dark:text-gray-400">Server</th>
                    <th className="px-5 py-3 font-medium text-gray-500 dark:text-gray-400">Balance</th>
+                   <th className="px-5 py-3 font-medium text-gray-500 dark:text-gray-400 text-center">Default</th>
                    <th className="px-5 py-3 font-medium text-gray-500 dark:text-gray-400 text-center">MetaApi Status</th>
                    <th className="px-5 py-3 font-medium text-gray-500 dark:text-gray-400 text-right">Actions</th>
                 </tr>
@@ -203,6 +216,19 @@ const MT5AccountsList: React.FC = () => {
                       </td>
                       <td className="px-5 py-3 font-mono font-medium text-gray-900 dark:text-white">
                         {account.currency} {(account.balance ?? 0).toLocaleString()}
+                      </td>
+                      <td className="px-5 py-3 text-center" onClick={(e) => e.stopPropagation()}>
+                        <button
+                          onClick={(e) => handleSetDefaultAccount(account.id, e)}
+                          className={`p-1.5 rounded transition-colors ${account.isDefault ? 'text-yellow-500 hover:bg-yellow-50 dark:hover:bg-yellow-900/20' : 'text-gray-300 dark:text-gray-600 hover:text-yellow-500 hover:bg-gray-50 dark:hover:bg-gray-800'}`}
+                          title={account.isDefault ? "Default Account" : "Make Default"}
+                        >
+                          {account.isDefault ? (
+                            <FaStar className="w-5 h-5 drop-shadow-sm" />
+                          ) : (
+                            <FaRegStar className="w-5 h-5" />
+                          )}
+                        </button>
                       </td>
                       <td className="px-5 py-3 text-center" onClick={(e) => e.stopPropagation()}>
                         <button

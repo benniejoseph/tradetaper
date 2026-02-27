@@ -322,143 +322,154 @@ export default function LocalMT5SyncPage() {
       )}
 
       {selectedAccountId && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
-          {/* Terminal Status Card */}
-          <div className="rounded-2xl border border-gray-700/50 bg-gradient-to-br from-gray-900/80 to-gray-800/60 backdrop-blur-xl shadow-xl overflow-hidden">
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-3">
-                  <div className="p-3 bg-gradient-to-r from-blue-500/20 to-indigo-500/20 rounded-xl">
-                    <FaDesktop className="w-5 h-5 text-blue-400" />
-                  </div>
-                  <div>
-                    <h2 className="text-lg font-semibold text-white">Terminal Status</h2>
-                    <p className="text-sm text-gray-400">{selectedAccount?.accountName}</p>
-                  </div>
-                </div>
-                {terminalStatus?.status && (
-                  <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full border ${statusBg(terminalStatus.status)}`}>
-                    <FaCircle className={`w-2 h-2 ${statusColor(terminalStatus.status)} ${terminalStatus.status === 'RUNNING' ? 'animate-pulse' : ''}`} />
-                    <span className={`text-xs font-semibold ${statusColor(terminalStatus.status)}`}>
-                      {terminalStatus.status}
-                    </span>
-                  </div>
-                )}
+        <>
+          {activeMode === 'metaapi' ? (
+            <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-8 text-center flex flex-col items-center justify-center min-h-[300px]">
+              <div className="p-4 bg-emerald-500/10 rounded-full mb-4">
+                <FaCloud className="w-10 h-10 text-emerald-400" />
               </div>
+              <h3 className="text-xl font-semibold text-white mb-2">MetaAPI Cloud Connected</h3>
+              <p className="text-emerald-200/80 max-w-md">
+                This account is currently syncing via MetaAPI Cloud. The local Terminal EA is disabled to prevent duplicate trades.
+              </p>
+              <p className="text-sm text-gray-400 mt-6">
+                If you wish to use the local EA instead, click <strong>Local Terminal EA</strong> above to switch modes.
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
-              {/* Terminal ID */}
-              {terminalStatus?.id && (
-                <div className="mb-4 p-3 bg-gray-800/60 rounded-xl border border-gray-700/50">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <FaFingerprint className="w-3.5 h-3.5 text-indigo-400" />
-                      <span className="text-xs font-semibold text-gray-400 uppercase">Terminal ID</span>
+              {/* Terminal Status Card */}
+              <div className="rounded-2xl border border-gray-700/50 bg-gradient-to-br from-gray-900/80 to-gray-800/60 backdrop-blur-xl shadow-xl overflow-hidden">
+                <div className="p-6">
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center gap-3">
+                      <div className="p-3 bg-gradient-to-r from-blue-500/20 to-indigo-500/20 rounded-xl">
+                        <FaDesktop className="w-5 h-5 text-blue-400" />
+                      </div>
+                      <div>
+                        <h2 className="text-lg font-semibold text-white">Terminal Status</h2>
+                        <p className="text-sm text-gray-400">{selectedAccount?.accountName}</p>
+                      </div>
                     </div>
-                    <button
-                      onClick={copyTerminalId}
-                      className="p-1.5 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
-                    >
-                      {terminalIdCopied ? <FaCheck className="w-3 h-3 text-emerald-400" /> : <FaCopy className="w-3 h-3 text-gray-400" />}
-                    </button>
-                  </div>
-                  <p className="mt-1 text-sm font-mono text-gray-200 truncate">{terminalStatus.id}</p>
-                </div>
-              )}
-
-              {/* Status Info */}
-              {terminalStatus?.status === 'RUNNING' && (
-                <div className="space-y-3 mb-6">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-400">Last Heartbeat</span>
-                    <span className="text-gray-200">
-                      {terminalStatus.lastHeartbeat
-                        ? new Date(terminalStatus.lastHeartbeat).toLocaleString()
-                        : '—'}
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-400">Last Sync</span>
-                    <span className="text-gray-200">
-                      {terminalStatus.lastSyncAt
-                        ? new Date(terminalStatus.lastSyncAt).toLocaleString()
-                        : 'Never'}
-                    </span>
-                  </div>
-                </div>
-              )}
-
-              {/* Action Buttons */}
-              <div className="flex flex-wrap gap-3">
-                {!terminalStatus || terminalStatus.status === 'STOPPED' ? (
-                  <button
-                    onClick={handleEnableSync}
-                    disabled={loading || disconnectingMetaApi}
-                    className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white rounded-xl font-medium transition-all disabled:opacity-50"
-                  >
-                    <FaPlay className="w-3 h-3" />
-                    {disconnectingMetaApi ? 'Pausing MetaAPI…' : loading ? 'Enabling…' : 'Enable Auto-Sync'}
-                  </button>
-                ) : (
-                  <>
-                    {terminalStatus.status === 'RUNNING' && (
-                      <button
-                        onClick={handleManualSync}
-                        disabled={syncing}
-                        className="flex items-center gap-2 px-4 py-2.5 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 border border-blue-500/30 rounded-xl font-medium transition-all disabled:opacity-50"
-                      >
-                        <FaSync className={`w-3 h-3 ${syncing ? 'animate-spin' : ''}`} />
-                        {syncing ? 'Syncing…' : 'Manual Sync'}
-                      </button>
+                    {terminalStatus?.status && (
+                      <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full border ${statusBg(terminalStatus.status)}`}>
+                        <FaCircle className={`w-2 h-2 ${statusColor(terminalStatus.status)} ${terminalStatus.status === 'RUNNING' ? 'animate-pulse' : ''}`} />
+                        <span className={`text-xs font-semibold ${statusColor(terminalStatus.status)}`}>
+                          {terminalStatus.status}
+                        </span>
+                      </div>
                     )}
-                    <button
-                      onClick={handleDisableSync}
-                      disabled={loading}
-                      className="flex items-center gap-2 px-4 py-2.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 rounded-xl font-medium transition-all disabled:opacity-50"
-                    >
-                      <FaStop className="w-3 h-3" />
-                      {loading ? 'Stopping...' : 'Disable'}
-                    </button>
-                  </>
-                )}
-              </div>
-            </div>
-          </div>
+                  </div>
 
-          {/* Setup Guide Card */}
-          <div className="rounded-2xl border border-gray-700/50 bg-gradient-to-br from-gray-900/80 to-gray-800/60 backdrop-blur-xl shadow-xl overflow-hidden">
-            <div className="p-6">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="p-3 bg-gradient-to-r from-amber-500/20 to-orange-500/20 rounded-xl">
-                  <FaInfoCircle className="w-5 h-5 text-amber-400" />
+                  {/* Terminal ID */}
+                  {terminalStatus?.id && (
+                    <div className="mb-4 p-3 bg-gray-800/60 rounded-xl border border-gray-700/50">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <FaFingerprint className="w-3.5 h-3.5 text-indigo-400" />
+                          <span className="text-xs font-semibold text-gray-400 uppercase">Terminal ID</span>
+                        </div>
+                        <button
+                          onClick={copyTerminalId}
+                          className="p-1.5 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
+                        >
+                          {terminalIdCopied ? <FaCheck className="w-3 h-3 text-emerald-400" /> : <FaCopy className="w-3 h-3 text-gray-400" />}
+                        </button>
+                      </div>
+                      <p className="mt-1 text-sm font-mono text-gray-200 truncate">{terminalStatus.id}</p>
+                    </div>
+                  )}
+
+                  {/* Status Info */}
+                  {terminalStatus?.status === 'RUNNING' && (
+                    <div className="space-y-3 mb-6">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-400">Last Heartbeat</span>
+                        <span className="text-gray-200">
+                          {terminalStatus.lastHeartbeat
+                            ? new Date(terminalStatus.lastHeartbeat).toLocaleString()
+                            : '—'}
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-400">Last Sync</span>
+                        <span className="text-gray-200">
+                          {terminalStatus.lastSyncAt
+                            ? new Date(terminalStatus.lastSyncAt).toLocaleString()
+                            : 'Never'}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Action Buttons */}
+                  <div className="flex flex-wrap gap-3">
+                    {!terminalStatus || terminalStatus.status === 'STOPPED' ? (
+                      <button
+                        onClick={handleEnableSync}
+                        disabled={loading || disconnectingMetaApi}
+                        className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white rounded-xl font-medium transition-all disabled:opacity-50"
+                      >
+                        <FaPlay className="w-3 h-3" />
+                        {disconnectingMetaApi ? 'Pausing MetaAPI…' : loading ? 'Enabling…' : 'Enable Auto-Sync'}
+                      </button>
+                    ) : (
+                      <>
+                        {terminalStatus.status === 'RUNNING' && (
+                          <button
+                            onClick={handleManualSync}
+                            disabled={syncing}
+                            className="flex items-center gap-2 px-4 py-2.5 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 border border-blue-500/30 rounded-xl font-medium transition-all disabled:opacity-50"
+                          >
+                            <FaSync className={`w-3 h-3 ${syncing ? 'animate-spin' : ''}`} />
+                            {syncing ? 'Syncing…' : 'Manual Sync'}
+                          </button>
+                        )}
+                        <button
+                          onClick={handleDisableSync}
+                          disabled={loading}
+                          className="flex items-center gap-2 px-4 py-2.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 rounded-xl font-medium transition-all disabled:opacity-50"
+                        >
+                          <FaStop className="w-3 h-3" />
+                          {loading ? 'Stopping...' : 'Disable'}
+                        </button>
+                      </>
+                    )}
+                  </div>
                 </div>
-                <div>
-                  <h2 className="text-lg font-semibold text-white">EA Setup Guide</h2>
-                  <p className="text-sm text-gray-400">Configure your Expert Advisor</p>
+              </div>
+
+              {/* Setup Guide Card */}
+              <div className="rounded-2xl border border-gray-700/50 bg-gradient-to-br from-gray-900/80 to-gray-800/60 backdrop-blur-xl shadow-xl overflow-hidden">
+                <div className="p-6">
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="p-3 bg-gradient-to-r from-amber-500/20 to-orange-500/20 rounded-xl">
+                      <FaInfoCircle className="w-5 h-5 text-amber-400" />
+                    </div>
+                    <div>
+                      <h2 className="text-lg font-semibold text-white">EA Setup Guide</h2>
+                      <p className="text-sm text-gray-400">Configure your Expert Advisor</p>
+                    </div>
+                  </div>
+
+                  <div className="bg-gray-800/50 rounded-xl p-4 space-y-3">
+                    <ol className="text-sm text-gray-400 space-y-3 list-decimal list-inside">
+                      <li>Download the <span className="text-blue-400 font-medium">TradeTaper.mq5</span> EA file</li>
+                      <li>Place it in your MT5 <code className="text-gray-300 bg-gray-700 px-1.5 py-0.5 rounded text-xs">Experts</code> folder</li>
+                      <li>Click <span className="text-emerald-400 font-medium">&quot;Enable Auto-Sync&quot;</span> above to get your Terminal ID</li>
+                      <li>Attach the EA to any chart in your MT5 terminal</li>
+                      <li>Paste the <span className="text-indigo-400 font-medium">Terminal ID</span> into the EA&apos;s settings</li>
+                      <li>Enable <span className="text-gray-200">&quot;Allow Web Requests&quot;</span> in MT5 → Tools → Options → Expert Advisors</li>
+                      <li>The EA will automatically sync your trades and 1-min candle data</li>
+                    </ol>
+                  </div>
                 </div>
               </div>
 
-              <div className="bg-gray-800/50 rounded-xl p-4 space-y-3">
-                <ol className="text-sm text-gray-400 space-y-3 list-decimal list-inside">
-                  <li>Download the <span className="text-blue-400 font-medium">TradeTaper.mq5</span> EA file</li>
-                  <li>Place it in your MT5 <code className="text-gray-300 bg-gray-700 px-1.5 py-0.5 rounded text-xs">Experts</code> folder</li>
-                  <li>Click <span className="text-emerald-400 font-medium">&quot;Enable Auto-Sync&quot;</span> above to get your Terminal ID</li>
-                  <li>Attach the EA to any chart in your MT5 terminal</li>
-                  <li>Paste the <span className="text-indigo-400 font-medium">Terminal ID</span> into the EA&apos;s settings</li>
-                  <li>Enable <span className="text-gray-200">&quot;Allow Web Requests&quot;</span> in MT5 → Tools → Options → Expert Advisors</li>
-                  <li>The EA will automatically sync your trades and 1-min candle data</li>
-                </ol>
-              </div>
-
-              <div className="mt-4 p-3 bg-blue-500/5 border border-blue-500/20 rounded-xl">
-                <p className="text-xs text-blue-300">
-                  <strong>Note:</strong> The EA authenticates using a shared webhook secret configured on the server.
-                  The Terminal ID is used to identify which terminal is sending data — no separate auth token is needed.
-                </p>
-              </div>
             </div>
-          </div>
-        </div>
+          )}
+        </>
       )}
 
       {/* Live Positions Panel */}

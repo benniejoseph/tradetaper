@@ -37,7 +37,8 @@ export class CandleManagementService {
     symbol: string,
     from: Date,
     to: Date,
-    metaApiConnection?: any, // StreamingMetaApiConnectionInstance or null
+    metaApiService?: any, // MetaApiService instance (has getHistoricalCandles)
+    metaApiAccountId?: string, // MetaAPI account ID to fetch candles for
     terminalFarmService?: any, // TerminalFarmService or null
     accountId?: string,
   ): Promise<MarketCandle[]> {
@@ -70,10 +71,10 @@ export class CandleManagementService {
     // 3. Fetch missing ranges
     let fetched: Omit<MarketCandle, 'id' | 'createdAt' | 'updatedAt'>[] = [];
 
-    // Priority 1: MetaAPI connection (if provided and has getHistoricalCandles)
-    if (metaApiConnection) {
+    // Priority 1: MetaAPI service (correct SDK path: account.getHistoricalCandles)
+    if (metaApiService && metaApiAccountId) {
       try {
-        fetched = await this.fetchFromMetaApi(symbol, gaps, metaApiConnection);
+        fetched = await this.fetchFromMetaApiService(symbol, gaps, metaApiService, metaApiAccountId);
       } catch (err) {
         this.logger.warn(`[CandleStore] MetaAPI fetch failed: ${err.message}`);
       }
@@ -123,7 +124,8 @@ export class CandleManagementService {
     },
     options?: {
       bufferHours?: number;       // default 1. use 4 for H4/D1 views
-      metaApiConnection?: any;
+      metaApiService?: any;       // MetaApiService instance
+      metaApiAccountId?: string;  // MetaAPI account ID
       terminalFarmService?: any;
       accountId?: string;
     },
@@ -152,7 +154,8 @@ export class CandleManagementService {
       trade.symbol,
       from,
       to,
-      options?.metaApiConnection,
+      options?.metaApiService,
+      options?.metaApiAccountId,
       options?.terminalFarmService,
       options?.accountId,
     );
@@ -160,7 +163,7 @@ export class CandleManagementService {
     const cached = rows.length === beforeCount && rows.length > 0;
     const source = cached
       ? 'cache'
-      : options?.metaApiConnection
+      : options?.metaApiService
         ? 'metaapi'
         : options?.terminalFarmService
           ? 'terminal'
@@ -329,22 +332,24 @@ export class CandleManagementService {
     return merged;
   }
 
-  /** Fetch 1m candles from MetaAPI for each gap range */
-  private async fetchFromMetaApi(
+  /** Fetch 1m candles from MetaAPI for each gap range using proper SDK account API */
+  private async fetchFromMetaApiService(
     symbol: string,
     gaps: Array<{ from: Date; to: Date }>,
-    connection: any,
+    metaApiService: any,
+    metaApiAccountId: string,
   ): Promise<Omit<MarketCandle, 'id' | 'createdAt' | 'updatedAt'>[]> {
     const result: Omit<MarketCandle, 'id' | 'createdAt' | 'updatedAt'>[] = [];
 
     for (const gap of gaps) {
       try {
-        // MetaAPI SDK: connection.getHistoricalCandles(symbol, timeframe, startTime, count)
-        // Some SDK versions use account.getHistoricalCandles() — we try both
-        const raw: any[] = await (
-          connection.getHistoricalCandles
-            ? connection.getHistoricalCandles(symbol, '1m', gap.from, gap.to)
-            : connection.getServerTime?.().then(() => []) // fallback no-op
+        // Correct MetaAPI SDK path: account.getHistoricalCandles() NOT connection.getHistoricalCandles()
+        const raw: any[] = await metaApiService.getHistoricalCandles(
+          metaApiAccountId,
+          symbol,
+          '1m',
+          gap.from,
+          gap.to,
         );
 
         if (!Array.isArray(raw)) continue;
@@ -352,6 +357,7 @@ export class CandleManagementService {
         for (const c of raw) {
           if (!c.time || !c.open) continue;
           const ts = c.time instanceof Date ? c.time : new Date(c.time);
+          if (ts < gap.from || ts > gap.to) continue;
           result.push({
             symbol: symbol.toUpperCase(),
             timeframe: '1m',
@@ -422,7 +428,42 @@ export class CandleManagementService {
     }
   }
 
+  /**
+   * Save raw 1m candles coming from the Terminal EA webhook into the global store
+   */
+  async saveTerminalCandles(
+    symbol: string,
+    terminalCandles: {
+      time: number;
+      open: number;
+      high: number;
+      low: number;
+      close: number;
+      volume?: number;
+    }[],
+  ): Promise<void> {
+    if (terminalCandles.length === 0) return;
+
+    this.logger.log(`Upserting ${terminalCandles.length} Terminal EA candles for ${symbol}`);
+
+    const entities: Omit<MarketCandle, 'id' | 'createdAt' | 'updatedAt'>[] =
+      terminalCandles.map((c) => ({
+        symbol,
+        timeframe: '1m', // Terminal always syncs 1m data for the chart cache
+        timestamp: new Date(c.time * 1000),
+        open: c.open,
+        high: c.high,
+        low: c.low,
+        close: c.close,
+        volume: c.volume || 0,
+        source: 'terminal',
+      }));
+
+    await this.upsertCandles(entities);
+  }
+
   /** Convert MarketCandle rows to lightweight-charts compatible format */
+
   private toChartFormat(candles: MarketCandle[]): any[] {
     return candles.map((c) => ({
       time: Math.floor(c.timestamp.getTime() / 1000),

@@ -222,36 +222,61 @@ export class TradeProcessorService {
     const normalizedOpenTime = this.normalizeTerminalTime(trade.openTime);
     const positionIdString = trade.positionId!.toString();
 
-    if (existingTrade) {
+    // [BUG3 FIX] If positionId lookup missed (e.g. gold/commodities broker quirk),
+    // try a fuzzy lookup: find any OPEN trade for same symbol opened near this time.
+    let resolvedTrade = existingTrade;
+    if (!resolvedTrade && normalizedOpenTime) {
+      try {
+        const fuzzy = await this.tradesService.findOpenTradeBySymbolAndTime(
+          userId,
+          accountId,
+          trade.symbol,
+          new Date(normalizedOpenTime),
+          120, // ±2 min tolerance
+        );
+        if (fuzzy) {
+          this.logger.log(
+            `[BUG3 FIX] Fuzzy match for exit deal — found open trade ${fuzzy.id} for ${trade.symbol} via proximity lookup (positionId=${positionIdString})`,
+          );
+          // Patch the externalId on the matched trade so future lookups hit it directly
+          await this.tradesService.updateFromSync(fuzzy.id, { externalId: positionIdString });
+          resolvedTrade = fuzzy;
+        }
+      } catch (err) {
+        this.logger.warn(`[BUG3 FIX] Fuzzy lookup failed: ${err.message}`);
+      }
+    }
+
+    if (resolvedTrade) {
       // Check syncSource conflict
-      if (existingTrade.syncSource && existingTrade.syncSource !== syncSource) {
+      if (resolvedTrade.syncSource && resolvedTrade.syncSource !== syncSource) {
         this.logger.warn(
-          `SyncSource conflict for exit on position ${positionIdString}: existing=${existingTrade.syncSource}, incoming=${syncSource}. Skipping.`,
+          `SyncSource conflict for exit on position ${positionIdString}: existing=${resolvedTrade.syncSource}, incoming=${syncSource}. Skipping.`,
         );
         return {
           action: 'conflict',
-          reason: `Already synced via ${existingTrade.syncSource}`,
+          reason: `Already synced via ${resolvedTrade.syncSource}`,
         };
       }
 
       if (
-        existingTrade.status === TradeStatus.CLOSED &&
-        existingTrade.contractSize
+        resolvedTrade.status === TradeStatus.CLOSED &&
+        resolvedTrade.contractSize
       ) {
         return { action: 'skipped' };
       }
 
       const updatedTrade = await this.tradesService.update(
-        existingTrade.id,
+        resolvedTrade.id,
         {
           status: TradeStatus.CLOSED,
           closeTime: normalizedOpenTime,
           closePrice: trade.openPrice, // MT5 Deal Price = execution price
           profitOrLoss: trade.profit,
           commission:
-            parseFloat(String(existingTrade.commission || 0)) +
+            parseFloat(String(resolvedTrade.commission || 0)) +
             (trade.commission || 0),
-          swap: parseFloat(String(existingTrade.swap || 0)) + (trade.swap || 0),
+          swap: parseFloat(String(resolvedTrade.swap || 0)) + (trade.swap || 0),
           contractSize: trade.contractSize,
         },
         { id: userId } as any,
@@ -262,9 +287,9 @@ export class TradeProcessorService {
       this.queueCandleFetch(
         terminalId,
         trade.symbol,
-        existingTrade.openTime,
+        resolvedTrade.openTime,
         normalizedOpenTime,
-        existingTrade.id,
+        resolvedTrade.id,
       );
 
       return { action: 'updated', trade: updatedTrade };
@@ -273,6 +298,7 @@ export class TradeProcessorService {
     // Orphan exit: entry was missed
     return this.processOrphanExit(trade, accountId, userId, syncSource);
   }
+
 
   /**
    * Process a DEAL_ENTRY_INOUT (partial close / reverse).

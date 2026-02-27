@@ -109,6 +109,27 @@ export class MT5AccountsController {
     });
   }
 
+  @Post(':id/disconnect-metaapi')
+  async disconnectMetaApiAccount(@Request() req, @Param('id') id: string) {
+    // Controller-level authorization check is done within the service for simplicity, 
+    // but we double-check ownership here too
+    const account = await this.mt5AccountsService.findOne(id);
+    if (!account || account.userId !== req.user.id) {
+      throw new BadRequestException('MT5 account not found');
+    }
+
+    await this.mt5AccountsService.disconnectMetaApiAccount(id, req.user.id);
+    return { success: true, message: 'MetaApi connection removed' };
+  }
+
+  @Put(':id/default')
+  async setDefaultAccount(
+    @Request() req,
+    @Param('id') id: string,
+  ): Promise<MT5AccountResponseDto> {
+    return this.mt5AccountsService.setDefaultAccount(id, req.user.id);
+  }
+
   @Delete(':id')
   async remove(@Request() req, @Param('id') id: string): Promise<void> {
     const account = await this.mt5AccountsService.findOne(id);

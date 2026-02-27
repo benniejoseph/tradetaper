@@ -27,12 +27,15 @@ export class MT5Account {
   @Column({ length: 255, select: false }) // Password is hidden by default for security
   password: string;
 
-  // MetaApi specific fields
-  @Column({ length: 255, nullable: true })
-  metaApiAccountId: string;
+  @Column({ type: 'varchar', length: 64, nullable: true })
+  loginServerFingerprint: string | null;
 
-  @Column({ length: 255, nullable: true })
-  provisioningProfileId: string;
+  // MetaApi specific fields
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  metaApiAccountId: string | null;
+
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  provisioningProfileId: string | null;
 
   @Column({ length: 50, default: 'UNDEPLOYED' })
   deploymentState: string; // UNDEPLOYED, DEPLOYING, DEPLOYED, UNDEPLOYING
@@ -45,6 +48,9 @@ export class MT5Account {
 
   @Column({ default: false })
   isActive: boolean;
+
+  @Column({ type: 'boolean', default: false })
+  isDefault: boolean;
 
   @Column({ type: 'decimal', precision: 19, scale: 2, default: 0 })
   balance: number;

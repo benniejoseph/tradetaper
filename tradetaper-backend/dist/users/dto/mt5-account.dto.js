@@ -139,6 +139,8 @@ class UpdateMT5AccountDto {
     accountType;
     currency;
     isActive;
+    initialBalance;
+    leverage;
     target;
 }
 exports.UpdateMT5AccountDto = UpdateMT5AccountDto;
@@ -177,6 +179,16 @@ __decorate([
     (0, class_validator_1.IsBoolean)(),
     __metadata("design:type", Boolean)
 ], UpdateMT5AccountDto.prototype, "isActive", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Number)
+], UpdateMT5AccountDto.prototype, "initialBalance", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Number)
+], UpdateMT5AccountDto.prototype, "leverage", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsNumber)(),

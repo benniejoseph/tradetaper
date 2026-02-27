@@ -18,12 +18,14 @@ let MT5Account = class MT5Account {
     server;
     login;
     password;
+    loginServerFingerprint;
     metaApiAccountId;
     provisioningProfileId;
     deploymentState;
     connectionState;
     isRealAccount;
     isActive;
+    isDefault;
     balance;
     initialBalance;
     target;
@@ -74,12 +76,16 @@ __decorate([
     __metadata("design:type", String)
 ], MT5Account.prototype, "password", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ length: 255, nullable: true }),
-    __metadata("design:type", String)
+    (0, typeorm_1.Column)({ type: 'varchar', length: 64, nullable: true }),
+    __metadata("design:type", Object)
+], MT5Account.prototype, "loginServerFingerprint", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'varchar', length: 255, nullable: true }),
+    __metadata("design:type", Object)
 ], MT5Account.prototype, "metaApiAccountId", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ length: 255, nullable: true }),
-    __metadata("design:type", String)
+    (0, typeorm_1.Column)({ type: 'varchar', length: 255, nullable: true }),
+    __metadata("design:type", Object)
 ], MT5Account.prototype, "provisioningProfileId", void 0);
 __decorate([
     (0, typeorm_1.Column)({ length: 50, default: 'UNDEPLOYED' }),
@@ -97,6 +103,10 @@ __decorate([
     (0, typeorm_1.Column)({ default: false }),
     __metadata("design:type", Boolean)
 ], MT5Account.prototype, "isActive", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'boolean', default: false }),
+    __metadata("design:type", Boolean)
+], MT5Account.prototype, "isDefault", void 0);
 __decorate([
     (0, typeorm_1.Column)({ type: 'decimal', precision: 19, scale: 2, default: 0 }),
     __metadata("design:type", Number)

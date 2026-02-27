@@ -34,7 +34,6 @@ import { NotificationType } from '../notifications/entities/notification.entity'
 import { MultiModelOrchestratorService } from '../agents/llm/multi-model-orchestrator.service';
 import { VoiceJournalResponseDto } from './dto/voice-journal.dto';
 import { CandleManagementService } from '../backtesting/services/candle-management.service'; // [CANDLE STORE]
-import { MetaApiService } from '../users/metaapi.service'; // [CANDLE STORE]
 
 @Injectable()
 export class TradesService {
@@ -62,8 +61,6 @@ export class TradesService {
     private readonly orchestratorService: MultiModelOrchestratorService,
     @Inject(forwardRef(() => CandleManagementService))
     private readonly candleManagementService: CandleManagementService, // [CANDLE STORE]
-    @Inject(forwardRef(() => MetaApiService))
-    private readonly metaApiService: MetaApiService, // [CANDLE STORE]
   ) {}
 
   async parseVoiceJournal(
@@ -149,7 +146,8 @@ Return a JSON object strictly matching this schema:
       const trade = await this.findOne(tradeId, userContext);
 
       // 2. Check if we have an MT5 account and what sync mode is active
-      let metaApiConnection: any = null;
+      let metaApiSvc: any = null;
+      let metaApiAccountId: string | null = null;
       let terminalFarmSvc: any = null;
 
       if (trade.accountId) {
@@ -158,15 +156,14 @@ Return a JSON object strictly matching this schema:
               trade.accountId,
             );
 
-          if (account?.metaApiAccountId && this.metaApiService.isEnabled()) {
-            // Use only an already-open cached connection — don't force a reconnect
-            metaApiConnection = this.metaApiService.getCachedConnection(
-              account.metaApiAccountId,
-            );
+          if (account?.metaApiAccountId && this.mt5AccountsService.isMetaApiEnabled()) {
+            // Use the MetaApiService directly (has getHistoricalCandles on account object)
+            metaApiSvc = this.mt5AccountsService.getMetaApiService();
+            metaApiAccountId = account.metaApiAccountId;
           }
 
           // If MetaAPI not available, try Terminal EA
-          if (!metaApiConnection) {
+          if (!metaApiSvc) {
             const terminal = await this.terminalFarmService.findTerminalForAccount(
               trade.accountId,
             );
@@ -183,7 +180,8 @@ Return a JSON object strictly matching this schema:
       const { candles, source, cached } =
         await this.candleManagementService.getCandlesForTrade(tradeId, trade, {
           bufferHours: 1,
-          metaApiConnection,
+          metaApiService: metaApiSvc,
+          metaApiAccountId: metaApiAccountId ?? undefined,
           terminalFarmService: terminalFarmSvc,
           accountId: trade.accountId ?? undefined,
         });
@@ -198,7 +196,7 @@ Return a JSON object strictly matching this schema:
       }
 
       // 4. No candles available at all — return status for the frontend
-      if (!metaApiConnection && !terminalFarmSvc) {
+      if (!metaApiSvc && !terminalFarmSvc) {
         return [{ status: 'unavailable', message: 'No active sync method. Connect MetaAPI or Terminal EA.' }];
       }
 
@@ -212,6 +210,7 @@ Return a JSON object strictly matching this schema:
       throw error;
     }
   }
+
 
   async saveExecutionCandles(tradeId: string, candles: any[]): Promise<void> {
     const trade = await this.tradesRepository.findOne({
@@ -703,6 +702,34 @@ Return a JSON object strictly matching this schema:
     }
 
     return await this.tradesRepository.find({ where });
+  }
+
+  /**
+   * Fallback lookup: find an OPEN trade for a given symbol+account opened within
+   * ±toleranceSec seconds of `openTime`. Used when positionId-based lookup fails
+   * (e.g. for gold/commodities where DEAL_POSITION_ID ≠ position ticket).
+   */
+  async findOpenTradeBySymbolAndTime(
+    userId: string,
+    accountId: string,
+    symbol: string,
+    nearOpenTime: Date,
+    toleranceSec = 120,
+  ): Promise<Trade | null> {
+    const from = new Date(nearOpenTime.getTime() - toleranceSec * 1000);
+    const to   = new Date(nearOpenTime.getTime() + toleranceSec * 1000);
+
+    const result = await this.tradesRepository
+      .createQueryBuilder('t')
+      .where('t.userId = :userId',     { userId })
+      .andWhere('t.accountId = :accountId', { accountId })
+      .andWhere('t.symbol   = :symbol',   { symbol })
+      .andWhere("t.status   = 'OPEN'")
+      .andWhere('t.openTime BETWEEN :from AND :to', { from, to })
+      .orderBy('t.openTime', 'ASC')
+      .getOne();
+
+    return result ?? null;
   }
 
 

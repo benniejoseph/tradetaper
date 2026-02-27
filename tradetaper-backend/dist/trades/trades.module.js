@@ -22,6 +22,7 @@ const trade_candle_entity_1 = require("./entities/trade-candle.entity");
 const terminal_farm_module_1 = require("../terminal-farm/terminal-farm.module");
 const subscriptions_module_1 = require("../subscriptions/subscriptions.module");
 const notifications_module_1 = require("../notifications/notifications.module");
+const backtesting_module_1 = require("../backtesting/backtesting.module");
 let TradesModule = class TradesModule {
 };
 exports.TradesModule = TradesModule;
@@ -34,6 +35,7 @@ exports.TradesModule = TradesModule = __decorate([
             (0, common_1.forwardRef)(() => notifications_module_1.NotificationsModule),
             tags_module_1.TagsModule,
             subscriptions_module_1.SubscriptionsModule,
+            (0, common_1.forwardRef)(() => backtesting_module_1.BacktestingModule),
         ],
         providers: [
             trades_service_1.TradesService,

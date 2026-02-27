@@ -139,6 +139,10 @@ export class TerminalSyncDto {
   @IsString()
   authToken?: string;
 
+  @IsOptional()
+  @IsNumber()
+  batchIndex?: number;
+
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => TerminalTradeDto)

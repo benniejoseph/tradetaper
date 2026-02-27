@@ -1,9 +1,23 @@
 import { Injectable, Logger } from '@nestjs/common';
 import yahooFinance from 'yahoo-finance2';
 
+/**
+ * Circuit breaker state for Yahoo Finance (unofficial API).
+ * After 3 consecutive failures the circuit OPENS and all calls return [] immediately.
+ * Auto-resets after 5 minutes so we retry periodically.
+ */
+interface CircuitBreaker {
+  failures: number;
+  openedAt: Date | null;
+  isOpen: boolean;
+}
+
 @Injectable()
 export class YahooFinanceService {
   private readonly logger = new Logger(YahooFinanceService.name);
+  private readonly cb: CircuitBreaker = { failures: 0, openedAt: null, isOpen: false };
+  private readonly CB_THRESHOLD = 3;          // trip after 3 consecutive failures
+  private readonly CB_RESET_MS = 5 * 60_000; // auto-reset after 5 minutes
 
   // Map frontend timeframes to Yahoo Finance intervals
   private readonly timeframeMap: Record<string, string> = {
@@ -31,11 +45,17 @@ export class YahooFinanceService {
     startTime: Date,
     endTime: Date,
   ): Promise<any[]> {
+    // Circuit breaker check — if open, skip network call
+    if (this.circuitIsOpen()) {
+      this.logger.warn(
+        `[UNOFFICIAL API ALERT] Yahoo Finance circuit breaker OPEN — skipping request for ${symbol}. ` +
+        `Will retry after ${new Date(this.cb.openedAt!.getTime() + this.CB_RESET_MS).toISOString()}`,
+      );
+      return [];
+    }
+
     const yahooSymbol = this._resolveSymbol(symbol);
     const interval = this.timeframeMap[timeframe] || '1d';
-
-    // Yahoo Finance endpoints (like '1h') often only support limited history (e.g. last 730 days)
-    // We'll try to fetch as requested, but catch errors gracefully.
 
     this.logger.log(
       `Fetching from Yahoo Finance: ${yahooSymbol} (${interval}) [${startTime.toISOString()} - ${endTime.toISOString()}]`,
@@ -45,14 +65,15 @@ export class YahooFinanceService {
       const queryOptions = {
         period1: startTime,
         period2: endTime,
-        interval: interval as any, // '1m' | '2m' | '5m' | '15m' | '30m' | '60m' | '90m' | '1h' | '1d' | '5d' | '1wk' | '1mo' | '3mo'
+        interval: interval as any,
       };
 
       const result = await yahooFinance.historical(yahooSymbol, queryOptions);
 
-      // Transform to match MetaApi format
-      // Yahoo returns: { date, open, high, low, close, adjClose, volume }
-      // MetaApi expects: { time, open, high, low, close, tickVolume, spread, etc. }
+      // Success — reset circuit breaker
+      this.cb.failures = 0;
+      this.cb.isOpen = false;
+      this.cb.openedAt = null;
 
       return (result as any[]).map((candle) => ({
         time: candle.date,
@@ -63,10 +84,23 @@ export class YahooFinanceService {
         tickVolume: candle.volume,
       }));
     } catch (error) {
-      this.logger.warn(
-        `Failed to fetch from Yahoo Finance for ${yahooSymbol}: ${error.message}`,
-      );
-      // Return empty array instead of throwing to allow graceful degradation in the chain
+      this.cb.failures++;
+
+      if (this.cb.failures >= this.CB_THRESHOLD) {
+        this.cb.isOpen = true;
+        this.cb.openedAt = new Date();
+        this.logger.error(
+          `[UNOFFICIAL API ALERT] Yahoo Finance circuit breaker TRIPPED after ${this.cb.failures} consecutive failures. ` +
+          `Last error: ${error.message}. Service will be suspended for ${this.CB_RESET_MS / 60_000} minutes. ` +
+          `ACTION: Consider replacing yahoo-finance2 with a stable alternative (Twelve Data, Polygon.io).`,
+        );
+      } else {
+        this.logger.warn(
+          `[UNOFFICIAL API] Yahoo Finance request failed (attempt ${this.cb.failures}/${this.CB_THRESHOLD}): ` +
+          `symbol=${yahooSymbol}, error=${error.message}`,
+        );
+      }
+
       return [];
     }
   }
@@ -94,5 +128,22 @@ export class YahooFinanceService {
     }
 
     return s;
+  }
+
+  /**
+   * Returns true if the circuit breaker is open (too many consecutive failures).
+   * Auto-resets after CB_RESET_MS milliseconds.
+   */
+  private circuitIsOpen(): boolean {
+    if (!this.cb.isOpen) return false;
+    // Check if cooldown period has passed → auto-reset
+    if (this.cb.openedAt && Date.now() - this.cb.openedAt.getTime() >= this.CB_RESET_MS) {
+      this.logger.log('[UNOFFICIAL API] Yahoo Finance circuit breaker RESET — retrying requests');
+      this.cb.failures = 0;
+      this.cb.isOpen = false;
+      this.cb.openedAt = null;
+      return false;
+    }
+    return true;
   }
 }

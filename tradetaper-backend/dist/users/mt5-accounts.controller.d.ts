@@ -18,6 +18,11 @@ export declare class MT5AccountsController {
         skipped: number;
         failed: number;
     }>;
+    disconnectMetaApiAccount(req: any, id: string): Promise<{
+        success: boolean;
+        message: string;
+    }>;
+    setDefaultAccount(req: any, id: string): Promise<MT5AccountResponseDto>;
     remove(req: any, id: string): Promise<void>;
     getConnectionStatus(req: any, id: string): Promise<{
         state: string;

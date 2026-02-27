@@ -73,6 +73,17 @@ let MT5AccountsController = class MT5AccountsController {
             fullHistory: true,
         });
     }
+    async disconnectMetaApiAccount(req, id) {
+        const account = await this.mt5AccountsService.findOne(id);
+        if (!account || account.userId !== req.user.id) {
+            throw new common_1.BadRequestException('MT5 account not found');
+        }
+        await this.mt5AccountsService.disconnectMetaApiAccount(id, req.user.id);
+        return { success: true, message: 'MetaApi connection removed' };
+    }
+    async setDefaultAccount(req, id) {
+        return this.mt5AccountsService.setDefaultAccount(id, req.user.id);
+    }
     async remove(req, id) {
         const account = await this.mt5AccountsService.findOne(id);
         if (!account || account.userId !== req.user.id) {
@@ -157,6 +168,22 @@ __decorate([
     __metadata("design:paramtypes", [Object, String]),
     __metadata("design:returntype", Promise)
 ], MT5AccountsController.prototype, "syncMetaApiAccount", null);
+__decorate([
+    (0, common_1.Post)(':id/disconnect-metaapi'),
+    __param(0, (0, common_1.Request)()),
+    __param(1, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String]),
+    __metadata("design:returntype", Promise)
+], MT5AccountsController.prototype, "disconnectMetaApiAccount", null);
+__decorate([
+    (0, common_1.Put)(':id/default'),
+    __param(0, (0, common_1.Request)()),
+    __param(1, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String]),
+    __metadata("design:returntype", Promise)
+], MT5AccountsController.prototype, "setDefaultAccount", null);
 __decorate([
     (0, common_1.Delete)(':id'),
     __param(0, (0, common_1.Request)()),

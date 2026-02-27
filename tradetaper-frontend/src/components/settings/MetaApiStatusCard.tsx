@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   FaBolt,
   FaCloud,
@@ -7,8 +7,11 @@ import {
   FaSatelliteDish,
   FaServer,
   FaSyncAlt,
+  FaUnlink,
 } from 'react-icons/fa';
-import { MT5Account } from '@/store/features/mt5AccountsSlice';
+import { useDispatch } from 'react-redux';
+import { AppDispatch } from '../../store/store';
+import { MT5Account, disconnectMetaApiAccount } from '../../store/features/mt5AccountsSlice';
 
 interface MetaApiStatusCardProps {
   account: MT5Account;
@@ -48,6 +51,17 @@ const StatusBadge = ({ label, tone }: { label: string; tone: Tone }) => (
 );
 
 export default function MetaApiStatusCard({ account }: MetaApiStatusCardProps) {
+  const dispatch = useDispatch<AppDispatch>();
+  const [isDisconnecting, setIsDisconnecting] = useState(false);
+
+  const handleDisconnect = async () => {
+    if (confirm('Are you sure you want to disconnect this MetaAPI connection? This will completely sever the link and stop all syncing.')) {
+      setIsDisconnecting(true);
+      await dispatch(disconnectMetaApiAccount(account.id));
+      setIsDisconnecting(false);
+    }
+  };
+
   if (!account.metaApiAccountId) {
     return (
       <div className="rounded-xl border border-dashed border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-5">
@@ -87,9 +101,20 @@ export default function MetaApiStatusCard({ account }: MetaApiStatusCardProps) {
             </p>
           </div>
         </div>
-        <span className="text-xs font-medium rounded-full px-3 py-1 bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300">
-          Full history
-        </span>
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-medium rounded-full px-3 py-1 bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300">
+            Full history
+          </span>
+          <button
+            onClick={handleDisconnect}
+            disabled={isDisconnecting}
+            className="flex items-center gap-1.5 px-3 py-1 text-xs font-medium text-rose-600 hover:text-white bg-rose-50 hover:bg-rose-600 dark:bg-rose-900/30 dark:text-rose-400 dark:hover:bg-rose-700 dark:hover:text-white rounded-full transition-colors disabled:opacity-50"
+            title="Disconnect MetaAPI"
+          >
+            <FaUnlink className="w-3 h-3" />
+            {isDisconnecting ? 'Disconnecting...' : 'Disconnect'}
+          </button>
+        </div>
       </div>
 
       <div className="mt-4 flex flex-wrap gap-2">

@@ -7,7 +7,7 @@ import {
   InternalServerErrorException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, DataSource } from 'typeorm';
 import { MT5Account } from './entities/mt5-account.entity';
 import {
   CreateMT5AccountDto,
@@ -20,6 +20,7 @@ import { TradesService } from '../trades/trades.service';
 import { User } from './entities/user.entity';
 import { MetaApiService } from './metaapi.service';
 import { MT5PositionsGateway } from '../websocket/mt5-positions.gateway'; // [FIX #15]
+
 import {
   SynchronizationListener,
   MetatraderDeal,
@@ -43,6 +44,7 @@ export class MT5AccountsService {
     private readonly tradesService: TradesService,
     private readonly metaApiService: MetaApiService,
     private readonly mt5PositionsGateway: MT5PositionsGateway, // [FIX #15]
+    private readonly dataSource: DataSource,
   ) {
     const encryptionKeyString =
       this.configService.get<string>('MT5_ENCRYPTION_KEY') ||
@@ -60,10 +62,93 @@ export class MT5AccountsService {
     }
   }
 
+  /**
+   * Completely disconnects and removes a MetaAPI account
+   * Stops streaming, undeploys from MetaAPI, and clears DB state
+   */
+  async disconnectMetaApiAccount(accountId: string, userId: string): Promise<void> {
+    const account = await this.mt5AccountRepository.findOne({
+      where: { id: accountId, userId },
+    });
+
+    if (!account) {
+      throw new NotFoundException('MT5 account not found');
+    }
+
+    if (!account.metaApiAccountId) {
+      throw new BadRequestException('Account is not connected to MetaApi');
+    }
+
+    const metaApiAccountId = account.metaApiAccountId;
+    this.logger.log(`Disconnecting MetaAPI account ${metaApiAccountId} for user ${userId}`);
+
+    try {
+      // 1. Stop streaming if active
+      if (account.isStreamingActive) {
+        await this.metaApiService.closeConnection(metaApiAccountId);
+        const listener = this.metaApiListeners.get(metaApiAccountId);
+        if (listener) {
+          try {
+            const connection = await this.metaApiService.getStreamingConnection(metaApiAccountId);
+            if (connection) {
+              connection.removeSynchronizationListener(listener);
+            }
+          } catch (e) {
+            this.logger.warn(`Could not remove MetaAPI listener during disconnect: ${e.message}`);
+          }
+          this.metaApiListeners.delete(metaApiAccountId);
+        }
+      }
+
+      // 2. Undeploy and Delete from MetaAPI cloud
+      try {
+        await this.metaApiService.removeAccount(metaApiAccountId);
+        this.logger.log(`Deleted MetaAPI account ${metaApiAccountId} from cloud`);
+      } catch (e) {
+        this.logger.warn(`Failed to delete MetaAPI account ${metaApiAccountId} from cloud: ${e.message}. It might already be deleted.`);
+      }
+
+      // 3. Clear MetaAPI specific fields from local DB, but keep the account record
+      await this.mt5AccountRepository.update(accountId, {
+        metaApiAccountId: null,
+        provisioningProfileId: null,
+        connectionStatus: 'disconnected',
+        connectionState: 'DISCONNECTED',
+        deploymentState: 'UNDEPLOYED',
+        isStreamingActive: false,
+        syncAttempts: 0,
+        lastHeartbeatAt: null,
+        lastSyncAt: null,
+        lastSyncError: null,
+      });
+
+      this.logger.log(`Successfully disconnected MetaAPI for account ${accountId}`);
+    } catch (error) {
+      this.logger.error(`Error disconnecting MetaAPI account ${accountId}: ${error.message}`);
+      throw new InternalServerErrorException(`Failed to disconnect MetaAPI: ${error.message}`);
+    }
+  }
+
   private readonly metaApiListeners = new Map<
     string,
     SynchronizationListener
   >();
+
+  /** Expose MetaAPI enabled state — avoids injecting MetaApiService into sibling services */
+  isMetaApiEnabled(): boolean {
+    return this.metaApiService.isEnabled();
+  }
+
+  /** Expose MetaApiService instance — for direct historical candle fetching in TradesService */
+  getMetaApiService(): MetaApiService {
+    return this.metaApiService;
+  }
+
+  /** Return cached connection for a MetaAPI account — null if not yet connected */
+  getCachedConnection(metaApiAccountId: string) {
+    return this.metaApiService.getCachedConnection(metaApiAccountId);
+  }
+
 
   // [FIX #1] Per-call random IV — ciphertext is no longer deterministic
   private encrypt(text: string): string {
@@ -914,6 +999,11 @@ export class MT5AccountsService {
         if (contractSize && !tradeRecord.contractSize) updates.contractSize = contractSize;
         if (!tradeRecord.externalDealId) updates.externalDealId = deal.id;
         if (!tradeRecord.mt5Magic && deal.magic) updates.mt5Magic = deal.magic;
+        // [FIELD FIX] Apply SL/TP from deal if we have a value and the trade doesn't yet
+        if (deal.stopLoss !== undefined && deal.stopLoss !== null && deal.stopLoss !== 0)
+          updates.stopLoss = deal.stopLoss;
+        if (deal.takeProfit !== undefined && deal.takeProfit !== null && deal.takeProfit !== 0)
+          updates.takeProfit = deal.takeProfit;
         // [FIX #13]
         if (!tradeRecord.notes && deal.comment) updates.notes = dealNotes;
 
@@ -946,6 +1036,9 @@ export class MT5AccountsService {
           mt5Magic: deal.magic,
           contractSize,
           syncSource: 'metaapi',
+          // [FIELD FIX] Map SL/TP from the entry deal (present on MT5 opening deals per MetaAPI docs)
+          stopLoss: (deal.stopLoss && deal.stopLoss !== 0) ? deal.stopLoss : undefined,
+          takeProfit: (deal.takeProfit && deal.takeProfit !== 0) ? deal.takeProfit : undefined,
         },
         { id: account.userId } as any,
       );
@@ -954,6 +1047,16 @@ export class MT5AccountsService {
 
     if (shouldTreatAsExit) {
       if (tradeRecord) {
+        // [FIELD FIX] Exit deal carries last-known position SL/TP — enrich if open trade lacked them
+        const enrichedSl =
+          !tradeRecord.stopLoss && deal.stopLoss && deal.stopLoss !== 0
+            ? deal.stopLoss
+            : undefined;
+        const enrichedTp =
+          !tradeRecord.takeProfit && deal.takeProfit && deal.takeProfit !== 0
+            ? deal.takeProfit
+            : undefined;
+
         const updatedTrade = await this.tradesService.update(
           tradeRecord.id,
           {
@@ -967,6 +1070,8 @@ export class MT5AccountsService {
             swap: parseFloat(String(tradeRecord.swap || 0)) + (deal.swap || 0),
             contractSize: contractSize || tradeRecord.contractSize,
             closeReason, // [FIX #14]
+            ...(enrichedSl !== undefined ? { stopLoss: enrichedSl } : {}),
+            ...(enrichedTp !== undefined ? { takeProfit: enrichedTp } : {}),
           } as any,
           { id: account.userId } as any,
           { changeSource: 'mt5' },
@@ -1172,6 +1277,49 @@ export class MT5AccountsService {
       lastSyncAt: account.lastSyncAt ?? undefined,
       lastSyncError: account.lastSyncError ?? undefined,
     };
+  }
+
+  /**
+   * Set a specific MT5 account as the default for a user
+   */
+  async setDefaultAccount(id: string, userId: string): Promise<MT5AccountResponseDto> {
+    const account = await this.mt5AccountRepository.findOne({ where: { id, userId } });
+    if (!account) {
+      throw new NotFoundException(`MT5 account with id ${id} not found or doesn't belong to the user`);
+    }
+
+    // Using a transaction to ensure atomicity
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      // 1. Unset any existing default account for this user
+      await queryRunner.manager.update(
+        MT5Account,
+        { userId, isDefault: true },
+        { isDefault: false }
+      );
+
+      // 2. Set this account as the default
+      await queryRunner.manager.update(
+        MT5Account,
+        { id },
+        { isDefault: true }
+      );
+
+      await queryRunner.commitTransaction();
+
+      // Return the updated account
+      const updatedAccount = await this.mt5AccountRepository.findOne({ where: { id } });
+      return this.mapToResponseDto(updatedAccount!);
+    } catch (err) {
+      await queryRunner.rollbackTransaction();
+      this.logger.error(`Failed to set default account: ${err.message}`, err.stack);
+      throw new InternalServerErrorException('Failed to set default account');
+    } finally {
+      await queryRunner.release();
+    }
   }
 }
 

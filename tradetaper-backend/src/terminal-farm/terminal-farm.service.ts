@@ -37,6 +37,7 @@ import {
 } from '../notifications/entities/notification.entity';
 import { MT5PositionsGateway } from '../websocket/mt5-positions.gateway';
 import { TradeProcessorService } from './trade-processor.service';
+import { CandleManagementService } from '../backtesting/services/candle-management.service';
 
 @Injectable()
 export class TerminalFarmService {
@@ -57,6 +58,8 @@ export class TerminalFarmService {
     private readonly notificationsService: NotificationsService,
     private readonly mt5PositionsGateway: MT5PositionsGateway,
     private readonly tradeProcessorService: TradeProcessorService,
+    @Inject(forwardRef(() => CandleManagementService))
+    private readonly candleManagementService: CandleManagementService,
   ) {}
 
   /**
@@ -831,8 +834,11 @@ export class TerminalFarmService {
       throw new NotFoundException('Terminal not found');
     }
 
-    // Save to trade
-    await this.tradesService.saveExecutionCandles(data.tradeId, data.candles);
+    // Save to global 1m candle store instead of legacy per-trade blob
+    await this.candleManagementService.saveTerminalCandles(
+      data.symbol, // TerminalCandlesSyncDto contains symbol
+      data.candles,
+    );
   }
 
   /**

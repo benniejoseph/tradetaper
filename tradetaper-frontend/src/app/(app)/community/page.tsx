@@ -19,6 +19,7 @@ import ReactMarkdown from 'react-markdown';
 import { AnimatedCard } from '@/components/ui/AnimatedCard';
 import Modal from '@/components/ui/Modal';
 import { useDebounce } from '@/hooks/useDebounce';
+import { FeatureGate } from '@/components/common/FeatureGate';
 import {
   Sparkles,
   Trophy,
@@ -517,6 +518,7 @@ export default function CommunityPage() {
   const selectClass = inputClass;
 
   return (
+    <FeatureGate feature="community" className="min-h-screen">
     <div className="relative">
       <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top,_rgba(16,185,129,0.15),_transparent_55%)]" />
       <div className="w-full max-w-none mx-auto space-y-6 px-4 pb-16">
@@ -1239,5 +1241,6 @@ export default function CommunityPage() {
         </Modal>
       </div>
     </div>
+    </FeatureGate>
   );
 }

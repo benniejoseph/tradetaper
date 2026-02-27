@@ -329,7 +329,7 @@ void FetchCandles(string symbol, string timeframeStr, string startStr, string en
         }
         json += "]}";
 
-        string url = APIEndpoint + "/api/v1/webhook/terminal/candles";
+        string url = APIEndpoint + "/webhook/terminal/candles";
         SendRequestWithRetry(url, json, 1); // [FIX #6] 1 retry for candles
         WriteLog("Sent " + IntegerToString(copied) + " candles for " + symbol);
     }
@@ -344,7 +344,7 @@ void FetchCandles(string symbol, string timeframeStr, string startStr, string en
 //+------------------------------------------------------------------+
 void SendHeartbeat()
 {
-    string url = APIEndpoint + "/api/v1/webhook/terminal/heartbeat";
+    string url = APIEndpoint + "/webhook/terminal/heartbeat";
 
     string json = "{";
     json += "\"terminalId\":\"" + TerminalId + "\",";
@@ -511,7 +511,7 @@ void SyncDealHistoryIncremental()
         json += "\"trades\":" + tradesJson;
         json += "}";
 
-        string url    = APIEndpoint + "/api/v1/webhook/terminal/trades";
+        string url    = APIEndpoint + "/webhook/terminal/trades";
         string result = SendRequestWithRetry(url, json, MaxRetries); // [FIX #6]
 
         if(StringFind(result, "success") >= 0)
@@ -598,7 +598,7 @@ void SyncPositions()
     json += "\"positions\":" + positionsJson;
     json += "}";
 
-    string url    = APIEndpoint + "/api/v1/webhook/terminal/positions";
+    string url    = APIEndpoint + "/webhook/terminal/positions";
     string result = SendRequestWithRetry(url, json, 1); // [FIX #6] 1 retry for positions
 
     if(StringFind(result, "success") >= 0)

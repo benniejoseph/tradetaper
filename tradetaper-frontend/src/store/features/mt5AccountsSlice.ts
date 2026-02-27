@@ -11,6 +11,7 @@ export interface MT5Account {
   server: string;
   login: string;
   isActive: boolean;
+  isDefault?: boolean;
   isRealAccount?: boolean;
   balance?: number;
   equity?: number;
@@ -145,6 +146,39 @@ export const syncMT5Account = createAsyncThunk(
   }
 );
 
+// Disconnect MetaAPI
+export const disconnectMetaApiAccount = createAsyncThunk(
+  'mt5Accounts/disconnectMetaApi',
+  async (id: string, { rejectWithValue, dispatch }) => {
+    try {
+      await authApiClient.post(`/mt5-accounts/${id}/disconnect-metaapi`);
+      toast.success('Disconnected MetaAPI successfully.');
+      dispatch(fetchMT5Accounts());
+      return id;
+    } catch (error: any) {
+      const message = error.response?.data?.message || 'Failed to disconnect MetaAPI';
+      toast.error(message);
+      return rejectWithValue(message);
+    }
+  }
+);
+
+// Set default MT5 account
+export const setDefaultMT5Account = createAsyncThunk(
+  'mt5Accounts/setDefaultAccount',
+  async (id: string, { rejectWithValue }) => {
+    try {
+      const response = await authApiClient.put(`/mt5-accounts/${id}/default`);
+      toast.success('Default account updated');
+      return response.data as MT5Account;
+    } catch (error: any) {
+      const message = error.response?.data?.message || 'Failed to update default account';
+      toast.error(message);
+      return rejectWithValue(message);
+    }
+  }
+);
+
 // Slice
 const mt5AccountsSlice = createSlice({
   name: 'mt5Accounts',
@@ -169,6 +203,13 @@ const mt5AccountsSlice = createSlice({
         state.isLoading = false;
         state.accounts = action.payload;
         state.error = null;
+
+        // If no account is selected, or the selected account was deleted elsewhere,
+        // pick the default account. If no account is marked default, pick the first one.
+        if (!state.selectedAccountId || !state.accounts.find(a => a.id === state.selectedAccountId)) {
+          const defaultAcc = state.accounts.find(a => a.isDefault);
+          state.selectedAccountId = defaultAcc ? defaultAcc.id : (state.accounts[0]?.id || null);
+        }
       })
       .addCase(fetchMT5Accounts.rejected, (state, action) => {
         state.isLoading = false;
@@ -237,6 +278,30 @@ const mt5AccountsSlice = createSlice({
         state.error = null;
       })
       .addCase(syncMT5Account.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload as string;
+      })
+      
+      // Set default account
+      .addCase(setDefaultMT5Account.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(setDefaultMT5Account.fulfilled, (state, action) => {
+        state.isLoading = false;
+        // Update all accounts to not be default
+        state.accounts.forEach(acc => {
+          acc.isDefault = false;
+        });
+        // Set the specified account as default
+        const index = state.accounts.findIndex(acc => acc.id === action.payload.id);
+        if (index !== -1) {
+          state.accounts[index] = action.payload;
+          state.selectedAccountId = action.payload.id; // Also select it immediately
+        }
+        state.error = null;
+      })
+      .addCase(setDefaultMT5Account.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload as string;
       });

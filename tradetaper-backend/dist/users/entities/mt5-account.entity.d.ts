@@ -5,12 +5,14 @@ export declare class MT5Account {
     server: string;
     login: string;
     password: string;
-    metaApiAccountId: string;
-    provisioningProfileId: string;
+    loginServerFingerprint: string | null;
+    metaApiAccountId: string | null;
+    provisioningProfileId: string | null;
     deploymentState: string;
     connectionState: string;
     isRealAccount: boolean;
     isActive: boolean;
+    isDefault: boolean;
     balance: number;
     initialBalance: number;
     target: number;

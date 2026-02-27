@@ -30,6 +30,7 @@ const terminal_farm_service_1 = require("../terminal-farm/terminal-farm.service"
 const notifications_service_1 = require("../notifications/notifications.service");
 const notification_entity_1 = require("../notifications/entities/notification.entity");
 const multi_model_orchestrator_service_1 = require("../agents/llm/multi-model-orchestrator.service");
+const candle_management_service_1 = require("../backtesting/services/candle-management.service");
 let TradesService = TradesService_1 = class TradesService {
     tradesRepository;
     tradeCandleRepository;
@@ -41,8 +42,9 @@ let TradesService = TradesService_1 = class TradesService {
     terminalFarmService;
     notificationsService;
     orchestratorService;
+    candleManagementService;
     logger = new common_1.Logger(TradesService_1.name);
-    constructor(tradesRepository, tradeCandleRepository, tagRepository, tradesGateway, geminiVisionService, accountsService, mt5AccountsService, terminalFarmService, notificationsService, orchestratorService) {
+    constructor(tradesRepository, tradeCandleRepository, tagRepository, tradesGateway, geminiVisionService, accountsService, mt5AccountsService, terminalFarmService, notificationsService, orchestratorService, candleManagementService) {
         this.tradesRepository = tradesRepository;
         this.tradeCandleRepository = tradeCandleRepository;
         this.tagRepository = tagRepository;
@@ -53,6 +55,7 @@ let TradesService = TradesService_1 = class TradesService {
         this.terminalFarmService = terminalFarmService;
         this.notificationsService = notificationsService;
         this.orchestratorService = orchestratorService;
+        this.candleManagementService = candleManagementService;
     }
     async parseVoiceJournal(audioBuffer, mimeType, userContext) {
         this.logger.debug(`Parsing voice journal for user ${userContext.id} [${mimeType}]`);
@@ -106,79 +109,52 @@ Return a JSON object strictly matching this schema:
             throw new common_1.BadRequestException('Failed to process audio recording');
         }
     }
-    async getTradeCandles(tradeId, timeframe, userContext) {
-        this.logger.debug(`Fetching candles for trade ${tradeId}, timeframe ${timeframe}`);
+    async getTradeCandles(tradeId, _timeframe, userContext) {
+        this.logger.debug(`[CandleStore] getTradeCandles for trade ${tradeId}`);
         try {
-            const cached = await this.tradeCandleRepository.findOne({
-                where: { tradeId, timeframe },
-            });
-            if (cached) {
-                this.logger.debug(`Cache HIT for trade ${tradeId}`);
-                return cached.data;
-            }
-            this.logger.debug(`Cache MISS for trade ${tradeId}`);
             const trade = await this.findOne(tradeId, userContext);
-            if (trade.executionCandles && trade.executionCandles.length > 0) {
-                this.logger.debug(`Returning ${trade.executionCandles.length} execution candles from DB`);
-                if (trade.status === enums_1.TradeStatus.CLOSED) {
-                    try {
-                        await this.tradeCandleRepository.save({
-                            tradeId: trade.id,
-                            symbol: trade.symbol,
-                            timeframe,
-                            data: trade.executionCandles,
-                        });
+            let metaApiSvc = null;
+            let metaApiAccountId = null;
+            let terminalFarmSvc = null;
+            if (trade.accountId) {
+                try {
+                    const account = await this.mt5AccountsService.findOne(trade.accountId);
+                    if (account?.metaApiAccountId && this.mt5AccountsService.isMetaApiEnabled()) {
+                        metaApiSvc = this.mt5AccountsService.getMetaApiService();
+                        metaApiAccountId = account.metaApiAccountId;
                     }
-                    catch (cacheError) {
-                        this.logger.error(`Failed to cache candles: ${cacheError.message}`);
+                    if (!metaApiSvc) {
+                        const terminal = await this.terminalFarmService.findTerminalForAccount(trade.accountId);
+                        if (terminal?.status === 'RUNNING') {
+                            terminalFarmSvc = this.terminalFarmService;
+                        }
                     }
                 }
-                return trade.executionCandles;
-            }
-            if (trade.status === enums_1.TradeStatus.OPEN) {
-                return [
-                    {
-                        status: 'pending',
-                        message: 'Candles will be fetched when trade closes',
-                    },
-                ];
-            }
-            if (trade.externalId && trade.accountId) {
-                const terminal = await this.terminalFarmService.findTerminalForAccount(trade.accountId);
-                if (terminal && terminal.status === 'RUNNING') {
-                    const entryTime = new Date(trade.openTime).getTime();
-                    const exitTime = trade.closeTime
-                        ? new Date(trade.closeTime).getTime()
-                        : Date.now();
-                    const bufferMs = 2 * 60 * 60 * 1000;
-                    const startTime = new Date(entryTime - bufferMs);
-                    const endTime = new Date(exitTime + bufferMs);
-                    const formatMt5Time = (value) => value
-                        .toISOString()
-                        .replace('T', ' ')
-                        .substring(0, 19)
-                        .replace(/-/g, '.');
-                    const startStr = formatMt5Time(startTime);
-                    const endStr = formatMt5Time(endTime);
-                    const payload = `${trade.symbol},1m,${startStr},${endStr},${trade.id}`;
-                    this.terminalFarmService.queueCommand(terminal.id, 'FETCH_CANDLES', payload);
-                    return [
-                        {
-                            status: 'queued',
-                            message: 'Request sent to MT5 Terminal. Refresh in 30s.',
-                        },
-                    ];
+                catch {
                 }
             }
-            return [
-                {
-                    status: 'unavailable',
-                    message: 'Candle data not available for this trade',
-                },
-            ];
+            const { candles, source, cached } = await this.candleManagementService.getCandlesForTrade(tradeId, trade, {
+                bufferHours: 1,
+                metaApiService: metaApiSvc,
+                metaApiAccountId: metaApiAccountId ?? undefined,
+                terminalFarmService: terminalFarmSvc,
+                accountId: trade.accountId ?? undefined,
+            });
+            this.logger.log(`[CandleStore] ${candles.length} 1m candles for ` +
+                `${trade.symbol} (source: ${source}, cached: ${cached})`);
+            if (candles.length > 0) {
+                return candles;
+            }
+            if (!metaApiSvc && !terminalFarmSvc) {
+                return [{ status: 'unavailable', message: 'No active sync method. Connect MetaAPI or Terminal EA.' }];
+            }
+            if (terminalFarmSvc) {
+                return [{ status: 'queued', message: 'Candle request sent to MT5 Terminal EA. Refresh in 30s.' }];
+            }
+            return [{ status: 'unavailable', message: 'Candle data not available for this trade.' }];
         }
         catch (error) {
-            this.logger.error(`Error in getTradeCandles: ${error.message}`, error.stack);
+            this.logger.error(`[CandleStore] Error: ${error.message}`, error.stack);
             throw error;
         }
     }
@@ -498,6 +474,23 @@ Return a JSON object strictly matching this schema:
             where.accountId = accountId;
         }
         return await this.tradesRepository.find({ where });
+    }
+    async findOpenTradeBySymbolAndTime(userId, accountId, symbol, nearOpenTime, toleranceSec = 120) {
+        const from = new Date(nearOpenTime.getTime() - toleranceSec * 1000);
+        const to = new Date(nearOpenTime.getTime() + toleranceSec * 1000);
+        const result = await this.tradesRepository
+            .createQueryBuilder('t')
+            .where('t.userId = :userId', { userId })
+            .andWhere('t.accountId = :accountId', { accountId })
+            .andWhere('t.symbol   = :symbol', { symbol })
+            .andWhere("t.status   = 'OPEN'")
+            .andWhere('t.openTime BETWEEN :from AND :to', { from, to })
+            .orderBy('t.openTime', 'ASC')
+            .getOne();
+        return result ?? null;
+    }
+    async orphanTradesByAccount(accountId) {
+        await this.tradesRepository.update({ accountId }, { accountId: null });
     }
     async mergeDuplicateExternalTrades(userId, externalId, accountId) {
         const where = { userId, externalId };
@@ -979,6 +972,7 @@ exports.TradesService = TradesService = TradesService_1 = __decorate([
     __param(6, (0, common_1.Inject)((0, common_1.forwardRef)(() => mt5_accounts_service_1.MT5AccountsService))),
     __param(7, (0, common_1.Inject)((0, common_1.forwardRef)(() => terminal_farm_service_1.TerminalFarmService))),
     __param(8, (0, common_1.Inject)((0, common_1.forwardRef)(() => notifications_service_1.NotificationsService))),
+    __param(10, (0, common_1.Inject)((0, common_1.forwardRef)(() => candle_management_service_1.CandleManagementService))),
     __metadata("design:paramtypes", [typeorm_2.Repository,
         typeorm_2.Repository,
         typeorm_2.Repository,
@@ -988,6 +982,7 @@ exports.TradesService = TradesService = TradesService_1 = __decorate([
         mt5_accounts_service_1.MT5AccountsService,
         terminal_farm_service_1.TerminalFarmService,
         notifications_service_1.NotificationsService,
-        multi_model_orchestrator_service_1.MultiModelOrchestratorService])
+        multi_model_orchestrator_service_1.MultiModelOrchestratorService,
+        candle_management_service_1.CandleManagementService])
 ], TradesService);
 //# sourceMappingURL=trades.service.js.map

@@ -104,13 +104,9 @@ export default function AnalyticsPage() {
   useEffect(() => {
     if (isAuthenticated) {
       const currentAccountId = selectedAccountId || selectedMT5AccountId;
-      const limit = 500;
-      const fetchKey = `account:${currentAccountId || 'all'}:page:1:limit:${limit}`;
-      const isFresh = lastFetchAt && Date.now() - lastFetchAt < 60_000;
-      if (trades.length > 0 && lastFetchKey === fetchKey && isFresh && !lastFetchIncludeTags) return;
-      dispatch(fetchTrades({ accountId: currentAccountId || undefined, limit, includeTags: false }));
+      dispatch(fetchTrades({ accountId: currentAccountId || undefined, limit: 500, includeTags: false }));
     }
-  }, [dispatch, isAuthenticated, selectedAccountId, selectedMT5AccountId, lastFetchKey, lastFetchAt, lastFetchIncludeTags, trades.length]);
+  }, [dispatch, isAuthenticated, selectedAccountId, selectedMT5AccountId, lastFetchKey, lastFetchAt, lastFetchIncludeTags, trades?.length]);
 
   const filteredTrades = useMemo(() => {
     const days = timeRangeDaysMapping[timeRange];

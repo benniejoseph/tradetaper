@@ -29,6 +29,8 @@ export declare class UpdateMT5AccountDto {
     accountType?: string;
     currency?: string;
     isActive?: boolean;
+    initialBalance?: number;
+    leverage?: number;
     target?: number;
 }
 export declare class MT5AccountResponseDto {

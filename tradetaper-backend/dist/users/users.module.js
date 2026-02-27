@@ -23,6 +23,9 @@ const trades_module_1 = require("../trades/trades.module");
 const subscriptions_module_1 = require("../subscriptions/subscriptions.module");
 const metaapi_service_1 = require("./metaapi.service");
 const users_controller_1 = require("./users.controller");
+const websocket_module_1 = require("../websocket/websocket.module");
+const mt5_sync_bootstrap_service_1 = require("./mt5-sync-bootstrap.service");
+const metaapi_idle_suspension_service_1 = require("./metaapi-idle-suspension.service");
 let UsersModule = class UsersModule {
 };
 exports.UsersModule = UsersModule;
@@ -33,6 +36,7 @@ exports.UsersModule = UsersModule = __decorate([
             config_1.ConfigModule,
             (0, common_1.forwardRef)(() => trades_module_1.TradesModule),
             subscriptions_module_1.SubscriptionsModule,
+            (0, common_1.forwardRef)(() => websocket_module_1.WebSocketModule),
         ],
         providers: [
             users_service_1.UsersService,
@@ -40,6 +44,8 @@ exports.UsersModule = UsersModule = __decorate([
             mt5_accounts_service_1.MT5AccountsService,
             trade_history_parser_service_1.TradeHistoryParserService,
             metaapi_service_1.MetaApiService,
+            mt5_sync_bootstrap_service_1.MT5SyncBootstrapService,
+            metaapi_idle_suspension_service_1.MetaApiIdleSuspensionService,
         ],
         exports: [
             users_service_1.UsersService,

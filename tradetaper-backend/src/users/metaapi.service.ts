@@ -55,6 +55,11 @@ export class MetaApiService {
     return this.enabled;
   }
 
+  /** Returns the underlying MetaApi SDK instance. Returns null if not enabled. */
+  getMetaApiInstance(): MetaApi | null {
+    return this.metaApi;
+  }
+
   /**
    * Return the cached StreamingMetaApiConnectionInstance for a given MetaAPI account ID.
    * Used by TradesService to fetch 1m candle history for the chart.
@@ -150,22 +155,20 @@ export class MetaApiService {
     )}`;
 
     try {
-      const response = await fetch(url, {
+      // Use axios with rejectUnauthorized: false to bypass MetaApi's self-signed cert issue
+      const httpsAgent = new (require('https').Agent)({ rejectUnauthorized: false });
+      const axios = require('axios');
+      
+      const response = await axios.get(url, {
         headers: {
           'auth-token': this.metaApiToken,
           Accept: 'application/json',
         },
+        httpsAgent,
+        timeout: 15000,
       });
 
-      if (!response.ok) {
-        const body = await response.text();
-        this.logger.warn(
-          `MetaApi server search failed (${response.status}): ${body}`,
-        );
-        throw new BadRequestException('Failed to fetch server list');
-      }
-
-      const data = (await response.json()) as Record<string, string[]>;
+      const data = response.data as Record<string, string[]>;
       const results: Array<{ name: string; broker?: string; type?: string }> =
         [];
 
@@ -449,27 +452,58 @@ export class MetaApiService {
   }
 
   /**
-   * Check if a MetaAPI account already exists for a given login+server combination.
-   * Returns the existing metaApiAccountId if found, or null. [FIX #16 helper]
+   * Fetch historical 1m candles from MetaAPI using the account history API.
+   * NOTE: getHistoricalCandles() belongs on the MetatraderAccount object,
+   * NOT on the StreamingMetaApiConnectionInstance.
+   *
+   * MetaAPI returns candles in reverse-chronological order (newest first),
+   * and accepts a `startTime` (latest time) + count limit (max 1000).
+   * We therefore page backwards from `to` until we reach `from`.
    */
-  async findExistingAccount(
-    login: string,
-    server: string,
-  ): Promise<string | null> {
-    if (!this.metaApi) return null;
-    try {
-      const accounts =
-        await this.metaApi.metatraderAccountApi.getAccountsWithClassicPagination({
-          limit: 100,
-        });
-      const existing = (accounts.items || []).find(
-        (a) =>
-          a.login === login &&
-          a.server?.toLowerCase() === server.toLowerCase(),
-      );
-      return existing?.id ?? null;
-    } catch {
-      return null;
+  async getHistoricalCandles(
+    metaApiAccountId: string,
+    symbol: string,
+    timeframe: string,
+    from: Date,
+    to: Date,
+  ): Promise<any[]> {
+    if (!this.metaApi) throw new Error('MetaApi is not configured');
+
+    const account = await this.metaApi.metatraderAccountApi.getAccount(metaApiAccountId);
+
+    const allCandles: any[] = [];
+    let startTime: Date = new Date(to);
+    const MAX_PER_PAGE = 1000;
+
+    // Page backwards until we reach the `from` boundary (up to 10 pages)
+    for (let page = 0; page < 10; page++) {
+      let raw: any[] = [];
+      try {
+        raw = await account.getHistoricalCandles(symbol, timeframe, startTime, MAX_PER_PAGE);
+      } catch (err) {
+        this.logger.warn(
+          `[MetaApiService] getHistoricalCandles page ${page} failed for ${symbol}: ${err.message}`,
+        );
+        break;
+      }
+
+      if (!Array.isArray(raw) || raw.length === 0) break;
+
+      for (const c of raw) {
+        const ts = c.time instanceof Date ? c.time : new Date(c.time);
+        if (ts < from) break; // Passed our start boundary — stop
+        allCandles.push(c);
+      }
+
+      // Check if the last candle is before `from` — done
+      const last = raw[raw.length - 1];
+      const lastTs = last?.time instanceof Date ? last.time : new Date(last?.time);
+      if (!last || lastTs <= from) break;
+
+      // Advance startTime to just before the oldest candle we received
+      startTime = new Date(lastTs.getTime() - 60_000); // step back 1 minute
     }
+
+    return allCandles;
   }
 }

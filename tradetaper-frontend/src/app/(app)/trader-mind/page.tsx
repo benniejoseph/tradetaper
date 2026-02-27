@@ -57,12 +57,8 @@ export default function DisciplinePage() {
   useEffect(() => {
     if (!isAuthenticated) return;
     const currentAccountId = selectedAccountId || selectedMT5AccountId;
-    const limit = 300;
-    const fetchKey = `account:${currentAccountId || 'all'}:page:1:limit:${limit}`;
-    const isFresh = lastFetchAt && Date.now() - lastFetchAt < 60_000;
-    if (trades.length > 0 && lastFetchKey === fetchKey && isFresh && !lastFetchIncludeTags) return;
-    dispatch(fetchTrades({ accountId: currentAccountId || undefined, limit, includeTags: false }));
-  }, [dispatch, isAuthenticated, selectedAccountId, selectedMT5AccountId, lastFetchKey, lastFetchAt, lastFetchIncludeTags, trades.length]);
+    dispatch(fetchTrades({ accountId: currentAccountId || undefined, limit: 300, includeTags: false }));
+  }, [dispatch, isAuthenticated, selectedAccountId, selectedMT5AccountId, lastFetchKey, lastFetchAt, lastFetchIncludeTags, trades?.length]);
 
   useEffect(() => {
     if (!isAuthenticated) return;

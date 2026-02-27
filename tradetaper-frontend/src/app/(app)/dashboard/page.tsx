@@ -60,11 +60,7 @@ export default function DashboardPage() {
   useEffect(() => {
     if (isAuthenticated) {
       const currentAccountId = selectedAccountId || selectedMT5AccountId;
-      const limit = 500;
-      const fetchKey = `account:${currentAccountId || 'all'}:page:1:limit:${limit}`;
-      const isFresh = lastFetchAt && Date.now() - lastFetchAt < 60_000;
-      if (trades.length > 0 && lastFetchKey === fetchKey && isFresh && !lastFetchIncludeTags) return;
-      dispatch(fetchTrades({ accountId: currentAccountId || undefined, limit, includeTags: false }));
+      dispatch(fetchTrades({ accountId: currentAccountId || undefined, limit: 500, includeTags: false }));
     }
   }, [dispatch, isAuthenticated, selectedAccountId, selectedMT5AccountId, lastFetchKey, lastFetchAt, lastFetchIncludeTags, trades.length]);
 
@@ -210,7 +206,18 @@ export default function DashboardPage() {
     }
   };
 
-  if (tradesLoading && trades.length === 0 && !dashboardStats) {
+  console.log('🔄 Dashboard Render State:', {
+    isAuthenticated,
+    selectedAccountId,
+    selectedMT5AccountId,
+    tradesLength: trades?.length,
+    tradesLoading,
+    lastFetchKey,
+    lastFetchAt,
+    timeRange
+  });
+
+  if (tradesLoading && trades?.length === 0) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-white dark:bg-black">
         <AnimatedCard variant="glass" hoverEffect="pulse" className="text-center backdrop-blur-xl">
