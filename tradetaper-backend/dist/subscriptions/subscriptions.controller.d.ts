@@ -15,6 +15,8 @@ export declare class SubscriptionsController {
         name: string;
         description: string;
         customer_id: string;
+        isTrialing: boolean;
+        trialEndsAt: string | null;
     }>;
     getCurrentSubscription(req: AuthenticatedRequest): Promise<BillingInfo>;
     getUsage(req: AuthenticatedRequest): Promise<SubscriptionUsage>;

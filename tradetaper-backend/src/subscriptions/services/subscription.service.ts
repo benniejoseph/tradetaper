@@ -489,7 +489,7 @@ export class SubscriptionService {
   // Create Razorpay Subscription
   async createRazorpaySubscription(
     userId: string,
-    planId: string, // 'starter', 'professional', etc.
+    planId: string,
     period: 'monthly' | 'yearly',
   ) {
     this.logger.log(
@@ -532,22 +532,60 @@ export class SubscriptionService {
       }
     }
 
-    // 4. Create Subscription
-    try {
-      const sub = await this.razorpayService.createSubscription(razorpayPlanId);
+    // 4. Determine if this user is eligible for a 7-day free trial
+    //    A user gets ONE trial ever. We track this via trialStart being null.
+    const isFirstSubscription = !subscription.trialStart;
+    const TRIAL_DAYS = 7;
+    const now = Date.now();
+    const trialStartAt = isFirstSubscription
+      ? Math.floor(now / 1000) // immediately, billing deferred to start_at
+      : undefined;
+    const trialEndTimestamp = isFirstSubscription
+      ? Math.floor((now + TRIAL_DAYS * 24 * 60 * 60 * 1000) / 1000)
+      : undefined;
 
-      // Save sub ID
+    // 5. Create Subscription (start_at defers billing start by 7 days for trial users)
+    try {
+      const sub = await this.razorpayService.createSubscription(
+        razorpayPlanId,
+        60, // total_count
+        1,  // quantity
+        trialEndTimestamp, // start_at = when billing begins (today+7d for trial, else undefined)
+      );
+
+      // Save sub ID + trial dates
       subscription.razorpaySubscriptionId = sub.id;
-      // logic to handle pending status? Razorpay subs are 'created' until authorized.
+      subscription.razorpayPlanId = razorpayPlanId;
+
+      if (isFirstSubscription) {
+        subscription.status = SubscriptionStatus.TRIALING;
+        subscription.trialStart = new Date(now);
+        subscription.trialEnd = new Date(trialEndTimestamp! * 1000);
+        subscription.plan = planId;
+        subscription.tier =
+          planId === 'premium'
+            ? SubscriptionTier.PREMIUM
+            : planId === 'essential'
+            ? SubscriptionTier.ESSENTIAL
+            : SubscriptionTier.FREE;
+        this.logger.log(
+          `7-day trial started for user ${userId} on plan ${planId}. Billing starts ${new Date(trialEndTimestamp! * 1000).toISOString()}`,
+        );
+      }
+
       await this.subscriptionRepository.save(subscription);
 
       return {
         subscriptionId: sub.id,
         key: this.configService.get<string>('RAZORPAY_KEY_ID'),
-        currency: 'INR', // Default for Indian Bus.
+        currency: 'INR',
         name: 'TradeTaper',
-        description: `${planConfig.displayName} (${period})`,
-        customer_id: customerId, // Useful for prefill
+        description: `${planConfig.displayName} (${period})${isFirstSubscription ? ' — 7-day free trial' : ''}`,
+        customer_id: customerId,
+        isTrialing: isFirstSubscription,
+        trialEndsAt: isFirstSubscription
+          ? new Date(trialEndTimestamp! * 1000).toISOString()
+          : null,
       };
     } catch (e) {
       this.logger.error('Failed to create Razorpay subscription', e);
@@ -607,8 +645,10 @@ export class SubscriptionService {
         this.logger.log(
           `Subscription authenticated for user ${subscription.userId}`,
         );
-        subscription.status = SubscriptionStatus.ACTIVE;
-        // Activate plan logic
+        // If the subscription was in trial, keep it as TRIALING until billing starts
+        if (subscription.status !== SubscriptionStatus.TRIALING) {
+          subscription.status = SubscriptionStatus.ACTIVE;
+        }
         await this.updateSubscriptionFromRazorpay(
           subscription,
           subscriptionEntity,
@@ -618,6 +658,7 @@ export class SubscriptionService {
       case 'subscription.charged':
         this.logger.log(`Subscription charged for user ${subscription.userId}`);
         subscription.status = SubscriptionStatus.ACTIVE;
+        // Trial is now over — billing has started
         await this.updateSubscriptionFromRazorpay(
           subscription,
           subscriptionEntity,
@@ -650,7 +691,6 @@ export class SubscriptionService {
           `Subscription cancelled for user ${subscription.userId}`,
         );
         subscription.cancelAtPeriodEnd = true;
-        // logic to set end date?
         if (subscriptionEntity.end_at) {
           subscription.currentPeriodEnd = new Date(
             subscriptionEntity.end_at * 1000,
@@ -658,14 +698,67 @@ export class SubscriptionService {
         }
         break;
 
+      case 'subscription.trial_ending_soon':
+        // Razorpay fires this ~2 days before trial ends (if configured)
+        this.logger.log(
+          `Trial ending soon for user ${subscription.userId} — trialEnd: ${subscription.trialEnd}`,
+        );
+        try {
+          await this.notificationsService.send({
+            userId: subscription.userId,
+            type: NotificationType.SUBSCRIPTION_REMINDER,
+            title: 'Your free trial ends in 2 days',
+            message:
+              'Your 7-day free trial is ending soon. Add your payment details to continue using premium features.',
+            data: {
+              trialEnd: subscription.trialEnd,
+              plan: subscription.plan,
+              upgradeUrl: '/plans',
+            },
+          });
+        } catch (error) {
+          this.logger.error(
+            `Failed to send trial ending notification: ${error.message}`,
+          );
+        }
+        break;
+
+      case 'subscription.trial_ended':
+        // Trial period has ended — downgrade to free if not paid
+        this.logger.log(`Trial ended for user ${subscription.userId}`);
+        if (subscription.status === SubscriptionStatus.TRIALING) {
+          subscription.status = SubscriptionStatus.ACTIVE;
+          subscription.plan = 'free';
+          subscription.tier = SubscriptionTier.FREE;
+          this.logger.log(
+            `User ${subscription.userId} trial expired — reverted to free plan`,
+          );
+          try {
+            await this.notificationsService.send({
+              userId: subscription.userId,
+              type: NotificationType.SUBSCRIPTION_REMINDER,
+              title: 'Your free trial has ended',
+              message:
+                'Your 7-day trial has ended. Upgrade to Premium to continue using AI analysis, Mentor, Psychology, and more.',
+              data: {
+                plan: subscription.plan,
+                upgradeUrl: '/plans',
+              },
+            });
+          } catch (error) {
+            this.logger.error(
+              `Failed to send trial ended notification: ${error.message}`,
+            );
+          }
+        }
+        break;
+
       case 'payment.captured':
-        // Sometimes happens before subscription logic
         this.logger.log(`Payment captured for user ${subscription.userId}`);
         break;
 
       case 'payment.failed':
         this.logger.warn(`Payment failed for user ${subscription.userId}`);
-        // Notify user?
         break;
     }
 

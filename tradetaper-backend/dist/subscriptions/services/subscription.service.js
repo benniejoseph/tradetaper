@@ -354,17 +354,44 @@ let SubscriptionService = SubscriptionService_1 = class SubscriptionService {
                 throw new common_1.InternalServerErrorException('Payment initialization failed');
             }
         }
+        const isFirstSubscription = !subscription.trialStart;
+        const TRIAL_DAYS = 7;
+        const now = Date.now();
+        const trialStartAt = isFirstSubscription
+            ? Math.floor(now / 1000)
+            : undefined;
+        const trialEndTimestamp = isFirstSubscription
+            ? Math.floor((now + TRIAL_DAYS * 24 * 60 * 60 * 1000) / 1000)
+            : undefined;
         try {
-            const sub = await this.razorpayService.createSubscription(razorpayPlanId);
+            const sub = await this.razorpayService.createSubscription(razorpayPlanId, 60, 1, trialEndTimestamp);
             subscription.razorpaySubscriptionId = sub.id;
+            subscription.razorpayPlanId = razorpayPlanId;
+            if (isFirstSubscription) {
+                subscription.status = subscription_entity_1.SubscriptionStatus.TRIALING;
+                subscription.trialStart = new Date(now);
+                subscription.trialEnd = new Date(trialEndTimestamp * 1000);
+                subscription.plan = planId;
+                subscription.tier =
+                    planId === 'premium'
+                        ? subscription_entity_1.SubscriptionTier.PREMIUM
+                        : planId === 'essential'
+                            ? subscription_entity_1.SubscriptionTier.ESSENTIAL
+                            : subscription_entity_1.SubscriptionTier.FREE;
+                this.logger.log(`7-day trial started for user ${userId} on plan ${planId}. Billing starts ${new Date(trialEndTimestamp * 1000).toISOString()}`);
+            }
             await this.subscriptionRepository.save(subscription);
             return {
                 subscriptionId: sub.id,
                 key: this.configService.get('RAZORPAY_KEY_ID'),
                 currency: 'INR',
                 name: 'TradeTaper',
-                description: `${planConfig.displayName} (${period})`,
+                description: `${planConfig.displayName} (${period})${isFirstSubscription ? ' — 7-day free trial' : ''}`,
                 customer_id: customerId,
+                isTrialing: isFirstSubscription,
+                trialEndsAt: isFirstSubscription
+                    ? new Date(trialEndTimestamp * 1000).toISOString()
+                    : null,
             };
         }
         catch (e) {
@@ -406,7 +433,9 @@ let SubscriptionService = SubscriptionService_1 = class SubscriptionService {
         switch (eventType) {
             case 'subscription.authenticated':
                 this.logger.log(`Subscription authenticated for user ${subscription.userId}`);
-                subscription.status = subscription_entity_1.SubscriptionStatus.ACTIVE;
+                if (subscription.status !== subscription_entity_1.SubscriptionStatus.TRIALING) {
+                    subscription.status = subscription_entity_1.SubscriptionStatus.ACTIVE;
+                }
                 await this.updateSubscriptionFromRazorpay(subscription, subscriptionEntity);
                 break;
             case 'subscription.charged':
@@ -437,6 +466,49 @@ let SubscriptionService = SubscriptionService_1 = class SubscriptionService {
                 subscription.cancelAtPeriodEnd = true;
                 if (subscriptionEntity.end_at) {
                     subscription.currentPeriodEnd = new Date(subscriptionEntity.end_at * 1000);
+                }
+                break;
+            case 'subscription.trial_ending_soon':
+                this.logger.log(`Trial ending soon for user ${subscription.userId} — trialEnd: ${subscription.trialEnd}`);
+                try {
+                    await this.notificationsService.send({
+                        userId: subscription.userId,
+                        type: notification_entity_1.NotificationType.SUBSCRIPTION_REMINDER,
+                        title: 'Your free trial ends in 2 days',
+                        message: 'Your 7-day free trial is ending soon. Add your payment details to continue using premium features.',
+                        data: {
+                            trialEnd: subscription.trialEnd,
+                            plan: subscription.plan,
+                            upgradeUrl: '/plans',
+                        },
+                    });
+                }
+                catch (error) {
+                    this.logger.error(`Failed to send trial ending notification: ${error.message}`);
+                }
+                break;
+            case 'subscription.trial_ended':
+                this.logger.log(`Trial ended for user ${subscription.userId}`);
+                if (subscription.status === subscription_entity_1.SubscriptionStatus.TRIALING) {
+                    subscription.status = subscription_entity_1.SubscriptionStatus.ACTIVE;
+                    subscription.plan = 'free';
+                    subscription.tier = subscription_entity_1.SubscriptionTier.FREE;
+                    this.logger.log(`User ${subscription.userId} trial expired — reverted to free plan`);
+                    try {
+                        await this.notificationsService.send({
+                            userId: subscription.userId,
+                            type: notification_entity_1.NotificationType.SUBSCRIPTION_REMINDER,
+                            title: 'Your free trial has ended',
+                            message: 'Your 7-day trial has ended. Upgrade to Premium to continue using AI analysis, Mentor, Psychology, and more.',
+                            data: {
+                                plan: subscription.plan,
+                                upgradeUrl: '/plans',
+                            },
+                        });
+                    }
+                    catch (error) {
+                        this.logger.error(`Failed to send trial ended notification: ${error.message}`);
+                    }
                 }
                 break;
             case 'payment.captured':

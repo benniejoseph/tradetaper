@@ -31,6 +31,8 @@ export enum NotificationType {
   SYSTEM_UPDATE = 'system_update',
   SUBSCRIPTION_EXPIRY = 'subscription_expiry',
   SUBSCRIPTION_RENEWED = 'subscription_renewed',
+  SUBSCRIPTION_REMINDER = 'subscription_reminder',
+  TRIAL_ENDED = 'trial_ended',
 
   // Account notifications
   ACCOUNT_LINKED = 'account_linked',

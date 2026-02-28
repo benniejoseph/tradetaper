@@ -17,6 +17,7 @@ import {
   notificationRead,
   allNotificationsRead,
 } from '@/store/features/notificationsSlice';
+import { TrialBanner } from '@/components/common/TrialBanner';
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -116,8 +117,11 @@ export default function AppLayout({ children }: AppLayoutProps) {
               ? 'ml-72' 
               : 'ml-20'
         }`}>
+          {/* Trial Banner — visible only when status is 'trialing' */}
+          <TrialBanner />
+
           {/* Content Header */}
-          <ContentHeader 
+          <ContentHeader
             toggleSidebar={toggleSidebar} 
             isMobile={isMobile}
             isSidebarExpanded={isSidebarExpanded}

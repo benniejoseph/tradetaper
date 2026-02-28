@@ -80,6 +80,8 @@ export declare class SubscriptionService {
         name: string;
         description: string;
         customer_id: string;
+        isTrialing: boolean;
+        trialEndsAt: string | null;
     }>;
     handleRazorpayWebhook(event: Record<string, any>): Promise<void>;
     private updateSubscriptionFromRazorpay;
