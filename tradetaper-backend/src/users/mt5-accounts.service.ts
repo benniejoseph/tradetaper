@@ -62,6 +62,21 @@ export class MT5AccountsService {
     }
   }
 
+  async getLimits(userId: string): Promise<{ used: number; max: number; extraSlots: number }> {
+    const subscription = await this.dataSource.getRepository('Subscription').findOne({
+      where: { userId, status: 'active' },
+      order: { createdAt: 'DESC' },
+    });
+    let baseLimit = 1;
+    if ((subscription as any)?.tier === 'premium') baseLimit = 3;
+    else if ((subscription as any)?.tier === 'essential') baseLimit = 2;
+    const extraSlots = (subscription as any)?.extraMt5Slots || 0;
+    const maxAccounts = baseLimit + extraSlots;
+    const used = await this.mt5AccountRepository.count({ where: { userId } });
+    
+    return { used, max: maxAccounts, extraSlots };
+  }
+
   /**
    * Completely disconnects and removes a MetaAPI account
    * Stops streaming, undeploys from MetaAPI, and clears DB state
@@ -222,6 +237,26 @@ export class MT5AccountsService {
       throw new BadRequestException('Password is required to connect MT5');
     }
 
+    // Check MT5 Account Limits based on Subscription tier + extra slots
+    const subscription = await this.dataSource.getRepository('Subscription').findOne({
+      where: { userId, status: 'active' },
+      order: { createdAt: 'DESC' },
+    });
+    
+    let baseLimit = 1;
+    if ((subscription as any)?.tier === 'premium') baseLimit = 3;
+    else if ((subscription as any)?.tier === 'essential') baseLimit = 2;
+    
+    const extraSlots = (subscription as any)?.extraMt5Slots || 0;
+    const maxAccounts = baseLimit + extraSlots;
+    
+    const currentCount = await this.mt5AccountRepository.count({ where: { userId } });
+    if (currentCount >= maxAccounts) {
+      throw new BadRequestException(
+        `Account limit reached (${currentCount}/${maxAccounts}). Please purchase an extra MT5 slot to continue.`
+      );
+    }
+
     // [FIX #16] SHA-256 fingerprint dedup — immune to IV changes
     const fingerprint = this.accountFingerprint(
       createDto.login.toString(),
@@ -313,6 +348,26 @@ export class MT5AccountsService {
     this.logger.log(
       `Creating manual MT5 account for user ${manualAccountData.userId}`,
     );
+
+    // Check MT5 Account Limits based on Subscription tier + extra slots
+    const subscription = await this.dataSource.getRepository('Subscription').findOne({
+      where: { userId: manualAccountData.userId, status: 'active' },
+      order: { createdAt: 'DESC' },
+    });
+    
+    let baseLimit = 1;
+    if ((subscription as any)?.tier === 'premium') baseLimit = 3;
+    else if ((subscription as any)?.tier === 'essential') baseLimit = 2;
+    
+    const extraSlots = (subscription as any)?.extraMt5Slots || 0;
+    const maxAccounts = baseLimit + extraSlots;
+    
+    const currentCount = await this.mt5AccountRepository.count({ where: { userId: manualAccountData.userId } });
+    if (currentCount >= maxAccounts) {
+      throw new BadRequestException(
+        `Account limit reached (${currentCount}/${maxAccounts}). Please purchase an extra MT5 slot to continue.`
+      );
+    }
 
     const mt5Account = this.mt5AccountRepository.create({
       accountName: manualAccountData.accountName,
