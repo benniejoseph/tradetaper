@@ -69,6 +69,11 @@ export class MT5AccountsController {
     return this.mt5AccountsService.createManual(manualAccount);
   }
 
+  @Get('limits')
+  async getLimits(@Request() req) {
+    return this.mt5AccountsService.getLimits(req.user.id);
+  }
+
   @Get()
   async findAll(@Request() req): Promise<MT5AccountResponseDto[]> {
     return this.mt5AccountsService.findAllByUser(req.user.id);

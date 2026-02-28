@@ -40,10 +40,58 @@ const MT5AccountsList: React.FC = () => {
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [syncingAccount, setSyncingAccount] = useState<string | null>(null);
   const [expandedAccountId, setExpandedAccountId] = useState<string | null>(null);
+  const [limits, setLimits] = useState<{ used: number; max: number; extraSlots: number } | null>(null);
+  const [buyingSlot, setBuyingSlot] = useState(false);
 
   useEffect(() => {
     dispatch(fetchMT5Accounts());
+    fetchLimits();
   }, [dispatch]);
+
+  const fetchLimits = async () => {
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/mt5-accounts/limits`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      });
+      if (res.ok) setLimits(await res.json());
+    } catch (err) {
+      console.error('Failed to fetch MT5 limits', err);
+    }
+  };
+
+  const handleBuySlot = async () => {
+    setBuyingSlot(true);
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/subscriptions/addon/mt5-slot`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      });
+      if (!res.ok) throw new Error('Failed to create order');
+      const order = await res.json();
+      
+      const rzp = new (window as any).Razorpay({
+        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+        amount: order.amount,
+        currency: order.currency,
+        order_id: order.id,
+        name: 'TradeTaper',
+        description: 'Extra MT5 Account Slot',
+        handler: function () {
+          // Success! Wait 2s for webhook to process, then refresh
+          setTimeout(() => {
+            fetchLimits();
+          }, 2000);
+        }
+      });
+      rzp.open();
+    } catch (err) {
+      console.error('Payment intent failed:', err);
+      alert('Failed to initiate payment. Please try again.');
+    } finally {
+      setBuyingSlot(false);
+    }
+  };
+
 
   const handleAddAccount = () => {
     setEditingAccount(null);
@@ -130,15 +178,33 @@ const MT5AccountsList: React.FC = () => {
           </div>
         </div>
         
-        {!showForm && (
-          <button 
-            onClick={handleAddAccount}
-            className="flex items-center space-x-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm"
-          >
-            <FaPlus className="w-3 h-3" />
-            <span>Add Account</span>
-          </button>
-        )}
+        {/* Account Limits & Add button */}
+        <div className="flex items-center space-x-3">
+          {limits && (
+            <div className="text-sm px-3 py-1.5 rounded-full bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300">
+              <span className="font-semibold text-gray-900 dark:text-white">{limits.used}</span> / {limits.max} Slots Used
+            </div>
+          )}
+          {!showForm && limits && limits.used < limits.max && (
+            <button 
+              onClick={handleAddAccount}
+              className="flex items-center space-x-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm"
+            >
+              <FaPlus className="w-3 h-3" />
+              <span>Add Account</span>
+            </button>
+          )}
+          {(!showForm && limits && limits.used >= limits.max) && (
+            <button 
+              onClick={handleBuySlot}
+              disabled={buyingSlot}
+              className="flex items-center space-x-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:opacity-90 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm disabled:opacity-50"
+            >
+              {buyingSlot ? <FaSpinner className="w-3 h-3 animate-spin" /> : <FaPlus className="w-3 h-3" />}
+              <span>Buy Extra Slot (₹999)</span>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Add/Edit Form */}
