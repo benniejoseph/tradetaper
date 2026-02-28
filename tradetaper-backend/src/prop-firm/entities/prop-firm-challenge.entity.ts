@@ -83,11 +83,11 @@ export class PropFirmChallenge {
   status: PropFirmStatus;
 
   /** Broker/platform (e.g. MT5, cTrader) */
-  @Column({ length: 50, nullable: true })
+  @Column({ type: 'varchar', length: 50, nullable: true })
   platform: string | null;
 
-  /** Razorpay order ID if connected to a MetaAPI account */
-  @Column({ length: 255, nullable: true })
+  /** MetaAPI / MT5 account ID if connected */
+  @Column({ type: 'varchar', length: 255, nullable: true })
   mt5AccountId: string | null;
 
   /** Free-form notes */
