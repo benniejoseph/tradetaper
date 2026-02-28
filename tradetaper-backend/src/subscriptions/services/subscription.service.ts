@@ -603,6 +603,29 @@ export class SubscriptionService {
 
     this.logger.log(`Received Webhook: ${eventType}`);
 
+    // ── One-time order events (add-ons) ──
+    if (eventType === 'order.paid') {
+      const orderEntity = payload.order ? payload.order.entity : null;
+      if (orderEntity?.notes?.type === 'mt5_slot') {
+        const userId = orderEntity.notes.userId;
+        if (userId) {
+          const sub = await this.getOrCreateSubscription(userId);
+          sub.extraMt5Slots = (sub.extraMt5Slots ?? 0) + 1;
+          await this.subscriptionRepository.save(sub);
+          this.logger.log(`Granted extra MT5 slot to user ${userId}. Total extra: ${sub.extraMt5Slots}`);
+          await this.notificationsService.send({
+            userId,
+            type: NotificationType.SYSTEM_UPDATE,
+            priority: NotificationPriority.NORMAL,
+            title: 'MT5 Account Slot Unlocked',
+            message: 'Your extra MT5 account slot is now active. You can connect an additional trading account.',
+            data: { extraMt5Slots: sub.extraMt5Slots },
+          });
+        }
+      }
+      return;
+    }
+
     if (!subscriptionEntity && !paymentEntity) {
       this.logger.warn(
         'Webhook payload missing subscription or payment entity',
@@ -860,5 +883,41 @@ export class SubscriptionService {
     }
 
     return expiringSubscriptions.length;
+  }
+
+  /**
+   * Create a Razorpay one-time order for purchasing an extra MT5 account slot.
+   * Amount: ₹999 (one-time, non-recurring).
+   * Notes carry userId + type so the order.paid webhook can grant the slot.
+   */
+  async createMt5SlotOrder(userId: string): Promise<{
+    orderId: string;
+    amount: number;
+    currency: string;
+    key: string;
+  }> {
+    const razorpay = this.razorpayService.getClient();
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) throw new NotFoundException('User not found');
+
+    const amountPaise = 99900; // ₹999 in paise
+    const order = await razorpay.orders.create({
+      amount: amountPaise,
+      currency: 'INR',
+      receipt: `mt5slot_${userId}_${Date.now()}`,
+      notes: {
+        type: 'mt5_slot',
+        userId,
+        userEmail: user.email,
+      },
+    });
+
+    this.logger.log(`Created MT5 slot order ${order.id} for user ${userId}`);
+    return {
+      orderId: order.id,
+      amount: amountPaise,
+      currency: 'INR',
+      key: this.configService.get<string>('RAZORPAY_KEY_ID') ?? '',
+    };
   }
 }

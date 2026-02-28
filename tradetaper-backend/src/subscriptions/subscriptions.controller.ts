@@ -91,4 +91,10 @@ export class SubscriptionsController {
       ),
     };
   }
+  @Post('addon/mt5-slot')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async createMt5SlotOrder(@Req() req: AuthenticatedRequest) {
+    return this.subscriptionService.createMt5SlotOrder(req.user.id);
+  }
 }

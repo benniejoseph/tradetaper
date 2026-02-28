@@ -88,6 +88,10 @@ export class Subscription {
   @Column({ type: 'timestamp', nullable: true })
   trialEnd: Date;
 
+  /** Extra MT5 account slots purchased as a one-time add-on (₹999/slot) */
+  @Column({ type: 'int', default: 0 })
+  extraMt5Slots: number;
+
   @CreateDateColumn()
   createdAt: Date;
 
