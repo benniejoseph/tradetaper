@@ -35,6 +35,7 @@ import { DisciplineModule } from './discipline/discipline.module';
 import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 import { UploadModule } from './upload/upload.module';
 import { CommunityModule } from './community/community.module';
+import { PropFirmModule } from './prop-firm/prop-firm.module';
 
 @Module({
   imports: [
@@ -96,6 +97,7 @@ import { CommunityModule } from './community/community.module';
     CommunityModule, // Public community + leaderboards
     SubscriptionsModule,
     UploadModule, // File upload (screenshots, documents)
+    PropFirmModule, // Prop firm challenge tracker
   ],
   controllers: [AppController],
   providers: [AppService],
