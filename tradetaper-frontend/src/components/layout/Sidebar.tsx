@@ -305,12 +305,17 @@ export default function Sidebar({ isOpen, toggleSidebar, isMobile, onExpandChang
                     </p>
                     {user?.subscription?.plan === 'premium' && (
                       <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-gradient-to-r from-amber-400 to-amber-600 text-white shadow-sm flex items-center gap-1">
-                        <FaCrown className="w-2.5 h-2.5" /> PRO
+                        <FaCrown className="w-2.5 h-2.5" /> PREMIUM
                       </span>
                     )}
                      {user?.subscription?.plan === 'essential' && (
                       <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-gradient-to-r from-blue-400 to-blue-600 text-white shadow-sm">
-                        PLUS
+                        ESSENTIAL
+                      </span>
+                    )}
+                    {(!user?.subscription?.plan || user?.subscription?.plan === 'free') && (
+                      <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-gray-200 dark:bg-zinc-800 text-gray-700 dark:text-gray-300 shadow-sm border border-gray-300 dark:border-zinc-700">
+                        FREE
                       </span>
                     )}
                   </div>

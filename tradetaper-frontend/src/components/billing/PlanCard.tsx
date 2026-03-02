@@ -108,7 +108,7 @@ export default function PlanCard({
         ) : isCurrent ? (
           'Current Plan'
         ) : (
-          plan.name === 'starter' ? 'Get Started' : 'Upgrade'
+          (plan.id === 'essential' || plan.id === 'free') ? 'Get Started' : 'Upgrade'
         )}
       </button>
     </div>

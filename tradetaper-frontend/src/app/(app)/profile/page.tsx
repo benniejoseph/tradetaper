@@ -131,6 +131,11 @@ export default function ProfilePage() {
                   ESSENTIAL
                 </span>
               )}
+              {plan === 'free' && (
+                <span className="px-3 py-1 rounded-full text-xs font-bold bg-gray-100 dark:bg-zinc-800 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-zinc-700 shadow-sm">
+                  FREE
+                </span>
+              )}
             </h1>
             <p className="text-gray-500 dark:text-gray-400 flex items-center gap-2 mt-1">
               <FaEnvelope className="w-3 h-3" /> {user?.email}

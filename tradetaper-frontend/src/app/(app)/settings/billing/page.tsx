@@ -125,8 +125,8 @@ export default function BillingPage() {
             key={plan.id}
             plan={plan}
             period={period}
-            isPopular={plan.id === 'professional'}
-            isCurrent={currentSub?.currentPlan === plan.id || (plan.id === 'starter' && isNaN(parseInt(currentSub?.currentPlan || '')) && (!currentSub?.currentPlan || currentSub.currentPlan === 'free'))}
+            isPopular={plan.id === 'premium'}
+            isCurrent={currentSub?.currentPlan === plan.id || (plan.id === 'free' && (!currentSub?.currentPlan || currentSub.currentPlan === 'free'))}
             // Logic for 'isCurrent' is a bit hacky above, simpler:
             // isCurrent={currentSub?.currentPlan === plan.name} // assuming plan.name matches 'starter', etc.
             isLoading={processingId === plan.id}
@@ -136,24 +136,24 @@ export default function BillingPage() {
       </div>
 
       {/* Current Subscription Details */}
-      {currentSub && currentSub.currentPlan !== 'free' && (
+      {currentSub && (
           <div className="mt-16 bg-gray-50 dark:bg-gray-900/50 rounded-2xl p-8 border border-gray-200 dark:border-gray-800">
               <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Subscription Status</h2>
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center">
                   <div>
                       <p className="text-gray-500 dark:text-gray-400 text-sm">Current Plan</p>
-                      <p className="text-lg font-semibold text-gray-900 dark:text-white capitalize">{currentSub.currentPlan}</p>
+                      <p className="text-lg font-semibold text-gray-900 dark:text-white capitalize">{currentSub.currentPlan || 'Free'}</p>
                   </div>
                   <div className="mt-4 sm:mt-0">
                        <p className="text-gray-500 dark:text-gray-400 text-sm">Status</p>
-                       <span className={`inline-flex px-3 py-1 rounded-full text-xs font-medium ${currentSub.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
-                           {currentSub.status.toUpperCase()}
+                       <span className={`inline-flex px-3 py-1 rounded-full text-xs font-medium ${currentSub.status === 'active' || currentSub.status === 'trialing' ? 'bg-green-100 text-green-800' : currentSub.status === 'free' ? 'bg-gray-200 text-gray-800' : 'bg-yellow-100 text-yellow-800'}`}>
+                           {(currentSub.status || 'Active').toUpperCase()}
                        </span>
                   </div>
                   <div className="mt-4 sm:mt-0">
-                       <p className="text-gray-500 dark:text-gray-400 text-sm">Renews On</p>
+                       <p className="text-gray-500 dark:text-gray-400 text-sm">{currentSub.currentPlan === 'free' ? 'Member Since' : 'Renews On'}</p>
                        <p className="text-gray-900 dark:text-white font-medium">
-                           {new Date(currentSub.currentPeriodEnd).toLocaleDateString()}
+                           {currentSub.currentPeriodEnd ? new Date(currentSub.currentPeriodEnd).toLocaleDateString() : 'Lifetime Access'}
                        </p>
                   </div>
               </div>
