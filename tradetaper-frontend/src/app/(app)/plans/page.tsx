@@ -120,42 +120,64 @@ export default function PricingPage() {
                     <td className="py-4 px-4 text-center text-gray-900 dark:text-white">10</td>
                     <td className="py-4 px-4 text-center text-gray-900 dark:text-white">100</td>
                     <td className="py-4 px-4 text-center text-gray-900 dark:text-white">500</td>
-                    <td className="py-4 px-4 text-center text-gray-900 dark:text-white">Unlimited</td>
                   </tr>
                   <tr>
-                    <td className="py-4 px-4 text-gray-600 dark:text-gray-400">Trading accounts</td>
+                    <td className="py-4 px-4 text-gray-600 dark:text-gray-400">MetaApi Auto-Sync Accounts</td>
                     <td className="py-4 px-4 text-center text-gray-900 dark:text-white">1</td>
+                    <td className="py-4 px-4 text-center text-gray-900 dark:text-white">2</td>
                     <td className="py-4 px-4 text-center text-gray-900 dark:text-white">3</td>
-                    <td className="py-4 px-4 text-center text-gray-900 dark:text-white">10</td>
-                    <td className="py-4 px-4 text-center text-gray-900 dark:text-white">Unlimited</td>
                   </tr>
                   <tr>
-                    <td className="py-4 px-4 text-gray-600 dark:text-gray-400">Advanced analytics</td>
-                    <td className="py-4 px-4 text-center">❌</td>
-                    <td className="py-4 px-4 text-center text-green-500"><FaCheck /></td>
-                    <td className="py-4 px-4 text-center text-green-500"><FaCheck /></td>
-                    <td className="py-4 px-4 text-center text-green-500"><FaCheck /></td>
+                    <td className="py-4 px-4 text-gray-600 dark:text-gray-400">Trader Discipline Tracker</td>
+                    <td className="py-4 px-4 text-center text-gray-500">❌</td>
+                    <td className="py-4 px-4 text-center text-green-500"><FaCheck className="inline" /></td>
+                    <td className="py-4 px-4 text-center text-green-500"><FaCheck className="inline" /></td>
                   </tr>
                   <tr>
-                    <td className="py-4 px-4 text-gray-600 dark:text-gray-400">API Access</td>
-                    <td className="py-4 px-4 text-center">❌</td>
-                    <td className="py-4 px-4 text-center">❌</td>
-                    <td className="py-4 px-4 text-center text-green-500"><FaCheck /></td>
-                    <td className="py-4 px-4 text-center text-green-500"><FaCheck /></td>
+                    <td className="py-4 px-4 text-gray-600 dark:text-gray-400">Community & Leaderboards</td>
+                    <td className="py-4 px-4 text-center text-gray-500">❌</td>
+                    <td className="py-4 px-4 text-center text-green-500"><FaCheck className="inline" /></td>
+                    <td className="py-4 px-4 text-center text-green-500"><FaCheck className="inline" /></td>
                   </tr>
                   <tr>
-                    <td className="py-4 px-4 text-gray-600 dark:text-gray-400">Team collaboration</td>
-                    <td className="py-4 px-4 text-center">❌</td>
-                    <td className="py-4 px-4 text-center">❌</td>
-                    <td className="py-4 px-4 text-center">❌</td>
-                    <td className="py-4 px-4 text-center text-green-500"><FaCheck /></td>
+                    <td className="py-4 px-4 text-gray-600 dark:text-gray-400">ICT AI Mentor (Unlimited)</td>
+                    <td className="py-4 px-4 text-center text-gray-500">❌</td>
+                    <td className="py-4 px-4 text-center text-gray-500">❌</td>
+                    <td className="py-4 px-4 text-center text-green-500"><FaCheck className="inline" /></td>
+                  </tr>
+                  <tr>
+                    <td className="py-4 px-4 text-gray-600 dark:text-gray-400">AI Psychology Profiling</td>
+                    <td className="py-4 px-4 text-center text-gray-500">❌</td>
+                    <td className="py-4 px-4 text-center text-gray-500">❌</td>
+                    <td className="py-4 px-4 text-center text-green-500"><FaCheck className="inline" /></td>
+                  </tr>
+                  <tr>
+                    <td className="py-4 px-4 text-gray-600 dark:text-gray-400">Live Chart Pattern AI</td>
+                    <td className="py-4 px-4 text-center text-gray-500">❌</td>
+                    <td className="py-4 px-4 text-center text-gray-500">❌</td>
+                    <td className="py-4 px-4 text-center text-green-500"><FaCheck className="inline" /></td>
+                  </tr>
+                  <tr>
+                    <td className="py-4 px-4 text-gray-600 dark:text-gray-400">Prop Firm Challenge Tracker</td>
+                    <td className="py-4 px-4 text-center text-gray-500">❌</td>
+                    <td className="py-4 px-4 text-center text-gray-500">❌</td>
+                    <td className="py-4 px-4 text-center text-green-500"><FaCheck className="inline" /></td>
+                  </tr>
+                  <tr>
+                    <td className="py-4 px-4 text-gray-600 dark:text-gray-400">Advanced Backtesting</td>
+                    <td className="py-4 px-4 text-center text-gray-500">❌</td>
+                    <td className="py-4 px-4 text-center text-gray-500">❌</td>
+                    <td className="py-4 px-4 text-center text-green-500"><FaCheck className="inline" /></td>
+                  </tr>
+                  <tr>
+                    <td className="py-4 px-4 text-indigo-600 dark:text-indigo-400 font-medium">✨ Extra MT5 Slots Add-on</td>
+                    <td className="py-4 px-4 text-center text-gray-900 dark:text-white" colSpan={3}>Available on all plans for ₹999 / slot</td>
                   </tr>
                   <tr>
                     <td className="py-4 px-4 text-gray-600 dark:text-gray-400">Support</td>
                     <td className="py-4 px-4 text-center text-gray-600 dark:text-gray-400">Community</td>
                     <td className="py-4 px-4 text-center text-gray-900 dark:text-white">Email</td>
                     <td className="py-4 px-4 text-center text-gray-900 dark:text-white">Priority Email</td>
-                    <td className="py-4 px-4 text-center text-gray-900 dark:text-white">Phone + Email</td>
                   </tr>
                 </tbody>
               </table>
