@@ -5,7 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { store } from '@/store/store';
 import { CurrencyProvider } from '@/context/CurrencyContext';
-import { loadUserFromStorage } from '@/store/features/authSlice';
+import { loadUserFromStorage, fetchCurrentUser } from '@/store/features/authSlice';
 import { setupAuthInterceptors, initializeApiSecurity } from '@/services/api';
 import { ThemeProvider } from '@/components/theme-provider';
 import React from 'react';
@@ -17,6 +17,12 @@ function ReduxProviderWithInit({ children }: { children: React.ReactNode }) {
 
     // Setup auth interceptors to attach JWT token to requests
     setupAuthInterceptors(() => store.getState());
+    
+    // Fetch a fresh user context to override stale localStorage subscriptions
+    const { isAuthenticated } = store.getState().auth;
+    if (isAuthenticated) {
+      store.dispatch(fetchCurrentUser() as any);
+    }
 
     // SECURITY: Initialize CSRF protection
     initializeApiSecurity().catch((error: any) => {

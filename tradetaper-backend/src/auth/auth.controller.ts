@@ -22,6 +22,7 @@ import { LocalAuthGuard } from './guards/local-auth.guard';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { RegisterUserDto } from './dto/register-user.dto';
 import { LoginUserDto } from './dto/login-user.dto';
+import { UsersService } from '../users/users.service';
 import { UserResponseDto } from '../users/dto/user-response.dto';
 import {
   RateLimitGuard,
@@ -39,6 +40,7 @@ export class AuthController {
 
   constructor(
     private authService: AuthService,
+    private usersService: UsersService,
     private jwtService: JwtService,
     private configService: ConfigService,
   ) {}
@@ -275,6 +277,41 @@ export class AuthController {
         updatedAt: new Date().toISOString(),
       },
     };
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('me')
+  @StrictRateLimit()
+  async getMe(@Request() req): Promise<UserResponseDto> {
+    const user = await this.usersService.findOneByEmail(req.user.email);
+    if (!user) {
+      // Fallback
+      return req.user;
+    }
+
+    const userResponse: UserResponseDto = {
+      id: user.id,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      username: user.username,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+    };
+
+    // Fetch fresh subscription explicitly
+    try {
+      const subscription = await this.authService['subscriptionService'].getOrCreateSubscription(user.id);
+      const plan = await this.authService['subscriptionService'].getPricingPlan(subscription.plan);
+      userResponse.subscription = {
+        ...subscription,
+        planDetails: plan
+      };
+    } catch (e) {
+      console.error('Failed to attach subscription to /me payload', e);
+    }
+    
+    return userResponse;
   }
 
   @UseGuards(JwtAuthGuard)

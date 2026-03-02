@@ -1,6 +1,6 @@
-// src/store/features/authSlice.ts
-import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { UserResponseDto } from '@/types/user'; // We'll create this type
+import { authApiClient } from '@/services/api';
 
 interface AuthState {
   user: UserResponseDto | null;
@@ -17,6 +17,18 @@ const initialState: AuthState = {
   isLoading: false,
   error: null,
 };
+
+export const fetchCurrentUser = createAsyncThunk(
+  'auth/fetchCurrentUser',
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await authApiClient.get('/auth/me');
+      return response.data;
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to fetch current user profile');
+    }
+  }
+);
 
 const authSlice = createSlice({
   name: 'auth',
@@ -84,6 +96,14 @@ const authSlice = createSlice({
         localStorage.setItem('user', JSON.stringify(action.payload));
       }
     },
+  },
+  extraReducers: (builder) => {
+    builder.addCase(fetchCurrentUser.fulfilled, (state, action) => {
+      state.user = action.payload;
+      if (typeof window !== 'undefined' && state.token) {
+        localStorage.setItem('user', JSON.stringify(action.payload));
+      }
+    });
   },
 });
 
