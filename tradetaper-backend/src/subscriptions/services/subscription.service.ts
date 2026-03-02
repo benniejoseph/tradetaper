@@ -610,9 +610,19 @@ export class SubscriptionService {
         const userId = orderEntity.notes.userId;
         if (userId) {
           const sub = await this.getOrCreateSubscription(userId);
-          sub.extraMt5Slots = (sub.extraMt5Slots ?? 0) + 1;
-          await this.subscriptionRepository.save(sub);
-          this.logger.log(`Granted extra MT5 slot to user ${userId}. Total extra: ${sub.extraMt5Slots}`);
+          
+          // Use atomic SQL increment to prevent race conditions
+          await this.subscriptionRepository.increment(
+            { id: sub.id },
+            'extraMt5Slots',
+            1,
+          );
+          
+          const updatedSub = await this.subscriptionRepository.findOne({
+            where: { id: sub.id },
+          });
+
+          this.logger.log(`Granted extra MT5 slot to user ${userId}. Total extra: ${updatedSub?.extraMt5Slots}`);
           await this.notificationsService.send({
             userId,
             type: NotificationType.SYSTEM_UPDATE,

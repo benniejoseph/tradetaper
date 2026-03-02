@@ -18,7 +18,7 @@ async function bootstrap() {
       `Node.js: ${process.version}, ENV: ${process.env.NODE_ENV}, PORT: ${process.env.PORT}`,
     );
 
-    const app = await NestFactory.create(AppModule);
+    const app = await NestFactory.create(AppModule, { rawBody: true });
 
     // CORS configuration - MUST BE FIRST (before other middleware)
     const corsOptions: CorsOptions = {
