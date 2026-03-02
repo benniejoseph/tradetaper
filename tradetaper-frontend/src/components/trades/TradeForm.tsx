@@ -230,7 +230,7 @@ export default function TradeForm({ initialData, isEditMode = false, onFormSubmi
       const risk = direction === TradeDirection.LONG ? entryPrice - stopLoss : stopLoss - entryPrice;
       const reward = direction === TradeDirection.LONG ? takeProfit - entryPrice : entryPrice - takeProfit;
       if (risk > 0 && reward > 0) {
-        setFormData((prev: any) => ({ ...prev, rMultiple: parseFloat((reward / risk).toFixed(2)) }));
+        setFormData((prev: unknown) => ({ ...(prev as object), rMultiple: parseFloat((reward / risk).toFixed(2)) }));
       }
     }
   }, [formData.entryPrice, formData.stopLoss, formData.takeProfit, formData.direction]);
@@ -328,12 +328,14 @@ export default function TradeForm({ initialData, isEditMode = false, onFormSubmi
       if (isEditMode && initialData?.id) {
         result = await dispatch(updateTrade({ id: initialData.id, payload }));
         if (updateTrade.fulfilled.match(result)) {
-          onFormSubmitSuccess?.(result.payload.id) || router.push('/journal');
+          if (onFormSubmitSuccess) onFormSubmitSuccess(result.payload.id);
+          else router.push('/journal');
         }
       } else {
         result = await dispatch(createTrade(payload));
         if (createTrade.fulfilled.match(result)) {
-          onFormSubmitSuccess?.(result.payload.id) || router.push('/journal');
+          if (onFormSubmitSuccess) onFormSubmitSuccess(result.payload.id);
+          else router.push('/journal');
         }
       }
       if (result.meta.requestStatus === 'rejected') {

@@ -68,7 +68,7 @@ export default function ProfilePage() {
     setUsernameStatus('checking');
     usersService
       .checkUsernameAvailability(trimmed)
-      .then((result) => {
+      .then((result: { available: boolean }) => {
         setUsernameStatus(result.available ? 'available' : 'taken');
       })
       .catch(() => setUsernameStatus('error'));
@@ -90,8 +90,9 @@ export default function ProfilePage() {
       const updated = await usersService.updateUsername(trimmed);
       dispatch(updateUser(updated));
       setUsernameStatus('current');
-    } catch (error: any) {
-      setUsernameError(error?.response?.data?.message || 'Unable to update username');
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { message?: string } } };
+      setUsernameError(err?.response?.data?.message || 'Unable to update username');
     } finally {
       setUsernameSaving(false);
     }

@@ -1,7 +1,7 @@
-import { useState, ChangeEvent } from 'react';
+import React, { useState, ChangeEvent } from 'react';
 import { FaUpload, FaTimesCircle, FaBrain } from 'react-icons/fa';
 import { authApiClient } from '@/services/api';
-import { useTheme } from '@/context/ThemeContext';
+import Image from 'next/image';
 
 interface ChartUploadButtonProps {
   onChartAnalyzed: (data: any) => void;
@@ -11,20 +11,14 @@ interface ChartUploadButtonProps {
 export default function ChartUploadButton({ onChartAnalyzed, initialImageUrl }: ChartUploadButtonProps) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(initialImageUrl || null);
-  const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
 
-  const { theme } = useTheme();
-
-  const labelClasses = "block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2";
   const sectionContainerClasses = "bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl p-8 rounded-2xl border border-gray-200/50 dark:border-gray-700/50 shadow-lg hover:shadow-xl transition-all duration-200";
   const sectionTitleClasses = "text-2xl font-bold text-gray-900 dark:text-white mb-6 pb-3 border-b border-gray-200/30 dark:border-gray-700/30 flex items-center space-x-3";
   const buttonBaseClasses = "flex items-center justify-center space-x-2 px-6 py-3 font-semibold rounded-xl transition-all duration-200 shadow-lg focus:outline-none focus:ring-2 focus:ring-opacity-70";
   const primaryButtonClasses = `bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white focus:ring-blue-500 hover:scale-105 hover:shadow-xl`;
-  const secondaryButtonClasses = 
-    `bg-gray-100/80 dark:bg-gray-800/80 hover:bg-gray-500 dark:hover:bg-gray-500 text-gray-600 dark:text-gray-400 hover:text-white focus:ring-gray-500 hover:scale-105 backdrop-blur-sm`;
 
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     setUploadError(null);
@@ -109,8 +103,8 @@ export default function ChartUploadButton({ onChartAnalyzed, initialImageUrl }: 
         )}
 
         {imagePreviewUrl && (
-          <div className="relative group max-w-md w-full">
-            <img src={imagePreviewUrl} alt="Selected chart preview" className="w-full h-auto rounded-2xl shadow-lg object-contain max-h-96 border border-gray-200/50 dark:border-gray-700/50" />
+          <div className="relative group max-w-md w-full h-64 overflow-hidden rounded-2xl shadow-lg border border-gray-200/50 dark:border-gray-700/50">
+            <Image src={imagePreviewUrl} alt="Selected chart preview" fill className="object-contain" unoptimized />
             <button 
               type="button" 
               onClick={handleRemoveImage}

@@ -139,6 +139,9 @@ export default function PricingPage() {
             );
           })}
         </div>
+        <p className="text-slate-400 text-lg max-w-2xl mx-auto text-center mt-12">
+          We&apos;ve completely redesigned our pricing around true AI empowerment. From precision MT5 integration to live mentorship from our proprietary ICT agent, TradeTaper is built for serious prop firm traders. Choose your weapon.
+        </p>
         
         {/* Toggle (Bottom Leftish or Centered as per image implication but better UX centered below or above) */}
         {/* The image had it bottom left. I'll put it centered below cards to match standard UX but styled like the image toggle */}
@@ -267,7 +270,10 @@ export default function PricingPage() {
 
       {/* FAQ Section */}
       <div className="max-w-3xl mx-auto px-6 pb-32 relative z-10 mt-12 border-t border-white/5 pt-24">
-        <h2 className="text-3xl font-bold text-center mb-12">Frequently Asked Questions</h2>
+        <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">You&apos;re in Good Company</h2>
+        <p className="text-gray-600 dark:text-gray-400 max-w-2xl mx-auto mb-12">
+          Join thousands of traders replacing their cluttered spreadsheets and fragmented tools with TradeTaper&apos;s all-in-one AI ecosystem.
+        </p>
         <div className="grid gap-6">
           {[
             { q: "Can I cancel anytime?", a: "Yes, you can cancel your subscription at any time. Your access will continue until the end of your billing period." },
