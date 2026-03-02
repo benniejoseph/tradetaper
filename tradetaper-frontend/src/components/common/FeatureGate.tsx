@@ -140,7 +140,7 @@ export const FeatureGate: React.FC<FeatureGateProps> = ({ feature, children, blu
           </p>
           
           <button
-            onClick={() => router.push('/plans')}
+            onClick={() => router.push('/pricing')}
             className="w-full py-3.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-bold rounded-xl transition-all shadow-lg shadow-emerald-500/25"
           >
             Upgrade to {copy.requiredPlan}

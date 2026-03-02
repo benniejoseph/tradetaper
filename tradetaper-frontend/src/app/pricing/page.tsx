@@ -165,6 +165,106 @@ export default function PricingPage() {
 
       </div>
 
+      {/* Features Comparison */}
+      <div className="max-w-5xl mx-auto px-6 pb-24 relative z-10 pt-12">
+        <div className="bg-slate-900/40 backdrop-blur-xl rounded-3xl p-8 border border-white/5 shadow-2xl shadow-emerald-500/5">
+          <h2 className="text-3xl font-bold text-center text-white mb-12">
+            Compare Plans
+          </h2>
+          
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-white/10">
+                  <th className="text-left py-4 px-4 text-slate-400 font-medium w-1/3">Features</th>
+                  {PRICING_TIERS.map((tier) => (
+                    <th key={tier.id} className="text-center py-4 px-4 w-[22%]">
+                      <div className="text-lg font-bold text-white mb-1">{tier.name}</div>
+                      <div className="text-xs text-slate-500">
+                        {tier.price === 0 ? 'Free' : `$${tier.price}/mo`}
+                      </div>
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/5">
+                <tr className="hover:bg-white/[0.02] transition-colors">
+                  <td className="py-5 px-4 text-slate-300 font-medium">Trades per month</td>
+                  <td className="py-5 px-4 text-center text-white">10</td>
+                  <td className="py-5 px-4 text-center text-white">100</td>
+                  <td className="py-5 px-4 text-center text-white">500</td>
+                </tr>
+                <tr className="hover:bg-white/[0.02] transition-colors">
+                  <td className="py-5 px-4 text-slate-300 font-medium">MetaApi Auto-Sync Accounts</td>
+                  <td className="py-5 px-4 text-center text-white">1</td>
+                  <td className="py-5 px-4 text-center text-white">2</td>
+                  <td className="py-5 px-4 text-center text-white">3</td>
+                </tr>
+                <tr className="hover:bg-white/[0.02] transition-colors">
+                  <td className="py-5 px-4 text-slate-300 font-medium">Trader Discipline Tracker</td>
+                  <td className="py-5 px-4 text-center text-slate-600"><FaTimes className="inline text-xs" /></td>
+                  <td className="py-5 px-4 text-center text-emerald-500"><FaCheck className="inline text-sm drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]" /></td>
+                  <td className="py-5 px-4 text-center text-emerald-500"><FaCheck className="inline text-sm drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]" /></td>
+                </tr>
+                <tr className="hover:bg-white/[0.02] transition-colors">
+                  <td className="py-5 px-4 text-slate-300 font-medium">Community & Leaderboards</td>
+                  <td className="py-5 px-4 text-center text-slate-600"><FaTimes className="inline text-xs" /></td>
+                  <td className="py-5 px-4 text-center text-emerald-500"><FaCheck className="inline text-sm drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]" /></td>
+                  <td className="py-5 px-4 text-center text-emerald-500"><FaCheck className="inline text-sm drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]" /></td>
+                </tr>
+                <tr className="hover:bg-white/[0.02] transition-colors">
+                  <td className="py-5 px-4 text-slate-300 font-medium flex items-center gap-2">
+                    <span className="bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent italic font-bold">AI</span> 
+                    Mentor (Unlimited)
+                  </td>
+                  <td className="py-5 px-4 text-center text-slate-600"><FaTimes className="inline text-xs" /></td>
+                  <td className="py-5 px-4 text-center text-slate-600"><FaTimes className="inline text-xs" /></td>
+                  <td className="py-5 px-4 text-center text-emerald-500"><FaCheck className="inline text-sm drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]" /></td>
+                </tr>
+                <tr className="hover:bg-white/[0.02] transition-colors">
+                  <td className="py-5 px-4 text-slate-300 font-medium">AI Psychology Profiling</td>
+                  <td className="py-5 px-4 text-center text-slate-600"><FaTimes className="inline text-xs" /></td>
+                  <td className="py-5 px-4 text-center text-slate-600"><FaTimes className="inline text-xs" /></td>
+                  <td className="py-5 px-4 text-center text-emerald-500"><FaCheck className="inline text-sm drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]" /></td>
+                </tr>
+                <tr className="hover:bg-white/[0.02] transition-colors">
+                  <td className="py-5 px-4 text-slate-300 font-medium">Live Chart Pattern AI</td>
+                  <td className="py-5 px-4 text-center text-slate-600"><FaTimes className="inline text-xs" /></td>
+                  <td className="py-5 px-4 text-center text-slate-600"><FaTimes className="inline text-xs" /></td>
+                  <td className="py-5 px-4 text-center text-emerald-500"><FaCheck className="inline text-sm drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]" /></td>
+                </tr>
+                <tr className="hover:bg-white/[0.02] transition-colors">
+                  <td className="py-5 px-4 text-slate-300 font-medium">Prop Firm Challenge Tracker</td>
+                  <td className="py-5 px-4 text-center text-slate-600"><FaTimes className="inline text-xs" /></td>
+                  <td className="py-5 px-4 text-center text-slate-600"><FaTimes className="inline text-xs" /></td>
+                  <td className="py-5 px-4 text-center text-emerald-500"><FaCheck className="inline text-sm drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]" /></td>
+                </tr>
+                <tr className="hover:bg-white/[0.02] transition-colors">
+                  <td className="py-5 px-4 text-slate-300 font-medium">Advanced Backtesting</td>
+                  <td className="py-5 px-4 text-center text-slate-600"><FaTimes className="inline text-xs" /></td>
+                  <td className="py-5 px-4 text-center text-slate-600"><FaTimes className="inline text-xs" /></td>
+                  <td className="py-5 px-4 text-center text-emerald-500"><FaCheck className="inline text-sm drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]" /></td>
+                </tr>
+                <tr className="hover:bg-white/[0.02] transition-colors bg-emerald-900/10">
+                  <td className="py-5 px-4 text-emerald-400 font-medium flex items-center gap-2">
+                    <FaStar className="text-amber-400" /> Extra MT5 Slots Add-on
+                  </td>
+                  <td className="py-5 px-4 text-center text-slate-300 font-medium text-xs" colSpan={3}>
+                    Available on all plans for ₹999 / slot
+                  </td>
+                </tr>
+                <tr className="hover:bg-white/[0.02] transition-colors">
+                  <td className="py-5 px-4 text-slate-300 font-medium">Support</td>
+                  <td className="py-5 px-4 text-center text-slate-400">Community</td>
+                  <td className="py-5 px-4 text-center text-white">Email</td>
+                  <td className="py-5 px-4 text-center text-white">Priority Email</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
       {/* FAQ Section */}
       <div className="max-w-3xl mx-auto px-6 pb-32 relative z-10 mt-12 border-t border-white/5 pt-24">
         <h2 className="text-3xl font-bold text-center mb-12">Frequently Asked Questions</h2>

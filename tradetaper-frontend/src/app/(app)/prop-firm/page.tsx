@@ -16,7 +16,6 @@ import {
   RefreshCw,
   ChevronDown,
 } from 'lucide-react';
-import { useAiError } from '@/hooks/useAiError';
 import { toast } from 'react-hot-toast';
 
 /* ────────────────────────────────────────────────────── */
@@ -132,8 +131,6 @@ function PropFirmDashboard() {
   const [showModal, setShowModal]     = useState(false);
   const [editing, setEditing]         = useState<PropFirmChallenge | null>(null);
   const [deleting, setDeleting]       = useState<string | null>(null);
-  const handleAiError = useAiError();
-
   const apiBase = process.env.NEXT_PUBLIC_API_URL + '/api/v1';
 
   const load = async () => {
@@ -144,7 +141,7 @@ function PropFirmDashboard() {
       });
       if (!res.ok) throw new Error(await res.text());
       setChallenges(await res.json());
-    } catch (e) { handleAiError(e); }
+    } catch (e: any) { toast.error(e.message ?? 'Failed to load challenges'); }
     finally { setLoading(false); }
   };
 
@@ -324,7 +321,7 @@ function ChallengeCard({
 
         <div className="flex items-center gap-2">
           <span className={`flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-bold ${badge.bg} ${badge.color}`}>
-            <BadgeIcon className="h-3.5 w-3.5" />
+            {React.createElement(BadgeIcon as any, { className: 'h-3.5 w-3.5' })}
             {badge.label}
           </span>
           <button onClick={onEdit} className="rounded-lg border border-gray-200/70 dark:border-zinc-700 p-1.5 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors">
