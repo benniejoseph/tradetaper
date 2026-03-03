@@ -575,10 +575,17 @@ export class SubscriptionService {
 
       await this.subscriptionRepository.save(subscription);
 
+      const planAmountPaise =
+        period === 'monthly'
+          ? planConfig.priceMonthly
+          : planConfig.priceYearly;
+
       return {
         subscriptionId: sub.id,
         key: this.configService.get<string>('RAZORPAY_KEY_ID'),
         currency: 'INR',
+        // Amount in major currency unit (rupees) for DataFast payment tracking
+        amount: planAmountPaise / 100,
         name: 'TradeTaper',
         description: `${planConfig.displayName} (${period})${isFirstSubscription ? ' — 7-day free trial' : ''}`,
         customer_id: customerId,
