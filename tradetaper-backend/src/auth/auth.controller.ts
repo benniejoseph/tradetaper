@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { randomBytes, timingSafeEqual } from 'crypto';
 import {
   Controller,
   Request,
@@ -17,31 +18,28 @@ import {
   BadRequestException,
   Logger,
 } from '@nestjs/common';
+import { Request as ExpressRequest, Response } from 'express';
 import { AuthService } from './auth.service';
-import { LocalAuthGuard } from './guards/local-auth.guard';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { RegisterUserDto } from './dto/register-user.dto';
 import { LoginUserDto } from './dto/login-user.dto';
 import { UsersService } from '../users/users.service';
 import { UserResponseDto } from '../users/dto/user-response.dto';
 import {
-  RateLimitGuard,
   AuthRateLimit,
+  RateLimitGuard,
   StrictRateLimit,
 } from '../common/guards/rate-limit.guard';
-import { EnhancedValidationPipe } from '../common/pipes/validation.pipe';
-import { JwtService } from '@nestjs/jwt';
-import { AuthGuard } from '@nestjs/passport';
 import { ConfigService } from '@nestjs/config';
 
 @Controller('auth') // Route prefix /api/v1/auth
+@UseGuards(RateLimitGuard)
 export class AuthController {
   private readonly logger = new Logger(AuthController.name);
 
   constructor(
     private authService: AuthService,
     private usersService: UsersService,
-    private jwtService: JwtService,
     private configService: ConfigService,
   ) {}
 
@@ -55,6 +53,7 @@ export class AuthController {
 
   @Post('login')
   @HttpCode(HttpStatus.OK)
+  @AuthRateLimit()
   async login(
     @Body() loginUserDto: LoginUserDto,
   ): Promise<{ accessToken: string; user: UserResponseDto }> {
@@ -70,7 +69,7 @@ export class AuthController {
 
   // Manual Google OAuth implementation
   @Get('google')
-  async googleAuth(@Res() res) {
+  async googleAuth(@Res() res: Response) {
     try {
       const clientId = this.configService.get<string>('GOOGLE_CLIENT_ID');
       const callbackUrl = this.configService.get<string>('GOOGLE_CALLBACK_URL');
@@ -83,7 +82,15 @@ export class AuthController {
       }
 
       const scope = 'email profile';
-      const state = Math.random().toString(36).substring(7);
+      const state = randomBytes(32).toString('hex');
+      const secureCookie = this.configService.get<string>('NODE_ENV') === 'production';
+      res.cookie('oauth_state', state, {
+        httpOnly: true,
+        secure: secureCookie,
+        sameSite: 'lax',
+        path: '/api/v1/auth/google/callback',
+        maxAge: 10 * 60 * 1000,
+      });
 
       const googleAuthUrl =
         `https://accounts.google.com/o/oauth2/v2/auth?` +
@@ -95,7 +102,7 @@ export class AuthController {
         `access_type=offline&` +
         `prompt=consent`;
 
-      this.logger.log(`Redirecting to Google OAuth: ${googleAuthUrl}`);
+      this.logger.log('Redirecting to Google OAuth provider');
       return res.redirect(googleAuthUrl);
     } catch (error) {
       this.logger.error('Error initiating Google OAuth', error);
@@ -107,9 +114,16 @@ export class AuthController {
   }
 
   @Get('google/callback')
-  async googleCallback(@Query() query: Record<string, string>, @Res() res) {
+  async googleCallback(
+    @Query() query: Record<string, string>,
+    @Req() req: ExpressRequest,
+    @Res() res: Response,
+  ) {
     try {
       const { code, error, state } = query;
+      const frontendUrl =
+        this.configService.get<string>('FRONTEND_URL') ||
+        'http://localhost:3000';
 
       if (error) {
         this.logger.error(`Google OAuth error: ${error}`);
@@ -118,6 +132,21 @@ export class AuthController {
 
       if (!code) {
         throw new BadRequestException('No authorization code received');
+      }
+      const storedState = req.cookies?.oauth_state as string | undefined;
+      res.clearCookie('oauth_state', {
+        path: '/api/v1/auth/google/callback',
+      });
+      if (!state || !storedState) {
+        throw new BadRequestException('Invalid OAuth state');
+      }
+      const received = Buffer.from(state);
+      const expected = Buffer.from(storedState);
+      if (
+        received.length !== expected.length ||
+        !timingSafeEqual(received, expected)
+      ) {
+        throw new BadRequestException('Invalid OAuth state');
       }
 
       this.logger.log('Received authorization code, exchanging for tokens...');
@@ -144,11 +173,8 @@ export class AuthController {
 
       this.logger.log(`User authenticated successfully: ${result.user.email}`);
 
-      // Redirect to frontend with success
-      const frontendUrl =
-        this.configService.get<string>('FRONTEND_URL') ||
-        'http://localhost:3000';
-      const redirectUrl = `${frontendUrl}/auth/google/callback?token=${result.accessToken}&user=${encodeURIComponent(JSON.stringify(result.user))}`;
+      // Send auth data in URL fragment to avoid leaking tokens in server/referrer logs.
+      const redirectUrl = `${frontendUrl}/auth/google/callback#token=${encodeURIComponent(result.accessToken)}&user=${encodeURIComponent(JSON.stringify(result.user))}`;
 
       return res.redirect(redirectUrl);
     } catch (error) {
@@ -156,7 +182,8 @@ export class AuthController {
       const frontendUrl =
         this.configService.get<string>('FRONTEND_URL') ||
         'http://localhost:3000';
-      const errorUrl = `${frontendUrl}/auth/google/callback?error=${encodeURIComponent(error.message)}`;
+      const errorMessage = this.getPublicOAuthErrorMessage(error);
+      const errorUrl = `${frontendUrl}/auth/google/callback?error=${encodeURIComponent(errorMessage)}`;
       return res.redirect(errorUrl);
     }
   }
@@ -165,17 +192,25 @@ export class AuthController {
     const clientId = this.configService.get<string>('GOOGLE_CLIENT_ID');
     const clientSecret = this.configService.get<string>('GOOGLE_CLIENT_SECRET');
     const callbackUrl = this.configService.get<string>('GOOGLE_CALLBACK_URL');
+    if (!clientId || !clientSecret || !callbackUrl) {
+      throw new HttpException(
+        'Google OAuth not configured',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+
+    const form = new URLSearchParams({
+      code,
+      client_id: clientId,
+      client_secret: clientSecret,
+      redirect_uri: callbackUrl,
+      grant_type: 'authorization_code',
+    });
 
     try {
       const response = await axios.post(
         'https://oauth2.googleapis.com/token',
-        {
-          code,
-          client_id: clientId,
-          client_secret: clientSecret,
-          redirect_uri: callbackUrl,
-          grant_type: 'authorization_code',
-        },
+        form.toString(),
         {
           headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
@@ -194,6 +229,30 @@ export class AuthController {
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
+  }
+
+  private getPublicOAuthErrorMessage(error: unknown): string {
+    if (error instanceof BadRequestException) {
+      const response = error.getResponse();
+      if (typeof response === 'string') {
+        return response;
+      }
+      if (
+        typeof response === 'object' &&
+        response !== null &&
+        'message' in response
+      ) {
+        const message = (response as { message?: unknown }).message;
+        if (typeof message === 'string') {
+          return message;
+        }
+        if (Array.isArray(message)) {
+          return message.join(', ');
+        }
+      }
+      return error.message;
+    }
+    return 'Authentication failed';
   }
 
   private async getUserInfo(accessToken: string) {
@@ -220,65 +279,6 @@ export class AuthController {
     }
   }
 
-  @Get('debug/google-config')
-  async debugGoogleConfig() {
-    return {
-      hasClientId: !!this.configService.get<string>('GOOGLE_CLIENT_ID'),
-      hasClientSecret: !!this.configService.get<string>('GOOGLE_CLIENT_SECRET'),
-      hasCallbackUrl: !!this.configService.get<string>('GOOGLE_CALLBACK_URL'),
-      callbackUrl: this.configService.get<string>('GOOGLE_CALLBACK_URL'),
-    };
-  }
-
-  @Get('test-route')
-  async testRoute() {
-    return {
-      message: 'Test route working',
-      timestamp: new Date().toISOString(),
-    };
-  }
-
-  @Post('admin/login')
-  @HttpCode(HttpStatus.OK)
-  async adminLogin(
-    @Body() loginDto: { email: string; password: string },
-  ): Promise<{ accessToken: string; user: Record<string, string> }> {
-    // Demo admin credentials
-    const adminCredentials = {
-      email: 'admin@tradetaper.com',
-      password: 'admin123',
-    };
-
-    if (
-      loginDto.email !== adminCredentials.email ||
-      loginDto.password !== adminCredentials.password
-    ) {
-      throw new UnauthorizedException('Invalid admin credentials');
-    }
-
-    // Create a JWT token for the admin user
-    const payload = {
-      email: adminCredentials.email,
-      sub: 'admin-user-id',
-      role: 'admin',
-    };
-
-    const accessToken = this.jwtService.sign(payload);
-
-    return {
-      accessToken,
-      user: {
-        id: 'admin-user-id',
-        email: adminCredentials.email,
-        firstName: 'Admin',
-        lastName: 'User',
-        role: 'admin',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      },
-    };
-  }
-
   @UseGuards(JwtAuthGuard)
   @Get('me')
   @StrictRateLimit()
@@ -301,16 +301,16 @@ export class AuthController {
 
     // Fetch fresh subscription explicitly
     try {
-      const subscription = await this.authService['subscriptionService'].getOrCreateSubscription(user.id);
-      const plan = await this.authService['subscriptionService'].getPricingPlan(subscription.plan);
-      userResponse.subscription = {
-        ...subscription,
-        planDetails: plan
-      };
+      userResponse.subscription =
+        await this.authService.getSubscriptionSnapshot(user.id);
     } catch (e) {
-      console.error('Failed to attach subscription to /me payload', e);
+      this.logger.warn(
+        `Failed to attach subscription to /me payload for user ${user.id}: ${
+          e instanceof Error ? e.message : 'unknown error'
+        }`,
+      );
     }
-    
+
     return userResponse;
   }
 
@@ -319,14 +319,5 @@ export class AuthController {
   @StrictRateLimit()
   getProfile(@Request() req): UserResponseDto {
     return req.user;
-  }
-
-  @Get('test-oauth-routes')
-  async testOauthRoutes() {
-    return {
-      message: 'OAuth routes test',
-      routes: ['google', 'google-callback', 'debug/google-config'],
-      timestamp: new Date().toISOString(),
-    };
   }
 }

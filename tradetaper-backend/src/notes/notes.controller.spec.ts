@@ -10,6 +10,8 @@ import { Note } from './entities/note.entity';
 import { Logger } from '@nestjs/common'; // New import
 import { PsychologicalInsight } from '../notes/entities/psychological-insight.entity';
 import { PsychologicalInsightsService } from '../notes/psychological-insights.service';
+import { UsageLimitGuard } from '../subscriptions/guards/usage-limit.guard';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 describe('NotesController', () => {
   let controller: NotesController;
@@ -52,7 +54,7 @@ describe('NotesController', () => {
   };
 
   beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
+    const moduleBuilder = Test.createTestingModule({
       controllers: [NotesController],
       providers: [
         {
@@ -107,7 +109,13 @@ describe('NotesController', () => {
           },
         },
       ],
-    }).compile();
+    })
+      .overrideGuard(JwtAuthGuard)
+      .useValue({ canActivate: jest.fn().mockReturnValue(true) })
+      .overrideGuard(UsageLimitGuard)
+      .useValue({ canActivate: jest.fn().mockReturnValue(true) });
+
+    const module: TestingModule = await moduleBuilder.compile();
 
     controller = module.get<NotesController>(NotesController);
     service = module.get<NotesService>(NotesService);

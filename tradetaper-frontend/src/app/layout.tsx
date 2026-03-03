@@ -26,9 +26,15 @@ export default function RootLayout({
         <Providers>
             {children}
         </Providers>
-        <Script 
-          src="https://checkout.razorpay.com/v1/checkout.js" 
-          strategy="lazyOnload" 
+        <Script
+          src="https://checkout.razorpay.com/v1/checkout.js"
+          strategy="lazyOnload"
+        />
+        <Script
+          src="https://datafa.st/js/script.js"
+          data-website-id="dfid_4j7Evt2Hhmlb1CbPLbHK3"
+          data-domain="tradetaper.com"
+          strategy="afterInteractive"
         />
       </body>
     </html>

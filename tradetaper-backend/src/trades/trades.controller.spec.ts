@@ -7,15 +7,16 @@ import { UpdateTradeDto } from './dto/update-trade.dto';
 import { Trade } from './entities/trade.entity';
 import { UserResponseDto } from '../users/dto/user-response.dto';
 import { TradeStatus, TradeDirection, AssetType } from '../types/enums';
-import { Express } from 'express'; // Import Express for Multer File type
-import { GeminiVisionService } from '../notes/gemini-vision.service'; // New import
-import { Logger } from '@nestjs/common'; // New import
+import { Logger } from '@nestjs/common';
+import { PerformanceService } from './performance.service';
+import { UsageLimitGuard } from '../subscriptions/guards/usage-limit.guard';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 describe('TradesController', () => {
   let controller: TradesController;
   let service: TradesService;
 
-  const mockTrade: Trade = {
+  const mockTrade = {
     id: 'uuid-1',
     symbol: 'EURUSD',
     side: TradeDirection.LONG,
@@ -26,12 +27,15 @@ describe('TradesController', () => {
     commission: 0,
     userId: 'user-uuid-1',
     assetType: AssetType.FOREX,
+    strategy: null,
+    isGroupLeader: false,
     createdAt: new Date(),
     updatedAt: new Date(),
     tags: [],
+    getContractSize: jest.fn().mockReturnValue(100000),
     calculatePnl: jest.fn(),
-    user: {} as any, // Added user property
-  };
+    user: {} as any,
+  } as unknown as Trade;
 
   const mockUser: UserResponseDto = {
     id: 'user-uuid-1',
@@ -43,14 +47,20 @@ describe('TradesController', () => {
   };
 
   beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
+    const moduleBuilder = Test.createTestingModule({
       controllers: [TradesController],
       providers: [
         {
           provide: TradesService,
           useValue: {
             create: jest.fn().mockResolvedValue(mockTrade),
-            findAll: jest.fn().mockResolvedValue([mockTrade]),
+            findAll: jest.fn().mockResolvedValue({
+              data: [mockTrade],
+              total: 1,
+              page: 1,
+              limit: 10,
+              totalPages: 1,
+            }),
             findOne: jest.fn().mockResolvedValue(mockTrade),
             update: jest.fn().mockResolvedValue(mockTrade),
             remove: jest.fn().mockResolvedValue(undefined),
@@ -67,11 +77,9 @@ describe('TradesController', () => {
           },
         },
         {
-          provide: GeminiVisionService,
+          provide: PerformanceService,
           useValue: {
-            analyzeChartImage: jest
-              .fn()
-              .mockResolvedValue({ symbol: 'EURUSD', entryPrice: 1.12 }),
+            getPerformanceMetrics: jest.fn().mockResolvedValue({}),
           },
         },
         {
@@ -83,7 +91,13 @@ describe('TradesController', () => {
           },
         },
       ],
-    }).compile();
+    })
+      .overrideGuard(JwtAuthGuard)
+      .useValue({ canActivate: jest.fn().mockReturnValue(true) })
+      .overrideGuard(UsageLimitGuard)
+      .useValue({ canActivate: jest.fn().mockReturnValue(true) });
+
+    const module: TestingModule = await moduleBuilder.compile();
 
     controller = module.get<TradesController>(TradesController);
     service = module.get<TradesService>(TradesService);
@@ -113,8 +127,14 @@ describe('TradesController', () => {
   describe('findAll', () => {
     it('should return an array of trades', async () => {
       const req = { user: mockUser } as any;
-      expect(await controller.findAll(req)).toEqual([mockTrade]);
-      expect(service.findAll).toHaveBeenCalledWith(mockUser, undefined);
+      expect(await controller.findAll(req)).toEqual({
+        data: [mockTrade],
+        total: 1,
+        page: 1,
+        limit: 10,
+        totalPages: 1,
+      });
+      expect(service.findAll).toHaveBeenCalledWith(mockUser, undefined, undefined, 1, 10);
     });
   });
 

@@ -14,7 +14,8 @@ import {
   reactivateSubscription 
 } from '@/store/features/subscriptionSlice';
 import { pricingApi } from '@/services/pricingApi';
-import { PRICING_TIERS } from '@/config/pricing';
+import { PRICING_TIERS, getPlanPrice } from '@/config/pricing';
+import { useCurrency } from '@/hooks/useCurrency';
 import { 
   FaCreditCard, 
   FaHistory, 
@@ -33,6 +34,7 @@ import { format } from 'date-fns';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import AlertModal from '@/components/ui/AlertModal';
+import { trackDatafastPayment } from '@/utils/datafast';
 
 const formatDate = (date: string | Date | undefined | null) => {
   if (!date) return 'N/A';
@@ -53,6 +55,7 @@ export default function BillingPage() {
   const billingInfo = useSelector(selectBillingInfo);
   const usage = useSelector(selectUsage);
   const isLoading = useSelector(selectSubscriptionLoading);
+  const { currency } = useCurrency();
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   // Load Razorpay Script
   const [isRazorpayLoaded, setIsRazorpayLoaded] = useState(false);
@@ -196,6 +199,17 @@ export default function BillingPage() {
               subscription_id: data.subscriptionId,
               handler: async function (response: any) {
                   console.log("Payment successful", response);
+                  // Track revenue conversion in DataFast — currency-aware
+                  if (response.razorpay_payment_id) {
+                    const trackAmount = currency.isIndia
+                      ? (data.amount ?? 0)                          // INR amount from backend
+                      : getPlanPrice(planId, period, 'USD');        // USD price from config
+                    trackDatafastPayment({
+                      amount: trackAmount,
+                      currency: currency.code,
+                      transactionId: response.razorpay_payment_id,
+                    });
+                  }
                   setActionLoading(null);
                   router.push('/dashboard?payment_success=true');
                   // dispatch(fetchCurrentSubscription()); // Refresh state
@@ -286,7 +300,9 @@ export default function BillingPage() {
                             <div className="text-right">
                                 <p className="text-muted-foreground text-sm mb-1">Next Payment</p>
                                 <p className="text-xl font-bold text-foreground">
-                                    {(billingInfo as any)?.upcomingInvoice ? `$${(billingInfo as any).upcomingInvoice.amount/100}` : '$0.00'}
+                                    {(billingInfo as any)?.upcomingInvoice
+                                      ? `${currency.symbol}${((billingInfo as any).upcomingInvoice.amount/100).toFixed(2)}`
+                                      : `${currency.symbol}0.00`}
                                 </p>
                                 <p className="text-xs text-muted-foreground">
                                     on {(billingInfo as any)?.upcomingInvoice ? formatDate((billingInfo as any).upcomingInvoice.date) : 'N/A'}

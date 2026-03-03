@@ -138,7 +138,7 @@ describe('AgentOrchestratorService', () => {
       );
 
       expect(response.success).toBe(false);
-      expect(response.error?.code).toBe('NO_CAPABLE_AGENT');
+      expect(response.error?.code).toBe('NO_AGENT_AVAILABLE');
     });
   });
 

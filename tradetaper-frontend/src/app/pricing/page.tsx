@@ -3,7 +3,8 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { PRICING_TIERS } from '@/config/pricing';
+import { PRICING_TIERS, formatPlanPrice, MT5_SLOT_PRICE } from '@/config/pricing';
+import { useCurrency } from '@/hooks/useCurrency';
 import { FaCheck, FaTimes, FaQuestionCircle, FaStar, FaCrown } from 'react-icons/fa';
 import { useSelector } from 'react-redux';
 import { RootState } from '@/store/store';
@@ -11,7 +12,8 @@ import { RootState } from '@/store/store';
 export default function PricingPage() {
   const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'yearly'>('monthly');
   const { isAuthenticated, user } = useSelector((state: RootState) => state.auth);
-  
+  const { currency } = useCurrency();
+
   const currentPlanId = user?.subscription?.plan || 'free';
 
   return (
@@ -77,14 +79,15 @@ export default function PricingPage() {
         <div className="grid md:grid-cols-3 gap-6 lg:gap-8 items-stretch">
           {PRICING_TIERS.map((tier) => {
             const isCurrentPlan = currentPlanId === tier.id;
-            const price = billingPeriod === 'monthly' ? tier.price : Math.floor(tier.price * 10); // Simple yearly calc
-            
+            const displayPrice  = formatPlanPrice(tier.id, billingPeriod, currency.code);
+            const hasPrice      = tier.price > 0;
+
             return (
-              <div 
+              <div
                 key={tier.id}
                 className={`relative group rounded-[2rem] p-8 backdrop-blur-xl border transition-all duration-500 flex flex-col
-                  ${tier.recommended 
-                    ? 'bg-slate-900/60 border-emerald-500/50 shadow-2xl shadow-emerald-500/10 z-10 scale-[1.02]' 
+                  ${tier.recommended
+                    ? 'bg-slate-900/60 border-emerald-500/50 shadow-2xl shadow-emerald-500/10 z-10 scale-[1.02]'
                     : 'bg-slate-900/50 border-white/5 hover:border-white/20 hover:bg-slate-900/60'
                   }`}
               >
@@ -94,8 +97,8 @@ export default function PricingPage() {
                 <div className="mb-8">
                     <h3 className="text-xl font-medium text-white mb-2">{tier.name}</h3>
                     <div className="flex items-baseline gap-1 my-4">
-                        <span className="text-5xl font-bold text-white tracking-tight">${price}</span>
-                        <span className="text-lg text-slate-500 font-medium">{tier.price > 0 ? `/${billingPeriod === 'monthly' ? 'mo' : 'yr'}` : ''}</span>
+                        <span className="text-5xl font-bold text-white tracking-tight">{displayPrice}</span>
+                        <span className="text-lg text-slate-500 font-medium">{hasPrice ? `/${billingPeriod === 'monthly' ? 'mo' : 'yr'}` : ''}</span>
                     </div>
                     <p className="text-slate-400 text-sm leading-relaxed min-h-[40px]">
                         {tier.description}
@@ -184,7 +187,7 @@ export default function PricingPage() {
                     <th key={tier.id} className="text-center py-4 px-4 w-[22%]">
                       <div className="text-lg font-bold text-white mb-1">{tier.name}</div>
                       <div className="text-xs text-slate-500">
-                        {tier.price === 0 ? 'Free' : `$${tier.price}/mo`}
+                        {tier.price === 0 ? 'Free' : `${formatPlanPrice(tier.id, 'monthly', currency.code)}/mo`}
                       </div>
                     </th>
                   ))}
@@ -253,7 +256,7 @@ export default function PricingPage() {
                     <FaStar className="text-amber-400" /> Extra MT5 Slots Add-on
                   </td>
                   <td className="py-5 px-4 text-center text-slate-300 font-medium text-xs" colSpan={3}>
-                    Available on all plans for ₹999 / slot
+                    Available on all plans · {MT5_SLOT_PRICE[currency.code].label} / slot
                   </td>
                 </tr>
                 <tr className="hover:bg-white/[0.02] transition-colors">

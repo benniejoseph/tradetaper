@@ -34,6 +34,15 @@ export interface BacktestStats {
   averageEntryQuality: number;
   ruleFollowingRate: number;
   averageChecklistScore: number;
+  // Advanced risk metrics
+  sharpeRatio: number;
+  sortinoRatio: number;
+  calmarRatio: number;
+  maxDrawdownPct: number;
+  maxDrawdownDollars: number;
+  maxDrawdownDuration: number;
+  recoveryFactor: number;
+  equityCurve: number[];
 }
 
 export interface DimensionStats {
@@ -290,6 +299,70 @@ export class BacktestingService {
           ) / tradesWithChecklist.length
         : 0;
 
+    // ============ ADVANCED RISK METRICS ============
+
+    // Equity Curve
+    const startingEquity = 100000;
+    const sortedByDate = [...trades].sort((a, b) =>
+      new Date(a.tradeDate).getTime() - new Date(b.tradeDate).getTime()
+    );
+    const equityCurve: number[] = [startingEquity];
+    let equity = startingEquity;
+    for (const t of sortedByDate) {
+      equity += Number(t.pnlDollars) || 0;
+      equityCurve.push(parseFloat(equity.toFixed(2)));
+    }
+
+    // Max Drawdown
+    let peak = startingEquity;
+    let maxDD = 0;
+    let maxDDDuration = 0;
+    let ddDuration = 0;
+    for (const eq of equityCurve) {
+      if (eq > peak) {
+        peak = eq;
+        ddDuration = 0;
+      } else {
+        const dd = peak - eq;
+        if (dd > maxDD) maxDD = dd;
+        ddDuration++;
+        if (ddDuration > maxDDDuration) maxDDDuration = ddDuration;
+      }
+    }
+    const finalEquity = equityCurve[equityCurve.length - 1];
+    const maxDrawdownPct = peak > 0 ? parseFloat(((maxDD / peak) * 100).toFixed(2)) : 0;
+    const maxDrawdownDollars = parseFloat(maxDD.toFixed(2));
+    const maxDrawdownDuration = maxDDDuration;
+
+    // Sharpe Ratio (annualized, assuming ~252 trading days)
+    const returns = sortedByDate.map(t => Number(t.pnlDollars) || 0);
+    const avgReturn = returns.length > 0 ? returns.reduce((s, r) => s + r, 0) / returns.length : 0;
+    const stdDev = returns.length > 1
+      ? Math.sqrt(returns.reduce((s, r) => s + Math.pow(r - avgReturn, 2), 0) / (returns.length - 1))
+      : 0;
+    const riskFreeReturn = 0; // Assume 0 for simplicity
+    const sharpeRatio = stdDev > 0
+      ? parseFloat(((avgReturn - riskFreeReturn) / stdDev * Math.sqrt(252)).toFixed(2))
+      : 0;
+
+    // Sortino Ratio (uses downside deviation only)
+    const downsideReturns = returns.filter(r => r < 0);
+    const downsideDev = downsideReturns.length > 1
+      ? Math.sqrt(downsideReturns.reduce((s, r) => s + Math.pow(r, 2), 0) / downsideReturns.length)
+      : 0;
+    const sortinoRatio = downsideDev > 0
+      ? parseFloat(((avgReturn / downsideDev) * Math.sqrt(252)).toFixed(2))
+      : 0;
+
+    // Calmar Ratio and Recovery Factor
+    const totalReturn = finalEquity - startingEquity;
+    const calmarRatio = maxDrawdownDollars > 0
+      ? parseFloat((totalReturn / maxDrawdownDollars).toFixed(2))
+      : 0;
+    const recoveryFactor = maxDrawdownDollars > 0
+      ? parseFloat((totalPnlDollars / maxDrawdownDollars).toFixed(2))
+      : 0;
+
     return {
       totalTrades: trades.length,
       wins: wins.length,
@@ -312,6 +385,14 @@ export class BacktestingService {
       averageEntryQuality: parseFloat(averageEntryQuality.toFixed(2)),
       ruleFollowingRate: parseFloat(ruleFollowingRate.toFixed(2)),
       averageChecklistScore: parseFloat(averageChecklistScore.toFixed(2)),
+      sharpeRatio,
+      sortinoRatio,
+      calmarRatio,
+      maxDrawdownPct,
+      maxDrawdownDollars,
+      maxDrawdownDuration,
+      recoveryFactor,
+      equityCurve,
     };
   }
 
@@ -370,6 +451,14 @@ export class BacktestingService {
       averageEntryQuality: 0,
       ruleFollowingRate: 0,
       averageChecklistScore: 0,
+      sharpeRatio: 0,
+      sortinoRatio: 0,
+      calmarRatio: 0,
+      maxDrawdownPct: 0,
+      maxDrawdownDollars: 0,
+      maxDrawdownDuration: 0,
+      recoveryFactor: 0,
+      equityCurve: [],
     };
   }
 

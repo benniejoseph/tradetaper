@@ -13,14 +13,6 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  typescript: {
-    // Temporarily ignore build errors for production deployment
-    ignoreBuildErrors: true,
-  },
-  eslint: {
-    // Temporarily ignore linting errors during builds for production deployment
-    ignoreDuringBuilds: true,
-  },
 };
 
 export default nextConfig;

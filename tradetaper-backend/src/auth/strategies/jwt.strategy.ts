@@ -17,16 +17,16 @@ export interface JwtPayload {
 }
 
 function getJwtSecret(configService: ConfigService): string {
-  const logger = new Logger('JwtStrategy');
   const jwtSecret = configService.get<string>('JWT_SECRET');
-  if (!jwtSecret) {
-    logger.warn(
-      'JWT_SECRET is not defined in environment variables. Using fallback secret for debugging.',
-    );
-    // Temporary fallback for debugging - should be replaced with proper secret
-    return 'temporary-fallback-jwt-secret-for-debugging-please-set-proper-secret-in-production-environment-12345';
+  if (jwtSecret) {
+    return jwtSecret;
   }
-  return jwtSecret;
+
+  if (configService.get<string>('NODE_ENV') === 'test') {
+    return 'test-jwt-secret';
+  }
+
+  throw new Error('JWT_SECRET must be configured');
 }
 
 @Injectable()
@@ -54,9 +54,9 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     );
 
     // Handle admin users
-    if (payload.role === 'admin' && payload.sub === 'admin-user-id') {
+    if (payload.role === 'admin') {
       return {
-        id: 'admin-user-id',
+        id: payload.sub,
         email: payload.email,
         firstName: 'Admin',
         lastName: 'User',

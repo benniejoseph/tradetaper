@@ -1,6 +1,8 @@
 "use client";
 import React from 'react';
 import { FaCheck, FaStar, FaSpinner, FaTimes } from 'react-icons/fa';
+import { useCurrency } from '@/hooks/useCurrency';
+import { formatPlanPrice } from '@/config/pricing';
 
 interface PlanCardProps {
   plan: any; // Using any for flexibility to match PricingPlan
@@ -11,25 +13,18 @@ interface PlanCardProps {
   period: 'monthly' | 'yearly';
 }
 
-export default function PlanCard({ 
-    plan, 
-    isPopular, 
-    isCurrent, 
-    onUpgrade, 
+export default function PlanCard({
+    plan,
+    isPopular,
+    isCurrent,
+    onUpgrade,
     isLoading,
-    period 
+    period
 }: PlanCardProps) {
-  
-  const price = period === 'monthly' ? plan.priceMonthly : plan.priceYearly;
-  // Assuming price is in cents/paisa, format it. Backend sent 2999 for $29.99.
-  // Actually, for Razorpay/India, we might want ₹. But plans said $9.99.
-  // I will assume $ for now or currency from plan if available.
-  // Let's format as Currency.
-  // Backend sent integer 2999.
-  const formattedPrice = new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-  }).format(price / 100);
+  const { currency } = useCurrency();
+
+  // Use geo-aware price formatter; fall back to raw value if plan ID unknown
+  const formattedPrice = formatPlanPrice(plan.id, period, currency.code);
 
   return (
     <div className={`relative bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border border-gray-200/50 dark:border-gray-700/50 rounded-2xl p-8 shadow-lg transition-all duration-300 flex flex-col h-full ${
@@ -61,9 +56,11 @@ export default function PlanCard({
             <span className="text-4xl font-extrabold text-gray-900 dark:text-white">
               {formattedPrice}
             </span>
-            <span className="text-gray-500 dark:text-gray-400 ml-1 text-sm">
-              /{period === 'monthly' ? 'mo' : 'yr'}
-            </span>
+            {plan.id !== 'free' && (
+              <span className="text-gray-500 dark:text-gray-400 ml-1 text-sm">
+                /{period === 'monthly' ? 'mo' : 'yr'}
+              </span>
+            )}
           </div>
       </div>
 

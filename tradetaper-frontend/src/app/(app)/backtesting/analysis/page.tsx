@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, Suspense, useCallback } from 'react';
+import dynamic from 'next/dynamic';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Strategy } from '@/types/strategy';
@@ -11,6 +12,11 @@ import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import AIInsightsButton from '@/components/backtesting/AIInsightsButton';
 import ExportButton from '@/components/backtesting/ExportButton';
 import { FiArrowLeft, FiCheckCircle, FiXCircle, FiAlertCircle, FiBarChart2 } from 'react-icons/fi';
+
+const EquityCurveChart = dynamic(
+  () => import('@/components/backtesting/EquityCurveChart'),
+  { ssr: false, loading: () => <div className="h-64 flex items-center justify-center text-slate-500 text-sm">Loading chart…</div> }
+);
 
 function ContentHeader({ title, description }: { title: string; description?: string }) {
   return (
@@ -95,17 +101,7 @@ function AnalysisContent() {
   const [loading, setLoading] = useState(true);
   const [analysisLoading, setAnalysisLoading] = useState(false);
 
-  useEffect(() => {
-    loadStrategies();
-  }, []);
-
-  useEffect(() => {
-    if (selectedStrategyId) {
-      loadAnalysis();
-    }
-  }, [selectedStrategyId]);
-
-  const loadStrategies = async () => {
+  const loadStrategies = useCallback(async () => {
     try {
       setLoading(true);
       const data = await strategiesService.getStrategies();
@@ -120,9 +116,10 @@ function AnalysisContent() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [strategyIdFromUrl]);
 
-  const loadAnalysis = async () => {
+  const loadAnalysis = useCallback(async () => {
+    if (!selectedStrategyId) return;
     try {
       setAnalysisLoading(true);
       const data = await backtestingService.getAnalysisData(selectedStrategyId);
@@ -133,9 +130,17 @@ function AnalysisContent() {
     } finally {
       setAnalysisLoading(false);
     }
-  };
+  }, [selectedStrategyId]);
 
-  const selectedStrategy = strategies.find(s => s.id === selectedStrategyId);
+  useEffect(() => {
+    void loadStrategies();
+  }, [loadStrategies]);
+
+  useEffect(() => {
+    if (selectedStrategyId) {
+      void loadAnalysis();
+    }
+  }, [selectedStrategyId, loadAnalysis]);
 
   // Generate AI Rules based on analysis
   const generateRules = () => {
@@ -157,7 +162,7 @@ function AnalysisContent() {
       tradeConditions.push(`${analysis.bestConditions.dayOfWeek.value}`);
     }
     if (tradeConditions.length > 0) {
-      rules.push(`✅ **TRADE:** ${tradeConditions.join(', ')}`);
+      rules.push(`TRADE: ${tradeConditions.join(', ')}`);
     }
 
     // Worst conditions (AVOID)
@@ -175,17 +180,17 @@ function AnalysisContent() {
       avoidConditions.push(`on ${analysis.worstConditions.dayOfWeek.value}`);
     }
     if (avoidConditions.length > 0) {
-      rules.push(`❌ **AVOID:** ${avoidConditions.join(', ')}`);
+      rules.push(`AVOID: ${avoidConditions.join(', ')}`);
     }
 
     // Rule following insight
     if (analysis.overallStats.ruleFollowingRate < 80) {
-      rules.push(`⚠️ **Discipline:** Rule-following rate is ${analysis.overallStats.ruleFollowingRate}%. Consider stricter trade checklist adherence.`);
+      rules.push(`Discipline: Rule-following rate is ${analysis.overallStats.ruleFollowingRate}%. Consider stricter trade checklist adherence.`);
     }
 
     // Profit factor rule
     if (analysis.overallStats.profitFactor < 1.5) {
-      rules.push(`📊 **Risk/Reward:** Profit factor of ${analysis.overallStats.profitFactor} suggests reviewing position sizing or entry criteria.`);
+      rules.push(`Risk/Reward: Profit factor of ${analysis.overallStats.profitFactor} suggests reviewing position sizing or entry criteria.`);
     }
 
     return rules;
@@ -270,8 +275,8 @@ function AnalysisContent() {
               <div className="text-sm text-gray-500">Total Trades</div>
             </div>
             <div className={`p-4 rounded-lg border text-center ${
-              Number(analysis.overallStats.winRate) >= 50 
-                ? 'bg-green-50 dark:bg-green-900/10 border-green-200 dark:border-green-800' 
+              Number(analysis.overallStats.winRate) >= 50
+                ? 'bg-green-50 dark:bg-green-900/10 border-green-200 dark:border-green-800'
                 : 'bg-red-50 dark:bg-red-900/10 border-red-200 dark:border-red-800'
             }`}>
               <div className={`text-2xl font-bold ${
@@ -282,8 +287,8 @@ function AnalysisContent() {
               <div className="text-sm text-gray-500">Win Rate</div>
             </div>
             <div className={`p-4 rounded-lg border text-center ${
-              Number(analysis.overallStats.profitFactor) >= 1.5 
-                ? 'bg-green-50 dark:bg-green-900/10 border-green-200 dark:border-green-800' 
+              Number(analysis.overallStats.profitFactor) >= 1.5
+                ? 'bg-green-50 dark:bg-green-900/10 border-green-200 dark:border-green-800'
                 : 'bg-yellow-50 dark:bg-yellow-900/10 border-yellow-200 dark:border-yellow-800'
             }`}>
               <div className={`text-2xl font-bold ${
@@ -294,8 +299,8 @@ function AnalysisContent() {
               <div className="text-sm text-gray-500">Profit Factor</div>
             </div>
             <div className={`p-4 rounded-lg border text-center ${
-              Number(analysis.overallStats.expectancy) >= 0 
-                ? 'bg-green-50 dark:bg-green-900/10 border-green-200 dark:border-green-800' 
+              Number(analysis.overallStats.expectancy) >= 0
+                ? 'bg-green-50 dark:bg-green-900/10 border-green-200 dark:border-green-800'
                 : 'bg-red-50 dark:bg-red-900/10 border-red-200 dark:border-red-800'
             }`}>
               <div className={`text-2xl font-bold ${
@@ -307,6 +312,82 @@ function AnalysisContent() {
             </div>
           </div>
 
+          {/* Advanced Risk Metrics */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {[
+              {
+                label: 'Sharpe Ratio',
+                value: Number(analysis.overallStats.sharpeRatio ?? 0).toFixed(2),
+                good: Number(analysis.overallStats.sharpeRatio ?? 0) >= 1,
+                warn: Number(analysis.overallStats.sharpeRatio ?? 0) >= 0,
+                hint: '≥1 good',
+              },
+              {
+                label: 'Sortino Ratio',
+                value: Number(analysis.overallStats.sortinoRatio ?? 0).toFixed(2),
+                good: Number(analysis.overallStats.sortinoRatio ?? 0) >= 1,
+                warn: Number(analysis.overallStats.sortinoRatio ?? 0) >= 0,
+                hint: '≥1 good',
+              },
+              {
+                label: 'Max Drawdown',
+                value: `-${Number(analysis.overallStats.maxDrawdownPct ?? 0).toFixed(1)}%`,
+                good: Number(analysis.overallStats.maxDrawdownPct ?? 0) <= 10,
+                warn: Number(analysis.overallStats.maxDrawdownPct ?? 0) <= 20,
+                hint: '≤10% good',
+                invert: true,
+              },
+              {
+                label: 'Recovery Factor',
+                value: Number(analysis.overallStats.recoveryFactor ?? 0).toFixed(2),
+                good: Number(analysis.overallStats.recoveryFactor ?? 0) >= 2,
+                warn: Number(analysis.overallStats.recoveryFactor ?? 0) >= 1,
+                hint: '≥2 good',
+              },
+            ].map((m) => (
+              <div
+                key={m.label}
+                className={`p-4 rounded-lg border text-center ${
+                  m.good
+                    ? 'bg-green-50 dark:bg-green-900/10 border-green-200 dark:border-green-800'
+                    : m.warn
+                    ? 'bg-yellow-50 dark:bg-yellow-900/10 border-yellow-200 dark:border-yellow-800'
+                    : 'bg-red-50 dark:bg-red-900/10 border-red-200 dark:border-red-800'
+                }`}
+              >
+                <div
+                  className={`text-2xl font-bold font-mono ${
+                    m.good
+                      ? 'text-green-600'
+                      : m.warn
+                      ? 'text-yellow-600'
+                      : 'text-red-600'
+                  }`}
+                >
+                  {m.value}
+                </div>
+                <div className="text-sm text-gray-500">{m.label}</div>
+                <div className="text-xs text-gray-400 mt-1">{m.hint}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Equity Curve */}
+          {analysis.overallStats.equityCurve && analysis.overallStats.equityCurve.length > 0 && (
+            <div className="bg-slate-950 rounded-xl p-6 border border-white/5">
+              <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                📈 Equity Curve & Drawdown
+              </h2>
+              <EquityCurveChart
+                equityCurve={analysis.overallStats.equityCurve}
+                maxDrawdownPct={Number(analysis.overallStats.maxDrawdownPct ?? 0)}
+                sharpeRatio={Number(analysis.overallStats.sharpeRatio ?? 0)}
+                calmarRatio={Number(analysis.overallStats.calmarRatio ?? 0)}
+                recoveryFactor={Number(analysis.overallStats.recoveryFactor ?? 0)}
+              />
+            </div>
+          )}
+
           {/* Data Range */}
           {analysis.dateRange && (
             <div className="text-sm text-gray-500 dark:text-gray-400 text-center">
@@ -317,12 +398,12 @@ function AnalysisContent() {
 
           {/* Dimension Analysis */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <DimensionSection title="By Symbol" data={analysis.bySymbol} icon="💱" />
-            <DimensionSection title="By Session" data={analysis.bySession} icon="🌍" />
-            <DimensionSection title="By Timeframe" data={analysis.byTimeframe} icon="⏰" />
-            <DimensionSection title="By Kill Zone" data={analysis.byKillZone} icon="🎯" />
-            <DimensionSection title="By Day of Week" data={analysis.byDayOfWeek} icon="📅" />
-            <DimensionSection title="By Setup Type" data={analysis.bySetup} icon="📈" />
+            <DimensionSection title="By Symbol" data={analysis.bySymbol} icon="" />
+            <DimensionSection title="By Session" data={analysis.bySession} icon="" />
+            <DimensionSection title="By Timeframe" data={analysis.byTimeframe} icon="" />
+            <DimensionSection title="By Kill Zone" data={analysis.byKillZone} icon="" />
+            <DimensionSection title="By Day of Week" data={analysis.byDayOfWeek} icon="" />
+            <DimensionSection title="By Setup Type" data={analysis.bySetup} icon="" />
           </div>
         </>
       ) : (

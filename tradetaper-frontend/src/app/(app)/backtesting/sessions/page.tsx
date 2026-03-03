@@ -128,7 +128,7 @@ export default function ReplaySessionsPage() {
         </div>
 
         <Link
-          href="/backtesting"
+          href="/backtesting/sessions/new"
           className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 rounded-lg text-white transition-colors flex items-center gap-2"
         >
           <FaPlay />
@@ -167,7 +167,7 @@ export default function ReplaySessionsPage() {
             <h2 className="text-xl font-bold text-white mb-2">No replay sessions yet</h2>
             <p className="text-slate-400 mb-6">Start a new replay session to practice your trading skills</p>
             <Link
-              href="/backtesting"
+              href="/backtesting/sessions/new"
               className="inline-flex items-center gap-2 px-6 py-3 bg-emerald-600 hover:bg-emerald-700 rounded-lg text-white transition-colors"
             >
               <FaPlay />

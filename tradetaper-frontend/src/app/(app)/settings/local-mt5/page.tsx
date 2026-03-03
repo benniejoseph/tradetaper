@@ -50,6 +50,15 @@ interface MT5Account {
 
 type SyncMode = 'metaapi' | 'terminal' | 'none';
 
+const getApiErrorMessage = (error: unknown, fallback: string): string => {
+  if (typeof error !== 'object' || error === null) return fallback;
+  const apiError = error as {
+    response?: { data?: { message?: string } };
+    message?: string;
+  };
+  return apiError.response?.data?.message || apiError.message || fallback;
+};
+
 /** Derive the current active sync mode from account + terminal status */
 function getActiveSyncMode(account: MT5Account | undefined, terminal: TerminalStatus | null): SyncMode {
   if (!account) return 'none';
@@ -68,7 +77,6 @@ export default function LocalMT5SyncPage() {
   const [terminalIdCopied, setTerminalIdCopied] = useState(false);
   const [loading, setLoading] = useState(false);
   const [syncing, setSyncing] = useState(false);
-  const [statusLoading, setStatusLoading] = useState(false);
   const [disconnectingMetaApi, setDisconnectingMetaApi] = useState(false);
 
   // Fetch MT5 accounts
@@ -84,19 +92,16 @@ export default function LocalMT5SyncPage() {
         console.error('Failed to fetch accounts:', err);
       }
     };
-    fetchAccounts();
-  }, []);
+    void fetchAccounts();
+  }, [selectedAccountId]);
 
   const fetchStatus = useCallback(async () => {
     if (!selectedAccountId) return;
-    setStatusLoading(true);
     try {
       const res = await api.get(`/mt5-accounts/${selectedAccountId}/terminal-status`);
       setTerminalStatus(res.data);
     } catch {
       setTerminalStatus(null);
-    } finally {
-      setStatusLoading(false);
     }
   }, [selectedAccountId]);
 
@@ -143,8 +148,8 @@ export default function LocalMT5SyncPage() {
       const res = await api.get('/mt5-accounts');
       setAccounts(res.data || []);
       return true;
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Failed to disconnect MetaAPI');
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, 'Failed to disconnect MetaAPI'));
       return false;
     } finally {
       setDisconnectingMetaApi(false);
@@ -170,8 +175,8 @@ export default function LocalMT5SyncPage() {
       const res = await api.post(`/mt5-accounts/${selectedAccountId}/enable-autosync`, {});
       setTerminalStatus(res.data);
       toast.success('Local MT5 sync enabled!');
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Failed to enable sync');
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, 'Failed to enable sync'));
     } finally {
       setLoading(false);
     }
@@ -185,8 +190,8 @@ export default function LocalMT5SyncPage() {
       setTerminalStatus(null);
       setPositions([]);
       toast.success('Local MT5 sync disabled');
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Failed to disable sync');
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, 'Failed to disable sync'));
     } finally {
       setLoading(false);
     }
@@ -198,8 +203,8 @@ export default function LocalMT5SyncPage() {
     try {
       const res = await api.post(`/mt5-accounts/${selectedAccountId}/sync`);
       toast.success(res.data?.message || 'Sync request queued!');
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Failed to queue sync');
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, 'Failed to queue sync'));
     } finally {
       setSyncing(false);
     }

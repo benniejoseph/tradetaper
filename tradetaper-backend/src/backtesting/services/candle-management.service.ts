@@ -181,7 +181,15 @@ export class CandleManagementService {
   // ─────────────────────────────────────────────────────────────
 
   /**
-   * Fetch and store candles from TwelveData (used by backtesting module)
+   * Fetch and store candles for the backtesting module.
+   *
+   * Source priority (India-friendly, no geo-restricted services):
+   *  1. TwelveData  — 800 req/day free, 30+ yr history, forex/metals/crypto ✅
+   *  2. Alpha Vantage — 25 req/day free backup, same asset classes          ✅
+   *
+   * OANDA is kept as a utility method for non-Indian deployments but is NOT
+   * in the active fetch pipeline.  Set OANDA_API_KEY in env to re-enable it
+   * by inserting a fetchFromOanda() call above TwelveData if needed.
    */
   async fetchAndStoreCandles(
     symbol: string,
@@ -210,11 +218,20 @@ export class CandleManagementService {
       return existing;
     }
 
+    // ── Primary: TwelveData (800 req/day free, India-accessible) ────────────
     this.logger.log(`Cache MISS: Fetching from TwelveData (${symbol} ${timeframe})`);
-    const candles = await this.fetchFromTwelveData(symbol, timeframe, startDate, endDate);
+    let candles = await this.fetchFromTwelveData(symbol, timeframe, startDate, endDate);
+    let source = 'twelvedata';
+
+    // ── Secondary: Alpha Vantage (25 req/day free backup) ───────────────────
+    if (candles.length === 0) {
+      this.logger.warn(`TwelveData returned no data for ${symbol} ${timeframe} — trying Alpha Vantage`);
+      candles = await this.fetchFromAlphaVantage(symbol, timeframe, startDate, endDate);
+      source = 'alphavantage';
+    }
 
     if (candles.length === 0) {
-      this.logger.warn(`No candles returned from TwelveData for ${symbol} ${timeframe}`);
+      this.logger.warn(`No candles returned from any source for ${symbol} ${timeframe}`);
       return existing;
     }
 
@@ -227,14 +244,14 @@ export class CandleManagementService {
         high: c.high,
         low: c.low,
         close: c.close,
-        volume: c.tickVolume,
-        source: 'twelvedata',
+        volume: c.tickVolume ?? 0,
+        source,
       }),
     );
 
     try {
       await this.marketCandleRepo.save(entities, { chunk: 100 });
-      this.logger.log(`Stored ${entities.length} candles in database`);
+      this.logger.log(`Stored ${entities.length} candles from ${source} for ${symbol} ${timeframe}`);
     } catch (error) {
       this.logger.error(`Failed to store candles: ${error.message}`);
     }
@@ -514,6 +531,137 @@ export class CandleManagementService {
     return result.affected || 0;
   }
 
+  // ─────────────────────────────────────────────────────────────
+  // OANDA v20 REST API
+  // ─────────────────────────────────────────────────────────────
+
+  /**
+   * Fetch candles from OANDA v20 REST API.
+   * Automatically paginates (max 5000 candles per request).
+   * Uses mid prices (bid/ask average).
+   */
+  private async fetchFromOanda(
+    symbol: string,
+    timeframe: string,
+    startDate: Date,
+    endDate: Date,
+  ): Promise<any[]> {
+    const apiKey = this.configService.get<string>('OANDA_API_KEY');
+    const apiEnv = this.configService.get<string>('OANDA_API_ENV') ?? 'practice';
+
+    if (!apiKey) {
+      this.logger.warn('[OANDA] OANDA_API_KEY not configured — skipping');
+      return [];
+    }
+
+    const baseUrl =
+      apiEnv === 'live'
+        ? 'https://api-fxtrade.oanda.com'
+        : 'https://api-fxpractice.oanda.com';
+
+    const instrument  = this.toOandaSymbol(symbol);
+    const granularity = this.toOandaGranularity(timeframe);
+    const stepMs      = this.oandaGranularityToMs(granularity);
+
+    const allCandles: any[] = [];
+    let from = new Date(startDate);
+
+    while (from < endDate) {
+      try {
+        const response = await firstValueFrom(
+          this.httpService.get(
+            `${baseUrl}/v3/instruments/${instrument}/candles`,
+            {
+              headers: {
+                Authorization: `Bearer ${apiKey}`,
+                'Content-Type': 'application/json',
+              },
+              params: {
+                granularity,
+                from:  from.toISOString(),
+                to:    endDate.toISOString(),
+                price: 'M',   // mid prices
+                count: 5000,  // max per request
+              },
+              timeout: 30_000,
+            },
+          ),
+        );
+
+        const raw: any[] = response.data?.candles ?? [];
+        if (raw.length === 0) break;
+
+        for (const c of raw) {
+          // skip in-progress (incomplete) candle
+          if (!c.complete) continue;
+          allCandles.push({
+            time:      Math.floor(new Date(c.time).getTime() / 1000),
+            open:      parseFloat(c.mid.o),
+            high:      parseFloat(c.mid.h),
+            low:       parseFloat(c.mid.l),
+            close:     parseFloat(c.mid.c),
+            tickVolume: c.volume ?? 0,
+          });
+        }
+
+        // If fewer than 5000 rows returned we've hit the end of the range
+        if (raw.length < 5000) break;
+
+        // Advance to the candle after the last one received
+        from = new Date(new Date(raw[raw.length - 1].time).getTime() + stepMs);
+      } catch (error) {
+        const msg = error?.response?.data?.errorMessage ?? error.message;
+        this.logger.error(`[OANDA] Fetch failed for ${instrument} ${granularity}: ${msg}`);
+        break;
+      }
+    }
+
+    this.logger.log(
+      `[OANDA] Fetched ${allCandles.length} candles for ${instrument} ${granularity}`,
+    );
+    return allCandles;
+  }
+
+  /** Map TradeTaper symbol → OANDA instrument name (e.g. EURUSD → EUR_USD) */
+  private toOandaSymbol(symbol: string): string {
+    const map: Record<string, string> = {
+      XAUUSD: 'XAU_USD',
+      XAGUSD: 'XAG_USD',
+      XTIUSD: 'BCO_USD',
+      XBRUSD: 'BCO_USD',
+      BTCUSD: 'BTC_USD',
+      ETHUSD: 'ETH_USD',
+    };
+    if (map[symbol]) return map[symbol];
+    // Forex pairs: 6-char e.g. EURUSD → EUR_USD
+    if (symbol.length === 6 && !symbol.includes('_'))
+      return `${symbol.slice(0, 3)}_${symbol.slice(3, 6)}`;
+    // Already formatted (XAU_USD) or unknown — return as-is
+    return symbol.replace('/', '_');
+  }
+
+  /** Map TradeTaper timeframe string → OANDA granularity */
+  private toOandaGranularity(timeframe: string): string {
+    const map: Record<string, string> = {
+      '1m': 'M1', '5m': 'M5', '15m': 'M15', '30m': 'M30',
+      '1h': 'H1', '4h': 'H4', '1d': 'D',
+    };
+    return map[timeframe] ?? 'H1';
+  }
+
+  /** Milliseconds for one candle at a given OANDA granularity */
+  private oandaGranularityToMs(granularity: string): number {
+    const map: Record<string, number> = {
+      M1: 60_000, M5: 300_000, M15: 900_000, M30: 1_800_000,
+      H1: 3_600_000, H4: 14_400_000, D: 86_400_000,
+    };
+    return map[granularity] ?? 3_600_000;
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // TWELVEDATA  (primary free source – 800 req/day)
+  // ─────────────────────────────────────────────────────────────
+
   private async fetchFromTwelveData(
     symbol: string,
     timeframe: string,
@@ -582,6 +730,98 @@ export class CandleManagementService {
       '1h': '1h', '4h': '4h', '1d': '1day',
     };
     return mapping[timeframe] || '1h';
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // ALPHA VANTAGE  (secondary free backup – 25 req/day)
+  // Supports: forex pairs, gold (XAU/USD), crypto, stocks
+  // ─────────────────────────────────────────────────────────────
+
+  /**
+   * Fetch candles from Alpha Vantage.
+   * Uses FX_INTRADAY for intraday timeframes and FX_DAILY for daily.
+   * Falls back gracefully when rate-limited.
+   */
+  private async fetchFromAlphaVantage(
+    symbol: string,
+    timeframe: string,
+    startDate: Date,
+    endDate: Date,
+  ): Promise<any[]> {
+    const apiKey = this.configService.get<string>('ALPHA_VANTAGE_API_KEY');
+    if (!apiKey) {
+      this.logger.warn('[AV] ALPHA_VANTAGE_API_KEY not configured');
+      return [];
+    }
+
+    const { fromSym, toSym } = this.toAvSymbol(symbol);
+    const isDaily = timeframe === '1d';
+
+    try {
+      let timeSeriesKey: string;
+      let params: Record<string, string>;
+
+      if (isDaily) {
+        params = { function: 'FX_DAILY', from_symbol: fromSym, to_symbol: toSym, outputsize: 'full', apikey: apiKey };
+        timeSeriesKey = 'Time Series FX (Daily)';
+      } else {
+        const interval = this.toAvInterval(timeframe);
+        params = { function: 'FX_INTRADAY', from_symbol: fromSym, to_symbol: toSym, interval, outputsize: 'full', apikey: apiKey };
+        timeSeriesKey = `Time Series FX (${interval})`;
+      }
+
+      const response = await firstValueFrom(
+        this.httpService.get('https://www.alphavantage.co/query', { params, timeout: 30_000 }),
+      );
+
+      // Rate-limit guard
+      if (response.data?.Note || response.data?.Information) {
+        this.logger.warn(`[AV] Rate limit or plan restriction: ${response.data.Note ?? response.data.Information}`);
+        return [];
+      }
+
+      const timeSeries: Record<string, any> = response.data?.[timeSeriesKey] ?? {};
+      const startTs = Math.floor(startDate.getTime() / 1000);
+      const endTs   = Math.floor(endDate.getTime()   / 1000);
+
+      const candles: any[] = Object.entries(timeSeries)
+        .map(([datetime, values]: [string, any]) => ({
+          time:      Math.floor(new Date(datetime).getTime() / 1000),
+          open:      parseFloat(values['1. open']),
+          high:      parseFloat(values['2. high']),
+          low:       parseFloat(values['3. low']),
+          close:     parseFloat(values['4. close']),
+          tickVolume: 0,
+        }))
+        .filter(c => c.time >= startTs && c.time <= endTs)
+        .sort((a, b) => a.time - b.time);
+
+      this.logger.log(`[AV] Fetched ${candles.length} candles for ${fromSym}/${toSym}`);
+      return candles;
+    } catch (error) {
+      this.logger.error(`[AV] Fetch failed for ${symbol}: ${error.message}`);
+      return [];
+    }
+  }
+
+  /** Map TradeTaper symbol → Alpha Vantage from/to pair (e.g. XAUUSD → XAU/USD) */
+  private toAvSymbol(symbol: string): { fromSym: string; toSym: string } {
+    const map: Record<string, [string, string]> = {
+      XAUUSD: ['XAU', 'USD'], XAGUSD: ['XAG', 'USD'],
+      BTCUSD: ['BTC', 'USD'], ETHUSD: ['ETH', 'USD'],
+    };
+    if (map[symbol]) return { fromSym: map[symbol][0], toSym: map[symbol][1] };
+    if (symbol.length === 6) return { fromSym: symbol.slice(0, 3), toSym: symbol.slice(3, 6) };
+    return { fromSym: symbol.slice(0, 3), toSym: symbol.slice(3) };
+  }
+
+  /** Map TradeTaper timeframe → Alpha Vantage interval string */
+  private toAvInterval(timeframe: string): string {
+    const map: Record<string, string> = {
+      '1m': '1min', '5m': '5min', '15m': '15min', '30m': '30min',
+      '1h': '60min', '4h': '60min', // AV doesn't have 4h; use 60min
+    };
+    return map[timeframe] ?? '60min';
   }
 
   private isForex(symbol: string): boolean {

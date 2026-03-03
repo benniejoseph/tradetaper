@@ -7,12 +7,22 @@ import {
   Delete,
   Body,
   UnauthorizedException,
+  UseGuards,
+  ForbiddenException,
+  InternalServerErrorException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { AdminService } from './admin.service';
 import { TestUserSeedService } from '../seed/test-user-seed.service';
+import { AdminGuard } from '../auth/guards/admin.guard';
+import { Public } from '../auth/decorators/public.decorator';
+import {
+  AuthRateLimit,
+  RateLimitGuard,
+} from '../common/guards/rate-limit.guard';
 
 @Controller('admin')
+@UseGuards(AdminGuard, RateLimitGuard)
 export class AdminController {
   constructor(
     private readonly adminService: AdminService,
@@ -21,16 +31,23 @@ export class AdminController {
   ) {}
 
   // ─── Admin Auth ─────────────────────────────────────────────────────────
+  @Public()
   @Post('auth/login')
+  @AuthRateLimit()
   async adminLogin(@Body() body: { email: string; password: string }) {
-    const adminEmail = process.env.ADMIN_EMAIL || 'admin@tradetaper.com';
-    const adminPassword = process.env.ADMIN_PASSWORD || 'tradetaper-admin-2025';
+    const adminEmail = process.env.ADMIN_EMAIL;
+    const adminPassword = process.env.ADMIN_PASSWORD;
+    if (!adminEmail || !adminPassword) {
+      throw new InternalServerErrorException(
+        'Admin credentials are not configured',
+      );
+    }
 
     if (body.email !== adminEmail || body.password !== adminPassword) {
       throw new UnauthorizedException('Invalid admin credentials');
     }
 
-    const payload = { sub: 'admin', email: body.email, role: 'admin' };
+    const payload = { sub: 'admin-user-id', email: body.email, role: 'admin' };
     const token = this.jwtService.sign(payload, { expiresIn: '30d' });
     return { access_token: token, role: 'admin' };
   }
@@ -133,11 +150,13 @@ export class AdminController {
 
   @Post('seed-sample-data')
   async seedSampleData() {
+    this.ensureDangerousOperationsAllowed();
     return this.adminService.seedSampleData();
   }
 
   @Post('test-user/create')
   async createTestUser() {
+    this.ensureDangerousOperationsAllowed();
     const result = await this.testUserSeedService.createTestUser();
     return {
       message: 'Test user created successfully',
@@ -153,6 +172,7 @@ export class AdminController {
 
   @Delete('test-user/delete')
   async deleteTestUser() {
+    this.ensureDangerousOperationsAllowed();
     await this.testUserSeedService.deleteTestUser();
     return {
       message: 'Test user deleted successfully',
@@ -164,6 +184,7 @@ export class AdminController {
     @Param('tableName') tableName: string,
     @Query('confirm') confirm: string,
   ) {
+    this.ensureDangerousOperationsAllowed();
     if (confirm !== 'DELETE_ALL_DATA') {
       return {
         error: 'Safety confirmation required',
@@ -183,6 +204,7 @@ export class AdminController {
     @Query('confirm') confirm: string,
     @Query('doubleConfirm') doubleConfirm: string,
   ) {
+    this.ensureDangerousOperationsAllowed();
     if (
       confirm !== 'DELETE_ALL_DATA' ||
       doubleConfirm !== 'I_UNDERSTAND_THIS_WILL_DELETE_EVERYTHING'
@@ -212,6 +234,7 @@ export class AdminController {
     @Query('confirm') confirm: string,
     @Body() body: { sql: string },
   ) {
+    this.ensureDangerousOperationsAllowed();
     if (confirm !== 'ADMIN_SQL_EXECUTE') {
       return {
         error: 'Safety confirmation required',
@@ -220,5 +243,13 @@ export class AdminController {
     }
 
     return this.adminService.runSql(body.sql);
+  }
+
+  private ensureDangerousOperationsAllowed() {
+    if (process.env.ALLOW_ADMIN_DANGEROUS_OPERATIONS !== 'true') {
+      throw new ForbiddenException(
+        'Dangerous admin operations are disabled in this environment',
+      );
+    }
   }
 }

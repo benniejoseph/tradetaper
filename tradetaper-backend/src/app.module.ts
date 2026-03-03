@@ -85,7 +85,6 @@ import { PropFirmModule } from './prop-firm/prop-firm.module';
     NotesModule,
     PredictiveTradesModule,
     MarketIntelligenceModule,
-    MarketIntelligenceModule,
     AgentsImplementationModule, // AI Agents (Psychology, Market Analyst, Risk Manager)
     AgentsModule,
     AnalyticsModule,

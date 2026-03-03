@@ -6,8 +6,9 @@ import { AppDispatch, RootState } from '@/store/store';
 import { fetchTradeById } from '@/store/features/tradesSlice';
 import Link from 'next/link';
 import TradeCandleChart from '@/components/charts/TradeCandleChart';
+import ReplayThisTradeButton from '@/components/backtesting/ReplayThisTradeButton';
 import { format as formatDateFns, differenceInMinutes, differenceInHours, differenceInDays } from 'date-fns';
-import { 
+import {
   ArrowLeft, Edit3, Download, TrendingUp, TrendingDown, DollarSign,
   BarChart3, Clock, Brain, Tag, Target, Calendar, Layers, Terminal,
   CheckCircle, XCircle, Newspaper, Star, AlertCircle, Loader2,
@@ -153,10 +154,17 @@ export default function ViewTradePage() {
           </div>
           <span className="font-semibold text-sm">Back to Journal</span>
         </Link>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
           <button onClick={() => window.print()} className="p-2.5 bg-white dark:bg-white/5 hover:bg-zinc-50 dark:hover:bg-white/10 text-zinc-600 dark:text-zinc-300 rounded-xl border border-zinc-200 dark:border-white/5 transition-all shadow-sm">
             <Download className="w-4 h-4" />
           </button>
+          {/* Replay this trade in the backtesting workbench */}
+          <ReplayThisTradeButton
+            symbol={trade.symbol}
+            timeframe={trade.timeframe}
+            openTime={trade.entryDate}
+            closeTime={trade.exitDate}
+          />
           <Link href={`/journal/edit/${trade.id}`} className="flex items-center gap-2 px-4 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white font-semibold rounded-xl transition-all shadow-lg shadow-emerald-500/20">
             <Edit3 className="w-4 h-4" />
             <span className="text-sm">Edit Trade</span>

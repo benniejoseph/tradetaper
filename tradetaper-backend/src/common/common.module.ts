@@ -4,6 +4,7 @@ import { ProductionLoggerService } from './services/logger.service';
 import { GlobalExceptionFilter } from './filters/global-exception.filter';
 import { LoggingInterceptor } from './interceptors/logging.interceptor';
 import { CsrfController } from './controllers/csrf.controller';
+import { RateLimitGuard } from './guards/rate-limit.guard';
 
 @Global()
 @Module({
@@ -13,7 +14,13 @@ import { CsrfController } from './controllers/csrf.controller';
     ProductionLoggerService,
     GlobalExceptionFilter,
     LoggingInterceptor,
+    RateLimitGuard,
   ],
-  exports: [ProductionLoggerService, GlobalExceptionFilter, LoggingInterceptor],
+  exports: [
+    ProductionLoggerService,
+    GlobalExceptionFilter,
+    LoggingInterceptor,
+    RateLimitGuard,
+  ],
 })
 export class CommonModule {}

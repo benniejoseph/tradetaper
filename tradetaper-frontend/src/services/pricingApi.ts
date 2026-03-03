@@ -39,6 +39,7 @@ export const pricingApi = {
       subscriptionId: string;
       key: string;
       currency: string;
+      amount: number;       // plan price in major currency unit (e.g. 19.99 for ₹19.99)
       name: string;
       description: string;
       customer_id: string;

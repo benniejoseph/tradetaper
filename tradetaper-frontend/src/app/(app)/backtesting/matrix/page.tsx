@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, Suspense, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Strategy } from '@/types/strategy';
@@ -29,12 +29,8 @@ function getWinRateColor(winRate: number): string {
   return 'bg-red-400 text-white';
 }
 
-function getRecommendation(winRate: number, trades: number): string {
-  if (trades < 10) return '📊 Need more data';
-  if (winRate >= 60) return '✅ TRADE';
-  if (winRate >= 50) return '⚠️ CAUTION';
-  return '❌ AVOID';
-}
+type RowDimension = 'session' | 'timeframe' | 'killZone' | 'dayOfWeek';
+type ColumnDimension = 'symbol' | 'session' | 'timeframe';
 
 function PerformanceMatrixContent() {
   const searchParams = useSearchParams();
@@ -46,20 +42,10 @@ function PerformanceMatrixContent() {
   const [loading, setLoading] = useState(true);
   const [matrixLoading, setMatrixLoading] = useState(false);
   
-  const [rowDimension, setRowDimension] = useState<'session' | 'timeframe' | 'killZone' | 'dayOfWeek'>('session');
-  const [columnDimension, setColumnDimension] = useState<'symbol' | 'session' | 'timeframe'>('symbol');
+  const [rowDimension, setRowDimension] = useState<RowDimension>('session');
+  const [columnDimension, setColumnDimension] = useState<ColumnDimension>('symbol');
 
-  useEffect(() => {
-    loadStrategies();
-  }, []);
-
-  useEffect(() => {
-    if (selectedStrategyId) {
-      loadMatrix();
-    }
-  }, [selectedStrategyId, rowDimension, columnDimension]);
-
-  const loadStrategies = async () => {
+  const loadStrategies = useCallback(async () => {
     try {
       setLoading(true);
       const data = await strategiesService.getStrategies();
@@ -74,9 +60,10 @@ function PerformanceMatrixContent() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [strategyIdFromUrl]);
 
-  const loadMatrix = async () => {
+  const loadMatrix = useCallback(async () => {
+    if (!selectedStrategyId) return;
     try {
       setMatrixLoading(true);
       const data = await backtestingService.getPerformanceMatrix(
@@ -91,9 +78,17 @@ function PerformanceMatrixContent() {
     } finally {
       setMatrixLoading(false);
     }
-  };
+  }, [selectedStrategyId, rowDimension, columnDimension]);
 
-  const selectedStrategy = strategies.find(s => s.id === selectedStrategyId);
+  useEffect(() => {
+    void loadStrategies();
+  }, [loadStrategies]);
+
+  useEffect(() => {
+    if (selectedStrategyId) {
+      void loadMatrix();
+    }
+  }, [selectedStrategyId, loadMatrix]);
 
   const getCellData = (row: string, col: string) => {
     return matrix?.data.find(d => d.row === row && d.column === col);
@@ -141,7 +136,7 @@ function PerformanceMatrixContent() {
           <label className="text-sm text-gray-600 dark:text-gray-400">Rows:</label>
           <select
             value={rowDimension}
-            onChange={(e) => setRowDimension(e.target.value as any)}
+            onChange={(e) => setRowDimension(e.target.value as RowDimension)}
             className="px-3 py-2 border border-emerald-300 dark:border-emerald-600/30 rounded-lg bg-white dark:bg-black text-gray-900 dark:text-white"
           >
             <option value="session">Session</option>
@@ -155,7 +150,7 @@ function PerformanceMatrixContent() {
           <label className="text-sm text-gray-600 dark:text-gray-400">Columns:</label>
           <select
             value={columnDimension}
-            onChange={(e) => setColumnDimension(e.target.value as any)}
+            onChange={(e) => setColumnDimension(e.target.value as ColumnDimension)}
             className="px-3 py-2 border border-emerald-300 dark:border-emerald-600/30 rounded-lg bg-white dark:bg-black text-gray-900 dark:text-white"
           >
             <option value="symbol">Symbol</option>

@@ -155,18 +155,29 @@ export class MetaApiService {
     )}`;
 
     try {
-      // Use axios with rejectUnauthorized: false to bypass MetaApi's self-signed cert issue
-      const httpsAgent = new (require('https').Agent)({ rejectUnauthorized: false });
-      const axios = require('axios');
-      
-      const response = await axios.get(url, {
+      const allowInsecureTls =
+        this.configService.get<string>('ALLOW_INSECURE_METAAPI_TLS') === 'true';
+      const requestConfig: Record<string, unknown> = {
         headers: {
           'auth-token': this.metaApiToken,
           Accept: 'application/json',
         },
-        httpsAgent,
         timeout: 15000,
-      });
+      };
+
+      if (allowInsecureTls) {
+        const httpsAgent = new (require('https').Agent)({
+          rejectUnauthorized: false,
+        });
+        requestConfig.httpsAgent = httpsAgent;
+        this.logger.warn(
+          'ALLOW_INSECURE_METAAPI_TLS=true enables insecure TLS validation for MetaApi server search',
+        );
+      }
+
+      const axios = require('axios');
+
+      const response = await axios.get(url, requestConfig);
 
       const data = response.data as Record<string, string[]>;
       const results: Array<{ name: string; broker?: string; type?: string }> =

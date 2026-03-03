@@ -1,8 +1,9 @@
-// @ts-nocheck
 // src/app/(app)/backtesting/session/[id]/page.tsx
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, {
+  useState, useEffect, useRef, useCallback, useMemo,
+} from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useSelector } from 'react-redux';
 import { RootState } from '@/store/store';
@@ -10,444 +11,895 @@ import { CandleData } from '@/components/backtesting/workbench/mockData';
 import ChartEngine, { ChartEngineRef } from '@/components/backtesting/workbench/ChartEngine';
 import ReplayControls from '@/components/backtesting/workbench/ReplayControls';
 import OrderPanel from '@/components/backtesting/workbench/OrderPanel';
+import PositionManager from '@/components/backtesting/workbench/PositionManager';
+import IndicatorPanel from '@/components/backtesting/workbench/IndicatorPanel';
+import DrawingToolbar from '@/components/backtesting/workbench/DrawingToolbar';
+import SessionSidebar from '@/components/backtesting/workbench/SessionSidebar';
+import HtfContextChart from '@/components/backtesting/workbench/HtfContextChart';
 import { aggregateCandles } from '@/utils/candleAggregation';
+import { CandlestickData } from 'lightweight-charts';
+import { IndicatorConfig, DEFAULT_INDICATORS } from '@/utils/indicators';
+import { DrawingTool, Drawing } from '@/utils/drawings';
+import { animateCandle } from '@/utils/tickSimulation';
 import Link from 'next/link';
-import { FaChevronLeft, FaCog, FaSave } from 'react-icons/fa';
-import { SeriesMarker, SeriesMarkerPosition, SeriesMarkerShape, UTCTimestamp } from 'lightweight-charts';
+import {
+  FaChevronLeft, FaSave,
+} from 'react-icons/fa';
+import {
+  FiSun, FiMoon, FiActivity, FiTrendingUp,
+  FiCheck,
+} from 'react-icons/fi';
 import AlertModal from '@/components/ui/AlertModal';
 
-export default function BacktestSessionPage({ params }: any) {
+// ── Session markers ────────────────────────────────────────────────────────────
+
+const SESSIONS = [
+  { name: 'Asia',   utcHour: 0,  color: '#8B5CF6', Icon: FiMoon      },
+  { name: 'London', utcHour: 7,  color: '#3B82F6', Icon: FiActivity  },
+  { name: 'NY',     utcHour: 12, color: '#10B981', Icon: FiTrendingUp },
+  { name: 'NY PM',  utcHour: 15, color: '#F59E0B', Icon: FiSun       },
+];
+
+const TIMEFRAMES = ['1m', '5m', '15m', '30m', '1h', '4h', '1d'];
+const HTF_OPTIONS = ['5m', '15m', '1h', '4h', '1d'] as const;
+
+interface BacktestSessionPageProps {
+  params: { id: string };
+}
+
+interface SessionMarker {
+  time: number;
+  position: 'inBar' | 'aboveBar' | 'belowBar';
+  color: string;
+  shape: 'circle' | 'arrowUp' | 'arrowDown';
+  size: number;
+  text: string;
+}
+
+interface OpenReplayPosition {
+  type: 'LONG' | 'SHORT';
+  entry: number;
+  sl: number;
+  tp: number;
+  lotSize: number;
+  entryTime: CandleData['time'];
+  spread: number;
+  commission: number;
+}
+
+interface ClosedReplayTrade extends OpenReplayPosition {
+  pnl: number;
+  exitTime: number;
+  exitPrice?: number;
+}
+
+interface CandleApiRow {
+  time?: number | string;
+  open?: number | string;
+  high?: number | string;
+  low?: number | string;
+  close?: number | string;
+}
+
+const getErrorMessage = (error: unknown, fallback: string): string => {
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+  return fallback;
+};
+
+// ── Component ─────────────────────────────────────────────────────────────────
+
+export default function BacktestSessionPage({ params }: BacktestSessionPageProps) {
   const searchParams = useSearchParams();
+  const token        = useSelector((state: RootState) => state.auth.token);
 
-  // Get auth token from Redux store
-  const token = useSelector((state: RootState) => state.auth.token);
+  // ── Theme ──────────────────────────────────────────────────────────────────
+  const [isDark, setIsDark] = useState(true);
+  useEffect(() => {
+    setIsDark(document.documentElement.classList.contains('dark') !== false);
+    const obs = new MutationObserver(() => {
+      setIsDark(document.documentElement.classList.contains('dark'));
+    });
+    obs.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    return () => obs.disconnect();
+  }, []);
 
-  // Session Configuration from query params
-  const [symbol, setSymbol] = useState(searchParams.get('symbol') || 'XAUUSD');
-  const [timeframe, setTimeframe] = useState(searchParams.get('timeframe') || '1m');
-  const [startDate, setStartDate] = useState(searchParams.get('startDate') || '2024-01-01');
-  const [endDate, setEndDate] = useState(searchParams.get('endDate') || '2024-01-31');
-  const [startingBalance, setStartingBalance] = useState(
-    parseFloat(searchParams.get('balance') || '100000')
-  );
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [sessionId, setSessionId] = useState<string | null>(params.id);
+  // ── Session config from URL ────────────────────────────────────────────────
+  const [symbol]         = useState(searchParams.get('symbol')    || 'XAUUSD');
+  const [timeframe, setTimeframe] = useState(searchParams.get('timeframe') || '15m');
+  const [startDate]      = useState(searchParams.get('startDate') || '2024-01-01');
+  const [endDate]        = useState(searchParams.get('endDate')   || '2024-01-31');
+  const [startingBalance]= useState(parseFloat(searchParams.get('balance') || '100000'));
 
-  // State
-  const [fullData, setFullData] = useState<CandleData[]>([]);
-  const [visibleData, setVisibleData] = useState<CandleData[]>([]);
+  // Sim settings
+  const [spreadPips]        = useState(parseFloat(searchParams.get('spread')     || '0'));
+  const [slippagePips]      = useState(parseFloat(searchParams.get('slippage')   || '0'));
+  const [commissionPerSide] = useState(parseFloat(searchParams.get('commission') || '0'));
+
+  // ── Candle state ───────────────────────────────────────────────────────────
+  // base1mData: raw 1m candles fetched ONCE from the API
+  const [base1mData,   setBase1mData]   = useState<CandleData[]>([]);
+  const base1mRef = useRef<CandleData[]>([]);
+  base1mRef.current = base1mData;
+
+  // fullData: aggregated for the CURRENT timeframe (derived from base1mData)
+  const [fullData,     setFullData]     = useState<CandleData[]>([]);
+  const [visibleData,  setVisibleData]  = useState<CandleData[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [speed, setSpeed] = useState(1000); // ms per candle
+  const [loading,      setLoading]      = useState(false);
+  const [error,        setError]        = useState<string | null>(null);
 
-  // Trading State
-  const [balance, setBalance] = useState(startingBalance);
-  const [trades, setTrades] = useState<any[]>([]); // Log of trades
-  const [markers, setMarkers] = useState<SeriesMarker<any>[]>([]);
-  const [openPosition, setOpenPosition] = useState<any | null>(null);
+  // ── Replay state ───────────────────────────────────────────────────────────
+  const [isPlaying,   setIsPlaying]   = useState(false);
+  const [speed,       setSpeed]       = useState(1000);
+  const [tickMode,    setTickMode]    = useState(false);
+  const [isAnimating, setIsAnimating] = useState(false);
+  const cancelTickRef = useRef<(() => void) | null>(null);
+
+  // ── Trading state ──────────────────────────────────────────────────────────
+  const [balance,      setBalance]      = useState(startingBalance);
+  const [trades,       setTrades]       = useState<ClosedReplayTrade[]>([]);
+  const [markers,      setMarkers]      = useState<SessionMarker[]>([]);
+  const [openPosition, setOpenPosition] = useState<OpenReplayPosition | null>(null);
+
+  // ── Indicators + drawings ──────────────────────────────────────────────────
+  const [indicators,  setIndicators] = useState<IndicatorConfig>(DEFAULT_INDICATORS);
+  const [activeTool,  setActiveTool] = useState<DrawingTool>('none');
+  const [drawings,    setDrawings]   = useState<Drawing[]>([]);
+
+  // ── HTF context ────────────────────────────────────────────────────────────
+  const [htfTimeframe, setHtfTimeframe] = useState<string>('4h');
+
+  // ── Alert modal ────────────────────────────────────────────────────────────
   const [alertState, setAlertState] = useState({ isOpen: false, title: 'Notice', message: '' });
-  const closeAlert = () => setAlertState((prev) => ({ ...prev, isOpen: false }));
-  const showAlert = (message: string, title = 'Notice') =>
-    setAlertState({ isOpen: true, title, message });
+  const closeAlert = () => setAlertState(p => ({ ...p, isOpen: false }));
+  const showAlert  = (msg: string, title = 'Notice') =>
+    setAlertState({ isOpen: true, title, message: msg });
 
-  // Refs
-  const chartRef = useRef<ChartEngineRef>(null);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  // ── Session jump toast ─────────────────────────────────────────────────────
+  const [jumpMsg, setJumpMsg] = useState('');
 
-  // Fetch Candles from Backend
-  const fetchCandles = async () => {
+  // ── Refs ───────────────────────────────────────────────────────────────────
+  const chartRef          = useRef<ChartEngineRef>(null);
+  const timerRef          = useRef<NodeJS.Timeout | null>(null);
+  const isPlayingRef      = useRef(isPlaying);
+  const currentIndexRef   = useRef(currentIndex);
+  const fullDataRef       = useRef(fullData);
+  const openPositionRef   = useRef(openPosition);
+  isPlayingRef.current    = isPlaying;
+  currentIndexRef.current = currentIndex;
+  fullDataRef.current     = fullData;
+  openPositionRef.current = openPosition;
+
+  // ── HTF aggregation (derived from base1m, not re-fetched) ─────────────────
+  const htfCandles = useMemo(
+    () => aggregateCandles(base1mData as CandlestickData[], htfTimeframe),
+    [base1mData, htfTimeframe],
+  );
+
+  const currentTimestamp = useMemo(
+    () => (visibleData[visibleData.length - 1]?.time as number) || 0,
+    [visibleData],
+  );
+
+  const htfCurrentTime = useMemo(() => {
+    if (!htfCandles.length || !currentTimestamp) return 0;
+    let result = htfCandles[0].time as number;
+    for (const c of htfCandles) {
+      if ((c.time as number) <= currentTimestamp) result = c.time as number;
+      else break;
+    }
+    return result;
+  }, [htfCandles, currentTimestamp]);
+
+  // ── Aggregate 1m → target TF ──────────────────────────────────────────────
+  const aggregateToTf = useCallback((raw: CandleData[], tf: string): CandleData[] => {
+    if (tf === '1m') return raw;
+    return aggregateCandles(raw as CandlestickData[], tf) as CandleData[];
+  }, []);
+
+  // ── Fetch 1m candles ONCE, derive everything else locally ─────────────────
+  const fetchCandles = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || '/api/v1';
-      const response = await fetch(
-        `${apiUrl}/backtesting/candles/${symbol}?timeframe=${timeframe}&startDate=${startDate}&endDate=${endDate}`,
+      const res = await fetch(
+        `${apiUrl}/backtesting/candles/${symbol}?timeframe=1m&startDate=${startDate}&endDate=${endDate}`,
         {
           credentials: 'include',
           headers: {
             'Content-Type': 'application/json',
-            ...(token && { 'Authorization': `Bearer ${token}` }),
+            ...(token && { Authorization: `Bearer ${token}` }),
           },
-        }
+        },
       );
+      if (!res.ok) throw new Error('Failed to fetch candles');
+      const candles = await res.json();
+      if (!Array.isArray(candles) || candles.length === 0)
+        throw new Error('No candles returned');
 
-      if (!response.ok) {
-        throw new Error('Failed to fetch candles');
-      }
+      const parseNum = (value: number | string | undefined): number | null => {
+        if (value === undefined || value === null) return null;
+        const numeric = Number(value);
+        return Number.isFinite(numeric) ? numeric : null;
+      };
 
-      const candles = await response.json();
+      const raw: CandleData[] = candles
+        .map((c: CandleApiRow) => {
+          const time = c.time == null ? null : Number(c.time);
+          const open = parseNum(c.open);
+          const high = parseNum(c.high);
+          const low = parseNum(c.low);
+          const close = parseNum(c.close);
 
-      console.log('Raw candles from backend:', candles);
-
-      if (!Array.isArray(candles)) {
-        throw new Error('Invalid candles data: not an array');
-      }
-
-      if (candles.length === 0) {
-        throw new Error('No candles returned from backend');
-      }
-
-      // Transform and validate candle data
-      const formattedCandles: CandleData[] = candles
-        .map((c: any) => {
-          // Validate required fields
-          if (!c.time || !c.open || !c.high || !c.low || !c.close) {
-            console.warn('Invalid candle data:', c);
+          if (
+            time == null ||
+            !Number.isFinite(time) ||
+            open == null ||
+            high == null ||
+            low == null ||
+            close == null
+          ) {
             return null;
           }
 
           return {
-            time: Number(c.time), // Ensure it's a number
-            open: Number(c.open),
-            high: Number(c.high),
-            low: Number(c.low),
-            close: Number(c.close),
+            time,
+            open,
+            high,
+            low,
+            close,
           };
         })
-        .filter((c): c is CandleData => c !== null) // Remove invalid candles
-        .sort((a, b) => (a.time as number) - (b.time as number)); // Sort by time
+        .filter((candle): candle is CandleData => candle !== null)
+        .sort((a, b) => a.time - b.time);
 
-      console.log('Formatted candles:', formattedCandles.length, 'valid candles');
-      console.log('First candle:', formattedCandles[0]);
-      console.log('Last candle:', formattedCandles[formattedCandles.length - 1]);
+      if (raw.length === 0) throw new Error('No valid candles after filtering');
 
-      if (formattedCandles.length === 0) {
-        throw new Error('No valid candles after filtering');
-      }
+      // Store raw 1m for TF switching
+      setBase1mData(raw);
+      base1mRef.current = raw;
 
-      setFullData(formattedCandles);
-
-      // Start with first 50 candles visible to give context
-      const initialView = Math.min(50, formattedCandles.length);
-      setVisibleData(formattedCandles.slice(0, initialView));
-      setCurrentIndex(initialView - 1); // 0-based index
-    } catch (err: any) {
-      setError(err.message || 'Failed to load candles');
-      console.error('Error fetching candles:', err);
+      // Aggregate to selected TF
+      const agg = aggregateToTf(raw, timeframe);
+      const startIdx = Math.min(50, agg.length);
+      setFullData(agg);
+      setVisibleData(agg.slice(0, startIdx));
+      setCurrentIndex(startIdx - 1);
+    } catch (err) {
+      setError(getErrorMessage(err, 'Failed to load candles'));
     } finally {
       setLoading(false);
     }
-  };
+  }, [aggregateToTf, symbol, startDate, endDate, token, timeframe]);
 
-  // Initialize Data
   useEffect(() => {
-    fetchCandles();
+    void fetchCandles();
+  }, [fetchCandles]);
+
+  // ── Timeframe switch — INSTANT, no re-fetch ───────────────────────────────
+  const handleTimeframeChange = useCallback((newTf: string) => {
+    if (newTf === timeframe) return;
+    setIsPlaying(false);
+    cancelTickRef.current?.();
+
+    // Preserve current timestamp position
+    const keepTsRaw = visibleData[visibleData.length - 1]?.time;
+    const keepTs = keepTsRaw != null ? Number(keepTsRaw) : undefined;
+
+    setTimeframe(newTf);
+
+    const raw = base1mRef.current;
+    if (!raw.length) return;
+
+    // Local aggregation — instant
+    const agg = aggregateToTf(raw, newTf);
+    setFullData(agg);
+
+    let idx = Math.min(50, agg.length);
+    if (keepTs !== undefined) {
+      const near = agg.findIndex(c => Number(c.time) >= keepTs);
+      if (near > 0) idx = Math.min(near + 1, agg.length);
+    }
+    setVisibleData(agg.slice(0, idx));
+    setCurrentIndex(idx - 1);
+  }, [timeframe, visibleData, aggregateToTf]);
+
+  // ── Session jump ───────────────────────────────────────────────────────────
+  const jumpToSession = useCallback((targetHour: number, sessionName: string) => {
+    const data = fullDataRef.current;
+    if (!data.length) return;
+
+    const searchFrom = currentIndexRef.current;
+    for (let i = searchFrom; i < data.length; i++) {
+      const h = new Date((data[i].time as number) * 1000).getUTCHours();
+      if (h === targetHour) {
+        const jumpTo = Math.min(i + 1, data.length);
+        setVisibleData(data.slice(0, jumpTo));
+        setCurrentIndex(jumpTo - 1);
+        setJumpMsg(`${sessionName} Open`);
+        setTimeout(() => setJumpMsg(''), 2000);
+        return;
+      }
+    }
+    // Wrap around
+    for (let i = 0; i < searchFrom; i++) {
+      const h = new Date((data[i].time as number) * 1000).getUTCHours();
+      if (h === targetHour) {
+        const jumpTo = Math.min(i + 1, data.length);
+        setVisibleData(data.slice(0, jumpTo));
+        setCurrentIndex(jumpTo - 1);
+        setJumpMsg(`${sessionName} Open (next)`);
+        setTimeout(() => setJumpMsg(''), 2000);
+        return;
+      }
+    }
+    setJumpMsg(`No ${sessionName} candles found`);
+    setTimeout(() => setJumpMsg(''), 2000);
   }, []);
 
-  // Update chart when visible data changes (mostly for initial set)
-  // Subsequent updates might use updateLastCandle for perf, but strict declarative is safer for MVP
+  // ── Chart sync ─────────────────────────────────────────────────────────────
   useEffect(() => {
-     if (chartRef.current && visibleData.length > 0) {
-        chartRef.current.setCandles(visibleData);
-     }
+    if (chartRef.current && visibleData.length > 0) {
+      chartRef.current.setCandles(visibleData);
+    }
   }, [visibleData]);
 
-  // Replay Timer Logic
-  useEffect(() => {
-    if (isPlaying) {
-      timerRef.current = setInterval(() => {
-        handleNextCandle();
-      }, speed);
+  // ── Process open positions on each new candle ──────────────────────────────
+  const closeTrade = useCallback((pnl: number, time: number, exitPrice?: number) => {
+    const pos = openPositionRef.current;
+    if (!pos) return;
+
+    setBalance(prev => prev + pnl);
+    setTrades(prev => [...prev, { ...pos, pnl, exitTime: time, exitPrice }]);
+    setOpenPosition(null);
+    setMarkers(prev => [...prev, {
+      time, position: 'inBar',
+      color: pnl >= 0 ? '#10B981' : '#EF4444',
+      shape: 'circle', size: 1,
+      text:  pnl >= 0 ? `+$${pnl.toFixed(0)}` : `-$${Math.abs(pnl).toFixed(0)}`,
+    }]);
+  }, []);
+
+  const processOpenPositions = useCallback((candle: CandleData) => {
+    const pos = openPositionRef.current;
+    if (!pos) return;
+    const { low, high, open } = candle;
+    let exitPrice: number | null = null;
+    let pnl = 0;
+
+    if (pos.type === 'LONG') {
+      const slHit = low <= pos.sl;
+      const tpHit = high >= pos.tp;
+      if (slHit && tpHit) {
+        exitPrice = Math.abs(open - pos.sl) <= Math.abs(open - pos.tp) ? pos.sl : pos.tp;
+      } else if (slHit) {
+        exitPrice = pos.sl;
+      } else if (tpHit) {
+        exitPrice = pos.tp;
+      }
+      if (exitPrice != null) pnl = (exitPrice - pos.entry) * pos.lotSize * 100;
     } else {
-      if (timerRef.current) clearInterval(timerRef.current);
+      const slHit = high >= pos.sl;
+      const tpHit = low <= pos.tp;
+      if (slHit && tpHit) {
+        exitPrice = Math.abs(open - pos.sl) <= Math.abs(open - pos.tp) ? pos.sl : pos.tp;
+      } else if (slHit) {
+        exitPrice = pos.sl;
+      } else if (tpHit) {
+        exitPrice = pos.tp;
+      }
+      if (exitPrice != null) pnl = (pos.entry - exitPrice) * pos.lotSize * 100;
     }
 
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
-  }, [isPlaying, speed, currentIndex, fullData]); // Dependencies crucial for closure freshness
+    if (exitPrice != null) closeTrade(pnl, Number(candle.time), exitPrice);
+  }, [closeTrade]);
 
-  // Handlers
-  const handleNextCandle = () => {
-    // Need to use functional state or ref to get latest if inside interval
-    // But since this function is re-created on effect change, direct access is okay *if* deps are correct
-    
-    // Better: use functional update for state to ensure no race conditions
-    setCurrentIndex(prev => {
-       const nextIndex = prev + 1;
-       if (nextIndex >= fullData.length) {
-         setIsPlaying(false);
-         return prev; // End of data
-       }
-       
-       // Update visible data
-       const newCandle = fullData[nextIndex];
-       setVisibleData(prevData => [...prevData, newCandle]);
-       
-       return nextIndex;
-    });
-  };
+  // ── Close at market ────────────────────────────────────────────────────────
+  const handleCloseAtMarket = useCallback(() => {
+    const pos = openPositionRef.current;
+    if (!pos) return;
+    const currentCandle = visibleData[visibleData.length - 1];
+    if (!currentCandle) return;
+    const price = currentCandle.close;
+    const pnl = pos.type === 'LONG'
+      ? (price - pos.entry) * pos.lotSize * 100
+      : (pos.entry - price) * pos.lotSize * 100;
+    closeTrade(pnl, Number(currentCandle.time), price);
+  }, [visibleData, closeTrade]);
 
-  const handlePrevCandle = () => {
-    if (currentIndex > 0) {
-        setCurrentIndex(prev => {
-            const nextIndex = prev - 1;
-            setVisibleData(prevData => prevData.slice(0, -1));
-            return nextIndex;
-        });
-    }
-  };
+  // ── SL/TP update ──────────────────────────────────────────────────────────
+  const handleSlTpChange = useCallback((newSl: number, newTp: number) => {
+    setOpenPosition(prev => prev ? { ...prev, sl: newSl, tp: newTp } : null);
+  }, []);
 
-  // Safe manual next helper
-  const onNextClick = () => {
-      if (currentIndex < fullData.length - 1) {
-          const nextIndex = currentIndex + 1;
-          const newCandle = fullData[nextIndex];
-          setVisibleData(prev => [...prev, newCandle]);
+  // ── Candle advance ────────────────────────────────────────────────────────
+  const advanceCandle = useCallback((candle: CandleData, nextIndex: number) => {
+    if (tickMode) {
+      cancelTickRef.current?.();
+      setIsAnimating(true);
+      const dur = Math.max(speed, 40);
+      cancelTickRef.current = animateCandle(
+        candle, dur,
+        (partial) => { chartRef.current?.updateLastCandle(partial); },
+        (final) => {
+          setIsAnimating(false);
+          cancelTickRef.current = null;
+          setVisibleData(prev => [...prev, final]);
           setCurrentIndex(nextIndex);
-          
-          processOpenPositions(newCandle);
-      }
-  };
+          processOpenPositions(final);
+        },
+      );
+    } else {
+      setVisibleData(prev => [...prev, candle]);
+      setCurrentIndex(nextIndex);
+      processOpenPositions(candle);
+    }
+  }, [tickMode, speed, processOpenPositions]);
 
-  // Check Open Positions on every candle update
+  const handleNextCandle = useCallback(() => {
+    if (tickMode && isAnimating) return;
+    setCurrentIndex(prev => {
+      const nextIndex = prev + 1;
+      if (nextIndex >= fullDataRef.current.length) { setIsPlaying(false); return prev; }
+      advanceCandle(fullDataRef.current[nextIndex], nextIndex);
+      return prev;
+    });
+  }, [tickMode, isAnimating, advanceCandle]);
+
+  const handlePrevCandle = useCallback(() => {
+    if (isAnimating) return;
+    cancelTickRef.current?.();
+    if (currentIndexRef.current > 0) {
+      setCurrentIndex(prev => {
+        setVisibleData(d => d.slice(0, -1));
+        return prev - 1;
+      });
+    }
+  }, [isAnimating]);
+
+  const onNextClick = useCallback(() => {
+    if (isAnimating) return;
+    cancelTickRef.current?.();
+    const nextIndex = currentIndexRef.current + 1;
+    if (nextIndex < fullDataRef.current.length) {
+      advanceCandle(fullDataRef.current[nextIndex], nextIndex);
+    }
+  }, [isAnimating, advanceCandle]);
+
+  // ── Replay timer ───────────────────────────────────────────────────────────
   useEffect(() => {
-     if (visibleData.length > 0 && openPosition) {
-         // Also check when auto-playing
-         const lastCandle = visibleData[visibleData.length - 1];
-         processOpenPositions(lastCandle);
-     }
-  }, [visibleData]);
+    if (!isPlaying) { if (timerRef.current) clearInterval(timerRef.current); return; }
+    if (tickMode) { if (!isAnimating) handleNextCandle(); return; }
+    timerRef.current = setInterval(handleNextCandle, speed);
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+  }, [isPlaying, speed, tickMode, isAnimating, handleNextCandle]);
 
-  const processOpenPositions = (candle: CandleData) => {
-      if (!openPosition) return;
-      
-      const price = candle.close;
-      let closed = false;
-      let pnl = 0;
+  // ── Check positions on visible data change ─────────────────────────────────
+  useEffect(() => {
+    if (visibleData.length > 0 && openPosition) {
+      processOpenPositions(visibleData[visibleData.length - 1]);
+    }
+  }, [visibleData, openPosition, processOpenPositions]);
 
-      // Check SL/TP (simplified: uses 'close' price, real engine should check High/Low)
-      if (openPosition.type === 'LONG') {
-          if (price <= openPosition.sl) { // SL Hit
-              pnl = (openPosition.sl - openPosition.entry) * openPosition.lotSize * 100;
-              closed = true;
-          } else if (price >= openPosition.tp) { // TP Hit
-              pnl = (openPosition.tp - openPosition.entry) * openPosition.lotSize * 100;
-              closed = true;
-          }
-      } else { // SHORT
-          if (price >= openPosition.sl) { // SL Hit
-              pnl = (openPosition.entry - openPosition.sl) * openPosition.lotSize * 100;
-              closed = true;
-          } else if (price <= openPosition.tp) { // TP Hit
-              pnl = (openPosition.entry - openPosition.tp) * openPosition.lotSize * 100;
-              closed = true;
-          }
-      }
+  // ── Place order ────────────────────────────────────────────────────────────
+  const handlePlaceOrder = useCallback((
+    type: 'LONG' | 'SHORT', lotSize: number, sl: number, tp: number,
+  ) => {
+    if (openPosition) return;
+    const candle = visibleData[visibleData.length - 1];
+    if (!candle) return;
+    const rawPrice = candle.close;
+    const pip = symbol.includes('JPY') || symbol === 'XAUUSD' ? 0.01 : 0.0001;
+    const halfSpread = (spreadPips / 2) * pip;
+    const slip       = slippagePips * pip;
+    const entry = type === 'LONG'
+      ? rawPrice + halfSpread + slip
+      : rawPrice - halfSpread - slip;
 
-      if (closed) {
-          closeTrade(pnl, candle.time);
-      }
-  };
+    if (commissionPerSide > 0) setBalance(prev => prev - commissionPerSide * 2);
 
-  const closeTrade = (pnl: number, time: string) => {
-      setBalance(prev => prev + pnl);
-      setOpenPosition(null);
-      setTrades(prev => [...prev, { ...openPosition, pnl, exitTime: time }]);
-      
-      // Add exit marker
-      setMarkers(prev => [...prev, {
-          time: time,
-          position: 'inBar',
-          color: pnl >= 0 ? '#10B981' : '#EF4444',
-          shape: 'circle',
-          size: 1,
-          text: pnl >= 0 ? `+$${pnl.toFixed(0)}` : `-$${Math.abs(pnl).toFixed(0)}`
-      }]);
-  };
+    setOpenPosition({
+      type, entry, sl, tp, lotSize,
+      entryTime: candle.time,
+      spread: spreadPips, commission: commissionPerSide * 2,
+    });
+    setMarkers(prev => [...prev, {
+      time: Number(candle.time),
+      position: type === 'LONG' ? 'belowBar' : 'aboveBar',
+      color: type === 'LONG' ? '#2196F3' : '#E91E63',
+      shape: type === 'LONG' ? 'arrowUp' : 'arrowDown',
+      text:  `${type} @ ${entry.toFixed(5)}`,
+    }]);
+  }, [openPosition, visibleData, symbol, spreadPips, slippagePips, commissionPerSide]);
 
-  const handlePlaceOrder = (type: 'LONG' | 'SHORT', lotSize: number, sl: number, tp: number) => {
-      if (openPosition) return; // Only 1 position for now
+  // ── Drawings ───────────────────────────────────────────────────────────────
+  const handleDrawingComplete = (d: Drawing) => setDrawings(prev => [...prev, d]);
+  const handleDrawingDelete   = (id: string) => setDrawings(prev => prev.filter(d => d.id !== id));
+  const handleClearDrawings   = () => setDrawings([]);
 
-      const currentCandle = visibleData[visibleData.length - 1];
-      const entryPrice = currentCandle.close; // Market Order
-
-      const newTrade = {
-          type,
-          entry: entryPrice,
-          sl,
-          tp,
-          lotSize,
-          entryTime: currentCandle.time
-      };
-
-      setOpenPosition(newTrade);
-
-      // Add Marker
-      const marker: SeriesMarker<any> = {
-          time: currentCandle.time,
-          position: type === 'LONG' ? 'belowBar' : 'aboveBar',
-          color: type === 'LONG' ? '#2196F3' : '#E91E63',
-          shape: type === 'LONG' ? 'arrowUp' : 'arrowDown',
-          text: `${type} @ ${entryPrice}`
-      };
-
-      setMarkers(prev => [...prev, marker]);
-  };
-
-  // Save Session
+  // ── Save session ───────────────────────────────────────────────────────────
   const handleSaveSession = async () => {
     try {
-      const totalTrades = trades.length;
-      const winningTrades = trades.filter((t) => t.pnl > 0).length;
-      const losingTrades = trades.filter((t) => t.pnl <= 0).length;
-      const winRate = totalTrades > 0 ? (winningTrades / totalTrades) * 100 : 0;
-      const totalPnl = balance - 100000;
-
+      const wins    = trades.filter(t => t.pnl > 0).length;
+      const losses  = trades.filter(t => t.pnl <= 0).length;
+      const winRate = trades.length ? (wins / trades.length) * 100 : 0;
+      const totalPnl = balance - startingBalance;
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || '/api/v1';
-      const response = await fetch(`${apiUrl}/backtesting/sessions/${params.id}`, {
+      const res = await fetch(`${apiUrl}/backtesting/sessions/${params.id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          ...(token && { 'Authorization': `Bearer ${token}` }),
+          ...(token && { Authorization: `Bearer ${token}` }),
         },
         credentials: 'include',
         body: JSON.stringify({
-          trades,
-          endingBalance: balance,
-          totalPnl,
-          totalTrades,
-          winningTrades,
-          losingTrades,
-          winRate,
-          status: 'in_progress',
+          trades, endingBalance: balance, totalPnl,
+          totalTrades: trades.length, winningTrades: wins, losingTrades: losses,
+          winRate, status: 'in_progress',
         }),
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to save session');
-      }
-
+      if (!res.ok) throw new Error('Failed to save');
       showAlert('Session saved successfully!', 'Session Saved');
-    } catch (err: any) {
-      console.error('Error saving session:', err);
-      showAlert('Failed to save session', 'Save Failed');
+    } catch (error) {
+      showAlert(
+        getErrorMessage(error, 'Failed to save session'),
+        'Save Failed',
+      );
     }
   };
 
+  // ── Keyboard shortcuts ─────────────────────────────────────────────────────
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (['INPUT', 'TEXTAREA', 'SELECT'].includes(tag)) return;
+      switch (e.key) {
+        case ' ':          e.preventDefault(); setIsPlaying(p => !p); break;
+        case 'ArrowRight': e.preventDefault(); if (!isPlayingRef.current) onNextClick(); break;
+        case 'ArrowLeft':  e.preventDefault(); if (!isPlayingRef.current) handlePrevCandle(); break;
+        case '1': setSpeed(1000); break;
+        case '2': setSpeed(500);  break;
+        case '3': setSpeed(200);  break;
+        case '4': setSpeed(50);   break;
+        case '`': setTickMode(p => !p); break;
+        case 'Escape': setActiveTool('none'); break;
+        case 'h': case 'H': setActiveTool('horizontal'); break;
+        case 't': case 'T': setActiveTool('trend');      break;
+        case 'r': case 'R': setActiveTool('rectangle');  break;
+        case 'b': case 'B': setActiveTool('fibonacci');  break;
+        case 'F1': e.preventDefault(); jumpToSession(0,  'Asia');   break;
+        case 'F2': e.preventDefault(); jumpToSession(7,  'London'); break;
+        case 'F3': e.preventDefault(); jumpToSession(12, 'NY');     break;
+        default: break;
+      }
+    };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [handlePrevCandle, jumpToSession, onNextClick]);
+
+  // ── Current candle date ────────────────────────────────────────────────────
+  const currentCandleDate = useMemo(() => {
+    const ts = visibleData[visibleData.length - 1]?.time as number;
+    if (!ts) return '—';
+    const d = new Date(ts * 1000);
+    return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' })
+         + ' '
+         + d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+  }, [visibleData]);
+
+  // ── Theme classes (black + emerald green) ─────────────────────────────────
+  const bg      = isDark ? 'bg-black'            : 'bg-gray-50';
+  const header  = isDark ? 'bg-zinc-950/90 border-emerald-900/25' : 'bg-white/90 border-gray-200';
+  const toolbar = isDark ? 'bg-zinc-950/70 border-emerald-900/20' : 'bg-gray-100/80 border-gray-200';
+  const text    = isDark ? 'text-white'           : 'text-gray-900';
+  const muted   = isDark ? 'text-slate-500'       : 'text-gray-500';
+
+  const tfBtn = (active: boolean) => active
+    ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/40'
+    : isDark
+      ? 'text-slate-600 border-transparent hover:text-slate-300 hover:bg-white/5'
+      : 'text-gray-500 border-transparent hover:text-gray-700 hover:bg-gray-200';
+
+  const htfBtn = (active: boolean) => active
+    ? 'bg-violet-500/15 text-violet-300 border-violet-500/40'
+    : isDark
+      ? 'text-slate-600 border-transparent hover:text-slate-400 hover:bg-white/5'
+      : 'text-gray-500 border-transparent hover:text-gray-700 hover:bg-gray-200';
+
+  const divider = isDark ? 'bg-white/8' : 'bg-gray-300';
+
+  // ── Render ────────────────────────────────────────────────────────────────
+
   return (
-    <div className="min-h-screen bg-slate-950 text-white flex flex-col relative overflow-hidden">
-        {/* Background FX */}
+    <div className={`min-h-screen ${bg} ${text} flex flex-col relative overflow-hidden`}>
+
+      {/* Ambient emerald glow (dark only) */}
+      {isDark && (
         <div className="fixed inset-0 pointer-events-none">
-            <div className="absolute top-0 left-0 w-full h-[500px] bg-gradient-to-b from-emerald-900/10 to-transparent"></div>
+          <div className="absolute top-0 left-0 w-full h-[300px] bg-gradient-to-b from-emerald-950/20 to-transparent" />
+        </div>
+      )}
+
+      {/* ── Header ──────────────────────────────────────────────────────────── */}
+      <header className={`h-14 border-b flex items-center justify-between px-4 backdrop-blur-sm z-30 gap-3 ${header}`}>
+
+        {/* Left: back + session info */}
+        <div className="flex items-center gap-3 min-w-0">
+          <Link
+            href="/backtesting"
+            className={`p-2 rounded-lg transition-colors shrink-0 ${
+              isDark ? 'text-slate-400 hover:text-emerald-300 hover:bg-emerald-900/20'
+                     : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'
+            }`}
+          >
+            <FaChevronLeft className="w-3 h-3" />
+          </Link>
+          <div className="min-w-0">
+            <div className={`font-bold text-sm truncate ${text}`}>
+              {symbol} &middot; {timeframe.toUpperCase()}
+            </div>
+            <div className={`text-xs truncate ${muted}`}>
+              {startDate} &rarr; {endDate} &middot; ${startingBalance.toLocaleString()}
+            </div>
+          </div>
         </div>
 
-        {/* Toolbar */}
-        <header className="h-16 border-b border-white/5 flex items-center justify-between px-6 bg-slate-900/50 backdrop-blur-sm z-30">
-            <div className="flex items-center gap-4">
-                <Link href="/backtesting" className="p-2 hover:bg-white/5 rounded-lg text-slate-400 hover:text-white transition-colors">
-                    <FaChevronLeft />
-                </Link>
-                <div>
-                   <h1 className="font-bold text-sm text-white">Replay Session</h1>
-                   <p className="text-xs text-slate-500">{symbol} • {timeframe} • {startDate} to {endDate}</p>
-                </div>
+        {/* Center: Timeframe switcher */}
+        <div className="flex items-center gap-0.5 shrink-0">
+          {TIMEFRAMES.map(tf => (
+            <button
+              key={tf}
+              onClick={() => handleTimeframeChange(tf)}
+              className={`px-2 py-1 rounded text-[11px] font-mono font-semibold transition-all border ${tfBtn(timeframe === tf)}`}
+            >
+              {tf.toUpperCase()}
+            </button>
+          ))}
+        </div>
+
+        {/* Right: balance + save */}
+        <div className="flex items-center gap-3 shrink-0">
+          {visibleData.length > 0 && (
+            <div className="text-right">
+              <div className={`text-[10px] ${muted}`}>{currentCandleDate}</div>
+              <div className={`text-xs font-mono font-bold ${
+                openPosition ? 'text-amber-400'
+                  : balance >= startingBalance ? 'text-emerald-400' : 'text-red-400'
+              }`}>
+                ${balance.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                {openPosition && (
+                  <span className="text-[9px] ml-1 px-1 py-0.5 rounded bg-amber-500/20 text-amber-400">
+                    open
+                  </span>
+                )}
+              </div>
             </div>
+          )}
+          <button
+            onClick={handleSaveSession}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 rounded-lg text-white text-xs font-semibold transition-colors"
+          >
+            <FaSave className="w-3 h-3" />
+            Save
+          </button>
+        </div>
+      </header>
 
-            <div className="flex items-center gap-4">
-                <div className="text-right mr-4">
-                    <div className="text-xs text-slate-400">Trades</div>
-                    <div className="font-bold font-mono text-white">
-                        {trades.length} ({trades.filter(t => t.pnl > 0).length}W / {trades.filter(t => t.pnl <= 0).length}L)
-                    </div>
-                </div>
-                <div className="text-right">
-                    <div className="text-xs text-slate-400">Account Balance</div>
-                    <div className={`font-bold font-mono ${openPosition ? 'text-amber-400' : balance >= 100000 ? 'text-emerald-400' : 'text-red-400'}`}>
-                        ${balance.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                        {openPosition && <span className="text-xs ml-2 text-amber-500">(In Trade)</span>}
-                    </div>
-                </div>
-                <button
-                    onClick={handleSaveSession}
-                    className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 rounded-lg text-white transition-colors"
-                >
-                    <FaSave />
-                    <span className="text-sm">Save</span>
-                </button>
-                <button className="p-2 hover:bg-white/5 rounded-lg text-slate-400 hover:text-white">
-                    <FaCog />
-                </button>
-            </div>
-        </header>
+      {/* ── Sub-toolbar ─────────────────────────────────────────────────────── */}
+      <div className={`h-10 border-b flex items-center px-4 gap-2 backdrop-blur-sm z-20 overflow-x-auto scrollbar-none ${toolbar}`}>
 
-        {/* Main Content */}
-        <main className="flex-1 flex flex-col relative">
-            {loading && (
-                <div className="flex-1 flex items-center justify-center">
-                    <div className="text-center">
-                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-500 mx-auto mb-4"></div>
-                        <p className="text-slate-400">Loading candle data...</p>
-                    </div>
-                </div>
-            )}
+        {/* Indicators: Volume + Sessions only */}
+        <IndicatorPanel config={indicators} onChange={setIndicators} isDark={isDark} />
 
-            {error && (
-                <div className="flex-1 flex items-center justify-center">
-                    <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-6 max-w-md">
-                        <p className="text-red-400 text-center">{error}</p>
-                        <button
-                            onClick={fetchCandles}
-                            className="mt-4 w-full px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg text-white transition-colors"
-                        >
-                            Retry
-                        </button>
-                    </div>
-                </div>
-            )}
-
-            {!loading && !error && fullData.length > 0 && (
-                <>
-                    {/* Chart Area */}
-                    <div className="flex-1 p-4 pb-24 relative flex gap-4">
-                        <ChartEngine
-                            ref={chartRef}
-                            data={visibleData}
-                            markers={markers}
-                        />
-
-                        {/* Floating Order Panel */}
-                        <div className="absolute top-8 left-8 z-20">
-                            <OrderPanel
-                                currentPrice={visibleData[visibleData.length - 1]?.close || 0}
-                                balance={balance}
-                                onPlaceOrder={handlePlaceOrder}
-                                disabled={!!openPosition}
-                            />
-                        </div>
-                    </div>
-                </>
-            )}
-
-            {!loading && !error && fullData.length > 0 && (
-                <>
-                    {/* Controls */}
-                    <div className="absolute bottom-8 left-0 right-0 px-4 flex justify-center pointer-events-none">
-                        <div className="pointer-events-auto w-full max-w-2xl">
-                            <ReplayControls
-                                isPlaying={isPlaying}
-                                onPlayPause={() => setIsPlaying(!isPlaying)}
-                                onNextCandle={onNextClick}
-                                onPrevCandle={handlePrevCandle}
-                                speed={speed}
-                                onSpeedChange={setSpeed}
-                                currentDate={visibleData[visibleData.length - 1]?.time as string}
-                                totalCandles={fullData.length}
-                                currentCandleIndex={currentIndex + 1}
-                            />
-                        </div>
-                    </div>
-                </>
-            )}
-        </main>
-        <AlertModal
-          isOpen={alertState.isOpen}
-          onClose={closeAlert}
-          title={alertState.title}
-          message={alertState.message}
+        {/* Drawing tools */}
+        <DrawingToolbar
+          activeTool={activeTool}
+          onChange={setActiveTool}
+          drawingCount={drawings.length}
+          onClear={handleClearDrawings}
         />
+
+        {/* HTF selector */}
+        <div className="flex items-center gap-0.5 shrink-0">
+          <div className={`w-px h-5 mr-1.5 ${divider}`} />
+          <span className={`text-[9px] mr-1 font-semibold uppercase tracking-widest select-none ${muted}`}>HTF</span>
+          {HTF_OPTIONS.map(tf => (
+            <button key={tf} onClick={() => setHtfTimeframe(tf)}
+              className={`px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold transition-all border ${htfBtn(htfTimeframe === tf)}`}
+            >
+              {tf.toUpperCase()}
+            </button>
+          ))}
+        </div>
+
+        {/* Session Jump */}
+        <div className="flex items-center gap-0.5 shrink-0">
+          <div className={`w-px h-5 mr-1.5 ${divider}`} />
+          <span className={`text-[9px] mr-1 font-semibold uppercase tracking-widest select-none ${muted}`}>Jump</span>
+          {SESSIONS.map(s => (
+            <button
+              key={s.name}
+              onClick={() => jumpToSession(s.utcHour, s.name)}
+              title={`Jump to ${s.name} Open (${s.utcHour.toString().padStart(2, '0')}:00 UTC) — F${SESSIONS.indexOf(s) + 1}`}
+              className={`flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold transition-all border border-transparent ${
+                isDark ? 'text-slate-500 hover:bg-white/5' : 'text-gray-500 hover:bg-gray-200'
+              }`}
+              style={{ color: s.color }}
+            >
+              <s.Icon className="w-2.5 h-2.5" style={{ color: s.color }} />
+              {s.name}
+            </button>
+          ))}
+        </div>
+
+        {/* Jump toast */}
+        {jumpMsg && (
+          <div className="flex items-center gap-1 px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-400 text-[10px] font-semibold">
+            <FiCheck className="w-3 h-3" />
+            {jumpMsg}
+          </div>
+        )}
+
+        {/* Keyboard hints */}
+        <div className={`ml-auto flex items-center gap-2 text-[9px] font-mono select-none shrink-0 ${muted}`}>
+          {[
+            { key: 'Space', label: 'Play' },
+            { key: '← →',  label: 'Step' },
+            { key: '1–4',   label: 'Speed' },
+            { key: 'H T R B', label: 'Draw' },
+            { key: '`',     label: 'Tick' },
+            { key: 'F1–F3', label: 'Jump' },
+          ].map(({ key, label }) => (
+            <span key={key}>
+              <kbd className={`px-1 py-0.5 rounded text-[8px] ${
+                isDark ? 'bg-zinc-900 text-slate-600' : 'bg-gray-200 text-gray-500'
+              }`}>{key}</kbd>
+              {' '}{label}
+            </span>
+          ))}
+        </div>
+      </div>
+
+      {/* ── Main content ──────────────────────────────────────────────────────── */}
+      <main className="flex-1 flex flex-col relative overflow-hidden">
+
+        {/* Loading */}
+        {loading && (
+          <div className="flex-1 flex items-center justify-center">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-emerald-500 mx-auto mb-3" />
+              <p className={muted}>Loading 1m candles for {symbol}…</p>
+            </div>
+          </div>
+        )}
+
+        {/* Error */}
+        {error && !loading && (
+          <div className="flex-1 flex items-center justify-center">
+            <div className={`rounded-xl p-6 max-w-sm border ${
+              isDark ? 'bg-red-500/10 border-red-500/20' : 'bg-red-50 border-red-200'
+            }`}>
+              <p className="text-red-400 text-center mb-4">{error}</p>
+              <button
+                onClick={() => fetchCandles()}
+                className="w-full px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg text-white transition-colors"
+              >
+                Retry
+              </button>
+            </div>
+          </div>
+        )}
+
+        {!loading && !error && fullData.length > 0 && (
+          <>
+            <div className="flex-1 flex overflow-hidden">
+
+              {/* Chart column */}
+              <div className="flex-1 flex flex-col overflow-hidden min-w-0 relative">
+
+                {/* Main chart */}
+                <div className="flex-1 p-3 pb-0 relative min-h-0">
+                  <ChartEngine
+                    ref={chartRef}
+                    data={visibleData}
+                    markers={markers}
+                    indicators={indicators}
+                    activeTool={activeTool}
+                    drawings={drawings}
+                    onDrawingComplete={handleDrawingComplete}
+                    onDrawingDelete={handleDrawingDelete}
+                    openPosition={openPosition}
+                    onSlTpChange={handleSlTpChange}
+                    isDark={isDark}
+                  />
+
+                  {/* Trade panel (top-left overlay) */}
+                  <div className="absolute top-6 left-6 z-20">
+                    {openPosition ? (
+                      <PositionManager
+                        position={openPosition}
+                        currentPrice={visibleData[visibleData.length - 1]?.close || 0}
+                        currentTime={visibleData[visibleData.length - 1]?.time as number || 0}
+                        balance={balance}
+                        symbol={symbol}
+                        isDark={isDark}
+                        onClose={handleCloseAtMarket}
+                        onSlTpChange={handleSlTpChange}
+                      />
+                    ) : (
+                      <OrderPanel
+                        currentPrice={visibleData[visibleData.length - 1]?.close || 0}
+                        balance={balance}
+                        onPlaceOrder={handlePlaceOrder}
+                        disabled={false}
+                      />
+                    )}
+                  </div>
+                </div>
+
+                {/* HTF context pane */}
+                <div className={`flex-shrink-0 border-t ${
+                  isDark ? 'border-emerald-900/15 bg-black' : 'border-gray-200 bg-gray-50'
+                }`} style={{ height: 150 }}>
+                  {htfCandles.length > 1 ? (
+                    <HtfContextChart
+                      data={htfCandles}
+                      currentTime={htfCurrentTime}
+                      timeframe={htfTimeframe}
+                      height={150}
+                    />
+                  ) : (
+                    <div className={`flex items-center justify-center h-full text-[10px] select-none ${muted}`}>
+                      Not enough data for {htfTimeframe.toUpperCase()} context
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Session Sidebar */}
+              <SessionSidebar
+                openPosition={openPosition}
+                currentPrice={visibleData[visibleData.length - 1]?.close || 0}
+                currentTime={visibleData[visibleData.length - 1]?.time as number || 0}
+                trades={trades}
+                balance={balance}
+                startingBalance={startingBalance}
+                symbol={symbol}
+              />
+            </div>
+
+            {/* Replay controls */}
+            <div className="absolute bottom-6 left-0 right-0 px-4 flex justify-center pointer-events-none">
+              <div className="pointer-events-auto w-full max-w-2xl">
+                <ReplayControls
+                  isPlaying={isPlaying}
+                  onPlayPause={() => setIsPlaying(p => !p)}
+                  onNextCandle={onNextClick}
+                  onPrevCandle={handlePrevCandle}
+                  speed={speed}
+                  onSpeedChange={setSpeed}
+                  currentDate={currentCandleDate}
+                  totalCandles={fullData.length}
+                  currentCandleIndex={currentIndex + 1}
+                  tickMode={tickMode}
+                  onTickModeToggle={() => setTickMode(p => !p)}
+                  isAnimating={isAnimating}
+                />
+              </div>
+            </div>
+          </>
+        )}
+      </main>
+
+      <AlertModal
+        isOpen={alertState.isOpen}
+        onClose={closeAlert}
+        title={alertState.title}
+        message={alertState.message}
+      />
     </div>
   );
 }

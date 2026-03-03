@@ -20,9 +20,13 @@ import { JwtStrategy } from './strategies/jwt.strategy';
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: async (configService: ConfigService) => {
-        const jwtSecret =
-          configService.get<string>('JWT_SECRET') ||
-          'temporary-fallback-jwt-secret-for-debugging-please-set-proper-secret-in-production-environment-12345';
+        const jwtSecret = configService.get<string>('JWT_SECRET');
+        if (!jwtSecret) {
+          if (configService.get<string>('NODE_ENV') === 'test') {
+            return { secret: 'test-jwt-secret' };
+          }
+          throw new Error('JWT_SECRET must be configured');
+        }
 
         const logger = new Logger('AuthModule');
         logger.log(

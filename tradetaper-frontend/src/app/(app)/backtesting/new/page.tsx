@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, Suspense } from 'react';
+import React, { useState, useEffect, Suspense, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Strategy } from '@/types/strategy';
@@ -15,14 +15,6 @@ import {
   OUTCOMES,
   COMMON_SYMBOLS,
   SETUP_TYPES,
-  Timeframe,
-  TradingSession,
-  KillZone,
-  DayOfWeek,
-  MarketStructure,
-  HTFBias,
-  TradeOutcome,
-  TradeDirection,
 } from '@/types/backtesting';
 import { strategiesService } from '@/services/strategiesService';
 import { backtestingService } from '@/services/backtestingService';
@@ -103,16 +95,12 @@ function NewBacktestTradeContent() {
   });
 
   useEffect(() => {
-    loadStrategies();
-  }, []);
-
-  useEffect(() => {
     if (strategyIdFromUrl) {
       setFormData(prev => ({ ...prev, strategyId: strategyIdFromUrl }));
     }
   }, [strategyIdFromUrl]);
 
-  const loadStrategies = async () => {
+  const loadStrategies = useCallback(async () => {
     try {
       setLoading(true);
       const data = await strategiesService.getStrategies();
@@ -120,12 +108,16 @@ function NewBacktestTradeContent() {
       if (data.length > 0 && !strategyIdFromUrl) {
         setFormData(prev => ({ ...prev, strategyId: data[0].id }));
       }
-    } catch (err) {
+    } catch {
       setError('Failed to load strategies');
     } finally {
       setLoading(false);
     }
-  };
+  }, [strategyIdFromUrl]);
+
+  useEffect(() => {
+    void loadStrategies();
+  }, [loadStrategies]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -134,8 +126,10 @@ function NewBacktestTradeContent() {
       setError(null);
       await backtestingService.createTrade(formData);
       router.push(`/backtesting?strategyId=${formData.strategyId}`);
-    } catch (err: any) {
-      setError(err.message || 'Failed to save backtest trade');
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : 'Failed to save backtest trade',
+      );
     } finally {
       setSubmitting(false);
     }
@@ -167,8 +161,6 @@ function NewBacktestTradeContent() {
       </div>
     );
   }
-
-  const selectedStrategy = strategies.find(s => s.id === formData.strategyId);
 
   return (
     <div className="max-w-4xl mx-auto">

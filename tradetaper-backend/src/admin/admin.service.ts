@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import { User } from '../users/entities/user.entity';
@@ -114,8 +114,7 @@ export class AdminService {
       );
     }
 
-    qb.leftJoinAndSelect('user.subscription', 'subscription')
-      .orderBy('user.createdAt', 'DESC')
+    qb.orderBy('user.createdAt', 'DESC')
       .skip((page - 1) * limit)
       .take(limit);
 
@@ -133,7 +132,6 @@ export class AdminService {
   async getUserDetail(userId: string) {
     const user = await this.userRepository.findOne({
       where: { id: userId },
-      relations: ['subscription'],
     });
 
     if (!user) return { error: 'User not found' };
@@ -260,6 +258,7 @@ export class AdminService {
   }
 
   async getDatabaseTable(tableName: string) {
+    this.assertSafeTableName(tableName);
     try {
       const query = `SELECT * FROM "${tableName}" LIMIT 100;`;
       const result = await this.dataSource.query(query);
@@ -271,6 +270,7 @@ export class AdminService {
   }
 
   async getDatabaseColumns(tableName: string) {
+    this.assertSafeTableName(tableName);
     try {
       const query = `
         SELECT column_name, data_type, is_nullable, column_default
@@ -291,6 +291,7 @@ export class AdminService {
     page: number = 1,
     limit: number = 20,
   ) {
+    this.assertSafeTableName(tableName);
     try {
       const offset = (page - 1) * limit;
 
@@ -649,8 +650,21 @@ export class AdminService {
     sql: string,
   ): Promise<{ success: boolean; result?: unknown; error?: string }> {
     try {
-      this.logger.log(`Executing SQL: ${sql}`);
-      const result = await this.dataSource.query(sql);
+      const normalized = sql.trim();
+      if (!normalized) {
+        throw new BadRequestException('SQL is required');
+      }
+      if (!/^select\b/i.test(normalized)) {
+        throw new BadRequestException('Only SELECT queries are allowed');
+      }
+      if (normalized.includes(';')) {
+        throw new BadRequestException(
+          'Multiple statements are not allowed in admin SQL runner',
+        );
+      }
+
+      this.logger.log('Executing admin SQL query');
+      const result = await this.dataSource.query(normalized);
       return {
         success: true,
         result,
@@ -661,6 +675,13 @@ export class AdminService {
         success: false,
         error: error.message,
       };
+    }
+  }
+
+  private assertSafeTableName(tableName: string): void {
+    const isSafeIdentifier = /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(tableName);
+    if (!isSafeIdentifier) {
+      throw new BadRequestException('Invalid table name');
     }
   }
 }

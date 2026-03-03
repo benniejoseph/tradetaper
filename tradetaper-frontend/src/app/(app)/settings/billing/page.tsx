@@ -5,6 +5,7 @@ import Script from 'next/script';
 import { billingService, PricingPlan, BillingInfo } from '@/services/billingService';
 import PlanCard from '@/components/billing/PlanCard';
 import { toast } from 'react-hot-toast';
+import { trackDatafastPayment } from '@/utils/datafast';
 
 declare global {
   interface Window {
@@ -52,10 +53,18 @@ export default function BillingPage() {
             currency: order.currency,
             customer_id: order.customer_id,
             handler: function (response: any) {
+                // Track revenue conversion in DataFast (fire & forget)
+                if (response.razorpay_payment_id) {
+                  trackDatafastPayment({
+                    amount: (order.amount ?? 0),
+                    currency: order.currency || 'INR',
+                    transactionId: response.razorpay_payment_id,
+                  });
+                }
                 // Payment Success
                 toast.success('Subscription activated successfully!');
                 // Reload data to reflect new status
-                setTimeout(loadData, 2000); 
+                setTimeout(loadData, 2000);
             },
             modal: {
                 ondismiss: function() {

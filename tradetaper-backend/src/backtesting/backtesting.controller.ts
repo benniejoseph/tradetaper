@@ -417,7 +417,7 @@ export class BacktestingController {
 
   @Get('sessions/:id')
   async getSession(@Param('id', ParseUUIDPipe) id: string, @Request() req) {
-    return this.replaySessionService.getSession(id);
+    return this.replaySessionService.getSession(id, req.user.id);
   }
 
   @Patch('sessions/:id')
@@ -432,7 +432,7 @@ export class BacktestingController {
     },
     @Request() req,
   ) {
-    return this.replaySessionService.updateSession(id, body);
+    return this.replaySessionService.updateSession(id, req.user.id, body);
   }
 
   @Post('sessions/:id/complete')
@@ -441,17 +441,17 @@ export class BacktestingController {
     @Body() body: { endingBalance: number; trades: Record<string, unknown>[] },
     @Request() req,
   ) {
-    return this.replaySessionService.completeSession(id, body);
+    return this.replaySessionService.completeSession(id, req.user.id, body);
   }
 
   @Delete('sessions/:id')
   async deleteSession(@Param('id', ParseUUIDPipe) id: string, @Request() req) {
-    await this.replaySessionService.deleteSession(id);
+    await this.replaySessionService.deleteSession(id, req.user.id);
     return { message: 'Session deleted successfully' };
   }
 
   @Post('sessions/:id/abandon')
   async abandonSession(@Param('id', ParseUUIDPipe) id: string, @Request() req) {
-    return this.replaySessionService.abandonSession(id);
+    return this.replaySessionService.abandonSession(id, req.user.id);
   }
 }

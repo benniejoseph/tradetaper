@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { Strategy } from '@/types/strategy';
 import { BacktestStats } from '@/types/backtesting';
@@ -8,16 +8,15 @@ import { strategiesService } from '@/services/strategiesService';
 import { backtestingService } from '@/services/backtestingService';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { MarketLogsList } from '@/components/backtesting/MarketLogsList';
-// import SessionConfigModal from '@/components/backtesting/SessionConfigModal'; // Disabled for future release
 import {
   FiPlus,
   FiTrendingUp,
-  FiTrendingDown,
-  FiTarget,
   FiGrid,
   FiBarChart2,
   FiList,
-  FiPlay
+  FiPlay,
+  FiClock,
+  FiChevronRight,
 } from 'react-icons/fi';
 import { FaFlask, FaChartLine } from 'react-icons/fa';
 import React from 'react';
@@ -33,9 +32,9 @@ function ContentHeader({ title, description }: { title: string; description?: st
   );
 }
 
-function StatCard({ label, value, subValue, trend }: { 
-  label: string; 
-  value: string | number; 
+function StatCard({ label, value, subValue, trend }: {
+  label: string;
+  value: string | number;
   subValue?: string;
   trend?: 'up' | 'down' | 'neutral';
 }) {
@@ -43,9 +42,9 @@ function StatCard({ label, value, subValue, trend }: {
     <div className="bg-gradient-to-br from-white to-emerald-50 dark:from-black dark:to-emerald-950/20 rounded-xl p-4 border border-emerald-200/50 dark:border-emerald-700/30">
       <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">{label}</div>
       <div className={`text-2xl font-bold ${
-        trend === 'up' ? 'text-green-600 dark:text-green-400' :
-        trend === 'down' ? 'text-red-600 dark:text-red-400' :
-        'text-gray-900 dark:text-white'
+        trend === 'up'   ? 'text-green-600 dark:text-green-400' :
+        trend === 'down' ? 'text-red-600 dark:text-red-400'     :
+                           'text-gray-900 dark:text-white'
       }`}>
         {value}
       </div>
@@ -57,41 +56,30 @@ function StatCard({ label, value, subValue, trend }: {
 }
 
 export default function BacktestingPage() {
-  const [strategies, setStrategies] = useState<Strategy[]>([]);
+  const [strategies, setStrategies]               = useState<Strategy[]>([]);
   const [selectedStrategyId, setSelectedStrategyId] = useState<string>('');
-  const [stats, setStats] = useState<BacktestStats | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [statsLoading, setStatsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  // const [isReplayModalOpen, setIsReplayModalOpen] = useState(false); // Disabled for future release
+  const [stats, setStats]                         = useState<BacktestStats | null>(null);
+  const [loading, setLoading]                     = useState(true);
+  const [statsLoading, setStatsLoading]           = useState(false);
+  const [error, setError]                         = useState<string | null>(null);
+  const [activeTab, setActiveTab]                 = useState<'trades' | 'logs'>('trades');
 
-  useEffect(() => {
-    loadStrategies();
-  }, []);
-
-  useEffect(() => {
-    if (selectedStrategyId) {
-      loadStats();
-    }
-  }, [selectedStrategyId]);
-
-  const loadStrategies = async () => {
+  const loadStrategies = useCallback(async () => {
     try {
       setLoading(true);
       const data = await strategiesService.getStrategies();
       setStrategies(data);
-      if (data.length > 0) {
-        setSelectedStrategyId(data[0].id);
-      }
+      if (data.length > 0) setSelectedStrategyId(data[0].id);
     } catch (err) {
       setError('Failed to load strategies');
       console.error(err);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const loadStats = async () => {
+  const loadStats = useCallback(async () => {
+    if (!selectedStrategyId) return;
     try {
       setStatsLoading(true);
       const data = await backtestingService.getStrategyStats(selectedStrategyId);
@@ -102,17 +90,20 @@ export default function BacktestingPage() {
     } finally {
       setStatsLoading(false);
     }
-  };
+  }, [selectedStrategyId]);
+
+  useEffect(() => {
+    void loadStrategies();
+  }, [loadStrategies]);
+
+  useEffect(() => {
+    if (selectedStrategyId) {
+      void loadStats();
+    }
+  }, [selectedStrategyId, loadStats]);
 
   const selectedStrategy = strategies.find(s => s.id === selectedStrategyId);
 
-  const [activeTab, setActiveTab] = useState<'trades' | 'logs'>('trades');
-
-  // ... (existing helper functions like ContentHeader, StatCard)
-
-  // Sub-component for Trades View (move existing JSX into here or render conditionally)
-  // For simplicity given the tool limits, I'll keep it in one file but structured with tabs
-  
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -130,7 +121,46 @@ export default function BacktestingPage() {
         />
       </div>
 
-      {/* Tabs */}
+      {/* ── Replay Workbench Banner ────────────────────────────────────────────── */}
+      <div className="rounded-2xl border border-gray-200 dark:border-gray-700/40 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-900/30 dark:to-gray-800/20 p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 opacity-60">
+        <div className="flex items-center gap-4">
+          <div className="p-3 rounded-xl bg-gray-100 dark:bg-gray-800/40 text-gray-400 dark:text-gray-500 shrink-0">
+            <FiPlay className="w-6 h-6" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="font-bold text-gray-900 dark:text-white text-base leading-snug">
+                Chart Replay Workbench
+              </span>
+              <span className="px-2 py-0.5 rounded-md bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 text-[10px] font-semibold uppercase tracking-wide">
+                Coming Soon
+              </span>
+            </div>
+            <div className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+              Replay real OHLCV data tick-by-tick · Session zones · Drawing tools
+            </div>
+          </div>
+        </div>
+        <div className="flex items-center gap-3 shrink-0">
+          <button
+            disabled
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-400 dark:text-gray-500 bg-white dark:bg-black text-sm font-medium cursor-not-allowed"
+          >
+            <FiClock className="w-4 h-4" />
+            Sessions
+          </button>
+          <button
+            disabled
+            className="inline-flex items-center gap-2 px-5 py-2 rounded-lg bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400 text-sm font-semibold cursor-not-allowed"
+          >
+            <FiPlay className="w-4 h-4" />
+            New Session
+            <FiChevronRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      </div>
+
+      {/* ── Tabs ──────────────────────────────────────────────────────────────── */}
       <div className="border-b border-gray-200 dark:border-gray-800">
         <nav className="-mb-px flex space-x-8" aria-label="Tabs">
           <button
@@ -158,8 +188,10 @@ export default function BacktestingPage() {
         </nav>
       </div>
 
+      {/* ── Trade Validator Tab ────────────────────────────────────────────────── */}
       {activeTab === 'trades' ? (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+
           {/* Strategy Selector */}
           <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
             <div className="flex items-center gap-4">
@@ -323,33 +355,20 @@ export default function BacktestingPage() {
                   </div>
                 </Link>
 
-                <div
-                  className="relative flex items-center gap-4 p-4 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900/50 dark:to-gray-800/50 rounded-xl border border-gray-300/50 dark:border-gray-700/30 opacity-60 cursor-not-allowed"
-                >
-                  <div className="p-3 bg-gray-200 dark:bg-gray-700/30 rounded-lg">
-                    <FiPlay className="w-6 h-6 text-gray-500 dark:text-gray-500" />
+                {/* Practice Trading — Coming Soon */}
+                <div className="relative flex items-center gap-4 p-4 bg-gradient-to-br from-white to-gray-50 dark:from-black dark:to-gray-900/20 rounded-xl border border-gray-200/50 dark:border-gray-700/30 opacity-60 cursor-not-allowed select-none">
+                  {/* Coming Soon badge */}
+                  <div className="absolute top-2.5 right-2.5 px-1.5 py-0.5 rounded-md bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-400 dark:text-gray-500">
+                    <span className="text-[10px] font-semibold uppercase tracking-wide">Coming Soon</span>
                   </div>
-                  <div className="text-left">
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-semibold text-gray-600 dark:text-gray-400">Practice Trading</h3>
-                      <span className="px-2 py-0.5 text-xs font-medium bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded-full border border-amber-200 dark:border-amber-700/30">
-                        Coming Soon
-                      </span>
-                    </div>
-                    <p className="text-sm text-gray-500 dark:text-gray-500">Replay with real candles</p>
+                  <div className="p-3 bg-gray-100 dark:bg-gray-800/30 rounded-lg shrink-0">
+                    <FiPlay className="w-6 h-6 text-gray-400 dark:text-gray-500" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-gray-900 dark:text-white">Practice Trading</h3>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Replay with real candles</p>
                   </div>
                 </div>
-              </div>
-
-              {/* Replay History Link */}
-              <div className="flex justify-center pt-4">
-                <Link
-                  href="/backtesting/sessions"
-                  className="inline-flex items-center text-sm text-gray-600 dark:text-gray-400 hover:text-green-600 dark:hover:text-green-400 transition-colors"
-                >
-                  <FiPlay className="mr-2" />
-                  View Replay Session History
-                </Link>
               </div>
 
               {/* Strategy Info */}
@@ -380,7 +399,7 @@ export default function BacktestingPage() {
                   )}
                   {selectedStrategy.checklist && selectedStrategy.checklist.length > 0 && (
                     <div className="text-sm text-gray-500 dark:text-gray-400">
-                      📋 {selectedStrategy.checklist.length} checklist items
+                      {selectedStrategy.checklist.length} checklist items
                     </div>
                   )}
                 </div>
@@ -388,45 +407,42 @@ export default function BacktestingPage() {
             </>
           )}
         </div>
+
       ) : (
+        /* ── Pattern Discovery / Logs Tab ──────────────────────────────────── */
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-           {/* Market Perception / Logs View */}
-           <div className="bg-gradient-to-br from-white to-blue-50 dark:from-black dark:to-emerald-950/20 rounded-xl p-8 border border-blue-200/50 dark:border-emerald-700/30 text-center">
-             <div className="p-4 bg-blue-100 dark:bg-emerald-900/30 rounded-full inline-flex mb-4">
-               <FiTrendingUp className="w-8 h-8 text-blue-600 dark:text-emerald-400" />
-             </div>
-             <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Market Perception & Discovery</h3>
-             <p className="text-gray-600 dark:text-gray-400 mb-6 max-w-md mx-auto">
-               Log market movements, chart observations, and recurring patterns without taking pnl-impacting trades. 
-               Let our AI help you find your next edge.
-             </p>
-             <div className="flex justify-center gap-4">
-               <Link
-                 href="/backtesting/logs/new"
-                 className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-               >
-                 <FiPlus className="mr-2" />
-                 Log Observation
-               </Link>
-               <Link
-                 href="/backtesting/logs/analysis"
-                 className="inline-flex items-center px-4 py-2 bg-white dark:bg-black text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"
-               >
-                 <FiBarChart2 className="mr-2" />
-                 Analyze Patterns
-               </Link>
-             </div>
-           </div>
-           
-           <MarketLogsList />
+          <div className="bg-gradient-to-br from-white to-blue-50 dark:from-black dark:to-emerald-950/20 rounded-xl p-8 border border-blue-200/50 dark:border-emerald-700/30 text-center">
+            <div className="p-4 bg-blue-100 dark:bg-emerald-900/30 rounded-full inline-flex mb-4">
+              <FiTrendingUp className="w-8 h-8 text-blue-600 dark:text-emerald-400" />
+            </div>
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+              Market Perception & Discovery
+            </h3>
+            <p className="text-gray-600 dark:text-gray-400 mb-6 max-w-md mx-auto">
+              Log market movements, chart observations, and recurring patterns without taking
+              pnl-impacting trades. Let our AI help you find your next edge.
+            </p>
+            <div className="flex justify-center gap-4">
+              <Link
+                href="/backtesting/logs/new"
+                className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                <FiPlus className="mr-2" />
+                Log Observation
+              </Link>
+              <Link
+                href="/backtesting/logs/analysis"
+                className="inline-flex items-center px-4 py-2 bg-white dark:bg-black text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"
+              >
+                <FiBarChart2 className="mr-2" />
+                Analyze Patterns
+              </Link>
+            </div>
+          </div>
+
+          <MarketLogsList />
         </div>
       )}
-
-      {/* Session Config Modal - Disabled for future release */}
-      {/* <SessionConfigModal
-        isOpen={isReplayModalOpen}
-        onClose={() => setIsReplayModalOpen(false)}
-      /> */}
     </div>
   );
 }

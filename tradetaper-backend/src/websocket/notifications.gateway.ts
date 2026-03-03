@@ -14,7 +14,15 @@ import { WebSocketService } from './websocket.service';
 
 @WebSocketGateway({
   cors: {
-    origin: '*',
+    origin: [
+      'http://localhost:3000',
+      'http://localhost:3001',
+      'http://localhost:3002',
+      'https://tradetaper.com',
+      'https://www.tradetaper.com',
+      /^https:\/\/tradetaper-frontend.*\.vercel\.app$/,
+      /^https:\/\/tradetaper-admin.*\.vercel\.app$/,
+    ],
     credentials: true,
   },
   namespace: '/notifications',
@@ -35,7 +43,16 @@ export class NotificationsGateway
   }
 
   handleConnection(client: Socket) {
-    this.logger.log(`Client connected: ${client.id}`);
+    const user = (client as any).user;
+    if (!user?.id) {
+      this.logger.warn(`Notification socket rejected: ${client.id}`);
+      client.disconnect(true);
+      return;
+    }
+
+    this.webSocketService.registerUserSocket(user.id, client.id);
+    client.emit('auth:success', { message: 'Authenticated successfully' });
+    this.logger.log(`Client connected: ${client.id} (user ${user.id})`);
   }
 
   handleDisconnect(client: Socket) {
@@ -51,17 +68,20 @@ export class NotificationsGateway
     @ConnectedSocket() client: Socket,
     @MessageBody() data: { userId: string; token?: string },
   ) {
-    // TODO: Validate JWT token for security
-    // For now, just register the socket with the userId
-    if (data.userId) {
-      this.webSocketService.registerUserSocket(data.userId, client.id);
-      client.emit('auth:success', { message: 'Authenticated successfully' });
-      this.logger.log(
-        `User ${data.userId} authenticated on socket ${client.id}`,
-      );
-    } else {
-      client.emit('auth:error', { message: 'userId is required' });
+    const user = (client as any).user;
+    if (!user?.id) {
+      client.emit('auth:error', { message: 'Authentication required' });
+      client.disconnect(true);
+      return;
     }
+    if (data?.userId && data.userId !== user.id) {
+      client.emit('auth:error', { message: 'User identity mismatch' });
+      client.disconnect(true);
+      return;
+    }
+
+    this.webSocketService.registerUserSocket(user.id, client.id);
+    client.emit('auth:success', { message: 'Authenticated successfully' });
   }
 
   /**

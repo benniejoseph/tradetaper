@@ -1,12 +1,24 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { terminalService, TerminalStatus } from '@/services/terminalService';
-import { LoaderCircle, Power, Copy, CircleCheck, CircleX, CircleAlert, RefreshCw } from 'lucide-react';
+import { LoaderCircle, Power, Copy, CircleCheck, CircleAlert, RefreshCw } from 'lucide-react';
 import { ConnectTerminalModal } from './ConnectTerminalModal';
 
 interface TerminalStatusCardProps {
   accountId: string;
   accountName: string;
 }
+
+const getErrorMessage = (error: unknown, fallback: string): string => {
+  if (
+    typeof error === 'object' &&
+    error !== null &&
+    'message' in error &&
+    typeof (error as { message?: unknown }).message === 'string'
+  ) {
+    return (error as { message: string }).message;
+  }
+  return fallback;
+};
 
 export default function TerminalStatusCard({ accountId, accountName }: TerminalStatusCardProps) {
   const [status, setStatus] = useState<TerminalStatus | null>(null);
@@ -17,6 +29,7 @@ export default function TerminalStatusCard({ accountId, accountName }: TerminalS
   const [token, setToken] = useState<string | null>(null);
   const [tokenLoading, setTokenLoading] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const terminalPhase = status?.status;
 
   const handleConnect = async (credentials: { server: string; login: string; password: string }) => {
     try {
@@ -24,14 +37,14 @@ export default function TerminalStatusCard({ accountId, accountName }: TerminalS
       const newStatus = await terminalService.enableAutoSync(accountId, credentials);
       setStatus(newStatus);
       setError(null);
-    } catch (err: any) {
-      setError(err.message || 'Failed to enable auto-sync');
+    } catch (err) {
+      setError(getErrorMessage(err, 'Failed to enable auto-sync'));
     } finally {
       setActionLoading(false);
     }
   };
 
-  const fetchStatus = async () => {
+  const fetchStatus = useCallback(async () => {
     try {
       setLoading(true);
       const result = await terminalService.getTerminalStatus(accountId);
@@ -43,27 +56,27 @@ export default function TerminalStatusCard({ accountId, accountName }: TerminalS
         setStatus(null);
       }
       setError(null);
-    } catch (err: any) {
+    } catch (err) {
       console.error('Failed to fetch terminal status:', err);
       // Don't show error for 404 (just means not enabled)
-      if (err.response?.status !== 404) {
+      if ((err as { response?: { status?: number } })?.response?.status !== 404) {
         setError('Failed to load status');
       }
     } finally {
       setLoading(false);
     }
-  };
+  }, [accountId]);
 
   useEffect(() => {
-    fetchStatus();
+    void fetchStatus();
     // Poll for updates if running or pending
     const interval = setInterval(() => {
-      if (status && (status.status === 'PENDING' || status.status === 'STARTING')) {
-        fetchStatus();
+      if (terminalPhase === 'PENDING' || terminalPhase === 'STARTING') {
+        void fetchStatus();
       }
     }, 5000);
     return () => clearInterval(interval);
-  }, [accountId, status?.status]);
+  }, [fetchStatus, terminalPhase]);
 
   const handleDisable = async () => {
     if (!confirm('Are you sure you want to stop auto-sync? This will stop trade copying.')) return;
@@ -73,8 +86,8 @@ export default function TerminalStatusCard({ accountId, accountName }: TerminalS
       await terminalService.disableAutoSync(accountId);
       setStatus(null);
       setError(null);
-    } catch (err: any) {
-      setError(err.message || 'Failed to disable auto-sync');
+    } catch (err) {
+      setError(getErrorMessage(err, 'Failed to disable auto-sync'));
     } finally {
       setActionLoading(false);
     }
@@ -92,8 +105,8 @@ export default function TerminalStatusCard({ accountId, accountName }: TerminalS
       const response = await terminalService.getTerminalToken(accountId);
       setToken(response.token);
       setError(null);
-    } catch (err: any) {
-      setError(err.message || 'Failed to fetch terminal token');
+    } catch (err) {
+      setError(getErrorMessage(err, 'Failed to fetch terminal token'));
     } finally {
       setTokenLoading(false);
     }
@@ -229,13 +242,13 @@ export default function TerminalStatusCard({ accountId, accountName }: TerminalS
             <div className="text-xs text-orange-600 bg-orange-50 p-2 rounded flex items-start">
               <CircleAlert className="h-4 w-4 mr-2 flex-shrink-0 mt-0.5" />
               <span>
-                Waiting for connection... Make sure you've added the API URL to MT5 settings and attached the EA.
+                Waiting for connection... Make sure you&apos;ve added the API URL to MT5 settings and attached the EA.
               </span>
             </div>
           )}
 
           <div className="flex justify-end">
-            <button onClick={fetchStatus} className="text-xs text-gray-500 hover:text-gray-900 flex items-center">
+            <button onClick={() => void fetchStatus()} className="text-xs text-gray-500 hover:text-gray-900 flex items-center">
               <RefreshCw className="h-3 w-3 mr-1" /> Refresh Status
             </button>
           </div>

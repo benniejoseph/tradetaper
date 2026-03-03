@@ -1,4 +1,55 @@
 import { PricingTier } from '@/types/pricing';
+import type { CurrencyCode } from '@/hooks/useCurrency';
+
+// ── INR prices (shown to Indian users) ────────────────────────────────────────
+// monthly / yearly in whole rupees (₹)
+export const INR_PRICES: Record<string, { monthly: number; yearly: number }> = {
+  free:      { monthly: 0,    yearly: 0 },
+  essential: { monthly: 999,  yearly: 9999  }, // ₹999/mo  · ₹9,999/yr
+  premium:   { monthly: 1999, yearly: 19999 }, // ₹1,999/mo · ₹19,999/yr
+};
+
+// MT5 add-on slot — per-currency
+export const MT5_SLOT_PRICE: Record<CurrencyCode, { amount: number; label: string }> = {
+  INR: { amount: 999,   label: '₹999' },
+  USD: { amount: 12,    label: '$12'  },
+};
+
+/**
+ * Get the display price for a plan/period/currency combination.
+ * Returns the numeric amount (no symbol).
+ */
+export function getPlanPrice(
+  tierId: string,
+  period: 'monthly' | 'yearly',
+  currency: CurrencyCode,
+): number {
+  if (currency === 'INR') {
+    return INR_PRICES[tierId]?.[period] ?? 0;
+  }
+  // USD — use PRICING_TIERS (monthly) or PRICING_TIERS_ANNUAL (yearly)
+  const tier =
+    period === 'monthly'
+      ? PRICING_TIERS.find((t) => t.id === tierId)
+      : PRICING_TIERS_ANNUAL.find((t) => t.id === tierId);
+  return tier?.price ?? 0;
+}
+
+/**
+ * Format a plan price for display (e.g. "₹999", "$9.99", "Free").
+ */
+export function formatPlanPrice(
+  tierId: string,
+  period: 'monthly' | 'yearly',
+  currency: CurrencyCode,
+): string {
+  const amount = getPlanPrice(tierId, period, currency);
+  if (amount === 0) return 'Free';
+  if (currency === 'INR') {
+    return `₹${amount.toLocaleString('en-IN')}`;
+  }
+  return `$${amount % 1 === 0 ? amount : amount.toFixed(2)}`;
+}
 
 export const PRICING_TIERS: PricingTier[] = [
   {

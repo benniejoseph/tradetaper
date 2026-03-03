@@ -130,34 +130,6 @@ export class AuthService {
         );
       }
 
-      // ADMIN OVERRIDE: Grant Premium to 'tradetaper@gmail.com'
-      if (
-        user.email === 'tradetaper@gmail.com' &&
-        userResponse.subscription?.plan !== 'premium'
-      ) {
-        try {
-          const updatedSub =
-            await this.subscriptionService.forceUpdateSubscriptionPlan(
-              user.id,
-              'premium',
-            );
-          const updatedPlan =
-            await this.subscriptionService.getPricingPlan('premium');
-          userResponse.subscription = {
-            ...updatedSub,
-            planDetails: updatedPlan,
-          };
-          this.logger.log(
-            `ADMIN OVERRIDE: Upgraded ${user.email} to Premium via Google OAuth`,
-          );
-        } catch (e) {
-          this.logger.error(
-            `Failed to apply Admin Override for ${user.email}`,
-            e,
-          );
-        }
-      }
-
       this.logger.log(`Google OAuth login successful for: ${user.email}`);
       return {
         accessToken,
@@ -236,32 +208,6 @@ export class AuthService {
         // Don't fail login, just return user without subscription or with basic free structure
       }
 
-      // ADMIN OVERRIDE: Grant Premium to 'tradetaper@gmail.com'
-      if (
-        user.email === 'tradetaper@gmail.com' &&
-        userResponse.subscription?.plan !== 'premium'
-      ) {
-        try {
-          const updatedSub =
-            await this.subscriptionService.forceUpdateSubscriptionPlan(
-              user.id,
-              'premium',
-            );
-          const updatedPlan =
-            await this.subscriptionService.getPricingPlan('premium');
-          userResponse.subscription = {
-            ...updatedSub,
-            planDetails: updatedPlan,
-          };
-          this.logger.log(`ADMIN OVERRIDE: Upgraded ${user.email} to Premium`);
-        } catch (e) {
-          this.logger.error(
-            `Failed to apply Admin Override for ${user.email}`,
-            e,
-          );
-        }
-      }
-
       this.logger.log(`Login successful for user: ${user.email}`);
       return {
         accessToken,
@@ -296,5 +242,15 @@ export class AuthService {
     }
 
     return createdUser;
+  }
+
+  async getSubscriptionSnapshot(userId: string) {
+    const subscription =
+      await this.subscriptionService.getOrCreateSubscription(userId);
+    const plan = await this.subscriptionService.getPricingPlan(subscription.plan);
+    return {
+      ...subscription,
+      planDetails: plan,
+    };
   }
 }

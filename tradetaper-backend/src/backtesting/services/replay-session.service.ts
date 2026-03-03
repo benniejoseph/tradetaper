@@ -57,10 +57,11 @@ export class ReplaySessionService {
    */
   async updateSession(
     sessionId: string,
+    userId: string,
     data: UpdateSessionDto,
   ): Promise<ReplaySession> {
     const session = await this.replaySessionRepo.findOne({
-      where: { id: sessionId },
+      where: { id: sessionId, userId },
     });
 
     if (!session) {
@@ -90,13 +91,14 @@ export class ReplaySessionService {
    */
   async completeSession(
     sessionId: string,
+    userId: string,
     finalStats: {
       endingBalance: number;
       trades: any[];
     },
   ): Promise<ReplaySession> {
     const session = await this.replaySessionRepo.findOne({
-      where: { id: sessionId },
+      where: { id: sessionId, userId },
     });
 
     if (!session) {
@@ -127,9 +129,9 @@ export class ReplaySessionService {
   /**
    * Get a single replay session
    */
-  async getSession(sessionId: string): Promise<ReplaySession> {
+  async getSession(sessionId: string, userId: string): Promise<ReplaySession> {
     const session = await this.replaySessionRepo.findOne({
-      where: { id: sessionId },
+      where: { id: sessionId, userId },
     });
 
     if (!session) {
@@ -152,8 +154,8 @@ export class ReplaySessionService {
   /**
    * Delete a replay session
    */
-  async deleteSession(sessionId: string): Promise<void> {
-    const result = await this.replaySessionRepo.delete(sessionId);
+  async deleteSession(sessionId: string, userId: string): Promise<void> {
+    const result = await this.replaySessionRepo.delete({ id: sessionId, userId });
 
     if (result.affected === 0) {
       throw new NotFoundException(`Replay session ${sessionId} not found`);
@@ -165,8 +167,8 @@ export class ReplaySessionService {
   /**
    * Abandon a session (mark as abandoned without deleting)
    */
-  async abandonSession(sessionId: string): Promise<ReplaySession> {
-    const session = await this.getSession(sessionId);
+  async abandonSession(sessionId: string, userId: string): Promise<ReplaySession> {
+    const session = await this.getSession(sessionId, userId);
     session.status = 'abandoned';
     await this.replaySessionRepo.save(session);
     return session;
