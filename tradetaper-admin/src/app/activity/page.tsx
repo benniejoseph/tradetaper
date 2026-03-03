@@ -5,14 +5,13 @@ import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import Sidebar from '@/components/Sidebar';
 import LiveActivityFeed from '@/components/LiveActivityFeed';
-import { 
-  Activity, 
-  Users, 
-  Clock, 
-  MapPin,
+import {
+  Activity,
+  Users,
+  Clock,
   Download,
   RefreshCw,
-  Zap
+  Zap,
 } from 'lucide-react';
 import { formatNumber } from '@/lib/utils';
 import { adminApi } from '@/lib/api';
@@ -23,8 +22,8 @@ export default function ActivityPage() {
 
   const { data: activityFeed, isLoading, refetch } = useQuery({
     queryKey: ['activity-feed-detailed'],
-    queryFn: () => adminApi.getActivityFeed(50), // Get 50 activities
-    refetchInterval: 5000, // Refetch every 5 seconds
+    queryFn: () => adminApi.getActivityFeed(50),
+    refetchInterval: 5000,
   });
 
   const { data: systemHealth } = useQuery({
@@ -45,30 +44,26 @@ export default function ActivityPage() {
     setTimeout(() => setRefreshing(false), 1000);
   };
 
-  // Calculate activity stats from real data
-  const activityStats = {
-    totalEvents24h: activityFeed?.length || 0,
-    activeUsers24h: dashboardStats?.activeUsers || 0,
-    topLocations: [
-      { location: 'United States', count: Math.floor((activityFeed?.length || 0) * 0.35) },
-      { location: 'United Kingdom', count: Math.floor((activityFeed?.length || 0) * 0.25) },
-      { location: 'Germany', count: Math.floor((activityFeed?.length || 0) * 0.15) },
-      { location: 'Canada', count: Math.floor((activityFeed?.length || 0) * 0.12) },
-      { location: 'Australia', count: Math.floor((activityFeed?.length || 0) * 0.08) },
-    ],
-    eventTypes: [
-      { type: 'login', count: Math.floor((activityFeed?.length || 0) * 0.8), percentage: 80.0 },
-      { type: 'trade_created', count: Math.floor((activityFeed?.length || 0) * 0.1), percentage: 10.0 },
-      { type: 'trade_closed', count: Math.floor((activityFeed?.length || 0) * 0.05), percentage: 5.0 },
-      { type: 'subscription_changed', count: Math.floor((activityFeed?.length || 0) * 0.03), percentage: 3.0 },
-      { type: 'image_uploaded', count: Math.floor((activityFeed?.length || 0) * 0.02), percentage: 2.0 },
-    ],
-  };
+  // Compute event type breakdown from real events
+  const eventTypeCounts = (activityFeed || []).reduce<Record<string, number>>((acc, event) => {
+    acc[event.type] = (acc[event.type] || 0) + 1;
+    return acc;
+  }, {});
+
+  const totalEvents = activityFeed?.length || 0;
+
+  const eventTypeList = Object.entries(eventTypeCounts).map(([type, count]) => ({
+    type,
+    count,
+    percentage: totalEvents > 0 ? Math.round((count / totalEvents) * 100) : 0,
+  })).sort((a, b) => b.count - a.count);
+
+  const eventColors = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899'];
 
   return (
     <div className="flex h-screen bg-gray-950">
       <Sidebar isCollapsed={sidebarCollapsed} onToggle={() => setSidebarCollapsed(!sidebarCollapsed)} />
-      
+
       <div className="flex-1 overflow-hidden">
         {/* Header */}
         <header className="bg-gray-900 border-b border-gray-800 px-6 py-4">
@@ -77,12 +72,12 @@ export default function ActivityPage() {
               <Activity className="w-6 h-6 text-blue-400" />
               <div>
                 <h1 className="text-2xl font-bold text-white">Live Activity Monitor</h1>
-                <p className="text-gray-400">Real-time user activities and system events</p>
+                <p className="text-gray-400 text-sm">Real-time user activities and system events</p>
               </div>
             </div>
-            
+
             <div className="flex items-center space-x-4">
-              <button 
+              <button
                 onClick={handleRefresh}
                 disabled={refreshing}
                 className="bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 rounded-lg text-sm flex items-center space-x-2 transition-colors disabled:opacity-50"
@@ -90,7 +85,7 @@ export default function ActivityPage() {
                 <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
                 <span>Refresh</span>
               </button>
-              
+
               <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm flex items-center space-x-2 transition-colors">
                 <Download className="w-4 h-4" />
                 <span>Export</span>
@@ -99,9 +94,9 @@ export default function ActivityPage() {
           </div>
         </header>
 
-        <main className="flex-1 scrollable-content p-6 space-y-6">
-          {/* Activity Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <main className="flex-1 overflow-y-auto p-6 space-y-6">
+          {/* Stats Row */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -110,20 +105,14 @@ export default function ActivityPage() {
             >
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-400">Events (24h)</p>
-                  <p className="text-2xl font-bold text-white mt-1">
-                    {formatNumber(activityStats.totalEvents24h)}
-                  </p>
+                  <p className="text-sm font-medium text-gray-400">Events Loaded</p>
+                  <p className="text-2xl font-bold text-white mt-1">{formatNumber(totalEvents)}</p>
                 </div>
                 <div className="p-3 bg-blue-500/10 rounded-lg">
                   <Zap className="w-6 h-6 text-blue-400" />
                 </div>
               </div>
-              <div className="mt-4 pt-4 border-t border-gray-700">
-                <div className="text-xs text-green-400">
-                  ↗ Live data from backend
-                </div>
-              </div>
+              <p className="text-xs text-gray-500 mt-3">Auto-refreshes every 5s</p>
             </motion.div>
 
             <motion.div
@@ -136,18 +125,14 @@ export default function ActivityPage() {
                 <div>
                   <p className="text-sm font-medium text-gray-400">Active Users</p>
                   <p className="text-2xl font-bold text-white mt-1">
-                    {formatNumber(activityStats.activeUsers24h)}
+                    {formatNumber(dashboardStats?.activeUsers ?? 0)}
                   </p>
                 </div>
                 <div className="p-3 bg-green-500/10 rounded-lg">
                   <Users className="w-6 h-6 text-green-400" />
                 </div>
               </div>
-              <div className="mt-4 pt-4 border-t border-gray-700">
-                <div className="text-xs text-green-400">
-                  ↗ Real user count
-                </div>
-              </div>
+              <p className="text-xs text-gray-500 mt-3">From dashboard stats</p>
             </motion.div>
 
             <motion.div
@@ -159,251 +144,98 @@ export default function ActivityPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-gray-400">Avg Response</p>
-                  <p className="text-2xl font-bold text-white mt-1">{systemHealth?.responseTime || 0}ms</p>
+                  <p className="text-2xl font-bold text-white mt-1">
+                    {systemHealth?.responseTime != null ? `${systemHealth.responseTime}ms` : '—'}
+                  </p>
                 </div>
                 <div className="p-3 bg-yellow-500/10 rounded-lg">
                   <Clock className="w-6 h-6 text-yellow-400" />
                 </div>
               </div>
-              <div className="mt-4 pt-4 border-t border-gray-700">
-                <div className="text-xs text-green-400">
-                  ↗ System health data
-                </div>
-              </div>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4 }}
-              className="bg-gray-800 border border-gray-700 rounded-xl p-6"
-            >
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-400">Locations</p>
-                  <p className="text-2xl font-bold text-white mt-1">
-                    {activityStats.topLocations.length}
-                  </p>
-                </div>
-                <div className="p-3 bg-purple-500/10 rounded-lg">
-                  <MapPin className="w-6 h-6 text-purple-400" />
-                </div>
-              </div>
-              <div className="mt-4 pt-4 border-t border-gray-700">
-                <div className="text-xs text-blue-400">
-                  ↗ Geographic distribution
-                </div>
-              </div>
+              <p className="text-xs text-gray-500 mt-3">System health data</p>
             </motion.div>
           </div>
 
-          {/* Main Content Grid */}
+          {/* Main Grid: Live Feed + Breakdown */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Live Activity Feed */}
+            {/* Live Activity Feed — takes 2 columns */}
             <div className="lg:col-span-2">
-              <LiveActivityFeed 
-                activities={(activityFeed || []).map(activity => ({
+              <LiveActivityFeed
+                activities={(activityFeed || []).map((activity) => ({
                   ...activity,
                   userId: activity.user?.id || 'unknown',
                   userName: activity.user?.name || 'Unknown User',
-                  type: activity.type as 'login' | 'trade_created' | 'trade_closed' | 'subscription_changed' | 'image_uploaded'
-                }))} 
+                  type: activity.type as 'login' | 'trade_created' | 'trade_closed' | 'subscription_changed' | 'image_uploaded',
+                }))}
                 loading={isLoading}
                 onRefresh={handleRefresh}
               />
             </div>
 
-            {/* Activity Breakdown */}
-            <div className="space-y-6">
-              {/* Event Types */}
+            {/* Event Types Breakdown */}
+            <div>
               <motion.div
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.5 }}
+                transition={{ delay: 0.4 }}
                 className="bg-gray-800 border border-gray-700 rounded-xl p-6"
               >
-                <h3 className="text-lg font-semibold text-white mb-6">Event Types</h3>
-                
-                <div className="space-y-4">
-                  {activityStats.eventTypes.map((eventType, index) => (
-                    <div key={eventType.type} className="flex items-center justify-between">
-                      <div className="flex items-center space-x-3">
-                        <div className="w-3 h-3 rounded-full bg-blue-500" 
-                             style={{ backgroundColor: ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6'][index] }}></div>
-                        <span className="text-white font-medium capitalize">{eventType.type.replace('_', ' ')}</span>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-white font-medium">{formatNumber(eventType.count)}</div>
-                        <div className="text-xs text-gray-400">{eventType.percentage}%</div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </motion.div>
+                <h3 className="text-lg font-semibold text-white mb-5">Event Breakdown</h3>
 
-              {/* Top Locations */}
-              <motion.div
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.6 }}
-                className="bg-gray-800 border border-gray-700 rounded-xl p-6"
-              >
-                <h3 className="text-lg font-semibold text-white mb-6">Top Locations</h3>
-                
-                <div className="space-y-4">
-                  {activityStats.topLocations.map((location, index) => (
-                    <div key={location.location} className="flex items-center justify-between">
-                      <div className="flex items-center space-x-3">
-                        <div className="flex items-center justify-center w-6 h-6 bg-blue-600 text-white text-xs font-bold rounded">
-                          {index + 1}
+                {isLoading ? (
+                  <div className="space-y-4">
+                    {Array.from({ length: 4 }).map((_, i) => (
+                      <div key={i} className="flex items-center justify-between animate-pulse">
+                        <div className="flex items-center space-x-3">
+                          <div className="w-3 h-3 bg-gray-600 rounded-full" />
+                          <div className="h-3 w-24 bg-gray-700 rounded" />
                         </div>
-                        <span className="text-white font-medium">{location.location}</span>
+                        <div className="h-3 w-12 bg-gray-700 rounded" />
                       </div>
-                      <div className="text-white font-medium">{formatNumber(location.count)}</div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                ) : eventTypeList.length > 0 ? (
+                  <div className="space-y-4">
+                    {eventTypeList.map((eventType, index) => (
+                      <div key={eventType.type}>
+                        <div className="flex items-center justify-between mb-1.5">
+                          <div className="flex items-center space-x-3">
+                            <div
+                              className="w-3 h-3 rounded-full flex-shrink-0"
+                              style={{ backgroundColor: eventColors[index % eventColors.length] }}
+                            />
+                            <span className="text-white text-sm font-medium capitalize">
+                              {eventType.type.replace(/_/g, ' ')}
+                            </span>
+                          </div>
+                          <div className="text-right">
+                            <span className="text-white text-sm font-medium">{formatNumber(eventType.count)}</span>
+                            <span className="text-xs text-gray-400 ml-1">({eventType.percentage}%)</span>
+                          </div>
+                        </div>
+                        <div className="h-1.5 bg-gray-700 rounded-full overflow-hidden">
+                          <div
+                            className="h-full rounded-full"
+                            style={{
+                              width: `${eventType.percentage}%`,
+                              backgroundColor: eventColors[index % eventColors.length],
+                            }}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    <Activity className="w-8 h-8 mx-auto mb-2 opacity-40" />
+                    <p className="text-sm">No events yet</p>
+                  </div>
+                )}
               </motion.div>
             </div>
           </div>
-
-          {/* Additional Activity Content for Scrolling */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.7 }}
-              className="bg-gray-800 border border-gray-700 rounded-xl p-6"
-            >
-              <h3 className="text-lg font-semibold text-white mb-4">Recent Activity Timeline</h3>
-              <div className="space-y-4 max-h-96 overflow-y-auto">
-                {Array.from({ length: 15 }, (_, i) => (
-                  <div key={i} className="flex items-center space-x-3 p-3 bg-gray-700/50 rounded-lg">
-                    <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
-                    <div className="flex-1">
-                      <p className="text-white text-sm">Activity event #{i + 1}</p>
-                      <p className="text-gray-400 text-xs">{new Date(Date.now() - i * 120000).toLocaleString()}</p>
-                    </div>
-                    <span className="text-xs text-gray-500">#{i + 1}</span>
-                  </div>
-                ))}
-              </div>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.8 }}
-              className="bg-gray-800 border border-gray-700 rounded-xl p-6"
-            >
-              <h3 className="text-lg font-semibold text-white mb-4">Activity Metrics</h3>
-              <div className="grid grid-cols-2 gap-4">
-                {Array.from({ length: 8 }, (_, i) => (
-                  <div key={i} className="bg-gray-700/50 rounded-lg p-3">
-                    <p className="text-gray-400 text-sm">Metric {i + 1}</p>
-                    <p className="text-white text-xl font-bold">{Math.floor(Math.random() * 1000)}</p>
-                    <div className="mt-2 h-1 bg-gray-600 rounded-full overflow-hidden">
-                      <div 
-                        className="h-full bg-blue-500 rounded-full" 
-                        style={{ width: `${Math.floor(Math.random() * 100)}%` }}
-                      ></div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </motion.div>
-          </div>
-
-          {/* More Activity Data */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.9 }}
-            className="bg-gray-800 border border-gray-700 rounded-xl p-6"
-          >
-            <h3 className="text-lg font-semibold text-white mb-4">Activity Heatmap</h3>
-            <div className="grid grid-cols-7 gap-2">
-              {Array.from({ length: 168 }, (_, i) => (
-                <div 
-                  key={i} 
-                  className={`h-4 rounded ${
-                    Math.random() > 0.7 ? 'bg-green-500' :
-                    Math.random() > 0.4 ? 'bg-yellow-500' :
-                    Math.random() > 0.2 ? 'bg-blue-500' :
-                    'bg-gray-700'
-                  }`}
-                  title={`Hour ${i}: ${Math.floor(Math.random() * 100)} activities`}
-                ></div>
-              ))}
-            </div>
-            <div className="flex justify-between text-xs text-gray-400 mt-2">
-              <span>Less</span>
-              <span>More</span>
-            </div>
-                     </motion.div>
-
-          {/* Extra Activity Content to Force Scrolling */}
-          <div className="space-y-6">
-            {Array.from({ length: 3 }, (_, sectionIndex) => (
-              <motion.div
-                key={sectionIndex}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 1.0 + sectionIndex * 0.1 }}
-                className="bg-gray-800 border border-gray-700 rounded-xl p-6"
-              >
-                <h3 className="text-lg font-semibold text-white mb-4">Activity Section {sectionIndex + 1}</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {Array.from({ length: 9 }, (_, i) => (
-                    <div key={i} className="bg-gray-700/50 rounded-lg p-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <p className="text-white font-medium">Event #{i + 1}</p>
-                        <div className={`w-3 h-3 rounded-full ${
-                          i % 4 === 0 ? 'bg-green-400' :
-                          i % 4 === 1 ? 'bg-blue-400' :
-                          i % 4 === 2 ? 'bg-yellow-400' :
-                          'bg-purple-400'
-                        }`}></div>
-                      </div>
-                      <p className="text-gray-400 text-sm mb-2">
-                        User: User{(i * 123 + 100) % 1000}
-                      </p>
-                      <p className="text-gray-400 text-sm mb-2">
-                        Time: {new Date(Date.now() - (i * 3600000 + 1800000)).toLocaleTimeString()}
-                      </p>
-                      <div className="h-1 bg-gray-600 rounded-full overflow-hidden">
-                        <div 
-                          className={`h-full rounded-full ${
-                            i % 4 === 0 ? 'bg-green-500' :
-                            i % 4 === 1 ? 'bg-blue-500' :
-                            i % 4 === 2 ? 'bg-yellow-500' :
-                            'bg-purple-500'
-                          }`}
-                          style={{ width: `${(i * 11 + 20) % 100}%` }}
-                        ></div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </motion.div>
-            ))}
-          </div>
-
-          {/* Final Activity Section */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 1.3 }}
-            className="bg-gradient-to-r from-purple-900/50 to-blue-900/50 backdrop-blur-xl border border-purple-700/50 rounded-2xl p-8 text-center"
-          >
-            <h3 className="text-2xl font-bold text-white mb-4">🎯 Activity Page Scroll Complete!</h3>
-            <p className="text-gray-300">All activity data has been loaded and scrolling is working properly.</p>
-            <div className="mt-4 text-sm text-gray-400">
-              Total Events: {formatNumber(activityStats.totalEvents24h)} | Active Users: {formatNumber(activityStats.activeUsers24h)}
-            </div>
-          </motion.div>
         </main>
       </div>
     </div>
   );
-} 
+}
