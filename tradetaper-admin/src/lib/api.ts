@@ -131,6 +131,10 @@ export interface DashboardStats {
   revenueGrowth: number;
   totalTrades: number;
   tradeGrowth: number;
+  totalSubscriptions?: number;
+  avgTradesPerUser?: number;
+  successRate?: number;
+  monthlyGrowth?: number;
 }
 
 export interface Activity {
@@ -219,6 +223,13 @@ class AdminApi {
     this.initializeAxios();
   }
 
+  private getToken(): string {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('admin_token') || '';
+    }
+    return '';
+  }
+
   private initializeAxios() {
     if (typeof window !== 'undefined') {
       // Client-side initialization
@@ -230,24 +241,44 @@ class AdminApi {
         },
       });
 
-      // Add request interceptor to include mock admin token for demo purposes
+      // Inject real JWT token from localStorage
       this.axiosInstance.interceptors.request.use((config: any) => {
-        // Use mock token that backend admin guard recognizes for bypass
-        config.headers['Authorization'] = 'Bearer mock-admin-token';
+        const token = this.getToken();
+        if (token) {
+          config.headers['Authorization'] = `Bearer ${token}`;
+        }
         return config;
       });
     } else {
-      // Server-side: create a minimal axios instance
+      // Server-side: minimal axios instance (no auth needed for SSR)
       this.axiosInstance = axios.create({
         baseURL: this.baseUrl,
         timeout: 10000,
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer mock-admin-token',
         },
       });
     }
   }
+
+  async login(email: string, password: string): Promise<{ access_token: string }> {
+    const res = await axios.post(`${this.baseUrl}/admin/auth/login`, { email, password });
+    const { access_token } = res.data;
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('admin_token', access_token);
+      const expires = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toUTCString();
+      document.cookie = `admin_token=${access_token}; expires=${expires}; path=/; SameSite=Strict`;
+    }
+    return res.data;
+  }
+
+  logout() {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('admin_token');
+      document.cookie = 'admin_token=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
+    }
+  }
+
 
   private ensureAxiosInstance() {
     if (!this.axiosInstance) {

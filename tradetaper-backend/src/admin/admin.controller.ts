@@ -6,7 +6,9 @@ import {
   Post,
   Delete,
   Body,
+  UnauthorizedException,
 } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
 import { AdminService } from './admin.service';
 import { TestUserSeedService } from '../seed/test-user-seed.service';
 
@@ -15,7 +17,23 @@ export class AdminController {
   constructor(
     private readonly adminService: AdminService,
     private readonly testUserSeedService: TestUserSeedService,
+    private readonly jwtService: JwtService,
   ) {}
+
+  // ─── Admin Auth ─────────────────────────────────────────────────────────
+  @Post('auth/login')
+  async adminLogin(@Body() body: { email: string; password: string }) {
+    const adminEmail = process.env.ADMIN_EMAIL || 'admin@tradetaper.com';
+    const adminPassword = process.env.ADMIN_PASSWORD || 'tradetaper-admin-2025';
+
+    if (body.email !== adminEmail || body.password !== adminPassword) {
+      throw new UnauthorizedException('Invalid admin credentials');
+    }
+
+    const payload = { sub: 'admin', email: body.email, role: 'admin' };
+    const token = this.jwtService.sign(payload, { expiresIn: '30d' });
+    return { access_token: token, role: 'admin' };
+  }
 
   @Get('dashboard/stats')
   async getDashboardStats() {
@@ -46,24 +64,43 @@ export class AdminController {
   async getUsers(
     @Query('page') page: string = '1',
     @Query('limit') limit: string = '20',
+    @Query('search') search?: string,
   ) {
-    return this.adminService.getUsers(parseInt(page), parseInt(limit));
+    return this.adminService.getUsers(parseInt(page), parseInt(limit), search);
+  }
+
+  @Get('users/:id')
+  async getUserDetail(@Param('id') id: string) {
+    return this.adminService.getUserDetail(id);
   }
 
   @Get('trades')
   async getTrades(
     @Query('page') page: string = '1',
     @Query('limit') limit: string = '50',
+    @Query('status') status?: string,
+    @Query('userId') userId?: string,
   ) {
-    return this.adminService.getTrades(parseInt(page), parseInt(limit));
+    return this.adminService.getTrades(parseInt(page), parseInt(limit), status, userId);
   }
 
   @Get('accounts')
   async getAccounts(
     @Query('page') page: string = '1',
     @Query('limit') limit: string = '50',
+    @Query('userId') userId?: string,
   ) {
-    return this.adminService.getAccounts(parseInt(page), parseInt(limit));
+    return this.adminService.getAccounts(parseInt(page), parseInt(limit), userId);
+  }
+
+  @Get('subscriptions')
+  async getSubscriptions(
+    @Query('page') page: string = '1',
+    @Query('limit') limit: string = '50',
+    @Query('status') status?: string,
+    @Query('plan') plan?: string,
+  ) {
+    return this.adminService.getSubscriptions(parseInt(page), parseInt(limit), status, plan);
   }
 
   @Get('database/tables')

@@ -104,12 +104,22 @@ export class AdminService {
     return [];
   }
 
-  async getUsers(page: number = 1, limit: number = 20) {
-    const [users, total] = await this.userRepository.findAndCount({
-      skip: (page - 1) * limit,
-      take: limit,
-      order: { createdAt: 'DESC' },
-    });
+  async getUsers(page: number = 1, limit: number = 20, search?: string) {
+    const qb = this.userRepository.createQueryBuilder('user');
+
+    if (search) {
+      qb.where(
+        'LOWER(user.email) LIKE :q OR LOWER(user.firstName) LIKE :q OR LOWER(user.lastName) LIKE :q',
+        { q: `%${search.toLowerCase()}%` },
+      );
+    }
+
+    qb.leftJoinAndSelect('user.subscription', 'subscription')
+      .orderBy('user.createdAt', 'DESC')
+      .skip((page - 1) * limit)
+      .take(limit);
+
+    const [users, total] = await qb.getManyAndCount();
 
     return {
       data: users,
@@ -120,13 +130,57 @@ export class AdminService {
     };
   }
 
-  async getTrades(page: number = 1, limit: number = 50) {
-    const [trades, total] = await this.tradeRepository.findAndCount({
-      skip: (page - 1) * limit,
-      take: limit,
-      order: { createdAt: 'DESC' },
-      relations: ['user'],
+  async getUserDetail(userId: string) {
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+      relations: ['subscription'],
     });
+
+    if (!user) return { error: 'User not found' };
+
+    const [trades, tradeCount] = await this.tradeRepository.findAndCount({
+      where: { user: { id: userId } },
+      order: { createdAt: 'DESC' },
+      take: 10,
+    });
+
+    const [accounts, accountCount] = await this.accountRepository.findAndCount({
+      where: { user: { id: userId } },
+      order: { createdAt: 'DESC' },
+    });
+
+    const totalPnl = trades
+      .filter((t) => t.profitOrLoss != null)
+      .reduce((sum, t) => sum + Number(t.profitOrLoss || 0), 0);
+
+    return {
+      user,
+      trades,
+      tradeCount,
+      accounts,
+      accountCount,
+      totalPnl,
+    };
+  }
+
+  async getTrades(page: number = 1, limit: number = 50, status?: string, userId?: string) {
+    const qb = this.tradeRepository.createQueryBuilder('trade')
+      .leftJoinAndSelect('trade.user', 'user')
+      .orderBy('trade.createdAt', 'DESC')
+      .skip((page - 1) * limit)
+      .take(limit);
+
+    if (status) qb.andWhere('trade.status = :status', { status });
+    if (userId) qb.andWhere('user.id = :userId', { userId });
+
+    const [trades, total] = await qb.getManyAndCount();
+
+    const totalPnl = trades
+      .filter((t) => t.profitOrLoss != null)
+      .reduce((sum, t) => sum + Number(t.profitOrLoss || 0), 0);
+
+    const winCount = trades.filter((t) => Number(t.profitOrLoss || 0) > 0).length;
+    const winRate = trades.length > 0 ? Math.round((winCount / trades.length) * 100) : 0;
 
     return {
       data: trades,
@@ -134,16 +188,23 @@ export class AdminService {
       page,
       limit,
       totalPages: Math.ceil(total / limit),
+      summary: { totalPnl, winRate, winCount },
     };
   }
 
-  async getAccounts(page: number = 1, limit: number = 50) {
-    const [accounts, total] = await this.accountRepository.findAndCount({
-      skip: (page - 1) * limit,
-      take: limit,
-      order: { createdAt: 'DESC' },
-      relations: ['user'],
-    });
+  async getAccounts(page: number = 1, limit: number = 50, userId?: string) {
+    const qb = this.accountRepository.createQueryBuilder('account')
+      .leftJoinAndSelect('account.user', 'user')
+      .orderBy('account.createdAt', 'DESC')
+      .skip((page - 1) * limit)
+      .take(limit);
+
+    if (userId) qb.andWhere('user.id = :userId', { userId });
+
+    const [accounts, total] = await qb.getManyAndCount();
+
+    const totalBalance = accounts
+      .reduce((sum, a) => sum + Number(a.balance || 0), 0);
 
     return {
       data: accounts,
@@ -151,6 +212,34 @@ export class AdminService {
       page,
       limit,
       totalPages: Math.ceil(total / limit),
+      summary: { totalBalance },
+    };
+  }
+
+  async getSubscriptions(page: number = 1, limit: number = 50, status?: string, plan?: string) {
+    const qb = this.subscriptionRepository.createQueryBuilder('sub')
+      .leftJoinAndSelect('sub.user', 'user')
+      .orderBy('sub.createdAt', 'DESC')
+      .skip((page - 1) * limit)
+      .take(limit);
+
+    if (status) qb.andWhere('sub.status = :status', { status });
+    if (plan) qb.andWhere('sub.plan = :plan', { plan });
+
+    const [subscriptions, total] = await qb.getManyAndCount();
+
+    // Active count
+    const activeCount = await this.subscriptionRepository.count({
+      where: { status: SubscriptionStatus.ACTIVE },
+    });
+
+    return {
+      data: subscriptions,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+      summary: { activeCount },
     };
   }
 

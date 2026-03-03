@@ -1,44 +1,22 @@
-import type { Metadata } from "next";
-import { Inter } from "next/font/google";
-import "./globals.css";
-import { Toaster } from 'react-hot-toast';
+import type { Metadata } from 'next';
+import './globals.css';
 import Providers from './providers';
-import NoAuthWrapper from '@/components/NoAuthWrapper';
-
-const inter = Inter({ subsets: ["latin"] });
+import { ThemeProvider } from '@/components/ThemeProvider';
 
 export const metadata: Metadata = {
-  title: "TradeTaper Admin Dashboard",
-  description: "Comprehensive admin dashboard for TradeTaper trading platform",
-  icons: {
-    icon: '/favicon.ico',
-  },
+  title: 'TradeTaper Admin',
+  description: 'TradeTaper Administration Portal',
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className="dark">
-      <body className={`${inter.className} bg-gray-950 text-white antialiased`}>
-        <Providers>
-          <NoAuthWrapper>
+    <html lang="en" suppressHydrationWarning>
+      <body>
+        <ThemeProvider>
+          <Providers>
             {children}
-          </NoAuthWrapper>
-          <Toaster 
-            position="top-right"
-            toastOptions={{
-              duration: 4000,
-              style: {
-                background: '#1f2937',
-                color: '#fff',
-                border: '1px solid #374151',
-              },
-            }}
-          />
-        </Providers>
+          </Providers>
+        </ThemeProvider>
       </body>
     </html>
   );

@@ -37,7 +37,7 @@ export default function ApiTestPage() {
             testResults[endpoint] = { success: false, error: `HTTP ${response.status}: ${response.statusText}` };
           }
         } catch (error) {
-          testResults[endpoint] = { success: false, error: error.message };
+          testResults[endpoint] = { success: false, error: (error as Error).message };
         }
       }
 

@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { JwtModule } from '@nestjs/jwt';
 import { AdminController } from './admin.controller';
 import { AdminService } from './admin.service';
 import { User } from '../users/entities/user.entity';
@@ -22,6 +23,10 @@ import { SeedModule } from '../seed/seed.module';
       Subscription,
       Usage,
     ]),
+    JwtModule.register({
+      secret: process.env.JWT_SECRET || 'tradetaper-secret',
+      signOptions: { expiresIn: '30d' },
+    }),
     SeedModule,
   ],
   controllers: [AdminController],
