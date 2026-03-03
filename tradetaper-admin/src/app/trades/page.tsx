@@ -53,6 +53,16 @@ export default function TradesPage() {
     toast.success('Exported CSV');
   };
 
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: { opacity: 1, transition: { staggerChildren: 0.04 } }
+  };
+  
+  const itemVariants = {
+    hidden: { opacity: 0, y: 15 },
+    visible: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 300, damping: 24 } }
+  };
+
   return (
     <div className="flex h-screen" style={{ background: 'var(--bg-base)' }}>
       <Sidebar isCollapsed={sidebarCollapsed} onToggle={() => setSidebarCollapsed(!sidebarCollapsed)} />
@@ -108,7 +118,11 @@ export default function TradesPage() {
                   <th>Date</th>
                 </tr>
               </thead>
-              <tbody>
+              <motion.tbody
+                variants={containerVariants}
+                initial="hidden"
+                animate="visible"
+              >
                 {isLoading ? (
                   Array.from({ length: 15 }).map((_, i) => (
                     <tr key={i}>{Array.from({ length: 8 }).map((__, j) => (
@@ -124,7 +138,12 @@ export default function TradesPage() {
                   const pnl = t.profitOrLoss != null ? Number(t.profitOrLoss) : null;
                   const isLong = ['LONG', 'long', 'BUY', 'buy'].includes(t.side);
                   return (
-                    <tr key={t.id}>
+                    <motion.tr 
+                      variants={itemVariants}
+                      key={t.id}
+                      whileHover={{ scale: 0.995, backgroundColor: 'var(--bg-surface-hover)' }}
+                      transition={{ duration: 0.15 }}
+                    >
                       <td><span className="font-mono text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{t.symbol}</span></td>
                       <td>
                         <span className={`badge ${isLong ? 'badge-success' : 'badge-danger'}`}>
@@ -146,10 +165,10 @@ export default function TradesPage() {
                       </td>
                       <td><span className={`badge ${t.status === 'OPEN' ? 'badge-primary' : 'badge-muted'}`}>{t.status}</span></td>
                       <td style={{ color: 'var(--text-muted)', fontSize: 12 }}>{new Date(t.createdAt).toLocaleDateString()}</td>
-                    </tr>
+                    </motion.tr>
                   );
                 })}
-              </tbody>
+              </motion.tbody>
             </table>
             {totalPages > 1 && (
               <div className="flex items-center justify-between px-4 py-3 border-t" style={{ borderColor: 'var(--border-subtle)' }}>

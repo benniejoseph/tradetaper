@@ -59,6 +59,16 @@ export default function UsersPage() {
     toast.success('Exported CSV');
   };
 
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: { opacity: 1, transition: { staggerChildren: 0.04 } }
+  };
+  
+  const itemVariants = {
+    hidden: { opacity: 0, y: 15 },
+    visible: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 300, damping: 24 } }
+  };
+
   const users = (data as any)?.data || [];
   const total = (data as any)?.total || 0;
   const totalPages = (data as any)?.totalPages || 1;
@@ -134,7 +144,11 @@ export default function UsersPage() {
                     <th>Actions</th>
                   </tr>
                 </thead>
-                <tbody>
+                <motion.tbody
+                  variants={containerVariants}
+                  initial="hidden"
+                  animate="visible"
+                >
                   {isLoading ? (
                     Array.from({ length: 12 }).map((_, i) => (
                       <tr key={i}>
@@ -149,7 +163,14 @@ export default function UsersPage() {
                       <p style={{ color: 'var(--text-muted)' }}>No users found</p>
                     </td></tr>
                   ) : users.map((u: any) => (
-                    <tr key={u.id} style={{ cursor: 'pointer' }} onClick={() => setSelectedUser(u.id)}>
+                    <motion.tr 
+                      variants={itemVariants}
+                      key={u.id} 
+                      style={{ cursor: 'pointer' }} 
+                      onClick={() => setSelectedUser(u.id)}
+                      whileHover={{ scale: 0.995, backgroundColor: 'var(--bg-surface-hover)' }}
+                      transition={{ duration: 0.15 }}
+                    >
                       <td>
                         <div className="flex items-center gap-2.5">
                           <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0"
@@ -180,9 +201,9 @@ export default function UsersPage() {
                           <Eye className="w-3.5 h-3.5" style={{ color: 'var(--text-muted)' }} />
                         </button>
                       </td>
-                    </tr>
+                    </motion.tr>
                   ))}
-                </tbody>
+                </motion.tbody>
               </table>
 
               {/* Pagination */}
