@@ -106,9 +106,13 @@ async function bootstrap() {
         },
       });
 
-      // Custom middleware wrapper to exclude webhook endpoints from CSRF protection
+      // Custom middleware wrapper to exclude webhook and admin auth endpoints from CSRF protection
       app.use((req: any, res: any, next: any) => {
-        if (req.path && req.path.includes('/api/v1/webhook')) {
+        const path = req.path || '';
+        if (
+          path.includes('/api/v1/webhook') ||
+          path.includes('/admin/auth/')
+        ) {
           next();
         } else {
           doubleCsrfProtection(req, res, next);
