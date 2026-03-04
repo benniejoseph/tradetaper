@@ -37,9 +37,8 @@ export class TradingViewAdvancedService implements OnModuleInit {
       // Login with credentials
       await this.loginWithCredentials(username, password);
     } catch (error) {
-      this.logger.error(
-        'Failed to initialize TradingView Advanced API:',
-        error.message,
+      this.logger.warn(
+        `TradingView Advanced API initialization failed: ${error.message}`,
       );
     }
   }
@@ -68,12 +67,12 @@ export class TradingViewAdvancedService implements OnModuleInit {
         this.isAuthenticated = true;
         this.logger.log('✅ Successfully authenticated with TradingView!');
       } else {
-        this.logger.error(
+        this.logger.warn(
           '❌ Failed to authenticate with TradingView - no token received',
         );
       }
     } catch (error) {
-      this.logger.error(
+      this.logger.warn(
         `❌ TradingView authentication error: ${error.message}`,
       );
       // Do not set isAuthenticated = false here, let it remain false from initialization

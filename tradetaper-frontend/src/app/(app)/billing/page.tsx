@@ -2,10 +2,9 @@
 
 import React, { useEffect, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { AppDispatch } from '@/store/store';
+import { AppDispatch, RootState } from '@/store/store';
 import { 
   selectCurrentSubscription, 
-  selectBillingInfo, 
   selectUsage,
   selectSubscriptionLoading,
   fetchBillingInfo,
@@ -14,7 +13,7 @@ import {
   reactivateSubscription 
 } from '@/store/features/subscriptionSlice';
 import { pricingApi } from '@/services/pricingApi';
-import { PRICING_TIERS, getPlanPrice } from '@/config/pricing';
+import { PRICING_TIERS, getPlanPrice, formatPlanPrice } from '@/config/pricing';
 import { useCurrency } from '@/hooks/useCurrency';
 import { 
   FaCreditCard, 
@@ -36,6 +35,12 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import AlertModal from '@/components/ui/AlertModal';
 import { trackDatafastPayment } from '@/utils/datafast';
 
+declare global {
+  interface Window {
+    Razorpay: any;
+  }
+}
+
 const formatDate = (date: string | Date | undefined | null) => {
   if (!date) return 'N/A';
   try {
@@ -52,7 +57,7 @@ export default function BillingPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const currentSubscription = useSelector(selectCurrentSubscription);
-  const billingInfo = useSelector(selectBillingInfo);
+  const authUser = useSelector((state: RootState) => state.auth.user);
   const usage = useSelector(selectUsage);
   const isLoading = useSelector(selectSubscriptionLoading);
   const { currency } = useCurrency();
@@ -235,12 +240,17 @@ export default function BillingPage() {
       }
   };
 
-  // Helper to determine plan name safely
-  const planName = currentSubscription?.planId
-    ? (PRICING_TIERS.find(t => t.id === currentSubscription.planId)?.name || currentSubscription.planId)
-    : 'Free';
+  const effectivePlanId = currentSubscription?.planId || authUser?.subscription?.plan || 'free';
+  const effectiveStatus = currentSubscription?.status || authUser?.subscription?.status || 'active';
+  const billingPeriod: 'monthly' | 'yearly' =
+    currentSubscription?.interval === 'year' ? 'yearly' : 'monthly';
+  const planName =
+    PRICING_TIERS.find((t) => t.id === effectivePlanId)?.name ||
+    effectivePlanId ||
+    'Free';
+  const nextPaymentAmount = formatPlanPrice(effectivePlanId, billingPeriod, currency.code);
 
-  const isPremium = planName.toLowerCase() === 'premium';
+  const isPremium = effectivePlanId === 'premium';
 
   return (
     <div className="min-h-screen bg-background text-foreground selection:bg-primary/30 p-4 md:p-8 font-sans">
@@ -289,7 +299,7 @@ export default function BillingPage() {
                                     <span className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-500 to-teal-500 capitalize">
                                         {planName}
                                     </span>
-                                    {currentSubscription?.status === 'active' && (
+                                    {effectiveStatus === 'active' && (
                                         <span className="px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs font-bold border border-emerald-500/30 flex items-center gap-1">
                                             <FaCheckCircle /> ACTIVE
                                         </span>
@@ -300,12 +310,15 @@ export default function BillingPage() {
                             <div className="text-right">
                                 <p className="text-muted-foreground text-sm mb-1">Next Payment</p>
                                 <p className="text-xl font-bold text-foreground">
-                                    {(billingInfo as any)?.upcomingInvoice
-                                      ? `${currency.symbol}${((billingInfo as any).upcomingInvoice.amount/100).toFixed(2)}`
-                                      : `${currency.symbol}0.00`}
+                                    {nextPaymentAmount}
+                                    {effectivePlanId !== 'free' && (
+                                      <span className="ml-1 text-sm text-muted-foreground">
+                                        /{billingPeriod === 'yearly' ? 'yr' : 'mo'}
+                                      </span>
+                                    )}
                                 </p>
                                 <p className="text-xs text-muted-foreground">
-                                    on {(billingInfo as any)?.upcomingInvoice ? formatDate((billingInfo as any).upcomingInvoice.date) : 'N/A'}
+                                    on {currentSubscription ? formatDate(currentSubscription.currentPeriodEnd) : 'N/A'}
                                 </p>
                             </div>
                          </div>
@@ -416,7 +429,7 @@ export default function BillingPage() {
                                 <div>
                                     <div className="flex justify-between text-sm mb-2">
                                         <span className="text-muted-foreground">Accounts</span>
-                                        <span className="text-foreground font-medium">{usage.accountsUsed} / {usage.accountLimit === 0 ? '∞' : usage.accountLimit}</span>
+                                        <span className="text-foreground font-medium">{usage.accountsUsed} / {usage.accountLimit}</span>
                                     </div>
                                     <div className="h-2 bg-secondary rounded-full overflow-hidden">
                                         <div 

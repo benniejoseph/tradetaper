@@ -9,7 +9,7 @@ import {
   TrendingUp, TrendingDown, Download,
 } from 'lucide-react';
 import { formatNumber } from '@/lib/utils';
-import adminApi from '@/lib/api';
+import { API_BASE_URL } from '@/lib/api-base-url';
 import toast from 'react-hot-toast';
 
 export default function TradesPage() {
@@ -23,8 +23,8 @@ export default function TradesPage() {
       const params = new URLSearchParams({ page: String(page), limit: '50' });
       if (statusFilter) params.append('status', statusFilter);
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/admin/trades?${params}`,
-        { headers: { Authorization: `Bearer ${localStorage.getItem('admin_token')}` } }
+        `${API_BASE_URL}/admin/trades?${params}`,
+        { credentials: 'include' }
       );
       return res.json();
     },

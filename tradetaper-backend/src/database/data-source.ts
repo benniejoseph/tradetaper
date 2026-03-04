@@ -27,6 +27,9 @@ import { CommunityPostReply } from '../community/entities/community-post-reply.e
 import { EconomicEventAlert } from '../market-intelligence/entities/economic-event-alert.entity';
 import { EconomicEventAnalysis } from '../market-intelligence/entities/economic-event-analysis.entity';
 import { CotWeeklyReport } from '../market-intelligence/entities/cot-weekly-report.entity';
+import { AuthSession } from '../auth/entities/auth-session.entity';
+import { AdminMfaCredential } from '../admin/entities/admin-mfa-credential.entity';
+import { AdminAuthAuditLog } from '../admin/entities/admin-auth-audit-log.entity';
 import { Connector } from '@google-cloud/cloud-sql-connector';
 
 import { Logger } from '@nestjs/common';
@@ -85,6 +88,9 @@ async function createDataSource() {
           EconomicEventAlert,
           EconomicEventAnalysis,
           CotWeeklyReport,
+          AuthSession,
+          AdminMfaCredential,
+          AdminAuthAuditLog,
         ],
         migrations: ['dist/migrations/*{.ts,.js}'],
         synchronize: false,
@@ -128,6 +134,9 @@ async function createDataSource() {
           EconomicEventAlert,
           EconomicEventAnalysis,
           CotWeeklyReport,
+          AuthSession,
+          AdminMfaCredential,
+          AdminAuthAuditLog,
         ],
         migrations: ['dist/migrations/*{.ts,.js}'],
         synchronize: false,
@@ -172,6 +181,9 @@ async function createDataSource() {
         EconomicEventAlert,
         EconomicEventAnalysis,
         CotWeeklyReport,
+        AuthSession,
+        AdminMfaCredential,
+        AdminAuthAuditLog,
       ],
       migrations: ['src/migrations/*{.ts,.js}'],
       synchronize: false,

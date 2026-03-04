@@ -2,8 +2,6 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useSelector } from 'react-redux';
-import { RootState } from '@/store/store';
 import { Play } from 'lucide-react';
 
 interface ReplayThisTradeButtonProps {
@@ -33,7 +31,6 @@ export default function ReplayThisTradeButton({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
-  const token = useSelector((state: RootState) => state.auth.token);
 
   const handleReplay = async () => {
     setLoading(true);
@@ -63,7 +60,6 @@ export default function ReplayThisTradeButton({
         headers: {
           'Content-Type': 'application/json',
           'X-CSRF-Token': csrfToken,
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         credentials: 'include',
         body: JSON.stringify({

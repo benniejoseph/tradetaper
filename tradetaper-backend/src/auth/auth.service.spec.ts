@@ -5,6 +5,9 @@ import { UsersService } from '../users/users.service';
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
 import { SubscriptionService } from '../subscriptions/services/subscription.service';
+import { ConfigService } from '@nestjs/config';
+import { getRepositoryToken } from '@nestjs/typeorm';
+import { AuthSession } from './entities/auth-session.entity';
 
 // A very light-weight mock of UsersService for unit testing only.
 const mockUsersService = {
@@ -21,6 +24,21 @@ const mockSubscriptionService = {
   getPricingPlan: jest.fn(),
 };
 
+const mockConfigService = {
+  get: jest.fn((key: string) => {
+    if (key === 'AUTH_ACCESS_TOKEN_TTL') return '15m';
+    if (key === 'AUTH_REFRESH_TOKEN_TTL_DAYS') return '30';
+    return undefined;
+  }),
+};
+
+const mockAuthSessionRepository = {
+  create: jest.fn(),
+  save: jest.fn(),
+  findOne: jest.fn(),
+  createQueryBuilder: jest.fn(),
+};
+
 describe('AuthService', () => {
   let service: AuthService;
 
@@ -31,6 +49,11 @@ describe('AuthService', () => {
         { provide: UsersService, useValue: mockUsersService },
         { provide: JwtService, useValue: mockJwtService },
         { provide: SubscriptionService, useValue: mockSubscriptionService },
+        { provide: ConfigService, useValue: mockConfigService },
+        {
+          provide: getRepositoryToken(AuthSession),
+          useValue: mockAuthSessionRepository,
+        },
       ],
     }).compile();
 

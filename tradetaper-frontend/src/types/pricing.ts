@@ -40,7 +40,15 @@ export interface Subscription {
   id: string;
   userId: string;
   planId: string;
-  status: 'active' | 'canceled' | 'past_due' | 'unpaid' | 'incomplete';
+  interval?: 'month' | 'year';
+  price?: number;
+  status:
+    | 'active'
+    | 'canceled'
+    | 'past_due'
+    | 'unpaid'
+    | 'incomplete'
+    | 'trialing';
   currentPeriodStart: string;
   currentPeriodEnd: string;
   cancelAtPeriodEnd: boolean;

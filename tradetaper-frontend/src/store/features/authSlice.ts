@@ -14,7 +14,7 @@ const initialState: AuthState = {
   user: null,
   token: null,
   isAuthenticated: false,
-  isLoading: false,
+  isLoading: true,
   error: null,
 };
 
@@ -38,17 +38,12 @@ const authSlice = createSlice({
       state.isLoading = true;
       state.error = null;
     },
-    authSuccess(state, action: PayloadAction<{ token: string; user: UserResponseDto }>) {
+    authSuccess(state, action: PayloadAction<{ token?: string | null; user: UserResponseDto }>) {
       state.isLoading = false;
       state.isAuthenticated = true;
-      state.token = action.payload.token;
+      state.token = action.payload.token ?? null;
       state.user = action.payload.user;
       state.error = null;
-      // Store token in localStorage
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('token', action.payload.token);
-        localStorage.setItem('user', JSON.stringify(action.payload.user));
-      }
     },
     authFailure(state, action: PayloadAction<string>) {
       state.isLoading = false;
@@ -56,10 +51,6 @@ const authSlice = createSlice({
       state.token = null;
       state.user = null;
       state.error = action.payload;
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-      }
     },
     logout(state) {
       state.user = null;
@@ -67,43 +58,34 @@ const authSlice = createSlice({
       state.isAuthenticated = false;
       state.isLoading = false;
       state.error = null;
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-      }
     },
     loadUserFromStorage(state) {
-        if (typeof window !== 'undefined') {
-            const token = localStorage.getItem('token');
-            const userString = localStorage.getItem('user');
-            if (token && userString) {
-                try {
-                    const user = JSON.parse(userString) as UserResponseDto;
-                    state.token = token;
-                    state.user = user;
-                    state.isAuthenticated = true;
-                } catch (error) {
-                    console.error("Error parsing user from localStorage", error);
-                    localStorage.removeItem('token');
-                    localStorage.removeItem('user');
-                }
-            }
-        }
+      // Cookie-based auth bootstrap happens via fetchCurrentUser in providers.
+      state.isLoading = true;
     },
     updateUser(state, action: PayloadAction<UserResponseDto>) {
       state.user = action.payload;
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('user', JSON.stringify(action.payload));
-      }
     },
   },
   extraReducers: (builder) => {
-    builder.addCase(fetchCurrentUser.fulfilled, (state, action) => {
-      state.user = action.payload;
-      if (typeof window !== 'undefined' && state.token) {
-        localStorage.setItem('user', JSON.stringify(action.payload));
-      }
-    });
+    builder
+      .addCase(fetchCurrentUser.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(fetchCurrentUser.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.isAuthenticated = true;
+        state.user = action.payload;
+        state.error = null;
+      })
+      .addCase(fetchCurrentUser.rejected, (state, action) => {
+        state.isLoading = false;
+        state.isAuthenticated = false;
+        state.user = null;
+        state.token = null;
+        state.error = (action.payload as string) || 'Failed to fetch current user profile';
+      });
   },
 });
 

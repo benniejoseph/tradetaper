@@ -8,6 +8,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { Queue, Worker, Job } from 'bullmq';
 import { Redis } from 'ioredis';
+import { Socket } from 'net';
 
 /**
  * Terminal Commands Queue Service
@@ -30,10 +31,12 @@ export interface TerminalCommand {
 @Injectable()
 export class TerminalCommandsQueue implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(TerminalCommandsQueue.name);
-  private queue: Queue<TerminalCommand>;
-  private connection: Redis;
+  private queue?: Queue<TerminalCommand>;
+  private connection?: Redis;
   private readonly inMemoryQueue = new Map<string, TerminalCommand[]>();
   private useInMemory = false;
+  private readonly maxRedisErrorLogs = 3;
+  private redisErrorLogs = 0;
 
   constructor(private readonly configService: ConfigService) {}
 
@@ -49,12 +52,19 @@ export class TerminalCommandsQueue implements OnModuleInit, OnModuleDestroy {
       return;
     }
 
+    const redisReachable = await this.isRedisReachable(redisUrl);
+    if (!redisReachable) {
+      this.logger.warn(
+        'Redis endpoint is unreachable. Using fallback in-memory queue.',
+      );
+      this.useInMemory = true;
+      return;
+    }
+
     try {
-      // Create Redis connection
-      this.connection = new Redis(redisUrl, {
-        maxRetriesPerRequest: null,
-        enableReadyCheck: false,
-      });
+      this.connection = this.createRedisConnection(redisUrl);
+      await this.connection.connect();
+      await this.connection.ping();
 
       // Create BullMQ queue
       this.queue = new Queue('terminal-commands', {
@@ -85,12 +95,13 @@ export class TerminalCommandsQueue implements OnModuleInit, OnModuleDestroy {
       });
     } catch (error) {
       this.logger.error(
-        `Failed to initialize Terminal Commands Queue: ${error.message}`,
-        error.stack,
+        `Failed to initialize Terminal Commands Queue: ${this.getErrorMessage(error)}`,
+        error instanceof Error ? error.stack : undefined,
       );
       this.logger.warn(
         'Falling back to in-memory queue (NOT RECOMMENDED FOR PRODUCTION)',
       );
+      this.teardownRedisConnection();
       this.useInMemory = true;
     }
   }
@@ -100,10 +111,7 @@ export class TerminalCommandsQueue implements OnModuleInit, OnModuleDestroy {
       await this.queue.close();
       this.logger.log('Terminal Commands Queue closed');
     }
-    if (this.connection) {
-      await this.connection.quit();
-      this.logger.log('Redis connection closed');
-    }
+    this.teardownRedisConnection();
     this.inMemoryQueue.clear();
   }
 
@@ -162,8 +170,8 @@ export class TerminalCommandsQueue implements OnModuleInit, OnModuleDestroy {
       this.logger.debug(`Queued command ${command} for terminal ${terminalId}`);
     } catch (error) {
       this.logger.error(
-        `Failed to queue command ${command}: ${error.message}`,
-        error.stack,
+        `Failed to queue command ${command}: ${this.getErrorMessage(error)}`,
+        error instanceof Error ? error.stack : undefined,
       );
     }
   }
@@ -218,8 +226,8 @@ export class TerminalCommandsQueue implements OnModuleInit, OnModuleDestroy {
       return job.data;
     } catch (error) {
       this.logger.error(
-        `Failed to get next command for terminal ${terminalId}: ${error.message}`,
-        error.stack,
+        `Failed to get next command for terminal ${terminalId}: ${this.getErrorMessage(error)}`,
+        error instanceof Error ? error.stack : undefined,
       );
       return null;
     }
@@ -292,10 +300,107 @@ export class TerminalCommandsQueue implements OnModuleInit, OnModuleDestroy {
       return terminalJobs.length;
     } catch (error) {
       this.logger.error(
-        `Failed to clear commands for terminal ${terminalId}: ${error.message}`,
-        error.stack,
+        `Failed to clear commands for terminal ${terminalId}: ${this.getErrorMessage(error)}`,
+        error instanceof Error ? error.stack : undefined,
       );
       return 0;
     }
+  }
+
+  private createRedisConnection(redisUrl: string): Redis {
+    const connection = new Redis(redisUrl, {
+      lazyConnect: true,
+      maxRetriesPerRequest: null,
+      enableReadyCheck: true,
+      enableOfflineQueue: false,
+      connectTimeout: 5000,
+      retryStrategy: (times) => {
+        if (times > 3) {
+          this.logger.warn(
+            'Terminal Commands Queue Redis retry limit reached. Disabling Redis queue connection.',
+          );
+          return null;
+        }
+
+        return Math.min(times * 250, 1000);
+      },
+    });
+
+    connection.on('error', (error) => {
+      this.redisErrorLogs += 1;
+      if (this.redisErrorLogs <= this.maxRedisErrorLogs) {
+        this.logger.error(
+          `Terminal Commands Queue Redis error: ${error.message}`,
+          error.stack,
+        );
+      }
+
+      if (this.redisErrorLogs === this.maxRedisErrorLogs + 1) {
+        this.logger.warn(
+          `Suppressing additional Terminal Commands Queue Redis errors after ${this.maxRedisErrorLogs} logs`,
+        );
+      }
+    });
+
+    connection.on('end', () => {
+      this.logger.warn('Terminal Commands Queue Redis connection ended');
+    });
+
+    return connection;
+  }
+
+  private async isRedisReachable(redisUrl: string): Promise<boolean> {
+    try {
+      const parsed = new URL(redisUrl);
+      const host = parsed.hostname;
+      const port = Number(parsed.port || '6379');
+
+      await new Promise<void>((resolve, reject) => {
+        const socket = new Socket();
+
+        const done = (error?: Error) => {
+          socket.removeAllListeners();
+          socket.destroy();
+          if (error) {
+            reject(error);
+            return;
+          }
+          resolve();
+        };
+
+        socket.setTimeout(2500);
+        socket.once('error', done);
+        socket.once('timeout', () => done(new Error('socket timeout')));
+        socket.connect(port, host, () => done());
+      });
+
+      return true;
+    } catch (error) {
+      this.logger.warn(
+        `Redis preflight connectivity check failed: ${this.getErrorMessage(error)}`,
+      );
+      return false;
+    }
+  }
+
+  private teardownRedisConnection(): void {
+    if (!this.connection) {
+      return;
+    }
+
+    try {
+      this.connection.disconnect(false);
+      this.logger.log('Redis connection closed');
+    } catch (error) {
+      this.logger.warn(
+        `Error while closing Redis connection: ${this.getErrorMessage(error)}`,
+      );
+    } finally {
+      this.connection = undefined;
+    }
+  }
+
+  private getErrorMessage(error: unknown): string {
+    return error instanceof Error ? error.message : String(error);
   }
 }

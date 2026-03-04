@@ -1,15 +1,5 @@
 import axios from 'axios';
-
-// API Base URL - configured via environment variables
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api/v1';
-
-// Create axios instance
-const api = axios.create({
-  baseURL: API_BASE_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
+import { API_BASE_URL } from './api-base-url';
 
 // No authentication interceptors - open access
 
@@ -214,20 +204,10 @@ export interface ApiUsageStats {
 class AdminApi {
   private baseUrl: string;
   private axiosInstance: any;
-  private adminToken: string | null = null;
 
   constructor() {
-    // Ensure we always have a valid API URL, prioritizing environment variable
-    this.baseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.tradetaper.com/api/v1';
-    console.log('AdminApi initialized with baseUrl:', this.baseUrl);
+    this.baseUrl = API_BASE_URL;
     this.initializeAxios();
-  }
-
-  private getToken(): string {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('admin_token') || '';
-    }
-    return '';
   }
 
   private initializeAxios() {
@@ -236,24 +216,17 @@ class AdminApi {
       this.axiosInstance = axios.create({
         baseURL: this.baseUrl,
         timeout: 10000,
+        withCredentials: true,
         headers: {
           'Content-Type': 'application/json',
         },
-      });
-
-      // Inject real JWT token from localStorage
-      this.axiosInstance.interceptors.request.use((config: any) => {
-        const token = this.getToken();
-        if (token) {
-          config.headers['Authorization'] = `Bearer ${token}`;
-        }
-        return config;
       });
     } else {
       // Server-side: minimal axios instance (no auth needed for SSR)
       this.axiosInstance = axios.create({
         baseURL: this.baseUrl,
         timeout: 10000,
+        withCredentials: true,
         headers: {
           'Content-Type': 'application/json',
         },
@@ -261,28 +234,163 @@ class AdminApi {
     }
   }
 
-  async login(email: string, password: string): Promise<{ access_token: string }> {
-    const res = await axios.post(`${this.baseUrl}/admin/auth/login`, { email, password });
-    const { access_token } = res.data;
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('admin_token', access_token);
-      const expires = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toUTCString();
-      document.cookie = `admin_token=${access_token}; expires=${expires}; path=/; SameSite=Strict`;
-    }
+  async login(
+    email: string,
+    password: string,
+  ): Promise<{
+    access_token?: string;
+    role?: 'admin';
+    mfaRequired?: boolean;
+    mfaEnrollmentRequired?: boolean;
+    challengeMethod?: 'totp' | 'totp_or_recovery';
+    challengeToken?: string;
+    mfaVerified?: boolean;
+    mfaEnrolled?: boolean;
+    bootstrapToken?: string;
+    otpauthUrl?: string;
+    manualEntryKey?: string;
+    qrCodeDataUrl?: string;
+    recoveryCodes?: string[];
+    recoveryCodesRemaining?: number;
+    mfaMethod?: 'otp' | 'recovery';
+  }> {
+    const res = await axios.post(
+      `${this.baseUrl}/admin/auth/login`,
+      { email, password },
+      { withCredentials: true },
+    );
     return res.data;
   }
 
-  logout() {
+  async verifyMfa(payload: {
+    challengeToken: string;
+    otpCode?: string;
+    recoveryCode?: string;
+  }): Promise<{
+    access_token: string;
+    role: 'admin';
+    mfaVerified: true;
+    mfaMethod: 'otp' | 'recovery';
+    recoveryCodesRemaining?: number;
+  }> {
+    const res = await axios.post(
+      `${this.baseUrl}/admin/auth/verify-mfa`,
+      payload,
+      { withCredentials: true },
+    );
+    return res.data;
+  }
+
+  async startMfaBootstrap(email: string, password: string): Promise<{
+    mfaEnrollmentRequired: true;
+    bootstrapToken: string;
+    otpauthUrl: string;
+    manualEntryKey: string;
+    qrCodeDataUrl: string;
+    recoveryCodesCount: number;
+  }> {
+    const res = await axios.post(
+      `${this.baseUrl}/admin/auth/mfa/bootstrap/start`,
+      { email, password },
+      { withCredentials: true },
+    );
+    return res.data;
+  }
+
+  async completeMfaBootstrap(
+    bootstrapToken: string,
+    otpCode: string,
+  ): Promise<{
+    access_token: string;
+    role: 'admin';
+    mfaVerified: true;
+    mfaEnrolled: true;
+    recoveryCodes: string[];
+    recoveryCodesRemaining: number;
+  }> {
+    const res = await axios.post(
+      `${this.baseUrl}/admin/auth/mfa/bootstrap/complete`,
+      { bootstrapToken, otpCode },
+      { withCredentials: true },
+    );
+    return res.data;
+  }
+
+  async getMfaStatus(): Promise<{
+    mfaRequired: boolean;
+    enrolled: boolean;
+    source: 'credential' | 'legacy-env' | null;
+    recoveryCodesRemaining: number;
+    lastVerifiedAt: string | null;
+    recoveryCodesGeneratedAt: string | null;
+  }> {
+    const res = await this.ensureAxiosInstance().get('/admin/auth/mfa/status');
+    return res.data;
+  }
+
+  async regenerateRecoveryCodes(payload: {
+    otpCode?: string;
+    recoveryCode?: string;
+  }): Promise<{
+    recoveryCodes: string[];
+    recoveryCodesRemaining: number;
+  }> {
+    const res = await this.ensureAxiosInstance().post(
+      '/admin/auth/mfa/recovery-codes/regenerate',
+      payload,
+    );
+    return res.data;
+  }
+
+  async getAuthAuditLogs(params?: {
+    limit?: number;
+    offset?: number;
+    eventType?: string;
+    outcome?: 'success' | 'failure';
+  }): Promise<{
+    data: Array<{
+      id: string;
+      eventType: string;
+      outcome: 'success' | 'failure';
+      adminEmail?: string | null;
+      ipAddress?: string | null;
+      userAgent?: string | null;
+      reason?: string | null;
+      requestId?: string | null;
+      metadata?: Record<string, unknown> | null;
+      createdAt: string;
+    }>;
+    total: number;
+    limit: number;
+    offset: number;
+  }> {
+    const searchParams = new URLSearchParams();
+    if (params?.limit) searchParams.set('limit', String(params.limit));
+    if (params?.offset) searchParams.set('offset', String(params.offset));
+    if (params?.eventType) searchParams.set('eventType', params.eventType);
+    if (params?.outcome) searchParams.set('outcome', params.outcome);
+
+    const query = searchParams.toString();
+    const res = await this
+      .ensureAxiosInstance()
+      .get(`/admin/auth/audit-logs${query ? `?${query}` : ''}`);
+    return res.data;
+  }
+
+  async logout() {
+    await axios.post(
+      `${this.baseUrl}/admin/auth/logout`,
+      {},
+      { withCredentials: true },
+    );
     if (typeof window !== 'undefined') {
       localStorage.removeItem('admin_token');
-      document.cookie = 'admin_token=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
     }
   }
 
 
   private ensureAxiosInstance() {
     if (!this.axiosInstance) {
-      console.log('Re-initializing axios instance');
       this.initializeAxios();
     }
     return this.axiosInstance;

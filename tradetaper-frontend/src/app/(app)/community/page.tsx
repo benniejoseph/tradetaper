@@ -16,7 +16,6 @@ import { Timeframe } from '@/types/enums';
 import { strategiesService } from '@/services/strategiesService';
 import { Strategy } from '@/types/strategy';
 import ReactMarkdown from 'react-markdown';
-import { AnimatedCard } from '@/components/ui/AnimatedCard';
 import Modal from '@/components/ui/Modal';
 import { useDebounce } from '@/hooks/useDebounce';
 import { FeatureGate } from '@/components/common/FeatureGate';
@@ -153,6 +152,8 @@ const markdownComponents = {
 
 export default function CommunityPage() {
   const { isAuthenticated, user } = useSelector((state: RootState) => state.auth);
+  const hasCommunityAccess =
+    user?.subscription?.plan === 'essential' || user?.subscription?.plan === 'premium';
   const [activeTab, setActiveTab] = useState<TabKey>('feed');
 
   const [feed, setFeed] = useState<CommunityPost[]>([]);
@@ -203,13 +204,13 @@ export default function CommunityPage() {
     imageUrl: '',
   });
 
-  const canPost = isAuthenticated && settings?.publicProfile;
+  const canPost = isAuthenticated && hasCommunityAccess && settings?.publicProfile;
 
   const assetTypeOptions = useMemo(() => Object.values(AssetType), []);
   const timeframeOptions = useMemo(() => Object.values(Timeframe), []);
 
   useEffect(() => {
-    if (!isAuthenticated) return;
+    if (!isAuthenticated || !hasCommunityAccess) return;
     communityService
       .getSettings()
       .then(setSettings)
@@ -230,9 +231,10 @@ export default function CommunityPage() {
       .getStrategies()
       .then(setStrategies)
       .catch(() => setStrategies([]));
-  }, [isAuthenticated]);
+  }, [hasCommunityAccess, isAuthenticated]);
 
   const loadFeed = async () => {
+    if (!isAuthenticated || !hasCommunityAccess) return;
     setLoading(true);
     try {
       const response = await communityService.getFeed();
@@ -243,6 +245,7 @@ export default function CommunityPage() {
   };
 
   const loadLeaderboard = async () => {
+    if (!isAuthenticated || !hasCommunityAccess) return;
     setLoading(true);
     try {
       const response = await communityService.getLeaderboard({
@@ -259,6 +262,7 @@ export default function CommunityPage() {
   };
 
   const loadPeople = async () => {
+    if (!isAuthenticated || !hasCommunityAccess) return;
     setLoading(true);
     try {
       const response = await communityService.getPeople({
@@ -274,17 +278,19 @@ export default function CommunityPage() {
   };
 
   useEffect(() => {
+    if (!isAuthenticated || !hasCommunityAccess) return;
     if (activeTab === 'feed') loadFeed();
     if (activeTab === 'leaderboard') loadLeaderboard();
     if (activeTab === 'people') loadPeople();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab]);
+  }, [activeTab, hasCommunityAccess, isAuthenticated]);
 
   useEffect(() => {
+    if (!isAuthenticated || !hasCommunityAccess) return;
     if (activeTab === 'leaderboard') loadLeaderboard();
     if (activeTab === 'people') loadPeople();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters.accountSize, filters.assetType, filters.timeframe, filters.strategyId, filters.period]);
+  }, [filters.accountSize, filters.assetType, filters.timeframe, filters.strategyId, filters.period, hasCommunityAccess, isAuthenticated]);
 
   useEffect(() => {
     if (!canPost) return;
@@ -532,7 +538,7 @@ export default function CommunityPage() {
                   <Sparkles className="h-3.5 w-3.5" />
                   Discipline-first network
                 </span>
-                <span className="text-xs text-gray-500 dark:text-gray-400">Public read-only • Members-only actions</span>
+                <span className="text-xs text-gray-500 dark:text-gray-400">Premium members only</span>
               </div>
 
               <div className="space-y-3">
@@ -605,14 +611,6 @@ export default function CommunityPage() {
             </div>
           </div>
         </div>
-
-        {!isAuthenticated && (
-          <AnimatedCard animate={false} variant="default" className="border-emerald-100/50 bg-white/80 p-4">
-            <p className="text-sm text-gray-600 dark:text-gray-300">
-              Community is public read-only. Sign in to post, follow, or appear on leaderboards.
-            </p>
-          </AnimatedCard>
-        )}
 
         <div className="flex flex-wrap gap-2">
           {([

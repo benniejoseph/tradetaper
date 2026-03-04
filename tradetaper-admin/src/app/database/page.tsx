@@ -9,6 +9,7 @@ import {
   Table2, Play, AlertTriangle,
 } from 'lucide-react';
 import { adminApi } from '@/lib/api';
+import { API_BASE_URL } from '@/lib/api-base-url';
 import toast from 'react-hot-toast';
 
 export default function DatabasePage() {
@@ -44,13 +45,13 @@ export default function DatabasePage() {
     setSqlResult(null);
     try {
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/admin/database/run-sql?confirm=ADMIN_SQL_EXECUTE`,
+        `${API_BASE_URL}/admin/database/run-sql?confirm=ADMIN_SQL_EXECUTE`,
         {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${localStorage.getItem('admin_token')}`,
           },
+          credentials: 'include',
           body: JSON.stringify({ sql }),
         }
       );

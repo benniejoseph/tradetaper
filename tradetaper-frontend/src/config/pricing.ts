@@ -58,11 +58,11 @@ export const PRICING_TIERS: PricingTier[] = [
     description: 'Perfect for getting started with trading journals',
     price: 0,
     interval: 'month',
-    tradeLimit: 10,
-    accountLimit: 1, // 1 MT5 Auto-Sync Account
+    tradeLimit: 50,
+    accountLimit: 0,
     features: [
-      'Up to 10 trades per month',
-      '1 MetaApi auto-sync account',
+      'Up to 50 trades per month',
+      '0 MetaApi auto-sync accounts',
       'Unlimited manual & import accounts',
       'Basic trade analytics & journaling',
       'Chart image uploads',
@@ -75,10 +75,10 @@ export const PRICING_TIERS: PricingTier[] = [
     description: 'Ideal for disciplined manual traders',
     price: 9.99,
     interval: 'month',
-    tradeLimit: 100,
-    accountLimit: 2, // 2 MT5 Auto-Sync Accounts
+    tradeLimit: 500,
+    accountLimit: 2,
     features: [
-      'Up to 100 trades per month',
+      'Up to 500 trades per month',
       '2 MetaApi auto-sync accounts',
       'Trader Discipline Tracker',
       'Community & Leaderboards',
@@ -95,11 +95,11 @@ export const PRICING_TIERS: PricingTier[] = [
     price: 19.99,
     interval: 'month',
     recommended: true,
-    tradeLimit: 500,
-    accountLimit: 3, // 3 MT5 Auto-Sync Accounts
+    tradeLimit: 0,
+    accountLimit: 4,
     features: [
-      'Up to 500 trades per month',
-      '3 MetaApi auto-sync accounts',
+      'Unlimited trades',
+      '4 MetaApi auto-sync accounts',
       'Unlimited ICT AI Mentor',
       'AI Psychology Profiling',
       'AI Live Chart & Pattern Analysis',

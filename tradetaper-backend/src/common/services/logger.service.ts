@@ -4,6 +4,7 @@ import {
   LoggerService,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { ObservabilityService } from './observability.service';
 
 export interface ErrorContext {
   userId?: string;
@@ -30,7 +31,10 @@ export class ProductionLoggerService implements LoggerService {
   private readonly isProduction: boolean;
   private readonly enableDebugLogs: boolean;
 
-  constructor(private configService: ConfigService) {
+  constructor(
+    private configService: ConfigService,
+    private readonly observabilityService: ObservabilityService,
+  ) {
     this.isProduction = configService.get<string>('NODE_ENV') === 'production';
     this.enableDebugLogs = configService.get<string>('DEBUG') === 'true';
   }
@@ -64,10 +68,28 @@ export class ProductionLoggerService implements LoggerService {
       this.logger.error(message, stack, context);
     }
 
-    // In a real production environment, you might also:
-    // - Send to external logging service (e.g., Sentry, LogRocket)
-    // - Store in database for analysis
-    // - Send alerts for critical errors
+    const errorToCapture = new Error(message);
+    if (stack) {
+      errorToCapture.stack = stack;
+    }
+
+    this.observabilityService.captureException(errorToCapture, {
+      tags: {
+        context: context || 'Application',
+      },
+      extra: {
+        logLevel: 'error',
+        userId: errorContext?.userId,
+        requestId: errorContext?.requestId,
+        endpoint: errorContext?.endpoint,
+        method: errorContext?.method,
+      },
+      user: errorContext?.userId
+        ? {
+            id: errorContext.userId,
+          }
+        : undefined,
+    });
   }
 
   /**
@@ -271,6 +293,17 @@ export class ProductionLoggerService implements LoggerService {
     } else {
       this.log(message, 'Security', details);
     }
+
+    this.observabilityService.captureEvent(
+      'security_event',
+      userId || 'anonymous',
+      {
+        event,
+        severity,
+        ip,
+        hasUserAgent: !!userAgent,
+      },
+    );
   }
 
   /**

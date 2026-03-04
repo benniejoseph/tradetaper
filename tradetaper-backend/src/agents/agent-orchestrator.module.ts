@@ -3,6 +3,7 @@ import { EventBusService } from './event-bus.service';
 import { AgentRegistryService } from './agent-registry.service';
 import { AgentOrchestratorService } from './agent-orchestrator.service';
 import { AgentsController } from './agents.controller';
+import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
 
 /**
  * Agent Orchestrator Module
@@ -18,6 +19,7 @@ import { AgentsController } from './agents.controller';
  */
 @Global()
 @Module({
+  imports: [SubscriptionsModule],
   controllers: [AgentsController],
   providers: [EventBusService, AgentRegistryService, AgentOrchestratorService],
   exports: [EventBusService, AgentRegistryService, AgentOrchestratorService],

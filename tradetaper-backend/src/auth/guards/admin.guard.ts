@@ -22,6 +22,30 @@ export class AdminGuard implements CanActivate {
     private readonly configService: ConfigService,
   ) {}
 
+  private parseBooleanEnv(value: string | undefined): boolean | null {
+    if (typeof value !== 'string') {
+      return null;
+    }
+    const normalized = value.trim().toLowerCase();
+    if (['1', 'true', 'yes', 'on'].includes(normalized)) {
+      return true;
+    }
+    if (['0', 'false', 'no', 'off'].includes(normalized)) {
+      return false;
+    }
+    return null;
+  }
+
+  private isAdminMfaRequired(): boolean {
+    const explicitRequirement = this.parseBooleanEnv(
+      this.configService.get<string>('ADMIN_REQUIRE_MFA'),
+    );
+    if (explicitRequirement !== null) {
+      return explicitRequirement;
+    }
+    return true;
+  }
+
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
       context.getHandler(),
@@ -33,11 +57,18 @@ export class AdminGuard implements CanActivate {
 
     const request = context.switchToHttp().getRequest();
     const authHeader = request.headers.authorization as string | undefined;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    const bearerToken =
+      authHeader && authHeader.startsWith('Bearer ')
+        ? authHeader.slice(7).trim()
+        : null;
+    const cookieToken =
+      typeof request.cookies?.admin_token === 'string'
+        ? request.cookies.admin_token
+        : null;
+    const token = bearerToken || cookieToken;
+    if (!token) {
       throw new UnauthorizedException('Admin token is required');
     }
-
-    const token = authHeader.slice(7).trim();
     const adminJwtSecret =
       this.configService.get<string>('ADMIN_JWT_SECRET') ||
       this.configService.get<string>('JWT_SECRET');
@@ -52,6 +83,7 @@ export class AdminGuard implements CanActivate {
         sub: string;
         email: string;
         role?: string;
+        mfa?: boolean;
       }>(token, {
         secret: adminJwtSecret,
       });
@@ -59,18 +91,25 @@ export class AdminGuard implements CanActivate {
       if (payload.role !== 'admin') {
         throw new ForbiddenException('Admin privileges are required');
       }
+      if (this.isAdminMfaRequired() && payload.mfa !== true) {
+        throw new UnauthorizedException('Admin MFA verification is required');
+      }
 
       request.user = {
         id: payload.sub,
         email: payload.email,
         role: payload.role,
+        mfa: payload.mfa === true,
       };
       return true;
     } catch (error) {
       this.logger.warn(
         `Admin authentication rejected: ${error instanceof Error ? error.message : 'unknown error'}`,
       );
-      if (error instanceof ForbiddenException) {
+      if (
+        error instanceof ForbiddenException ||
+        error instanceof UnauthorizedException
+      ) {
         throw error;
       }
       throw new UnauthorizedException('Invalid or expired admin token');

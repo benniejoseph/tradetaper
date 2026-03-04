@@ -14,9 +14,14 @@ import {
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { AuthenticatedRequest } from '../types/authenticated-request.interface';
 import { PropFirmService, CreatePropFirmChallengeDto, UpdatePropFirmChallengeDto } from './prop-firm.service';
+import {
+  FeatureAccessGuard,
+  RequireFeature,
+} from '../subscriptions/guards/feature-access.guard';
 
 @Controller('prop-firm-challenges')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, FeatureAccessGuard)
+@RequireFeature('propFirm')
 export class PropFirmController {
   constructor(private readonly propFirmService: PropFirmService) {}
 

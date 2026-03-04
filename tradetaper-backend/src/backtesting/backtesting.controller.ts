@@ -24,9 +24,14 @@ import { UpdateBacktestTradeDto } from './dto/update-backtest-trade.dto';
 import { CreateMarketLogDto } from './dto/create-market-log.dto';
 import { UpdateMarketLogDto } from './dto/update-market-log.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import {
+  FeatureAccessGuard,
+  RequireFeature,
+} from '../subscriptions/guards/feature-access.guard';
 
 @Controller('backtesting')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, FeatureAccessGuard)
+@RequireFeature('backtesting')
 export class BacktestingController {
   constructor(
     private readonly backtestingService: BacktestingService,

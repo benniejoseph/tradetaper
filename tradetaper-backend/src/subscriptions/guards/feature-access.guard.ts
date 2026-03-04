@@ -15,7 +15,13 @@ export const RequireFeature = (feature: string) =>
   SetMetadata(FEATURE_ACCESS_KEY, feature);
 
 /** Features that consume a per-user monthly AI quota */
-const AI_QUOTA_FEATURES = new Set(['aiAnalysis', 'chartAnalysis', 'psychology', 'mentor']);
+const AI_QUOTA_FEATURES = new Set([
+  'aiAnalysis',
+  'chartAnalysis',
+  'psychology',
+  'mentor',
+  'marketIntelligenceAi',
+]);
 
 @Injectable()
 export class FeatureAccessGuard implements CanActivate {

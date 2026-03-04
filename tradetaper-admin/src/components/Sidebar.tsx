@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import toast from 'react-hot-toast';
+import adminApi from '@/lib/api';
 
 interface SidebarProps {
   isCollapsed: boolean;
@@ -68,9 +69,13 @@ export default function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
   const { theme, setTheme } = useTheme();
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
 
-  const handleLogout = () => {
-    document.cookie = 'admin_token=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
-    localStorage.removeItem('admin_token');
+  const handleLogout = async () => {
+    try {
+      await adminApi.logout();
+    } catch {
+      // Best-effort logout: still clear client-side fallback state.
+      localStorage.removeItem('admin_token');
+    }
     toast.success('Logged out');
     router.push('/login');
   };

@@ -12,9 +12,14 @@ import {
 import { PsychologicalInsightsService } from './psychological-insights.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { AuthenticatedRequest } from '../types/authenticated-request.interface';
+import {
+  FeatureAccessGuard,
+  RequireFeature,
+} from '../subscriptions/guards/feature-access.guard';
 
 @Controller('notes/:noteId/psychological-insights')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, FeatureAccessGuard)
+@RequireFeature('psychology')
 export class PsychologicalInsightsController {
   constructor(
     private readonly psychologicalInsightsService: PsychologicalInsightsService,
@@ -48,7 +53,8 @@ export class PsychologicalInsightsController {
 }
 
 @Controller('psychological-profile')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, FeatureAccessGuard)
+@RequireFeature('psychology')
 export class PsychologicalProfileController {
   constructor(
     private readonly psychologicalInsightsService: PsychologicalInsightsService,

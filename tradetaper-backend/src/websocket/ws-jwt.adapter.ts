@@ -6,7 +6,7 @@ import { INestApplicationContext, Logger } from '@nestjs/common';
 
 /**
  * SECURITY: WebSocket adapter that validates JWT tokens on connection
- * Extracts JWT from auth header or query parameter and validates before allowing connection
+ * Extracts JWT from auth header/auth payload/cookie and validates before allowing connection.
  */
 export class WsJwtAdapter extends IoAdapter {
   private readonly logger = new Logger(WsJwtAdapter.name);
@@ -39,12 +39,6 @@ export class WsJwtAdapter extends IoAdapter {
         if (!token && socket.handshake.auth?.token) {
           token = socket.handshake.auth.token;
           this.logger.debug('Token extracted from auth.token');
-        }
-
-        // Fallback to query parameter (legacy)
-        if (!token && socket.handshake.query?.token) {
-          token = socket.handshake.query.token as string;
-          this.logger.debug('Token extracted from query parameter');
         }
 
         // Try cookie as last resort (for cookie-based auth)

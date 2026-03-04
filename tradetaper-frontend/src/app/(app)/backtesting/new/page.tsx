@@ -339,7 +339,7 @@ function NewBacktestTradeContent() {
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Timeframe *</label>
               <select
                 value={formData.timeframe}
-                onChange={(e) => updateField('timeframe', e.target.value as Timeframe)}
+                onChange={(e) => updateField('timeframe', e.target.value as CreateBacktestTradeDto['timeframe'])}
                 className="w-full px-4 py-2 border border-purple-300 dark:border-emerald-600/30 rounded-lg bg-white dark:bg-black text-gray-900 dark:text-white"
               >
                 {TIMEFRAMES.map(t => (
@@ -352,7 +352,7 @@ function NewBacktestTradeContent() {
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Session</label>
               <select
                 value={formData.session || ''}
-                onChange={(e) => updateField('session', e.target.value as TradingSession || undefined)}
+                onChange={(e) => updateField('session', (e.target.value || undefined) as CreateBacktestTradeDto['session'])}
                 className="w-full px-4 py-2 border border-purple-300 dark:border-emerald-600/30 rounded-lg bg-white dark:bg-black text-gray-900 dark:text-white"
               >
                 <option value="">Select Session</option>
@@ -366,7 +366,7 @@ function NewBacktestTradeContent() {
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Kill Zone</label>
               <select
                 value={formData.killZone || ''}
-                onChange={(e) => updateField('killZone', e.target.value as KillZone || undefined)}
+                onChange={(e) => updateField('killZone', (e.target.value || undefined) as CreateBacktestTradeDto['killZone'])}
                 className="w-full px-4 py-2 border border-purple-300 dark:border-emerald-600/30 rounded-lg bg-white dark:bg-black text-gray-900 dark:text-white"
               >
                 <option value="">Select Kill Zone</option>
@@ -380,7 +380,7 @@ function NewBacktestTradeContent() {
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Day of Week</label>
               <select
                 value={formData.dayOfWeek || ''}
-                onChange={(e) => updateField('dayOfWeek', e.target.value as DayOfWeek || undefined)}
+                onChange={(e) => updateField('dayOfWeek', (e.target.value || undefined) as CreateBacktestTradeDto['dayOfWeek'])}
                 className="w-full px-4 py-2 border border-purple-300 dark:border-emerald-600/30 rounded-lg bg-white dark:bg-black text-gray-900 dark:text-white"
               >
                 <option value="">Select Day</option>
@@ -415,7 +415,7 @@ function NewBacktestTradeContent() {
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Market Structure</label>
               <select
                 value={formData.marketStructure || ''}
-                onChange={(e) => updateField('marketStructure', e.target.value as MarketStructure || undefined)}
+                onChange={(e) => updateField('marketStructure', (e.target.value || undefined) as CreateBacktestTradeDto['marketStructure'])}
                 className="w-full px-4 py-2 border border-amber-300 dark:border-amber-600/30 rounded-lg bg-white dark:bg-black text-gray-900 dark:text-white"
               >
                 <option value="">Select Structure</option>
@@ -429,7 +429,7 @@ function NewBacktestTradeContent() {
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">HTF Bias</label>
               <select
                 value={formData.htfBias || ''}
-                onChange={(e) => updateField('htfBias', e.target.value as HTFBias || undefined)}
+                onChange={(e) => updateField('htfBias', (e.target.value || undefined) as CreateBacktestTradeDto['htfBias'])}
                 className="w-full px-4 py-2 border border-amber-300 dark:border-amber-600/30 rounded-lg bg-white dark:bg-black text-gray-900 dark:text-white"
               >
                 <option value="">Select Bias</option>

@@ -26,7 +26,7 @@ import { MT5Account } from '../../users/entities/mt5-account.entity';
 import { Note } from '../../notes/entities/note.entity';
 import { Strategy } from '../../strategies/entities/strategy.entity';
 import { RazorpayService } from './razorpay.service';
-import { Between, IsNull, Not } from 'typeorm';
+import { Between } from 'typeorm';
 import { NotificationsService } from '../../notifications/notifications.service';
 import {
   NotificationType,
@@ -63,8 +63,11 @@ export interface PricingPlan {
 export interface BillingInfo {
   currentPlan: string;
   status: string;
+  currentPeriodStart: Date;
   currentPeriodEnd: Date;
   cancelAtPeriodEnd: boolean;
+  interval?: string;
+  price?: number;
   usage: SubscriptionUsage;
 }
 
@@ -73,8 +76,14 @@ export interface SubscriptionUsage {
   manualAccounts: number;
   mt5Accounts: number;
   notes: number;
+  strategies: number;
   periodStart: Date;
   periodEnd: Date;
+  // Backward-compatible aliases used by frontend subscription state.
+  currentPeriodTrades?: number;
+  tradeLimit?: number;
+  accountsUsed?: number;
+  accountLimit?: number;
 }
 
 @Injectable()
@@ -162,8 +171,9 @@ export class SubscriptionService {
           'No Live Chart & AI Analysis',
           'No Reports',
         ],
-        priceMonthly: 1999, // Example price $19.99
-        priceYearly: 19999,
+        // Prices in paise (₹999 / ₹9,999)
+        priceMonthly: 99900,
+        priceYearly: 999900,
         razorpayPlanMonthlyId:
           this.configService.get<string>('RAZORPAY_PLAN_ESSENTIAL_MONTHLY') ||
           '',
@@ -203,8 +213,9 @@ export class SubscriptionService {
           'AI Psychology Insights',
           'Weekly & Monthly Reports',
         ],
-        priceMonthly: 4999, // Example price $49.99
-        priceYearly: 49999,
+        // Prices in paise (₹1,999 / ₹19,999)
+        priceMonthly: 199900,
+        priceYearly: 1999900,
         razorpayPlanMonthlyId:
           this.configService.get<string>('RAZORPAY_PLAN_PREMIUM_MONTHLY') || '',
         razorpayPlanYearlyId:
@@ -245,6 +256,7 @@ export class SubscriptionService {
   async getOrCreateSubscription(userId: string): Promise<Subscription> {
     let subscription = await this.subscriptionRepository.findOne({
       where: { userId },
+      order: { createdAt: 'DESC' },
     });
 
     if (!subscription) {
@@ -308,8 +320,11 @@ export class SubscriptionService {
     return {
       currentPlan: subscription.plan,
       status: subscription.status,
-      currentPeriodEnd: subscription.currentPeriodEnd,
+      currentPeriodStart: subscription.currentPeriodStart || usage.periodStart,
+      currentPeriodEnd: subscription.currentPeriodEnd || usage.periodEnd,
       cancelAtPeriodEnd: subscription.cancelAtPeriodEnd || false,
+      interval: subscription.interval,
+      price: Number(subscription.price || 0),
       usage,
     };
   }
@@ -321,8 +336,9 @@ export class SubscriptionService {
       throw new Error('User ID is required to get usage');
     }
 
-    // Get current subscription to determine period
+    // Get current subscription to determine period and limits
     const subscription = await this.getOrCreateSubscription(userId);
+    const plan = this.getPricingPlan(subscription.plan);
     const now = new Date();
 
     // Fallback if subscription period is invalid
@@ -354,7 +370,6 @@ export class SubscriptionService {
       where: {
         userId,
         isActive: true,
-        metaApiAccountId: Not(IsNull()),
       },
     });
 
@@ -366,16 +381,36 @@ export class SubscriptionService {
       },
     });
 
-    // 5. Count Strategies (Total) - not in SubscriptionUsage interface yet but good to have
-    // const strategiesCount = await this.strategyRepository.count({ where: { userId } });
+    // 5. Count Strategies (Total)
+    const strategiesCount = await this.strategyRepository.count({
+      where: { userId },
+    });
+
+    const tradeLimit =
+      plan && plan.limits.trades !== 'unlimited' ? plan.limits.trades : 0;
+    const mt5BaseLimit =
+      plan && plan.limits.mt5Accounts !== 'unlimited'
+        ? plan.limits.mt5Accounts
+        : 0;
+    const accountLimit =
+      mt5BaseLimit === 0 && subscription.extraMt5Slots > 0
+        ? subscription.extraMt5Slots
+        : mt5BaseLimit === 0
+          ? 0
+          : mt5BaseLimit + (subscription.extraMt5Slots || 0);
 
     return {
       trades: tradesCount,
       manualAccounts: manualAccountsCount,
       mt5Accounts: mt5AccountsCount,
       notes: notesCount,
+      strategies: strategiesCount,
       periodStart,
       periodEnd,
+      currentPeriodTrades: tradesCount,
+      tradeLimit,
+      accountsUsed: mt5AccountsCount,
+      accountLimit,
     };
   }
 
@@ -389,6 +424,22 @@ export class SubscriptionService {
     switch (feature) {
       case 'discipline':
         return plan.limits.discipline;
+      case 'community':
+        return subscription.plan === 'essential' || subscription.plan === 'premium';
+      case 'mentor':
+      case 'aiAnalysis':
+      case 'chartAnalysis':
+      case 'marketIntelligenceAi':
+      case 'propFirm':
+        return subscription.plan === 'premium';
+      case 'backtesting':
+        return plan.limits.backtesting === 'full';
+      case 'advancedAnalytics':
+      case 'advanced_analytics':
+        return subscription.plan === 'premium';
+      case 'psychology':
+      case 'reports':
+        return subscription.plan === 'premium';
       // case 'market_intelligence_full': // If you want to check full access
       //   return plan.limits.marketIntelligence === 'full';
       // Mapped to existing checks or new ones?
@@ -402,16 +453,6 @@ export class SubscriptionService {
 
       case 'unlimited_trades':
         return plan.limits.trades === 'unlimited';
-
-      case 'advanced_analytics':
-        // Map to aiAnalysis?
-        return plan.limits.aiAnalysis; // Only Premium has AI Analysis
-
-      // New Features
-      case 'psychology':
-        return plan.limits.psychology;
-      case 'reports':
-        return plan.limits.reports;
 
       default:
         return false;
@@ -909,6 +950,7 @@ export class SubscriptionService {
    */
   async createMt5SlotOrder(userId: string): Promise<{
     orderId: string;
+    id: string;
     amount: number;
     currency: string;
     key: string;
@@ -932,9 +974,22 @@ export class SubscriptionService {
     this.logger.log(`Created MT5 slot order ${order.id} for user ${userId}`);
     return {
       orderId: order.id,
+      id: order.id,
       amount: amountPaise,
       currency: 'INR',
       key: this.configService.get<string>('RAZORPAY_KEY_ID') ?? '',
     };
+  }
+
+  async cancelSubscription(userId: string): Promise<void> {
+    const subscription = await this.getOrCreateSubscription(userId);
+    subscription.cancelAtPeriodEnd = true;
+    await this.subscriptionRepository.save(subscription);
+  }
+
+  async reactivateSubscription(userId: string): Promise<void> {
+    const subscription = await this.getOrCreateSubscription(userId);
+    subscription.cancelAtPeriodEnd = false;
+    await this.subscriptionRepository.save(subscription);
   }
 }

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { API_BASE_URL } from '@/lib/api-base-url';
 
 export default function TestDirectPage() {
   const [result, setResult] = useState<any>(null);
@@ -12,10 +13,9 @@ export default function TestDirectPage() {
     setError(null);
     try {
       console.log('Making direct API call...');
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api/v1';
-      console.log('API URL:', apiUrl);
+      console.log('API URL:', API_BASE_URL);
       
-      const response = await fetch(`${apiUrl}/admin/dashboard/stats`, {
+      const response = await fetch(`${API_BASE_URL}/admin/dashboard/stats`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -49,9 +49,9 @@ export default function TestDirectPage() {
   return (
     <div className="min-h-screen bg-gray-900 text-white p-8">
       <h1 className="text-2xl font-bold mb-6">Direct API Test Page</h1>
-      
+
       <div className="mb-4">
-        <p><strong>API Base URL:</strong> {process.env.NEXT_PUBLIC_API_URL || 'Not set'}</p>
+        <p><strong>API Base URL:</strong> {API_BASE_URL}</p>
       </div>
 
       <div className="space-y-4 mb-6">

@@ -15,6 +15,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '@/store/store';
 import { logout } from '@/store/features/authSlice';
 import { useRouter } from 'next/navigation';
+import { logoutUser } from '@/services/authService';
 
 
 // Define props for Sidebar
@@ -38,7 +39,8 @@ export default function Sidebar({ isOpen, toggleSidebar, isMobile, onExpandChang
   const [isExpanded, setIsExpanded] = useState(false);
   const [hoverTimeout, setHoverTimeout] = useState<NodeJS.Timeout | null>(null);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await logoutUser();
     dispatch(logout());
     router.push('/login');
   };

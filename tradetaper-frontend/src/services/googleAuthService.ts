@@ -1,6 +1,8 @@
 import { store } from '../store/store';
 import { authSuccess } from '../store/features/authSlice';
 import { UserResponseDto } from '../types/user';
+import { authApiClient } from './api';
+import { captureClientEvent } from '@/lib/observability/client';
 
 // Use NEXT_PUBLIC_API_URL which already includes /api/v1
 const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL || 'https://api.tradetaper.com/api/v1').trim();
@@ -28,6 +30,10 @@ export class GoogleAuthService {
 
       if (error) {
         console.error('OAuth error:', error);
+        captureClientEvent('auth_login_failed', {
+          method: 'google',
+          reason: 'oauth_error',
+        });
         return false;
       }
 
@@ -39,22 +45,28 @@ export class GoogleAuthService {
           token: token,
           user: userData
         }));
-
-        // Store in localStorage for persistence
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('token', token);
-          localStorage.setItem('user', JSON.stringify(userData));
-        }
-
-        // Don't clean up URL here - let the redirect handle it
-        // The new page load will have a clean URL
-        
+        captureClientEvent('auth_login_success', { method: 'google' });
         return true;
       }
 
-      return false;
+      const meResponse = await authApiClient.get<UserResponseDto>('/auth/me');
+      if (!meResponse.data) {
+        return false;
+      }
+      store.dispatch(
+        authSuccess({
+          token: null,
+          user: meResponse.data,
+        }),
+      );
+      captureClientEvent('auth_login_success', { method: 'google' });
+      return true;
     } catch (error) {
       console.error('Error handling Google callback:', error);
+      captureClientEvent('auth_login_failed', {
+        method: 'google',
+        reason: 'callback_exception',
+      });
       return false;
     }
   }

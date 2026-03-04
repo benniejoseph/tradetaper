@@ -5,29 +5,64 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { store } from '@/store/store';
 import { CurrencyProvider } from '@/context/CurrencyContext';
-import { loadUserFromStorage, fetchCurrentUser } from '@/store/features/authSlice';
+import { fetchCurrentUser, logout } from '@/store/features/authSlice';
 import { setupAuthInterceptors, initializeApiSecurity } from '@/services/api';
 import { ThemeProvider } from '@/components/theme-provider';
 import React from 'react';
+import {
+  initializeClientObservability,
+  syncObservabilityUser,
+} from '@/lib/observability/client';
 
 function ReduxProviderWithInit({ children }: { children: React.ReactNode }) {
   useEffect(() => {
-    // Load user from storage on app initialization
-    store.dispatch(loadUserFromStorage());
+    initializeClientObservability();
 
-    // Setup auth interceptors to attach JWT token to requests
-    setupAuthInterceptors(() => store.getState());
-    
-    // Fetch a fresh user context to override stale localStorage subscriptions
-    const { isAuthenticated } = store.getState().auth;
-    if (isAuthenticated) {
-      store.dispatch(fetchCurrentUser() as any);
-    }
+    let lastObservedUserId: string | null = null;
+    let lastObservedEmail: string | null = null;
+    const syncCurrentUser = () => {
+      const currentUser = store.getState().auth.user;
+      const currentUserId = currentUser?.id ?? null;
+      const currentUserEmail = currentUser?.email ?? null;
 
-    // SECURITY: Initialize CSRF protection
-    initializeApiSecurity().catch((error: any) => {
-      console.error('Failed to initialize API security:', error);
+      if (
+        currentUserId === lastObservedUserId &&
+        currentUserEmail === lastObservedEmail
+      ) {
+        return;
+      }
+
+      lastObservedUserId = currentUserId;
+      lastObservedEmail = currentUserEmail;
+      syncObservabilityUser(
+        currentUser
+          ? {
+              id: currentUser.id,
+              email: currentUser.email,
+            }
+          : null,
+      );
+    };
+
+    syncCurrentUser();
+    const unsubscribe = store.subscribe(syncCurrentUser);
+
+    setupAuthInterceptors(() => store.getState(), () => {
+      store.dispatch(logout());
     });
+
+    const bootstrapAuth = async () => {
+      await initializeApiSecurity().catch((error: unknown) => {
+        console.error('Failed to initialize API security:', error);
+      });
+      await store.dispatch(fetchCurrentUser());
+    };
+
+    void bootstrapAuth();
+
+    return () => {
+      unsubscribe();
+    };
   }, []);
 
   return (

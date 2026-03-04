@@ -10,6 +10,10 @@ import {
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { AgentOrchestratorService } from './agent-orchestrator.service';
 import { AuthenticatedRequest } from '../types/authenticated-request.interface';
+import {
+  FeatureAccessGuard,
+  RequireFeature,
+} from '../subscriptions/guards/feature-access.guard';
 
 /**
  * Agents Controller
@@ -220,6 +224,8 @@ export class AgentsController {
    * Chat with ICT Mentor (RAG)
    */
   @Post('mentor/chat')
+  @UseGuards(FeatureAccessGuard)
+  @RequireFeature('mentor')
   async chatWithMentor(
     @Req() req: AuthenticatedRequest,
     @Body() body: { question: string },
@@ -242,6 +248,8 @@ export class AgentsController {
    * Audit trade screenshot with Mentor (Vision)
    */
   @Post('mentor/audit')
+  @UseGuards(FeatureAccessGuard)
+  @RequireFeature('mentor')
   async auditTrade(
     @Req() req: AuthenticatedRequest,
     @Body() body: { imageUrl: string; description?: string },
@@ -265,6 +273,8 @@ export class AgentsController {
    * Ingest knowledge material
    */
   @Post('mentor/ingest')
+  @UseGuards(FeatureAccessGuard)
+  @RequireFeature('mentor')
   async ingestKnowledge(
     @Req() req: AuthenticatedRequest,
     @Body()

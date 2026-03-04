@@ -6,6 +6,7 @@ import { motion } from 'framer-motion';
 import Sidebar from '@/components/Sidebar';
 import { CreditCard, RefreshCw, ChevronLeft, ChevronRight, Download } from 'lucide-react';
 import { formatNumber } from '@/lib/utils';
+import { API_BASE_URL } from '@/lib/api-base-url';
 import toast from 'react-hot-toast';
 
 export default function MembershipsPage() {
@@ -21,8 +22,8 @@ export default function MembershipsPage() {
       if (statusFilter) params.append('status', statusFilter);
       if (planFilter) params.append('plan', planFilter);
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/admin/subscriptions?${params}`,
-        { headers: { Authorization: `Bearer ${localStorage.getItem('admin_token')}` } }
+        `${API_BASE_URL}/admin/subscriptions?${params}`,
+        { credentials: 'include' }
       );
       return res.json();
     },

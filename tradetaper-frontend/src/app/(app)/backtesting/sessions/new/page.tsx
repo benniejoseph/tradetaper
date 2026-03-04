@@ -7,8 +7,6 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useSelector } from 'react-redux';
-import { RootState } from '@/store/store';
 import {
   FiChevronLeft,
   FiPlay,
@@ -42,7 +40,6 @@ const TIMEFRAMES = [
 // ── Component ─────────────────────────────────────────────────────────────────
 export default function NewReplaySessionPage() {
   const router = useRouter();
-  const token  = useSelector((state: RootState) => state.auth.token);
 
   // Core fields
   const [symbol,          setSymbol]          = useState('XAUUSD');
@@ -80,7 +77,6 @@ export default function NewReplaySessionPage() {
         headers: {
           'Content-Type':  'application/json',
           'X-CSRF-Token':  csrfToken,
-          ...(token && { Authorization: `Bearer ${token}` }),
         },
         credentials: 'include',
         body: JSON.stringify({

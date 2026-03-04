@@ -4,9 +4,7 @@
 import React, {
   useState, useEffect, useRef, useCallback, useMemo,
 } from 'react';
-import { useSearchParams } from 'next/navigation';
-import { useSelector } from 'react-redux';
-import { RootState } from '@/store/store';
+import { useParams, useSearchParams } from 'next/navigation';
 import { CandleData } from '@/components/backtesting/workbench/mockData';
 import ChartEngine, { ChartEngineRef } from '@/components/backtesting/workbench/ChartEngine';
 import ReplayControls from '@/components/backtesting/workbench/ReplayControls';
@@ -43,10 +41,6 @@ const SESSIONS = [
 const TIMEFRAMES = ['1m', '5m', '15m', '30m', '1h', '4h', '1d'];
 const HTF_OPTIONS = ['5m', '15m', '1h', '4h', '1d'] as const;
 
-interface BacktestSessionPageProps {
-  params: { id: string };
-}
-
 interface SessionMarker {
   time: number;
   position: 'inBar' | 'aboveBar' | 'belowBar';
@@ -62,7 +56,7 @@ interface OpenReplayPosition {
   sl: number;
   tp: number;
   lotSize: number;
-  entryTime: CandleData['time'];
+  entryTime: number;
   spread: number;
   commission: number;
 }
@@ -70,7 +64,7 @@ interface OpenReplayPosition {
 interface ClosedReplayTrade extends OpenReplayPosition {
   pnl: number;
   exitTime: number;
-  exitPrice?: number;
+  exitPrice: number;
 }
 
 interface CandleApiRow {
@@ -90,9 +84,9 @@ const getErrorMessage = (error: unknown, fallback: string): string => {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export default function BacktestSessionPage({ params }: BacktestSessionPageProps) {
+export default function BacktestSessionPage() {
+  const params = useParams<{ id: string }>();
   const searchParams = useSearchParams();
-  const token        = useSelector((state: RootState) => state.auth.token);
 
   // ── Theme ──────────────────────────────────────────────────────────────────
   const [isDark, setIsDark] = useState(true);
@@ -211,7 +205,6 @@ export default function BacktestSessionPage({ params }: BacktestSessionPageProps
           credentials: 'include',
           headers: {
             'Content-Type': 'application/json',
-            ...(token && { Authorization: `Bearer ${token}` }),
           },
         },
       );
@@ -226,35 +219,34 @@ export default function BacktestSessionPage({ params }: BacktestSessionPageProps
         return Number.isFinite(numeric) ? numeric : null;
       };
 
-      const raw: CandleData[] = candles
-        .map((c: CandleApiRow) => {
-          const time = c.time == null ? null : Number(c.time);
-          const open = parseNum(c.open);
-          const high = parseNum(c.high);
-          const low = parseNum(c.low);
-          const close = parseNum(c.close);
+      const raw: CandleData[] = [];
+      for (const candleRow of candles as CandleApiRow[]) {
+        const time = candleRow.time == null ? null : Number(candleRow.time);
+        const open = parseNum(candleRow.open);
+        const high = parseNum(candleRow.high);
+        const low = parseNum(candleRow.low);
+        const close = parseNum(candleRow.close);
 
-          if (
-            time == null ||
-            !Number.isFinite(time) ||
-            open == null ||
-            high == null ||
-            low == null ||
-            close == null
-          ) {
-            return null;
-          }
+        if (
+          time == null ||
+          !Number.isFinite(time) ||
+          open == null ||
+          high == null ||
+          low == null ||
+          close == null
+        ) {
+          continue;
+        }
 
-          return {
-            time,
-            open,
-            high,
-            low,
-            close,
-          };
-        })
-        .filter((candle): candle is CandleData => candle !== null)
-        .sort((a, b) => a.time - b.time);
+        raw.push({
+          time,
+          open,
+          high,
+          low,
+          close,
+        });
+      }
+      raw.sort((a, b) => Number(a.time) - Number(b.time));
 
       if (raw.length === 0) throw new Error('No valid candles after filtering');
 
@@ -273,7 +265,7 @@ export default function BacktestSessionPage({ params }: BacktestSessionPageProps
     } finally {
       setLoading(false);
     }
-  }, [aggregateToTf, symbol, startDate, endDate, token, timeframe]);
+  }, [aggregateToTf, symbol, startDate, endDate, timeframe]);
 
   useEffect(() => {
     void fetchCandles();
@@ -348,7 +340,7 @@ export default function BacktestSessionPage({ params }: BacktestSessionPageProps
   }, [visibleData]);
 
   // ── Process open positions on each new candle ──────────────────────────────
-  const closeTrade = useCallback((pnl: number, time: number, exitPrice?: number) => {
+  const closeTrade = useCallback((pnl: number, time: number, exitPrice: number) => {
     const pos = openPositionRef.current;
     if (!pos) return;
 
@@ -418,11 +410,23 @@ export default function BacktestSessionPage({ params }: BacktestSessionPageProps
   // ── Candle advance ────────────────────────────────────────────────────────
   const advanceCandle = useCallback((candle: CandleData, nextIndex: number) => {
     if (tickMode) {
+      const numericTime = Number(candle.time);
+      if (!Number.isFinite(numericTime)) {
+        return;
+      }
+
       cancelTickRef.current?.();
       setIsAnimating(true);
       const dur = Math.max(speed, 40);
       cancelTickRef.current = animateCandle(
-        candle, dur,
+        {
+          time: numericTime,
+          open: candle.open,
+          high: candle.high,
+          low: candle.low,
+          close: candle.close,
+        },
+        dur,
         (partial) => { chartRef.current?.updateLastCandle(partial); },
         (final) => {
           setIsAnimating(false);
@@ -503,7 +507,7 @@ export default function BacktestSessionPage({ params }: BacktestSessionPageProps
 
     setOpenPosition({
       type, entry, sl, tp, lotSize,
-      entryTime: candle.time,
+      entryTime: Number(candle.time),
       spread: spreadPips, commission: commissionPerSide * 2,
     });
     setMarkers(prev => [...prev, {
@@ -511,6 +515,7 @@ export default function BacktestSessionPage({ params }: BacktestSessionPageProps
       position: type === 'LONG' ? 'belowBar' : 'aboveBar',
       color: type === 'LONG' ? '#2196F3' : '#E91E63',
       shape: type === 'LONG' ? 'arrowUp' : 'arrowDown',
+      size: 1,
       text:  `${type} @ ${entry.toFixed(5)}`,
     }]);
   }, [openPosition, visibleData, symbol, spreadPips, slippagePips, commissionPerSide]);
@@ -523,16 +528,21 @@ export default function BacktestSessionPage({ params }: BacktestSessionPageProps
   // ── Save session ───────────────────────────────────────────────────────────
   const handleSaveSession = async () => {
     try {
+      const sessionId = params.id;
+      if (!sessionId) {
+        showAlert('Session ID is missing, cannot save this session.', 'Missing Session ID');
+        return;
+      }
+
       const wins    = trades.filter(t => t.pnl > 0).length;
       const losses  = trades.filter(t => t.pnl <= 0).length;
       const winRate = trades.length ? (wins / trades.length) * 100 : 0;
       const totalPnl = balance - startingBalance;
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || '/api/v1';
-      const res = await fetch(`${apiUrl}/backtesting/sessions/${params.id}`, {
+      const res = await fetch(`${apiUrl}/backtesting/sessions/${sessionId}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          ...(token && { Authorization: `Bearer ${token}` }),
         },
         credentials: 'include',
         body: JSON.stringify({

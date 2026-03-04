@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { adminApi } from '@/lib/api';
+import { API_BASE_URL } from '@/lib/api-base-url';
 
 export default function TestApiPage() {
   const [result, setResult] = useState<any>(null);
@@ -13,7 +14,7 @@ export default function TestApiPage() {
     setError(null);
     try {
       console.log('Testing dashboard stats API...');
-      console.log('API Base URL:', process.env.NEXT_PUBLIC_API_URL);
+      console.log('API Base URL:', API_BASE_URL);
       const data = await adminApi.getDashboardStats();
       console.log('API Response:', data);
       setResult(data);
@@ -46,7 +47,7 @@ export default function TestApiPage() {
       <h1 className="text-2xl font-bold mb-6">API Test Page</h1>
       
       <div className="mb-4">
-        <p><strong>API Base URL:</strong> {process.env.NEXT_PUBLIC_API_URL || 'Not set'}</p>
+        <p><strong>API Base URL:</strong> {API_BASE_URL}</p>
       </div>
 
       <div className="space-y-4 mb-6">

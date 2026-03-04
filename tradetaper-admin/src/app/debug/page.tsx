@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { adminApi } from '@/lib/api';
+import { API_BASE_URL } from '@/lib/api-base-url';
 
 export default function DebugPage() {
   const [apiUrl, setApiUrl] = useState('');
@@ -9,7 +10,7 @@ export default function DebugPage() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    setApiUrl(process.env.NEXT_PUBLIC_API_URL || 'Not set');
+    setApiUrl(API_BASE_URL);
   }, []);
 
   const runTests = async () => {
@@ -18,9 +19,9 @@ export default function DebugPage() {
 
     // Test 1: Environment variable
     results.push({
-      test: 'Environment Variable',
-      result: process.env.NEXT_PUBLIC_API_URL || 'Not set',
-      status: process.env.NEXT_PUBLIC_API_URL ? 'pass' : 'fail'
+      test: 'Resolved API Base URL',
+      result: API_BASE_URL,
+      status: API_BASE_URL ? 'pass' : 'fail',
     });
 
     // Test 2: Direct fetch to backend

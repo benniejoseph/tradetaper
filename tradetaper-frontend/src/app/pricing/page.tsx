@@ -196,15 +196,15 @@ export default function PricingPage() {
               <tbody className="divide-y divide-white/5">
                 <tr className="hover:bg-white/[0.02] transition-colors">
                   <td className="py-5 px-4 text-slate-300 font-medium">Trades per month</td>
-                  <td className="py-5 px-4 text-center text-white">10</td>
-                  <td className="py-5 px-4 text-center text-white">100</td>
+                  <td className="py-5 px-4 text-center text-white">50</td>
                   <td className="py-5 px-4 text-center text-white">500</td>
+                  <td className="py-5 px-4 text-center text-white">Unlimited</td>
                 </tr>
                 <tr className="hover:bg-white/[0.02] transition-colors">
                   <td className="py-5 px-4 text-slate-300 font-medium">MetaApi Auto-Sync Accounts</td>
-                  <td className="py-5 px-4 text-center text-white">1</td>
+                  <td className="py-5 px-4 text-center text-white">0</td>
                   <td className="py-5 px-4 text-center text-white">2</td>
-                  <td className="py-5 px-4 text-center text-white">3</td>
+                  <td className="py-5 px-4 text-center text-white">4</td>
                 </tr>
                 <tr className="hover:bg-white/[0.02] transition-colors">
                   <td className="py-5 px-4 text-slate-300 font-medium">Trader Discipline Tracker</td>

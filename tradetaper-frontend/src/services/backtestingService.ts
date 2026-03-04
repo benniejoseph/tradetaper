@@ -11,25 +11,13 @@ import {
   MarketPatternDiscovery,
 } from '@/types/backtesting';
 
-import { store } from '@/store/store';
-
 // ✅ Use correct environment variable and production default
 const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'https://api.tradetaper.com/api/v1').trim();
 
 const getAuthHeaders = () => {
-  // Get token directly from Redux store
-  const token = store.getState().auth.token;
-
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
   };
-
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
-    console.log('✅ Added Bearer token to backtesting request');
-  } else {
-    console.warn('⚠️ No auth token found in Redux store');
-  }
 
   return headers;
 };
@@ -133,6 +121,7 @@ export const backtestingService = {
     const response = await fetch(`${API_URL}/backtesting/trades/${id}`, {
       method: 'PATCH',
       headers: getAuthHeaders(),
+      credentials: 'include',
       body: JSON.stringify(data),
     });
     if (!response.ok) throw new Error('Failed to update backtest trade');
@@ -278,6 +267,7 @@ export const backtestingService = {
     const response = await fetch(`${API_URL}/backtesting/logs`, {
       method: 'POST',
       headers: getAuthHeaders(),
+      credentials: 'include',
       body: JSON.stringify(data),
     });
     if (!response.ok) {
@@ -331,6 +321,7 @@ export const backtestingService = {
     const response = await fetch(`${API_URL}/backtesting/logs/${id}`, {
       method: 'PATCH',
       headers: getAuthHeaders(),
+      credentials: 'include',
       body: JSON.stringify(data),
     });
     if (!response.ok) throw new Error('Failed to update market log');

@@ -22,6 +22,7 @@ import { ICTModule } from './ict/ict.module'; // NEW ICT MODULE
 import { TradingViewAdvancedService } from './tradingview/tradingview-advanced.service';
 import { TradingViewAdvancedController } from './tradingview/tradingview-advanced.controller';
 import { GeminiInsightsService } from './gemini-insights.service';
+import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { GeminiInsightsService } from './gemini-insights.service';
     ]),
     FreeDataSourcesModule, // FREE data sources (Yahoo Finance, Binance, CoinGecko, RSS, Reddit)
     ICTModule, // NEW ICT (Inner Circle Trader) strategies
+    SubscriptionsModule,
   ],
   controllers: [
     MarketIntelligenceController,

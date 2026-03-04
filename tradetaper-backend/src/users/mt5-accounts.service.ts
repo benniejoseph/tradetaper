@@ -20,6 +20,7 @@ import { TradesService } from '../trades/trades.service';
 import { User } from './entities/user.entity';
 import { MetaApiService } from './metaapi.service';
 import { MT5PositionsGateway } from '../websocket/mt5-positions.gateway'; // [FIX #15]
+import { Subscription } from '../subscriptions/entities/subscription.entity';
 
 import {
   SynchronizationListener,
@@ -62,17 +63,24 @@ export class MT5AccountsService {
     }
   }
 
+  private resolveBaseMt5Limit(subscription?: Subscription | null): number {
+    const plan = subscription?.plan;
+    if (plan === 'premium') return 4;
+    if (plan === 'essential') return 2;
+    return 0;
+  }
+
   async getLimits(userId: string): Promise<{ used: number; max: number; extraSlots: number }> {
-    const subscription = await this.dataSource.getRepository('Subscription').findOne({
-      where: { userId, status: 'active' },
+    const subscription = await this.dataSource.getRepository(Subscription).findOne({
+      where: { userId },
       order: { createdAt: 'DESC' },
     });
-    let baseLimit = 1;
-    if ((subscription as any)?.tier === 'premium') baseLimit = 3;
-    else if ((subscription as any)?.tier === 'essential') baseLimit = 2;
-    const extraSlots = (subscription as any)?.extraMt5Slots || 0;
+    const baseLimit = this.resolveBaseMt5Limit(subscription);
+    const extraSlots = subscription?.extraMt5Slots || 0;
     const maxAccounts = baseLimit + extraSlots;
-    const used = await this.mt5AccountRepository.count({ where: { userId } });
+    const used = await this.mt5AccountRepository.count({
+      where: { userId, isActive: true },
+    });
     
     return { used, max: maxAccounts, extraSlots };
   }
@@ -238,19 +246,18 @@ export class MT5AccountsService {
     }
 
     // Check MT5 Account Limits based on Subscription tier + extra slots
-    const subscription = await this.dataSource.getRepository('Subscription').findOne({
-      where: { userId, status: 'active' },
+    const subscription = await this.dataSource.getRepository(Subscription).findOne({
+      where: { userId },
       order: { createdAt: 'DESC' },
     });
-    
-    let baseLimit = 1;
-    if ((subscription as any)?.tier === 'premium') baseLimit = 3;
-    else if ((subscription as any)?.tier === 'essential') baseLimit = 2;
-    
-    const extraSlots = (subscription as any)?.extraMt5Slots || 0;
+
+    const baseLimit = this.resolveBaseMt5Limit(subscription);
+    const extraSlots = subscription?.extraMt5Slots || 0;
     const maxAccounts = baseLimit + extraSlots;
-    
-    const currentCount = await this.mt5AccountRepository.count({ where: { userId } });
+
+    const currentCount = await this.mt5AccountRepository.count({
+      where: { userId, isActive: true },
+    });
     if (currentCount >= maxAccounts) {
       throw new BadRequestException(
         `Account limit reached (${currentCount}/${maxAccounts}). Please purchase an extra MT5 slot to continue.`
@@ -350,19 +357,18 @@ export class MT5AccountsService {
     );
 
     // Check MT5 Account Limits based on Subscription tier + extra slots
-    const subscription = await this.dataSource.getRepository('Subscription').findOne({
-      where: { userId: manualAccountData.userId, status: 'active' },
+    const subscription = await this.dataSource.getRepository(Subscription).findOne({
+      where: { userId: manualAccountData.userId },
       order: { createdAt: 'DESC' },
     });
-    
-    let baseLimit = 1;
-    if ((subscription as any)?.tier === 'premium') baseLimit = 3;
-    else if ((subscription as any)?.tier === 'essential') baseLimit = 2;
-    
-    const extraSlots = (subscription as any)?.extraMt5Slots || 0;
+
+    const baseLimit = this.resolveBaseMt5Limit(subscription);
+    const extraSlots = subscription?.extraMt5Slots || 0;
     const maxAccounts = baseLimit + extraSlots;
-    
-    const currentCount = await this.mt5AccountRepository.count({ where: { userId: manualAccountData.userId } });
+
+    const currentCount = await this.mt5AccountRepository.count({
+      where: { userId: manualAccountData.userId, isActive: true },
+    });
     if (currentCount >= maxAccounts) {
       throw new BadRequestException(
         `Account limit reached (${currentCount}/${maxAccounts}). Please purchase an extra MT5 slot to continue.`
@@ -888,8 +894,9 @@ export class MT5AccountsService {
   }
 
   /**
-   * [FIX #5] Process deals in parallel batches of 50 using Promise.allSettled.
-   * Reduces blocking time for large accounts from O(n*5ms) to O(n/50*5ms).
+   * Process deals in strict chronological order.
+   * This avoids entry/exit races where parallel execution can create
+   * duplicate open+closed records for the same position.
    */
   private async processMetaApiDealsBatch(
     account: MT5Account,
@@ -941,53 +948,42 @@ export class MT5AccountsService {
       (a, b) => a.time.getTime() - b.time.getTime(),
     );
 
-    // [FIX #5] Process in parallel batches of 50
-    const BATCH_SIZE = 50;
-    for (let i = 0; i < orderedDeals.length; i += BATCH_SIZE) {
-      const batch = orderedDeals.slice(i, i + BATCH_SIZE);
-      const results = await Promise.allSettled(
-        batch.map(async (deal) => {
-          const externalId = deal.positionId
-            ? deal.positionId.toString()
-            : `deal_${deal.id}`;
-          const existingTrade = deal.positionId
-            ? existingTradesMap.get(externalId)
-            : await this.tradesService.findOneByExternalId(
-                account.userId,
-                externalId,
-                account.id,
-              );
+    for (const deal of orderedDeals) {
+      const externalId = deal.positionId
+        ? deal.positionId.toString()
+        : `deal_${deal.id}`;
 
-          const result = await this.processMetaApiDeal(
-            account,
-            deal,
-            connection,
-            existingTrade,
-            externalId,
-          );
-          return { result, deal, externalId };
-        }),
-      );
+      try {
+        const existingTrade = deal.positionId
+          ? existingTradesMap.get(externalId)
+          : await this.tradesService.findOneByExternalId(
+              account.userId,
+              externalId,
+              account.id,
+            );
 
-      for (const settled of results) {
-        if (settled.status === 'fulfilled') {
-          const { result, deal, externalId } = settled.value;
-          if (result.status === 'imported') {
-            imported++;
-            if (deal.positionId && result.trade) {
-              existingTradesMap.set(externalId, result.trade);
-            }
-          } else if (result.status === 'skipped') {
-            skipped++;
-          } else {
-            failed++;
+        const result = await this.processMetaApiDeal(
+          account,
+          deal,
+          connection,
+          existingTrade,
+          externalId,
+        );
+
+        if (result.status === 'imported') {
+          imported++;
+          if (deal.positionId && result.trade) {
+            existingTradesMap.set(externalId, result.trade);
           }
+        } else if (result.status === 'skipped') {
+          skipped++;
         } else {
           failed++;
-          this.logger.error(
-            `MetaApi batch deal failed: ${settled.reason?.message}`,
-          );
         }
+      } catch (error) {
+        failed++;
+        const message = error instanceof Error ? error.message : 'unknown error';
+        this.logger.error(`MetaApi deal processing failed (${externalId}): ${message}`);
       }
     }
 

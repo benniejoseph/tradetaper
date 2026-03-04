@@ -4,8 +4,6 @@ import React, { useEffect, useState } from 'react';
 import { FeatureGate } from '@/components/common/FeatureGate';
 import {
   Trophy,
-  TrendingUp,
-  TrendingDown,
   AlertTriangle,
   CheckCircle,
   XCircle,
@@ -17,6 +15,7 @@ import {
   ChevronDown,
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import { authApiClient } from '@/services/api';
 
 /* ────────────────────────────────────────────────────── */
 /* Types                                                  */
@@ -119,7 +118,7 @@ function ProgressBar({ value, max, color }: { value: number; max: number; color:
 /* ────────────────────────────────────────────────────── */
 export default function PropFirmPage() {
   return (
-    <FeatureGate feature="mentor" className="min-h-screen">
+    <FeatureGate feature="propFirm" className="min-h-screen">
       <PropFirmDashboard />
     </FeatureGate>
   );
@@ -131,16 +130,14 @@ function PropFirmDashboard() {
   const [showModal, setShowModal]     = useState(false);
   const [editing, setEditing]         = useState<PropFirmChallenge | null>(null);
   const [deleting, setDeleting]       = useState<string | null>(null);
-  const apiBase = process.env.NEXT_PUBLIC_API_URL + '/api/v1';
 
   const load = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${apiBase}/prop-firm-challenges`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-      });
-      if (!res.ok) throw new Error(await res.text());
-      setChallenges(await res.json());
+      const res = await authApiClient.get<PropFirmChallenge[]>(
+        '/prop-firm-challenges',
+      );
+      setChallenges(res.data);
     } catch (e: any) { toast.error(e.message ?? 'Failed to load challenges'); }
     finally { setLoading(false); }
   };
@@ -150,10 +147,7 @@ function PropFirmDashboard() {
   const handleDelete = async (id: string) => {
     setDeleting(id);
     try {
-      await fetch(`${apiBase}/prop-firm-challenges/${id}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-      });
+      await authApiClient.delete(`/prop-firm-challenges/${id}`);
       setChallenges((prev) => prev.filter((c) => c.id !== id));
       toast.success('Challenge deleted');
     } catch (e) { toast.error('Failed to delete'); }
@@ -261,7 +255,6 @@ function PropFirmDashboard() {
       {showModal && (
         <ChallengeModal
           challenge={editing}
-          apiBase={apiBase}
           onClose={() => { setShowModal(false); setEditing(null); }}
           onSave={(updated) => {
             if (editing) {
@@ -412,12 +405,10 @@ function ChallengeCard({
 /* ────────────────────────────────────────────────────── */
 function ChallengeModal({
   challenge,
-  apiBase,
   onClose,
   onSave,
 }: {
   challenge: PropFirmChallenge | null;
-  apiBase: string;
   onClose: () => void;
   onSave: (c: PropFirmChallenge) => void;
 }) {
@@ -464,21 +455,19 @@ function ChallengeModal({
         notes: form.notes || undefined,
       };
 
-      const url = challenge
-        ? `${apiBase}/prop-firm-challenges/${challenge.id}`
-        : `${apiBase}/prop-firm-challenges`;
-
-      const res = await fetch(url, {
-        method: challenge ? 'PATCH' : 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
-        body: JSON.stringify(body),
-      });
-
-      if (!res.ok) throw new Error(await res.text());
-      onSave(await res.json());
+      if (challenge) {
+        const res = await authApiClient.patch<PropFirmChallenge>(
+          `/prop-firm-challenges/${challenge.id}`,
+          body,
+        );
+        onSave(res.data);
+      } else {
+        const res = await authApiClient.post<PropFirmChallenge>(
+          '/prop-firm-challenges',
+          body,
+        );
+        onSave(res.data);
+      }
     } catch (e: any) {
       toast.error(e.message ?? 'Failed to save');
     } finally {

@@ -9,8 +9,7 @@ import {
   HttpStatus,
   Param,
 } from '@nestjs/common';
-import { Request } from 'express';
-import { IsString, IsNotEmpty, IsUrl } from 'class-validator';
+import { IsString, IsNotEmpty } from 'class-validator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { AuthenticatedRequest } from '../types/authenticated-request.interface';
 import {
@@ -64,6 +63,16 @@ export class SubscriptionsController {
     return this.subscriptionService.getCurrentSubscription(userId);
   }
 
+  @Get('billing')
+  @UseGuards(JwtAuthGuard)
+  async getBillingInfo(@Req() req: AuthenticatedRequest): Promise<BillingInfo> {
+    const userId = req.user.id;
+    if (!userId) {
+      throw new Error('User ID not found on request');
+    }
+    return this.subscriptionService.getCurrentSubscription(userId);
+  }
+
   @Get('usage')
   @UseGuards(JwtAuthGuard)
   async getUsage(@Req() req: AuthenticatedRequest): Promise<SubscriptionUsage> {
@@ -96,5 +105,21 @@ export class SubscriptionsController {
   @HttpCode(HttpStatus.OK)
   async createMt5SlotOrder(@Req() req: AuthenticatedRequest) {
     return this.subscriptionService.createMt5SlotOrder(req.user.id);
+  }
+
+  @Post('cancel')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async cancelSubscription(@Req() req: AuthenticatedRequest) {
+    await this.subscriptionService.cancelSubscription(req.user.id);
+    return { success: true };
+  }
+
+  @Post('reactivate')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async reactivateSubscription(@Req() req: AuthenticatedRequest) {
+    await this.subscriptionService.reactivateSubscription(req.user.id);
+    return { success: true };
   }
 }

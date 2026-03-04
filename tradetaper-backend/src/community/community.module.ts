@@ -10,6 +10,7 @@ import { User } from '../users/entities/user.entity';
 import { Trade } from '../trades/entities/trade.entity';
 import { Account } from '../users/entities/account.entity';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { NotificationsModule } from '../notifications/notifications.module';
       Account,
     ]),
     NotificationsModule,
+    SubscriptionsModule,
   ],
   controllers: [CommunityController],
   providers: [CommunityService],

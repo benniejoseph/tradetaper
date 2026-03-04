@@ -14,6 +14,7 @@ export interface JwtPayload {
   sub: string;
   email: string;
   role?: string;
+  sid?: string;
 }
 
 function getJwtSecret(configService: ConfigService): string {
@@ -37,9 +38,23 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     private readonly configService: ConfigService,
     private readonly usersService: UsersService,
   ) {
+    const cookieExtractor = (
+      request?: Record<string, unknown>,
+    ): string | null => {
+      if (!request) {
+        return null;
+      }
+      const cookies = request.cookies as Record<string, unknown> | undefined;
+      const authToken = cookies?.auth_token;
+      return typeof authToken === 'string' ? authToken : null;
+    };
+
     // Construct the options object that matches StrategyOptionsWithoutRequest
     const strategyOptions: StrategyOptionsWithoutRequest = {
-      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+      jwtFromRequest: ExtractJwt.fromExtractors([
+        ExtractJwt.fromAuthHeaderAsBearerToken(),
+        cookieExtractor,
+      ]),
       ignoreExpiration: false,
       secretOrKey: getJwtSecret(configService),
       // passReqToCallback: false, // Explicitly setting to false
@@ -73,6 +88,8 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       );
       throw new UnauthorizedException('User not found or token invalid.');
     }
-    return user;
+    return payload.sid
+      ? ({ ...user, sid: payload.sid } as UserResponseDto)
+      : user;
   }
 }

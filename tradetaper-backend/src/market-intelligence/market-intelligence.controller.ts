@@ -12,6 +12,10 @@ import {
   Request,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import {
+  FeatureAccessGuard,
+  RequireFeature,
+} from '../subscriptions/guards/feature-access.guard';
 import { MarketIntelligenceService } from './market-intelligence.service';
 import { NewsAnalysisService } from './news-analysis.service';
 import { ICTAnalysisService } from './ict-analysis.service';
@@ -123,7 +127,8 @@ export class MarketIntelligenceController {
     }
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, FeatureAccessGuard)
+  @RequireFeature('marketIntelligenceAi')
   @Get('ai-analysis')
   async getAISentimentAnalysis() {
     this.logger.log('Getting AI Sentiment Report');
@@ -138,7 +143,8 @@ export class MarketIntelligenceController {
     }
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, FeatureAccessGuard)
+  @RequireFeature('marketIntelligenceAi')
   @Get('ai-analysis/pair')
   async getPairAnalysis(@Query('symbol') symbol: string) {
     this.logger.log(`Getting AI pair analysis for ${symbol}`);
@@ -253,7 +259,8 @@ export class MarketIntelligenceController {
     return this.economicAlertsService.unsubscribe(req.user.id, eventId);
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, FeatureAccessGuard)
+  @RequireFeature('marketIntelligenceAi')
   @Get('predictions/:symbol')
   async getAIPredictions(@Param('symbol') symbol: string) {
     this.logger.log(`Getting AI predictions for symbol: ${symbol}`);
@@ -332,7 +339,8 @@ export class MarketIntelligenceController {
     }
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, FeatureAccessGuard)
+  @RequireFeature('marketIntelligenceAi')
   @Get('cot/analysis/:symbol')
   async getCotAnalysis(@Param('symbol') symbol: string) {
     this.logger.log(`Getting COT AI analysis for symbol: ${symbol}`);

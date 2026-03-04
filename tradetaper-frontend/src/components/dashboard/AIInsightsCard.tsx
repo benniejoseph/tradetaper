@@ -6,6 +6,7 @@ import { FaRobot, FaCheckCircle, FaExclamationTriangle, FaLightbulb, FaSpinner, 
 import { AnimatedCard } from '@/components/ui/AnimatedCard';
 import { formatDistanceToNow } from 'date-fns';
 import { Trade } from '@/types/trade';
+import { authApiClient } from '@/services/api';
 
 interface Insight {
   type: 'STRENGTH' | 'WEAKNESS' | 'FOCUS_AREA';
@@ -26,7 +27,7 @@ interface CachedReport {
 }
 
 export default function AIInsightsCard() {
-  const { token, user } = useSelector((state: RootState) => state.auth);
+  const { user } = useSelector((state: RootState) => state.auth);
   const { trades } = useSelector((state: RootState) => state.trades);
   
   const [report, setReport] = useState<AIReport | null>(null);
@@ -69,7 +70,7 @@ export default function AIInsightsCard() {
 
   // Fetch logic (Initial or Auto-Refresh)
   useEffect(() => {
-    if (!token || !cacheKey) return;
+    if (!cacheKey) return;
 
     const checkAndFetch = async () => {
         const cachedStr = localStorage.getItem(cacheKey);
@@ -104,26 +105,22 @@ export default function AIInsightsCard() {
 
     checkAndFetch();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token, cacheKey, latestTradeDate]); // Intentionally not including 'loading' to avoid loops
+  }, [cacheKey, latestTradeDate]); // Intentionally not including 'loading' to avoid loops
 
   const fetchInsights = async () => {
     if (loading) return;
     setLoading(true);
     try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/analytics/insights`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (res.ok) {
-            const data = await res.json();
-            setReport(data);
-            
-            const now = Date.now();
-            setLastUpdated(now);
-            
-            if (cacheKey) {
-                const cacheData: CachedReport = { data, timestamp: now };
-                localStorage.setItem(cacheKey, JSON.stringify(cacheData));
-            }
+        const res = await authApiClient.get<AIReport>('/analytics/insights');
+        const data = res.data;
+        setReport(data);
+        
+        const now = Date.now();
+        setLastUpdated(now);
+        
+        if (cacheKey) {
+            const cacheData: CachedReport = { data, timestamp: now };
+            localStorage.setItem(cacheKey, JSON.stringify(cacheData));
         }
     } catch (e) {
         console.error("Failed to fetch AI insights", e);

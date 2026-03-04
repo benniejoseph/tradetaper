@@ -3,11 +3,16 @@ import { AnalyticsService } from './analytics.service';
 import { TradesService } from '../trades/trades.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { AuthenticatedRequest } from '../types/authenticated-request.interface';
+import {
+  FeatureAccessGuard,
+  RequireFeature,
+} from '../subscriptions/guards/feature-access.guard';
 
 import { GeminiInsightsService } from '../market-intelligence/gemini-insights.service';
 
 @Controller('analytics')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, FeatureAccessGuard)
+@RequireFeature('advancedAnalytics')
 export class AnalyticsController {
   private readonly logger = new Logger(AnalyticsController.name);
 

@@ -12,11 +12,17 @@ import {
 } from '@nestjs/common';
 import { CommunityService } from './community.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import {
+  FeatureAccessGuard,
+  RequireFeature,
+} from '../subscriptions/guards/feature-access.guard';
 import { CreateCommunityPostDto } from './dto/create-community-post.dto';
 import { UpdateCommunitySettingsDto } from './dto/update-community-settings.dto';
 import { CreateCommunityReplyDto } from './dto/create-community-reply.dto';
 
 @Controller('community')
+@UseGuards(JwtAuthGuard, FeatureAccessGuard)
+@RequireFeature('community')
 export class CommunityController {
   constructor(private readonly communityService: CommunityService) {}
 

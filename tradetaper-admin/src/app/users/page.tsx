@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { formatNumber } from '@/lib/utils';
 import adminApi from '@/lib/api';
+import { API_BASE_URL } from '@/lib/api-base-url';
 import toast from 'react-hot-toast';
 
 export default function UsersPage() {
@@ -29,8 +30,8 @@ export default function UsersPage() {
     queryFn: async () => {
       if (!selectedUser) return null;
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/admin/users/${selectedUser}`,
-        { headers: { Authorization: `Bearer ${localStorage.getItem('admin_token')}` } }
+        `${API_BASE_URL}/admin/users/${selectedUser}`,
+        { credentials: 'include' }
       );
       return res.json();
     },

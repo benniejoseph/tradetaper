@@ -12,6 +12,7 @@ export type GateFeature =
   | 'advancedAnalytics'
   | 'psychology'
   | 'mentor'
+  | 'propFirm'
   | 'reports'
   | 'community';
 
@@ -45,8 +46,8 @@ const GATE_COPY: Record<GateFeature, { title: string; description: string; requi
   },
   advancedAnalytics: {
     title: 'Advanced Analytics Locked',
-    description: 'Access deep performance, session, and risk analytics. Upgrade to Essential or Premium.',
-    requiredPlan: 'Essential',
+    description: 'Access deep performance, session, and risk analytics. Upgrade to Premium.',
+    requiredPlan: 'Premium',
   },
   psychology: {
     title: 'Psychology Insights Locked',
@@ -56,6 +57,11 @@ const GATE_COPY: Record<GateFeature, { title: string; description: string; requi
   mentor: {
     title: 'ICT Mentor AI Locked',
     description: 'Your personal AI trading mentor powered by your own knowledge base. Upgrade to Premium.',
+    requiredPlan: 'Premium',
+  },
+  propFirm: {
+    title: 'Prop Firm Tracker Locked',
+    description: 'Track prop firm challenges and drawdown rules with premium analytics. Upgrade to Premium.',
     requiredPlan: 'Premium',
   },
   reports: {
@@ -93,13 +99,16 @@ export const FeatureGate: React.FC<FeatureGateProps> = ({ feature, children, blu
       hasAccess = limits.backtesting === 'full';
       break;
     case 'advancedAnalytics':
-      hasAccess = planId === 'essential' || planId === 'premium' || !!limits.reports;
+      hasAccess = planId === 'premium';
       break;
     case 'psychology':
       hasAccess = !!limits.psychology;
       break;
     case 'reports':
       hasAccess = !!limits.reports;
+      break;
+    case 'propFirm':
+      hasAccess = planId === 'premium';
       break;
     case 'community':
       // Essential and Premium can participate; Free can read-only (we still allow rendering but gate actions outside)
@@ -150,4 +159,3 @@ export const FeatureGate: React.FC<FeatureGateProps> = ({ feature, children, blu
     </div>
   );
 };
-

@@ -4,21 +4,22 @@ import {
   Controller,
   Request,
   Post,
+  Delete,
   UseGuards,
   Body,
   HttpCode,
   HttpStatus,
   Get,
   UnauthorizedException,
-  UsePipes,
   Res,
   Req,
   Query,
   HttpException,
   BadRequestException,
   Logger,
+  Param,
 } from '@nestjs/common';
-import { Request as ExpressRequest, Response } from 'express';
+import { Request as ExpressRequest, Response, CookieOptions } from 'express';
 import { AuthService } from './auth.service';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { RegisterUserDto } from './dto/register-user.dto';
@@ -27,10 +28,12 @@ import { UsersService } from '../users/users.service';
 import { UserResponseDto } from '../users/dto/user-response.dto';
 import {
   AuthRateLimit,
+  RateLimit,
   RateLimitGuard,
   StrictRateLimit,
 } from '../common/guards/rate-limit.guard';
 import { ConfigService } from '@nestjs/config';
+import { ObservabilityService } from '../common/services/observability.service';
 
 @Controller('auth') // Route prefix /api/v1/auth
 @UseGuards(RateLimitGuard)
@@ -41,7 +44,178 @@ export class AuthController {
     private authService: AuthService,
     private usersService: UsersService,
     private configService: ConfigService,
+    private readonly observabilityService: ObservabilityService,
   ) {}
+
+  private getRequestSessionContext(req: ExpressRequest): {
+    ipAddress?: string;
+    userAgent?: string;
+  } {
+    const forwardedFor = req.headers['x-forwarded-for'];
+    const forwardedIp = Array.isArray(forwardedFor)
+      ? forwardedFor[0]
+      : forwardedFor?.split(',')[0];
+    const userAgentHeader = req.headers['user-agent'];
+    const userAgent = Array.isArray(userAgentHeader)
+      ? userAgentHeader[0]
+      : userAgentHeader;
+    return {
+      ipAddress: forwardedIp?.trim() || req.ip,
+      userAgent,
+    };
+  }
+
+  private extractEmailDomain(email: string): string {
+    const domain = email.split('@')[1];
+    return domain ? domain.toLowerCase() : 'unknown';
+  }
+
+  private resolveCookieSameSite(): CookieOptions['sameSite'] {
+    const configured = this.configService
+      .get<string>('AUTH_COOKIE_SAME_SITE')
+      ?.toLowerCase();
+    if (configured === 'strict') return 'strict';
+    if (configured === 'none') return 'none';
+    return 'lax';
+  }
+
+  private resolveCookieDomain(): string | undefined {
+    const configuredCookieDomain =
+      this.configService.get<string>('AUTH_COOKIE_DOMAIN');
+    if (configuredCookieDomain) {
+      return configuredCookieDomain;
+    }
+
+    const frontendUrl = this.configService.get<string>('FRONTEND_URL');
+    if (!frontendUrl) {
+      return undefined;
+    }
+
+    try {
+      const hostname = new URL(frontendUrl).hostname.toLowerCase();
+      if (hostname === 'localhost' || /^[\d.]+$/.test(hostname)) {
+        return undefined;
+      }
+      const hostParts = hostname.split('.');
+      if (hostParts.length < 2) {
+        return undefined;
+      }
+      return `.${hostParts.slice(-2).join('.')}`;
+    } catch {
+      return undefined;
+    }
+  }
+
+  private getAuthCookieOptions(): CookieOptions {
+    const isProd = this.configService.get<string>('NODE_ENV') === 'production';
+    const sameSite = this.resolveCookieSameSite();
+    const configuredMaxAge = Number(
+      this.configService.get<string>('AUTH_COOKIE_MAX_AGE_MS'),
+    );
+    const maxAge =
+      Number.isFinite(configuredMaxAge) && configuredMaxAge > 0
+        ? configuredMaxAge
+        : 15 * 60 * 1000;
+
+    const options: CookieOptions = {
+      httpOnly: true,
+      secure: isProd || sameSite === 'none',
+      sameSite,
+      path: '/',
+      maxAge,
+    };
+
+    const domain = this.resolveCookieDomain();
+    if (domain) {
+      options.domain = domain;
+    }
+
+    return options;
+  }
+
+  private getRefreshCookieOptions(): CookieOptions {
+    const isProd = this.configService.get<string>('NODE_ENV') === 'production';
+    const sameSite = this.resolveCookieSameSite();
+    const configuredMaxAge = Number(
+      this.configService.get<string>('AUTH_REFRESH_COOKIE_MAX_AGE_MS'),
+    );
+    const configuredTtlMs = Number(
+      this.configService.get<string>('AUTH_REFRESH_TOKEN_TTL_MS'),
+    );
+    const configuredTtlDays = Number(
+      this.configService.get<string>('AUTH_REFRESH_TOKEN_TTL_DAYS'),
+    );
+
+    const defaultMaxAge =
+      Number.isFinite(configuredTtlMs) && configuredTtlMs > 0
+        ? configuredTtlMs
+        : Number.isFinite(configuredTtlDays) && configuredTtlDays > 0
+          ? configuredTtlDays * 24 * 60 * 60 * 1000
+          : 30 * 24 * 60 * 60 * 1000;
+    const maxAge =
+      Number.isFinite(configuredMaxAge) && configuredMaxAge > 0
+        ? configuredMaxAge
+        : defaultMaxAge;
+
+    const options: CookieOptions = {
+      httpOnly: true,
+      secure: isProd || sameSite === 'none',
+      sameSite,
+      path: '/api/v1/auth',
+      maxAge,
+    };
+
+    const domain = this.resolveCookieDomain();
+    if (domain) {
+      options.domain = domain;
+    }
+
+    return options;
+  }
+
+  private setAuthCookie(res: Response, token: string): void {
+    res.cookie('auth_token', token, this.getAuthCookieOptions());
+  }
+
+  private setRefreshCookie(res: Response, token: string): void {
+    res.cookie('refresh_token', token, this.getRefreshCookieOptions());
+  }
+
+  private setSessionCookies(
+    res: Response,
+    accessToken: string,
+    refreshToken: string,
+  ): void {
+    this.setAuthCookie(res, accessToken);
+    this.setRefreshCookie(res, refreshToken);
+  }
+
+  private clearAuthCookie(res: Response): void {
+    const options = this.getAuthCookieOptions();
+    res.clearCookie('auth_token', {
+      httpOnly: true,
+      secure: options.secure,
+      sameSite: options.sameSite,
+      path: options.path,
+      domain: options.domain,
+    });
+  }
+
+  private clearRefreshCookie(res: Response): void {
+    const options = this.getRefreshCookieOptions();
+    res.clearCookie('refresh_token', {
+      httpOnly: true,
+      secure: options.secure,
+      sameSite: options.sameSite,
+      path: options.path,
+      domain: options.domain,
+    });
+  }
+
+  private clearSessionCookies(res: Response): void {
+    this.clearAuthCookie(res);
+    this.clearRefreshCookie(res);
+  }
 
   @Post('register')
   @HttpCode(HttpStatus.CREATED)
@@ -56,15 +230,42 @@ export class AuthController {
   @AuthRateLimit()
   async login(
     @Body() loginUserDto: LoginUserDto,
+    @Req() req: ExpressRequest,
+    @Res({ passthrough: true }) res: Response,
   ): Promise<{ accessToken: string; user: UserResponseDto }> {
     const user = await this.authService.validateUser(
       loginUserDto.email,
       loginUserDto.password,
     );
     if (!user) {
+      this.observabilityService.captureEvent(
+        'auth_login_failed',
+        'anonymous',
+        {
+          method: 'password',
+          reason: 'invalid_credentials',
+          emailDomain: this.extractEmailDomain(loginUserDto.email),
+        },
+      );
       throw new UnauthorizedException('Invalid credentials');
     }
-    return this.authService.login(user);
+    const result = await this.authService.login(
+      user,
+      this.getRequestSessionContext(req),
+    );
+    this.observabilityService.captureEvent(
+      'auth_login_success',
+      result.user.id,
+      {
+        method: 'password',
+        emailDomain: this.extractEmailDomain(result.user.email),
+      },
+    );
+    this.setSessionCookies(res, result.accessToken, result.refreshToken);
+    return {
+      accessToken: result.accessToken,
+      user: result.user,
+    };
   }
 
   // Manual Google OAuth implementation
@@ -160,25 +361,45 @@ export class AuthController {
       this.logger.log(`Retrieved user info from Google: ${userInfo.email}`);
 
       // Create or authenticate user
-      const result = await this.authService.validateOrCreateGoogleUser({
-        email: userInfo.email,
-        firstName: userInfo.given_name || userInfo.name?.split(' ')[0] || '',
-        lastName:
-          userInfo.family_name ||
-          userInfo.name?.split(' ').slice(1).join(' ') ||
-          '',
-        googleId: userInfo.sub,
-        picture: userInfo.picture,
-      });
+      const result = await this.authService.validateOrCreateGoogleUser(
+        {
+          email: userInfo.email,
+          firstName: userInfo.given_name || userInfo.name?.split(' ')[0] || '',
+          lastName:
+            userInfo.family_name ||
+            userInfo.name?.split(' ').slice(1).join(' ') ||
+            '',
+          googleId: userInfo.sub,
+          picture: userInfo.picture,
+        },
+        this.getRequestSessionContext(req),
+      );
 
       this.logger.log(`User authenticated successfully: ${result.user.email}`);
+      this.observabilityService.captureEvent(
+        'auth_login_success',
+        result.user.id,
+        {
+          method: 'google',
+          emailDomain: this.extractEmailDomain(result.user.email),
+        },
+      );
+      this.setSessionCookies(res, result.accessToken, result.refreshToken);
 
-      // Send auth data in URL fragment to avoid leaking tokens in server/referrer logs.
-      const redirectUrl = `${frontendUrl}/auth/google/callback#token=${encodeURIComponent(result.accessToken)}&user=${encodeURIComponent(JSON.stringify(result.user))}`;
+      // Keep redirect clean to avoid token/user payload in URLs.
+      const redirectUrl = `${frontendUrl}/auth/google/callback?status=success`;
 
       return res.redirect(redirectUrl);
     } catch (error) {
       this.logger.error('Google OAuth callback error', error);
+      this.observabilityService.captureEvent(
+        'auth_login_failed',
+        'anonymous',
+        {
+          method: 'google',
+          reason: this.getPublicOAuthErrorMessage(error),
+        },
+      );
       const frontendUrl =
         this.configService.get<string>('FRONTEND_URL') ||
         'http://localhost:3000';
@@ -319,5 +540,110 @@ export class AuthController {
   @StrictRateLimit()
   getProfile(@Request() req): UserResponseDto {
     return req.user;
+  }
+
+  @Post('refresh')
+  @HttpCode(HttpStatus.OK)
+  @RateLimit({
+    windowMs: 60 * 1000,
+    maxRequests: 30,
+    message: 'Too many refresh attempts. Please try again shortly.',
+  })
+  async refresh(
+    @Req() req: ExpressRequest,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<{ accessToken: string; user: UserResponseDto }> {
+    const refreshToken =
+      typeof req.cookies?.refresh_token === 'string'
+        ? req.cookies.refresh_token
+        : null;
+    if (!refreshToken) {
+      throw new UnauthorizedException('Refresh token is required');
+    }
+
+    try {
+      const result = await this.authService.refreshSession(
+        refreshToken,
+        this.getRequestSessionContext(req),
+      );
+      this.setSessionCookies(res, result.accessToken, result.refreshToken);
+      return {
+        accessToken: result.accessToken,
+        user: result.user,
+      };
+    } catch (error) {
+      this.clearSessionCookies(res);
+      throw error;
+    }
+  }
+
+  @Post('logout')
+  @HttpCode(HttpStatus.OK)
+  async logout(
+    @Req() req: ExpressRequest,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<{ success: boolean }> {
+    const refreshToken =
+      typeof req.cookies?.refresh_token === 'string'
+        ? req.cookies.refresh_token
+        : null;
+    if (refreshToken) {
+      await this.authService.revokeRefreshSession(refreshToken);
+    }
+    this.clearSessionCookies(res);
+    return { success: true };
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('logout-all')
+  @HttpCode(HttpStatus.OK)
+  async logoutAll(
+    @Request() req,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<{ success: boolean }> {
+    await this.authService.revokeAllUserSessions(req.user.id);
+    this.clearSessionCookies(res);
+    return { success: true };
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('sessions')
+  async getSessions(@Request() req): Promise<{
+    sessions: Array<{
+      id: string;
+      userAgent?: string | null;
+      ipAddress?: string | null;
+      createdAt: Date;
+      lastUsedAt?: Date | null;
+      expiresAt: Date;
+      revokedAt?: Date | null;
+      revokedReason?: string | null;
+      isCurrent: boolean;
+      isActive: boolean;
+    }>;
+  }> {
+    const sessions = await this.authService.getUserSessions(
+      req.user.id,
+      req.user.sid,
+    );
+    return { sessions };
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Delete('sessions/:sessionId')
+  @HttpCode(HttpStatus.OK)
+  async revokeSession(
+    @Request() req,
+    @Param('sessionId') sessionId: string,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<{ success: boolean }> {
+    const revoked = await this.authService.revokeUserSessionById(
+      req.user.id,
+      sessionId,
+    );
+    if (revoked && req.user.sid && sessionId === req.user.sid) {
+      this.clearSessionCookies(res);
+    }
+    return { success: revoked };
   }
 }

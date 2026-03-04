@@ -11,6 +11,7 @@ import { BacktestTrade } from './entities/backtest-trade.entity';
 import { MarketLog } from './entities/market-log.entity';
 import { MarketCandle } from './entities/market-candle.entity';
 import { ReplaySession } from './entities/replay-session.entity';
+import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { ReplaySession } from './entities/replay-session.entity';
       ReplaySession,
     ]),
     HttpModule,
+    SubscriptionsModule,
   ],
   controllers: [BacktestingController],
   providers: [

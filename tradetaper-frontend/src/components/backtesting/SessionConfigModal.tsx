@@ -2,8 +2,6 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useSelector } from 'react-redux';
-import { RootState } from '@/store/store';
 
 interface SessionConfigModalProps {
   isOpen: boolean;
@@ -33,9 +31,6 @@ export default function SessionConfigModal({ isOpen, onClose }: SessionConfigMod
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  // Get auth token from Redux store
-  const token = useSelector((state: RootState) => state.auth.token);
 
   // Form state
   const [symbol, setSymbol] = useState('XAUUSD');
@@ -72,7 +67,6 @@ export default function SessionConfigModal({ isOpen, onClose }: SessionConfigMod
         headers: {
           'Content-Type': 'application/json',
           'X-CSRF-Token': csrfToken,
-          ...(token && { 'Authorization': `Bearer ${token}` }),
         },
         credentials: 'include',
         body: JSON.stringify({

@@ -9,9 +9,14 @@ import {
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { TradingViewAdvancedService } from './tradingview-advanced.service';
+import {
+  FeatureAccessGuard,
+  RequireFeature,
+} from '../../subscriptions/guards/feature-access.guard';
 
 @Controller('market-intelligence/tradingview-advanced')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, FeatureAccessGuard)
+@RequireFeature('marketIntelligenceAi')
 export class TradingViewAdvancedController {
   private readonly logger = new Logger(TradingViewAdvancedController.name);
 

@@ -13,6 +13,8 @@ import { Subscription } from '../subscriptions/entities/subscription.entity';
 import { Usage } from '../subscriptions/entities/usage.entity';
 import { SeedModule } from '../seed/seed.module';
 import { AdminGuard } from '../auth/guards/admin.guard';
+import { AdminMfaCredential } from './entities/admin-mfa-credential.entity';
+import { AdminAuthAuditLog } from './entities/admin-auth-audit-log.entity';
 
 @Module({
   imports: [
@@ -25,6 +27,8 @@ import { AdminGuard } from '../auth/guards/admin.guard';
       MT5Account,
       Subscription,
       Usage,
+      AdminMfaCredential,
+      AdminAuthAuditLog,
     ]),
     JwtModule.registerAsync({
       imports: [ConfigModule],
@@ -33,12 +37,14 @@ import { AdminGuard } from '../auth/guards/admin.guard';
         const secret =
           configService.get<string>('ADMIN_JWT_SECRET') ||
           configService.get<string>('JWT_SECRET');
+        const adminAccessTokenTtl =
+          configService.get<string>('ADMIN_ACCESS_TOKEN_TTL') || '8h';
 
         if (!secret) {
           if (configService.get<string>('NODE_ENV') === 'test') {
             return {
               secret: 'test-admin-jwt-secret',
-              signOptions: { expiresIn: '30d' },
+              signOptions: { expiresIn: adminAccessTokenTtl },
             };
           }
           throw new Error(
@@ -48,7 +54,7 @@ import { AdminGuard } from '../auth/guards/admin.guard';
 
         return {
           secret,
-          signOptions: { expiresIn: '30d' },
+          signOptions: { expiresIn: adminAccessTokenTtl },
         };
       },
     }),

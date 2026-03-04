@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { API_BASE_URL } from '@/lib/api-base-url';
 
 export default function ApiTestPage() {
   const [results, setResults] = useState<any>({});
@@ -8,8 +9,6 @@ export default function ApiTestPage() {
 
   useEffect(() => {
     const testApis = async () => {
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.tradetaper.com/api/v1';
-      
       const endpoints = [
         '/admin/dashboard/stats',
         '/admin/user-analytics/30d',
@@ -22,8 +21,8 @@ export default function ApiTestPage() {
 
       for (const endpoint of endpoints) {
         try {
-          console.log(`Testing: ${baseUrl}${endpoint}`);
-          const response = await fetch(`${baseUrl}${endpoint}`, {
+          console.log(`Testing: ${API_BASE_URL}${endpoint}`);
+          const response = await fetch(`${API_BASE_URL}${endpoint}`, {
             method: 'GET',
             headers: {
               'Content-Type': 'application/json',

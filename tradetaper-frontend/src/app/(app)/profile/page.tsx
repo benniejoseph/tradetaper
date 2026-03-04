@@ -2,27 +2,38 @@
 
 import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { RootState } from '@/store/store';
-import { FaUserCircle, FaCrown, FaEnvelope, FaCalendarAlt, FaChartLine, FaServer, FaCheckCircle, FaExclamationTriangle } from 'react-icons/fa';
+import { AppDispatch, RootState } from '@/store/store';
+import { FaUserCircle, FaCrown, FaEnvelope, FaChartLine, FaServer, FaCheckCircle, FaExclamationTriangle } from 'react-icons/fa';
 import Link from 'next/link';
-import { format } from 'date-fns';
+import { formatDistanceToNow } from 'date-fns';
 import { communityService } from '@/services/communityService';
 import { CommunitySettings } from '@/types/community';
 import { useDebounce } from '@/hooks/useDebounce';
 import { usersService } from '@/services/usersService';
-import { updateUser } from '@/store/features/authSlice';
+import { logout, updateUser } from '@/store/features/authSlice';
+import {
+  getUserSessions,
+  logoutAllSessions,
+  revokeUserSession,
+  UserSession,
+} from '@/services/authService';
+import { authApiClient } from '@/services/api';
 
 export default function ProfilePage() {
   const { user } = useSelector((state: RootState) => state.auth);
-  const dispatch = useDispatch();
+  const dispatch = useDispatch<AppDispatch>();
   const plan = user?.subscription?.plan || 'free';
   const planDetails = user?.subscription?.planDetails;
-  
-  // Mock usage data if not available
-  const usage = {
-    trades: { used: 45, limit: planDetails?.limits?.trades || 10 },
-    accounts: { used: 1, limit: planDetails?.limits?.manualAccounts || 1 },
-  };
+  const [usage, setUsage] = useState({
+    trades: {
+      used: 0,
+      limit: (planDetails?.limits?.trades ?? 0) as number | 'unlimited',
+    },
+    accounts: {
+      used: 0,
+      limit: (planDetails?.limits?.mt5Accounts ?? 0) as number | 'unlimited',
+    },
+  });
 
   const isPremium = plan === 'premium';
   const isEssential = plan === 'essential';
@@ -32,7 +43,58 @@ export default function ProfilePage() {
   const [usernameStatus, setUsernameStatus] = useState<'idle' | 'checking' | 'available' | 'taken' | 'invalid' | 'current' | 'error'>('idle');
   const [usernameSaving, setUsernameSaving] = useState(false);
   const [usernameError, setUsernameError] = useState<string | null>(null);
+  const [sessions, setSessions] = useState<UserSession[]>([]);
+  const [sessionsLoading, setSessionsLoading] = useState(false);
+  const [sessionsError, setSessionsError] = useState<string | null>(null);
+  const [revokingSessionId, setRevokingSessionId] = useState<string | null>(null);
+  const [logoutAllLoading, setLogoutAllLoading] = useState(false);
   const debouncedUsername = useDebounce(usernameDraft, 400);
+
+  useEffect(() => {
+    setUsage((prev) => ({
+      trades: {
+        ...prev.trades,
+        limit: (planDetails?.limits?.trades ?? 0) as number | 'unlimited',
+      },
+      accounts: {
+        ...prev.accounts,
+        limit: (planDetails?.limits?.mt5Accounts ?? 0) as number | 'unlimited',
+      },
+    }));
+  }, [planDetails?.limits?.mt5Accounts, planDetails?.limits?.trades]);
+
+  useEffect(() => {
+    if (!user) return;
+    authApiClient
+      .get('/subscriptions/usage')
+      .then((response) => {
+        const data = response.data || {};
+        const tradeLimit =
+          typeof data.tradeLimit === 'number'
+            ? data.tradeLimit === 0
+              ? 'unlimited'
+              : data.tradeLimit
+            : (planDetails?.limits?.trades ?? 0);
+        const accountLimit =
+          typeof data.accountLimit === 'number'
+            ? data.accountLimit
+            : (planDetails?.limits?.mt5Accounts ?? 0);
+
+        setUsage({
+          trades: {
+            used: Number(data.currentPeriodTrades ?? data.trades ?? 0),
+            limit: tradeLimit as number | 'unlimited',
+          },
+          accounts: {
+            used: Number(data.accountsUsed ?? data.mt5Accounts ?? 0),
+            limit: accountLimit as number | 'unlimited',
+          },
+        });
+      })
+      .catch(() => {
+        // Keep fallback usage from subscription plan details when usage endpoint is unavailable.
+      });
+  }, [planDetails?.limits?.mt5Accounts, planDetails?.limits?.trades, user]);
 
   useEffect(() => {
     if (user?.username) {
@@ -106,8 +168,68 @@ export default function ProfilePage() {
     try {
       const updated = await communityService.updateSettings(patch);
       setCommunitySettings(updated);
-    } catch (error) {
+    } catch (_error) {
       setCommunitySettings(previous);
+    }
+  };
+
+  const loadSessions = async () => {
+    if (!user) return;
+    setSessionsLoading(true);
+    setSessionsError(null);
+    try {
+      const list = await getUserSessions();
+      setSessions(list);
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { message?: string } } };
+      setSessionsError(err?.response?.data?.message || 'Failed to load sessions');
+    } finally {
+      setSessionsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    void loadSessions();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
+
+  const handleRevokeSession = async (sessionId: string) => {
+    setRevokingSessionId(sessionId);
+    setSessionsError(null);
+    try {
+      const revoked = await revokeUserSession(sessionId);
+      if (!revoked) {
+        setSessionsError('Session not found.');
+        return;
+      }
+      const revokedSession = sessions.find((session) => session.id === sessionId);
+      await loadSessions();
+      if (revokedSession?.isCurrent) {
+        dispatch(logout());
+      }
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { message?: string } } };
+      setSessionsError(
+        err?.response?.data?.message || 'Failed to revoke session',
+      );
+    } finally {
+      setRevokingSessionId(null);
+    }
+  };
+
+  const handleLogoutAllSessions = async () => {
+    setLogoutAllLoading(true);
+    setSessionsError(null);
+    try {
+      await logoutAllSessions();
+      dispatch(logout());
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { message?: string } } };
+      setSessionsError(
+        err?.response?.data?.message || 'Failed to log out all sessions',
+      );
+    } finally {
+      setLogoutAllLoading(false);
     }
   };
 
@@ -210,7 +332,11 @@ export default function ProfilePage() {
                     <ul className="space-y-3">
                         <li className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
                             <FaCheckCircle className="text-emerald-500 w-4 h-4 flex-shrink-0" />
-                            <span>{plan === 'free' ? '10 Trades/mo' : plan === 'essential' ? '100 Trades/mo' : '500 Trades/mo'}</span>
+                            <span>
+                              {planDetails?.limits?.trades === 'unlimited'
+                                ? 'Unlimited Trades/mo'
+                                : `${planDetails?.limits?.trades ?? 0} Trades/mo`}
+                            </span>
                         </li>
                         <li className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
                              <FaCheckCircle className="text-emerald-500 w-4 h-4 flex-shrink-0" />
@@ -218,7 +344,7 @@ export default function ProfilePage() {
                         </li>
                         <li className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
                              <FaCheckCircle className="text-emerald-500 w-4 h-4 flex-shrink-0" />
-                            <span>{planDetails?.limits?.aiAnalysis ? 'AI Pyschology Assistant' : 'Basic Journaling'}</span>
+                            <span>{planDetails?.limits?.aiAnalysis ? 'AI Psychology Assistant' : 'Basic Journaling'}</span>
                         </li>
                          {plan === 'free' && (
                             <li className="flex items-center gap-2 text-sm text-gray-400">
@@ -244,9 +370,77 @@ export default function ProfilePage() {
                 <div className="flex items-center justify-between py-3 border-b border-gray-100 dark:border-zinc-800 last:border-0">
                     <div>
                         <p className="text-sm font-medium text-gray-900 dark:text-white">Password</p>
-                        <p className="text-xs text-gray-500">Last changed 3 months ago</p>
+                        <p className="text-xs text-gray-500">Use a unique password and rotate it periodically</p>
                     </div>
-                    <button className="text-sm text-emerald-500 hover:text-emerald-400 font-medium">Update</button>
+                    <Link
+                        href="/settings"
+                        className="text-sm text-emerald-500 hover:text-emerald-400 font-medium"
+                    >
+                        Update
+                    </Link>
+                </div>
+                <div className="pt-4">
+                    <div className="flex items-center justify-between mb-3">
+                        <p className="text-sm font-medium text-gray-900 dark:text-white">Active Sessions</p>
+                        <div className="flex items-center gap-2">
+                            <button
+                                onClick={loadSessions}
+                                disabled={sessionsLoading}
+                                className="text-xs px-2.5 py-1 rounded-lg border border-gray-200 dark:border-zinc-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-zinc-800 disabled:opacity-50"
+                            >
+                                Refresh
+                            </button>
+                            <button
+                                onClick={handleLogoutAllSessions}
+                                disabled={logoutAllLoading}
+                                className="text-xs px-2.5 py-1 rounded-lg border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 disabled:opacity-50"
+                            >
+                                {logoutAllLoading ? 'Logging out...' : 'Logout All'}
+                            </button>
+                        </div>
+                    </div>
+
+                    {sessionsLoading && (
+                        <p className="text-xs text-gray-500">Loading sessions...</p>
+                    )}
+                    {!sessionsLoading && sessionsError && (
+                        <p className="text-xs text-red-500">{sessionsError}</p>
+                    )}
+                    {!sessionsLoading && !sessionsError && sessions.length === 0 && (
+                        <p className="text-xs text-gray-500">No active sessions found.</p>
+                    )}
+                    {!sessionsLoading && sessions.length > 0 && (
+                        <div className="space-y-2">
+                            {sessions.slice(0, 8).map((session) => (
+                                <div
+                                    key={session.id}
+                                    className="flex items-center justify-between gap-3 rounded-xl border border-gray-100 dark:border-zinc-800 px-3 py-2"
+                                >
+                                    <div className="min-w-0">
+                                        <p className="text-xs font-semibold text-gray-900 dark:text-white truncate">
+                                            {session.userAgent || 'Unknown device'}
+                                            {session.isCurrent && (
+                                                <span className="ml-2 text-[10px] px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400">
+                                                    Current
+                                                </span>
+                                            )}
+                                        </p>
+                                        <p className="text-[11px] text-gray-500 truncate">
+                                            {session.ipAddress || 'Unknown IP'} • last used{' '}
+                                            {formatDistanceToNow(new Date(session.lastUsedAt || session.createdAt), { addSuffix: true })}
+                                        </p>
+                                    </div>
+                                    <button
+                                        onClick={() => handleRevokeSession(session.id)}
+                                        disabled={!!revokingSessionId || !session.isActive}
+                                        className="text-xs px-2.5 py-1 rounded-lg border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 disabled:opacity-50"
+                                    >
+                                        {revokingSessionId === session.id ? 'Revoking...' : 'Revoke'}
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    )}
                 </div>
            </div>
         </div>
@@ -270,7 +464,16 @@ export default function ProfilePage() {
                         <div className="h-2 bg-gray-100 dark:bg-zinc-800 rounded-full overflow-hidden">
                             <div 
                                 className="h-full bg-emerald-500 rounded-full transition-all duration-500"
-                                style={{ width: `${Math.min((usage.trades.used / (typeof usage.trades.limit === 'number' ? usage.trades.limit : 100)) * 100, 100)}%` }}
+                                style={{
+                                  width: `${Math.min(
+                                    (usage.trades.used /
+                                      (typeof usage.trades.limit === 'number' && usage.trades.limit > 0
+                                        ? usage.trades.limit
+                                        : 100)) *
+                                      100,
+                                    100,
+                                  )}%`,
+                                }}
                             ></div>
                         </div>
                     </div>
@@ -288,7 +491,16 @@ export default function ProfilePage() {
                          <div className="h-2 bg-gray-100 dark:bg-zinc-800 rounded-full overflow-hidden">
                             <div 
                                 className="h-full bg-blue-500 rounded-full transition-all duration-500"
-                                style={{ width: `${Math.min((usage.accounts.used / (typeof usage.accounts.limit === 'number' ? usage.accounts.limit : 1)) * 100, 100)}%` }}
+                                style={{
+                                  width: `${Math.min(
+                                    (usage.accounts.used /
+                                      (typeof usage.accounts.limit === 'number' && usage.accounts.limit > 0
+                                        ? usage.accounts.limit
+                                        : 1)) *
+                                      100,
+                                    100,
+                                  )}%`,
+                                }}
                             ></div>
                         </div>
                     </div>

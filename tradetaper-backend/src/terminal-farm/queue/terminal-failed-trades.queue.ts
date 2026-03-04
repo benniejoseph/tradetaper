@@ -11,6 +11,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Queue, Worker, Job } from 'bullmq';
 import { Redis } from 'ioredis';
 import { Repository } from 'typeorm';
+import { Socket } from 'net';
 import { TerminalInstance } from '../entities/terminal-instance.entity';
 import { TerminalTradeDto } from '../dto/terminal.dto';
 import { TradesService } from '../../trades/trades.service';
@@ -30,11 +31,13 @@ export class TerminalFailedTradesQueue
   implements OnModuleInit, OnModuleDestroy
 {
   private readonly logger = new Logger(TerminalFailedTradesQueue.name);
-  private queue: Queue<FailedTradeJob>;
-  private worker: Worker<FailedTradeJob>;
-  private connection: Redis;
+  private queue?: Queue<FailedTradeJob>;
+  private worker?: Worker<FailedTradeJob>;
+  private connection?: Redis;
   private useInMemory = false;
   private inMemoryJobs: FailedTradeJob[] = [];
+  private readonly maxRedisErrorLogs = 3;
+  private redisErrorLogs = 0;
 
   constructor(
     private readonly configService: ConfigService,
@@ -57,11 +60,19 @@ export class TerminalFailedTradesQueue
       return;
     }
 
+    const redisReachable = await this.isRedisReachable(redisUrl);
+    if (!redisReachable) {
+      this.logger.warn(
+        'Redis endpoint is unreachable. Failed trade retry queue will use in-memory processing.',
+      );
+      this.useInMemory = true;
+      return;
+    }
+
     try {
-      this.connection = new Redis(redisUrl, {
-        maxRetriesPerRequest: null,
-        enableReadyCheck: false,
-      });
+      this.connection = this.createRedisConnection(redisUrl);
+      await this.connection.connect();
+      await this.connection.ping();
 
       this.queue = new Queue('terminal-failed-trades', {
         connection: this.connection,
@@ -96,15 +107,23 @@ export class TerminalFailedTradesQueue
         );
       });
 
+      this.worker.on('error', (error) => {
+        this.logger.error(
+          `Failed trade worker error: ${error.message}`,
+          error.stack,
+        );
+      });
+
       this.logger.log('Terminal Failed Trades Queue initialized');
     } catch (error) {
       this.logger.error(
-        `Failed to initialize Terminal Failed Trades Queue: ${error.message}`,
-        error.stack,
+        `Failed to initialize Terminal Failed Trades Queue: ${this.getErrorMessage(error)}`,
+        error instanceof Error ? error.stack : undefined,
       );
       this.logger.warn(
         'Falling back to in-memory retry processing (NOT RECOMMENDED FOR PRODUCTION)',
       );
+      this.teardownRedisConnection();
       this.useInMemory = true;
     }
   }
@@ -116,9 +135,7 @@ export class TerminalFailedTradesQueue
     if (this.queue) {
       await this.queue.close();
     }
-    if (this.connection) {
-      await this.connection.quit();
-    }
+    this.teardownRedisConnection();
     this.inMemoryJobs = [];
   }
 
@@ -158,11 +175,19 @@ export class TerminalFailedTradesQueue
     const sanitizeJobId = (value: string) =>
       value.replace(/[^a-zA-Z0-9_-]/g, '-');
 
-    await this.queue.add('retry-trade', payload, {
-      jobId: sanitizeJobId(
-        `${terminalId}_${trade.ticket}_${trade.positionId || 'legacy'}`,
-      ),
-    });
+    try {
+      await this.queue.add('retry-trade', payload, {
+        jobId: sanitizeJobId(
+          `${terminalId}_${trade.ticket}_${trade.positionId || 'legacy'}`,
+        ),
+      });
+    } catch (error) {
+      this.logger.error(
+        `Failed to queue retry trade for terminal ${terminalId}: ${this.getErrorMessage(error)}`,
+        error instanceof Error ? error.stack : undefined,
+      );
+      this.enqueueInMemoryFallback(payload);
+    }
   }
 
   private async processFailedTradeJob(job: Job<FailedTradeJob>): Promise<void> {
@@ -248,5 +273,118 @@ export class TerminalFailedTradesQueue
       },
       { id: terminal.account.userId } as any,
     );
+  }
+
+  private createRedisConnection(redisUrl: string): Redis {
+    const connection = new Redis(redisUrl, {
+      lazyConnect: true,
+      maxRetriesPerRequest: null,
+      enableReadyCheck: true,
+      enableOfflineQueue: false,
+      connectTimeout: 5000,
+      retryStrategy: (times) => {
+        if (times > 3) {
+          this.logger.warn(
+            'Terminal Failed Trades Queue Redis retry limit reached. Disabling Redis queue connection.',
+          );
+          return null;
+        }
+
+        return Math.min(times * 250, 1000);
+      },
+    });
+
+    connection.on('error', (error) => {
+      this.redisErrorLogs += 1;
+      if (this.redisErrorLogs <= this.maxRedisErrorLogs) {
+        this.logger.error(
+          `Terminal Failed Trades Queue Redis error: ${error.message}`,
+          error.stack,
+        );
+      }
+
+      if (this.redisErrorLogs === this.maxRedisErrorLogs + 1) {
+        this.logger.warn(
+          `Suppressing additional Terminal Failed Trades Queue Redis errors after ${this.maxRedisErrorLogs} logs`,
+        );
+      }
+    });
+
+    connection.on('end', () => {
+      this.logger.warn('Terminal Failed Trades Queue Redis connection ended');
+    });
+
+    return connection;
+  }
+
+  private async isRedisReachable(redisUrl: string): Promise<boolean> {
+    try {
+      const parsed = new URL(redisUrl);
+      const host = parsed.hostname;
+      const port = Number(parsed.port || '6379');
+
+      await new Promise<void>((resolve, reject) => {
+        const socket = new Socket();
+
+        const done = (error?: Error) => {
+          socket.removeAllListeners();
+          socket.destroy();
+          if (error) {
+            reject(error);
+            return;
+          }
+          resolve();
+        };
+
+        socket.setTimeout(2500);
+        socket.once('error', done);
+        socket.once('timeout', () => done(new Error('socket timeout')));
+        socket.connect(port, host, () => done());
+      });
+
+      return true;
+    } catch (error) {
+      this.logger.warn(
+        `Redis preflight connectivity check failed: ${this.getErrorMessage(error)}`,
+      );
+      return false;
+    }
+  }
+
+  private enqueueInMemoryFallback(payload: FailedTradeJob): void {
+    this.useInMemory = true;
+    this.inMemoryJobs.push(payload);
+    setTimeout(() => {
+      const job = this.inMemoryJobs.shift();
+      if (job) {
+        this.processFailedTradeJob({ data: job } as Job<FailedTradeJob>).catch(
+          (error) =>
+            this.logger.error(
+              `Failed to process in-memory retry trade: ${this.getErrorMessage(error)}`,
+              error instanceof Error ? error.stack : undefined,
+            ),
+        );
+      }
+    }, 5000);
+  }
+
+  private teardownRedisConnection(): void {
+    if (!this.connection) {
+      return;
+    }
+
+    try {
+      this.connection.disconnect(false);
+    } catch (error) {
+      this.logger.warn(
+        `Error while closing failed-trades Redis connection: ${this.getErrorMessage(error)}`,
+      );
+    } finally {
+      this.connection = undefined;
+    }
+  }
+
+  private getErrorMessage(error: unknown): string {
+    return error instanceof Error ? error.message : String(error);
   }
 }

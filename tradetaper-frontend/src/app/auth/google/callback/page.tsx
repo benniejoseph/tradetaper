@@ -29,7 +29,7 @@ function GoogleCallbackContent() {
         const userFromHash = hashParams.get('user');
         const errorFromHash = hashParams.get('error');
         
-        // If no relevant params, wait - they might still be loading
+        // If no relevant params, wait briefly for router params/hash hydration.
         if (
           !token &&
           !user &&
@@ -40,40 +40,8 @@ function GoogleCallbackContent() {
         ) {
           // Give it a moment for params to populate
           await new Promise(resolve => setTimeout(resolve, 300));
-          
-          // Re-check after waiting
-          const tokenRetry = searchParams.get('token');
-          const userRetry = searchParams.get('user');
-          const errorRetry = searchParams.get('error');
-          const retryHashParams = new URLSearchParams(
-            typeof window !== 'undefined' && window.location.hash.startsWith('#')
-              ? window.location.hash.slice(1)
-              : '',
-          );
-          const tokenRetryHash = retryHashParams.get('token');
-          const userRetryHash = retryHashParams.get('user');
-          const errorRetryHash = retryHashParams.get('error');
-          
-          if (
-            !tokenRetry &&
-            !userRetry &&
-            !errorRetry &&
-            !tokenRetryHash &&
-            !userRetryHash &&
-            !errorRetryHash
-          ) {
-            // Still no params - check localStorage as fallback (might already be authenticated)
-            const storedToken = localStorage.getItem('token');
-            if (storedToken) {
-              router.push('/dashboard');
-              return;
-            }
-            // Truly no params - redirect to login
-            setErrorMessage('No authentication data received');
-            setStatus('error');
-            setTimeout(() => router.push('/login'), 2000);
-            return;
-          }
+
+          // Continue; GoogleAuthService will attempt cookie-based /auth/me if token params are absent.
         }
         
         const success = await GoogleAuthService.handleGoogleCallback(

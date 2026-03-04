@@ -6,6 +6,7 @@ import { motion } from 'framer-motion';
 import Sidebar from '@/components/Sidebar';
 import { Wallet, RefreshCw, ChevronLeft, ChevronRight, Download } from 'lucide-react';
 import { formatNumber } from '@/lib/utils';
+import { API_BASE_URL } from '@/lib/api-base-url';
 import toast from 'react-hot-toast';
 
 export default function AccountsPage() {
@@ -16,8 +17,8 @@ export default function AccountsPage() {
     queryKey: ['admin-accounts', page],
     queryFn: async () => {
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/admin/accounts?page=${page}&limit=50`,
-        { headers: { Authorization: `Bearer ${localStorage.getItem('admin_token')}` } }
+        `${API_BASE_URL}/admin/accounts?page=${page}&limit=50`,
+        { credentials: 'include' }
       );
       return res.json();
     },

@@ -20,6 +20,10 @@ import {
   UsageLimitGuard,
   UsageFeature,
 } from '../subscriptions/guards/usage-limit.guard';
+import {
+  FeatureAccessGuard,
+  RequireFeature,
+} from '../subscriptions/guards/feature-access.guard';
 import { NotesService } from './notes.service';
 import { PsychologicalInsightsService } from './psychological-insights.service';
 import { CreateNoteDto } from './dto/create-note.dto';
@@ -133,6 +137,8 @@ export class NotesController {
   }
 
   @Post(':id/analyze-psychology')
+  @UseGuards(FeatureAccessGuard)
+  @RequireFeature('psychology')
   @HttpCode(HttpStatus.OK)
   async analyzePsychology(
     @Param('id', ParseUUIDPipe) id: string,
@@ -148,6 +154,8 @@ export class NotesController {
   }
 
   @Get('psychological-profile')
+  @UseGuards(FeatureAccessGuard)
+  @RequireFeature('psychology')
   async getPsychologicalProfile(
     @Request() req: AuthenticatedRequest,
   ): Promise<Record<string, unknown>> {

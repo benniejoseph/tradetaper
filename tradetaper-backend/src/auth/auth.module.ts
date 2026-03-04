@@ -7,8 +7,10 @@ import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
 import { PassportModule } from '@nestjs/passport';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { LocalStrategy } from './strategies/local.strategy';
 import { JwtStrategy } from './strategies/jwt.strategy';
+import { AuthSession } from './entities/auth-session.entity';
 
 @Module({
   imports: [
@@ -16,6 +18,7 @@ import { JwtStrategy } from './strategies/jwt.strategy';
     SubscriptionsModule,
     PassportModule,
     ConfigModule, // To use ConfigService for JWT_SECRET
+    TypeOrmModule.forFeature([AuthSession]),
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],

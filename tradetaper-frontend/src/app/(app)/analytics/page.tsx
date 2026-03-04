@@ -44,6 +44,7 @@ import RollingReturnCard from '@/components/dashboard/RollingReturnCard';
 import RollingProfitFactorCard from '@/components/dashboard/RollingProfitFactorCard';
 import RollingExpectancyCard from '@/components/dashboard/RollingExpectancyCard';
 import MaeMfeScatterCard from '@/components/dashboard/MaeMfeScatterCard';
+import { authApiClient } from '@/services/api';
 
 const timeRangeDaysMapping: { [key: string]: number } = {
   '7d': 7, '1M': 30, '3M': 90, '1Y': 365, 'All': Infinity,
@@ -80,26 +81,22 @@ export default function AnalyticsPage() {
   const [selectedDateData, setSelectedDateData] = useState<{ date: string; count: number; totalPnl: number } | null>(null);
   const [selectedDateTrades, setSelectedDateTrades] = useState<Trade[]>([]);
   const [analyticsData, setAnalyticsData] = useState<any>(null);
-  const { token } = useSelector((state: RootState) => state.auth);
 
   useEffect(() => {
-    if (isAuthenticated && token) {
-      fetch(`${process.env.NEXT_PUBLIC_API_URL}/analytics/advanced${selectedAccountId ? `?accountId=${selectedAccountId}` : ''}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
+    if (isAuthenticated) {
+      authApiClient
+        .get(`/analytics/advanced${selectedAccountId ? `?accountId=${selectedAccountId}` : ''}`)
         .then(res => {
-          if (!res.ok) {
-            console.warn('Analytics endpoint returned error:', res.status);
-            return null;
-          }
-          return res.json();
+          setAnalyticsData(res.data);
         })
-        .then(data => {
-          if (data) setAnalyticsData(data);
+        .catch(err => {
+          console.warn(
+            'Analytics endpoint returned error:',
+            err?.response?.status || err?.message || err,
+          );
         })
-        .catch(err => console.error('Failed to fetch analytics', err));
     }
-  }, [isAuthenticated, token, selectedAccountId]);
+  }, [isAuthenticated, selectedAccountId]);
 
   useEffect(() => {
     if (isAuthenticated) {

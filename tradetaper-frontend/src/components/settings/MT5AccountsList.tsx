@@ -29,11 +29,15 @@ import {
 } from 'react-icons/fa';
 import MT5AccountForm from './MT5AccountForm';
 import MetaApiStatusCard from './MetaApiStatusCard';
+import { authApiClient } from '@/services/api';
+import { useCurrency } from '@/hooks/useCurrency';
+import { MT5_SLOT_PRICE } from '@/config/pricing';
 
 const MT5AccountsList: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
   const accounts = useSelector(selectMT5Accounts);
   const isLoading = useSelector(selectMT5AccountsLoading);
+  const { currency } = useCurrency();
   
   const [showForm, setShowForm] = useState(false);
   const [editingAccount, setEditingAccount] = useState<MT5Account | null>(null);
@@ -50,10 +54,8 @@ const MT5AccountsList: React.FC = () => {
 
   const fetchLimits = async () => {
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/mt5-accounts/limits`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-      });
-      if (res.ok) setLimits(await res.json());
+      const res = await authApiClient.get('/mt5-accounts/limits');
+      setLimits(res.data);
     } catch (err) {
       console.error('Failed to fetch MT5 limits', err);
     }
@@ -62,18 +64,14 @@ const MT5AccountsList: React.FC = () => {
   const handleBuySlot = async () => {
     setBuyingSlot(true);
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/subscriptions/addon/mt5-slot`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-      });
-      if (!res.ok) throw new Error('Failed to create order');
-      const order = await res.json();
+      const res = await authApiClient.post('/subscriptions/addon/mt5-slot');
+      const order = res.data;
       
       const rzp = new (window as any).Razorpay({
-        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+        key: order.key,
         amount: order.amount,
         currency: order.currency,
-        order_id: order.id,
+        order_id: order.orderId || order.id,
         name: 'TradeTaper',
         description: 'Extra MT5 Account Slot',
         handler: function () {
@@ -201,7 +199,7 @@ const MT5AccountsList: React.FC = () => {
               className="flex items-center space-x-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:opacity-90 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm disabled:opacity-50"
             >
               {buyingSlot ? <FaSpinner className="w-3 h-3 animate-spin" /> : <FaPlus className="w-3 h-3" />}
-              <span>Buy Extra Slot (₹999)</span>
+              <span>Buy Extra Slot ({MT5_SLOT_PRICE[currency.code].label})</span>
             </button>
           )}
         </div>

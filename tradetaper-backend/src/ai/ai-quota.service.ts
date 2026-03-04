@@ -26,6 +26,8 @@ export class AiQuotaService {
   private readonly logger = new Logger(AiQuotaService.name);
   private client: RedisClientType | null = null;
   private ready = false;
+  private redisErrorLogged = false;
+  private quotaBypassLogged = false;
 
   constructor(private readonly configService: ConfigService) {
     this.initRedis();
@@ -38,15 +40,30 @@ export class AiQuotaService {
       return;
     }
     try {
-      this.client = createClient({ url }) as RedisClientType;
-      this.client.on('error', (err) =>
-        this.logger.error(`AiQuotaService Redis error: ${err.message}`),
-      );
+      this.client = createClient({
+        url,
+        socket: {
+          connectTimeout: 5000,
+          reconnectStrategy: () => false,
+        },
+      }) as RedisClientType;
+      this.client.on('error', (err) => {
+        this.ready = false;
+        if (!this.redisErrorLogged) {
+          this.redisErrorLogged = true;
+          this.logger.warn(`AiQuotaService Redis unavailable: ${err.message}. Quota enforcement disabled.`);
+        }
+      });
       await this.client.connect();
       this.ready = true;
+      this.redisErrorLogged = false;
+      this.quotaBypassLogged = false;
       this.logger.log('AiQuotaService: Redis connected for quota tracking');
     } catch (err) {
-      this.logger.error(`AiQuotaService: Failed to connect to Redis: ${err.message}. Quota enforcement disabled.`);
+      this.ready = false;
+      this.client = null;
+      this.redisErrorLogged = true;
+      this.logger.warn(`AiQuotaService: Failed to connect to Redis: ${err.message}. Quota enforcement disabled.`);
     }
   }
 
@@ -80,7 +97,10 @@ export class AiQuotaService {
 
     if (!this.ready || !this.client) {
       // No Redis — fail open (log warning, don't block users)
-      this.logger.warn('AiQuotaService: Redis not ready, skipping quota check');
+      if (!this.quotaBypassLogged) {
+        this.quotaBypassLogged = true;
+        this.logger.warn('AiQuotaService: Redis not ready, skipping quota checks (fail-open)');
+      }
       return;
     }
 

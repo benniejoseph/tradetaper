@@ -8,6 +8,8 @@ import { doubleCsrf } from 'csrf-csrf';
 
 import helmet from 'helmet';
 import { WsJwtAdapter } from './websocket/ws-jwt.adapter';
+import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
+import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 
 const logger = new Logger('Bootstrap');
 
@@ -19,6 +21,10 @@ async function bootstrap() {
     );
 
     const app = await NestFactory.create(AppModule, { rawBody: true });
+
+    // Register global request logging + exception handling for consistent observability.
+    app.useGlobalInterceptors(app.get(LoggingInterceptor));
+    app.useGlobalFilters(app.get(GlobalExceptionFilter));
 
     // CORS configuration - MUST BE FIRST (before other middleware)
     const corsOptions: CorsOptions = {
