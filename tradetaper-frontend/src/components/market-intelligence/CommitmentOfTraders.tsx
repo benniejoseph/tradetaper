@@ -61,6 +61,7 @@ export default function CommitmentOfTraders() {
   const [loading, setLoading] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [aiAccessDenied, setAiAccessDenied] = useState(false);
 
   useEffect(() => {
     // When category changes, reset symbol to first in list
@@ -74,7 +75,22 @@ export default function CommitmentOfTraders() {
       setLoading(true);
       setError(null);
       try {
-        const { data } = await authApiClient.get(`/market-intelligence/cot/history/${activeSymbol}?limit=26`);
+        const response = await authApiClient.get(
+          `/market-intelligence/cot/history/${activeSymbol}`,
+          {
+            params: { limit: 26, _ts: Date.now() },
+            validateStatus: (status) =>
+              (status >= 200 && status < 300) || status === 304,
+            headers: {
+              'Cache-Control': 'no-cache',
+              Pragma: 'no-cache',
+            },
+          },
+        );
+        if (response.status === 304) {
+          return;
+        }
+        const data = response.data;
         // Reverse so chronological left to right
         setHistory(Array.isArray(data) ? data.reverse() : []);
       } catch (err) {
@@ -96,8 +112,15 @@ export default function CommitmentOfTraders() {
       try {
         const { data } = await authApiClient.get(`/market-intelligence/cot/analysis/${activeSymbol}`);
         setAiSummary(data);
+        setAiAccessDenied(false);
       } catch (err) {
         console.error(err);
+        const status = (err as { response?: { status?: number } })?.response?.status;
+        if (status === 403) {
+          setAiAccessDenied(true);
+        } else {
+          setAiAccessDenied(false);
+        }
         setAiSummary(null);
       } finally {
         setAiLoading(false);
@@ -177,6 +200,16 @@ export default function CommitmentOfTraders() {
           <div>
             <h3 className="font-bold text-red-800 dark:text-red-400">Data Source Error</h3>
             <p className="text-red-600 dark:text-red-500/80 text-sm mt-1">{error}</p>
+          </div>
+        </div>
+      ) : history.length === 0 ? (
+        <div className="p-6 bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-900/30 rounded-xl flex items-start gap-4">
+          <FaInfoCircle className="text-amber-500 text-xl flex-shrink-0 mt-0.5" />
+          <div>
+            <h3 className="font-bold text-amber-800 dark:text-amber-400">No COT Records Yet</h3>
+            <p className="text-amber-700 dark:text-amber-500/80 text-sm mt-1">
+              No CFTC rows were returned for {activeSymbol}. Try another symbol or check again after the next CFTC release.
+            </p>
           </div>
         </div>
       ) : (
@@ -339,6 +372,10 @@ export default function CommitmentOfTraders() {
                       </div>
                     </div>
                   </div>
+                </div>
+              ) : aiAccessDenied ? (
+                <div className="text-sm text-amber-600 dark:text-amber-400 text-center py-6">
+                  AI COT analysis is premium-gated for this account. Historical COT chart data remains available.
                 </div>
               ) : (
                 <div className="text-sm text-gray-500 text-center py-6">

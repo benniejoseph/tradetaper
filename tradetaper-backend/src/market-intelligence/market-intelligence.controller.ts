@@ -10,6 +10,7 @@ import {
   Post,
   Delete,
   Request,
+  Header,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import {
@@ -336,6 +337,9 @@ export class MarketIntelligenceController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @Header('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate')
+  @Header('Pragma', 'no-cache')
+  @Header('Expires', '0')
   @Get('cot/history/:symbol')
   async getCotHistory(@Param('symbol') symbol: string, @Query('limit') limit?: string) {
     this.logger.log(`Getting COT history for symbol: ${symbol}`);
