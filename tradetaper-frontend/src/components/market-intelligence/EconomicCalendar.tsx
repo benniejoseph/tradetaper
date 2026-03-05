@@ -35,6 +35,11 @@ interface EconomicEvent {
   };
 }
 
+type VolatilityBar = {
+  height: number;
+  highlight: boolean;
+};
+
 export default function EconomicCalendar() {
   const [events, setEvents] = useState<EconomicEvent[]>([]);
   const [loading, setLoading] = useState(true);
@@ -319,6 +324,36 @@ export default function EconomicCalendar() {
     selectedDetails?.aiSummary?.sourceQuality ||
     selectedDetails?.sourceQuality;
   const affectedSymbols = selectedDetails?.impact?.affectedSymbols || eventData?.impact?.affectedSymbols || [];
+
+  const historicalVolatilityBars = useMemo<VolatilityBar[]>(() => {
+    const toNumeric = (value: unknown): number | null => {
+      if (value === null || value === undefined || value === '') return null;
+      const parsed = parseFloat(String(value).replace(/[^0-9.-]/g, ''));
+      return Number.isFinite(parsed) ? parsed : null;
+    };
+
+    const source = eventHistory.slice(0, 24);
+    if (source.length === 0) return [];
+
+    return source.map((item: any, idx: number) => {
+      const actual = toNumeric(item.actual);
+      const forecast = toNumeric(item.forecast);
+      const previous = toNumeric(item.previous);
+
+      let delta = 0;
+      if (actual !== null && forecast !== null) {
+        delta = Math.abs(actual - forecast);
+      } else if (actual !== null && previous !== null) {
+        delta = Math.abs(actual - previous);
+      }
+
+      const scaledHeight = Math.min(100, Math.max(12, delta * 12 || 14));
+      return {
+        height: scaledHeight,
+        highlight: idx === source.length - 1,
+      };
+    });
+  }, [eventHistory]);
 
   const timezoneOptions = [
     { value: 'local', label: `Local (${resolvedTimeZone})` },
@@ -644,15 +679,25 @@ export default function EconomicCalendar() {
                 {/* 3. Historical Volatility Mini Chart */}
                 <div className="bg-white dark:bg-[#111] border border-gray-200 dark:border-[#222] rounded-xl p-4 shadow-sm flex-1 min-h-[120px]">
                   <h5 className="text-xs text-gray-500 dark:text-gray-400 mb-4">Historical Volatility for Selected Event</h5>
-                  <div className="h-16 flex items-end gap-[2px] w-full opacity-80">
-                    {Array.from({length: 40}).map((_, i) => (
-                      <div 
-                        key={i} 
-                        className={`w-full rounded-t-sm ${i > 25 && i < 32 ? 'bg-emerald-500 dark:bg-emerald-400 shadow-[0_0_5px_rgba(52,211,153,0.8)]' : 'bg-emerald-200 dark:bg-emerald-900/50'}`}
-                        style={{ height: `${Math.max(10, Math.random() * (i > 25 && i < 32 ? 100 : 40))}%` }}
-                      ></div>
-                    ))}
-                  </div>
+                  {historicalVolatilityBars.length > 0 ? (
+                    <div className="h-16 flex items-end gap-[2px] w-full opacity-80">
+                      {historicalVolatilityBars.map((bar, i) => (
+                        <div
+                          key={i}
+                          className={`w-full rounded-t-sm ${
+                            bar.highlight
+                              ? 'bg-emerald-500 dark:bg-emerald-400 shadow-[0_0_5px_rgba(52,211,153,0.8)]'
+                              : 'bg-emerald-200 dark:bg-emerald-900/50'
+                          }`}
+                          style={{ height: `${bar.height}%` }}
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="h-16 flex items-center justify-center text-xs text-gray-500 dark:text-gray-400">
+                      No release history yet for this event.
+                    </div>
+                  )}
                 </div>
 
                 {/* 4. Tabs at bottom */}

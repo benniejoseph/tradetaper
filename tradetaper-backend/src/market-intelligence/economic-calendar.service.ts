@@ -264,11 +264,17 @@ export class EconomicCalendarService {
     }
 
     if (events.length === 0) {
-      for (let i = 0; i < 7; i++) {
-        const eventDate = new Date(currentDate);
-        eventDate.setDate(currentDate.getDate() + i);
-        const dayEvents = this.generateEventsForDay(eventDate);
-        events.push(...dayEvents);
+      if (this.configService.get<string>('NODE_ENV') !== 'production') {
+        for (let i = 0; i < 7; i++) {
+          const eventDate = new Date(currentDate);
+          eventDate.setDate(currentDate.getDate() + i);
+          const dayEvents = this.generateEventsForDay(eventDate);
+          events.push(...dayEvents);
+        }
+      } else {
+        this.logger.warn(
+          'No economic events from live sources. Returning empty calendar in production.',
+        );
       }
     }
 

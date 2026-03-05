@@ -15,8 +15,12 @@ export class CotDataService {
   // Financial Futures (Forex, Indices) -> Socrata endpoint
   private readonly TFF_ENDPOINT = 'https://publicreporting.cftc.gov/resource/gpe5-46if.json';
   
-  // Disaggregated (Metals, Energy) -> Socrata endpoint
-  private readonly DISAGG_ENDPOINT = 'https://publicreporting.cftc.gov/resource/6dca-zjaw.json';
+  // Disaggregated (Metals, Energy) -> Socrata endpoints.
+  // Keep both ids for resilience if one feed is retired or mirrored.
+  private readonly DISAGG_ENDPOINTS = [
+    'https://publicreporting.cftc.gov/resource/72hh-3qpy.json',
+    'https://publicreporting.cftc.gov/resource/6dca-zjaw.json',
+  ];
 
   // Map our UI symbols to the ugly long CFTC contract names
   private readonly COT_SYMBOL_MAP: Record<string, { name: string; type: 'tff' | 'disagg' }> = {
@@ -97,24 +101,27 @@ export class CotDataService {
   }
 
   private async fetchFromSocrata(type: 'tff' | 'disagg', cftcName: string, limit: number): Promise<CotDataPoint[]> {
-    const endpoint = type === 'tff' ? this.TFF_ENDPOINT : this.DISAGG_ENDPOINT;
-    
-    // We use Socrata's SoQL queries directly in the URL params
-    const response = await firstValueFrom(
-        this.httpService.get(endpoint, {
+    const endpoints =
+      type === 'tff' ? [this.TFF_ENDPOINT] : this.DISAGG_ENDPOINTS;
+
+    let lastError: Error | null = null;
+    for (const endpoint of endpoints) {
+      try {
+        const response = await firstValueFrom(
+          this.httpService.get(endpoint, {
             params: {
-                contract_market_name: cftcName,
-                $limit: limit,
-                $order: 'report_date_as_yyyy_mm_dd DESC',
+              contract_market_name: cftcName,
+              $limit: limit,
+              $order: 'report_date_as_yyyy_mm_dd DESC',
             },
             timeout: 10000,
-        })
-    );
+          }),
+        );
 
-    const rows = response.data;
-    if (!Array.isArray(rows)) return [];
+        const rows = response.data;
+        if (!Array.isArray(rows)) return [];
 
-    return rows.map((row: any) => {
+        return rows.map((row: any) => {
         if (type === 'tff') {
             // Traders in Financial Futures mapping
             const longLev = parseFloat(row.lev_money_positions_long_all) || 0;
@@ -150,7 +157,22 @@ export class CotDataService {
                 shortNonReportable: shortRet,
             };
         }
-    });
+      });
+      } catch (error: any) {
+        const status = error?.response?.status;
+        const message = error?.message || 'Unknown error';
+        this.logger.warn(
+          `COT endpoint failed (${endpoint}) for ${cftcName}: ${status || 'n/a'} ${message}`,
+        );
+        lastError = error;
+      }
+    }
+
+    if (lastError) {
+      throw lastError;
+    }
+
+    return [];
   }
 
   private async syncToDatabase(symbol: string, cftcName: string, dataPoints: CotDataPoint[]) {

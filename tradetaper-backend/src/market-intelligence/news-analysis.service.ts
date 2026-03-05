@@ -53,14 +53,15 @@ export class NewsAnalysisService {
   ) {}
 
   async getMarketNews(categoryFilter?: string): Promise<NewsAnalysisResult> {
-    const cacheKey = categoryFilter ? `news_${categoryFilter}` : 'news_all';
+    const normalizedCategory = this.normalizeCategoryFilter(categoryFilter);
+    const cacheKey = normalizedCategory ? `news_${normalizedCategory}` : 'news_all';
 
     // Check cache
     const cached = await this.cacheManager.get<NewsAnalysisResult>(cacheKey);
     if (cached) return cached;
 
     this.logger.log(
-      `Fetching market news (Filter: ${categoryFilter || 'All'})...`,
+      `Fetching market news (Filter: ${normalizedCategory || 'all'})...`,
     );
 
     try {
@@ -84,12 +85,10 @@ export class NewsAnalysisService {
       let uniqueNews = this.deduplicateNews(allNews);
 
       // Filter
-      if (categoryFilter && categoryFilter !== 'all') {
-        uniqueNews = uniqueNews.filter(
-          (n) =>
-            n.category.toLowerCase() === categoryFilter.toLowerCase() ||
-            (categoryFilter === 'market' &&
-              ['economy', 'fed', 'earnings'].includes(n.category)),
+      if (normalizedCategory && normalizedCategory !== 'all') {
+        const acceptedCategories = this.getAcceptedCategoriesForFilter(normalizedCategory);
+        uniqueNews = uniqueNews.filter((n) =>
+          acceptedCategories.includes(n.category.toLowerCase()),
         );
       }
 
@@ -121,6 +120,27 @@ export class NewsAnalysisService {
       this.logger.error('Error fetching market news:', error);
       return this.getFallbackNews();
     }
+  }
+
+  private normalizeCategoryFilter(categoryFilter?: string): string {
+    return (categoryFilter || 'all').trim().toLowerCase();
+  }
+
+  private getAcceptedCategoriesForFilter(categoryFilter: string): string[] {
+    const aliasMap: Record<string, string[]> = {
+      all: ['economy', 'earnings', 'fed', 'geopolitical', 'crypto', 'general'],
+      market: ['economy', 'fed', 'earnings'],
+      forex: ['economy', 'fed', 'geopolitical', 'general'],
+      stocks: ['earnings', 'economy', 'fed', 'general'],
+      economy: ['economy'],
+      fed: ['fed'],
+      crypto: ['crypto'],
+      geopolitical: ['geopolitical'],
+      general: ['general'],
+      earnings: ['earnings'],
+    };
+
+    return aliasMap[categoryFilter] || [categoryFilter];
   }
 
   private async getNewsFromNewsAPI(): Promise<MarketNews[]> {

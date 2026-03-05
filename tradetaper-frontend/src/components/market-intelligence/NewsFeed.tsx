@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { FaNewspaper, FaVideo, FaSearch, FaFilter } from 'react-icons/fa';
+import { FaNewspaper, FaVideo } from 'react-icons/fa';
 import { authApiClient as api } from '@/services/api';
 
 interface NewsArticle {
+  id?: string;
   title: string;
-  description: string;
+  summary?: string;
+  description?: string;
   source: string;
   url: string;
   imageUrl?: string;
@@ -18,6 +20,15 @@ const NewsFeed: React.FC = () => {
   const [news, setNews] = useState<NewsArticle[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState('all');
+
+  const categories = [
+    { label: 'All', value: 'all' },
+    { label: 'Forex', value: 'forex' },
+    { label: 'Crypto', value: 'crypto' },
+    { label: 'Stocks', value: 'stocks' },
+    { label: 'Economy', value: 'economy' },
+    { label: 'Fed', value: 'fed' },
+  ];
 
   useEffect(() => {
     fetchNews(activeCategory);
@@ -43,23 +54,21 @@ const NewsFeed: React.FC = () => {
     }
   };
 
-  const categories = ['All', 'Forex', 'Crypto', 'Stocks', 'Economy', 'Fed'];
-
   return (
     <div className="flex flex-col space-y-4">
       {/* Controls */}
       <div className="flex flex-wrap gap-2 pb-2">
-        {categories.map(cat => (
+        {categories.map((cat) => (
            <button
-             key={cat}
-             onClick={() => setActiveCategory(cat.toLowerCase())}
+             key={cat.value}
+             onClick={() => setActiveCategory(cat.value)}
              className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-               activeCategory === cat.toLowerCase()
+               activeCategory === cat.value
                  ? 'bg-emerald-600 text-white'
                  : 'bg-white dark:bg-black/70 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-emerald-950/40'
              }`}
            >
-             {cat}
+             {cat.label}
            </button>
         ))}
       </div>
@@ -71,8 +80,8 @@ const NewsFeed: React.FC = () => {
             <div key={i} className="animate-pulse bg-gray-200 dark:bg-emerald-950/40 rounded-lg h-64"></div>
           ))
         ) : (
-          news.map((item, idx) => (
-            <div key={idx} className="bg-white dark:bg-black/70 rounded-lg shadow-sm overflow-hidden flex flex-col hover:shadow-md transition-shadow">
+          news.length > 0 ? news.map((item, idx) => (
+            <div key={item.id || `${item.url}-${idx}`} className="bg-white dark:bg-black/70 rounded-lg shadow-sm overflow-hidden flex flex-col hover:shadow-md transition-shadow">
               {/* Image / Video */}
               <div className="relative h-48 bg-gray-200 dark:bg-emerald-950/40">
                 {item.hasVideo && item.videoUrl ? (
@@ -105,7 +114,9 @@ const NewsFeed: React.FC = () => {
                    <span className="text-xs text-gray-500">{new Date(item.publishedAt).toLocaleDateString()}</span>
                 </div>
                 <h3 className="text-md font-bold text-gray-900 dark:text-white mb-2 line-clamp-2">{item.title}</h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-3 mb-4 flex-1">{item.description}</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-3 mb-4 flex-1">
+                  {item.summary || item.description || 'No summary available.'}
+                </p>
                 
                 <div className="mt-auto flex justify-between items-center">
                    <span className="text-xs text-gray-500">{item.source}</span>
@@ -120,7 +131,11 @@ const NewsFeed: React.FC = () => {
                 </div>
               </div>
             </div>
-          ))
+          )) : (
+            <div className="md:col-span-2 lg:col-span-3 rounded-lg border border-gray-200 dark:border-emerald-900/40 bg-white dark:bg-black/70 p-8 text-center text-sm text-gray-500 dark:text-gray-400">
+              No news found for this category.
+            </div>
+          )
         )}
       </div>
     </div>

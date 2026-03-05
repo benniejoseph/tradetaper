@@ -97,9 +97,7 @@ Return JSON ONLY matching this schema:
         optimizeFor: 'quality',
       });
 
-      const parsed = typeof response.content === 'string' 
-        ? JSON.parse(response.content.replace(/\`\`\`json/g, '').replace(/\`\`\`/g, ''))
-        : response.content;
+      const parsed = this.parseAiJson(response.content);
 
       // Ensure mapping adheres to the schema
       return {
@@ -114,6 +112,53 @@ Return JSON ONLY matching this schema:
       };
     } catch (error) {
       this.logger.error(`AI Orchestrator failed to parse COT summary for ${symbol}: ${error.message}`);
+      return {
+        symbol,
+        sentiment: 'Neutral',
+        biasRating: 50,
+        smartMoneyPositioning:
+          'COT report could not be parsed. Smart-money positioning is temporarily unavailable.',
+        retailDivergence:
+          'Retail divergence unavailable while COT AI parsing is degraded.',
+        laggingDataContext:
+          'Use live price action with caution until the next valid COT interpretation is generated.',
+        predictedImpact: 'Neutral short-term outlook until fresh COT analysis is available.',
+        confidence: 40,
+      };
+    }
+  }
+
+  private parseAiJson(content: unknown): Record<string, any> {
+    if (!content) {
+      throw new Error('Empty AI response content');
+    }
+
+    if (typeof content === 'object') {
+      return content as Record<string, any>;
+    }
+
+    const cleaned = String(content)
+      .replace(/```json/g, '')
+      .replace(/```/g, '')
+      .trim();
+
+    const direct = this.tryParseJson(cleaned);
+    if (direct) return direct;
+
+    const match = cleaned.match(/\{[\s\S]*\}/);
+    if (match) {
+      const extracted = this.tryParseJson(match[0]);
+      if (extracted) return extracted;
+    }
+
+    throw new Error('Unable to parse AI JSON');
+  }
+
+  private tryParseJson(text: string): Record<string, any> | null {
+    try {
+      const normalized = text.replace(/,\s*}/g, '}').replace(/,\s*]/g, ']');
+      return JSON.parse(normalized);
+    } catch {
       return null;
     }
   }
