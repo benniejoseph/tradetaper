@@ -126,11 +126,13 @@ export default function EconomicCalendar() {
   };
 
   const toggleFilter = (impact: string) => {
-    setActiveFilters(prev => 
-      prev.includes(impact) 
-        ? prev.filter(f => f !== impact)
-        : [...prev, impact]
-    );
+    setActiveFilters((prev) => {
+      if (prev.includes(impact)) {
+        const next = prev.filter((f) => f !== impact);
+        return next.length > 0 ? next : prev;
+      }
+      return [...prev, impact];
+    });
   };
 
   const resolvedTimeZone = useMemo(() => {
@@ -154,20 +156,6 @@ export default function EconomicCalendar() {
     }
   };
   
-  const formatDateGroup = (dateStr: string) => {
-     try {
-      const date = new Date(dateStr);
-      return date.toLocaleDateString('en-US', {
-        timeZone: resolvedTimeZone,
-        weekday: 'long',
-        month: 'short',
-        day: 'numeric'
-      });
-    } catch (e) {
-      return dateStr;
-    }
-  };
-
   const getImpactColor = (impact: string) => {
     switch (impact.toLowerCase()) {
       case 'high': return 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300 border-red-200 dark:border-red-800';
@@ -235,20 +223,6 @@ export default function EconomicCalendar() {
     });
   }, [events, activeFilters, activeCurrencies, searchQuery, dateRange]);
 
-  const getSurprise = (event: EconomicEvent) => {
-    const actual = Number(event.actual);
-    const forecast = Number(event.forecast);
-    if (Number.isFinite(actual) && Number.isFinite(forecast)) {
-      const diff = actual - forecast;
-      if (diff === 0) return { label: '0', tone: 'text-gray-500' };
-      return {
-        label: diff > 0 ? `+${diff.toFixed(2)}` : diff.toFixed(2),
-        tone: diff > 0 ? 'text-emerald-600' : 'text-red-500',
-      };
-    }
-    return { label: '—', tone: 'text-gray-400' };
-  };
-
   const getSurpriseDirection = (event: EconomicEvent) => {
     const actual = Number(event.actual);
     const forecast = Number(event.forecast);
@@ -264,18 +238,23 @@ export default function EconomicCalendar() {
     return String(value);
   };
 
-  // 2. Group by Day (IST)
+  // Group filtered events by local day key
   const groupedEvents = useMemo(() => {
     const groups: Record<string, EconomicEvent[]> = {};
-    filteredEvents.forEach(event => {
-      const dayKey = formatDateGroup(event.date);
+    filteredEvents.forEach((event) => {
+      const dayKey = new Date(event.date).toLocaleDateString('en-US', {
+        timeZone: resolvedTimeZone,
+        weekday: 'long',
+        month: 'short',
+        day: 'numeric',
+      });
       if (!groups[dayKey]) {
         groups[dayKey] = [];
       }
       groups[dayKey].push(event);
     });
     return groups;
-  }, [filteredEvents]);
+  }, [filteredEvents, resolvedTimeZone]);
   
   const groupKeys = Object.keys(groupedEvents);
 
@@ -313,9 +292,10 @@ export default function EconomicCalendar() {
   const selectedDetails = selectedEventId ? eventDetails[selectedEventId] : null;
   const eventData: EconomicEvent | null =
     (selectedDetails?.event as EconomicEvent) || selectedEvent;
-  const eventHistory = Array.isArray(selectedDetails?.history)
-    ? selectedDetails.history
-    : [];
+  const eventHistory = useMemo(
+    () => (Array.isArray(selectedDetails?.history) ? selectedDetails.history : []),
+    [selectedDetails],
+  );
   const aiSummary = selectedDetails?.aiSummary;
   const cachedAt = selectedDetails?.cachedAt;
   const confidence = Number(selectedDetails?.aiSummary?.confidence ?? selectedDetails?.confidence ?? 0);
@@ -391,6 +371,43 @@ export default function EconomicCalendar() {
             AI Economic Calendar
           </h3>
 
+          <div className="flex flex-col lg:flex-row lg:items-center gap-3">
+            <div className="relative w-full lg:max-w-md">
+              <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search event, country, or currency"
+                className="w-full rounded-full border border-gray-200 dark:border-gray-800 bg-white dark:bg-[#111] pl-9 pr-4 py-2 text-sm text-gray-700 dark:text-gray-200 focus:outline-none focus:border-emerald-500"
+              />
+            </div>
+            <div className="inline-flex items-center rounded-full border border-gray-200 dark:border-gray-800 bg-white dark:bg-[#111] p-1">
+              <span className="inline-flex items-center px-2 text-xs text-gray-500 dark:text-gray-400">
+                <FaClock className="mr-1" />
+                Range
+              </span>
+              {[
+                { id: 'today', label: 'Today' },
+                { id: 'week', label: '7D' },
+                { id: 'month', label: '30D' },
+              ].map((range) => (
+                <button
+                  key={range.id}
+                  type="button"
+                  onClick={() => setDateRange(range.id as 'today' | 'week' | 'month')}
+                  className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                    dateRange === range.id
+                      ? 'bg-emerald-500 text-white'
+                      : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200'
+                  }`}
+                >
+                  {range.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
           <div className="flex flex-wrap items-center gap-6 text-sm mt-2">
             
             {/* Timezone */}
@@ -411,7 +428,10 @@ export default function EconomicCalendar() {
 
             {/* Impact Filters */}
             <div className="flex items-center gap-2">
-              <span className="text-gray-500 dark:text-gray-400">Impact:</span>
+              <span className="text-gray-500 dark:text-gray-400 inline-flex items-center gap-1">
+                <FaFilter className="text-[10px]" />
+                Impact:
+              </span>
               <div className="flex items-center bg-white dark:bg-[#111] border border-gray-200 dark:border-gray-800 rounded-full overflow-hidden p-0.5">
                 {['High', 'Medium', 'Low'].map(impact => {
                   const isActive = activeFilters.includes(impact.toLowerCase());
@@ -466,6 +486,17 @@ export default function EconomicCalendar() {
             </div>
             
           </div>
+
+          {nextHighImpact && (
+            <div className="flex flex-wrap items-center gap-2 rounded-xl border border-amber-200/80 dark:border-amber-900/50 bg-amber-50/80 dark:bg-amber-900/20 px-3 py-2 text-xs text-amber-800 dark:text-amber-200">
+              <FaExclamationTriangle className="text-amber-500" />
+              <span className="font-semibold">Next high-impact:</span>
+              <span>{nextHighImpact.title}</span>
+              <span className="opacity-70">
+                ({nextHighImpact.currency}, {formatTime(nextHighImpact.date)})
+              </span>
+            </div>
+          )}
         </div>
 
         <div className="grid lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] gap-0">
@@ -611,6 +642,23 @@ export default function EconomicCalendar() {
                   {/* AI Explanation Text */}
                   <div className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed px-2">
                     {selectedDetails?.preEventAnalysis?.marketExpectations || aiSummary?.marketPulse || 'Based on recent data, TradeTaper AI predicts a potential for better-than-expected numbers, suggesting a bullish outlook for the affected currencies. The AI indicates confidence in current market conditions aligning with these projections.'}
+                  </div>
+                  <div className="mt-3 flex flex-wrap gap-2 px-2 text-[11px] text-gray-500 dark:text-gray-400">
+                    {cachedAt && (
+                      <span className="rounded-full border border-gray-200 dark:border-gray-700 px-2 py-0.5">
+                        Cached: {new Date(cachedAt).toLocaleTimeString()}
+                      </span>
+                    )}
+                    {sourceQuality?.consensus && (
+                      <span className="rounded-full border border-gray-200 dark:border-gray-700 px-2 py-0.5">
+                        Source quality: {sourceQuality.consensus}
+                      </span>
+                    )}
+                    {affectedSymbols.length > 0 && (
+                      <span className="rounded-full border border-gray-200 dark:border-gray-700 px-2 py-0.5">
+                        Affected: {affectedSymbols.join(', ')}
+                      </span>
+                    )}
                   </div>
                   
                   {/* Detailed Analysis Context UI */}
