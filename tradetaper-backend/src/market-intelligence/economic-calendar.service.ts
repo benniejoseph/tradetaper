@@ -223,7 +223,6 @@ export class EconomicCalendarService {
     importance?: string,
   ): Promise<EconomicEvent[]> {
     const currentDate = new Date();
-    const events: EconomicEvent[] = [];
     const fromDate = from ? new Date(from) : null;
     const toDate = to ? new Date(to) : null;
 
@@ -239,56 +238,72 @@ export class EconomicCalendarService {
       );
     }
 
-    try {
-      const ffEvents = await this.fetchForexFactoryEvents();
-      if (ffEvents.length > 0) {
-        events.push(...ffEvents);
-      }
-    } catch (e) {
-      this.logger.error('Failed to fetch ForexFactory events', e);
+    if (this.eventFetchInFlight) {
+      const inflightEvents = await this.eventFetchInFlight;
+      return this.applyEventFilters(inflightEvents, fromDate, toDate, importance);
     }
 
-    if (events.length === 0) {
+    this.eventFetchInFlight = (async () => {
+      const events: EconomicEvent[] = [];
       try {
-        const newsResult = await this.newsAnalysisService.getMarketNews();
-        const newsEvents = this.mapNewsToEvents(newsResult.news);
-        if (newsEvents.length > 0) {
-          events.push(...newsEvents);
+        const ffEvents = await this.fetchForexFactoryEvents();
+        if (ffEvents.length > 0) {
+          events.push(...ffEvents);
         }
-      } catch (newsError) {
-        this.logger.warn(
-          'Failed to fetch news-based economic events',
-          newsError,
-        );
+      } catch (e) {
+        this.logger.error('Failed to fetch ForexFactory events', e);
       }
-    }
 
-    if (events.length === 0) {
-      if (this.configService.get<string>('NODE_ENV') !== 'production') {
-        for (let i = 0; i < 7; i++) {
-          const eventDate = new Date(currentDate);
-          eventDate.setDate(currentDate.getDate() + i);
-          const dayEvents = this.generateEventsForDay(eventDate);
-          events.push(...dayEvents);
+      if (events.length === 0) {
+        try {
+          const newsResult = await this.newsAnalysisService.getMarketNews();
+          const newsEvents = this.mapNewsToEvents(newsResult.news);
+          if (newsEvents.length > 0) {
+            events.push(...newsEvents);
+          }
+        } catch (newsError) {
+          this.logger.warn(
+            'Failed to fetch news-based economic events',
+            newsError,
+          );
         }
-      } else {
-        this.logger.warn(
-          'No economic events from live sources. Returning empty calendar in production.',
-        );
       }
+
+      if (events.length === 0) {
+        if (this.configService.get<string>('NODE_ENV') !== 'production') {
+          for (let i = 0; i < 7; i++) {
+            const eventDate = new Date(currentDate);
+            eventDate.setDate(currentDate.getDate() + i);
+            const dayEvents = this.generateEventsForDay(eventDate);
+            events.push(...dayEvents);
+          }
+        } else {
+          this.logger.warn(
+            'No economic events from live sources. Returning empty calendar in production.',
+          );
+        }
+      }
+
+      this.eventCache = {
+        timestamp: Date.now(),
+        data: events,
+      };
+
+      return events;
+    })();
+
+    try {
+      const events = await this.eventFetchInFlight;
+      return this.applyEventFilters(events, fromDate, toDate, importance);
+    } finally {
+      this.eventFetchInFlight = null;
     }
-
-    this.eventCache = {
-      timestamp: Date.now(),
-      data: events,
-    };
-
-    return this.applyEventFilters(events, fromDate, toDate, importance);
   }
 
   private eventCache: { timestamp: number; data: EconomicEvent[] } | null =
     null;
-  private readonly CACHE_TTL = 60 * 60 * 1000; // 1 hour
+  private eventFetchInFlight: Promise<EconomicEvent[]> | null = null;
+  private readonly CACHE_TTL = 10 * 60 * 1000; // 10 minutes
   private analysisCache = new Map<
     string,
     { timestamp: number; data: EconomicImpactAnalysis }

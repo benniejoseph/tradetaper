@@ -65,6 +65,15 @@ export interface MarketSentimentReport {
 @Injectable()
 export class MarketSentimentService {
   private readonly logger = new Logger(MarketSentimentService.name);
+  private readonly pairAnalysisCache = new Map<
+    string,
+    { timestamp: number; data: PairAnalysisReport }
+  >();
+  private readonly pairAnalysisInFlight = new Map<
+    string,
+    Promise<PairAnalysisReport>
+  >();
+  private readonly PAIR_ANALYSIS_CACHE_TTL = 3 * 60 * 1000; // 3 minutes
 
   constructor(
     private readonly orchestrator: MultiModelOrchestratorService,
@@ -175,60 +184,75 @@ export class MarketSentimentService {
   }
 
   async generatePairAnalysis(symbol: string): Promise<PairAnalysisReport> {
-    const normalizedSymbol = symbol.toUpperCase();
-    try {
-      const [quoteResult, eventsResult, newsResult] = await Promise.allSettled([
-        this.dataAggregator.getLiveQuote(normalizedSymbol),
-        this.economicCalendarService.getEconomicCalendar(),
-        this.newsService.getMarketNews(),
-      ]);
+    const normalizedSymbol = symbol.toUpperCase().replace(/[^A-Z0-9]/g, '');
+    const now = Date.now();
+    const cached = this.pairAnalysisCache.get(normalizedSymbol);
+    if (
+      cached &&
+      now - cached.timestamp < this.PAIR_ANALYSIS_CACHE_TTL
+    ) {
+      return cached.data;
+    }
 
-      const quote =
-        quoteResult.status === 'fulfilled' ? quoteResult.value : null;
-      const events =
-        eventsResult.status === 'fulfilled' ? eventsResult.value.events : [];
-      const news =
-        newsResult.status === 'fulfilled' ? newsResult.value.news : [];
+    const inFlight = this.pairAnalysisInFlight.get(normalizedSymbol);
+    if (inFlight) {
+      return inFlight;
+    }
 
-      const filteredEvents = this.filterEventsForSymbol(
-        normalizedSymbol,
-        events,
-      ).slice(0, 8);
-      const filteredNews = this.filterNewsForSymbol(
-        normalizedSymbol,
-        news,
-      ).slice(0, 8);
+    const analysisPromise = (async (): Promise<PairAnalysisReport> => {
+      try {
+        const [quoteResult, eventsResult, newsResult] = await Promise.allSettled([
+          this.dataAggregator.getLiveQuote(normalizedSymbol),
+          this.economicCalendarService.getEconomicCalendar(),
+          this.newsService.getMarketNews(),
+        ]);
 
-      const context = {
-        symbol: normalizedSymbol,
-        quote: quote
-          ? {
-              bid: quote.bid,
-              ask: quote.ask,
-              change: quote.change,
-              changePercent: quote.changePercent,
-              source: quote.source,
-            }
-          : null,
-        economicEvents: filteredEvents.map((event) => ({
-          title: event.title,
-          currency: event.currency,
-          importance: event.importance,
-          actual: event.actual,
-          forecast: event.forecast,
-          previous: event.previous,
-          date: event.date,
-        })),
-        news: filteredNews.map((item) => ({
-          title: item.title,
-          source: item.source,
-          sentiment: item.sentiment,
-          impact: item.impact,
-          publishedAt: item.publishedAt,
-        })),
-      };
+        const quote =
+          quoteResult.status === 'fulfilled' ? quoteResult.value : null;
+        const events =
+          eventsResult.status === 'fulfilled' ? eventsResult.value.events : [];
+        const news =
+          newsResult.status === 'fulfilled' ? newsResult.value.news : [];
 
-      const prompt = `
+        const filteredEvents = this.filterEventsForSymbol(
+          normalizedSymbol,
+          events,
+        ).slice(0, 8);
+        const filteredNews = this.filterNewsForSymbol(
+          normalizedSymbol,
+          news,
+        ).slice(0, 8);
+
+        const context = {
+          symbol: normalizedSymbol,
+          quote: quote
+            ? {
+                bid: quote.bid,
+                ask: quote.ask,
+                change: quote.change,
+                changePercent: quote.changePercent,
+                source: quote.source,
+              }
+            : null,
+          economicEvents: filteredEvents.map((event) => ({
+            title: event.title,
+            currency: event.currency,
+            importance: event.importance,
+            actual: event.actual,
+            forecast: event.forecast,
+            previous: event.previous,
+            date: event.date,
+          })),
+          news: filteredNews.map((item) => ({
+            title: item.title,
+            source: item.source,
+            sentiment: item.sentiment,
+            impact: item.impact,
+            publishedAt: item.publishedAt,
+          })),
+        };
+
+        const prompt = `
 You are a senior macro/FX strategist. Build a detailed analysis for ${normalizedSymbol} using the provided economic events and news.
 
 Return JSON ONLY with this schema:
@@ -247,70 +271,92 @@ Context:
 ${JSON.stringify(context)}
 `;
 
-      const response = await this.orchestrator.complete({
-        prompt,
-        taskComplexity: 'complex',
-        requireJson: true,
-        optimizeFor: 'quality',
-        modelPreference: 'gemini-2.0-flash',
+        const response = await this.orchestrator.complete({
+          prompt,
+          taskComplexity: 'complex',
+          requireJson: true,
+          optimizeFor: 'quality',
+          modelPreference: 'gemini-2.0-flash',
+        });
+
+        const parsed = this.parseAiJson(response.content);
+
+        return {
+          symbol: normalizedSymbol,
+          timestamp: new Date().toISOString(),
+          bias: parsed.bias || 'neutral',
+          confidence: parsed.confidence || 50,
+          summary: parsed.summary || 'No summary provided.',
+          keyDrivers: parsed.keyDrivers || [],
+          keyRisks: parsed.keyRisks || [],
+          scenarios: parsed.scenarios || {
+            bullish: 'No bullish scenario provided.',
+            bearish: 'No bearish scenario provided.',
+            neutral: 'No neutral scenario provided.',
+          },
+          keyLevels: parsed.keyLevels || [],
+          tradePlan: parsed.tradePlan || { intraday: [], swing: [] },
+          economicEvents: filteredEvents,
+          news: filteredNews.map((item) => ({
+            title: item.title,
+            source: item.source,
+            publishedAt: this.safeIso(item.publishedAt),
+            sentiment: item.sentiment,
+            impact: item.impact,
+            url: item.url,
+          })),
+          quote: quote
+            ? {
+                bid: quote.bid,
+                ask: quote.ask,
+                change: quote.change,
+                changePercent: quote.changePercent,
+                source: quote.source,
+              }
+            : undefined,
+        };
+      } catch (error) {
+        this.logger.warn('Pair analysis failed, returning fallback', error);
+        return {
+          symbol: normalizedSymbol,
+          timestamp: new Date().toISOString(),
+          bias: 'neutral',
+          confidence: 50,
+          summary: 'Analysis unavailable. Please retry shortly.',
+          keyDrivers: [],
+          keyRisks: [],
+          scenarios: {
+            bullish: 'Awaiting data.',
+            bearish: 'Awaiting data.',
+            neutral: 'Awaiting data.',
+          },
+          keyLevels: [],
+          tradePlan: { intraday: [], swing: [] },
+          economicEvents: [],
+          news: [],
+        };
+      }
+    })();
+
+    this.pairAnalysisInFlight.set(normalizedSymbol, analysisPromise);
+
+    try {
+      const report = await analysisPromise;
+      this.pairAnalysisCache.set(normalizedSymbol, {
+        timestamp: Date.now(),
+        data: report,
       });
-
-      const parsed = this.parseAiJson(response.content);
-
-      return {
-        symbol: normalizedSymbol,
-        timestamp: new Date().toISOString(),
-        bias: parsed.bias || 'neutral',
-        confidence: parsed.confidence || 50,
-        summary: parsed.summary || 'No summary provided.',
-        keyDrivers: parsed.keyDrivers || [],
-        keyRisks: parsed.keyRisks || [],
-        scenarios: parsed.scenarios || {
-          bullish: 'No bullish scenario provided.',
-          bearish: 'No bearish scenario provided.',
-          neutral: 'No neutral scenario provided.',
-        },
-        keyLevels: parsed.keyLevels || [],
-        tradePlan: parsed.tradePlan || { intraday: [], swing: [] },
-        economicEvents: filteredEvents,
-        news: filteredNews.map((item) => ({
-          title: item.title,
-          source: item.source,
-          publishedAt: this.safeIso(item.publishedAt),
-          sentiment: item.sentiment,
-          impact: item.impact,
-          url: item.url,
-        })),
-        quote: quote
-          ? {
-              bid: quote.bid,
-              ask: quote.ask,
-              change: quote.change,
-              changePercent: quote.changePercent,
-              source: quote.source,
-            }
-          : undefined,
-      };
-    } catch (error) {
-      this.logger.warn('Pair analysis failed, returning fallback', error);
-      return {
-        symbol: normalizedSymbol,
-        timestamp: new Date().toISOString(),
-        bias: 'neutral',
-        confidence: 50,
-        summary: 'Analysis unavailable. Please retry shortly.',
-        keyDrivers: [],
-        keyRisks: [],
-        scenarios: {
-          bullish: 'Awaiting data.',
-          bearish: 'Awaiting data.',
-          neutral: 'Awaiting data.',
-        },
-        keyLevels: [],
-        tradePlan: { intraday: [], swing: [] },
-        economicEvents: [],
-        news: [],
-      };
+      if (this.pairAnalysisCache.size > 100) {
+        const oldestKey = this.pairAnalysisCache.keys().next().value as
+          | string
+          | undefined;
+        if (oldestKey) {
+          this.pairAnalysisCache.delete(oldestKey);
+        }
+      }
+      return report;
+    } finally {
+      this.pairAnalysisInFlight.delete(normalizedSymbol);
     }
   }
 
@@ -333,9 +379,14 @@ ${JSON.stringify(context)}
       (c) => c.length === 3,
     );
     return news.filter((item) => {
-      if (item.symbols?.includes(symbol)) return true;
-      if (currencies.some((c) => item.title?.includes(c))) return true;
-      return ['economy', 'fed', 'geopolitical'].includes(item.category);
+      const title = String(item.title || '').toUpperCase();
+      const category = String(item.category || '').toLowerCase();
+      const symbols = Array.isArray(item.symbols)
+        ? item.symbols.map((entry: string) => String(entry).toUpperCase())
+        : [];
+      if (symbols.includes(symbol)) return true;
+      if (currencies.some((c) => title.includes(c))) return true;
+      return ['economy', 'fed', 'geopolitical', 'market'].includes(category);
     });
   }
 

@@ -147,15 +147,24 @@ export class MarketIntelligenceController {
   @RequireFeature('marketIntelligenceAi')
   @Get('ai-analysis/pair')
   async getPairAnalysis(@Query('symbol') symbol: string) {
-    this.logger.log(`Getting AI pair analysis for ${symbol}`);
-    if (!symbol) {
+    const normalizedSymbol = (symbol || '').trim().toUpperCase();
+    this.logger.log(`Getting AI pair analysis for ${normalizedSymbol}`);
+    if (!normalizedSymbol) {
       throw new HttpException(
         'symbol query param is required',
         HttpStatus.BAD_REQUEST,
       );
     }
+    if (!/^[A-Z0-9]{5,10}$/.test(normalizedSymbol)) {
+      throw new HttpException(
+        'symbol must be alphanumeric and 5-10 chars (e.g., EURUSD, XAUUSD, NAS100)',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
     try {
-      return await this.marketSentimentService.generatePairAnalysis(symbol);
+      return await this.marketSentimentService.generatePairAnalysis(
+        normalizedSymbol,
+      );
     } catch (error) {
       this.logger.error('Failed to get AI pair analysis', error);
       throw new HttpException(
