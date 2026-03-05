@@ -7,8 +7,11 @@ import {
   Min,
   Max,
   ValidateNested,
+  IsBoolean,
+  MaxLength,
 } from 'class-validator';
 import { Type } from 'class-transformer';
+import { IfThenTriggerType } from '../entities/if-then-plan.entity';
 
 export class ChecklistResponseDto {
   @IsString()
@@ -77,4 +80,48 @@ export class ApproveTradeDto {
 export class CompleteExerciseDto {
   @IsString()
   exerciseId: string;
+}
+
+export class CreateIfThenPlanDto {
+  @IsString()
+  @MaxLength(220)
+  ifCue: string;
+
+  @IsString()
+  thenAction: string;
+
+  @IsOptional()
+  @IsString()
+  accountId?: string;
+
+  @IsOptional()
+  @IsEnum(IfThenTriggerType)
+  triggerType?: IfThenTriggerType;
+
+  @IsOptional()
+  @IsBoolean()
+  isActive?: boolean;
+}
+
+export class UpdateIfThenPlanDto {
+  @IsOptional()
+  @IsString()
+  @MaxLength(220)
+  ifCue?: string;
+
+  @IsOptional()
+  @IsString()
+  thenAction?: string;
+
+  @IsOptional()
+  @IsString()
+  accountId?: string;
+
+  @IsOptional()
+  @IsEnum(IfThenTriggerType)
+  triggerType?: IfThenTriggerType;
+
+  @IsOptional()
+  @IsBoolean()
+  isActive?: boolean;
 }

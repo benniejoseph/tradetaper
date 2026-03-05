@@ -1,11 +1,19 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
 import React, { useEffect, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '@/store/store';
 import { fetchTrades } from '@/store/features/tradesSlice';
-import { selectSelectedAccountId } from '@/store/features/accountSlice';
-import { selectSelectedMT5AccountId } from '@/store/features/mt5AccountsSlice';
+import {
+  selectAvailableAccounts,
+  selectSelectedAccount,
+  selectSelectedAccountId,
+} from '@/store/features/accountSlice';
+import {
+  selectMT5Accounts,
+  selectSelectedMT5Account,
+  selectSelectedMT5AccountId,
+} from '@/store/features/mt5AccountsSlice';
+import { useRouter } from 'next/navigation';
 import {
   calculateDashboardStats,
   calculateEquityCurveData,
@@ -67,43 +75,111 @@ interface PairStats {
   tradesCount: number;
 }
 
+interface HourlyPerformancePoint {
+  hour: number;
+  pnl: number;
+  count: number;
+  wins: number;
+  winRate: number;
+}
+
+interface SessionPerformancePoint {
+  session: string;
+  pnl: number;
+  count: number;
+  winRate: number;
+}
+
+interface HoldingTimePoint {
+  id: string;
+  durationMinutes: number;
+  pnl: number;
+  isWin: boolean;
+}
+
+interface RadarMetricPoint {
+  subject: string;
+  A: number;
+  fullMark: number;
+}
+
+interface AdvancedAnalyticsData {
+  hourlyPerformance: HourlyPerformancePoint[];
+  sessionPerformance: SessionPerformancePoint[];
+  holdingTimeAnalysis: HoldingTimePoint[];
+  radarMetrics: RadarMetricPoint[];
+}
+
 export default function AnalyticsPage() {
+  const router = useRouter();
   const dispatch = useDispatch<AppDispatch>();
-  const { trades, isLoading: tradesLoading, lastFetchKey, lastFetchAt, lastFetchIncludeTags } = useSelector((state: RootState) => state.trades);
-  const { isAuthenticated } = useSelector((state: RootState) => state.auth);
+  const { trades, isLoading: tradesLoading } = useSelector((state: RootState) => state.trades);
+  const { isAuthenticated, user } = useSelector((state: RootState) => state.auth);
 
   const selectedAccountId = useSelector(selectSelectedAccountId);
   const selectedMT5AccountId = useSelector(selectSelectedMT5AccountId);
+  const selectedRegularAccount = useSelector(selectSelectedAccount);
+  const selectedMt5Account = useSelector(selectSelectedMT5Account);
+  const allRegularAccounts = useSelector(selectAvailableAccounts);
+  const allMT5Accounts = useSelector(selectMT5Accounts);
 
   const [timeRange, setTimeRange] = useState('All');
   const [rollingWindowSize, setRollingWindowSize] = useState(20);
   const [isTradingActivityModalOpen, setIsTradingActivityModalOpen] = useState(false);
   const [selectedDateData, setSelectedDateData] = useState<{ date: string; count: number; totalPnl: number } | null>(null);
   const [selectedDateTrades, setSelectedDateTrades] = useState<Trade[]>([]);
-  const [analyticsData, setAnalyticsData] = useState<any>(null);
+  const [analyticsData, setAnalyticsData] = useState<AdvancedAnalyticsData | null>(null);
+  const [analyticsLoading, setAnalyticsLoading] = useState(false);
+  const [analyticsError, setAnalyticsError] = useState<string | null>(null);
+  const hasAdvancedAnalyticsAccess = user?.subscription?.plan === 'premium';
+  const currentAccountId = selectedAccountId || selectedMT5AccountId;
+
+  useEffect(() => {
+    if (!isAuthenticated || !hasAdvancedAnalyticsAccess) {
+      setAnalyticsData(null);
+      setAnalyticsError(null);
+      setAnalyticsLoading(false);
+      return;
+    }
+
+    const controller = new AbortController();
+    setAnalyticsLoading(true);
+    setAnalyticsError(null);
+    setAnalyticsData(null);
+
+    authApiClient
+      .get<AdvancedAnalyticsData | null>('/analytics/advanced', {
+        params: {
+          ...(currentAccountId ? { accountId: currentAccountId } : {}),
+          _ts: Date.now(),
+        },
+        signal: controller.signal,
+      })
+      .then((res) => {
+        setAnalyticsData(res.data);
+      })
+      .catch((err) => {
+        if (err?.code === 'ERR_CANCELED') return;
+        console.warn(
+          'Analytics endpoint returned error:',
+          err?.response?.status || err?.message || err,
+        );
+        setAnalyticsError('Unable to load advanced analytics for the selected account.');
+      })
+      .finally(() => {
+        setAnalyticsLoading(false);
+      });
+
+    return () => {
+      controller.abort();
+    };
+  }, [isAuthenticated, hasAdvancedAnalyticsAccess, currentAccountId]);
 
   useEffect(() => {
     if (isAuthenticated) {
-      authApiClient
-        .get(`/analytics/advanced${selectedAccountId ? `?accountId=${selectedAccountId}` : ''}`)
-        .then(res => {
-          setAnalyticsData(res.data);
-        })
-        .catch(err => {
-          console.warn(
-            'Analytics endpoint returned error:',
-            err?.response?.status || err?.message || err,
-          );
-        })
+      dispatch(fetchTrades({ accountId: currentAccountId || undefined, limit: 5000, includeTags: false }));
     }
-  }, [isAuthenticated, selectedAccountId]);
-
-  useEffect(() => {
-    if (isAuthenticated) {
-      const currentAccountId = selectedAccountId || selectedMT5AccountId;
-      dispatch(fetchTrades({ accountId: currentAccountId || undefined, limit: 500, includeTags: false }));
-    }
-  }, [dispatch, isAuthenticated, selectedAccountId, selectedMT5AccountId, lastFetchKey, lastFetchAt, lastFetchIncludeTags, trades?.length]);
+  }, [dispatch, isAuthenticated, currentAccountId]);
 
   const filteredTrades = useMemo(() => {
     const days = timeRangeDaysMapping[timeRange];
@@ -311,9 +387,35 @@ export default function AnalyticsPage() {
     return { minEquity: Math.min(...values), maxEquity: Math.max(...values) };
   }, [equityCurve]);
 
-  const minBalance = minEquity;
-  const maxBalance = maxEquity;
-  const currentBalance = dashboardStats?.currentBalance || 0;
+  const startingBalance = useMemo(() => {
+    if (selectedAccountId && selectedRegularAccount) {
+      return Number(selectedRegularAccount.balance || 0);
+    }
+    if (selectedMT5AccountId && selectedMt5Account) {
+      return Number(selectedMt5Account.balance || 0);
+    }
+
+    const regularTotal = allRegularAccounts.reduce(
+      (sum, account) => sum + Number(account.balance || 0),
+      0,
+    );
+    const mt5Total = allMT5Accounts.reduce(
+      (sum, account) => sum + Number(account.balance || 0),
+      0,
+    );
+    return regularTotal + mt5Total;
+  }, [
+    selectedAccountId,
+    selectedRegularAccount,
+    selectedMT5AccountId,
+    selectedMt5Account,
+    allRegularAccounts,
+    allMT5Accounts,
+  ]);
+
+  const minBalance = startingBalance + minEquity;
+  const maxBalance = startingBalance + maxEquity;
+  const currentBalance = startingBalance + (dashboardStats?.totalNetPnl || 0);
   const gaugeMax = Math.max(maxBalance, currentBalance);
   const gaugeMin = Math.min(minBalance, currentBalance);
 
@@ -383,26 +485,38 @@ export default function AnalyticsPage() {
         </div>
 
         {/* Section 2: AI Market Intelligence (Moved here from bottom) */}
-        {analyticsData && (
+        {(analyticsLoading || analyticsError || analyticsData) && (
           <div className="mb-6 p-6 rounded-3xl border border-emerald-500/30 bg-emerald-50/40 dark:bg-emerald-900/10 shadow-sm shadow-emerald-500/5">
             <FeatureGate feature="advancedAnalytics" blur={true}>
               <div className="flex items-center gap-2 mb-6 pb-4 border-b border-emerald-500/20">
                 <FaBrain className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
                 <h2 className="text-xl font-bold text-gray-900 dark:text-white">AI Market Intelligence</h2>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
-                <DashboardCard title="Performance by Hour" icon={FaClock} gridSpan="lg:col-span-6">
-                  <HourlyPerformanceChart data={analyticsData.hourlyPerformance} />
-                </DashboardCard>
+              {analyticsLoading && (
+                <div className="rounded-2xl border border-emerald-400/20 bg-white/60 dark:bg-black/20 p-4 text-sm text-gray-600 dark:text-gray-300">
+                  Loading advanced analytics...
+                </div>
+              )}
+              {analyticsError && !analyticsLoading && (
+                <div className="rounded-2xl border border-red-300/40 bg-red-50/50 dark:bg-red-900/15 p-4 text-sm text-red-700 dark:text-red-300">
+                  {analyticsError}
+                </div>
+              )}
+              {analyticsData && !analyticsLoading && !analyticsError && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
+                  <DashboardCard title="Performance by Hour" icon={FaClock} gridSpan="lg:col-span-6">
+                    <HourlyPerformanceChart data={analyticsData.hourlyPerformance} />
+                  </DashboardCard>
 
-                <DashboardCard title="Session Performance" icon={FaGlobeAmericas} gridSpan="lg:col-span-3">
-                  <SessionBreakdownChart data={analyticsData.sessionPerformance} />
-                </DashboardCard>
+                  <DashboardCard title="Session Performance" icon={FaGlobeAmericas} gridSpan="lg:col-span-3">
+                    <SessionBreakdownChart data={analyticsData.sessionPerformance} />
+                  </DashboardCard>
 
-                <DashboardCard title="Holding Time vs PnL" icon={FaHourglassHalf} gridSpan="lg:col-span-3">
-                  <HoldingTimeScatter data={analyticsData.holdingTimeAnalysis} />
-                </DashboardCard>
-              </div>
+                  <DashboardCard title="Holding Time vs PnL" icon={FaHourglassHalf} gridSpan="lg:col-span-3">
+                    <HoldingTimeScatter data={analyticsData.holdingTimeAnalysis} />
+                  </DashboardCard>
+                </div>
+              )}
             </FeatureGate>
           </div>
         )}
@@ -487,7 +601,7 @@ export default function AnalyticsPage() {
               <FaChartLine className="w-10 h-10 text-emerald-500 mx-auto" />
               <h3 className="text-xl font-bold text-gray-900 dark:text-white">No trades recorded yet</h3>
               <AnimatedButton
-                onClick={() => { window.location.href = '/journal/new'; }}
+                onClick={() => { router.push('/journal/new'); }}
                 variant="gradient"
                 size="lg"
                 icon={<FaPlus className="w-4 h-4" />}

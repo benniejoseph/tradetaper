@@ -71,6 +71,7 @@ export class SearchNotesDto {
   page?: number;
 
   @IsOptional()
+  @IsBoolean()
   @Transform(({ value }) => value === 'true' || value === true)
   pinnedOnly?: boolean;
 
@@ -80,6 +81,7 @@ export class SearchNotesDto {
   isPinned?: boolean;
 
   @IsOptional()
+  @IsBoolean()
   @Transform(({ value }) => value === 'true' || value === true)
   hasMedia?: boolean;
 }

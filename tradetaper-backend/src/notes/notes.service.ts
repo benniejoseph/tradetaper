@@ -62,6 +62,10 @@ export class NotesService {
       visibility,
       accountId,
       tradeId,
+      dateFrom,
+      dateTo,
+      pinnedOnly,
+      hasMedia,
       isPinned,
     } = searchDto;
 
@@ -104,9 +108,38 @@ export class NotesService {
       queryBuilder.andWhere('note.tradeId = :tradeId', { tradeId });
     }
 
+    // Filter by date range
+    if (dateFrom) {
+      queryBuilder.andWhere('note.createdAt >= :dateFrom', {
+        dateFrom: new Date(dateFrom),
+      });
+    }
+    if (dateTo) {
+      const dateToEnd = new Date(dateTo);
+      dateToEnd.setHours(23, 59, 59, 999);
+      queryBuilder.andWhere('note.createdAt <= :dateTo', {
+        dateTo: dateToEnd,
+      });
+    }
+
     // Filter by pinned status
-    if (isPinned !== undefined) {
-      queryBuilder.andWhere('note.isPinned = :isPinned', { isPinned });
+    const pinnedFilter =
+      isPinned !== undefined ? isPinned : pinnedOnly ? true : undefined;
+    if (pinnedFilter !== undefined) {
+      queryBuilder.andWhere('note.isPinned = :isPinned', {
+        isPinned: pinnedFilter,
+      });
+    }
+
+    // Filter by notes that contain media-like blocks
+    if (hasMedia) {
+      queryBuilder.andWhere(`
+        EXISTS (
+          SELECT 1
+          FROM jsonb_array_elements(COALESCE(note.content, '[]'::jsonb)) AS block
+          WHERE block->>'type' IN ('image', 'video', 'embed')
+        )
+      `);
     }
 
     // Sorting
@@ -271,7 +304,7 @@ export class NotesService {
       totalNotes,
       totalWordsResult,
       pinnedNotes,
-      // For now, return 0 for notesWithMedia since we can't easily count without joins
+      notesWithMediaResult,
     ] = await Promise.all([
       this.noteRepository.count({
         where: { userId, deletedAt: IsNull() },
@@ -286,13 +319,26 @@ export class NotesService {
       this.noteRepository.count({
         where: { userId, deletedAt: IsNull(), isPinned: true },
       }),
-      // this.noteMediaRepository.count({ where: { noteId: In(noteIds) } }),
+      this.noteRepository
+        .createQueryBuilder('note')
+        .select('COUNT(*)', 'count')
+        .where('note.userId = :userId', { userId })
+        .andWhere('note.deletedAt IS NULL')
+        .andWhere(`
+          EXISTS (
+            SELECT 1
+            FROM jsonb_array_elements(COALESCE(note.content, '[]'::jsonb)) AS block
+            WHERE block->>'type' IN ('image', 'video', 'embed')
+          )
+        `)
+        .getRawOne(),
     ]);
 
     const totalWords = parseInt(totalWordsResult?.totalWords || '0');
     const totalReadingTime = parseInt(
       totalWordsResult?.totalReadingTime || '0',
     );
+    const notesWithMedia = parseInt(notesWithMediaResult?.count || '0');
 
     // Get most used tags
     const tagsResult = await this.noteRepository
@@ -316,7 +362,7 @@ export class NotesService {
       totalWords,
       totalReadingTime,
       pinnedNotes,
-      notesWithMedia: 0, // TODO: Implement when media relationships are fixed
+      notesWithMedia,
       averageWordsPerNote:
         totalNotes > 0 ? Math.round(totalWords / totalNotes) : 0,
       mostUsedTags,

@@ -17,6 +17,7 @@ import { TerminalFarmModule } from '../terminal-farm/terminal-farm.module';
 import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { BacktestingModule } from '../backtesting/backtesting.module'; // [CANDLE STORE]
+import { DisciplineModule } from '../discipline/discipline.module';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { BacktestingModule } from '../backtesting/backtesting.module'; // [CANDL
     TagsModule,
     SubscriptionsModule,
     forwardRef(() => BacktestingModule), // [CANDLE STORE] exposes CandleManagementService
+    forwardRef(() => DisciplineModule),
   ],
   providers: [
     TradesService,

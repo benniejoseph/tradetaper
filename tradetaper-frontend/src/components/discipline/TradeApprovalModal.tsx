@@ -1,9 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
-import { AnimatedCard } from '../ui/AnimatedCard';
 import disciplineService, { 
   TradeApproval, 
   CreateApprovalDto, 
@@ -11,7 +9,6 @@ import disciplineService, {
   ChecklistResponse 
 } from '@/services/disciplineService';
 import { strategiesService } from '@/services/strategiesService';
-import { tradesService } from '@/services/tradesService';
 import { Strategy } from '@/types/strategy';
 import { MT5Account } from '@/store/features/mt5AccountsSlice';
 
@@ -97,13 +94,28 @@ export const TradeApprovalModal: React.FC<TradeApprovalModalProps> = ({
     
     // Attempting to be more accurate with pip calculation
     // This is still a simplification but better than before
-    const isForex = symbol.length === 6 || symbol.includes('/');
     const multiplier = (symbol.includes('JPY') || symbol.includes('XAU') || symbol.includes('XAG')) ? 0.01 : 0.0001;
     const pips = pipDiff / multiplier;
 
     if (pips === 0) return 0.01;
     const calculatedLot = maxRiskAmount / (pips * pipValue);
     return Math.max(0.01, Math.min(Math.floor(calculatedLot * 100) / 100, 50));
+  };
+
+  const inferAssetType = (inputSymbol: string): 'Forex' | 'Commodities' | 'Crypto' | 'Stock' => {
+    const normalized = inputSymbol.replace('/', '').toUpperCase();
+    const fxLike = normalized.length === 6 && /^[A-Z]{6}$/.test(normalized);
+    if (fxLike) return 'Forex';
+
+    if (/^(BTC|ETH|SOL|XRP|ADA|DOGE|BNB)/.test(normalized)) return 'Crypto';
+
+    if (
+      /^(XAU|XAG|WTI|USOIL|BRENT|NGAS|GOLD|SILVER)/.test(normalized)
+    ) {
+      return 'Commodities';
+    }
+
+    return 'Stock';
   };
 
   const allChecked = checklistItems.every((item) => item.checked);
@@ -148,13 +160,20 @@ export const TradeApprovalModal: React.FC<TradeApprovalModalProps> = ({
     const calculatedLot = calculateLotSize();
 
     try {
+      const approvalDto: ApproveTradeDto = {
+        calculatedLotSize: calculatedLot,
+        stopLoss,
+        takeProfit: takeProfit || undefined,
+      };
+      await disciplineService.approveAndUnlock(approval.id, approvalDto);
+
       // Import authApiClient dynamically
       const { authApiClient } = await import('@/services/api');
       
       // Map discipline data to backend API format
       const apiPayload = {
         accountId: selectedAccountId,
-        assetType: 'Forex', // Backend expects string 'Forex'
+        assetType: inferAssetType(symbol),
         symbol,
         side: direction, // Backend uses 'side' not 'direction'
         status: 'Open',
@@ -163,6 +182,7 @@ export const TradeApprovalModal: React.FC<TradeApprovalModalProps> = ({
         quantity: calculatedLot,
         stopLoss,
         takeProfit: takeProfit || undefined,
+        disciplineApprovalId: approval.id,
         notes: `Strategy: ${selectedStrategy.name}\nRisk: ${riskPercent}%\nChecklist completed: ${checklistItems.filter(i => i.checked).length}/${checklistItems.length}`,
       };
       

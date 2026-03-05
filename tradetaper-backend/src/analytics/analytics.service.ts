@@ -88,10 +88,12 @@ export class AnalyticsService {
     if (total === 0) return [];
 
     let wins = 0;
+    let losses = 0;
+    let breakeven = 0;
     let grossProfit = 0;
     let grossLoss = 0;
     let tradesWithSL = 0;
-    let peak = -Infinity;
+    let peak = 0;
     let maxDd = 0;
     let runningPnl = 0;
     const winningPnLs: number[] = [];
@@ -115,7 +117,10 @@ export class AnalyticsService {
         grossProfit += pnl;
         winningPnLs.push(pnl);
       } else if (pnl < 0) {
+        losses++;
         grossLoss += Math.abs(pnl);
+      } else {
+        breakeven++;
       }
 
       if (t.stopLoss !== null && t.stopLoss !== undefined) {
@@ -131,10 +136,10 @@ export class AnalyticsService {
       if (dd > maxDd) maxDd = dd;
     }
 
-    const winRate = total > 0 ? (wins / total) * 100 : 0;
+    const totalClosed = wins + losses + breakeven;
+    const winRate = totalClosed > 0 ? (wins / totalClosed) * 100 : 0;
     const avgWin = wins > 0 ? grossProfit / wins : 0;
-    const totalLosses = total - wins;
-    const avgLoss = totalLosses > 0 ? grossLoss / totalLosses : 0;
+    const avgLoss = losses > 0 ? grossLoss / losses : 0;
 
     // 2. Risk Reward
     const rr = avgLoss > 0 ? avgWin / avgLoss : 0;

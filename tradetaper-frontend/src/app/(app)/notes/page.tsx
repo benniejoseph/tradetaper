@@ -4,27 +4,21 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { 
   FaPlus, 
   FaSearch, 
-  FaFilter, 
   FaTh, 
   FaList, 
-  FaCalendarAlt,
-  FaTags,
-  FaSort,
   FaStar,
   FaImage,
   FaMicrophone,
   FaSpinner,
   FaClock,
-  FaTrash,
-  FaInfoCircle
+  FaTrash
 } from 'react-icons/fa';
 import { useRouter } from 'next/navigation';
 import { useDebounce } from '@/hooks/useDebounce';
-import { format, parseISO, startOfMonth, endOfMonth } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { NotesService } from '@/services/notesService';
 import VoiceRecorder from '@/components/notes/VoiceRecorder';
 import toast from 'react-hot-toast';
-import AlertModal from '@/components/ui/AlertModal';
 
 interface Note {
   id: string;
@@ -74,10 +68,6 @@ const NotesPage: React.FC = () => {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [sortBy, setSortBy] = useState<'updatedAt' | 'createdAt' | 'title' | 'wordCount'>('updatedAt');
   const [sortOrder, setSortOrder] = useState<'ASC' | 'DESC'>('DESC');
-  const [alertState, setAlertState] = useState({ isOpen: false, title: 'Notice', message: '' });
-  const closeAlert = () => setAlertState((prev) => ({ ...prev, isOpen: false }));
-  const showAlert = (message: string, title = 'Notice') =>
-    setAlertState({ isOpen: true, title, message });
   const [showFilters, setShowFilters] = useState(false);
   const [dateFilter, setDateFilter] = useState<{ from?: string; to?: string }>({});
   const [pinnedOnly, setPinnedOnly] = useState(false);
@@ -106,24 +96,9 @@ const NotesPage: React.FC = () => {
         ...(hasMediaOnly && { hasMedia: true }),
       };
 
-      console.log('🔍 Notes Page fetchNotes Debug:', {
-        searchTerm,
-        debouncedSearch,
-        selectedTags,
-        params,
-        timestamp: new Date().toISOString()
-      });
-
       const data = await NotesService.getNotes(params);
       setNotes(data.notes);
       setTotal(data.total);
-      
-      console.log('📊 Notes fetched successfully:', {
-        notesCount: data.notes.length,
-        total: data.total,
-        hasSearch: !!debouncedSearch,
-        searchTerm: debouncedSearch
-      });
     } catch (error) {
       console.error('Error fetching notes:', error);
     } finally {
@@ -206,7 +181,7 @@ const NotesPage: React.FC = () => {
           {
             id: '1',
             type: 'text' as const,
-            content: transcript,
+            content: { text: transcript },
             position: 0
           }
         ],
@@ -263,55 +238,11 @@ const NotesPage: React.FC = () => {
           </button>
           
           <button
-            onClick={() => {
-              console.log('🎤 Voice Note button clicked!');
-              console.log('🔧 Current showVoiceRecorder state:', showVoiceRecorder);
-              setShowVoiceRecorder(true);
-              console.log('✅ setShowVoiceRecorder(true) called');
-            }}
+            onClick={() => setShowVoiceRecorder(true)}
             className="bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-950/20 dark:to-emerald-900/20 text-emerald-700 dark:text-emerald-300 px-4 py-2 rounded-lg hover:from-emerald-100 hover:to-emerald-200 dark:hover:from-emerald-900/30 dark:hover:to-emerald-800/30 transition-all flex items-center gap-2 border border-emerald-200 dark:border-emerald-700/30"
           >
             <FaMicrophone />
             Voice Note
-          </button>
-          
-          {/* Debug Search Test Button */}
-          <button
-            onClick={async () => {
-              console.log('🧪 Testing direct search...');
-              try {
-                const testResult = await NotesService.getNotes({ search: 'test', limit: 5 });
-                console.log('🔍 Direct search test result:', testResult);
-                showAlert(`Found ${testResult.notes.length} notes with search "test"`, 'Search Test');
-              } catch (error) {
-                console.error('❌ Direct search test failed:', error);
-                showAlert('Search test failed - check console', 'Search Test Failed');
-              }
-            }}
-            className="bg-red-500 text-white px-4 py-2 rounded-lg"
-          >
-            🧪 Test Search
-          </button>
-          
-          {/* Show All Notes Test Button */}
-          <button
-            onClick={async () => {
-              console.log('📋 Getting all notes...');
-              try {
-                const allNotes = await NotesService.getNotes({ limit: 100 });
-                console.log('📝 All notes:', allNotes.notes.map(n => ({ id: n.id, title: n.title })));
-                showAlert(
-                  `Total notes: ${allNotes.total}\nTitles: ${allNotes.notes.map(n => n.title).join(', ')}`,
-                  'Notes Summary'
-                );
-              } catch (error) {
-                console.error('❌ Failed to get all notes:', error);
-                showAlert('Failed to get notes - check console', 'Notes Error');
-              }
-            }}
-            className="bg-emerald-500 text-white px-4 py-2 rounded-lg text-sm"
-          >
-            📋 Show All
           </button>
         </div>
       </div>
@@ -328,17 +259,11 @@ const NotesPage: React.FC = () => {
               className="w-full pl-10 pr-4 py-2 border border-emerald-300 dark:border-emerald-600/30 rounded-lg bg-white dark:bg-black/50 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
               value={searchTerm}
               onChange={(e) => {
-                const newValue = e.target.value;
-                console.log('🔍 Search input changed:', {
-                  oldValue: searchTerm,
-                  newValue,
-                  timestamp: new Date().toISOString()
-                });
-                setSearchTerm(newValue);
+                setSearchTerm(e.target.value);
+                setCurrentPage(1);
               }}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
-                  console.log('🚀 Manual search triggered for:', searchTerm);
                   fetchNotes();
                 }
               }}
@@ -402,7 +327,10 @@ const NotesPage: React.FC = () => {
                     <input
                       type="checkbox"
                       checked={pinnedOnly}
-                      onChange={(e) => setPinnedOnly(e.target.checked)}
+                      onChange={(e) => {
+                        setPinnedOnly(e.target.checked);
+                        setCurrentPage(1);
+                      }}
                       className="mr-2"
                     />
                     <FaStar className="mr-1" />
@@ -412,7 +340,10 @@ const NotesPage: React.FC = () => {
                     <input
                       type="checkbox"
                       checked={hasMediaOnly}
-                      onChange={(e) => setHasMediaOnly(e.target.checked)}
+                      onChange={(e) => {
+                        setHasMediaOnly(e.target.checked);
+                        setCurrentPage(1);
+                      }}
                       className="mr-2"
                     />
                     <FaImage className="mr-1" />
@@ -489,7 +420,7 @@ const NotesPage: React.FC = () => {
             ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6' 
             : 'space-y-4'
         }`}>
-          {notes.map((note, index) => (
+          {notes.map((note) => (
             <div key={note.id}>
               {viewMode === 'grid' ? (
                 <NoteCard note={note} onClick={() => router.push(`/notes/${note.id}`)} onDelete={handleDelete} />
@@ -528,12 +459,6 @@ const NotesPage: React.FC = () => {
         onClose={() => setShowVoiceRecorder(false)}
         onTranscriptionComplete={handleVoiceTranscription}
       />
-      <AlertModal
-        isOpen={alertState.isOpen}
-        onClose={closeAlert}
-        title={alertState.title}
-        message={alertState.message}
-      />
     </div>
   );
 };
@@ -549,6 +474,11 @@ const NoteCard: React.FC<{ note: Note; onClick: () => void; onDelete: (id: strin
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2 line-clamp-2">
             {note.title || 'Untitled'}
           </h3>
+          {note.tradeId && (
+            <span className="inline-flex items-center px-2 py-0.5 mb-2 rounded-full text-[10px] font-semibold bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300">
+              Linked Trade Note
+            </span>
+          )}
           <p className="text-gray-600 dark:text-gray-400 text-sm line-clamp-3">
             {note.preview}
           </p>
@@ -610,6 +540,11 @@ const NoteListItem: React.FC<{ note: Note; onClick: () => void; onDelete: (id: s
           <h3 className="font-semibold text-lg">{note.title}</h3>
           {note.isPinned && <FaStar className="text-yellow-500" />}
           {note.hasMedia && <FaImage className="text-gray-500" />}
+          {note.tradeId && (
+            <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300">
+              Linked Trade
+            </span>
+          )}
         </div>
         
         <p className="text-gray-600 dark:text-gray-400 text-sm mb-2 line-clamp-2">

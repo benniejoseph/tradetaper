@@ -3,9 +3,11 @@
 import React, { useState } from 'react';
 import { FaPlus, FaBookOpen, FaChartLine } from 'react-icons/fa';
 import TradeActionModal from '@/components/trades/TradeActionModal';
+import { useRouter } from 'next/navigation';
 
 export default function QuickActionCards() {
   const [isTradeActionOpen, setIsTradeActionOpen] = useState(false);
+  const router = useRouter();
 
   return (
     <>
@@ -31,7 +33,7 @@ export default function QuickActionCards() {
         {/* Journal Card */}
         <div 
           className="relative bg-gradient-to-br from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white rounded-xl p-4 overflow-hidden cursor-pointer transition-all duration-200 hover:scale-[1.01] shadow-md hover:shadow-lg"
-          onClick={() => window.location.href = '/journal'}
+          onClick={() => router.push('/journal')}
         >
           <div className="relative z-10 flex items-center justify-between">
              <div className="flex items-center space-x-3">
@@ -49,7 +51,7 @@ export default function QuickActionCards() {
         {/* Market Intelligence Card */}
         <div 
           className="relative bg-gradient-to-br from-emerald-700 to-emerald-800 hover:from-emerald-800 hover:to-emerald-900 text-white rounded-xl p-4 overflow-hidden cursor-pointer transition-all duration-200 hover:scale-[1.01] shadow-md hover:shadow-lg"
-          onClick={() => window.location.href = '/market-intelligence'}
+          onClick={() => router.push('/market-intelligence')}
         >
           <div className="relative z-10 flex items-center justify-between">
               <div className="flex items-center space-x-3">

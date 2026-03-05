@@ -10,7 +10,6 @@ import {
   UseGuards,
   Request,
   ParseUUIDPipe,
-  ParseIntPipe,
   HttpCode,
   HttpStatus,
   Logger,
@@ -84,19 +83,15 @@ export class NotesController {
     return this.notesService.getAllTags(req.user.id);
   }
 
-  @Get('calendar/:year/:month')
-  async getCalendarNotes(
-    @Param('year', ParseIntPipe) year: number,
-    @Param('month', ParseIntPipe) month: number,
+  @Get('psychological-profile')
+  @UseGuards(FeatureAccessGuard)
+  @RequireFeature('psychology')
+  async getPsychologicalProfile(
     @Request() req: AuthenticatedRequest,
-  ): Promise<
-    {
-      date: string;
-      count: number;
-      notes: NoteResponseDto[];
-    }[]
-  > {
-    return this.notesService.getCalendarNotes(req.user.id, year, month);
+  ): Promise<Record<string, unknown>> {
+    return this.psychologicalInsightsService.getPsychologicalSummary(
+      req.user.id,
+    );
   }
 
   @Get(':id')
@@ -149,17 +144,6 @@ export class NotesController {
     );
     return this.psychologicalInsightsService.analyzeAndSavePsychologicalInsights(
       id,
-      req.user.id,
-    );
-  }
-
-  @Get('psychological-profile')
-  @UseGuards(FeatureAccessGuard)
-  @RequireFeature('psychology')
-  async getPsychologicalProfile(
-    @Request() req: AuthenticatedRequest,
-  ): Promise<Record<string, unknown>> {
-    return this.psychologicalInsightsService.getPsychologicalSummary(
       req.user.id,
     );
   }

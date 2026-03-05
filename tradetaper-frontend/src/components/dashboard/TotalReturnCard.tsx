@@ -73,7 +73,7 @@ export default function TotalReturnCard({
                   : 'text-red-600 dark:text-red-400'
               }`}>
                 {item.value !== undefined && item.value !== null ? 
-                  <>{item.isPositive && item.value > 0 ? '+' : ''}<CurrencyAmount amount={Math.abs(item.value)} className="inline" /></> : 'N/A'}
+                  <>{item.isPositive && item.value > 0 ? '+' : ''}<CurrencyAmount amount={item.value} className="inline" /></> : 'N/A'}
               </span>
             </div>
           ))}

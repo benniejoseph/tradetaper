@@ -59,8 +59,12 @@ export class FeatureAccessGuard implements CanActivate {
       );
     }
 
-    // For AI-consuming features, enforce per-user monthly quota
-    if (AI_QUOTA_FEATURES.has(feature)) {
+    // For AI-consuming features, enforce per-user monthly quota.
+    // Psychology read endpoints return stored insights and should not burn quota.
+    const method = String(request.method || '').toUpperCase();
+    const shouldSkipQuota =
+      feature === 'psychology' && method === 'GET';
+    if (AI_QUOTA_FEATURES.has(feature) && !shouldSkipQuota) {
       const subscription = await this.subscriptionService.getOrCreateSubscription(userId);
       // checkAndIncrement throws 403/429 automatically if over quota
       await this.aiQuotaService.checkAndIncrement(userId, subscription.plan);

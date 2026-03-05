@@ -4,6 +4,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import { SemanticCacheService } from './semantic-cache.service';
 import { LLMCostManagerService } from './llm-cost-manager.service';
 import { SecretsService } from '../../common/secrets/secrets.service';
+import * as crypto from 'crypto';
 
 /**
  * Multi-Model Orchestrator Service
@@ -136,6 +137,8 @@ export class MultiModelOrchestratorService {
     // 1. Check semantic cache first
     const taskComplexity = request.taskComplexity || 'medium';
     let selectedModel = request.modelPreference || this.selectModel(request);
+    const cacheKeyInput = this.buildCacheKeyInput(request);
+    const shouldUseSemanticCache = this.isCacheableRequest(request);
 
     // Validate model preference validity if provided
     if (
@@ -148,28 +151,30 @@ export class MultiModelOrchestratorService {
       selectedModel = this.selectModel(request);
     }
 
-    const cachedResponse = await this.semanticCache.get(
-      request.prompt,
-      selectedModel,
-    );
+    if (shouldUseSemanticCache) {
+      const cachedResponse = await this.semanticCache.get(
+        cacheKeyInput,
+        selectedModel,
+      );
 
-    if (cachedResponse) {
-      this.logger.debug('Returning cached response');
-      return {
-        content: cachedResponse,
-        model: selectedModel,
-        provider: this.getProviderForModel(selectedModel),
-        cached: true,
-        metadata: {
-          promptTokens: 0,
-          completionTokens: 0,
-          totalTokens: 0,
-          cost: 0,
-          executionTime: Date.now() - startTime,
-          cacheHit: true,
-          fallbackUsed: false,
-        },
-      };
+      if (cachedResponse) {
+        this.logger.debug('Returning cached response');
+        return {
+          content: cachedResponse,
+          model: selectedModel,
+          provider: this.getProviderForModel(selectedModel),
+          cached: true,
+          metadata: {
+            promptTokens: 0,
+            completionTokens: 0,
+            totalTokens: 0,
+            cost: 0,
+            executionTime: Date.now() - startTime,
+            cacheHit: true,
+            fallbackUsed: false,
+          },
+        };
+      }
     }
 
     // 2. Check user budget (if userId provided)
@@ -209,15 +214,17 @@ export class MultiModelOrchestratorService {
         }
 
         // 5. Cache successful response
-        await this.semanticCache.set(
-          request.prompt,
-          response.content,
-          modelConfig.name,
-          {
-            tokensUsed: response.metadata.totalTokens,
-            cost: response.metadata.cost,
-          },
-        );
+        if (shouldUseSemanticCache) {
+          await this.semanticCache.set(
+            cacheKeyInput,
+            response.content,
+            modelConfig.name,
+            {
+              tokensUsed: response.metadata.totalTokens,
+              cost: response.metadata.cost,
+            },
+          );
+        }
 
         // 6. Record usage
         await this.costManager.recordUsage({
@@ -244,6 +251,43 @@ export class MultiModelOrchestratorService {
     throw new Error(
       `All LLM models failed. Last error: ${lastError?.message || 'Unknown'}`,
     );
+  }
+
+  private isCacheableRequest(request: LLMRequest): boolean {
+    // Multimodal payloads (images/audio/video as inlineData) are highly request-specific
+    // and should not be semantically cached across calls.
+    if (request.images && request.images.length > 0) {
+      return false;
+    }
+    return true;
+  }
+
+  private buildCacheKeyInput(request: LLMRequest): string {
+    const normalizedPrompt = request.prompt.trim().replace(/\s+/g, ' ');
+    const normalizedSystem = (request.system || '').trim().replace(/\s+/g, ' ');
+
+    // User scoping prevents accidental cross-user cache reuse for personalized prompts.
+    const userScope = request.userId || 'anonymous';
+
+    // Include request shape flags to avoid cache collisions across different output contracts.
+    const requestSignature = {
+      prompt: normalizedPrompt,
+      system: normalizedSystem,
+      userScope,
+      requireJson: Boolean(request.requireJson),
+      taskComplexity: request.taskComplexity || 'medium',
+      optimizeFor: request.optimizeFor || 'cost',
+      modelPreference: request.modelPreference || 'auto',
+      maxTokens: request.maxTokens ?? 2048,
+      temperature: request.temperature ?? 0.7,
+      hasMedia: Boolean(request.images && request.images.length > 0),
+      mediaCount: request.images?.length || 0,
+    };
+
+    return crypto
+      .createHash('sha256')
+      .update(JSON.stringify(requestSignature))
+      .digest('hex');
   }
 
   /**

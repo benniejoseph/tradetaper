@@ -1,10 +1,11 @@
 // src/components/layout/AppLayout.tsx
 "use client";
-import React, { ReactNode, useState, useEffect } from 'react';
+import React, { ReactNode, useState, useEffect, useCallback, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '@/store/store';
-import { fetchMT5Accounts } from '@/store/features/mt5AccountsSlice';
-import { fetchAccounts } from '@/store/features/accountSlice';
+import { fetchMT5Accounts, selectSelectedMT5AccountId } from '@/store/features/mt5AccountsSlice';
+import { fetchAccounts, selectSelectedAccountId } from '@/store/features/accountSlice';
+import { fetchTrades } from '@/store/features/tradesSlice';
 import Sidebar from './Sidebar';
 // import Header from './Header'; // This is the existing mobile-only header, currently commented out
 import ContentHeader from './ContentHeader'; // Import the new ContentHeader
@@ -12,6 +13,7 @@ import ProtectedRoute from '../auth/ProtectedRoute';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import { Toaster, toast } from 'react-hot-toast';
 import NotificationToast from '@/components/notifications/NotificationToast';
+import { Notification } from '@/services/notificationService';
 import {
   addNotification,
   notificationRead,
@@ -26,9 +28,13 @@ interface AppLayoutProps {
 export default function AppLayout({ children }: AppLayoutProps) {
   const dispatch = useDispatch<AppDispatch>();
   const { isAuthenticated } = useSelector((state: RootState) => state.auth);
+  const selectedRegularAccountId = useSelector(selectSelectedAccountId);
+  const selectedMT5AccountId = useSelector(selectSelectedMT5AccountId);
+  const { page: tradesPage, limit: tradesLimit, lastFetchIncludeTags } = useSelector((state: RootState) => state.trades);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
+  const tradesRefreshTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Setup WebSocket connection for real-time notifications
   const { isConnected, subscribe } = useWebSocket({
@@ -37,6 +43,41 @@ export default function AppLayout({ children }: AppLayoutProps) {
     onConnect: () => console.log('📡 WebSocket connected for notifications'),
     onDisconnect: () => console.log('📡 WebSocket disconnected'),
   });
+
+  // Setup WebSocket connection for real-time trade updates
+  const { isConnected: isTradesSocketConnected, subscribe: subscribeTrades } = useWebSocket({
+    autoConnect: isAuthenticated,
+    namespace: '/trades',
+  });
+
+  const refreshTradesData = useCallback(() => {
+    const accountId = selectedRegularAccountId || selectedMT5AccountId || undefined;
+    dispatch(
+      fetchTrades({
+        accountId,
+        page: tradesPage || 1,
+        limit: Math.min(tradesLimit || 1000, 1000),
+        includeTags: lastFetchIncludeTags,
+        force: true,
+      }),
+    );
+  }, [
+    dispatch,
+    selectedRegularAccountId,
+    selectedMT5AccountId,
+    tradesPage,
+    tradesLimit,
+    lastFetchIncludeTags,
+  ]);
+
+  const scheduleTradesRefresh = useCallback(() => {
+    if (tradesRefreshTimeoutRef.current) return;
+
+    tradesRefreshTimeoutRef.current = setTimeout(() => {
+      tradesRefreshTimeoutRef.current = null;
+      refreshTradesData();
+    }, 600);
+  }, [refreshTradesData]);
 
   // Fetch MT5 accounts and regular accounts when authenticated
   useEffect(() => {
@@ -50,22 +91,23 @@ export default function AppLayout({ children }: AppLayoutProps) {
   useEffect(() => {
     if (!isConnected || !isAuthenticated) return;
 
-    const unsubscribeNew = subscribe('notification:new', (data: any) => {
+    const unsubscribeNew = subscribe('notification:new', (data: unknown) => {
+      const notification = data as Notification;
       console.log('🔔 New notification received:', data);
-      dispatch(addNotification(data));
+      dispatch(addNotification(notification));
       
       // Spawn custom toast
       toast.custom((t) => (
-        <NotificationToast t={t} notification={data} />
+        <NotificationToast t={t} notification={notification} />
       ), { 
         duration: 5000,
         position: isMobile ? 'top-center' : 'top-right'
       });
     });
 
-    const unsubscribeRead = subscribe('notification:read', (data: any) => {
+    const unsubscribeRead = subscribe('notification:read', (data: unknown) => {
       console.log('✅ Notification marked as read:', data);
-      dispatch(notificationRead(data));
+      dispatch(notificationRead(data as { id: string }));
     });
 
     const unsubscribeReadAll = subscribe('notification:readAll', () => {
@@ -78,7 +120,32 @@ export default function AppLayout({ children }: AppLayoutProps) {
       unsubscribeRead();
       unsubscribeReadAll();
     };
-  }, [isConnected, isAuthenticated, subscribe, dispatch]);
+  }, [isConnected, isAuthenticated, subscribe, dispatch, isMobile]);
+
+  // Subscribe to trade websocket events and refresh store (debounced) to keep dashboard/pages live.
+  useEffect(() => {
+    if (!isTradesSocketConnected || !isAuthenticated) return;
+
+    const unsubscribeCreated = subscribeTrades('trade:created', () => scheduleTradesRefresh());
+    const unsubscribeUpdated = subscribeTrades('trade:updated', () => scheduleTradesRefresh());
+    const unsubscribeDeleted = subscribeTrades('trade:deleted', () => scheduleTradesRefresh());
+    const unsubscribeBulk = subscribeTrades('trades:bulk', () => scheduleTradesRefresh());
+
+    return () => {
+      unsubscribeCreated();
+      unsubscribeUpdated();
+      unsubscribeDeleted();
+      unsubscribeBulk();
+    };
+  }, [isTradesSocketConnected, isAuthenticated, subscribeTrades, scheduleTradesRefresh]);
+
+  useEffect(() => {
+    return () => {
+      if (tradesRefreshTimeoutRef.current) {
+        clearTimeout(tradesRefreshTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Handle responsive behavior
   useEffect(() => {

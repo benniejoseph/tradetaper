@@ -97,7 +97,7 @@ export class TradesController {
     @Query('sortBy') sortBy?: string,
     @Query('sortDir') sortDir?: string,
   ): Promise<PaginatedResponseDto<Trade>> {
-    const safeLimit = Math.min(1000, Number(limit) || 10);
+    const safeLimit = Math.min(5000, Number(limit) || 10);
     return this.tradesService.findAllLite(
       req.user,
       accountId,

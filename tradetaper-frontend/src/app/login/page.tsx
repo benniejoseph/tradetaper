@@ -98,7 +98,7 @@ export default function LoginPage() {
         {/* Animated Background Elements */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
            <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-emerald-500/10 rounded-full blur-[100px] animate-float"></div>
-           <div className="absolute bottom-1/4 right-1/4 w-[30rem] h-[30rem] bg-teal-500/10 rounded-full blur-[100px] animate-float delay-1000"></div>
+          <div className="absolute bottom-1/4 right-1/4 w-[30rem] h-[30rem] bg-emerald-500/10 rounded-full blur-[100px] animate-float delay-1000"></div>
         </div>
 
         <div className="relative z-10 w-full max-w-md">
@@ -188,61 +188,69 @@ export default function LoginPage() {
          <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-emerald-500/6 rounded-full blur-[140px] animate-float delay-1000"></div>
       </div>
 
-      {/* Left Side - 3D Visual & Benefits */}
-      <div className="hidden lg:flex lg:w-1/2 relative z-10 p-12 flex-col justify-center border-r border-white/5 bg-black/60 backdrop-blur-sm">
-        <div className="max-w-lg mx-auto">
-          <div className="mb-12">
-            <div className="mb-8">
-              <h1 className="text-5xl font-semibold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-emerald-300 via-teal-200 to-white">
-                TradeTaper
-              </h1>
-            </div>
-            <h2 className="text-4xl font-bold text-white mb-6 leading-tight">
-              Master the Markets with <span className="text-gradient-emerald">Precision</span>
+      {/* Left Side - Elegant Emerald Visual */}
+      <div className="hidden lg:flex lg:w-1/2 relative z-10 p-12 flex-col justify-center border-r border-emerald-100/10 bg-[#020403] overflow-hidden">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_18%,rgba(16,185,129,0.24),transparent_46%),radial-gradient(circle_at_82%_72%,rgba(16,185,129,0.16),transparent_46%),linear-gradient(145deg,#010302_0%,#03110c_48%,#020403_100%)]" />
+        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(16,185,129,0.08)_1px,transparent_1px),linear-gradient(90deg,rgba(16,185,129,0.08)_1px,transparent_1px)] bg-[size:72px_72px] opacity-20 [mask-image:radial-gradient(circle_at_center,black_44%,transparent_92%)]" />
+        <div className="pointer-events-none absolute left-[6%] top-[10%] h-52 w-72 rotate-[-10deg] rounded-[2rem] border border-emerald-200/15 bg-emerald-300/5 blur-[1px]" />
+        <div className="pointer-events-none absolute right-[6%] bottom-[10%] h-56 w-72 rotate-[9deg] rounded-[2rem] border border-emerald-200/15 bg-emerald-300/5 blur-[1px]" />
+
+        <div className="relative max-w-lg mx-auto">
+          <div className="mb-10">
+            <span className="inline-flex items-center rounded-full border border-emerald-200/25 bg-emerald-500/10 px-3 py-1 text-[11px] uppercase tracking-[0.12em] text-emerald-200 mb-7">
+              Trade Journal Workspace
+            </span>
+            <h1 className="text-5xl font-semibold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white via-emerald-100 to-emerald-300 mb-4">
+              TradeTaper
+            </h1>
+            <h2 className="text-[2.35rem] leading-[1.08] font-semibold text-white mb-5">
+              Log cleaner, review faster, improve with discipline.
             </h2>
-            <p className="text-lg text-slate-400 mb-8 leading-relaxed">
-              Access your institutional-grade trading journal and start refining your edge today.
+            <p className="text-[15px] text-slate-300 leading-relaxed">
+              One focused command center for trade journaling, risk control, and performance insights.
+              Built for serious traders who want measurable growth.
             </p>
           </div>
 
-          <div className="space-y-6">
+          <div className="space-y-4">
             {[
               {
                 icon: FaTrendingUp,
-                title: "Neural Analytics",
-                description: "AI that learns your trading patterns"
+                title: "Performance Clarity",
+                description: "Pinpoint what drives wins and what creates avoidable drawdown."
               },
               {
                 icon: FaShield,
-                title: "Risk Engine",
-                description: "Pro-grade position sizing & controls"
+                title: "Risk-First Workflow",
+                description: "Keep position sizing and discipline guardrails in every session."
               },
               {
                 icon: FaRocket,
-                title: "Performance Tracking",
-                description: "Real-time P&L and growth metrics"
+                title: "Execution Improvement",
+                description: "Turn routine review into consistent weekly process gains."
               }
             ].map((benefit, index) => (
-              <div key={index} className="flex items-center space-x-4 p-4 rounded-xl border border-white/5 bg-white/[0.02] hover:bg-white/[0.05] transition-colors">
-                <div className="flex-shrink-0 p-3 bg-emerald-500/10 rounded-lg">
-                  <benefit.icon className="text-lg text-emerald-400" />
+              <div
+                key={index}
+                className="group flex items-center gap-4 rounded-2xl border border-white/10 bg-black/45 px-4 py-4 backdrop-blur-md transition-all duration-300 hover:border-emerald-200/30 hover:bg-black/60"
+              >
+                <div className="flex-shrink-0 h-11 w-11 rounded-xl bg-emerald-400/15 border border-emerald-200/20 text-emerald-200 flex items-center justify-center">
+                  <benefit.icon className="text-base" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-white text-sm">{benefit.title}</h3>
-                  <p className="text-slate-400 text-xs">{benefit.description}</p>
+                  <h3 className="font-semibold text-white text-sm">{benefit.title}</h3>
+                  <p className="text-slate-300 text-xs leading-relaxed">{benefit.description}</p>
                 </div>
               </div>
             ))}
           </div>
 
-          {/* 3D Floating Element */}
-          <div className="mt-16 relative h-32 perspective-1000">
-             <div className="absolute inset-0 bg-emerald-500/5 border border-emerald-500/20 rounded-2xl transform rotate-x-12 rotate-y-6 flex items-center justify-center backdrop-blur-md">
-                <div className="text-center">
-                    <div className="text-4xl font-bold text-white mb-1">10k+</div>
-                    <div className="text-emerald-400 text-xs uppercase tracking-wider font-bold">Active Traders</div>
-                </div>
-             </div>
+          <div className="mt-8 rounded-2xl border border-emerald-200/20 bg-gradient-to-r from-emerald-400/15 via-emerald-500/10 to-black/70 px-5 py-4">
+            <p className="text-[11px] uppercase tracking-[0.12em] text-emerald-100/80 mb-1">Active Traders</p>
+            <div className="flex items-end justify-between gap-4">
+              <p className="text-3xl font-semibold text-white">10k+</p>
+              <p className="text-xs text-emerald-200">Execution-grade workflow daily</p>
+            </div>
           </div>
         </div>
       </div>

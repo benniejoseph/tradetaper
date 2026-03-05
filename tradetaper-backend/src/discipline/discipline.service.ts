@@ -8,19 +8,63 @@ import { Repository, LessThan } from 'typeorm';
 import {
   TradeApproval,
   ApprovalStatus,
-  ChecklistResponse,
 } from './entities/trade-approval.entity';
 import {
   TraderDiscipline,
   Badge,
-  DailyStats,
 } from './entities/trader-discipline.entity';
 import {
   CooldownSession,
   CooldownTrigger,
 } from './entities/cooldown-session.entity';
-import { CreateApprovalDto, ApproveTradeDto } from './dto/discipline.dto';
+import {
+  CreateApprovalDto,
+  ApproveTradeDto,
+  CreateIfThenPlanDto,
+  UpdateIfThenPlanDto,
+} from './dto/discipline.dto';
 import { TerminalFarmService } from '../terminal-farm/terminal-farm.service';
+import { Trade } from '../trades/entities/trade.entity';
+import { EmotionalState, TradeStatus } from '../types/enums';
+import { IfThenPlan, IfThenTriggerType } from './entities/if-then-plan.entity';
+
+export interface DisciplineBehaviorTrigger {
+  type:
+    | 'loss_streak'
+    | 'overtrading'
+    | 'revenge_trade'
+    | 'unauthorized_trade'
+    | 'performance_dip';
+  severity: 'low' | 'medium' | 'high';
+  title: string;
+  detail: string;
+  suggestion: string;
+}
+
+export interface DisciplineMatchedPlan {
+  id: string;
+  accountId?: string | null;
+  triggerType: IfThenTriggerType;
+  ifCue: string;
+  thenAction: string;
+}
+
+export interface DisciplineBehaviorSignals {
+  generatedAt: string;
+  accountId?: string;
+  riskScore: number;
+  cooldownActive: boolean;
+  metrics: {
+    closedTradesSampled: number;
+    lossStreak: number;
+    tradesLast2Hours: number;
+    recentAveragePnl: number;
+    violationRate: number;
+    emotionalPressure: number;
+  };
+  triggers: DisciplineBehaviorTrigger[];
+  matchedPlans: DisciplineMatchedPlan[];
+}
 
 // XP rewards configuration
 const XP_REWARDS = {
@@ -87,6 +131,10 @@ export class DisciplineService {
     private disciplineRepo: Repository<TraderDiscipline>,
     @InjectRepository(CooldownSession)
     private cooldownRepo: Repository<CooldownSession>,
+    @InjectRepository(Trade)
+    private tradeRepo: Repository<Trade>,
+    @InjectRepository(IfThenPlan)
+    private ifThenPlanRepo: Repository<IfThenPlan>,
     private terminalFarmService: TerminalFarmService,
   ) {}
 
@@ -103,6 +151,378 @@ export class DisciplineService {
 
   async getDisciplineStats(userId: string): Promise<TraderDiscipline> {
     return this.getOrCreateDiscipline(userId);
+  }
+
+  private normalizeAccountScope(accountId?: string): string | null {
+    if (accountId === undefined) return null;
+    const normalized = accountId.trim();
+    return normalized.length > 0 ? normalized : null;
+  }
+
+  private normalizeRequiredText(
+    value: string,
+    fieldName: 'ifCue' | 'thenAction',
+  ): string {
+    const normalized = value.trim();
+    if (!normalized) {
+      throw new BadRequestException(`${fieldName} cannot be empty`);
+    }
+    return normalized;
+  }
+
+  async getIfThenPlans(userId: string, accountId?: string): Promise<IfThenPlan[]> {
+    const normalizedAccountId = this.normalizeAccountScope(accountId);
+
+    const query = this.ifThenPlanRepo
+      .createQueryBuilder('plan')
+      .where('plan.userId = :userId', { userId })
+      .orderBy('plan.isActive', 'DESC')
+      .addOrderBy('plan.createdAt', 'DESC');
+
+    if (normalizedAccountId) {
+      query.andWhere('(plan.accountId = :accountId OR plan.accountId IS NULL)', {
+        accountId: normalizedAccountId,
+      });
+    }
+
+    return query.getMany();
+  }
+
+  async createIfThenPlan(
+    userId: string,
+    dto: CreateIfThenPlanDto,
+  ): Promise<IfThenPlan> {
+    const plan = this.ifThenPlanRepo.create({
+      userId,
+      accountId: this.normalizeAccountScope(dto.accountId),
+      triggerType: dto.triggerType ?? IfThenTriggerType.CUSTOM,
+      ifCue: this.normalizeRequiredText(dto.ifCue, 'ifCue'),
+      thenAction: this.normalizeRequiredText(dto.thenAction, 'thenAction'),
+      isActive: dto.isActive ?? true,
+    });
+
+    return this.ifThenPlanRepo.save(plan);
+  }
+
+  async updateIfThenPlan(
+    userId: string,
+    planId: string,
+    dto: UpdateIfThenPlanDto,
+  ): Promise<IfThenPlan> {
+    const plan = await this.ifThenPlanRepo.findOne({
+      where: { id: planId, userId },
+    });
+    if (!plan) {
+      throw new NotFoundException('If-Then plan not found');
+    }
+
+    if (dto.ifCue !== undefined) {
+      plan.ifCue = this.normalizeRequiredText(dto.ifCue, 'ifCue');
+    }
+    if (dto.thenAction !== undefined) {
+      plan.thenAction = this.normalizeRequiredText(dto.thenAction, 'thenAction');
+    }
+    if (dto.accountId !== undefined) {
+      plan.accountId = this.normalizeAccountScope(dto.accountId);
+    }
+    if (dto.triggerType !== undefined) {
+      plan.triggerType = dto.triggerType;
+    }
+    if (dto.isActive !== undefined) {
+      plan.isActive = dto.isActive;
+    }
+
+    return this.ifThenPlanRepo.save(plan);
+  }
+
+  async deleteIfThenPlan(
+    userId: string,
+    planId: string,
+  ): Promise<{ deleted: boolean }> {
+    const result = await this.ifThenPlanRepo.delete({ id: planId, userId });
+    if (!result.affected) {
+      throw new NotFoundException('If-Then plan not found');
+    }
+
+    return { deleted: true };
+  }
+
+  private coercePnl(value: unknown): number {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+
+  private getViolationCount(trades: Trade[]): number {
+    return trades.filter(
+      (trade) =>
+        trade.followedPlan === false ||
+        (Array.isArray(trade.ruleViolations) && trade.ruleViolations.length > 0),
+    ).length;
+  }
+
+  private getEmotionalPressure(trades: Trade[]): number {
+    const pressureStates = new Set<EmotionalState>([
+      EmotionalState.FOMO,
+      EmotionalState.REVENGE,
+      EmotionalState.FRUSTRATED,
+      EmotionalState.OVERCONFIDENT,
+      EmotionalState.IMPATIENT,
+      EmotionalState.ANXIOUS,
+      EmotionalState.FEARFUL,
+      EmotionalState.RUSHED,
+      EmotionalState.OVERWHELMED,
+    ]);
+
+    return trades.filter(
+      (trade) => trade.emotionBefore && pressureStates.has(trade.emotionBefore),
+    ).length;
+  }
+
+  async getBehaviorSignals(
+    userId: string,
+    accountId?: string,
+  ): Promise<DisciplineBehaviorSignals> {
+    const normalizedAccountId = this.normalizeAccountScope(accountId) ?? undefined;
+
+    const query = this.tradeRepo
+      .createQueryBuilder('trade')
+      .where('trade.userId = :userId', { userId })
+      .andWhere('trade.status = :status', { status: TradeStatus.CLOSED });
+
+    if (normalizedAccountId) {
+      query.andWhere('trade.accountId = :accountId', {
+        accountId: normalizedAccountId,
+      });
+    }
+
+    const closedTrades = await query
+      .orderBy('COALESCE(trade.closeTime, trade.openTime)', 'DESC')
+      .take(50)
+      .select([
+        'trade.id',
+        'trade.status',
+        'trade.accountId',
+        'trade.openTime',
+        'trade.closeTime',
+        'trade.profitOrLoss',
+        'trade.ruleViolations',
+        'trade.followedPlan',
+        'trade.emotionBefore',
+      ])
+      .getMany();
+
+    const recentWindowStart = new Date(Date.now() - 2 * 60 * 60 * 1000);
+    const overtradingQuery = this.tradeRepo
+      .createQueryBuilder('trade')
+      .where('trade.userId = :userId', { userId })
+      .andWhere('trade.openTime >= :from', { from: recentWindowStart })
+      .andWhere('trade.status != :cancelled', { cancelled: TradeStatus.CANCELLED });
+
+    if (normalizedAccountId) {
+      overtradingQuery.andWhere('trade.accountId = :accountId', {
+        accountId: normalizedAccountId,
+      });
+    }
+
+    const tradesLast2Hours = await overtradingQuery.getCount();
+
+    let lossStreak = 0;
+    for (const trade of closedTrades) {
+      if (this.coercePnl(trade.profitOrLoss) < 0) {
+        lossStreak += 1;
+        continue;
+      }
+      break;
+    }
+
+    const recentThreeTrades = closedTrades.slice(0, 3);
+    const recentAveragePnl =
+      recentThreeTrades.length > 0
+        ? recentThreeTrades.reduce(
+            (sum, trade) => sum + this.coercePnl(trade.profitOrLoss),
+            0,
+          ) / recentThreeTrades.length
+        : 0;
+
+    const disciplineSample = closedTrades.slice(0, 20);
+    const violationCount = this.getViolationCount(disciplineSample);
+    const violationRate =
+      disciplineSample.length > 0 ? violationCount / disciplineSample.length : 0;
+    const emotionalPressure = this.getEmotionalPressure(disciplineSample);
+
+    const triggers: DisciplineBehaviorTrigger[] = [];
+
+    if (lossStreak >= 2) {
+      triggers.push({
+        type: 'loss_streak',
+        severity: lossStreak >= 4 ? 'high' : 'medium',
+        title: 'Loss streak risk',
+        detail: `You have ${lossStreak} consecutive losing trades.`,
+        suggestion:
+          'Pause for 15 minutes, cut size, and trade only A+ checklist setups.',
+      });
+    }
+
+    if (tradesLast2Hours >= 6) {
+      triggers.push({
+        type: 'overtrading',
+        severity: tradesLast2Hours >= 10 ? 'high' : 'medium',
+        title: 'Overtrading pressure',
+        detail: `${tradesLast2Hours} trades were opened in the last 2 hours.`,
+        suggestion: 'Enforce a 5-minute no-trade timer before the next entry.',
+      });
+    }
+
+    if (recentAveragePnl < 0) {
+      triggers.push({
+        type: 'performance_dip',
+        severity: recentAveragePnl < -50 ? 'medium' : 'low',
+        title: 'Performance dip',
+        detail: `Recent 3-trade average P&L is ${recentAveragePnl.toFixed(2)}.`,
+        suggestion: 'Review your last 3 closures and validate rule adherence.',
+      });
+    }
+
+    if (violationRate >= 0.35) {
+      triggers.push({
+        type: 'unauthorized_trade',
+        severity: violationRate >= 0.6 ? 'high' : 'medium',
+        title: 'Rule-break pressure',
+        detail: `${Math.round(violationRate * 100)}% of recent trades include rule breaks.`,
+        suggestion: 'Switch to one-setup mode until rule-break rate improves.',
+      });
+    }
+
+    if (emotionalPressure >= 2 && (lossStreak >= 1 || violationRate >= 0.2)) {
+      triggers.push({
+        type: 'revenge_trade',
+        severity: emotionalPressure >= 4 ? 'high' : 'medium',
+        title: 'Emotional escalation',
+        detail: `${emotionalPressure} recent trades show high-pressure emotional states.`,
+        suggestion: 'Complete a breathing + journal reset before the next trade.',
+      });
+    }
+
+    const plansQuery = this.ifThenPlanRepo
+      .createQueryBuilder('plan')
+      .where('plan.userId = :userId', { userId })
+      .andWhere('plan.isActive = true');
+
+    if (normalizedAccountId) {
+      plansQuery.andWhere('(plan.accountId = :accountId OR plan.accountId IS NULL)', {
+        accountId: normalizedAccountId,
+      });
+    }
+
+    const activePlans = await plansQuery
+      .orderBy('plan.createdAt', 'DESC')
+      .getMany();
+
+    const matchedPlans: DisciplineMatchedPlan[] = activePlans
+      .filter((plan) => triggers.some((trigger) => trigger.type === plan.triggerType))
+      .map((plan) => ({
+        id: plan.id,
+        accountId: plan.accountId,
+        triggerType: plan.triggerType,
+        ifCue: plan.ifCue,
+        thenAction: plan.thenAction,
+      }));
+
+    const triggersWithPlanSuggestions = triggers.map((trigger) => {
+      const matchedPlan = matchedPlans.find(
+        (plan) => plan.triggerType === trigger.type,
+      );
+      if (!matchedPlan) return trigger;
+
+      return {
+        ...trigger,
+        suggestion: `If-Then plan: ${matchedPlan.thenAction}`,
+      };
+    });
+
+    let riskScore = 0;
+    riskScore += Math.min(lossStreak * 18, 45);
+    riskScore += tradesLast2Hours >= 6 ? Math.min((tradesLast2Hours - 5) * 4, 20) : 0;
+    riskScore += recentAveragePnl < 0 ? Math.min(Math.abs(recentAveragePnl) / 25, 12) : 0;
+    riskScore += Math.min(violationRate * 25, 18);
+    riskScore += Math.min(emotionalPressure * 4, 16);
+    riskScore = Math.max(0, Math.min(100, Math.round(riskScore)));
+
+    const activeCooldown = await this.getActiveCooldown(userId);
+
+    return {
+      generatedAt: new Date().toISOString(),
+      accountId: normalizedAccountId,
+      riskScore,
+      cooldownActive: Boolean(activeCooldown),
+      metrics: {
+        closedTradesSampled: closedTrades.length,
+        lossStreak,
+        tradesLast2Hours,
+        recentAveragePnl,
+        violationRate,
+        emotionalPressure,
+      },
+      triggers: triggersWithPlanSuggestions,
+      matchedPlans,
+    };
+  }
+
+  async evaluateAndTriggerCooldown(
+    userId: string,
+    accountId?: string,
+  ): Promise<CooldownSession | null> {
+    const active = await this.getActiveCooldown(userId);
+    if (active) {
+      return null;
+    }
+
+    const signals = await this.getBehaviorSignals(userId, accountId);
+    if (signals.triggers.length === 0) {
+      return null;
+    }
+
+    const triggerPriority: Array<DisciplineBehaviorTrigger['type']> = [
+      'unauthorized_trade',
+      'revenge_trade',
+      'overtrading',
+      'loss_streak',
+      'performance_dip',
+    ];
+
+    const selected =
+      triggerPriority
+        .map((type) =>
+          signals.triggers.find(
+            (trigger) =>
+              trigger.type === type &&
+              (trigger.severity === 'high' || trigger.severity === 'medium'),
+          ),
+        )
+        .find(Boolean) ||
+      signals.triggers.find((trigger) => trigger.severity === 'high');
+
+    if (!selected) {
+      return null;
+    }
+
+    const reasonByType: Record<DisciplineBehaviorTrigger['type'], CooldownTrigger> = {
+      loss_streak: CooldownTrigger.LOSS_STREAK,
+      overtrading: CooldownTrigger.OVERTRADING,
+      revenge_trade: CooldownTrigger.REVENGE_TRADE,
+      unauthorized_trade: CooldownTrigger.UNAUTHORIZED_TRADE,
+      performance_dip: CooldownTrigger.MANUAL,
+    };
+
+    const baseDuration = selected.severity === 'high' ? 45 : 20;
+    const cooldown = await this.triggerCooldown(
+      userId,
+      reasonByType[selected.type],
+      baseDuration,
+    );
+    cooldown.notes = `Auto-triggered by discipline engine: ${selected.title}`;
+    await this.cooldownRepo.save(cooldown);
+    return cooldown;
   }
 
   async addXp(
@@ -129,9 +549,10 @@ export class DisciplineService {
     delta: number,
   ): Promise<TraderDiscipline> {
     const discipline = await this.getOrCreateDiscipline(userId);
+    const currentScore = Number(discipline.disciplineScore) || 0;
     discipline.disciplineScore = Math.max(
       0,
-      Math.min(100, discipline.disciplineScore + delta),
+      Math.min(100, currentScore + delta),
     );
 
     // Track violations for negative deltas
@@ -202,12 +623,12 @@ export class DisciplineService {
   ): Promise<boolean> {
     const discipline = await this.getOrCreateDiscipline(userId);
     const existingBadges = discipline.badges || [];
+    const badgeDef = BADGES[badgeId];
 
-    if (existingBadges.find((b) => b.id === badgeId)) {
+    if (existingBadges.find((b) => b.id === badgeDef.id)) {
       return false; // Already has badge
     }
 
-    const badgeDef = BADGES[badgeId];
     const newBadge: Badge = {
       ...badgeDef,
       earnedAt: new Date(),
@@ -218,12 +639,24 @@ export class DisciplineService {
     return true;
   }
 
+  private async incrementApprovedTrades(userId: string): Promise<void> {
+    const discipline = await this.getOrCreateDiscipline(userId);
+    discipline.totalApprovedTrades += 1;
+    await this.disciplineRepo.save(discipline);
+
+    if (discipline.totalApprovedTrades === 1) {
+      await this.awardBadge(userId, 'FIRST_BLOOD');
+    }
+  }
+
   // ============== TRADE APPROVALS ==============
 
   async createApproval(
     userId: string,
     dto: CreateApprovalDto,
   ): Promise<TradeApproval> {
+    await this.expireOldApprovals();
+
     // Check for active cooldown - ADVISORY: warn but allow with penalty
     const activeCooldown = await this.getActiveCooldown(userId);
     let cooldownPenalty = false;
@@ -245,16 +678,23 @@ export class DisciplineService {
       );
     }
 
-    // AUTO-APPROVAL: When checklist is complete, automatically approve
+    // Auto-approve only when risk inputs are supplied. Otherwise keep pending.
+    const shouldAutoApprove =
+      dto.calculatedLotSize !== undefined &&
+      dto.stopLoss !== undefined &&
+      dto.accountId !== undefined;
+
     const approval = this.approvalRepo.create({
       userId,
       ...dto,
-      status: ApprovalStatus.APPROVED, // Auto-approved since checklist is complete
-      approvedAt: new Date(),
-      expiresAt: new Date(Date.now() + 60 * 1000), // 60 second unlock window
+      status: shouldAutoApprove ? ApprovalStatus.APPROVED : ApprovalStatus.PENDING,
+      approvedAt: shouldAutoApprove ? new Date() : undefined,
+      expiresAt: shouldAutoApprove
+        ? new Date(Date.now() + 60 * 1000)
+        : undefined,
       metadata: {
         cooldownBypass: cooldownPenalty,
-        autoApproved: true,
+        autoApproved: shouldAutoApprove,
       },
     });
 
@@ -267,11 +707,11 @@ export class DisciplineService {
       'checklist_complete',
     );
 
-    // Send unlock command to MT5 immediately (auto-approval)
-    if (dto.accountId && approval.calculatedLotSize) {
-      approval.stopLoss = dto.stopLoss ?? 0;
+    if (shouldAutoApprove && dto.accountId && approval.calculatedLotSize) {
+      approval.stopLoss = dto.stopLoss!;
       approval.takeProfit = dto.takeProfit ?? 0;
       await this.sendUnlockCommand(approval);
+      await this.incrementApprovedTrades(userId);
     }
 
     return approval;
@@ -282,6 +722,8 @@ export class DisciplineService {
     approvalId: string,
     dto: ApproveTradeDto,
   ): Promise<TradeApproval> {
+    await this.expireOldApprovals();
+
     const approval = await this.approvalRepo.findOne({
       where: { id: approvalId, userId },
     });
@@ -289,16 +731,21 @@ export class DisciplineService {
       throw new NotFoundException('Approval not found');
     }
 
-    if (approval.status !== ApprovalStatus.PENDING) {
+    if (
+      approval.status !== ApprovalStatus.PENDING &&
+      approval.status !== ApprovalStatus.APPROVED
+    ) {
       throw new BadRequestException(`Approval is already ${approval.status}`);
     }
+
+    const transitioningFromPending = approval.status === ApprovalStatus.PENDING;
 
     // Update approval with calculated values
     approval.calculatedLotSize = dto.calculatedLotSize;
     approval.stopLoss = dto.stopLoss;
     approval.takeProfit = dto.takeProfit ?? 0;
     approval.status = ApprovalStatus.APPROVED;
-    approval.approvedAt = new Date();
+    approval.approvedAt = approval.approvedAt || new Date();
     approval.expiresAt = new Date(Date.now() + 60 * 1000); // 60 seconds
 
     await this.approvalRepo.save(approval);
@@ -308,13 +755,8 @@ export class DisciplineService {
       await this.sendUnlockCommand(approval);
     }
 
-    const discipline = await this.getOrCreateDiscipline(userId);
-    discipline.totalApprovedTrades += 1;
-    await this.disciplineRepo.save(discipline);
-
-    // Check for first trade badge
-    if (discipline.totalApprovedTrades === 1) {
-      await this.awardBadge(userId, 'FIRST_BLOOD');
+    if (transitioningFromPending) {
+      await this.incrementApprovedTrades(userId);
     }
 
     return approval;
@@ -349,6 +791,20 @@ export class DisciplineService {
     });
     if (!approval) return;
 
+    if (
+      approval.status === ApprovalStatus.EXECUTED &&
+      approval.executedTradeId === tradeId
+    ) {
+      return;
+    }
+
+    if (
+      approval.status !== ApprovalStatus.APPROVED &&
+      approval.status !== ApprovalStatus.PENDING
+    ) {
+      return;
+    }
+
     approval.status = ApprovalStatus.EXECUTED;
     approval.executedTradeId = tradeId;
     await this.approvalRepo.save(approval);
@@ -382,13 +838,17 @@ export class DisciplineService {
   }
 
   async getActiveApproval(userId: string): Promise<TradeApproval | null> {
-    return this.approvalRepo.findOne({
-      where: {
-        userId,
-        status: ApprovalStatus.APPROVED,
-      },
-      order: { createdAt: 'DESC' },
-    });
+    await this.expireOldApprovals();
+
+    return this.approvalRepo
+      .createQueryBuilder('approval')
+      .where('approval.userId = :userId', { userId })
+      .andWhere('approval.status = :status', { status: ApprovalStatus.APPROVED })
+      .andWhere('(approval.expiresAt IS NULL OR approval.expiresAt > :now)', {
+        now: new Date(),
+      })
+      .orderBy('approval.createdAt', 'DESC')
+      .getOne();
   }
 
   async getPendingApprovals(userId: string): Promise<TradeApproval[]> {
@@ -412,14 +872,16 @@ export class DisciplineService {
   // ============== COOLDOWNS ==============
 
   async getActiveCooldown(userId: string): Promise<CooldownSession | null> {
-    return this.cooldownRepo.findOne({
-      where: {
-        userId,
-        isCompleted: false,
-        isSkipped: false,
-      },
-      order: { startedAt: 'DESC' },
-    });
+    return this.cooldownRepo
+      .createQueryBuilder('cooldown')
+      .where('cooldown.userId = :userId', { userId })
+      .andWhere('cooldown.isCompleted = false')
+      .andWhere('cooldown.isSkipped = false')
+      .andWhere('(cooldown.expiresAt IS NULL OR cooldown.expiresAt > :now)', {
+        now: new Date(),
+      })
+      .orderBy('cooldown.startedAt', 'DESC')
+      .getOne();
   }
 
   async triggerCooldown(

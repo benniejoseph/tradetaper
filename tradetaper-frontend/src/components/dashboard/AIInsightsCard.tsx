@@ -3,10 +3,10 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { useSelector } from 'react-redux';
 import { RootState } from '@/store/store';
 import { FaRobot, FaCheckCircle, FaExclamationTriangle, FaLightbulb, FaSpinner, FaRedo } from 'react-icons/fa';
-import { AnimatedCard } from '@/components/ui/AnimatedCard';
 import { formatDistanceToNow } from 'date-fns';
-import { Trade } from '@/types/trade';
 import { authApiClient } from '@/services/api';
+import { selectSelectedAccountId } from '@/store/features/accountSlice';
+import { selectSelectedMT5AccountId } from '@/store/features/mt5AccountsSlice';
 
 interface Insight {
   type: 'STRENGTH' | 'WEAKNESS' | 'FOCUS_AREA';
@@ -29,6 +29,13 @@ interface CachedReport {
 export default function AIInsightsCard() {
   const { user } = useSelector((state: RootState) => state.auth);
   const { trades } = useSelector((state: RootState) => state.trades);
+  const selectedAccountId = useSelector(selectSelectedAccountId);
+  const selectedMT5AccountId = useSelector(selectSelectedMT5AccountId);
+  const activeAccountId = selectedAccountId || selectedMT5AccountId || null;
+  const scopedTrades = useMemo(
+    () => (activeAccountId ? (trades || []).filter((trade) => trade.accountId === activeAccountId) : (trades || [])),
+    [trades, activeAccountId],
+  );
   
   const [report, setReport] = useState<AIReport | null>(null);
   const [loading, setLoading] = useState(false);
@@ -36,10 +43,10 @@ export default function AIInsightsCard() {
 
   // robustly determine the latest trade date
   const latestTradeDate = useMemo(() => {
-    if (!trades || trades.length === 0) return null;
+    if (!scopedTrades || scopedTrades.length === 0) return null;
     
     // Sort trades by exit date or entry date to find the latest
-    const sorted = [...trades].sort((a, b) => {
+    const sorted = [...scopedTrades].sort((a, b) => {
         const dateA = new Date(a.exitDate || a.entryDate || 0).getTime();
         const dateB = new Date(b.exitDate || b.entryDate || 0).getTime();
         return dateB - dateA; // Descending
@@ -47,12 +54,18 @@ export default function AIInsightsCard() {
     
     const latest = sorted[0];
     return latest ? new Date(latest.exitDate || latest.entryDate || 0).getTime() : null;
-  }, [trades]);
+  }, [scopedTrades]);
 
-  const cacheKey = useMemo(() => user ? `trading_coach_report_${user.id}` : null, [user]);
+  const cacheKey = useMemo(
+    () => (user ? `trading_coach_report_${user.id}_${activeAccountId || 'all'}` : null),
+    [user, activeAccountId],
+  );
 
   // Load from cache on mount
   useEffect(() => {
+    setReport(null);
+    setLastUpdated(null);
+
     if (cacheKey) {
         const cachedStr = localStorage.getItem(cacheKey);
         if (cachedStr) {
@@ -105,13 +118,18 @@ export default function AIInsightsCard() {
 
     checkAndFetch();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cacheKey, latestTradeDate]); // Intentionally not including 'loading' to avoid loops
+  }, [cacheKey, latestTradeDate, activeAccountId]); // Intentionally not including 'loading' to avoid loops
 
   const fetchInsights = async () => {
     if (loading) return;
     setLoading(true);
     try {
-        const res = await authApiClient.get<AIReport>('/analytics/insights');
+        const res = await authApiClient.get<AIReport>('/analytics/insights', {
+          params: {
+            ...(activeAccountId ? { accountId: activeAccountId } : {}),
+            _ts: Date.now(),
+          },
+        });
         const data = res.data;
         setReport(data);
         
@@ -205,6 +223,14 @@ export default function AIInsightsCard() {
                 )}
              </div>
            ))}
+
+           {report && !loading && (!report.insights || report.insights.length === 0) && (
+             <div className="md:col-span-3 rounded-lg border border-amber-200/60 dark:border-amber-700/50 bg-amber-50/70 dark:bg-amber-900/20 p-3">
+               <p className="text-xs text-amber-700 dark:text-amber-300">
+                 AI returned no structured insights. Refresh to retry.
+               </p>
+             </div>
+           )}
            
            {!report && loading && (
                [1,2,3].map(i => (

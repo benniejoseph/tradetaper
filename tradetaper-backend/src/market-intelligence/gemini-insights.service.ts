@@ -25,6 +25,133 @@ export class GeminiInsightsService {
     private orchestrator: MultiModelOrchestratorService, // Injection
   ) {}
 
+  private clampScore(score: number): number {
+    if (!Number.isFinite(score)) return 50;
+    return Math.max(0, Math.min(100, Math.round(score)));
+  }
+
+  private parseReportFromModelOutput(text: string): TraderCoachingReport | null {
+    const candidates: string[] = [];
+    if (typeof text === 'string' && text.trim().length > 0) {
+      candidates.push(text.trim());
+
+      const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/i);
+      if (fenced?.[1]) {
+        candidates.unshift(fenced[1].trim());
+      }
+
+      const jsonStart = text.indexOf('{');
+      const jsonEnd = text.lastIndexOf('}');
+      if (jsonStart !== -1 && jsonEnd !== -1 && jsonEnd > jsonStart) {
+        candidates.push(text.substring(jsonStart, jsonEnd + 1).trim());
+      }
+    }
+
+    for (const candidate of candidates) {
+      try {
+        const parsed = JSON.parse(candidate);
+        if (parsed && typeof parsed === 'object') {
+          return parsed as TraderCoachingReport;
+        }
+      } catch {
+        // try next candidate
+      }
+    }
+
+    return null;
+  }
+
+  private buildFallbackReport(
+    trades: Trade[],
+    reason?: string,
+  ): TraderCoachingReport {
+    const closedTrades = trades.filter(
+      (t) => t?.status === 'Closed' && Number.isFinite(Number(t?.profitOrLoss)),
+    );
+
+    if (closedTrades.length === 0) {
+      return {
+        traderScore: 50,
+        scoreReasoning:
+          reason ||
+          'Not enough closed-trade data yet. Add more completed trades for richer AI insights.',
+        insights: [
+          {
+            type: 'FOCUS_AREA',
+            title: 'Build Your Dataset',
+            description:
+              'Log at least 5 completed trades with notes to unlock account-specific coaching.',
+            actionableStep:
+              'Capture setup reason, mistake made, and lesson learned for each trade.',
+          },
+        ],
+      };
+    }
+
+    const wins = closedTrades.filter((t) => Number(t.profitOrLoss || 0) > 0);
+    const losses = closedTrades.filter((t) => Number(t.profitOrLoss || 0) < 0);
+    const grossProfit = wins.reduce(
+      (sum, t) => sum + Number(t.profitOrLoss || 0),
+      0,
+    );
+    const grossLossAbs = Math.abs(
+      losses.reduce((sum, t) => sum + Number(t.profitOrLoss || 0), 0),
+    );
+    const winRate = (wins.length / closedTrades.length) * 100;
+    const profitFactor = grossLossAbs > 0 ? grossProfit / grossLossAbs : 0;
+    const avgWin = wins.length ? grossProfit / wins.length : 0;
+    const avgLoss = losses.length ? grossLossAbs / losses.length : 0;
+
+    const score = this.clampScore(winRate * 0.65 + Math.min(profitFactor, 2) * 17.5);
+
+    const strengthDescription =
+      winRate >= 50
+        ? `Your win rate is ${winRate.toFixed(1)}% across ${closedTrades.length} closed trades, showing solid setup selection.`
+        : `You are consistently closing trades and collecting execution data (${closedTrades.length} closed trades), which is essential for improvement.`;
+
+    const weaknessDescription =
+      avgLoss > 0 && avgLoss > avgWin
+        ? `Average loss (${avgLoss.toFixed(2)}) is larger than average win (${avgWin.toFixed(2)}), which drags expectancy.`
+        : `Loss clusters still appear in your recent sample. Focus on reducing consecutive emotional trades.`;
+
+    const focusStep =
+      avgLoss > avgWin
+        ? 'Reduce position size after one loss and require one A+ confirmation before the next entry.'
+        : 'Journal one repeatable edge and execute only that edge for your next 10 trades.';
+
+    const fallbackReason = reason
+      ? ` (${reason})`
+      : '';
+
+    return {
+      traderScore: score,
+      scoreReasoning: `Using deterministic coaching from recent closed trades${fallbackReason}. Win rate ${winRate.toFixed(1)}%, profit factor ${profitFactor.toFixed(2)}.`,
+      insights: [
+        {
+          type: 'STRENGTH',
+          title: 'Execution Consistency',
+          description: strengthDescription,
+          actionableStep:
+            'Keep tagging your best setups so this edge stays measurable.',
+        },
+        {
+          type: 'WEAKNESS',
+          title: 'Risk Asymmetry',
+          description: weaknessDescription,
+          actionableStep:
+            'Enforce a hard max loss per trade and stop trading after two consecutive losses.',
+        },
+        {
+          type: 'FOCUS_AREA',
+          title: 'Next 10 Trades Plan',
+          description:
+            'Use a single repeatable playbook and review outcomes daily.',
+          actionableStep: focusStep,
+        },
+      ],
+    };
+  }
+
   async analyzeTradePatterns(trades: Trade[]): Promise<TraderCoachingReport> {
     if (trades.length < 5) {
       return {
@@ -105,21 +232,37 @@ export class GeminiInsightsService {
     try {
       const response = await this.orchestrator.complete({
         prompt: prompt,
-        modelPreference: 'gemini-3-pro-preview', // User requested model
+        modelPreference: 'gemini-1.5-pro',
         taskComplexity: 'complex', // Upgrade complexity
         requireJson: true,
         optimizeFor: 'quality', // Optimize for quality
       });
 
       const text = response.content;
-
-      // robust JSON extraction
-      const jsonStart = text.indexOf('{');
-      const jsonEnd = text.lastIndexOf('}');
-
-      if (jsonStart !== -1 && jsonEnd !== -1) {
-        const jsonString = text.substring(jsonStart, jsonEnd + 1);
-        return JSON.parse(jsonString);
+      const parsed = this.parseReportFromModelOutput(text);
+      if (parsed) {
+        return {
+          traderScore: this.clampScore(Number(parsed.traderScore)),
+          scoreReasoning:
+            parsed.scoreReasoning?.trim() ||
+            'AI generated a partial response. Showing cleaned output.',
+          insights:
+            Array.isArray(parsed.insights) && parsed.insights.length > 0
+              ? parsed.insights.slice(0, 3).map((insight) => ({
+                  type:
+                    insight?.type === 'STRENGTH' ||
+                    insight?.type === 'WEAKNESS' ||
+                    insight?.type === 'FOCUS_AREA'
+                      ? insight.type
+                      : 'FOCUS_AREA',
+                  title: insight?.title || 'Trading Insight',
+                  description:
+                    insight?.description ||
+                    'Keep logging high-quality trades to improve analysis depth.',
+                  actionableStep: insight?.actionableStep,
+                }))
+              : this.buildFallbackReport(trades).insights,
+        };
       }
 
       throw new Error('No valid JSON object found in response');
@@ -133,12 +276,7 @@ export class GeminiInsightsService {
       } else if (error.message.includes('404')) {
         userMessage = 'AI Model Unavailable';
       }
-
-      return {
-        traderScore: 0,
-        scoreReasoning: userMessage,
-        insights: [],
-      };
+      return this.buildFallbackReport(trades, userMessage);
     }
   }
 }

@@ -113,6 +113,7 @@ export class FilesService implements OnModuleInit {
     originalName: string,
     mimetype: string,
     userId: string,
+    destinationFolder = 'trades/images',
   ): Promise<{ url: string; gcsPath: string }> {
     if (!this.bucket) {
       this.logger.error('GCS bucket is not initialized. Cannot upload file.');
@@ -153,7 +154,11 @@ export class FilesService implements OnModuleInit {
     }
 
     const uniqueFileName = `${uuidv4()}${fileExtension}`;
-    const gcsFilePath = `users/${userId}/trades/images/${uniqueFileName}`;
+    const sanitizedFolder = destinationFolder
+      .split('/')
+      .filter(Boolean)
+      .join('/');
+    const gcsFilePath = `users/${userId}/${sanitizedFolder}/${uniqueFileName}`;
 
     const attemptUpload = async () => {
       if (!this.bucket) {
@@ -210,6 +215,62 @@ export class FilesService implements OnModuleInit {
     const publicUrl = `${this.gcsPublicUrlPrefix}/${gcsFilePath}`;
 
     return { url: publicUrl, gcsPath: gcsFilePath };
+  }
+
+  async deleteFileFromGCS(gcsPath: string): Promise<void> {
+    if (!this.bucket) {
+      this.logger.error('GCS bucket is not initialized. Cannot delete file.');
+      throw new HttpException(
+        'File service is not configured properly (bucket missing).',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+
+    const objectPath = this.extractObjectPath(gcsPath);
+    if (!objectPath) {
+      throw new HttpException(
+        'Invalid GCS file path.',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    try {
+      await this.bucket.file(objectPath).delete({ ignoreNotFound: true });
+    } catch (error) {
+      const safeMessage = this.sanitizeErrorMessage(`${error?.message || error}`);
+      this.logger.error('Error deleting file from GCS:', safeMessage);
+      throw new HttpException(
+        'Failed to delete file from GCS.',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  private extractObjectPath(gcsPath: string): string {
+    if (!gcsPath) {
+      return '';
+    }
+
+    if (gcsPath.startsWith('gs://')) {
+      const withoutScheme = gcsPath.slice('gs://'.length);
+      const firstSlash = withoutScheme.indexOf('/');
+      return firstSlash === -1 ? '' : withoutScheme.slice(firstSlash + 1);
+    }
+
+    if (gcsPath.startsWith('http://') || gcsPath.startsWith('https://')) {
+      try {
+        const parsed = new URL(gcsPath);
+        const pathname = parsed.pathname.replace(/^\/+/, '');
+        if (pathname.startsWith(`${this.bucketName}/`)) {
+          return pathname.slice(this.bucketName.length + 1);
+        }
+        return pathname;
+      } catch {
+        return '';
+      }
+    }
+
+    return gcsPath.replace(/^\/+/, '');
   }
 
   private reinitializeStorageWithADC() {

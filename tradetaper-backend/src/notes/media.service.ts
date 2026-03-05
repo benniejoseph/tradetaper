@@ -1,33 +1,31 @@
 import { Injectable, BadRequestException, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-// import { Storage } from '@google-cloud/storage';
+import { promises as fs } from 'fs';
 import { NoteMedia } from './entities/note-media.entity';
 import { Note } from './entities/note.entity';
-// import * as sharp from 'sharp'; // Temporarily disabled
-import * as path from 'path';
-import { v4 as uuidv4 } from 'uuid';
+import { FilesService } from '../files/files.service';
 
 @Injectable()
 export class MediaService {
   private readonly logger = new Logger(MediaService.name);
-
-  // private storage: Storage;
-  private bucketName = 'tradetaper-storage'; // Your GCP bucket name
+  private readonly bucketName: string;
+  private readonly gcsPublicUrlPrefix: string;
 
   constructor(
     @InjectRepository(NoteMedia)
     private mediaRepository: Repository<NoteMedia>,
     @InjectRepository(Note)
     private noteRepository: Repository<Note>,
+    private readonly configService: ConfigService,
+    private readonly filesService: FilesService,
   ) {
-    // Temporarily disable GCP Storage to allow build
-    /*
-    this.storage = new Storage({
-      projectId: 'tradetaper', // Your GCP project ID
-      keyFilename: process.env.GOOGLE_CLOUD_KEY_FILE, // Path to service account key
-    });
-    */
+    this.bucketName =
+      this.configService.get<string>('GCS_BUCKET_NAME') || 'tradetaper-uploads';
+    this.gcsPublicUrlPrefix =
+      this.configService.get<string>('GCS_PUBLIC_URL_PREFIX') ||
+      `https://storage.googleapis.com/${this.bucketName}`;
   }
 
   async uploadFile(
@@ -35,10 +33,8 @@ export class MediaService {
     noteId: string,
     userId: string,
   ): Promise<NoteMedia> {
-    // Validate file
     this.validateFile(file);
 
-    // Verify note ownership
     const note = await this.noteRepository.findOne({
       where: { id: noteId, userId },
     });
@@ -48,114 +44,48 @@ export class MediaService {
     }
 
     try {
-      // Generate unique filename
-      const fileExtension = path.extname(file.originalname);
-      const fileName = `notes/${noteId}/${uuidv4()}${fileExtension}`;
+      const fileBuffer = await this.resolveFileBuffer(file);
+      const { gcsPath } = await this.filesService.uploadFileToGCS(
+        fileBuffer,
+        file.originalname,
+        file.mimetype,
+        userId,
+        'notes/media',
+      );
 
-      let thumbnailPath: string | undefined;
+      const uploadedFileName = gcsPath.split('/').pop() || file.originalname;
 
-      // Process images - temporarily disabled
-      /*
-      if (file.mimetype.startsWith('image/')) {
-        const result = await this.processImage(file.buffer, fileName);
-        processedBuffer = result.processedBuffer;
-        thumbnailPath = result.thumbnailPath;
-      }
-      */
-
-      // Upload to GCS - temporarily disabled, just save metadata
-      /*
-      const bucket = this.storage.bucket(this.bucketName);
-      const gcsFile = bucket.file(fileName);
-
-      await gcsFile.save(processedBuffer, {
-        metadata: {
-          contentType: file.mimetype,
-          metadata: {
-            originalName: file.originalname,
-            noteId: noteId,
-            userId: userId,
-          },
-        },
-        public: false,
-      });
-
-      // Generate signed URL (valid for 24 hours)
-      const [signedUrl] = await gcsFile.getSignedUrl({
-        action: 'read',
-        expires: Date.now() + 24 * 60 * 60 * 1000,
-      });
-      */
-
-      // Save media record
       const media = this.mediaRepository.create({
         noteId,
-        filename: fileName,
+        filename: uploadedFileName,
         originalName: file.originalname,
         fileType: file.mimetype,
         fileSize: file.size,
-        gcsPath: `gs://${this.bucketName}/${fileName}`,
-        thumbnailPath,
+        gcsPath: `gs://${this.bucketName}/${gcsPath}`,
       });
 
-      const savedMedia = await this.mediaRepository.save(media);
-
-      return savedMedia;
+      return await this.mediaRepository.save(media);
     } catch (error) {
-      this.logger.error('Error uploading file', error);
+      this.logger.error('Error uploading note media', error);
       throw new BadRequestException('Failed to upload file');
+    } finally {
+      if (file.path) {
+        await fs.unlink(file.path).catch(() => undefined);
+      }
     }
   }
 
-  /*
-  // Temporarily disabled image processing
-  private async processImage(buffer: Buffer, fileName: string): Promise<{
-    processedBuffer: Buffer;
-    thumbnailPath?: string;
-  }> {
-    try {
-      // Optimize image
-      const processedBuffer = await sharp(buffer)
-        .resize(2048, 2048, { 
-          fit: 'inside',
-          withoutEnlargement: true 
-        })
-        .jpeg({ quality: 85 })
-        .toBuffer();
-
-      // Generate thumbnail
-      const thumbnailBuffer = await sharp(buffer)
-        .resize(300, 300, { 
-          fit: 'cover',
-          position: 'center' 
-        })
-        .jpeg({ quality: 80 })
-        .toBuffer();
-
-      const thumbnailFileName = fileName.replace(/\.[^/.]+$/, '_thumb.jpg');
-
-      // Upload thumbnail to GCS
-      const bucket = this.storage.bucket(this.bucketName);
-      const thumbnailFile = bucket.file(thumbnailFileName);
-
-      await thumbnailFile.save(thumbnailBuffer, {
-        metadata: {
-          contentType: 'image/jpeg',
-        },
-        public: false,
-      });
-
-      return {
-        processedBuffer,
-        thumbnailPath: `gs://${this.bucketName}/${thumbnailFileName}`,
-      };
-    } catch (error) {
-      this.logger.error('Error processing image', error);
-      // Return original buffer if processing fails
-      return { processedBuffer: buffer };
+  private async resolveFileBuffer(file: Express.Multer.File): Promise<Buffer> {
+    if (file.buffer && file.buffer.length > 0) {
+      return file.buffer;
     }
+
+    if (file.path) {
+      return fs.readFile(file.path);
+    }
+
+    throw new BadRequestException('Could not read uploaded file');
   }
-  */
 
   private validateFile(file: Express.Multer.File): void {
     const allowedTypes = [
@@ -182,7 +112,7 @@ export class MediaService {
       );
     }
 
-    const maxSize = 50 * 1024 * 1024; // 50MB
+    const maxSize = 50 * 1024 * 1024;
     if (file.size > maxSize) {
       throw new BadRequestException('File size exceeds 50MB limit');
     }
@@ -198,7 +128,6 @@ export class MediaService {
       throw new BadRequestException('Media not found');
     }
 
-    // Check if user owns the note
     const note = await this.noteRepository.findOne({
       where: { id: media.noteId, userId },
     });
@@ -207,30 +136,8 @@ export class MediaService {
       throw new BadRequestException('Access denied');
     }
 
-    try {
-      // Delete from GCS - temporarily disabled
-      /*
-      const bucket = this.storage.bucket(this.bucketName);
-      
-      // Delete main file
-      const gcsPath = media.gcsPath.replace(`gs://${this.bucketName}/`, '');
-      await bucket.file(gcsPath).delete();
-
-      // Delete thumbnail if exists
-      if (media.thumbnailPath) {
-        const thumbnailPath = media.thumbnailPath.replace(`gs://${this.bucketName}/`, '');
-        await bucket.file(thumbnailPath).delete().catch(() => {
-          // Ignore errors for thumbnail deletion
-        });
-      }
-      */
-
-      // Delete database record
-      await this.mediaRepository.delete(mediaId);
-    } catch (error) {
-      this.logger.error('Error deleting file', error);
-      throw new BadRequestException('Failed to delete file');
-    }
+    await this.filesService.deleteFileFromGCS(media.gcsPath);
+    await this.mediaRepository.delete(mediaId);
   }
 
   async getSignedUrl(mediaId: string, userId: string): Promise<string> {
@@ -242,7 +149,6 @@ export class MediaService {
       throw new BadRequestException('Media not found');
     }
 
-    // Check if user owns the note
     const note = await this.noteRepository.findOne({
       where: { id: media.noteId, userId },
     });
@@ -251,26 +157,7 @@ export class MediaService {
       throw new BadRequestException('Access denied');
     }
 
-    try {
-      // Generate signed URL - temporarily return placeholder
-      /*
-      const bucket = this.storage.bucket(this.bucketName);
-      const gcsPath = media.gcsPath.replace(`gs://${this.bucketName}/`, '');
-      const file = bucket.file(gcsPath);
-
-      const [signedUrl] = await file.getSignedUrl({
-        action: 'read',
-        expires: Date.now() + 24 * 60 * 60 * 1000, // 24 hours
-      });
-
-      return signedUrl;
-      */
-
-      return `https://placeholder.example.com/${media.filename}`;
-    } catch (error) {
-      this.logger.error('Error generating signed URL', error);
-      throw new BadRequestException('Failed to generate file URL');
-    }
+    return this.toPublicUrl(media.gcsPath);
   }
 
   async getMediaByNote(noteId: string, userId: string): Promise<NoteMedia[]> {
@@ -286,5 +173,28 @@ export class MediaService {
       where: { noteId },
       order: { createdAt: 'ASC' },
     });
+  }
+
+  private toPublicUrl(gcsPath: string): string {
+    if (!gcsPath) {
+      return '';
+    }
+
+    if (gcsPath.startsWith('http://') || gcsPath.startsWith('https://')) {
+      return gcsPath;
+    }
+
+    if (!gcsPath.startsWith('gs://')) {
+      return `${this.gcsPublicUrlPrefix}/${gcsPath.replace(/^\/+/, '')}`;
+    }
+
+    const withoutScheme = gcsPath.replace('gs://', '');
+    const firstSlash = withoutScheme.indexOf('/');
+    if (firstSlash === -1) {
+      return `${this.gcsPublicUrlPrefix}`;
+    }
+
+    const objectPath = withoutScheme.substring(firstSlash + 1);
+    return `${this.gcsPublicUrlPrefix}/${objectPath}`;
   }
 }

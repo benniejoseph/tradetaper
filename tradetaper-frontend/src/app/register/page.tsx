@@ -158,81 +158,80 @@ export default function RegisterPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-slate-950 flex relative overflow-hidden font-sans text-white text-sm">
+    <div className="min-h-screen bg-black flex relative overflow-hidden font-sans text-white text-sm">
       {/* 3D Background Elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         {/* Grid Floor */}
          <div className="absolute inset-0 bg-[linear-gradient(rgba(16,185,129,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(16,185,129,0.03)_1px,transparent_1px)] bg-[size:100px_100px] [transform:perspective(1000px)_rotateX(60deg)_translateY(-100px)_scale(3)] origin-top opacity-50"></div>
          
          <div className="absolute top-[-20%] right-[-10%] w-[50%] h-[50%] bg-emerald-500/10 rounded-full blur-[100px] animate-float"></div>
-         <div className="absolute bottom-[-10%] left-[-10%] w-[50%] h-[50%] bg-teal-500/10 rounded-full blur-[100px] animate-float delay-1000"></div>
+         <div className="absolute bottom-[-10%] left-[-10%] w-[50%] h-[50%] bg-emerald-500/10 rounded-full blur-[100px] animate-float delay-1000"></div>
       </div>
 
-      {/* Left Side - 3D Visual & Benefits */}
-      <div className="hidden lg:flex lg:w-1/2 relative z-10 p-12 flex-col justify-center border-r border-white/5 bg-slate-900/40 backdrop-blur-sm">
-        <div className="max-w-lg mx-auto">
-          <div className="mb-12">
-            <Link href="/" className="flex items-center mb-8 group">
-              <div className="p-3 rounded-xl mr-4 group-hover:scale-110 transition-transform">
-                <Image
-                  src="/tradetaperLogo.png"
-                  alt="TradeTaper"
-                  width={32}
-                  height={32}
-                  className="h-8 w-8 object-contain"
-                />
-              </div>
-              <h1 className="text-3xl font-bold text-white">
-                TradeTaper
-              </h1>
+      {/* Left Side - Elegant Emerald Visual */}
+      <div className="hidden lg:flex lg:w-1/2 relative z-10 p-12 flex-col justify-center border-r border-emerald-100/10 bg-[#020403] overflow-hidden">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(16,185,129,0.24),transparent_46%),radial-gradient(circle_at_80%_72%,rgba(16,185,129,0.16),transparent_48%),linear-gradient(145deg,#010302_0%,#03110c_48%,#020403_100%)]" />
+        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(16,185,129,0.08)_1px,transparent_1px),linear-gradient(90deg,rgba(16,185,129,0.08)_1px,transparent_1px)] bg-[size:72px_72px] opacity-20 [mask-image:radial-gradient(circle_at_center,black_44%,transparent_92%)]" />
+        <div className="pointer-events-none absolute left-[6%] top-[10%] h-52 w-72 rotate-[-10deg] rounded-[2rem] border border-emerald-200/15 bg-emerald-300/5 blur-[1px]" />
+        <div className="pointer-events-none absolute right-[6%] bottom-[10%] h-56 w-72 rotate-[9deg] rounded-[2rem] border border-emerald-200/15 bg-emerald-300/5 blur-[1px]" />
+
+        <div className="max-w-lg mx-auto relative">
+          <div className="mb-10">
+            <Link href="/" className="inline-flex items-center mb-7 group">
+              <span className="text-5xl xl:text-6xl font-semibold tracking-tight leading-none text-white">
+                Trade<span className="text-emerald-300">Taper</span>
+              </span>
             </Link>
-            <h2 className="text-4xl font-bold text-white mb-6 leading-tight">
-              Join 10,000+ <span className="text-gradient-emerald">Successful Traders</span>
+            <span className="inline-flex items-center rounded-full border border-emerald-200/25 bg-emerald-500/10 px-3 py-1 text-[11px] uppercase tracking-[0.12em] text-emerald-200 mb-7">
+              Start Strong
+            </span>
+            <h2 className="text-[2.3rem] leading-[1.08] font-semibold text-white mb-5">
+              Build a disciplined trading system from day one.
             </h2>
-            <p className="text-lg text-slate-400 mb-8 leading-relaxed">
-              Start your trading journal journey with the most advanced platform designed for serious traders.
+            <p className="text-[15px] text-slate-300 leading-relaxed">
+              Set up your account, define your profile, and begin tracking execution with a clean,
+              review-first workflow.
             </p>
           </div>
 
-          <div className="space-y-6">
+          <div className="space-y-4">
             {[
               {
                 icon: FaRocket,
-                title: "Quick Setup",
-                description: "Get started in under 2 minutes"
+                title: "Fast Onboarding",
+                description: "Create your workspace quickly and move straight into journaling."
               },
               {
                 icon: FaShieldAlt,
-                title: "Bank-Level Security",
-                description: "Enterprise-grade encryption"
+                title: "Secure by Default",
+                description: "Production-grade authentication and session protection built in."
               },
               {
                 icon: FaCrown,
-                title: "Premium Features",
-                description: "Access advanced AI insights"
+                title: "Premium Ready",
+                description: "Unlock advanced analysis and scale as your process matures."
               }
             ].map((benefit, index) => (
-              <div key={index} className="flex items-center space-x-4 p-4 rounded-xl border border-white/5 bg-white/[0.02] hover:bg-white/[0.05] transition-colors">
-                <div className="flex-shrink-0 p-3 bg-emerald-500/10 rounded-lg">
-                  <benefit.icon className="text-lg text-emerald-400" />
+              <div
+                key={index}
+                className="group flex items-center gap-4 rounded-2xl border border-white/10 bg-black/45 px-4 py-4 backdrop-blur-md transition-all duration-300 hover:border-emerald-200/30 hover:bg-black/60"
+              >
+                <div className="flex-shrink-0 h-11 w-11 rounded-xl bg-emerald-400/15 border border-emerald-200/20 text-emerald-200 flex items-center justify-center">
+                  <benefit.icon className="text-base" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-white text-sm">{benefit.title}</h3>
-                  <p className="text-slate-400 text-xs">{benefit.description}</p>
+                  <h3 className="font-semibold text-white text-sm">{benefit.title}</h3>
+                  <p className="text-slate-300 text-xs leading-relaxed">{benefit.description}</p>
                 </div>
               </div>
             ))}
           </div>
 
-          {/* 3D Visual Element */}
-          <div className="mt-16 relative">
-            <div className="absolute inset-0 bg-emerald-500/10 blur-3xl rounded-full"></div>
-            <div className="relative glass-card p-6 flex items-center justify-between">
-                <div>
-                    <div className="text-2xl font-bold text-white">30-Day Trial</div>
-                    <div className="text-slate-400 text-xs">Full access. No credit card required.</div>
-                </div>
-                <FaSparkles className="text-yellow-400 text-3xl animate-pulse" />
+          <div className="mt-8 rounded-2xl border border-emerald-200/20 bg-gradient-to-r from-emerald-400/15 via-emerald-500/10 to-black/70 px-5 py-4">
+            <p className="text-[11px] uppercase tracking-[0.12em] text-emerald-100/80 mb-1">Free Start</p>
+            <div className="flex items-end justify-between gap-4">
+              <p className="text-3xl font-semibold text-white">0$</p>
+              <p className="text-xs text-emerald-200">Begin now. Upgrade when needed.</p>
             </div>
           </div>
         </div>
@@ -240,31 +239,33 @@ export default function RegisterPage() {
 
       {/* Right Side - Registration Form */}
       <div className="w-full lg:w-1/2 flex items-center justify-center p-8 relative z-10 transition-all duration-500">
+        <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        </div>
         <div className="w-full max-w-md">
-           
-           {/* Mobile Header */}
-           <div className="lg:hidden text-center mb-8">
-               <Link href="/" className="inline-flex items-center gap-2 mb-4">
-                  <Image
-                    src="/tradetaperLogo.png"
-                    alt="TradeTaper"
-                    width={24}
-                    height={24}
-                    className="h-6 w-6 object-contain"
-                  />
-                  <span className="text-xl font-bold text-white">TradeTaper</span>
-               </Link>
-               <h2 className="text-2xl font-bold text-white">Create Account</h2>
-           </div>
-
           <div className="glass-card p-6 md:p-8 rounded-3xl border border-white/10 relative">
+             <div className="absolute -top-10 left-1/2 -translate-x-1/2 w-20 h-20 bg-emerald-500/20 rounded-full blur-xl pointer-events-none"></div>
+
+             <div className="text-center mb-7">
+               <Link href="/" className="inline-flex flex-col items-center justify-center mb-5">
+                 <Image
+                   src="/tradetaperLogo.png"
+                   alt="TradeTaper"
+                   width={140}
+                   height={140}
+                   className="h-20 w-20 md:h-28 md:w-28 object-contain"
+                 />
+               </Link>
+               <h2 className="text-2xl font-bold text-white mb-2">Create Account</h2>
+               <p className="text-slate-400 text-sm">Set up your TradeTaper workspace in minutes</p>
+             </div>
+
              {/* Progress Stepper */}
              <div className="flex items-center justify-between mb-8 relative">
                  {/* Progress Line Background */}
                  <div className="absolute top-1/2 left-0 w-full h-0.5 bg-slate-800 -z-10"></div>
                  {/* Active Progress Line */}
                  <div 
-                    className="absolute top-1/2 left-0 h-0.5 bg-gradient-to-r from-emerald-500 to-teal-500 -z-10 transition-all duration-500"
+                    className="absolute top-1/2 left-0 h-0.5 bg-gradient-to-r from-emerald-500 to-emerald-300 -z-10 transition-all duration-500"
                     style={{ width: `${(currentStepIndex / (steps.length - 1)) * 100}%` }}
                  ></div>
 
@@ -489,7 +490,7 @@ export default function RegisterPage() {
                           onClick={() => handleMarketToggle(market.value)}
                           className={`p-2 rounded-lg border transition-all flex flex-col items-center justify-center gap-1 ${
                             formData.primaryMarkets.includes(market.value)
-                              ? 'bg-teal-500/20 border-teal-500/50 text-teal-300'
+                              ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-300'
                               : 'bg-slate-900/50 border-white/5 text-slate-400 hover:text-white hover:bg-slate-800'
                           }`}
                         >

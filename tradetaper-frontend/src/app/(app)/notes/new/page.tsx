@@ -6,9 +6,6 @@ import {
   FaSave, 
   FaSpinner, 
   FaTags, 
-  FaBold, 
-  FaItalic, 
-  FaUnderline, 
   FaCode,
   FaQuoteLeft,
   FaHeading,
@@ -29,8 +26,6 @@ import {
 import { AnimatedCard } from '@/components/ui/AnimatedCard';
 import { AnimatedButton } from '@/components/ui/AnimatedButton';
 import { NotesService } from '@/services/notesService';
-import { Note as NoteType, NoteBlock } from '@/types/note';
-import { format } from 'date-fns';
 import toast from 'react-hot-toast';
 import { useDebounce } from '@/hooks/useDebounce';
 
@@ -107,6 +102,51 @@ function getBlockText(block: Block): string {
   }
 }
 
+function hasNonEmptyText(value: unknown): boolean {
+  return typeof value === 'string' && value.trim().length > 0;
+}
+
+function noteHasSavableContent(note: Note): boolean {
+  if (hasNonEmptyText(note.title)) {
+    return true;
+  }
+
+  const hasContentInBlocks = note.content.some((block) => {
+    switch (block.type) {
+      case 'text':
+      case 'heading':
+      case 'quote':
+      case 'callout':
+        return hasNonEmptyText(block.content?.text);
+      case 'code':
+        return hasNonEmptyText(block.content?.code);
+      case 'list':
+        return Array.isArray(block.content?.items) && block.content.items.some((item: unknown) => hasNonEmptyText(item));
+      case 'table': {
+        const headers = Array.isArray(block.content?.headers) ? block.content.headers : [];
+        const rows = Array.isArray(block.content?.rows) ? block.content.rows : [];
+        const hasHeaderContent = headers.some((header: unknown) => hasNonEmptyText(header));
+        const hasRowContent = rows.some((row: unknown) => Array.isArray(row) && row.some((cell: unknown) => hasNonEmptyText(cell)));
+        return hasHeaderContent || hasRowContent;
+      }
+      case 'image':
+      case 'video':
+      case 'embed':
+        return hasNonEmptyText(block.content?.url) || block.content?.uploading === true;
+      case 'divider':
+      default:
+        return false;
+    }
+  });
+
+  if (hasContentInBlocks) {
+    return true;
+  }
+
+  // User intentionally added structure (e.g., image/video/embed block) but not yet textual content.
+  return note.content.some((block) => block.type !== 'text');
+}
+
 const NewNotePage: React.FC = () => {
   const router = useRouter();
   const [note, setNote] = useState<Note>({
@@ -117,48 +157,84 @@ const NewNotePage: React.FC = () => {
   });
   
   const [saving, setSaving] = useState(false);
-  const [isRecording, setIsRecording] = useState(false);
   const [showBlockMenu, setShowBlockMenu] = useState<{ blockId: string; x: number; y: number } | null>(null);
   const [tagInput, setTagInput] = useState('');
   const [showTagInput, setShowTagInput] = useState(false);
   const [savedNoteId, setSavedNoteId] = useState<string | null>(null); // Track if note has been saved
   
-  const autoSaveTimer = useRef<NodeJS.Timeout | null>(null);
+  const savedNoteIdRef = useRef<string | null>(null);
+  const saveInFlightRef = useRef(false);
+  const createInFlightRef = useRef<Promise<{ id: string }> | null>(null);
   const debouncedNote = useDebounce(note, 2000);
+
+  useEffect(() => {
+    savedNoteIdRef.current = savedNoteId;
+  }, [savedNoteId]);
+
+  const buildNotePayload = useCallback(() => ({
+    title: note.title.trim() || 'Untitled note',
+    content: note.content,
+    tags: note.tags,
+    visibility: note.visibility,
+    accountId: note.accountId,
+    tradeId: note.tradeId,
+  }), [note.title, note.content, note.tags, note.visibility, note.accountId, note.tradeId]);
+
+  const ensureNoteExists = useCallback(async (): Promise<string> => {
+    if (savedNoteIdRef.current) {
+      return savedNoteIdRef.current;
+    }
+
+    if (!noteHasSavableContent(note)) {
+      throw new Error('Cannot create an empty note');
+    }
+
+    if (!createInFlightRef.current) {
+      createInFlightRef.current = (async () => {
+        const created = await NotesService.createNote(buildNotePayload());
+        savedNoteIdRef.current = created.id;
+        setSavedNoteId(created.id);
+        return { id: created.id };
+      })().finally(() => {
+        createInFlightRef.current = null;
+      });
+    }
+
+    const created = await createInFlightRef.current;
+    return created.id;
+  }, [note, buildNotePayload]);
 
   // Save note - wrapped in useCallback to prevent recreation on every render
   const handleSave = useCallback(async (isAutoSave = false) => {
-    if (!note.title && !note.content.some(block => getBlockText(block))) {
+    if (!noteHasSavableContent(note)) {
       return; // Don't save empty notes
     }
 
+    if (saveInFlightRef.current) {
+      return;
+    }
+
+    saveInFlightRef.current = true;
+
     try {
       setSaving(true);
-      
-      // Use the notes service
-      const noteData = {
-        title: note.title,
-        content: note.content,
-        tags: note.tags,
-        visibility: note.visibility,
-        accountId: note.accountId,
-        tradeId: note.tradeId,
-      };
 
-      let savedNote;
-      
-      if (savedNoteId) {
+      const noteData = buildNotePayload();
+      const existingNoteId = savedNoteIdRef.current;
+      let resolvedNoteId: string;
+
+      if (existingNoteId) {
         // Update existing note
-        savedNote = await NotesService.updateNote(savedNoteId, noteData);
+        const updated = await NotesService.updateNote(existingNoteId, noteData);
+        resolvedNoteId = updated.id;
       } else {
         // Create new note
-        savedNote = await NotesService.createNote(noteData);
-        setSavedNoteId(savedNote.id);
+        resolvedNoteId = await ensureNoteExists();
       }
       
       if (!isAutoSave) {
         toast.success('Note saved successfully!');
-        router.push(`/notes/${savedNote.id}`);
+        router.push(`/notes/${resolvedNoteId}`);
       }
     } catch (error) {
       console.error('Error saving note:', error);
@@ -166,13 +242,14 @@ const NewNotePage: React.FC = () => {
         toast.error('Failed to save note. Please try again.');
       }
     } finally {
+      saveInFlightRef.current = false;
       setSaving(false);
     }
-  }, [note.title, note.content, note.tags, note.visibility, note.accountId, note.tradeId, router, savedNoteId]);
+  }, [note, router, buildNotePayload, ensureNoteExists]);
 
   // Auto-save functionality
   useEffect(() => {
-    if (debouncedNote.title || debouncedNote.content.some(block => getBlockText(block))) {
+    if (noteHasSavableContent(debouncedNote)) {
       handleSave(true); // Auto-save
     }
   }, [debouncedNote, handleSave]);
@@ -386,9 +463,7 @@ const NewNotePage: React.FC = () => {
                 onKeyDown={(e) => handleKeyDown(e, block.id)}
                 onAddBlock={(type) => addBlock(type, block.id)}
                 onDelete={() => deleteBlock(block.id)}
-                note={note}
-                savedNoteId={savedNoteId}
-                setSavedNoteId={setSavedNoteId}
+                ensureNoteExists={ensureNoteExists}
               />
             ))}
           </div>
@@ -441,11 +516,6 @@ const NewNotePage: React.FC = () => {
               </div>
             </div>
 
-            {/* Debug Info */}
-            <div className="mt-4 text-center text-xs text-gray-500">
-              Current blocks: {note.content.length} | 
-              Block types: {note.content.map(block => block.type).join(', ')}
-            </div>
           </div>
         </AnimatedCard>
 
@@ -470,11 +540,8 @@ const BlockEditor: React.FC<{
   onKeyDown: (e: React.KeyboardEvent) => void;
   onAddBlock: (type: Block['type']) => void;
   onDelete: () => void;
-  note: any;
-  savedNoteId: string | null;
-  setSavedNoteId: (id: string) => void;
-}> = ({ block, onUpdate, onKeyDown, onAddBlock, onDelete, note, savedNoteId, setSavedNoteId }) => {
-  const [showMenu, setShowMenu] = useState(false);
+  ensureNoteExists: () => Promise<string>;
+}> = ({ block, onUpdate, onKeyDown, onAddBlock, onDelete, ensureNoteExists }) => {
 
   const handleContentChange = (field: string, value: any) => {
     onUpdate({ [field]: value });
@@ -645,25 +712,7 @@ const BlockEditor: React.FC<{
                       toast.loading('Uploading image...', { id: 'upload-' + block.id });
                       
                       try {
-                        // Ensure note is saved first to get an ID for media upload
-                        let currentNoteId = savedNoteId;
-                        if (!currentNoteId && (note.title || note.content.some((block: any) => getBlockText(block)))) {
-                          const savedNote = await NotesService.createNote({
-                            title: note.title || 'Untitled note',
-                            content: note.content,
-                            tags: note.tags,
-                            visibility: note.visibility,
-                            accountId: note.accountId,
-                            tradeId: note.tradeId,
-                          });
-                          currentNoteId = savedNote.id;
-                          setSavedNoteId(savedNote.id);
-                        }
-
-                        if (!currentNoteId) {
-                          throw new Error('Unable to save note for media upload');
-                        }
-
+                        const currentNoteId = await ensureNoteExists();
                         const uploadResult = await NotesService.uploadMedia(file, currentNoteId);
                         handleContentChange('url', uploadResult.url);
                         handleContentChange('filename', uploadResult.filename);

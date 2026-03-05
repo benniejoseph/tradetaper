@@ -3,6 +3,7 @@ import { useSelector } from 'react-redux';
 import { RootState } from '@/store/store';
 import { FaLock } from 'react-icons/fa';
 import { useRouter } from 'next/navigation';
+import { PlanLimits } from '@/types/pricing';
 
 export type GateFeature =
   | 'discipline'
@@ -81,7 +82,7 @@ export const FeatureGate: React.FC<FeatureGateProps> = ({ feature, children, blu
   const router = useRouter();
 
   const planDetails = user?.subscription?.planDetails || null;
-  const limits: Record<string, any> = planDetails?.limits || {};
+  const limits: Partial<PlanLimits> = planDetails?.limits || {};
   const planId = user?.subscription?.plan || 'free';
 
   let hasAccess = false;
@@ -126,9 +127,9 @@ export const FeatureGate: React.FC<FeatureGateProps> = ({ feature, children, blu
 
   return (
     <div className={`relative w-full h-full min-h-[200px] flex items-center justify-center ${className}`}>
-      <div className={blur ? "absolute inset-0 filter blur-md pointer-events-none select-none bg-white/50 dark:bg-black/50 transition-all duration-300 z-0" : "absolute inset-0 z-0"}>
-        {children}
-      </div>
+      {blur && (
+        <div className="absolute inset-0 pointer-events-none select-none bg-gradient-to-br from-emerald-100/40 to-slate-100/40 dark:from-emerald-950/20 dark:to-black/40 transition-all duration-300 z-0" />
+      )}
       
       <div className="relative z-10 p-6 w-full max-w-lg mx-auto text-center">
         <div className="bg-white/90 dark:bg-zinc-900/90 backdrop-blur-2xl border border-white/20 dark:border-zinc-700/50 rounded-3xl p-8 shadow-2xl shadow-black/20 transform hover:scale-[1.02] transition-all duration-300">

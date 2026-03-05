@@ -14,37 +14,10 @@ import {
 import { AnimatedCard } from '@/components/ui/AnimatedCard';
 import { AnimatedButton } from '@/components/ui/AnimatedButton';
 import { NotesService } from '@/services/notesService';
-import { Note } from '@/types/note';
+import { Note, CalendarDay, CalendarMonth, CalendarStats } from '@/types/note';
 import { useRouter } from 'next/navigation';
-import { format, parseISO, addMonths, subMonths, startOfMonth, isToday, isSameMonth } from 'date-fns';
+import { format, parseISO, addMonths, subMonths } from 'date-fns';
 import toast from 'react-hot-toast';
-
-interface CalendarDay {
-  date: string;
-  dayOfMonth: number;
-  isCurrentMonth: boolean;
-  isToday: boolean;
-  noteCount: number;
-  notes: Note[];
-  hasEvents: boolean;
-}
-
-interface CalendarMonth {
-  year: number;
-  month: number;
-  monthName: string;
-  days: CalendarDay[];
-  totalNotes: number;
-  weekdays: string[];
-}
-
-interface CalendarStats {
-  totalNotes: number;
-  totalWords: number;
-  averageNotesPerDay: number;
-  mostActiveDay: { date: string; noteCount: number } | null;
-  notesByWeek: { week: number; noteCount: number }[];
-}
 
 const NotesCalendarPage: React.FC = () => {
   const router = useRouter();
@@ -63,48 +36,13 @@ const NotesCalendarPage: React.FC = () => {
       const year = date.getFullYear();
       const month = date.getMonth() + 1;
 
-      const [notesData, statsData] = await Promise.all([
+      const [monthData, statsData] = await Promise.all([
         NotesService.getCalendarNotes(year, month),
-        NotesService.getStats()
+        NotesService.getCalendarStats(year, month),
       ]);
 
-      // Transform the calendar data to match our interface
-      const transformedCalendar: CalendarMonth = {
-        year,
-        month,
-        monthName: format(date, 'MMMM'),
-        days: [], // Will be populated from the calendar response
-        totalNotes: notesData.reduce((sum: number, day: any) => sum + day.count, 0),
-        weekdays: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
-      };
-
-      // Create calendar grid
-      const firstDayOfMonth = startOfMonth(date);
-      const firstCalendarDay = new Date(firstDayOfMonth);
-      firstCalendarDay.setDate(firstCalendarDay.getDate() - firstCalendarDay.getDay());
-
-      const days: CalendarDay[] = [];
-      for (let i = 0; i < 42; i++) { // 6 weeks * 7 days
-        const currentDay = new Date(firstCalendarDay);
-        currentDay.setDate(currentDay.getDate() + i);
-        
-        const dateStr = format(currentDay, 'yyyy-MM-dd');
-        const dayData = notesData.find((d: any) => d.date === dateStr);
-        
-        days.push({
-          date: dateStr,
-          dayOfMonth: currentDay.getDate(),
-          isCurrentMonth: isSameMonth(currentDay, date),
-          isToday: isToday(currentDay),
-          noteCount: dayData?.count || 0,
-          notes: dayData?.notes || [],
-          hasEvents: (dayData?.count || 0) > 0,
-        });
-      }
-
-      transformedCalendar.days = days;
-      setCalendarData(transformedCalendar);
-      setCalendarStats(statsData as unknown as CalendarStats);
+      setCalendarData(monthData);
+      setCalendarStats(statsData);
     } catch (error) {
       console.error('Error fetching calendar data:', error);
       toast.error('Failed to load calendar data');

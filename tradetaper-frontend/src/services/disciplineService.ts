@@ -65,6 +65,74 @@ export interface CooldownSession {
   expiresAt?: string;
 }
 
+export interface DisciplineBehaviorTrigger {
+  type:
+    | 'loss_streak'
+    | 'overtrading'
+    | 'revenge_trade'
+    | 'unauthorized_trade'
+    | 'performance_dip';
+  severity: 'low' | 'medium' | 'high';
+  title: string;
+  detail: string;
+  suggestion: string;
+}
+
+export type IfThenTriggerType =
+  | DisciplineBehaviorTrigger['type']
+  | 'custom';
+
+export interface IfThenPlan {
+  id: string;
+  userId: string;
+  accountId?: string | null;
+  triggerType: IfThenTriggerType;
+  ifCue: string;
+  thenAction: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateIfThenPlanDto {
+  ifCue: string;
+  thenAction: string;
+  accountId?: string;
+  triggerType?: IfThenTriggerType;
+  isActive?: boolean;
+}
+
+export interface UpdateIfThenPlanDto {
+  ifCue?: string;
+  thenAction?: string;
+  accountId?: string;
+  triggerType?: IfThenTriggerType;
+  isActive?: boolean;
+}
+
+export interface DisciplineBehaviorSignals {
+  generatedAt: string;
+  accountId?: string;
+  riskScore: number;
+  cooldownActive: boolean;
+  metrics: {
+    closedTradesSampled: number;
+    lossStreak: number;
+    tradesLast2Hours: number;
+    recentAveragePnl: number;
+    violationRate: number;
+    emotionalPressure: number;
+  };
+  triggers: DisciplineBehaviorTrigger[];
+  matchedPlans: Array<{
+    id: string;
+    accountId?: string | null;
+    triggerType: IfThenTriggerType;
+    ifCue: string;
+    thenAction: string;
+  }>;
+}
+
 export interface CreateApprovalDto {
   accountId?: string;
   strategyId?: string;
@@ -126,6 +194,42 @@ export const disciplineService = {
   // Get active cooldown session
   getActiveCooldown: async (): Promise<CooldownSession | null> => {
     const response = await authApiClient.get('/discipline/cooldowns/active');
+    return response.data;
+  },
+
+  getBehaviorSignals: async (
+    accountId?: string,
+  ): Promise<DisciplineBehaviorSignals> => {
+    const suffix = accountId
+      ? `?accountId=${encodeURIComponent(accountId)}`
+      : '';
+    const response = await authApiClient.get(`/discipline/signals${suffix}`);
+    return response.data;
+  },
+
+  getIfThenPlans: async (accountId?: string): Promise<IfThenPlan[]> => {
+    const suffix = accountId
+      ? `?accountId=${encodeURIComponent(accountId)}`
+      : '';
+    const response = await authApiClient.get(`/discipline/if-then-plans${suffix}`);
+    return response.data;
+  },
+
+  createIfThenPlan: async (dto: CreateIfThenPlanDto): Promise<IfThenPlan> => {
+    const response = await authApiClient.post('/discipline/if-then-plans', dto);
+    return response.data;
+  },
+
+  updateIfThenPlan: async (
+    planId: string,
+    dto: UpdateIfThenPlanDto,
+  ): Promise<IfThenPlan> => {
+    const response = await authApiClient.patch(`/discipline/if-then-plans/${planId}`, dto);
+    return response.data;
+  },
+
+  deleteIfThenPlan: async (planId: string): Promise<{ deleted: boolean }> => {
+    const response = await authApiClient.delete(`/discipline/if-then-plans/${planId}`);
     return response.data;
   },
 

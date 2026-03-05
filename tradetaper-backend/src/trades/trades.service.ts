@@ -34,6 +34,7 @@ import { NotificationType } from '../notifications/entities/notification.entity'
 import { MultiModelOrchestratorService } from '../agents/llm/multi-model-orchestrator.service';
 import { VoiceJournalResponseDto } from './dto/voice-journal.dto';
 import { CandleManagementService } from '../backtesting/services/candle-management.service'; // [CANDLE STORE]
+import { DisciplineService } from '../discipline/discipline.service';
 
 @Injectable()
 export class TradesService {
@@ -61,6 +62,8 @@ export class TradesService {
     private readonly orchestratorService: MultiModelOrchestratorService,
     @Inject(forwardRef(() => CandleManagementService))
     private readonly candleManagementService: CandleManagementService, // [CANDLE STORE]
+    @Inject(forwardRef(() => DisciplineService))
+    private readonly disciplineService: DisciplineService,
   ) {}
 
   async parseVoiceJournal(
@@ -79,7 +82,7 @@ Listen to the audio and extract the relevant information to populate their Trade
 
 Focus on these concepts if mentioned: Fair Value Gaps, Order Blocks, Liquidity Sweeps, Market Structure Shifts, Premium/Discount, OTE (Optimal Trade Entry), Judas Swing, Timeframes.
 Also listen closely for their psychological state before, during, and after the trade.
-Valid emotional states include: Calm, Confident, Anxious, Fearful, Greedy, Frustrated, Overconfident, Impatient, FOMO, Revenge_Trading, Bored, Excited, Apathetic, Hesitant, Optimistic, Pessimistic, Nervous, Relieved, Disappointed, Satisfied.
+Valid emotional states include EXACTLY: Calm, Confident, Anxious, Fearful, Greedy, Frustrated, Overconfident, Impatient, FOMO, Revenge Trading, Bored, Fatigued, Excited, Nervous, Hopeful, Disappointed, Relieved, Overwhelmed, Hesitant, Rushed, Distracted, Focused.
 Listen for metrics like entry/exit, planned risk/reward, or whether they hesitated or broke rules.
 
 Return a JSON object strictly matching this schema:
@@ -90,7 +93,7 @@ Return a JSON object strictly matching this schema:
     // entryReason (string), 
     // marketCondition (string, MUST BE EXACTLY ONE OF: 'Trending Up', 'Trending Down', 'Ranging', 'Choppy', 'High Volatility', 'Low Volatility', 'News Driven', 'Pre-News'), 
     // timeframe (string, MUST BE EXACTLY ONE OF: '1m', '5m', '15m', '30m', '1H', '4H', '1D', '1W', '1M'), 
-    // htfBias (string), newsImpact (string), 
+    // htfBias (string), newsImpact (boolean: true when high-impact news was nearby), plannedRR (number),
     // confirmations (array of strings, e.g. ["RSI Divergence", "Order Block"]),
     // hesitated (boolean), followedPlan (boolean), ruleViolations (array of strings),
     // sleepQuality (number 1-5), energyLevel (number 1-5), distractionLevel (number 1-5),
@@ -99,7 +102,8 @@ Return a JSON object strictly matching this schema:
   "missingPrompts": [
     // Array of string questions asking the user for critical info they missed (e.g. "What was your higher timeframe bias?")
   ],
-  "transcriptSummary": "A very brief 1-2 sentence summary of what they said."
+  "transcriptSummary": "A very brief 1-2 sentence summary of what they said.",
+  "transcript": "Complete verbatim transcription of the user's audio in plain text."
 }
 `;
 
@@ -108,19 +112,122 @@ Return a JSON object strictly matching this schema:
         prompt: "Extract the trading journal data from the attached audio.",
         system: prompt,
         taskComplexity: 'complex',
-        modelPreference: 'gemini-1.5-pro',
+        modelPreference: 'gemini-3.1-flash-lite-preview',
         optimizeFor: 'quality',
         requireJson: true,
         images: [dataUrl], // The orchestrator treats all InlineDataParts (audio/video/image) via the images array
         userId: userContext.id,
       });
 
-      const parsedData: VoiceJournalResponseDto = JSON.parse(response.content);
-      return parsedData;
+      const parsedData = this.parseVoiceJournalPayload(response.content);
+
+      if (!parsedData) {
+        const fallbackTranscript =
+          this.buildFallbackVoiceTranscript(response.content);
+        const fallbackSummary =
+          fallbackTranscript.length > 180
+            ? `${fallbackTranscript.slice(0, 177)}...`
+            : fallbackTranscript;
+
+        this.logger.warn(
+          'Voice parser returned malformed JSON; using transcript-only fallback response',
+        );
+
+        return {
+          updates: {},
+          missingPrompts: [
+            'I could not auto-structure this voice journal. Review and complete the journal fields manually.',
+          ],
+          transcriptSummary: fallbackSummary,
+          transcript: fallbackTranscript,
+        };
+      }
+
+      return {
+        updates:
+          parsedData.updates && typeof parsedData.updates === 'object'
+            ? parsedData.updates
+            : {},
+        missingPrompts: Array.isArray(parsedData.missingPrompts)
+          ? parsedData.missingPrompts
+          : [],
+        transcriptSummary:
+          typeof parsedData.transcriptSummary === 'string'
+            ? parsedData.transcriptSummary
+            : '',
+        transcript:
+          typeof parsedData.transcript === 'string'
+            ? parsedData.transcript
+            : undefined,
+      };
     } catch (error) {
       this.logger.error(`Voice parsing failed: ${error.message}`);
       throw new BadRequestException('Failed to process audio recording');
     }
+  }
+
+  private parseVoiceJournalPayload(
+    rawContent: string,
+  ): Partial<VoiceJournalResponseDto> | null {
+    if (typeof rawContent !== 'string' || !rawContent.trim()) {
+      return null;
+    }
+
+    const candidates = new Set<string>();
+    const addCandidate = (value?: string) => {
+      if (!value) return;
+      const trimmed = value.trim();
+      if (trimmed) {
+        candidates.add(trimmed);
+      }
+    };
+
+    addCandidate(rawContent);
+
+    // Remove markdown fences if model returned ```json ... ```
+    const unfenced = rawContent
+      .replace(/^```json\s*/i, '')
+      .replace(/^```\s*/i, '')
+      .replace(/\s*```$/i, '')
+      .trim();
+    addCandidate(unfenced);
+    addCandidate(rawContent.replace(/```json|```/gi, '').trim());
+
+    // Try extracting the largest JSON object from mixed text output
+    const firstBrace = unfenced.indexOf('{');
+    const lastBrace = unfenced.lastIndexOf('}');
+    if (firstBrace !== -1 && lastBrace > firstBrace) {
+      addCandidate(unfenced.slice(firstBrace, lastBrace + 1));
+    }
+
+    for (const candidate of candidates) {
+      const sanitized = candidate.replace(/,\s*([}\]])/g, '$1');
+      try {
+        return JSON.parse(sanitized) as Partial<VoiceJournalResponseDto>;
+      } catch {
+        // Try next candidate
+      }
+    }
+
+    return null;
+  }
+
+  private buildFallbackVoiceTranscript(rawContent: string): string {
+    if (typeof rawContent !== 'string' || !rawContent.trim()) {
+      return 'Voice journal captured, but AI extraction failed. Please review and fill details manually.';
+    }
+
+    const cleaned = rawContent.replace(/```json|```/gi, '').trim();
+    if (!cleaned) {
+      return 'Voice journal captured, but AI extraction failed. Please review and fill details manually.';
+    }
+
+    // If the model output is malformed JSON, show a human-safe fallback instead of raw broken JSON.
+    if (cleaned.startsWith('{') || cleaned.startsWith('[')) {
+      return 'Voice journal captured. AI returned malformed structured output, so fields may need manual review.';
+    }
+
+    return cleaned;
   }
 
   /**
@@ -326,7 +433,7 @@ Return a JSON object strictly matching this schema:
       `User ${userContext.id} creating trade for symbol ${createTradeDto.symbol}, account ${createTradeDto.accountId || 'default'}`,
     );
 
-    const { tagNames, ...tradeDetails } = createTradeDto;
+    const { tagNames, disciplineApprovalId, ...tradeDetails } = createTradeDto;
     const resolvedTags = await this.findOrCreateTags(
       tagNames || [],
       userContext.id,
@@ -346,6 +453,31 @@ Return a JSON object strictly matching this schema:
       trade.calculatePnl();
     }
     const savedTrade = await this.tradesRepository.save(trade);
+
+    if (disciplineApprovalId) {
+      try {
+        await this.disciplineService.markExecuted(disciplineApprovalId, savedTrade.id);
+      } catch (error) {
+        this.logger.warn(
+          `Failed to mark discipline approval ${disciplineApprovalId} as executed: ${error.message}`,
+        );
+      }
+    }
+
+    const isClosedTrade =
+      savedTrade.status === TradeStatus.CLOSED || Boolean(savedTrade.closeTime);
+    if (isClosedTrade) {
+      try {
+        await this.disciplineService.evaluateAndTriggerCooldown(
+          userContext.id,
+          savedTrade.accountId || undefined,
+        );
+      } catch (error) {
+        this.logger.warn(
+          `Failed to run discipline auto-cooldown on create for trade ${savedTrade.id}: ${error.message}`,
+        );
+      }
+    }
 
     // Load the complete trade with relations for response
     const completeTradeData = await this.tradesRepository.findOne({
@@ -398,6 +530,40 @@ Return a JSON object strictly matching this schema:
       order: { openTime: 'DESC' },
     });
     return this._populateAccountDetails(trades, userId);
+  }
+
+  async findClosedTradesForAnalytics(
+    userId: string,
+    accountId?: string,
+  ): Promise<Trade[]> {
+    const queryBuilder = this.tradesRepository
+      .createQueryBuilder('trade')
+      .where('trade.userId = :userId', { userId })
+      .andWhere('trade.status = :status', { status: TradeStatus.CLOSED })
+      .andWhere('trade.profitOrLoss IS NOT NULL')
+      .orderBy('trade.openTime', 'DESC')
+      .select([
+        'trade.id',
+        'trade.userId',
+        'trade.accountId',
+        'trade.symbol',
+        'trade.side',
+        'trade.status',
+        'trade.openTime',
+        'trade.closeTime',
+        'trade.profitOrLoss',
+        'trade.stopLoss',
+        'trade.ictConcept',
+        'trade.session',
+        'trade.mistakesMade',
+        'trade.lessonsLearned',
+      ]);
+
+    if (accountId) {
+      queryBuilder.andWhere('trade.accountId = :accountId', { accountId });
+    }
+
+    return queryBuilder.getMany();
   }
 
   async findAll(
@@ -1027,6 +1193,8 @@ Return a JSON object strictly matching this schema:
         `Trade with ID "${id}" not found for update.`,
       );
     }
+    const wasClosedBefore =
+      trade.status === TradeStatus.CLOSED || Boolean(trade.closeTime);
 
     const { tagNames, openTime, closeTime, ...otherDetailsToUpdate } =
       updateTradeDto;
@@ -1069,12 +1237,27 @@ Return a JSON object strictly matching this schema:
       trade.calculatePnl();
     }
     const updatedTrade = await this.tradesRepository.save(trade);
+    const isClosedNow =
+      updatedTrade.status === TradeStatus.CLOSED || Boolean(updatedTrade.closeTime);
+
+    if (!wasClosedBefore && isClosedNow) {
+      try {
+        await this.disciplineService.evaluateAndTriggerCooldown(
+          userContext.id,
+          updatedTrade.accountId || undefined,
+        );
+      } catch (error) {
+        this.logger.warn(
+          `Failed to run discipline auto-cooldown on update for trade ${updatedTrade.id}: ${error.message}`,
+        );
+      }
+    }
 
     // Send notification for closed trades
     try {
       if (
         updatedTrade.status === TradeStatus.CLOSED &&
-        trade.status !== TradeStatus.CLOSED
+        !wasClosedBefore
       ) {
         await this.notificationsService.send({
           userId: userContext.id,
@@ -1126,6 +1309,8 @@ Return a JSON object strictly matching this schema:
     if (!trade) {
       throw new NotFoundException(`Trade with ID "${id}" not found for sync.`);
     }
+    const wasClosedBefore =
+      trade.status === TradeStatus.CLOSED || Boolean(trade.closeTime);
 
     const normalized: Partial<Trade> = { ...updateData };
     if (typeof (updateData as any).openTime === 'string') {
@@ -1149,6 +1334,22 @@ Return a JSON object strictly matching this schema:
 
     this.tradesRepository.merge(trade, normalized);
     const saved = await this.tradesRepository.save(trade);
+
+    const isClosedNow =
+      saved.status === TradeStatus.CLOSED || Boolean(saved.closeTime);
+    if (!wasClosedBefore && isClosedNow) {
+      try {
+        await this.disciplineService.evaluateAndTriggerCooldown(
+          saved.userId,
+          saved.accountId || undefined,
+        );
+      } catch (error) {
+        this.logger.warn(
+          `Failed to run discipline auto-cooldown on sync update for trade ${saved.id}: ${error.message}`,
+        );
+      }
+    }
+
     return saved;
   }
 

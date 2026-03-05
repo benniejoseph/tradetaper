@@ -2,16 +2,21 @@ import {
   Controller,
   Get,
   Post,
+  Patch,
+  Delete,
   Body,
   Param,
   UseGuards,
   Request,
+  Query,
 } from '@nestjs/common';
 import { DisciplineService } from './discipline.service';
 import {
   CreateApprovalDto,
   ApproveTradeDto,
   CompleteExerciseDto,
+  CreateIfThenPlanDto,
+  UpdateIfThenPlanDto,
 } from './dto/discipline.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import {
@@ -31,6 +36,49 @@ export class DisciplineController {
   @Get('stats')
   async getStats(@Request() req: AuthenticatedRequest) {
     return this.disciplineService.getDisciplineStats(req.user.id);
+  }
+
+  @Get('signals')
+  async getSignals(
+    @Request() req: AuthenticatedRequest,
+    @Query('accountId') accountId?: string,
+  ) {
+    return this.disciplineService.getBehaviorSignals(req.user.id, accountId);
+  }
+
+  // ============== IF-THEN PLANS ==============
+
+  @Get('if-then-plans')
+  async getIfThenPlans(
+    @Request() req: AuthenticatedRequest,
+    @Query('accountId') accountId?: string,
+  ) {
+    return this.disciplineService.getIfThenPlans(req.user.id, accountId);
+  }
+
+  @Post('if-then-plans')
+  async createIfThenPlan(
+    @Request() req: AuthenticatedRequest,
+    @Body() dto: CreateIfThenPlanDto,
+  ) {
+    return this.disciplineService.createIfThenPlan(req.user.id, dto);
+  }
+
+  @Patch('if-then-plans/:id')
+  async updateIfThenPlan(
+    @Request() req: AuthenticatedRequest,
+    @Param('id') id: string,
+    @Body() dto: UpdateIfThenPlanDto,
+  ) {
+    return this.disciplineService.updateIfThenPlan(req.user.id, id, dto);
+  }
+
+  @Delete('if-then-plans/:id')
+  async deleteIfThenPlan(
+    @Request() req: AuthenticatedRequest,
+    @Param('id') id: string,
+  ) {
+    return this.disciplineService.deleteIfThenPlan(req.user.id, id);
   }
 
   // ============== TRADE APPROVALS ==============

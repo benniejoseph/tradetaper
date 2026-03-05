@@ -3,6 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { MulterModule } from '@nestjs/platform-express';
 import { ConfigModule } from '@nestjs/config';
 import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
+import { FilesModule } from '../files/files.module';
 
 // Entities
 import { Note } from './entities/note.entity';
@@ -48,6 +49,7 @@ import {
     }),
     ConfigModule,
     SubscriptionsModule,
+    FilesModule,
   ],
   controllers: [
     NotesController,

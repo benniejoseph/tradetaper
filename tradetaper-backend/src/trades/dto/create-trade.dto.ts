@@ -15,6 +15,7 @@ import {
   ArrayMinSize,
   IsBoolean,
   ValidateIf,
+  IsUUID,
 } from 'class-validator';
 import { Transform } from 'class-transformer';
 import {
@@ -29,6 +30,98 @@ import {
   HTFBias,
   Timeframe,
 } from '../../types/enums';
+
+const normalizeEnumKey = (value: string): string =>
+  value
+    .trim()
+    .toLowerCase()
+    .replace(/[_-]+/g, ' ')
+    .replace(/\s+/g, ' ');
+
+const normalizeEnumValue = <T extends Record<string, string>>(
+  value: unknown,
+  enumObj: T,
+): unknown => {
+  if (typeof value !== 'string') return value;
+
+  const raw = value.trim();
+  if (!raw) return undefined;
+
+  const lookup = new Map<string, string>();
+
+  for (const [enumKey, enumValue] of Object.entries(enumObj)) {
+    const keyNorm = normalizeEnumKey(enumKey);
+    const valueNorm = normalizeEnumKey(enumValue);
+
+    lookup.set(keyNorm, enumValue);
+    lookup.set(keyNorm.replace(/\s+/g, ''), enumValue);
+    lookup.set(valueNorm, enumValue);
+    lookup.set(valueNorm.replace(/\s+/g, ''), enumValue);
+  }
+
+  const rawNorm = normalizeEnumKey(raw);
+  return (
+    lookup.get(rawNorm) ??
+    lookup.get(rawNorm.replace(/\s+/g, '')) ??
+    raw
+  );
+};
+
+const normalizeBooleanValue = (value: unknown): unknown => {
+  if (value === null || value === undefined || value === '') return undefined;
+  if (typeof value === 'boolean') return value;
+  if (typeof value === 'number') {
+    if (value === 1) return true;
+    if (value === 0) return false;
+    return value;
+  }
+  if (typeof value !== 'string') return value;
+
+  const normalized = value.trim().toLowerCase();
+  if (!normalized) return undefined;
+
+  const truthy = new Set([
+    'true',
+    '1',
+    'yes',
+    'y',
+    'high',
+    'major',
+    'significant',
+    'impactful',
+  ]);
+  const falsy = new Set([
+    'false',
+    '0',
+    'no',
+    'n',
+    'none',
+    'low',
+    'minor',
+    'na',
+    'n/a',
+  ]);
+
+  if (truthy.has(normalized)) return true;
+  if (falsy.has(normalized)) return false;
+
+  if (
+    normalized.includes('no news') ||
+    normalized.includes('without news') ||
+    normalized.includes('not impacted')
+  ) {
+    return false;
+  }
+  if (
+    normalized.includes('high impact') ||
+    normalized.includes('major news') ||
+    normalized.includes('news driven')
+  ) {
+    return true;
+  }
+
+  return value;
+};
 
 export class CreateTradeDto {
   @IsNotEmpty()
@@ -128,12 +221,17 @@ export class CreateTradeDto {
   accountId?: string;
 
   @IsOptional()
+  @Transform(({ value }) => normalizeBooleanValue(value))
   @IsBoolean() // Added for isStarred
   isStarred?: boolean;
 
   @IsOptional()
   @IsString()
   strategyId?: string;
+
+  @IsOptional()
+  @IsUUID()
+  disciplineApprovalId?: string;
 
   @IsOptional()
   @IsNumber()
@@ -165,14 +263,17 @@ export class CreateTradeDto {
 
   // ========== PHASE 1: Psychology & Emotion Tracking ==========
   @IsOptional()
+  @Transform(({ value }) => normalizeEnumValue(value, EmotionalState))
   @IsEnum(EmotionalState)
   emotionBefore?: EmotionalState;
 
   @IsOptional()
+  @Transform(({ value }) => normalizeEnumValue(value, EmotionalState))
   @IsEnum(EmotionalState)
   emotionDuring?: EmotionalState;
 
   @IsOptional()
+  @Transform(({ value }) => normalizeEnumValue(value, EmotionalState))
   @IsEnum(EmotionalState)
   emotionAfter?: EmotionalState;
 
@@ -182,6 +283,7 @@ export class CreateTradeDto {
   confidenceLevel?: number; // 1-10 scale
 
   @IsOptional()
+  @Transform(({ value }) => normalizeBooleanValue(value))
   @IsBoolean()
   followedPlan?: boolean;
 
@@ -221,18 +323,22 @@ export class CreateTradeDto {
 
   // ========== PHASE 3: Market Context ==========
   @IsOptional()
+  @Transform(({ value }) => normalizeEnumValue(value, MarketCondition))
   @IsEnum(MarketCondition)
   marketCondition?: MarketCondition;
 
   @IsOptional()
+  @Transform(({ value }) => normalizeEnumValue(value, Timeframe))
   @IsEnum(Timeframe)
   timeframe?: Timeframe;
 
   @IsOptional()
+  @Transform(({ value }) => normalizeEnumValue(value, HTFBias))
   @IsEnum(HTFBias)
   htfBias?: HTFBias;
 
   @IsOptional()
+  @Transform(({ value }) => normalizeBooleanValue(value))
   @IsBoolean()
   newsImpact?: boolean;
 
@@ -247,10 +353,12 @@ export class CreateTradeDto {
   confirmations?: string[];
 
   @IsOptional()
+  @Transform(({ value }) => normalizeBooleanValue(value))
   @IsBoolean()
   hesitated?: boolean;
 
   @IsOptional()
+  @Transform(({ value }) => normalizeBooleanValue(value))
   @IsBoolean()
   preparedToLose?: boolean;
 

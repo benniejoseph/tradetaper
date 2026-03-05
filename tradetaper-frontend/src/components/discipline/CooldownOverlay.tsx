@@ -55,6 +55,7 @@ export const CooldownOverlay: React.FC<CooldownOverlayProps> = ({
   onComplete,
   onSkip,
 }) => {
+  const [session, setSession] = useState<CooldownSession | null>(cooldown);
   const [currentExercise, setCurrentExercise] = useState<ExerciseId | null>(null);
   const [breathingPhase, setBreathingPhase] = useState(0);
   const [breathingCount, setBreathingCount] = useState(0);
@@ -62,19 +63,23 @@ export const CooldownOverlay: React.FC<CooldownOverlayProps> = ({
   const [loading, setLoading] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState(0);
 
+  useEffect(() => {
+    setSession(cooldown);
+  }, [cooldown]);
+
   // Calculate time remaining
   useEffect(() => {
-    if (!cooldown?.expiresAt) return;
+    if (!session?.expiresAt) return;
     
     const updateTimer = () => {
-      const remaining = Math.max(0, new Date(cooldown.expiresAt!).getTime() - Date.now());
+      const remaining = Math.max(0, new Date(session.expiresAt!).getTime() - Date.now());
       setTimeRemaining(Math.floor(remaining / 1000));
     };
     
     updateTimer();
     const interval = setInterval(updateTimer, 1000);
     return () => clearInterval(interval);
-  }, [cooldown?.expiresAt]);
+  }, [session?.expiresAt]);
 
   // Breathing exercise timer
   useEffect(() => {
@@ -94,10 +99,10 @@ export const CooldownOverlay: React.FC<CooldownOverlayProps> = ({
     return () => clearInterval(interval);
   }, [currentExercise]);
 
-  if (!cooldown) return null;
+  if (!session) return null;
 
-  const completedIds = cooldown.exercisesCompleted.map((e) => e.exerciseId);
-  const remainingExercises = cooldown.requiredExercises.filter(
+  const completedIds = session.exercisesCompleted.map((e) => e.exerciseId);
+  const remainingExercises = session.requiredExercises.filter(
     (id) => !completedIds.includes(id)
   );
   const allComplete = remainingExercises.length === 0;
@@ -111,9 +116,12 @@ export const CooldownOverlay: React.FC<CooldownOverlayProps> = ({
   const handleCompleteExercise = async (exerciseId: string) => {
     setLoading(true);
     try {
-      await disciplineService.completeExercise(cooldown.id, exerciseId);
+      const updatedSession = await disciplineService.completeExercise(session.id, exerciseId);
+      setSession(updatedSession);
       setCurrentExercise(null);
-      // Refresh cooldown data
+      if (updatedSession.isCompleted) {
+        onComplete?.();
+      }
     } catch (err) {
       console.error('Failed to complete exercise:', err);
     } finally {
@@ -125,7 +133,8 @@ export const CooldownOverlay: React.FC<CooldownOverlayProps> = ({
     if (!confirm('Skipping will result in a discipline penalty. Continue?')) return;
     setLoading(true);
     try {
-      await disciplineService.skipCooldown(cooldown.id);
+      await disciplineService.skipCooldown(session.id);
+      setSession(null);
       onSkip?.();
     } catch (err) {
       console.error('Failed to skip cooldown:', err);
@@ -143,7 +152,7 @@ export const CooldownOverlay: React.FC<CooldownOverlayProps> = ({
     manual: { title: 'Manual Cooldown' },
   };
 
-  const trigger = triggerReasons[cooldown.triggerReason] || { title: 'Cooldown Active' };
+  const trigger = triggerReasons[session.triggerReason] || { title: 'Cooldown Active' };
 
   return (
     <div
@@ -173,10 +182,10 @@ export const CooldownOverlay: React.FC<CooldownOverlayProps> = ({
               {/* Exercises */}
               <div className="p-6 space-y-3">
                 <h3 className="font-semibold text-gray-900 dark:text-white mb-2">
-                  Required Exercises ({cooldown.requiredExercises.length - remainingExercises.length}/{cooldown.requiredExercises.length})
+                  Required Exercises ({session.requiredExercises.length - remainingExercises.length}/{session.requiredExercises.length})
                 </h3>
                 
-                {cooldown.requiredExercises.map((exId) => {
+                {session.requiredExercises.map((exId) => {
                   const exercise = EXERCISES[exId as ExerciseId];
                   const isCompleted = completedIds.includes(exId);
                   

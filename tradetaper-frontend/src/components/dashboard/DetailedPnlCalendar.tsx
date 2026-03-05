@@ -14,7 +14,7 @@ import {
   startOfWeek,
   subMonths,
 } from 'date-fns';
-import { FaChevronLeft, FaChevronRight, FaCalendarAlt, FaCog, FaInfoCircle } from 'react-icons/fa';
+import { FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 import { Trade, TradeStatus } from '@/types/trade';
 
 interface DailyStats {
@@ -25,6 +25,8 @@ interface DailyStats {
   lossCount: number;
   breakevenCount: number;
   avgR: number | null;
+  rTotal: number;
+  rCount: number;
   winRate: number;
 }
 
@@ -60,6 +62,8 @@ export default function DetailedPnlCalendar({ trades }: DetailedPnlCalendarProps
           lossCount: 0,
           breakevenCount: 0,
           avgR: null,
+          rTotal: 0,
+          rCount: 0,
           winRate: 0,
         });
       }
@@ -74,8 +78,9 @@ export default function DetailedPnlCalendar({ trades }: DetailedPnlCalendarProps
       else stats.breakevenCount += 1;
 
       if (typeof trade.rMultiple === 'number') {
-        const prevTotalR = (stats.avgR ?? 0) * (stats.tradeCount - 1);
-        stats.avgR = (prevTotalR + trade.rMultiple) / stats.tradeCount;
+        stats.rTotal += trade.rMultiple;
+        stats.rCount += 1;
+        stats.avgR = stats.rCount > 0 ? stats.rTotal / stats.rCount : null;
       }
 
       const total = stats.winCount + stats.lossCount + stats.breakevenCount;

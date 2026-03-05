@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { DisciplineDashboard } from '@/components/discipline/DisciplineDashboard';
 import { CooldownOverlay } from '@/components/discipline/CooldownOverlay';
 import disciplineService, { TraderDiscipline, CooldownSession } from '@/services/disciplineService';
@@ -10,13 +10,10 @@ import IfThenPlanBuilder from '@/components/discipline/IfThenPlanBuilder';
 import JitaiTriggerCard, { JitaiTrigger } from '@/components/discipline/JitaiTriggerCard';
 import MindsetInsightsPanel from '@/components/discipline/MindsetInsightsPanel';
 import { psychologyService } from '@/services/psychology.service';
-import { useDispatch, useSelector } from 'react-redux';
-import { AppDispatch, RootState } from '@/store/store';
-import { fetchTrades } from '@/store/features/tradesSlice';
+import { useSelector } from 'react-redux';
+import { RootState } from '@/store/store';
 import { selectSelectedAccountId } from '@/store/features/accountSlice';
 import { selectSelectedMT5AccountId } from '@/store/features/mt5AccountsSlice';
-import { Trade, TradeStatus } from '@/types/trade';
-import { subHours, isAfter } from 'date-fns';
 import { PsychologicalInsight, ProfileSummary } from '@/types/psychology';
 
 export default function DisciplinePage() {
@@ -27,12 +24,50 @@ export default function DisciplinePage() {
   const [psychSummary, setPsychSummary] = useState<ProfileSummary | null>(null);
   const [psychLoading, setPsychLoading] = useState(false);
   const [psychError, setPsychError] = useState<string | null>(null);
+  const [jitaiTriggers, setJitaiTriggers] = useState<JitaiTrigger[]>([]);
+  const [signalsLoading, setSignalsLoading] = useState(false);
+  const [signalsError, setSignalsError] = useState<string | null>(null);
+  const [riskScore, setRiskScore] = useState<number | null>(null);
 
-  const dispatch = useDispatch<AppDispatch>();
-  const { trades, lastFetchKey, lastFetchAt, lastFetchIncludeTags } = useSelector((state: RootState) => state.trades);
-  const { isAuthenticated } = useSelector((state: RootState) => state.auth);
+  const { isAuthenticated, user } = useSelector((state: RootState) => state.auth);
   const selectedAccountId = useSelector(selectSelectedAccountId);
   const selectedMT5AccountId = useSelector(selectSelectedMT5AccountId);
+  const hasPsychologyAccess = Boolean(
+    user?.subscription?.planDetails?.limits?.psychology,
+  );
+  const selectedScopeAccountId = selectedAccountId || selectedMT5AccountId || undefined;
+
+  const refreshBehaviorSignals = useCallback(async () => {
+    if (!isAuthenticated) return;
+
+    setSignalsLoading(true);
+    setSignalsError(null);
+
+    try {
+      const signalData = await disciplineService.getBehaviorSignals(selectedScopeAccountId);
+      setRiskScore(signalData.riskScore);
+      setJitaiTriggers(
+        signalData.triggers.map((trigger) => ({
+          title: trigger.title,
+          severity: trigger.severity,
+          detail: trigger.detail,
+          suggestion: trigger.suggestion,
+        })),
+      );
+
+      if (signalData.cooldownActive) {
+        const activeCooldown = await disciplineService.getActiveCooldown();
+        setCooldown(activeCooldown);
+      }
+    } catch (err) {
+      console.error('Failed to load discipline behavior signals', err);
+      setSignalsError('Unable to load behavior signals right now.');
+      setRiskScore(null);
+      setJitaiTriggers([]);
+    } finally {
+      setSignalsLoading(false);
+    }
+  }, [isAuthenticated, selectedScopeAccountId]);
 
   // Fetch data
   useEffect(() => {
@@ -55,13 +90,17 @@ export default function DisciplinePage() {
   }, []);
 
   useEffect(() => {
-    if (!isAuthenticated) return;
-    const currentAccountId = selectedAccountId || selectedMT5AccountId;
-    dispatch(fetchTrades({ accountId: currentAccountId || undefined, limit: 300, includeTags: false }));
-  }, [dispatch, isAuthenticated, selectedAccountId, selectedMT5AccountId, lastFetchKey, lastFetchAt, lastFetchIncludeTags, trades?.length]);
+    refreshBehaviorSignals();
+  }, [refreshBehaviorSignals]);
 
   useEffect(() => {
-    if (!isAuthenticated) return;
+    if (!isAuthenticated || !hasPsychologyAccess) {
+      setPsychProfile([]);
+      setPsychSummary(null);
+      setPsychLoading(false);
+      setPsychError(null);
+      return;
+    }
     setPsychLoading(true);
     setPsychError(null);
     Promise.all([psychologyService.getProfile(), psychologyService.getProfileSummary()])
@@ -74,59 +113,13 @@ export default function DisciplinePage() {
         setPsychError('Failed to load mindset insights. Please try again later.');
       })
       .finally(() => setPsychLoading(false));
-  }, [isAuthenticated]);
+  }, [isAuthenticated, hasPsychologyAccess]);
 
   const handleCooldownComplete = () => {
     setCooldown(null);
     disciplineService.getStats().then(setDiscipline);
+    refreshBehaviorSignals();
   };
-
-  const jitaiTriggers = useMemo((): JitaiTrigger[] => {
-    const triggers: JitaiTrigger[] = [];
-    const closedTrades = (trades || []).filter((t: Trade) => t.status === TradeStatus.CLOSED && t.exitDate);
-
-    if (closedTrades.length === 0) return triggers;
-
-    const sorted = [...closedTrades].sort((a, b) => new Date(a.exitDate!).getTime() - new Date(b.exitDate!).getTime());
-    let lossStreak = 0;
-    for (let i = sorted.length - 1; i >= 0; i -= 1) {
-      const pnl = sorted[i].profitOrLoss || 0;
-      if (pnl < 0) lossStreak += 1;
-      else break;
-    }
-    if (lossStreak >= 2) {
-      triggers.push({
-        title: 'Loss streak risk',
-        severity: lossStreak >= 4 ? 'high' : 'medium',
-        detail: `You have ${lossStreak} consecutive losing trades.`,
-        suggestion: 'Pause for 10–20 minutes and reduce size or stop trading for the day.',
-      });
-    }
-
-    const last2Hours = subHours(new Date(), 2);
-    const recentTrades = sorted.filter(t => isAfter(new Date(t.exitDate!), last2Hours));
-    if (recentTrades.length >= 6) {
-      triggers.push({
-        title: 'Rapid‑fire trading',
-        severity: recentTrades.length >= 10 ? 'high' : 'medium',
-        detail: `${recentTrades.length} trades in the last 2 hours.`,
-        suggestion: 'Slow down: enforce a 5‑minute wait before new entries.',
-      });
-    }
-
-    const last3 = sorted.slice(-3);
-    const avgPnL = last3.reduce((sum, t) => sum + (t.profitOrLoss || 0), 0) / Math.max(last3.length, 1);
-    if (avgPnL < 0) {
-      triggers.push({
-        title: 'Performance dip',
-        severity: avgPnL < -50 ? 'medium' : 'low',
-        detail: `Recent average P&L is negative (${avgPnL.toFixed(2)}).`,
-        suggestion: 'Review the last 3 trades and confirm checklist alignment.',
-      });
-    }
-
-    return triggers;
-  }, [trades]);
 
   return (
     <FeatureGate feature="discipline">
@@ -136,7 +129,10 @@ export default function DisciplinePage() {
           <CooldownOverlay
             cooldown={cooldown}
             onComplete={handleCooldownComplete}
-            onSkip={() => setCooldown(null)}
+            onSkip={() => {
+              setCooldown(null);
+              refreshBehaviorSignals();
+            }}
           />
         )}
 
@@ -157,17 +153,24 @@ export default function DisciplinePage() {
           <DisciplineDashboard discipline={discipline} loading={loading} />
 
           {/* Mindset Insights */}
-          <MindsetInsightsPanel
-            profile={psychProfile}
-            summary={psychSummary}
-            loading={psychLoading}
-            error={psychError}
-          />
+          <FeatureGate feature="psychology" blur={false}>
+            <MindsetInsightsPanel
+              profile={psychProfile}
+              summary={psychSummary}
+              loading={psychLoading}
+              error={psychError}
+            />
+          </FeatureGate>
 
           {/* Discipline Playbook */}
           <div className="grid lg:grid-cols-2 gap-4">
-            <JitaiTriggerCard triggers={jitaiTriggers} />
-            <IfThenPlanBuilder />
+            <JitaiTriggerCard
+              triggers={jitaiTriggers}
+              riskScore={riskScore}
+              loading={signalsLoading}
+              error={signalsError}
+            />
+            <IfThenPlanBuilder accountId={selectedScopeAccountId} />
           </div>
 
           <AnimatedCard animate={false} variant="default" className="space-y-4">

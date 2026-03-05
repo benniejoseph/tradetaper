@@ -39,8 +39,6 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
   onClose,
   isOpen,
 }) => {
-  console.log('🎤 VoiceRecorder rendered with props:', { isOpen, onTranscriptionComplete: !!onTranscriptionComplete, onClose: !!onClose });
-
   const [isRecording, setIsRecording] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [recordings, setRecordings] = useState<VoiceRecording[]>([]);
@@ -54,8 +52,16 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
   const streamRef = useRef<MediaStream | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
+  const playbackAudioRef = useRef<HTMLAudioElement | null>(null);
+  const recordingsRef = useRef<VoiceRecording[]>([]);
+  const microphonePermissionRef = useRef<PermissionStatus | null>(null);
+  const permissionChangeHandlerRef = useRef<(() => void) | null>(null);
   const animationRef = useRef<number | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    recordingsRef.current = recordings;
+  }, [recordings]);
 
   useEffect(() => {
     checkMicrophonePermission();
@@ -63,6 +69,33 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
       cleanup();
     };
   }, []);
+
+  useEffect(() => {
+    if (isOpen) {
+      return;
+    }
+
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.stop();
+    }
+
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
+
+    if (playbackAudioRef.current) {
+      playbackAudioRef.current.pause();
+      playbackAudioRef.current.currentTime = 0;
+      playbackAudioRef.current = null;
+    }
+
+    setIsRecording(false);
+    setIsPaused(false);
+    setPlayingId(null);
+    setRecordingTime(0);
+    setAudioLevel(0);
+  }, [isOpen]);
 
   useEffect(() => {
     if (isRecording && !isPaused) {
@@ -85,15 +118,35 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
   const cleanup = () => {
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
     }
     if (audioContextRef.current) {
       audioContextRef.current.close();
+      audioContextRef.current = null;
     }
     if (animationRef.current) {
       cancelAnimationFrame(animationRef.current);
+      animationRef.current = null;
     }
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+    if (playbackAudioRef.current) {
+      playbackAudioRef.current.pause();
+      playbackAudioRef.current.currentTime = 0;
+      playbackAudioRef.current = null;
+    }
+    if (microphonePermissionRef.current && permissionChangeHandlerRef.current) {
+      microphonePermissionRef.current.removeEventListener(
+        'change',
+        permissionChangeHandlerRef.current,
+      );
+      microphonePermissionRef.current = null;
+      permissionChangeHandlerRef.current = null;
+    }
+    for (const recording of recordingsRef.current) {
+      URL.revokeObjectURL(recording.url);
     }
   };
 
@@ -101,10 +154,21 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
     try {
       const permission = await navigator.permissions.query({ name: 'microphone' as PermissionName });
       setHasPermission(permission.state === 'granted');
-      
-      permission.addEventListener('change', () => {
+
+      if (microphonePermissionRef.current && permissionChangeHandlerRef.current) {
+        microphonePermissionRef.current.removeEventListener(
+          'change',
+          permissionChangeHandlerRef.current,
+        );
+      }
+
+      const handlePermissionChange = () => {
         setHasPermission(permission.state === 'granted');
-      });
+      };
+
+      microphonePermissionRef.current = permission;
+      permissionChangeHandlerRef.current = handlePermissionChange;
+      permission.addEventListener('change', handlePermissionChange);
     } catch (error) {
       console.error('Error checking microphone permission:', error);
       setHasPermission(false);
@@ -113,8 +177,6 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
 
   const requestMicrophonePermission = async () => {
     try {
-      console.log('🎤 Requesting microphone permission...');
-      
       // Actually request microphone access
       const stream = await navigator.mediaDevices.getUserMedia({ 
         audio: {
@@ -123,8 +185,7 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
           autoGainControl: true,
         } 
       });
-      
-      console.log('✅ Microphone permission granted!');
+
       setHasPermission(true);
       
       // Stop the stream immediately as we just needed permission
@@ -133,7 +194,7 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
       toast.success('Microphone access granted! You can now start recording.');
       
     } catch (error: any) {
-      console.error('❌ Error requesting microphone permission:', error);
+      console.error('Error requesting microphone permission:', error);
       setHasPermission(false);
       
       if (error?.name === 'NotAllowedError') {
@@ -264,18 +325,52 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
   };
 
   const playRecording = (recording: VoiceRecording) => {
-    if (playingId === recording.id) {
+    if (playingId === recording.id && playbackAudioRef.current) {
+      playbackAudioRef.current.pause();
+      playbackAudioRef.current.currentTime = 0;
+      playbackAudioRef.current = null;
       setPlayingId(null);
       return;
     }
 
+    if (playbackAudioRef.current) {
+      playbackAudioRef.current.pause();
+      playbackAudioRef.current.currentTime = 0;
+      playbackAudioRef.current = null;
+    }
+
     const audio = new Audio(recording.url);
-    audio.onended = () => setPlayingId(null);
-    audio.play();
+    playbackAudioRef.current = audio;
+    audio.onended = () => {
+      if (playbackAudioRef.current === audio) {
+        playbackAudioRef.current = null;
+      }
+      setPlayingId(null);
+    };
+    audio.play().catch((error) => {
+      console.error('Error playing recording:', error);
+      if (playbackAudioRef.current === audio) {
+        playbackAudioRef.current = null;
+      }
+      setPlayingId(null);
+      toast.error('Failed to play recording');
+    });
     setPlayingId(recording.id);
   };
 
   const deleteRecording = (recordingId: string) => {
+    const recordingToDelete = recordingsRef.current.find((recording) => recording.id === recordingId);
+    if (recordingToDelete) {
+      URL.revokeObjectURL(recordingToDelete.url);
+    }
+
+    if (playingId === recordingId && playbackAudioRef.current) {
+      playbackAudioRef.current.pause();
+      playbackAudioRef.current.currentTime = 0;
+      playbackAudioRef.current = null;
+      setPlayingId(null);
+    }
+
     setRecordings(prev => prev.filter(r => r.id !== recordingId));
     if (currentRecording?.id === recordingId) {
       setCurrentRecording(null);

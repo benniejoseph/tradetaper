@@ -12,6 +12,7 @@ import { PsychologicalInsight } from '../notes/entities/psychological-insight.en
 import { PsychologicalInsightsService } from '../notes/psychological-insights.service';
 import { UsageLimitGuard } from '../subscriptions/guards/usage-limit.guard';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { FeatureAccessGuard } from '../subscriptions/guards/feature-access.guard';
 
 describe('NotesController', () => {
   let controller: NotesController;
@@ -113,6 +114,8 @@ describe('NotesController', () => {
       .overrideGuard(JwtAuthGuard)
       .useValue({ canActivate: jest.fn().mockReturnValue(true) })
       .overrideGuard(UsageLimitGuard)
+      .useValue({ canActivate: jest.fn().mockReturnValue(true) })
+      .overrideGuard(FeatureAccessGuard)
       .useValue({ canActivate: jest.fn().mockReturnValue(true) });
 
     const module: TestingModule = await moduleBuilder.compile();

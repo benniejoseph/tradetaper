@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { DisciplineService } from './discipline.service';
 import { DisciplineController } from './discipline.controller';
@@ -7,6 +7,8 @@ import { TraderDiscipline } from './entities/trader-discipline.entity';
 import { CooldownSession } from './entities/cooldown-session.entity';
 import { TerminalFarmModule } from '../terminal-farm/terminal-farm.module';
 import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
+import { Trade } from '../trades/entities/trade.entity';
+import { IfThenPlan } from './entities/if-then-plan.entity';
 
 @Module({
   imports: [
@@ -14,8 +16,10 @@ import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
       TradeApproval,
       TraderDiscipline,
       CooldownSession,
+      Trade,
+      IfThenPlan,
     ]),
-    TerminalFarmModule,
+    forwardRef(() => TerminalFarmModule),
     SubscriptionsModule,
   ],
   controllers: [DisciplineController],

@@ -12,6 +12,9 @@ export interface JitaiTrigger {
 
 interface JitaiTriggerCardProps {
   triggers: JitaiTrigger[];
+  riskScore?: number | null;
+  loading?: boolean;
+  error?: string | null;
 }
 
 const severityStyles: Record<JitaiTrigger['severity'], string> = {
@@ -20,17 +23,49 @@ const severityStyles: Record<JitaiTrigger['severity'], string> = {
   high: 'bg-red-50/60 text-red-700 border-red-200',
 };
 
-export default function JitaiTriggerCard({ triggers }: JitaiTriggerCardProps) {
+export default function JitaiTriggerCard({
+  triggers,
+  riskScore = null,
+  loading = false,
+  error = null,
+}: JitaiTriggerCardProps) {
+  const riskBand =
+    riskScore === null
+      ? '—'
+      : riskScore >= 70
+        ? 'High'
+        : riskScore >= 40
+          ? 'Medium'
+          : 'Low';
+
   return (
     <AnimatedCard animate={false} variant="default" className="space-y-4">
-      <div>
+      <div className="flex items-start justify-between gap-4">
         <h3 className="text-lg font-bold text-gray-900 dark:text-white">In‑the‑Moment Coach</h3>
-        <p className="text-xs text-gray-500 dark:text-gray-400">
-          Live triggers based on recent trading behavior
-        </p>
+        <div className="text-right">
+          <div className="text-[10px] uppercase tracking-widest text-gray-500 dark:text-gray-400 font-bold">
+            Risk Score
+          </div>
+          <div className="text-sm font-bold text-gray-900 dark:text-white">
+            {riskScore === null ? '—' : riskScore}/100
+          </div>
+          <div className="text-[11px] text-gray-500 dark:text-gray-400">{riskBand}</div>
+        </div>
       </div>
 
-      {triggers.length === 0 && (
+      <p className="text-xs text-gray-500 dark:text-gray-400">
+        Live triggers based on recent trading behavior
+      </p>
+
+      {loading && (
+        <div className="text-sm text-gray-500">Analyzing behavior signals...</div>
+      )}
+
+      {error && (
+        <div className="text-sm text-red-500">{error}</div>
+      )}
+
+      {!loading && !error && triggers.length === 0 && (
         <div className="text-sm text-gray-500">No active discipline risks detected.</div>
       )}
 

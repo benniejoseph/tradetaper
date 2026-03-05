@@ -35,7 +35,14 @@ export class MediaController {
     @UploadedFile() file: Express.Multer.File,
     @Body('noteId') noteId: string,
     @Request() req: AuthenticatedRequest,
-  ): Promise<NoteMedia> {
+  ): Promise<{
+    id: string;
+    url: string;
+    filename: string;
+    originalName: string;
+    fileType: string;
+    fileSize: number;
+  }> {
     if (!file) {
       throw new BadRequestException('No file provided');
     }
@@ -44,7 +51,17 @@ export class MediaController {
       throw new BadRequestException('Note ID is required');
     }
 
-    return this.mediaService.uploadFile(file, noteId, req.user.id);
+    const media = await this.mediaService.uploadFile(file, noteId, req.user.id);
+    const url = await this.mediaService.getSignedUrl(media.id, req.user.id);
+
+    return {
+      id: media.id,
+      url,
+      filename: media.filename,
+      originalName: media.originalName,
+      fileType: media.fileType,
+      fileSize: Number(media.fileSize),
+    };
   }
 
   @Get(':mediaId/url')
