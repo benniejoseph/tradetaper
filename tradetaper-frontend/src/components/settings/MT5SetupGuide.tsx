@@ -48,11 +48,11 @@ const MT5SetupGuide = () => {
               <li>Install the TradeTaperSync EA in MT5.</li>
               <li>Allow WebRequest for https://api.tradetaper.com.</li>
               <li>Attach EA to any chart.</li>
-              <li>Paste TerminalId and AuthToken into EA inputs.</li>
+              <li>Paste TerminalId, AuthToken, and PairingCode into EA inputs.</li>
               <li>Enable Algo Trading and wait for sync.</li>
             </ol>
             <div className="text-xs text-gray-500 dark:text-gray-400">
-              TerminalId and AuthToken are available in the Auto-Sync panel once enabled.
+              TerminalId, AuthToken, and PairingCode are available in the Local MT5 connector panel.
             </div>
           </div>
         </div>
@@ -66,6 +66,7 @@ const MT5SetupGuide = () => {
             <li>Use the investor (read-only) password for maximum safety.</li>
             <li>Never share your master password with third-party tools.</li>
             <li>If you rotate your MT5 password, update it here immediately.</li>
+            <li>MT5 mobile apps cannot run EAs; run this connector on desktop or VPS MT5.</li>
           </ul>
         </div>
       </div>

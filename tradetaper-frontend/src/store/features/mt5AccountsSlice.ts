@@ -129,7 +129,7 @@ export const deleteMT5Account = createAsyncThunk(
   }
 );
 
-// Sync MT5 account (Terminal Farm)
+// Sync MT5 account (MetaAPI)
 export const syncMT5Account = createAsyncThunk(
   'mt5Accounts/syncAccount',
   async (id: string, { rejectWithValue, dispatch }) => {

@@ -12,6 +12,8 @@ export interface CotAiSummary {
   retailDivergence: string;
   laggingDataContext: string; // Discussing Wednesday-Friday price action vs Tuesday COT
   predictedImpact: string;
+  educationSignificance: string;
+  educationHowToRead: string;
   confidence: number;
 }
 
@@ -42,7 +44,9 @@ export class CotAnalysisService {
 
       return await this.generateAiPrompt(symbol, cotHistory, liveQuote);
     } catch (err) {
-      this.logger.error(`Error generating COT AI Summary for ${symbol}: ${err.message}`);
+      this.logger.error(
+        `Error generating COT AI Summary for ${symbol}: ${err.message}`,
+      );
       return null;
     }
   }
@@ -54,6 +58,7 @@ export class CotAnalysisService {
   ): Promise<CotAiSummary | null> {
     const latestCot = history[0];
     const previousCot = history[1]; // To calculate weekly delta
+    const latestCotDateIso = this.toIsoDateString(latestCot?.date);
 
     const prompt = `
 You are a senior hedge fund macro-strategist analyzing the weekly Commitment of Traders (COT) report.
@@ -61,7 +66,7 @@ Your goal is to identify extreme positioning, retail vs. smart money divergence,
 
 ANALYZE THE FOLLOWING ASSET: ${symbol}
 
-COT REPORT DATA (As of ${latestCot.date.toISOString()}):
+COT REPORT DATA (As of ${latestCotDateIso}):
 - Net Smart Money (Non-Commercial / Leveraged): ${latestCot.netNonCommercial} contracts
 - Net Retail (Non-Reportable): ${latestCot.netNonReportable} contracts
 - Open Interest: ${latestCot.openInterest}
@@ -84,6 +89,8 @@ Return JSON ONLY matching this schema:
   "retailDivergence": "string (Short paragraph analyzing if Retail is trapped)",
   "laggingDataContext": "string (Crucial paragraph comparing Tuesday's COT net-positioning vs Current Live Pricing momentum)",
   "predictedImpact": "string (Actionable short-term outlook based on this fusion)",
+  "educationSignificance": "string (Explain why COT matters for this asset in plain trader language)",
+  "educationHowToRead": "string (Simple, step-by-step guidance on how a trader should read this COT setup)",
   "confidence": number (0-100)
 }
     `;
@@ -104,14 +111,29 @@ Return JSON ONLY matching this schema:
         symbol,
         sentiment: parsed.sentiment || 'Neutral',
         biasRating: parsed.biasRating || 50,
-        smartMoneyPositioning: parsed.smartMoneyPositioning || 'No distinct smart money positioning identified.',
-        retailDivergence: parsed.retailDivergence || 'No significant retail divergence spotted.',
-        laggingDataContext: parsed.laggingDataContext || 'Live price action aligns with the reporting period.',
-        predictedImpact: parsed.predictedImpact || 'Neutral short-term outlook.',
+        smartMoneyPositioning:
+          parsed.smartMoneyPositioning ||
+          'No distinct smart money positioning identified.',
+        retailDivergence:
+          parsed.retailDivergence ||
+          'No significant retail divergence spotted.',
+        laggingDataContext:
+          parsed.laggingDataContext ||
+          'Live price action aligns with the reporting period.',
+        predictedImpact:
+          parsed.predictedImpact || 'Neutral short-term outlook.',
+        educationSignificance:
+          parsed.educationSignificance ||
+          'COT shows where large speculators are positioned, which helps contextualize directional risk.',
+        educationHowToRead:
+          parsed.educationHowToRead ||
+          'Track trend in net smart-money positioning over multiple weeks, then compare with current price action for confirmation or divergence.',
         confidence: parsed.confidence || 50,
       };
     } catch (error) {
-      this.logger.error(`AI Orchestrator failed to parse COT summary for ${symbol}: ${error.message}`);
+      this.logger.error(
+        `AI Orchestrator failed to parse COT summary for ${symbol}: ${error.message}`,
+      );
       return {
         symbol,
         sentiment: 'Neutral',
@@ -122,7 +144,12 @@ Return JSON ONLY matching this schema:
           'Retail divergence unavailable while COT AI parsing is degraded.',
         laggingDataContext:
           'Use live price action with caution until the next valid COT interpretation is generated.',
-        predictedImpact: 'Neutral short-term outlook until fresh COT analysis is available.',
+        predictedImpact:
+          'Neutral short-term outlook until fresh COT analysis is available.',
+        educationSignificance:
+          'COT is a positioning lens, not an execution trigger, and is best used as directional context.',
+        educationHowToRead:
+          'Compare multi-week shifts in smart-money net positioning against current trend; align with your technical setup before acting.',
         confidence: 40,
       };
     }
@@ -161,5 +188,24 @@ Return JSON ONLY matching this schema:
     } catch {
       return null;
     }
+  }
+
+  private toIsoDateString(
+    input: Date | string | number | null | undefined,
+  ): string {
+    if (!input) {
+      return new Date().toISOString();
+    }
+
+    if (input instanceof Date && !Number.isNaN(input.getTime())) {
+      return input.toISOString();
+    }
+
+    const parsed = new Date(input);
+    if (!Number.isNaN(parsed.getTime())) {
+      return parsed.toISOString();
+    }
+
+    return new Date().toISOString();
   }
 }

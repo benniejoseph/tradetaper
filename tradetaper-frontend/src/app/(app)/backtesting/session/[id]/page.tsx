@@ -7,6 +7,9 @@ import React, {
 import { useParams, useSearchParams } from 'next/navigation';
 import { CandleData } from '@/components/backtesting/workbench/mockData';
 import ChartEngine, { ChartEngineRef } from '@/components/backtesting/workbench/ChartEngine';
+import TradingViewBacktestChart, {
+  TradingViewBacktestChartHandle,
+} from '@/components/backtesting/workbench/TradingViewBacktestChart';
 import ReplayControls from '@/components/backtesting/workbench/ReplayControls';
 import OrderPanel from '@/components/backtesting/workbench/OrderPanel';
 import PositionManager from '@/components/backtesting/workbench/PositionManager';
@@ -144,6 +147,14 @@ export default function BacktestSessionPage() {
 
   // ── HTF context ────────────────────────────────────────────────────────────
   const [htfTimeframe, setHtfTimeframe] = useState<string>('4h');
+  const [chartProvider, setChartProvider] = useState<'legacy' | 'tradingview'>(
+    process.env.NEXT_PUBLIC_BACKTEST_CHART_PROVIDER === 'tradingview'
+      ? 'tradingview'
+      : 'legacy',
+  );
+  const [tvUnavailableReason, setTvUnavailableReason] = useState<string | null>(
+    null,
+  );
 
   // ── Alert modal ────────────────────────────────────────────────────────────
   const [alertState, setAlertState] = useState({ isOpen: false, title: 'Notice', message: '' });
@@ -156,6 +167,7 @@ export default function BacktestSessionPage() {
 
   // ── Refs ───────────────────────────────────────────────────────────────────
   const chartRef          = useRef<ChartEngineRef>(null);
+  const tradingViewRef    = useRef<TradingViewBacktestChartHandle | null>(null);
   const timerRef          = useRef<NodeJS.Timeout | null>(null);
   const isPlayingRef      = useRef(isPlaying);
   const currentIndexRef   = useRef(currentIndex);
@@ -165,6 +177,12 @@ export default function BacktestSessionPage() {
   currentIndexRef.current = currentIndex;
   fullDataRef.current     = fullData;
   openPositionRef.current = openPosition;
+
+  useEffect(() => {
+    if (chartProvider === 'tradingview' && tickMode) {
+      setTickMode(false);
+    }
+  }, [chartProvider, tickMode]);
 
   // ── HTF aggregation (derived from base1m, not re-fetched) ─────────────────
   const htfCandles = useMemo(
@@ -271,6 +289,48 @@ export default function BacktestSessionPage() {
     void fetchCandles();
   }, [fetchCandles]);
 
+  useEffect(() => {
+    const sessionId = params.id;
+    if (!sessionId) return;
+
+    let cancelled = false;
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || '/api/v1';
+
+    const hydrateSessionState = async () => {
+      try {
+        const response = await fetch(`${apiUrl}/backtesting/sessions/${sessionId}`, {
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (!response.ok) return;
+        const payload = (await response.json()) as {
+          trades?: ClosedReplayTrade[];
+          endingBalance?: number;
+        };
+
+        if (cancelled) return;
+
+        if (Array.isArray(payload.trades)) {
+          setTrades(payload.trades);
+        }
+        if (typeof payload.endingBalance === 'number' && Number.isFinite(payload.endingBalance)) {
+          setBalance(payload.endingBalance);
+        }
+      } catch {
+        // Session hydration is best-effort to preserve page startup.
+      }
+    };
+
+    void hydrateSessionState();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [params.id]);
+
   // ── Timeframe switch — INSTANT, no re-fetch ───────────────────────────────
   const handleTimeframeChange = useCallback((newTf: string) => {
     if (newTf === timeframe) return;
@@ -334,10 +394,10 @@ export default function BacktestSessionPage() {
 
   // ── Chart sync ─────────────────────────────────────────────────────────────
   useEffect(() => {
-    if (chartRef.current && visibleData.length > 0) {
+    if (chartProvider === 'legacy' && chartRef.current && visibleData.length > 0) {
       chartRef.current.setCandles(visibleData);
     }
-  }, [visibleData]);
+  }, [visibleData, chartProvider]);
 
   // ── Process open positions on each new candle ──────────────────────────────
   const closeTrade = useCallback((pnl: number, time: number, exitPrice: number) => {
@@ -409,7 +469,7 @@ export default function BacktestSessionPage() {
 
   // ── Candle advance ────────────────────────────────────────────────────────
   const advanceCandle = useCallback((candle: CandleData, nextIndex: number) => {
-    if (tickMode) {
+    if (tickMode && chartProvider === 'legacy') {
       const numericTime = Number(candle.time);
       if (!Number.isFinite(numericTime)) {
         return;
@@ -441,7 +501,7 @@ export default function BacktestSessionPage() {
       setCurrentIndex(nextIndex);
       processOpenPositions(candle);
     }
-  }, [tickMode, speed, processOpenPositions]);
+  }, [tickMode, speed, processOpenPositions, chartProvider]);
 
   const handleNextCandle = useCallback(() => {
     if (tickMode && isAnimating) return;
@@ -552,6 +612,11 @@ export default function BacktestSessionPage() {
         }),
       });
       if (!res.ok) throw new Error('Failed to save');
+
+      if (chartProvider === 'tradingview') {
+        await tradingViewRef.current?.saveLayout();
+      }
+
       showAlert('Session saved successfully!', 'Session Saved');
     } catch (error) {
       showAlert(
@@ -620,6 +685,7 @@ export default function BacktestSessionPage() {
       : 'text-gray-500 border-transparent hover:text-gray-700 hover:bg-gray-200';
 
   const divider = isDark ? 'bg-white/8' : 'bg-gray-300';
+  const isTradingViewMode = chartProvider === 'tradingview';
 
   // ── Render ────────────────────────────────────────────────────────────────
 
@@ -657,18 +723,24 @@ export default function BacktestSessionPage() {
           </div>
         </div>
 
-        {/* Center: Timeframe switcher */}
-        <div className="flex items-center gap-0.5 shrink-0">
-          {TIMEFRAMES.map(tf => (
-            <button
-              key={tf}
-              onClick={() => handleTimeframeChange(tf)}
-              className={`px-2 py-1 rounded text-[11px] font-mono font-semibold transition-all border ${tfBtn(timeframe === tf)}`}
-            >
-              {tf.toUpperCase()}
-            </button>
-          ))}
-        </div>
+        {/* Center: Timeframe switcher (native mode only) */}
+        {isTradingViewMode ? (
+          <div className={`text-[11px] font-medium px-2 py-1 rounded-md ${muted}`}>
+            Full TradingView mode
+          </div>
+        ) : (
+          <div className="flex items-center gap-0.5 shrink-0">
+            {TIMEFRAMES.map(tf => (
+              <button
+                key={tf}
+                onClick={() => handleTimeframeChange(tf)}
+                className={`px-2 py-1 rounded text-[11px] font-mono font-semibold transition-all border ${tfBtn(timeframe === tf)}`}
+              >
+                {tf.toUpperCase()}
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* Right: balance + save */}
         <div className="flex items-center gap-3 shrink-0">
@@ -701,76 +773,126 @@ export default function BacktestSessionPage() {
       {/* ── Sub-toolbar ─────────────────────────────────────────────────────── */}
       <div className={`h-10 border-b flex items-center px-4 gap-2 backdrop-blur-sm z-20 overflow-x-auto scrollbar-none ${toolbar}`}>
 
-        {/* Indicators: Volume + Sessions only */}
-        <IndicatorPanel config={indicators} onChange={setIndicators} isDark={isDark} />
-
-        {/* Drawing tools */}
-        <DrawingToolbar
-          activeTool={activeTool}
-          onChange={setActiveTool}
-          drawingCount={drawings.length}
-          onClear={handleClearDrawings}
-        />
-
-        {/* HTF selector */}
+        {/* Chart provider switch */}
         <div className="flex items-center gap-0.5 shrink-0">
-          <div className={`w-px h-5 mr-1.5 ${divider}`} />
-          <span className={`text-[9px] mr-1 font-semibold uppercase tracking-widest select-none ${muted}`}>HTF</span>
-          {HTF_OPTIONS.map(tf => (
-            <button key={tf} onClick={() => setHtfTimeframe(tf)}
-              className={`px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold transition-all border ${htfBtn(htfTimeframe === tf)}`}
-            >
-              {tf.toUpperCase()}
-            </button>
-          ))}
+          <span className={`text-[9px] mr-1 font-semibold uppercase tracking-widest select-none ${muted}`}>
+            Chart
+          </span>
+          <button
+            onClick={() => setChartProvider('legacy')}
+            className={`px-2 py-0.5 rounded text-[10px] font-semibold border transition-all ${
+              chartProvider === 'legacy'
+                ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/40'
+                : isDark
+                  ? 'text-slate-500 border-transparent hover:bg-white/5'
+                  : 'text-gray-500 border-transparent hover:bg-gray-200'
+            }`}
+          >
+            Native
+          </button>
+          <button
+            onClick={() => {
+              setTvUnavailableReason(null);
+              setChartProvider('tradingview');
+            }}
+            className={`px-2 py-0.5 rounded text-[10px] font-semibold border transition-all ${
+              chartProvider === 'tradingview'
+                ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/40'
+                : isDark
+                  ? 'text-slate-500 border-transparent hover:bg-white/5'
+                  : 'text-gray-500 border-transparent hover:bg-gray-200'
+            }`}
+          >
+            TradingView
+          </button>
         </div>
 
-        {/* Session Jump */}
-        <div className="flex items-center gap-0.5 shrink-0">
-          <div className={`w-px h-5 mr-1.5 ${divider}`} />
-          <span className={`text-[9px] mr-1 font-semibold uppercase tracking-widest select-none ${muted}`}>Jump</span>
-          {SESSIONS.map(s => (
-            <button
-              key={s.name}
-              onClick={() => jumpToSession(s.utcHour, s.name)}
-              title={`Jump to ${s.name} Open (${s.utcHour.toString().padStart(2, '0')}:00 UTC) — F${SESSIONS.indexOf(s) + 1}`}
-              className={`flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold transition-all border border-transparent ${
-                isDark ? 'text-slate-500 hover:bg-white/5' : 'text-gray-500 hover:bg-gray-200'
-              }`}
-              style={{ color: s.color }}
-            >
-              <s.Icon className="w-2.5 h-2.5" style={{ color: s.color }} />
-              {s.name}
-            </button>
-          ))}
-        </div>
-
-        {/* Jump toast */}
-        {jumpMsg && (
-          <div className="flex items-center gap-1 px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-400 text-[10px] font-semibold">
-            <FiCheck className="w-3 h-3" />
-            {jumpMsg}
+        {tvUnavailableReason && (
+          <div className="text-[10px] px-2 py-0.5 rounded bg-amber-500/15 text-amber-300 border border-amber-400/30 shrink-0">
+            {tvUnavailableReason}
           </div>
         )}
 
-        {/* Keyboard hints */}
-        <div className={`ml-auto flex items-center gap-2 text-[9px] font-mono select-none shrink-0 ${muted}`}>
-          {[
-            { key: 'Space', label: 'Play' },
-            { key: '← →',  label: 'Step' },
-            { key: '1–4',   label: 'Speed' },
-            { key: 'H T R B', label: 'Draw' },
-            { key: '`',     label: 'Tick' },
-            { key: 'F1–F3', label: 'Jump' },
-          ].map(({ key, label }) => (
-            <span key={key}>
-              <kbd className={`px-1 py-0.5 rounded text-[8px] ${
-                isDark ? 'bg-zinc-900 text-slate-600' : 'bg-gray-200 text-gray-500'
-              }`}>{key}</kbd>
-              {' '}{label}
-            </span>
-          ))}
-        </div>
+        {!isTradingViewMode && (
+          <>
+            {/* Indicators: Volume + Sessions only */}
+            <IndicatorPanel config={indicators} onChange={setIndicators} isDark={isDark} />
+
+            {/* Drawing tools */}
+            <DrawingToolbar
+              activeTool={activeTool}
+              onChange={setActiveTool}
+              drawingCount={drawings.length}
+              onClear={handleClearDrawings}
+            />
+
+            {/* HTF selector */}
+            <div className="flex items-center gap-0.5 shrink-0">
+              <div className={`w-px h-5 mr-1.5 ${divider}`} />
+              <span className={`text-[9px] mr-1 font-semibold uppercase tracking-widest select-none ${muted}`}>HTF</span>
+              {HTF_OPTIONS.map(tf => (
+                <button key={tf} onClick={() => setHtfTimeframe(tf)}
+                  className={`px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold transition-all border ${htfBtn(htfTimeframe === tf)}`}
+                >
+                  {tf.toUpperCase()}
+                </button>
+              ))}
+            </div>
+
+            {/* Session Jump */}
+            <div className="flex items-center gap-0.5 shrink-0">
+              <div className={`w-px h-5 mr-1.5 ${divider}`} />
+              <span className={`text-[9px] mr-1 font-semibold uppercase tracking-widest select-none ${muted}`}>Jump</span>
+              {SESSIONS.map(s => (
+                <button
+                  key={s.name}
+                  onClick={() => jumpToSession(s.utcHour, s.name)}
+                  title={`Jump to ${s.name} Open (${s.utcHour.toString().padStart(2, '0')}:00 UTC) — F${SESSIONS.indexOf(s) + 1}`}
+                  className={`flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold transition-all border border-transparent ${
+                    isDark ? 'text-slate-500 hover:bg-white/5' : 'text-gray-500 hover:bg-gray-200'
+                  }`}
+                  style={{ color: s.color }}
+                >
+                  <s.Icon className="w-2.5 h-2.5" style={{ color: s.color }} />
+                  {s.name}
+                </button>
+              ))}
+            </div>
+
+            {/* Jump toast */}
+            {jumpMsg && (
+              <div className="flex items-center gap-1 px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-400 text-[10px] font-semibold">
+                <FiCheck className="w-3 h-3" />
+                {jumpMsg}
+              </div>
+            )}
+
+            {/* Keyboard hints */}
+            <div className={`ml-auto flex items-center gap-2 text-[9px] font-mono select-none shrink-0 ${muted}`}>
+              {[
+                { key: 'Space', label: 'Play' },
+                { key: '← →',  label: 'Step' },
+                { key: '1–4',   label: 'Speed' },
+                { key: 'H T R B', label: 'Draw' },
+                { key: '`',     label: 'Tick' },
+                { key: 'F1–F3', label: 'Jump' },
+              ].map(({ key, label }) => (
+                <span key={key}>
+                  <kbd className={`px-1 py-0.5 rounded text-[8px] ${
+                    isDark ? 'bg-zinc-900 text-slate-600' : 'bg-gray-200 text-gray-500'
+                  }`}>{key}</kbd>
+                  {' '}{label}
+                </span>
+              ))}
+            </div>
+          </>
+        )}
+
+        {isTradingViewMode && (
+          <div className={`ml-auto text-[10px] font-medium ${muted}`}>
+            Full TradingView controls enabled
+          </div>
+        )}
       </div>
 
       {/* ── Main content ──────────────────────────────────────────────────────── */}
@@ -804,103 +926,120 @@ export default function BacktestSessionPage() {
         )}
 
         {!loading && !error && fullData.length > 0 && (
-          <>
-            <div className="flex-1 flex overflow-hidden">
+          isTradingViewMode ? (
+            <div className="flex-1 min-h-0">
+              <TradingViewBacktestChart
+                ref={tradingViewRef}
+                sessionId={params.id}
+                symbol={symbol}
+                timeframe={timeframe}
+                isDark={isDark}
+                className="h-full w-full"
+                onUnavailable={(reason) => {
+                  setTvUnavailableReason(reason);
+                  setChartProvider('legacy');
+                }}
+              />
+            </div>
+          ) : (
+            <>
+              <div className="flex-1 flex overflow-hidden">
 
-              {/* Chart column */}
-              <div className="flex-1 flex flex-col overflow-hidden min-w-0 relative">
+                {/* Chart column */}
+                <div className="flex-1 flex flex-col overflow-hidden min-w-0 relative">
 
-                {/* Main chart */}
-                <div className="flex-1 p-3 pb-0 relative min-h-0">
-                  <ChartEngine
-                    ref={chartRef}
-                    data={visibleData}
-                    markers={markers}
-                    indicators={indicators}
-                    activeTool={activeTool}
-                    drawings={drawings}
-                    onDrawingComplete={handleDrawingComplete}
-                    onDrawingDelete={handleDrawingDelete}
-                    openPosition={openPosition}
-                    onSlTpChange={handleSlTpChange}
-                    isDark={isDark}
-                  />
+                  {/* Main chart */}
+                  <div className="flex-1 p-3 pb-0 relative min-h-0">
+                    <ChartEngine
+                      ref={chartRef}
+                      data={visibleData}
+                      markers={markers}
+                      indicators={indicators}
+                      activeTool={activeTool}
+                      drawings={drawings}
+                      onDrawingComplete={handleDrawingComplete}
+                      onDrawingDelete={handleDrawingDelete}
+                      openPosition={openPosition}
+                      onSlTpChange={handleSlTpChange}
+                      isDark={isDark}
+                    />
 
-                  {/* Trade panel (top-left overlay) */}
-                  <div className="absolute top-6 left-6 z-20">
-                    {openPosition ? (
-                      <PositionManager
-                        position={openPosition}
-                        currentPrice={visibleData[visibleData.length - 1]?.close || 0}
-                        currentTime={visibleData[visibleData.length - 1]?.time as number || 0}
-                        balance={balance}
-                        symbol={symbol}
-                        isDark={isDark}
-                        onClose={handleCloseAtMarket}
-                        onSlTpChange={handleSlTpChange}
+                    {/* Trade panel (top-left overlay) */}
+                    <div className="absolute top-6 left-6 z-20">
+                      {openPosition ? (
+                        <PositionManager
+                          position={openPosition}
+                          currentPrice={visibleData[visibleData.length - 1]?.close || 0}
+                          currentTime={visibleData[visibleData.length - 1]?.time as number || 0}
+                          balance={balance}
+                          symbol={symbol}
+                          isDark={isDark}
+                          onClose={handleCloseAtMarket}
+                          onSlTpChange={handleSlTpChange}
+                        />
+                      ) : (
+                        <OrderPanel
+                          currentPrice={visibleData[visibleData.length - 1]?.close || 0}
+                          balance={balance}
+                          onPlaceOrder={handlePlaceOrder}
+                          disabled={false}
+                        />
+                      )}
+                    </div>
+                  </div>
+
+                  {/* HTF context pane */}
+                  <div className={`flex-shrink-0 border-t ${
+                    isDark ? 'border-emerald-900/15 bg-black' : 'border-gray-200 bg-gray-50'
+                  }`} style={{ height: 150 }}>
+                    {htfCandles.length > 1 ? (
+                      <HtfContextChart
+                        data={htfCandles}
+                        currentTime={htfCurrentTime}
+                        timeframe={htfTimeframe}
+                        height={150}
                       />
                     ) : (
-                      <OrderPanel
-                        currentPrice={visibleData[visibleData.length - 1]?.close || 0}
-                        balance={balance}
-                        onPlaceOrder={handlePlaceOrder}
-                        disabled={false}
-                      />
+                      <div className={`flex items-center justify-center h-full text-[10px] select-none ${muted}`}>
+                        Not enough data for {htfTimeframe.toUpperCase()} context
+                      </div>
                     )}
                   </div>
                 </div>
 
-                {/* HTF context pane */}
-                <div className={`flex-shrink-0 border-t ${
-                  isDark ? 'border-emerald-900/15 bg-black' : 'border-gray-200 bg-gray-50'
-                }`} style={{ height: 150 }}>
-                  {htfCandles.length > 1 ? (
-                    <HtfContextChart
-                      data={htfCandles}
-                      currentTime={htfCurrentTime}
-                      timeframe={htfTimeframe}
-                      height={150}
-                    />
-                  ) : (
-                    <div className={`flex items-center justify-center h-full text-[10px] select-none ${muted}`}>
-                      Not enough data for {htfTimeframe.toUpperCase()} context
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Session Sidebar */}
-              <SessionSidebar
-                openPosition={openPosition}
-                currentPrice={visibleData[visibleData.length - 1]?.close || 0}
-                currentTime={visibleData[visibleData.length - 1]?.time as number || 0}
-                trades={trades}
-                balance={balance}
-                startingBalance={startingBalance}
-                symbol={symbol}
-              />
-            </div>
-
-            {/* Replay controls */}
-            <div className="absolute bottom-6 left-0 right-0 px-4 flex justify-center pointer-events-none">
-              <div className="pointer-events-auto w-full max-w-2xl">
-                <ReplayControls
-                  isPlaying={isPlaying}
-                  onPlayPause={() => setIsPlaying(p => !p)}
-                  onNextCandle={onNextClick}
-                  onPrevCandle={handlePrevCandle}
-                  speed={speed}
-                  onSpeedChange={setSpeed}
-                  currentDate={currentCandleDate}
-                  totalCandles={fullData.length}
-                  currentCandleIndex={currentIndex + 1}
-                  tickMode={tickMode}
-                  onTickModeToggle={() => setTickMode(p => !p)}
-                  isAnimating={isAnimating}
+                {/* Session Sidebar */}
+                <SessionSidebar
+                  openPosition={openPosition}
+                  currentPrice={visibleData[visibleData.length - 1]?.close || 0}
+                  currentTime={visibleData[visibleData.length - 1]?.time as number || 0}
+                  trades={trades}
+                  balance={balance}
+                  startingBalance={startingBalance}
+                  symbol={symbol}
                 />
               </div>
-            </div>
-          </>
+
+              {/* Replay controls */}
+              <div className="absolute bottom-6 left-0 right-0 px-4 flex justify-center pointer-events-none">
+                <div className="pointer-events-auto w-full max-w-2xl">
+                  <ReplayControls
+                    isPlaying={isPlaying}
+                    onPlayPause={() => setIsPlaying(p => !p)}
+                    onNextCandle={onNextClick}
+                    onPrevCandle={handlePrevCandle}
+                    speed={speed}
+                    onSpeedChange={setSpeed}
+                    currentDate={currentCandleDate}
+                    totalCandles={fullData.length}
+                    currentCandleIndex={currentIndex + 1}
+                    tickMode={tickMode}
+                    onTickModeToggle={() => setTickMode(p => !p)}
+                    isAnimating={isAnimating}
+                  />
+                </div>
+              </div>
+            </>
+          )
         )}
       </main>
 

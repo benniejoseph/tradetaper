@@ -14,7 +14,7 @@ export interface LiveQuote {
   high: number;
   low: number;
   averageVolume?: number;
-  source: 'alpha_vantage' | 'tradermade' | 'fmp' | 'polygon';
+  source: 'alpha_vantage' | 'tradermade' | 'fmp' | 'polygon' | 'yahoo';
 }
 
 export interface MarketSentiment {
@@ -72,6 +72,7 @@ export class MarketDataAggregatorService {
       if (!quote) quote = await this.getTradermadeQuote(symbol);
       if (!quote) quote = await this.getFMPQuote(symbol);
       if (!quote) quote = await this.getPolygonQuote(symbol);
+      if (!quote) quote = await this.getYahooQuote(symbol);
 
       if (quote) {
         this.priceCache.set(symbol, { data: quote, timestamp: new Date() });
@@ -244,6 +245,68 @@ export class MarketDataAggregatorService {
     }
   }
 
+  private async getYahooQuote(symbol: string): Promise<LiveQuote | null> {
+    try {
+      const yahooSymbol = this.mapToYahooSymbol(symbol);
+      if (!yahooSymbol) {
+        return null;
+      }
+
+      const response = await firstValueFrom(
+        this.httpService.get(
+          'https://query1.finance.yahoo.com/v7/finance/quote',
+          {
+            params: { symbols: yahooSymbol },
+            timeout: 5000,
+          },
+        ),
+      );
+
+      const quote = response?.data?.quoteResponse?.result?.[0];
+      if (!quote) {
+        return null;
+      }
+
+      const price = this.num(
+        quote.regularMarketPrice,
+        quote.ask,
+        quote.bid,
+        quote.postMarketPrice,
+      );
+
+      if (!price || price <= 0) {
+        return null;
+      }
+
+      const bid = this.num(quote.bid, price);
+      const ask = this.num(quote.ask, price);
+      const spreadRaw = ask - bid;
+      const spread = spreadRaw > 0 ? spreadRaw : price * 0.0002;
+
+      const timestampSeconds = this.num(quote.regularMarketTime, 0);
+      const timestamp =
+        timestampSeconds > 0 ? new Date(timestampSeconds * 1000) : new Date();
+
+      return {
+        symbol,
+        bid,
+        ask,
+        spread,
+        timestamp,
+        volume: this.num(quote.regularMarketVolume, 0),
+        change: this.num(quote.regularMarketChange, 0),
+        changePercent: this.num(quote.regularMarketChangePercent, 0),
+        high: this.num(quote.regularMarketDayHigh, price),
+        low: this.num(quote.regularMarketDayLow, price),
+        averageVolume: this.num(quote.averageDailyVolume3Month, undefined),
+        source: 'yahoo',
+      };
+    } catch (error) {
+      this.logger.debug(`Yahoo failed for ${symbol}: ${error.message}`);
+      return null;
+    }
+  }
+
   async getMarketSentiment(): Promise<MarketSentiment> {
     // Check cache
     if (
@@ -391,6 +454,57 @@ export class MarketDataAggregatorService {
       XAUUSD: 'XAUUSD',
     };
     return mapping[symbol] || symbol;
+  }
+
+  private mapToYahooSymbol(symbol: string): string | null {
+    const normalized = String(symbol || '').toUpperCase();
+    const mapping: Record<string, string> = {
+      // Forex majors
+      EURUSD: 'EURUSD=X',
+      GBPUSD: 'GBPUSD=X',
+      USDJPY: 'JPY=X',
+      AUDUSD: 'AUDUSD=X',
+      USDCAD: 'CAD=X',
+      USDCHF: 'CHF=X',
+      NZDUSD: 'NZDUSD=X',
+
+      // Indices / index futures proxies
+      ES: 'ES=F',
+      SPX: 'ES=F',
+      SP500: 'ES=F',
+      US500: 'ES=F',
+      NQ: 'NQ=F',
+      NDX: 'NQ=F',
+      NAS100: 'NQ=F',
+      US100: 'NQ=F',
+      DOW: 'YM=F',
+      DJIA: 'YM=F',
+      US30: 'YM=F',
+
+      // Commodities
+      XAUUSD: 'GC=F',
+      GOLD: 'GC=F',
+      XAGUSD: 'SI=F',
+      SILVER: 'SI=F',
+      WTI: 'CL=F',
+      USOIL: 'CL=F',
+      CL: 'CL=F',
+      NATGAS: 'NG=F',
+      NG: 'NG=F',
+    };
+
+    return mapping[normalized] || null;
+  }
+
+  private num(...values: Array<number | string | undefined | null>): number {
+    for (const value of values) {
+      if (value === undefined || value === null || value === '') continue;
+      const parsed = Number(value);
+      if (Number.isFinite(parsed)) {
+        return parsed;
+      }
+    }
+    return 0;
   }
 
   private getDefaultSentiment(): MarketSentiment {

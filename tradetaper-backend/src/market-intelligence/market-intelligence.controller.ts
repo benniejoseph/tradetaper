@@ -113,11 +113,20 @@ export class MarketIntelligenceController {
 
   @UseGuards(JwtAuthGuard)
   @Get('news')
-  async getMarketNews(@Query('category') category?: string) {
-    this.logger.log(`Getting market news (Category: ${category || 'All'})`);
+  async getMarketNews(
+    @Query('category') category?: string,
+    @Query('limit') limit?: string,
+  ) {
+    const parsedLimit = Number.parseInt(limit || '', 10);
+    const safeLimit = Number.isFinite(parsedLimit) ? parsedLimit : undefined;
+    this.logger.log(
+      `Getting market news (Category: ${category || 'All'}, Limit: ${safeLimit || 'default'})`,
+    );
     try {
-      // Use new category filter in service
-      const newsResult = await this.newsAnalysisService.getMarketNews(category);
+      const newsResult = await this.newsAnalysisService.getMarketNews(
+        category,
+        safeLimit,
+      );
       return newsResult;
     } catch (error) {
       this.logger.error('Failed to get market news', error);
@@ -126,6 +135,15 @@ export class MarketIntelligenceController {
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('news/categories')
+  getNewsCategories() {
+    return {
+      categories: this.newsAnalysisService.getAvailableCategories(),
+      defaultCategory: 'all',
+    };
   }
 
   @UseGuards(JwtAuthGuard, FeatureAccessGuard)
@@ -214,13 +232,18 @@ export class MarketIntelligenceController {
     @Query('from') from?: string,
     @Query('to') to?: string,
     @Query('importance') importance?: string,
+    @Query('refresh') refresh?: string,
   ) {
     this.logger.log('Getting economic calendar');
     try {
+      const forceRefresh =
+        typeof refresh === 'string' &&
+        ['1', 'true', 'yes'].includes(refresh.toLowerCase());
       return await this.economicCalendarService.getEconomicCalendar(
         from,
         to,
         importance,
+        forceRefresh,
       );
     } catch (error) {
       this.logger.error('Failed to get economic calendar', error);
@@ -337,18 +360,41 @@ export class MarketIntelligenceController {
   }
 
   @UseGuards(JwtAuthGuard)
-  @Header('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate')
+  @Get('cot/symbols')
+  async getCotSymbols() {
+    try {
+      return this.cotDataService.getSupportedSymbols();
+    } catch (error) {
+      this.logger.error('Failed to get COT symbol universe', error);
+      throw new HttpException(
+        'Failed to fetch COT symbols',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Header(
+    'Cache-Control',
+    'no-store, no-cache, must-revalidate, proxy-revalidate',
+  )
   @Header('Pragma', 'no-cache')
   @Header('Expires', '0')
   @Get('cot/history/:symbol')
-  async getCotHistory(@Param('symbol') symbol: string, @Query('limit') limit?: string) {
+  async getCotHistory(
+    @Param('symbol') symbol: string,
+    @Query('limit') limit?: string,
+  ) {
     this.logger.log(`Getting COT history for symbol: ${symbol}`);
     try {
       const parsedLimit = limit ? parseInt(limit, 10) : 52;
       return await this.cotDataService.getCotHistory(symbol, parsedLimit);
     } catch (error) {
       this.logger.error(`Failed to get COT history for ${symbol}`, error);
-      throw new HttpException('Failed to fetch COT history', HttpStatus.INTERNAL_SERVER_ERROR);
+      throw new HttpException(
+        'Failed to fetch COT history',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   }
 
@@ -361,7 +407,10 @@ export class MarketIntelligenceController {
       return await this.cotAnalysisService.generateCotAiSummary(symbol);
     } catch (error) {
       this.logger.error(`Failed to get COT analysis for ${symbol}`, error);
-      throw new HttpException('Failed to fetch COT analysis', HttpStatus.INTERNAL_SERVER_ERROR);
+      throw new HttpException(
+        'Failed to fetch COT analysis',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   }
 }

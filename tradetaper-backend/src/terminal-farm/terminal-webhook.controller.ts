@@ -11,6 +11,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import * as crypto from 'crypto';
 import { TerminalFarmService } from './terminal-farm.service';
 import { TerminalTokenService } from './terminal-token.service';
 import {
@@ -44,16 +45,49 @@ export class TerminalWebhookController {
    * Validate API key from terminal EA
    * SECURITY: Fails closed if TERMINAL_WEBHOOK_SECRET not configured
    */
+  private buildLoginServerFingerprint(
+    login?: string,
+    server?: string,
+  ): string | null {
+    const normalizedLogin = (login || '').trim();
+    const normalizedServer = (server || '').trim();
+    if (!normalizedLogin || !normalizedServer) return null;
+    return crypto
+      .createHash('sha256')
+      .update(
+        `${normalizedLogin.toLowerCase()}:${normalizedServer.toLowerCase()}`,
+      )
+      .digest('hex');
+  }
+
   private validateAuth(
     apiKey: string,
     authToken: string | undefined,
     terminalId: string,
+    mt5Login?: string,
+    mt5Server?: string,
   ): boolean {
     if (authToken) {
       const payload = this.terminalTokenService.verifyTerminalToken(authToken);
       if (!payload || payload.terminalId !== terminalId) {
         this.logger.warn('Invalid terminal auth token provided');
         return false;
+      }
+
+      if (payload.accountFingerprint) {
+        const incomingFingerprint = this.buildLoginServerFingerprint(
+          mt5Login,
+          mt5Server,
+        );
+        if (
+          incomingFingerprint &&
+          incomingFingerprint !== payload.accountFingerprint
+        ) {
+          this.logger.warn(
+            'Terminal token account fingerprint mismatch for webhook request',
+          );
+          return false;
+        }
       }
       return true;
     }
@@ -87,16 +121,26 @@ export class TerminalWebhookController {
   @HttpCode(HttpStatus.OK)
   @RateLimit({
     windowMs: 60 * 1000, // 1 minute
-    maxRequests: 2, // Max 2 heartbeats per minute per terminal
+    maxRequests: 6, // Max 6 heartbeats per minute per terminal
     keyGenerator: (req) => `terminal:${req.body.terminalId || 'unknown'}`,
-    message: 'Heartbeat rate limit exceeded. Maximum 2 per minute.',
+    message: 'Heartbeat rate limit exceeded. Maximum 6 per minute.',
   })
   async heartbeat(
     @Body() data: TerminalHeartbeatDto,
     @Headers('x-api-key') apiKey: string,
   ): Promise<any> {
-    if (!this.validateAuth(apiKey, data.authToken, data.terminalId)) {
-      throw new UnauthorizedException('Invalid API key');
+    if (
+      !this.validateAuth(
+        apiKey,
+        data.authToken,
+        data.terminalId,
+        data.mt5Login,
+        data.mt5Server,
+      )
+    ) {
+      throw new UnauthorizedException(
+        data.authToken ? 'Invalid terminal auth token' : 'Invalid API key',
+      );
     }
 
     return this.terminalFarmService.processHeartbeat(data);
@@ -120,8 +164,18 @@ export class TerminalWebhookController {
     @Body() data: TerminalCandlesSyncDto,
     @Headers('x-api-key') apiKey: string,
   ): Promise<{ success: boolean }> {
-    if (!this.validateAuth(apiKey, data.authToken, data.terminalId)) {
-      throw new UnauthorizedException('Invalid API key');
+    if (
+      !this.validateAuth(
+        apiKey,
+        data.authToken,
+        data.terminalId,
+        data.mt5Login,
+        data.mt5Server,
+      )
+    ) {
+      throw new UnauthorizedException(
+        data.authToken ? 'Invalid terminal auth token' : 'Invalid API key',
+      );
     }
 
     await this.terminalFarmService.processCandles(data);
@@ -152,8 +206,18 @@ export class TerminalWebhookController {
     skipped: number;
     failed: number;
   }> {
-    if (!this.validateAuth(apiKey, data.authToken, data.terminalId)) {
-      throw new UnauthorizedException('Invalid API key');
+    if (
+      !this.validateAuth(
+        apiKey,
+        data.authToken,
+        data.terminalId,
+        data.mt5Login,
+        data.mt5Server,
+      )
+    ) {
+      throw new UnauthorizedException(
+        data.authToken ? 'Invalid terminal auth token' : 'Invalid API key',
+      );
     }
 
     const result = await this.terminalFarmService.processTrades(data);
@@ -184,8 +248,18 @@ export class TerminalWebhookController {
     @Body() data: TerminalPositionsDto,
     @Headers('x-api-key') apiKey: string,
   ): Promise<{ success: boolean }> {
-    if (!this.validateAuth(apiKey, data.authToken, data.terminalId)) {
-      throw new UnauthorizedException('Invalid API key');
+    if (
+      !this.validateAuth(
+        apiKey,
+        data.authToken,
+        data.terminalId,
+        data.mt5Login,
+        data.mt5Server,
+      )
+    ) {
+      throw new UnauthorizedException(
+        data.authToken ? 'Invalid terminal auth token' : 'Invalid API key',
+      );
     }
 
     await this.terminalFarmService.processPositions(data);

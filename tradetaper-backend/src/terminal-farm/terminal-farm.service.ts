@@ -10,6 +10,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
+import * as crypto from 'crypto';
 import {
   TerminalInstance,
   TerminalStatus,
@@ -23,6 +24,7 @@ import {
   TerminalResponseDto,
   TerminalCandlesSyncDto,
   EnableAutoSyncDto,
+  LocalConnectorConfigDto,
 } from './dto/terminal.dto';
 import { TradesService } from '../trades/trades.service';
 import { Trade } from '../trades/entities/trade.entity';
@@ -42,6 +44,7 @@ import { CandleManagementService } from '../backtesting/services/candle-manageme
 @Injectable()
 export class TerminalFarmService {
   private readonly logger = new Logger(TerminalFarmService.name);
+  private readonly encryptionKey: Buffer | null;
 
   constructor(
     @InjectRepository(TerminalInstance)
@@ -60,7 +63,464 @@ export class TerminalFarmService {
     private readonly tradeProcessorService: TradeProcessorService,
     @Inject(forwardRef(() => CandleManagementService))
     private readonly candleManagementService: CandleManagementService,
-  ) {}
+  ) {
+    const encryptionKeyString =
+      this.configService.get<string>('MT5_ENCRYPTION_KEY') || '';
+    this.encryptionKey = encryptionKeyString
+      ? Buffer.from(encryptionKeyString, 'hex')
+      : null;
+  }
+
+  private buildLoginServerFingerprint(
+    login?: string,
+    server?: string,
+  ): string | null {
+    const normalizedLogin = (login || '').trim();
+    const normalizedServer = (server || '').trim();
+    if (!normalizedLogin || !normalizedServer) return null;
+
+    return crypto
+      .createHash('sha256')
+      .update(
+        `${normalizedLogin.toLowerCase()}:${normalizedServer.toLowerCase()}`,
+      )
+      .digest('hex');
+  }
+
+  private tryDecryptMt5Field(raw: string | null | undefined): string | null {
+    const value = (raw || '').trim();
+    if (!value) return null;
+    if (!this.encryptionKey) return value;
+
+    try {
+      if (value.includes(':')) {
+        const colonIdx = value.indexOf(':');
+        const iv = Buffer.from(value.substring(0, colonIdx), 'hex');
+        const enc = Buffer.from(value.substring(colonIdx + 1), 'hex');
+        const decipher = crypto.createDecipheriv(
+          'aes-256-cbc',
+          this.encryptionKey,
+          iv,
+        );
+        return Buffer.concat([decipher.update(enc), decipher.final()]).toString(
+          'utf8',
+        );
+      }
+
+      const legacyIvString =
+        this.configService.get<string>('MT5_ENCRYPTION_IV') || '';
+      if (legacyIvString && value.length % 2 === 0) {
+        const iv = Buffer.from(legacyIvString, 'hex').slice(0, 16);
+        const decipher = crypto.createDecipheriv(
+          'aes-256-cbc',
+          this.encryptionKey,
+          iv,
+        );
+        let decrypted = decipher.update(value, 'hex', 'utf8');
+        decrypted += decipher.final('utf8');
+        return decrypted;
+      }
+    } catch {
+      // Field is likely plaintext/manual or incompatible legacy format.
+    }
+
+    return value;
+  }
+
+  private generatePairingCode(length = 10): string {
+    const alphabet = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+    let code = '';
+    for (let i = 0; i < length; i += 1) {
+      code += alphabet[Math.floor(Math.random() * alphabet.length)];
+    }
+    return code;
+  }
+
+  private async getOrHydrateAccountFingerprint(
+    account: MT5Account,
+  ): Promise<string | null> {
+    if (account.loginServerFingerprint) {
+      return account.loginServerFingerprint;
+    }
+
+    const login = this.tryDecryptMt5Field(account.login) || account.login;
+    const server = this.tryDecryptMt5Field(account.server) || account.server;
+    const fingerprint = this.buildLoginServerFingerprint(login, server);
+    if (!fingerprint) return null;
+
+    await this.mt5AccountRepository.update(account.id, {
+      loginServerFingerprint: fingerprint,
+    });
+    account.loginServerFingerprint = fingerprint;
+
+    return fingerprint;
+  }
+
+  private async ensureConnectorMetadata(
+    terminal: TerminalInstance,
+    account: MT5Account,
+  ): Promise<{
+    pairingCode: string;
+    accountFingerprint: string | null;
+    changed: boolean;
+  }> {
+    const accountFingerprint = await this.getOrHydrateAccountFingerprint(
+      account,
+    );
+    const metadata = terminal.metadata || {};
+    const connector =
+      metadata.connector && typeof metadata.connector === 'object'
+        ? metadata.connector
+        : {};
+
+    const existingPairingCode =
+      typeof connector.pairingCode === 'string'
+        ? connector.pairingCode.trim()
+        : '';
+    const pairingCode = existingPairingCode || this.generatePairingCode();
+    const existingEnforced = connector.enforced === false ? false : true;
+    const needsUpdate =
+      connector.version !== 'v2' ||
+      connector.enforced !== existingEnforced ||
+      connector.pairingCode !== pairingCode ||
+      connector.accountFingerprint !== accountFingerprint;
+
+    if (needsUpdate) {
+      terminal.metadata = {
+        ...metadata,
+        connector: {
+          ...connector,
+          version: 'v2',
+          enforced: existingEnforced,
+          pairingCode,
+          accountFingerprint,
+          updatedAt: new Date().toISOString(),
+        },
+      };
+    }
+
+    return { pairingCode, accountFingerprint, changed: needsUpdate };
+  }
+
+  private validateConnectorBinding(
+    terminal: TerminalInstance,
+    mt5Login?: string,
+    mt5Server?: string,
+    pairingCode?: string,
+    authToken?: string,
+  ): { valid: boolean; error?: string } {
+    const connector = terminal.metadata?.connector;
+    if (!connector || connector.enforced !== true) {
+      return { valid: true };
+    }
+
+    const incomingAuthToken = (authToken || '').trim();
+    if (!incomingAuthToken) {
+      return {
+        valid: false,
+        error:
+          'Auth token missing in payload. Use the latest TradeTaper connector bundle and paste AuthToken into EA settings.',
+      };
+    }
+
+    const expectedPairingCode =
+      typeof connector.pairingCode === 'string'
+        ? connector.pairingCode.trim()
+        : '';
+    const enforcePairing = connector.enforced === true;
+    if (expectedPairingCode && (enforcePairing || !!(pairingCode || '').trim())) {
+      const incomingPairingCode = (pairingCode || '').trim();
+      if (!incomingPairingCode || incomingPairingCode !== expectedPairingCode) {
+        return {
+          valid: false,
+          error:
+            'Pairing code mismatch. Copy the latest Pairing Code from Settings -> Local MT5 Sync and update your EA.',
+        };
+      }
+    }
+
+    const expectedFingerprint =
+      typeof connector.accountFingerprint === 'string'
+        ? connector.accountFingerprint
+        : null;
+    if (expectedFingerprint) {
+      const incomingFingerprint = this.buildLoginServerFingerprint(
+        mt5Login,
+        mt5Server,
+      );
+      if (!incomingFingerprint) {
+        return {
+          valid: false,
+          error:
+            'MT5 identity missing in payload. Update to the latest TradeTaper EA and keep login/server fields enabled.',
+        };
+      }
+      if (incomingFingerprint !== expectedFingerprint) {
+        return {
+          valid: false,
+          error:
+            'MT5 account binding mismatch. This connector is bound to a different login/server.',
+        };
+      }
+    }
+
+    return { valid: true };
+  }
+
+  private getRuntimeSessionTtlMs(): number {
+    return 2 * 60 * 1000; // 2 minutes
+  }
+
+  private getConnectorAlertCooldownMs(): number {
+    return 5 * 60 * 1000; // 5 minutes
+  }
+
+  private parseIsoTimestamp(value?: unknown): number | null {
+    if (typeof value !== 'string' || !value.trim()) return null;
+    const parsed = Date.parse(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+
+  private normalizeRuntimeId(runtimeId?: string): string {
+    return (runtimeId || '').trim();
+  }
+
+  private validateRuntimeSession(
+    terminal: TerminalInstance,
+    runtimeId?: string,
+    touchSession: boolean = false,
+  ): {
+    valid: boolean;
+    error?: string;
+    conflictRuntimeId?: string;
+    needsSave?: boolean;
+  } {
+    const connector = terminal.metadata?.connector;
+    const enforced = connector?.enforced === true;
+    const incomingRuntimeId = this.normalizeRuntimeId(runtimeId);
+
+    if (enforced && !incomingRuntimeId) {
+      return {
+        valid: false,
+        error:
+          'Connector runtime identifier missing. Update to the latest TradeTaper EA and re-apply connector settings.',
+      };
+    }
+
+    if (!incomingRuntimeId) {
+      return { valid: true };
+    }
+
+    const metadata = terminal.metadata || {};
+    const currentSession =
+      metadata.runtimeSession && typeof metadata.runtimeSession === 'object'
+        ? metadata.runtimeSession
+        : null;
+
+    const lastSeenMs =
+      this.parseIsoTimestamp(currentSession?.lastSeenAt) ||
+      this.parseIsoTimestamp(currentSession?.firstSeenAt);
+
+    if (
+      currentSession?.runtimeId &&
+      currentSession.runtimeId !== incomingRuntimeId &&
+      lastSeenMs &&
+      Date.now() - lastSeenMs < this.getRuntimeSessionTtlMs()
+    ) {
+      return {
+        valid: false,
+        conflictRuntimeId: currentSession.runtimeId,
+        error:
+          'Duplicate connector session detected. This Terminal ID is already active on another MT5 instance.',
+      };
+    }
+
+    if (!touchSession) {
+      return { valid: true };
+    }
+
+    const nowIso = new Date().toISOString();
+    const firstSeenAt =
+      currentSession?.runtimeId === incomingRuntimeId
+        ? currentSession?.firstSeenAt || nowIso
+        : nowIso;
+
+    terminal.metadata = {
+      ...metadata,
+      runtimeSession: {
+        runtimeId: incomingRuntimeId,
+        firstSeenAt,
+        lastSeenAt: nowIso,
+      },
+    };
+
+    return { valid: true, needsSave: true };
+  }
+
+  private async notifyConnectorGuardrail(
+    terminal: TerminalInstance,
+    issueKey:
+      | 'pairing_mismatch'
+      | 'binding_mismatch'
+      | 'runtime_conflict'
+      | 'runtime_missing',
+    message: string,
+    details: Record<string, unknown> = {},
+  ): Promise<void> {
+    try {
+      const metadata = terminal.metadata || {};
+      const alerts: Record<string, string> =
+        metadata.connectorAlerts && typeof metadata.connectorAlerts === 'object'
+          ? { ...(metadata.connectorAlerts as Record<string, string>) }
+          : {};
+
+      const now = Date.now();
+      const lastAlertMs = this.parseIsoTimestamp(alerts[issueKey]);
+      if (
+        lastAlertMs &&
+        now - lastAlertMs < this.getConnectorAlertCooldownMs()
+      ) {
+        return;
+      }
+
+      alerts[issueKey] = new Date(now).toISOString();
+      terminal.metadata = {
+        ...metadata,
+        connectorAlerts: alerts,
+      };
+      await this.terminalRepository.save(terminal);
+
+      if (!terminal.account?.userId) return;
+
+      await this.notificationsService.send({
+        userId: terminal.account.userId,
+        type: NotificationType.MT5_SYNC_ERROR,
+        title: 'Local MT5 Connector Blocked',
+        message,
+        priority: NotificationPriority.HIGH,
+        data: {
+          terminalId: terminal.id,
+          accountId: terminal.accountId,
+          issueKey,
+          ...details,
+        },
+      });
+    } catch (error) {
+      this.logger.warn(
+        `Failed to notify connector guardrail (${issueKey}): ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+    }
+  }
+
+  private async resolveTerminalForSync(
+    terminalId: string,
+    mt5Login?: string,
+    mt5Server?: string,
+  ): Promise<TerminalInstance | null> {
+    const terminal = await this.terminalRepository.findOne({
+      where: { id: terminalId },
+      relations: ['account'],
+    });
+
+    if (!terminal) return null;
+
+    const incomingFingerprint = this.buildLoginServerFingerprint(
+      mt5Login,
+      mt5Server,
+    );
+    if (!incomingFingerprint) return terminal;
+
+    const linkedFingerprint = terminal.account?.loginServerFingerprint;
+    if (linkedFingerprint && linkedFingerprint === incomingFingerprint) {
+      return terminal;
+    }
+
+    if (!terminal.account?.userId) {
+      this.logger.warn(
+        `Terminal ${terminalId} has no account context; cannot verify incoming MT5 identity`,
+      );
+      return null;
+    }
+
+    let matchedAccount = await this.mt5AccountRepository.findOne({
+      where: {
+        userId: terminal.account.userId,
+        loginServerFingerprint: incomingFingerprint,
+      },
+      select: ['id', 'userId', 'accountName'],
+    });
+
+    if (!matchedAccount) {
+      const candidateAccounts = await this.mt5AccountRepository.find({
+        where: { userId: terminal.account.userId },
+        select: [
+          'id',
+          'userId',
+          'accountName',
+          'login',
+          'server',
+          'loginServerFingerprint',
+          'metadata',
+        ],
+      });
+
+      for (const candidate of candidateAccounts) {
+        const candidateFingerprint =
+          candidate.loginServerFingerprint ||
+          candidate.metadata?.loginServerFingerprint ||
+          this.buildLoginServerFingerprint(
+            this.tryDecryptMt5Field(candidate.login) || candidate.login,
+            this.tryDecryptMt5Field(candidate.server) || candidate.server,
+          );
+
+        if (candidateFingerprint !== incomingFingerprint) {
+          continue;
+        }
+
+        matchedAccount = {
+          id: candidate.id,
+          userId: candidate.userId,
+          accountName: candidate.accountName,
+        } as MT5Account;
+
+        if (!candidate.loginServerFingerprint && candidateFingerprint) {
+          await this.mt5AccountRepository.update(candidate.id, {
+            loginServerFingerprint: candidateFingerprint,
+          });
+        }
+        break;
+      }
+    }
+
+    if (!matchedAccount) {
+      this.logger.warn(
+        `Terminal ${terminalId} reported MT5 account ${mt5Login}@${mt5Server} with no matching linked account for user ${terminal.account.userId}`,
+      );
+      return null;
+    }
+
+    const routedTerminal = await this.terminalRepository.findOne({
+      where: { accountId: matchedAccount.id },
+      relations: ['account'],
+    });
+
+    if (!routedTerminal) {
+      this.logger.warn(
+        `Matched MT5 account ${matchedAccount.id} (${matchedAccount.accountName}) but auto-sync is not enabled for that account`,
+      );
+      return null;
+    }
+
+    if (routedTerminal.id !== terminal.id) {
+      this.logger.warn(
+        `Rerouting sync payload from terminal ${terminal.id} (account ${terminal.accountId}) to terminal ${routedTerminal.id} (account ${routedTerminal.accountId}) using MT5 identity ${mt5Login}@${mt5Server}`,
+      );
+    }
+
+    return routedTerminal;
+  }
 
   /**
    * Find running terminal for an account
@@ -93,6 +553,12 @@ export class TerminalFarmService {
         throw new NotFoundException('Account not found');
       }
 
+      if (dto?.confirmRiskAcknowledgement !== true) {
+        throw new BadRequestException(
+          'Please acknowledge the Local MT5 Sync disclaimer before enabling auto-sync.',
+        );
+      }
+
       // Check if terminal already exists
       let terminal = await this.terminalRepository.findOne({
         where: { accountId },
@@ -113,6 +579,16 @@ export class TerminalFarmService {
         });
       }
 
+      terminal.metadata = {
+        ...(terminal.metadata || {}),
+        connector: {
+          ...((terminal.metadata?.connector as Record<string, unknown>) || {}),
+          enforced: true,
+          disclaimerAcceptedAt: new Date().toISOString(),
+        },
+      };
+
+      await this.ensureConnectorMetadata(terminal, account);
       await this.terminalRepository.save(terminal);
 
       // Trigger terminal provisioning (async)
@@ -189,7 +665,7 @@ export class TerminalFarmService {
   async getTerminalAuthToken(
     accountId: string,
     userId: string,
-  ): Promise<{ token: string }> {
+  ): Promise<{ token: string; accountFingerprint?: string | null }> {
     const account = await this.mt5AccountRepository.findOne({
       where: { id: accountId, userId },
     });
@@ -206,8 +682,69 @@ export class TerminalFarmService {
       throw new NotFoundException('Auto-sync is not enabled');
     }
 
-    const token = this.terminalTokenService.signTerminalToken(terminal.id);
-    return { token };
+    const accountFingerprint = await this.getOrHydrateAccountFingerprint(
+      account,
+    );
+    const token = this.terminalTokenService.signTerminalToken(
+      terminal.id,
+      accountFingerprint || undefined,
+    );
+    return { token, accountFingerprint };
+  }
+
+  async getLocalConnectorConfig(
+    accountId: string,
+    userId: string,
+  ): Promise<LocalConnectorConfigDto> {
+    const account = await this.mt5AccountRepository.findOne({
+      where: { id: accountId, userId },
+    });
+
+    if (!account) {
+      throw new NotFoundException('Account not found');
+    }
+
+    const terminal = await this.terminalRepository.findOne({
+      where: { accountId },
+    });
+
+    if (!terminal) {
+      throw new NotFoundException('Auto-sync is not enabled');
+    }
+
+    terminal.metadata = {
+      ...(terminal.metadata || {}),
+      connector: {
+        ...((terminal.metadata?.connector as Record<string, unknown>) || {}),
+        enforced: true,
+      },
+    };
+
+    const connector = await this.ensureConnectorMetadata(terminal, account);
+    if (connector.changed) {
+      await this.terminalRepository.save(terminal);
+    }
+
+    const token = this.terminalTokenService.signTerminalToken(
+      terminal.id,
+      connector.accountFingerprint || undefined,
+    );
+
+    const apiEndpoint =
+      this.configService.get<string>('PUBLIC_API_URL') ||
+      this.configService.get<string>('API_PUBLIC_URL') ||
+      this.configService.get<string>('APP_PUBLIC_API_URL') ||
+      'https://api.tradetaper.com';
+
+    return {
+      terminalId: terminal.id,
+      authToken: token,
+      pairingCode: connector.pairingCode,
+      mt5Login: this.tryDecryptMt5Field(account.login) || account.login,
+      mt5Server: this.tryDecryptMt5Field(account.server) || account.server,
+      apiEndpoint,
+      connectorVersion: 'v2',
+    };
   }
 
   async requestManualSync(
@@ -342,16 +879,85 @@ export class TerminalFarmService {
    * Process heartbeat from terminal EA
    */
   async processHeartbeat(data: TerminalHeartbeatDto): Promise<any> {
-    this.logger.debug(`Heartbeat from terminal ${data.terminalId}`);
+    this.logger.debug(
+      `Heartbeat from terminal ${data.terminalId}${data.mt5Login && data.mt5Server ? ` (${data.mt5Login}@${data.mt5Server})` : ''}`,
+    );
 
-    const terminal = await this.terminalRepository.findOne({
-      where: { id: data.terminalId },
-      relations: ['account'],
-    });
+    const terminal = await this.resolveTerminalForSync(
+      data.terminalId,
+      data.mt5Login,
+      data.mt5Server,
+    );
 
     if (!terminal) {
-      this.logger.warn(`Unknown terminal: ${data.terminalId}`);
-      return { success: false, error: 'Unknown terminal' };
+      this.logger.warn(
+        `Unknown or mismatched terminal identity: ${data.terminalId}`,
+      );
+      return {
+        success: false,
+        error:
+          'Terminal/account mismatch. Use the account-specific Terminal ID for this MT5 login.',
+      };
+    }
+
+    if (data.authToken && terminal.id !== data.terminalId) {
+      await this.notifyConnectorGuardrail(
+        terminal,
+        'binding_mismatch',
+        'Local MT5 sync blocked due to terminal credential mismatch.',
+        { reportedTerminalId: data.terminalId, resolvedTerminalId: terminal.id },
+      );
+      return {
+        success: false,
+        error:
+          'Auth token is tied to a different terminal. Update EA Terminal ID/Auth Token for this account.',
+      };
+    }
+
+    const heartbeatBinding = this.validateConnectorBinding(
+      terminal,
+      data.mt5Login,
+      data.mt5Server,
+      data.pairingCode,
+      data.authToken,
+    );
+    if (!heartbeatBinding.valid) {
+      await this.notifyConnectorGuardrail(
+        terminal,
+        heartbeatBinding.error?.includes('Pairing')
+          ? 'pairing_mismatch'
+          : 'binding_mismatch',
+        `Local MT5 sync blocked: ${heartbeatBinding.error}`,
+        {
+          mt5Login: data.mt5Login,
+          mt5Server: data.mt5Server,
+        },
+      );
+      return {
+        success: false,
+        error: heartbeatBinding.error,
+      };
+    }
+
+    const runtimeSession = this.validateRuntimeSession(
+      terminal,
+      data.runtimeId,
+      true,
+    );
+    if (!runtimeSession.valid) {
+      await this.notifyConnectorGuardrail(
+        terminal,
+        data.runtimeId ? 'runtime_conflict' : 'runtime_missing',
+        `Local MT5 sync blocked: ${runtimeSession.error}`,
+        {
+          incomingRuntimeId: data.runtimeId || null,
+          activeRuntimeId: runtimeSession.conflictRuntimeId || null,
+        },
+      );
+      return {
+        success: false,
+        error: runtimeSession.error,
+      };
     }
 
     // Update heartbeat
@@ -372,9 +978,7 @@ export class TerminalFarmService {
     }
 
     // Check for queued commands from the primary queue
-    const nextCmd = await this.terminalCommandsQueue.getNextCommand(
-      data.terminalId,
-    );
+    const nextCmd = await this.terminalCommandsQueue.getNextCommand(terminal.id);
 
     // [FIX #11] Consolidate all metadata changes into a single save
     let pendingCommands = Array.isArray(terminal.metadata?.pendingCommands)
@@ -391,7 +995,7 @@ export class TerminalFarmService {
       await this.terminalRepository.save(terminal); // SINGLE save [FIX #11]
 
       this.logger.log(
-        `Dispatching command ${nextCmd.command} to terminal ${data.terminalId}`,
+        `Dispatching command ${nextCmd.command} to terminal ${terminal.id}`,
       );
       return {
         success: true,
@@ -402,7 +1006,7 @@ export class TerminalFarmService {
 
     if (nextCmd) {
       this.logger.log(
-        `Dispatching command ${nextCmd.command} to terminal ${data.terminalId}`,
+        `Dispatching command ${nextCmd.command} to terminal ${terminal.id}`,
       );
       return {
         success: true,
@@ -439,13 +1043,66 @@ export class TerminalFarmService {
       `Trade sync from terminal ${data.terminalId}: ${data.trades.length} trades`,
     );
 
-    const terminal = await this.terminalRepository.findOne({
-      where: { id: data.terminalId },
-      relations: ['account'],
-    });
+    const terminal = await this.resolveTerminalForSync(
+      data.terminalId,
+      data.mt5Login,
+      data.mt5Server,
+    );
 
     if (!terminal || !terminal.account) {
       throw new NotFoundException('Terminal not found');
+    }
+
+    if (data.authToken && terminal.id !== data.terminalId) {
+      await this.notifyConnectorGuardrail(
+        terminal,
+        'binding_mismatch',
+        'Local MT5 trade sync blocked due to terminal credential mismatch.',
+        { reportedTerminalId: data.terminalId, resolvedTerminalId: terminal.id },
+      );
+      throw new BadRequestException(
+        'Auth token is tied to a different terminal. Update EA Terminal ID/Auth Token for this account.',
+      );
+    }
+
+    const tradesBinding = this.validateConnectorBinding(
+      terminal,
+      data.mt5Login,
+      data.mt5Server,
+      data.pairingCode,
+      data.authToken,
+    );
+    if (!tradesBinding.valid) {
+      await this.notifyConnectorGuardrail(
+        terminal,
+        tradesBinding.error?.includes('Pairing')
+          ? 'pairing_mismatch'
+          : 'binding_mismatch',
+        `Local MT5 trade sync blocked: ${tradesBinding.error}`,
+        {
+          mt5Login: data.mt5Login,
+          mt5Server: data.mt5Server,
+        },
+      );
+      throw new BadRequestException(tradesBinding.error);
+    }
+
+    const tradeRuntimeSession = this.validateRuntimeSession(
+      terminal,
+      data.runtimeId,
+      false,
+    );
+    if (!tradeRuntimeSession.valid) {
+      await this.notifyConnectorGuardrail(
+        terminal,
+        data.runtimeId ? 'runtime_conflict' : 'runtime_missing',
+        `Local MT5 trade sync blocked: ${tradeRuntimeSession.error}`,
+        {
+          incomingRuntimeId: data.runtimeId || null,
+          activeRuntimeId: tradeRuntimeSession.conflictRuntimeId || null,
+        },
+      );
+      throw new BadRequestException(tradeRuntimeSession.error);
     }
 
     let imported = 0;
@@ -667,12 +1324,66 @@ export class TerminalFarmService {
       `Positions update from terminal ${data.terminalId}: ${data.positions.length} positions`,
     );
 
-    const terminal = await this.terminalRepository.findOne({
-      where: { id: data.terminalId },
-    });
+    const terminal = await this.resolveTerminalForSync(
+      data.terminalId,
+      data.mt5Login,
+      data.mt5Server,
+    );
 
     if (!terminal) {
       return;
+    }
+
+    if (data.authToken && terminal.id !== data.terminalId) {
+      await this.notifyConnectorGuardrail(
+        terminal,
+        'binding_mismatch',
+        'Local MT5 position sync blocked due to terminal credential mismatch.',
+        { reportedTerminalId: data.terminalId, resolvedTerminalId: terminal.id },
+      );
+      throw new BadRequestException(
+        'Auth token is tied to a different terminal. Update EA Terminal ID/Auth Token for this account.',
+      );
+    }
+
+    const positionsBinding = this.validateConnectorBinding(
+      terminal,
+      data.mt5Login,
+      data.mt5Server,
+      data.pairingCode,
+      data.authToken,
+    );
+    if (!positionsBinding.valid) {
+      await this.notifyConnectorGuardrail(
+        terminal,
+        positionsBinding.error?.includes('Pairing')
+          ? 'pairing_mismatch'
+          : 'binding_mismatch',
+        `Local MT5 position sync blocked: ${positionsBinding.error}`,
+        {
+          mt5Login: data.mt5Login,
+          mt5Server: data.mt5Server,
+        },
+      );
+      throw new BadRequestException(positionsBinding.error);
+    }
+
+    const positionRuntimeSession = this.validateRuntimeSession(
+      terminal,
+      data.runtimeId,
+      false,
+    );
+    if (!positionRuntimeSession.valid) {
+      await this.notifyConnectorGuardrail(
+        terminal,
+        data.runtimeId ? 'runtime_conflict' : 'runtime_missing',
+        `Local MT5 position sync blocked: ${positionRuntimeSession.error}`,
+        {
+          incomingRuntimeId: data.runtimeId || null,
+          activeRuntimeId: positionRuntimeSession.conflictRuntimeId || null,
+        },
+      );
+      throw new BadRequestException(positionRuntimeSession.error);
     }
 
     const normalizeTargetValue = (value?: number | null) => {
@@ -826,12 +1537,66 @@ export class TerminalFarmService {
       `Candle sync from terminal ${data.terminalId}: ${data.candles.length} candles for trade ${data.tradeId}`,
     );
 
-    const terminal = await this.terminalRepository.findOne({
-      where: { id: data.terminalId },
-    });
+    const terminal = await this.resolveTerminalForSync(
+      data.terminalId,
+      data.mt5Login,
+      data.mt5Server,
+    );
 
     if (!terminal) {
       throw new NotFoundException('Terminal not found');
+    }
+
+    if (data.authToken && terminal.id !== data.terminalId) {
+      await this.notifyConnectorGuardrail(
+        terminal,
+        'binding_mismatch',
+        'Local MT5 candle sync blocked due to terminal credential mismatch.',
+        { reportedTerminalId: data.terminalId, resolvedTerminalId: terminal.id },
+      );
+      throw new BadRequestException(
+        'Auth token is tied to a different terminal. Update EA Terminal ID/Auth Token for this account.',
+      );
+    }
+
+    const candlesBinding = this.validateConnectorBinding(
+      terminal,
+      data.mt5Login,
+      data.mt5Server,
+      data.pairingCode,
+      data.authToken,
+    );
+    if (!candlesBinding.valid) {
+      await this.notifyConnectorGuardrail(
+        terminal,
+        candlesBinding.error?.includes('Pairing')
+          ? 'pairing_mismatch'
+          : 'binding_mismatch',
+        `Local MT5 candle sync blocked: ${candlesBinding.error}`,
+        {
+          mt5Login: data.mt5Login,
+          mt5Server: data.mt5Server,
+        },
+      );
+      throw new BadRequestException(candlesBinding.error);
+    }
+
+    const candleRuntimeSession = this.validateRuntimeSession(
+      terminal,
+      data.runtimeId,
+      false,
+    );
+    if (!candleRuntimeSession.valid) {
+      await this.notifyConnectorGuardrail(
+        terminal,
+        data.runtimeId ? 'runtime_conflict' : 'runtime_missing',
+        `Local MT5 candle sync blocked: ${candleRuntimeSession.error}`,
+        {
+          incomingRuntimeId: data.runtimeId || null,
+          activeRuntimeId: candleRuntimeSession.conflictRuntimeId || null,
+        },
+      );
+      throw new BadRequestException(candleRuntimeSession.error);
     }
 
     // Save to global 1m candle store instead of legacy per-trade blob

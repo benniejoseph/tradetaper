@@ -2,13 +2,20 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { FormInput } from '@/components/ui/FormInput';
 import { AnimatedButton } from '@/components/ui/AnimatedButton';
-import { Loader2, Server, User, Key, X } from 'lucide-react';
+import { Server, X } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 
 interface ConnectTerminalModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onConnect: (credentials: { server: string; login: string; password: string }) => Promise<void>;
+  onConnect: (
+    credentials: {
+      server: string;
+      login: string;
+      password: string;
+      confirmRiskAcknowledgement: boolean;
+    },
+  ) => Promise<void>;
   accountName: string;
 }
 
@@ -21,6 +28,7 @@ export const ConnectTerminalModal: React.FC<ConnectTerminalModalProps> = ({
   const [server, setServer] = useState('');
   const [login, setLogin] = useState('');
   const [password, setPassword] = useState('');
+  const [acceptedDisclaimer, setAcceptedDisclaimer] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
 
@@ -30,11 +38,16 @@ export const ConnectTerminalModal: React.FC<ConnectTerminalModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!server || !login || !password) return;
+    if (!server || !login || !password || !acceptedDisclaimer) return;
 
     setIsLoading(true);
     try {
-      await onConnect({ server, login, password });
+      await onConnect({
+        server,
+        login,
+        password,
+        confirmRiskAcknowledgement: true,
+      });
       // Modal closing is handled by parent or success logic, 
       // but usually we want to keep it open if error, or close if success.
       // Parent handleConnect sets status, let's auto-close here on success if no error thrown.
@@ -120,6 +133,18 @@ export const ConnectTerminalModal: React.FC<ConnectTerminalModalProps> = ({
                   required
                 />
 
+                <label className="flex items-start gap-2 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50 p-3 text-xs text-zinc-600 dark:text-zinc-300">
+                  <input
+                    type="checkbox"
+                    checked={acceptedDisclaimer}
+                    onChange={(e) => setAcceptedDisclaimer(e.target.checked)}
+                    className="mt-0.5 h-4 w-4 rounded border-zinc-400 text-emerald-500 focus:ring-emerald-500"
+                  />
+                  <span>
+                    I understand one connector profile is for one MT5 account only, and duplicate runs may be blocked for security.
+                  </span>
+                </label>
+
                 <div className="flex gap-3 pt-2 justify-end">
                   <AnimatedButton
                     variant="ghost"
@@ -132,7 +157,7 @@ export const ConnectTerminalModal: React.FC<ConnectTerminalModalProps> = ({
                     type="submit"
                     variant="primary"
                     loading={isLoading}
-                    disabled={!server || !login || !password}
+                    disabled={!server || !login || !password || !acceptedDisclaimer}
                     icon={<Server className="w-4 h-4" />}
                   >
                     Connect Terminal

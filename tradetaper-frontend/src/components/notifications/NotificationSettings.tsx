@@ -17,7 +17,26 @@ import {
   FaClock,
   FaSave,
   FaUsers,
+  FaGlobe,
+  FaEnvelopeOpenText,
 } from 'react-icons/fa';
+
+type PreferencesUpdatePayload = {
+  enabled?: boolean;
+  channelPreferences?: Record<NotificationType, ChannelPreference>;
+  economicAlert1h?: boolean;
+  economicAlert15m?: boolean;
+  economicAlertNow?: boolean;
+  economicEventImportance?: string[];
+  economicEventCurrencies?: string[];
+  quietHoursEnabled?: boolean;
+  quietHoursStart?: string;
+  quietHoursEnd?: string;
+  timezone?: string;
+  dailyDigestEnabled?: boolean;
+  dailyDigestTime?: string;
+  emailEnabled?: boolean;
+};
 
 export default function NotificationSettings() {
   const dispatch = useDispatch<AppDispatch>();
@@ -39,10 +58,29 @@ export default function NotificationSettings() {
     }
   }, [preferences]);
 
+  const buildUpdatePayload = (
+    source: Partial<NotificationPreference>,
+  ): PreferencesUpdatePayload => ({
+    enabled: source.enabled,
+    channelPreferences: source.channelPreferences,
+    economicAlert1h: source.economicAlert1h,
+    economicAlert15m: source.economicAlert15m,
+    economicAlertNow: source.economicAlertNow,
+    economicEventImportance: source.economicEventImportance,
+    economicEventCurrencies: source.economicEventCurrencies,
+    quietHoursEnabled: source.quietHoursEnabled,
+    quietHoursStart: source.quietHoursStart,
+    quietHoursEnd: source.quietHoursEnd,
+    timezone: source.timezone,
+    dailyDigestEnabled: source.dailyDigestEnabled,
+    dailyDigestTime: source.dailyDigestTime,
+    emailEnabled: source.emailEnabled,
+  });
+
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      await dispatch(updatePreferences(localPrefs)).unwrap();
+      await dispatch(updatePreferences(buildUpdatePayload(localPrefs))).unwrap();
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3000);
     } catch (error) {
@@ -66,6 +104,17 @@ export default function NotificationSettings() {
         },
       } as Record<NotificationType, ChannelPreference>,
     }));
+  };
+
+  const currenciesText = (localPrefs.economicEventCurrencies || []).join(', ');
+
+  const handleCurrenciesChange = (raw: string) => {
+    const parsed = raw
+      .split(',')
+      .map((entry) => entry.trim().toUpperCase())
+      .filter(Boolean);
+
+    setLocalPrefs({ ...localPrefs, economicEventCurrencies: parsed });
   };
 
   const notificationGroups = [
@@ -103,6 +152,9 @@ export default function NotificationSettings() {
       types: [
         { type: NotificationType.SYSTEM_UPDATE, label: 'System Updates' },
         { type: NotificationType.SUBSCRIPTION_EXPIRY, label: 'Subscription Expiry' },
+        { type: NotificationType.SUBSCRIPTION_RENEWED, label: 'Subscription Renewed' },
+        { type: NotificationType.SUBSCRIPTION_REMINDER, label: 'Subscription Reminder' },
+        { type: NotificationType.TRIAL_ENDED, label: 'Trial Ended' },
       ],
     },
     {
@@ -262,6 +314,23 @@ export default function NotificationSettings() {
               })}
             </div>
           </div>
+
+          <div>
+            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <FaGlobe className="w-3.5 h-3.5 text-emerald-500" />
+              Focus Currencies (optional)
+            </label>
+            <input
+              type="text"
+              value={currenciesText}
+              onChange={(e) => handleCurrenciesChange(e.target.value)}
+              placeholder="USD, EUR, GBP, JPY"
+              className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-emerald-500"
+            />
+            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              Leave blank to receive alerts for all currencies.
+            </p>
+          </div>
         </div>
       </div>
 
@@ -356,7 +425,7 @@ export default function NotificationSettings() {
       <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center space-x-3">
-            <FaMoon className="w-5 h-5 text-indigo-500" />
+            <FaMoon className="w-5 h-5 text-emerald-500" />
             <div>
               <h3 className="font-semibold text-gray-900 dark:text-white">
                 Quiet Hours
@@ -406,6 +475,60 @@ export default function NotificationSettings() {
                   className="w-full pl-10 pr-4 py-2 bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Daily Digest */}
+      <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center space-x-3">
+            <FaEnvelopeOpenText className="w-5 h-5 text-emerald-500" />
+            <div>
+              <h3 className="font-semibold text-gray-900 dark:text-white">
+                Daily Digest
+              </h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                Receive a daily summary email instead of checking each alert manually.
+              </p>
+            </div>
+          </div>
+          <label className="relative inline-flex items-center cursor-pointer">
+            <input
+              type="checkbox"
+              checked={localPrefs.dailyDigestEnabled ?? false}
+              onChange={(e) => setLocalPrefs({ ...localPrefs, dailyDigestEnabled: e.target.checked })}
+              className="sr-only peer"
+            />
+            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-emerald-300 dark:peer-focus:ring-emerald-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-emerald-600"></div>
+          </label>
+        </div>
+
+        {localPrefs.dailyDigestEnabled && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Digest Time
+              </label>
+              <input
+                type="time"
+                value={localPrefs.dailyDigestTime || '09:00'}
+                onChange={(e) => setLocalPrefs({ ...localPrefs, dailyDigestTime: e.target.value })}
+                className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-emerald-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Timezone
+              </label>
+              <input
+                type="text"
+                value={localPrefs.timezone || ''}
+                onChange={(e) => setLocalPrefs({ ...localPrefs, timezone: e.target.value })}
+                placeholder={Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'}
+                className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-emerald-500"
+              />
             </div>
           </div>
         )}

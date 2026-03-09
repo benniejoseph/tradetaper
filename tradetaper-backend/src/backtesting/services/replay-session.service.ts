@@ -2,6 +2,7 @@ import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ReplaySession } from '../entities/replay-session.entity';
+import { BacktestChartLayout } from '../entities/backtest-chart-layout.entity';
 
 export interface CreateSessionDto {
   userId: string;
@@ -29,7 +30,9 @@ export class ReplaySessionService {
 
   constructor(
     @InjectRepository(ReplaySession)
-    private replaySessionRepo: Repository<ReplaySession>,
+    private readonly replaySessionRepo: Repository<ReplaySession>,
+    @InjectRepository(BacktestChartLayout)
+    private readonly backtestChartLayoutRepo: Repository<BacktestChartLayout>,
   ) {}
 
   /**
@@ -172,5 +175,42 @@ export class ReplaySessionService {
     session.status = 'abandoned';
     await this.replaySessionRepo.save(session);
     return session;
+  }
+
+  async getChartLayout(
+    sessionId: string,
+    userId: string,
+  ): Promise<Record<string, unknown> | null> {
+    await this.getSession(sessionId, userId);
+
+    const record = await this.backtestChartLayoutRepo.findOne({
+      where: { sessionId, userId },
+    });
+
+    return record?.layout || null;
+  }
+
+  async saveChartLayout(
+    sessionId: string,
+    userId: string,
+    layout: Record<string, unknown> | null,
+  ): Promise<Record<string, unknown> | null> {
+    await this.getSession(sessionId, userId);
+
+    let record = await this.backtestChartLayoutRepo.findOne({
+      where: { sessionId, userId },
+    });
+
+    if (!record) {
+      record = this.backtestChartLayoutRepo.create({
+        sessionId,
+        userId,
+      });
+    }
+
+    record.layout = layout;
+    await this.backtestChartLayoutRepo.save(record);
+
+    return record.layout || null;
   }
 }

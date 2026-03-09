@@ -17,6 +17,7 @@ import {
   TerminalResponseDto,
   EnableAutoSyncDto,
   TerminalLivePositionsResponseDto,
+  LocalConnectorConfigDto,
 } from './dto/terminal.dto';
 
 /**
@@ -73,8 +74,22 @@ export class TerminalFarmController {
   async getTerminalToken(
     @Param('accountId') accountId: string,
     @Request() req,
-  ): Promise<{ token: string }> {
+  ): Promise<{ token: string; accountFingerprint?: string | null }> {
     return this.terminalFarmService.getTerminalAuthToken(
+      accountId,
+      req.user.id,
+    );
+  }
+
+  /**
+   * Get account-bound local connector bundle for EA setup (Terminal ID + JWT + pairing code)
+   */
+  @Get(':accountId/local-connector-config')
+  async getLocalConnectorConfig(
+    @Param('accountId') accountId: string,
+    @Request() req,
+  ): Promise<LocalConnectorConfigDto> {
+    return this.terminalFarmService.getLocalConnectorConfig(
       accountId,
       req.user.id,
     );
@@ -83,7 +98,7 @@ export class TerminalFarmController {
   /**
    * Request a manual trade sync from the terminal
    */
-  @Post(':accountId/sync')
+  @Post(':accountId/sync-terminal')
   @HttpCode(HttpStatus.OK)
   async requestSync(
     @Param('accountId') accountId: string,

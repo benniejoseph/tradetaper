@@ -96,18 +96,18 @@ export default function Sidebar({ isOpen, toggleSidebar, isMobile, onExpandChang
         
         {/* Header with Logo */}
         <div className="p-4 sm:p-6">
-          <div className="flex items-center justify-between">
+          <div className={`relative flex items-center ${isExpanded || isMobile ? 'justify-between' : 'justify-center'}`}>
             <Link href="/dashboard" 
-                  className="flex items-center space-x-3 group focus:outline-none"
+                  className={`flex items-center group focus:outline-none transition-all duration-300 ${isExpanded || isMobile ? 'space-x-3 justify-start' : 'justify-center w-full'}`}
                   onClick={handleLinkClick}>
-              <div className="relative -ml-2">
-                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center group-hover:scale-105 transition-all duration-300">
+              <div className={`relative ${isExpanded || isMobile ? '-ml-2' : 'mx-auto'}`}>
+                <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl flex items-center justify-center group-hover:scale-105 transition-all duration-300">
                   <Image
                     src="/tradetaperLogo.png"
                     alt="TradeTaper"
-                    width={24}
-                    height={24}
-                    className="h-5 w-5 sm:h-6 sm:w-6 object-contain"
+                    width={48}
+                    height={48}
+                    className="h-10 w-10 sm:h-12 sm:w-12 object-contain"
                   />
                 </div>
               </div>
@@ -119,7 +119,7 @@ export default function Sidebar({ isOpen, toggleSidebar, isMobile, onExpandChang
               </div>
             </Link>
             
-            <div className="flex items-center space-x-2 mt-5">
+            <div className={`flex items-center space-x-2 ${isMobile ? 'mt-5' : 'absolute right-0 top-1/2 -translate-y-1/2'}`}>
               {!isMobile && (
                 <button 
                   onClick={toggleExpanded}

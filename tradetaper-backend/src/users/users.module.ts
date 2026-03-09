@@ -15,17 +15,16 @@ import { TradesModule } from '../trades/trades.module';
 import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
 import { MetaApiService } from './metaapi.service';
 import { UsersController } from './users.controller';
-import { WebSocketModule } from '../websocket/websocket.module'; // [FIX #15]
 import { MT5SyncBootstrapService } from './mt5-sync-bootstrap.service';
 import { MetaApiIdleSuspensionService } from './metaapi-idle-suspension.service';
+import { TerminalInstance } from '../terminal-farm/entities/terminal-instance.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User, Account, MT5Account]),
+    TypeOrmModule.forFeature([User, Account, MT5Account, TerminalInstance]),
     ConfigModule,
     forwardRef(() => TradesModule),
     SubscriptionsModule,
-    forwardRef(() => WebSocketModule), // [FIX #15] needed for MT5PositionsGateway injection
   ],
   providers: [
     UsersService,

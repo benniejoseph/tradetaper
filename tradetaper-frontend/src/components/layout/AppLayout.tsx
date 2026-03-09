@@ -15,6 +15,8 @@ import { Toaster, toast } from 'react-hot-toast';
 import NotificationToast from '@/components/notifications/NotificationToast';
 import { Notification } from '@/services/notificationService';
 import {
+  fetchNotifications,
+  fetchUnreadCount,
   addNotification,
   notificationRead,
   allNotificationsRead,
@@ -28,6 +30,9 @@ interface AppLayoutProps {
 export default function AppLayout({ children }: AppLayoutProps) {
   const dispatch = useDispatch<AppDispatch>();
   const { isAuthenticated } = useSelector((state: RootState) => state.auth);
+  const notifications = useSelector(
+    (state: RootState) => state.notifications?.notifications || [],
+  );
   const selectedRegularAccountId = useSelector(selectSelectedAccountId);
   const selectedMT5AccountId = useSelector(selectSelectedMT5AccountId);
   const { page: tradesPage, limit: tradesLimit, lastFetchIncludeTags } = useSelector((state: RootState) => state.trades);
@@ -35,13 +40,67 @@ export default function AppLayout({ children }: AppLayoutProps) {
   const [isMobile, setIsMobile] = useState(false);
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
   const tradesRefreshTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const notificationPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const seenNotificationIdsRef = useRef<Set<string>>(new Set());
+  const hasHydratedNotificationsRef = useRef(false);
+
+  const showNotificationToast = useCallback(
+    (notification: Notification) => {
+      toast.custom(
+        (t) => <NotificationToast t={t} notification={notification} />,
+        {
+          id: `notification-${notification.id}`,
+          duration: 5000,
+          position: isMobile ? 'top-center' : 'top-right',
+        },
+      );
+    },
+    [isMobile],
+  );
+
+  const normalizeRealtimeNotification = useCallback(
+    (payload: unknown): Notification | null => {
+      if (!payload || typeof payload !== 'object') {
+        return null;
+      }
+
+      const data = payload as Partial<Notification>;
+      if (!data.id || !data.type || !data.title || !data.message) {
+        return null;
+      }
+
+      return {
+        id: data.id,
+        userId: data.userId || '',
+        type: data.type,
+        title: data.title,
+        message: data.message,
+        channel: data.channel || 'in_app',
+        priority: data.priority || 'normal',
+        status: data.status || 'delivered',
+        data: data.data || {},
+        resourceType: data.resourceType,
+        resourceId: data.resourceId,
+        actionUrl: data.actionUrl,
+        icon: data.icon,
+        scheduledFor: data.scheduledFor,
+        sentAt: data.sentAt || new Date().toISOString(),
+        readAt: data.readAt,
+        createdAt: data.createdAt || new Date().toISOString(),
+        updatedAt: data.updatedAt || new Date().toISOString(),
+      };
+    },
+    [],
+  );
 
   // Setup WebSocket connection for real-time notifications
   const { isConnected, subscribe } = useWebSocket({
     autoConnect: isAuthenticated,
     namespace: '/notifications',
-    onConnect: () => console.log('📡 WebSocket connected for notifications'),
-    onDisconnect: () => console.log('📡 WebSocket disconnected'),
+    onConnect: () => {
+      dispatch(fetchUnreadCount());
+      dispatch(fetchNotifications({ limit: 20, offset: 0 }));
+    },
   });
 
   // Setup WebSocket connection for real-time trade updates
@@ -92,26 +151,16 @@ export default function AppLayout({ children }: AppLayoutProps) {
     if (!isConnected || !isAuthenticated) return;
 
     const unsubscribeNew = subscribe('notification:new', (data: unknown) => {
-      const notification = data as Notification;
-      console.log('🔔 New notification received:', data);
+      const notification = normalizeRealtimeNotification(data);
+      if (!notification) return;
       dispatch(addNotification(notification));
-      
-      // Spawn custom toast
-      toast.custom((t) => (
-        <NotificationToast t={t} notification={notification} />
-      ), { 
-        duration: 5000,
-        position: isMobile ? 'top-center' : 'top-right'
-      });
     });
 
     const unsubscribeRead = subscribe('notification:read', (data: unknown) => {
-      console.log('✅ Notification marked as read:', data);
       dispatch(notificationRead(data as { id: string }));
     });
 
     const unsubscribeReadAll = subscribe('notification:readAll', () => {
-      console.log('✅ All notifications marked as read');
       dispatch(allNotificationsRead());
     });
 
@@ -120,7 +169,80 @@ export default function AppLayout({ children }: AppLayoutProps) {
       unsubscribeRead();
       unsubscribeReadAll();
     };
-  }, [isConnected, isAuthenticated, subscribe, dispatch, isMobile]);
+  }, [
+    isConnected,
+    isAuthenticated,
+    subscribe,
+    dispatch,
+    normalizeRealtimeNotification,
+  ]);
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      seenNotificationIdsRef.current.clear();
+      hasHydratedNotificationsRef.current = false;
+      return;
+    }
+
+    if (!hasHydratedNotificationsRef.current) {
+      notifications.forEach((notification) => {
+        seenNotificationIdsRef.current.add(notification.id);
+      });
+      hasHydratedNotificationsRef.current = true;
+      return;
+    }
+
+    const now = Date.now();
+    const recentWindowMs = 15 * 60 * 1000;
+
+    notifications.forEach((notification) => {
+      if (seenNotificationIdsRef.current.has(notification.id)) {
+        return;
+      }
+
+      seenNotificationIdsRef.current.add(notification.id);
+
+      const isUnreadDelivered =
+        notification.status === 'delivered' && !notification.readAt;
+      if (!isUnreadDelivered) {
+        return;
+      }
+
+      const createdAtMs = Date.parse(notification.createdAt);
+      const isRecent =
+        Number.isFinite(createdAtMs) && now - createdAtMs <= recentWindowMs;
+      if (!isRecent) {
+        return;
+      }
+
+      showNotificationToast(notification);
+    });
+  }, [isAuthenticated, notifications, showNotificationToast]);
+
+  useEffect(() => {
+    if (!isAuthenticated || isConnected) {
+      if (notificationPollRef.current) {
+        clearInterval(notificationPollRef.current);
+        notificationPollRef.current = null;
+      }
+      return;
+    }
+
+    const refresh = () => {
+      dispatch(fetchUnreadCount());
+      dispatch(fetchNotifications({ limit: 20, offset: 0 }));
+    };
+
+    refresh();
+    notificationPollRef.current = setInterval(refresh, 60000);
+
+    return () => {
+      if (notificationPollRef.current) {
+        clearInterval(notificationPollRef.current);
+        notificationPollRef.current = null;
+      }
+    };
+  }, [dispatch, isAuthenticated, isConnected]);
 
   // Subscribe to trade websocket events and refresh store (debounced) to keep dashboard/pages live.
   useEffect(() => {
@@ -143,6 +265,9 @@ export default function AppLayout({ children }: AppLayoutProps) {
     return () => {
       if (tradesRefreshTimeoutRef.current) {
         clearTimeout(tradesRefreshTimeoutRef.current);
+      }
+      if (notificationPollRef.current) {
+        clearInterval(notificationPollRef.current);
       }
     };
   }, []);
@@ -208,11 +333,12 @@ export default function AppLayout({ children }: AppLayoutProps) {
           toastOptions={{
             duration: 4000,
             style: {
-              background: 'rgba(255, 255, 255, 0.9)',
+              background: 'rgba(3, 3, 3, 0.92)',
+              color: '#F3F4F6',
               backdropFilter: 'blur(12px)',
-              border: '1px solid rgba(229, 231, 235, 0.5)',
+              border: '1px solid rgba(255, 255, 255, 0.12)',
               borderRadius: '12px',
-              boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+              boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.55), 0 10px 10px -5px rgba(0, 0, 0, 0.45)',
               maxWidth: isMobile ? '90vw' : '400px',
             },
             success: {

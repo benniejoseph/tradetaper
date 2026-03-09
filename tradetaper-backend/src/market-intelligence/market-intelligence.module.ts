@@ -10,6 +10,7 @@ import { EconomicAlertsService } from './economic-alerts.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { EconomicEventAlert } from './entities/economic-event-alert.entity';
 import { EconomicEventAnalysis } from './entities/economic-event-analysis.entity';
+import { EconomicEventRelease } from './entities/economic-event-release.entity';
 import { AIMarketPredictionService } from './ai-market-prediction.service';
 import { MarketSentimentService } from './market-sentiment.service'; // Added
 import { CotWeeklyReport } from './entities/cot-weekly-report.entity';
@@ -31,6 +32,7 @@ import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
     TypeOrmModule.forFeature([
       EconomicEventAlert, 
       EconomicEventAnalysis, 
+      EconomicEventRelease,
       CotWeeklyReport
     ]),
     FreeDataSourcesModule, // FREE data sources (Yahoo Finance, Binance, CoinGecko, RSS, Reddit)

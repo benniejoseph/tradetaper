@@ -28,10 +28,72 @@ interface EconomicEvent {
   ticker?: string;
   symbol?: string;
   lastUpdate?: string;
+  releaseStatus?: 'upcoming' | 'live' | 'released';
+  surprise?: {
+    direction?: 'better' | 'worse' | 'in-line' | 'unknown';
+    value?: number;
+    percent?: number;
+  };
   description?: string;
   impact?: {
     explanation?: string;
     affectedSymbols?: string[];
+  };
+}
+
+interface EconomicImpactDetails {
+  event?: EconomicEvent;
+  history?: Array<{
+    date: string;
+    actual?: string | number;
+    forecast?: string | number;
+    previous?: string | number;
+    source?: string;
+    surpriseDirection?: 'better' | 'worse' | 'in-line' | 'unknown';
+    surprisePercent?: number;
+  }>;
+  cachedAt?: string;
+  confidence?: number;
+  aiSummary?: {
+    confidence?: number;
+    sourceQuality?: {
+      consensus?: string;
+    };
+    watchlist?: Array<{
+      symbol?: string;
+      bias?: string;
+      price?: string;
+      changePercent?: number;
+    }>;
+    marketPulse?: string;
+  };
+  sourceQuality?: {
+    consensus?: string;
+  };
+  impact?: {
+    affectedSymbols?: string[];
+  };
+  detailedAnalysis?: {
+    whyTradersCare?: string;
+    usualEffect?: string;
+    sourceQuality?: {
+      consensus?: string;
+    };
+  };
+  preEventAnalysis?: {
+    marketExpectations?: string;
+  };
+  eventMetrics?: {
+    releaseStatus?: 'upcoming' | 'live' | 'released';
+    surpriseDirection?: 'better' | 'worse' | 'in-line' | 'unknown';
+    surprisePercent?: number;
+  };
+  impactPlaybook?: {
+    fx?: string;
+    indices?: string;
+    metals?: string;
+    rates?: string;
+    crypto?: string;
   };
 }
 
@@ -43,6 +105,8 @@ type VolatilityBar = {
 export default function EconomicCalendar() {
   const [events, setEvents] = useState<EconomicEvent[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [lastSyncedAt, setLastSyncedAt] = useState<Date | null>(null);
   const [error, setError] = useState<string | null>(null);
   
   // Filters
@@ -55,7 +119,7 @@ export default function EconomicCalendar() {
   
   // Selection
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
-  const [eventDetails, setEventDetails] = useState<Record<string, any>>({});
+  const [eventDetails, setEventDetails] = useState<Record<string, EconomicImpactDetails>>({});
   const [loadingDetails, setLoadingDetails] = useState<string | null>(null);
   const [detailTab, setDetailTab] = useState<'summary' | 'ai' | 'history'>('summary');
 
@@ -72,23 +136,49 @@ export default function EconomicCalendar() {
     }
   }, [activeFilters]);
 
-  const fetchEvents = async (importance?: string) => {
+  useEffect(() => {
+    const interval = window.setInterval(() => {
+      if (document.visibilityState !== 'visible') return;
+      const onlyHigh = activeFilters.length === 1 && activeFilters.includes('high');
+      void fetchEvents(onlyHigh ? 'high' : undefined, true, true);
+    }, 60_000);
+
+    return () => window.clearInterval(interval);
+  }, [activeFilters]);
+
+  const fetchEvents = async (
+    importance?: string,
+    forceRefresh = false,
+    silent = false,
+  ) => {
     try {
-      setLoading(true);
+      if (!silent) {
+        setLoading(true);
+      } else {
+        setRefreshing(true);
+      }
       setError(null);
       const response = await authApiClient.get('/market-intelligence/economic-calendar', {
-        params: importance ? { importance } : undefined,
+        params: {
+          ...(importance ? { importance } : {}),
+          ...(forceRefresh ? { refresh: 'true', _ts: Date.now() } : {}),
+        },
       });
       if (response.data && response.data.events) {
         setEvents(response.data.events);
       } else if (Array.isArray(response.data)) {
          setEvents(response.data);
       }
+      setLastSyncedAt(new Date());
     } catch (err) {
       console.error('Failed to fetch calendar', err);
       setError('Failed to load economic calendar data.');
     } finally {
-      setLoading(false);
+      if (!silent) {
+        setLoading(false);
+      } else {
+        setRefreshing(false);
+      }
     }
   };
 
@@ -111,14 +201,14 @@ export default function EconomicCalendar() {
       const response = await authApiClient.get(`/market-intelligence/economic-impact/${encodeURIComponent(eventId)}`);
       setEventDetails(prev => ({
         ...prev,
-        [eventId]: response.data
+        [eventId]: response.data as EconomicImpactDetails
       }));
     } catch (err) {
       console.error('Failed to fetch details', err);
       // Fallback: Just show generic info if fetch fails
       setEventDetails(prev => ({
         ...prev,
-        [eventId]: { explanation: 'Detailed AI analysis unavailable for this event.' }
+        [eventId]: {} as EconomicImpactDetails
       }));
     } finally {
       setLoadingDetails(null);
@@ -224,6 +314,11 @@ export default function EconomicCalendar() {
   }, [events, activeFilters, activeCurrencies, searchQuery, dateRange]);
 
   const getSurpriseDirection = (event: EconomicEvent) => {
+    if (event.surprise?.direction && event.surprise.direction !== 'unknown') {
+      return event.surprise.direction === 'in-line'
+        ? 'neutral'
+        : event.surprise.direction;
+    }
     const actual = Number(event.actual);
     const forecast = Number(event.forecast);
     if (!Number.isFinite(actual) || !Number.isFinite(forecast)) return 'neutral';
@@ -234,8 +329,37 @@ export default function EconomicCalendar() {
   };
 
   const formatValue = (value: string | number | undefined | null, fallback = '—') => {
-    if (value === undefined || value === null || value === '') return fallback;
-    return String(value);
+    if (value === undefined || value === null) return fallback;
+    const normalized = String(value).replace(/\u00a0/g, ' ').trim();
+    if (!normalized || ['n/a', '--', 'pending', 'null'].includes(normalized.toLowerCase())) {
+      return fallback;
+    }
+    return normalized;
+  };
+
+  const resolveReleaseStatus = (event: EconomicEvent) => {
+    if (event.releaseStatus) return event.releaseStatus;
+    const hasActual = formatValue(event.actual, '') !== '';
+    const eventTs = new Date(event.date).getTime();
+    if (hasActual) return 'released';
+    if (eventTs > Date.now()) return 'upcoming';
+    return 'live';
+  };
+
+  const getStatusBadge = (status: 'upcoming' | 'live' | 'released') => {
+    if (status === 'released') {
+      return 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-300 border-emerald-300/60 dark:border-emerald-600/50';
+    }
+    if (status === 'live') {
+      return 'bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-300/60 dark:border-amber-600/60';
+    }
+    return 'bg-slate-500/10 text-slate-600 dark:text-slate-300 border-slate-300/60 dark:border-slate-600/60';
+  };
+
+  const surprisePill = (direction: string) => {
+    if (direction === 'better') return 'text-emerald-600 dark:text-emerald-400';
+    if (direction === 'worse') return 'text-red-600 dark:text-red-400';
+    return 'text-gray-500 dark:text-gray-400';
   };
 
   // Group filtered events by local day key
@@ -304,6 +428,8 @@ export default function EconomicCalendar() {
     selectedDetails?.aiSummary?.sourceQuality ||
     selectedDetails?.sourceQuality;
   const affectedSymbols = selectedDetails?.impact?.affectedSymbols || eventData?.impact?.affectedSymbols || [];
+  const eventMetrics = selectedDetails?.eventMetrics;
+  const impactPlaybook = selectedDetails?.impactPlaybook;
 
   const historicalVolatilityBars = useMemo<VolatilityBar[]>(() => {
     const toNumeric = (value: unknown): number | null => {
@@ -405,6 +531,22 @@ export default function EconomicCalendar() {
                   {range.label}
                 </button>
               ))}
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  const onlyHigh = activeFilters.length === 1 && activeFilters.includes('high');
+                  void fetchEvents(onlyHigh ? 'high' : undefined, true, true);
+                }}
+                className="inline-flex items-center gap-2 rounded-full border border-emerald-500/40 px-3 py-2 text-xs font-semibold text-emerald-600 dark:text-emerald-300 hover:bg-emerald-500/10 transition-colors"
+              >
+                {refreshing ? <FaSpinner className="animate-spin" /> : <FaClock />}
+                {refreshing ? 'Refreshing...' : 'Refresh Live'}
+              </button>
+              <span className="text-[11px] text-gray-500 dark:text-gray-400">
+                {lastSyncedAt ? `Last sync ${lastSyncedAt.toLocaleTimeString()}` : 'Waiting for first sync'}
+              </span>
             </div>
           </div>
 
@@ -525,6 +667,8 @@ export default function EconomicCalendar() {
                     <div className="flex flex-col gap-1 px-2">
                       {groupedEvents[group].map((event) => {
                         const isSelected = selectedEventId === event.id;
+                        const status = resolveReleaseStatus(event);
+                        const surpriseDirection = getSurpriseDirection(event);
                         return (
                           <button
                             key={event.id}
@@ -551,12 +695,22 @@ export default function EconomicCalendar() {
                                 {event.title}
                               </span>
                               {getImpactBadge(event.importance)}
+                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold border ${getStatusBadge(status)}`}>
+                                {status.toUpperCase()}
+                              </span>
+                              <span className={`text-[10px] font-semibold ${surprisePill(surpriseDirection)}`}>
+                                {surpriseDirection === 'better'
+                                  ? 'Beat'
+                                  : surpriseDirection === 'worse'
+                                    ? 'Miss'
+                                    : 'Inline'}
+                              </span>
                             </div>
                             
                             <div className="flex items-center gap-4 w-[200px] justify-end pr-2 font-mono text-xs text-right">
-                              <span className="w-14 font-semibold text-gray-700 dark:text-gray-300">{event.actual || '--'}</span>
-                              <span className="w-14 text-gray-500 dark:text-gray-500">{event.forecast || '--'}</span>
-                              <span className="w-14 text-gray-500 dark:text-gray-500">{event.previous || '--'}</span>
+                              <span className="w-14 font-semibold text-gray-700 dark:text-gray-300">{formatValue(event.actual)}</span>
+                              <span className="w-14 text-gray-500 dark:text-gray-500">{formatValue(event.forecast)}</span>
+                              <span className="w-14 text-gray-500 dark:text-gray-500">{formatValue(event.previous)}</span>
                             </div>
                           </button>
                         );
@@ -649,6 +803,17 @@ export default function EconomicCalendar() {
                         Cached: {new Date(cachedAt).toLocaleTimeString()}
                       </span>
                     )}
+                    {eventMetrics?.releaseStatus && (
+                      <span className="rounded-full border border-gray-200 dark:border-gray-700 px-2 py-0.5">
+                        Status: {eventMetrics.releaseStatus}
+                      </span>
+                    )}
+                    {eventMetrics?.surpriseDirection && eventMetrics.surpriseDirection !== 'unknown' && (
+                      <span className="rounded-full border border-gray-200 dark:border-gray-700 px-2 py-0.5">
+                        Surprise: {eventMetrics.surpriseDirection}
+                        {typeof eventMetrics.surprisePercent === 'number' ? ` (${eventMetrics.surprisePercent.toFixed(2)}%)` : ''}
+                      </span>
+                    )}
                     {sourceQuality?.consensus && (
                       <span className="rounded-full border border-gray-200 dark:border-gray-700 px-2 py-0.5">
                         Source quality: {sourceQuality.consensus}
@@ -724,6 +889,35 @@ export default function EconomicCalendar() {
                   </div>
                 </div>
 
+                {impactPlaybook && (
+                  <div className="bg-white dark:bg-[#111] border border-gray-200 dark:border-[#222] rounded-xl p-4 shadow-sm">
+                    <h5 className="text-sm font-bold text-gray-900 dark:text-white mb-3">
+                      Cross-Market Playbook
+                    </h5>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                      {[
+                        { label: 'FX', value: impactPlaybook.fx },
+                        { label: 'Indices', value: impactPlaybook.indices },
+                        { label: 'Metals', value: impactPlaybook.metals },
+                        { label: 'Rates', value: impactPlaybook.rates },
+                        { label: 'Crypto', value: impactPlaybook.crypto },
+                      ]
+                        .filter((item) => Boolean(item.value))
+                        .map((item) => (
+                          <div
+                            key={item.label}
+                            className="rounded-lg border border-gray-200 dark:border-gray-700 p-3 text-gray-700 dark:text-gray-300"
+                          >
+                            <p className="text-[11px] uppercase tracking-wide text-emerald-600 dark:text-emerald-400 font-semibold mb-1">
+                              {item.label}
+                            </p>
+                            <p>{item.value}</p>
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                )}
+
                 {/* 3. Historical Volatility Mini Chart */}
                 <div className="bg-white dark:bg-[#111] border border-gray-200 dark:border-[#222] rounded-xl p-4 shadow-sm flex-1 min-h-[120px]">
                   <h5 className="text-xs text-gray-500 dark:text-gray-400 mb-4">Historical Volatility for Selected Event</h5>
@@ -769,15 +963,20 @@ export default function EconomicCalendar() {
                   <div className="bg-white dark:bg-[#111] border border-gray-200 dark:border-[#222] rounded-xl p-4 mt-4 shadow-sm">
                     <div className="text-sm font-bold text-gray-900 dark:text-white mb-3 flex justify-between">
                        <span>Recent Releases</span>
-                       <span className="text-xs text-gray-500 font-normal">Actual / Forecast / Previous</span>
+                       <span className="text-xs text-gray-500 font-normal">Actual / Forecast / Previous / Surprise</span>
                      </div>
                     <div className="divide-y divide-gray-100 dark:divide-[#222]">
                       {eventHistory.slice(0, 5).map((item: any, idx: number) => (
-                        <div key={idx} className="grid grid-cols-4 gap-2 py-2 text-xs text-gray-600 dark:text-gray-300">
+                        <div key={idx} className="grid grid-cols-6 gap-2 py-2 text-xs text-gray-600 dark:text-gray-300">
                           <span>{item.date ? new Date(item.date).toLocaleDateString() : '—'}</span>
                           <span><strong className="text-gray-900 dark:text-white">{formatValue(item.actual)}</strong></span>
                           <span><strong className="text-gray-900 dark:text-white">{formatValue(item.forecast)}</strong></span>
                           <span><strong className="text-gray-900 dark:text-white">{formatValue(item.previous)}</strong></span>
+                          <span className={surprisePill(item.surpriseDirection || 'unknown')}>
+                            {item.surpriseDirection || 'unknown'}
+                            {typeof item.surprisePercent === 'number' ? ` (${item.surprisePercent.toFixed(2)}%)` : ''}
+                          </span>
+                          <span className="truncate">{item.source || '—'}</span>
                         </div>
                       ))}
                     </div>

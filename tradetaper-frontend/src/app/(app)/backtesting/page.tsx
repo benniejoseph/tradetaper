@@ -122,7 +122,7 @@ export default function BacktestingPage() {
       </div>
 
       {/* ── Replay Workbench Banner ────────────────────────────────────────────── */}
-      <div className="rounded-2xl border border-gray-200 dark:border-gray-700/40 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-900/30 dark:to-gray-800/20 p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 opacity-60">
+      <div className="rounded-2xl border border-gray-200 dark:border-gray-700/40 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-900/30 dark:to-gray-800/20 p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
           <div className="p-3 rounded-xl bg-gray-100 dark:bg-gray-800/40 text-gray-400 dark:text-gray-500 shrink-0">
             <FiPlay className="w-6 h-6" />
@@ -132,8 +132,8 @@ export default function BacktestingPage() {
               <span className="font-bold text-gray-900 dark:text-white text-base leading-snug">
                 Chart Replay Workbench
               </span>
-              <span className="px-2 py-0.5 rounded-md bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 text-[10px] font-semibold uppercase tracking-wide">
-                Coming Soon
+              <span className="px-2 py-0.5 rounded-md bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 text-[10px] font-semibold uppercase tracking-wide">
+                Live
               </span>
             </div>
             <div className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
@@ -142,21 +142,21 @@ export default function BacktestingPage() {
           </div>
         </div>
         <div className="flex items-center gap-3 shrink-0">
-          <button
-            disabled
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-400 dark:text-gray-500 bg-white dark:bg-black text-sm font-medium cursor-not-allowed"
+          <Link
+            href="/backtesting/sessions"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 bg-white dark:bg-black text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"
           >
             <FiClock className="w-4 h-4" />
             Sessions
-          </button>
-          <button
-            disabled
-            className="inline-flex items-center gap-2 px-5 py-2 rounded-lg bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400 text-sm font-semibold cursor-not-allowed"
+          </Link>
+          <Link
+            href="/backtesting/sessions/new"
+            className="inline-flex items-center gap-2 px-5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold transition-colors"
           >
             <FiPlay className="w-4 h-4" />
             New Session
             <FiChevronRight className="w-3.5 h-3.5" />
-          </button>
+          </Link>
         </div>
       </div>
 

@@ -9,15 +9,46 @@ interface TerminalStatusCardProps {
 }
 
 const getErrorMessage = (error: unknown, fallback: string): string => {
-  if (
-    typeof error === 'object' &&
-    error !== null &&
-    'message' in error &&
-    typeof (error as { message?: unknown }).message === 'string'
-  ) {
-    return (error as { message: string }).message;
+  if (typeof error !== 'object' || error === null) return fallback;
+
+  const apiError = error as {
+    response?: { data?: { message?: unknown } };
+    message?: unknown;
+  };
+
+  const raw = apiError.response?.data?.message ?? apiError.message ?? fallback;
+  if (Array.isArray(raw)) {
+    return raw
+      .map((item) => {
+        if (typeof item === 'string') return item;
+        if (
+          item &&
+          typeof item === 'object' &&
+          'field' in item &&
+          'errors' in item &&
+          Array.isArray((item as { errors?: unknown[] }).errors)
+        ) {
+          const typed = item as { field?: unknown; errors: unknown[] };
+          return `${String(typed.field ?? 'validation')}: ${typed.errors.map(String).join(', ')}`;
+        }
+        return JSON.stringify(item);
+      })
+      .join(' | ');
   }
-  return fallback;
+
+  if (raw && typeof raw === 'object') {
+    if (
+      'field' in raw &&
+      'errors' in raw &&
+      Array.isArray((raw as { errors?: unknown[] }).errors)
+    ) {
+      const typed = raw as { field?: unknown; errors: unknown[] };
+      return `${String(typed.field ?? 'validation')}: ${typed.errors.map(String).join(', ')}`;
+    }
+    return JSON.stringify(raw);
+  }
+
+  return String(raw || fallback);
 };
 
 export default function TerminalStatusCard({ accountId, accountName }: TerminalStatusCardProps) {
@@ -31,7 +62,14 @@ export default function TerminalStatusCard({ accountId, accountName }: TerminalS
   const [isModalOpen, setIsModalOpen] = useState(false);
   const terminalPhase = status?.status;
 
-  const handleConnect = async (credentials: { server: string; login: string; password: string }) => {
+  const handleConnect = async (
+    credentials: {
+      server: string;
+      login: string;
+      password: string;
+      confirmRiskAcknowledgement?: boolean;
+    },
+  ) => {
     try {
       setActionLoading(true);
       const newStatus = await terminalService.enableAutoSync(accountId, credentials);

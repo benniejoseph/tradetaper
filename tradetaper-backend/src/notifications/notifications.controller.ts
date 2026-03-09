@@ -10,6 +10,7 @@ import {
   Request,
   HttpCode,
   HttpStatus,
+  NotFoundException,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import {
@@ -20,12 +21,18 @@ import {
   NotificationStatus,
   NotificationType,
 } from './entities/notification.entity';
-import { NotificationPreference } from './entities/notification-preference.entity';
+import { UpdateNotificationPreferencesDto } from './dto/update-notification-preferences.dto';
+import { RegisterPushTokenDto } from './dto/register-push-token.dto';
+import { GetNotificationsQueryDto } from './dto/get-notifications-query.dto';
+import { ConfigService } from '@nestjs/config';
 
 @Controller('notifications')
 @UseGuards(JwtAuthGuard)
 export class NotificationsController {
-  constructor(private readonly notificationsService: NotificationsService) {}
+  constructor(
+    private readonly notificationsService: NotificationsService,
+    private readonly configService: ConfigService,
+  ) {}
 
   /**
    * Get notifications for the current user
@@ -33,18 +40,14 @@ export class NotificationsController {
   @Get()
   async getNotifications(
     @Request() req,
-    @Query('status') status?: NotificationStatus,
-    @Query('type') type?: NotificationType,
-    @Query('unreadOnly') unreadOnly?: string,
-    @Query('limit') limit?: string,
-    @Query('offset') offset?: string,
+    @Query() query: GetNotificationsQueryDto,
   ) {
     const filter: NotificationFilter = {
-      status,
-      type,
-      unreadOnly: unreadOnly === 'true',
-      limit: limit ? parseInt(limit, 10) : 50,
-      offset: offset ? parseInt(offset, 10) : 0,
+      status: query.status as NotificationStatus | undefined,
+      type: query.type as NotificationType | undefined,
+      unreadOnly: query.unreadOnly,
+      limit: query.limit ?? 50,
+      offset: query.offset ?? 0,
     };
 
     return this.notificationsService.getUserNotifications(req.user.id, filter);
@@ -99,14 +102,8 @@ export class NotificationsController {
   @Patch('preferences')
   async updatePreferences(
     @Request() req,
-    @Body() updates: Partial<NotificationPreference>,
+    @Body() updates: UpdateNotificationPreferencesDto,
   ) {
-    // Remove fields that shouldn't be updatable
-    delete (updates as any).id;
-    delete (updates as any).userId;
-    delete (updates as any).createdAt;
-    delete (updates as any).updatedAt;
-
     return this.notificationsService.updatePreferences(req.user.id, updates);
   }
 
@@ -114,9 +111,12 @@ export class NotificationsController {
    * Register push token
    */
   @Patch('push-token')
-  async registerPushToken(@Request() req, @Body('token') token: string) {
+  async registerPushToken(
+    @Request() req,
+    @Body() body: RegisterPushTokenDto,
+  ) {
     return this.notificationsService.updatePreferences(req.user.id, {
-      pushToken: token,
+      pushToken: body.token,
     });
   }
 
@@ -125,6 +125,10 @@ export class NotificationsController {
    */
   @Get('test')
   async testNotification(@Request() req) {
+    if (this.configService.get<string>('NODE_ENV') === 'production') {
+      throw new NotFoundException();
+    }
+
     const notification = await this.notificationsService.send({
       userId: req.user.id,
       type: NotificationType.SYSTEM_UPDATE,

@@ -114,6 +114,35 @@ export class MT5AccountsController {
     });
   }
 
+  @Post(':id/pause-metaapi')
+  async pauseMetaApiStreaming(@Request() req, @Param('id') id: string) {
+    const account = await this.mt5AccountsService.findOne(id);
+    if (!account || account.userId !== req.user.id) {
+      throw new BadRequestException('MT5 account not found');
+    }
+
+    await this.mt5AccountsService.pauseMetaApiStreaming(id, req.user.id);
+    return { success: true, message: 'MetaApi streaming paused' };
+  }
+
+  @Post(':id/resume-metaapi')
+  async resumeMetaApiStreaming(@Request() req, @Param('id') id: string) {
+    const account = await this.mt5AccountsService.findOne(id);
+    if (!account || account.userId !== req.user.id) {
+      throw new BadRequestException('MT5 account not found');
+    }
+
+    const syncResult = await this.mt5AccountsService.resumeMetaApiStreaming(
+      id,
+      req.user.id,
+    );
+    return {
+      success: true,
+      message: 'MetaApi streaming resumed',
+      ...syncResult,
+    };
+  }
+
   @Post(':id/disconnect-metaapi')
   async disconnectMetaApiAccount(@Request() req, @Param('id') id: string) {
     // Controller-level authorization check is done within the service for simplicity, 

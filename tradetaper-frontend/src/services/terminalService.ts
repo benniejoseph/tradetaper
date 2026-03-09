@@ -36,11 +36,29 @@ export interface LivePositionsResponse {
   positions: LivePosition[];
 }
 
+export interface LocalConnectorConfig {
+  terminalId: string;
+  authToken: string;
+  pairingCode: string;
+  mt5Login: string;
+  mt5Server: string;
+  apiEndpoint: string;
+  connectorVersion: string;
+}
+
 export const terminalService = {
   /**
    * Enable auto-sync for an MT5 account
    */
-  async enableAutoSync(accountId: string, credentials?: { server: string; login: string; password: string }): Promise<TerminalStatus> {
+  async enableAutoSync(
+    accountId: string,
+    credentials?: {
+      server: string;
+      login: string;
+      password: string;
+      confirmRiskAcknowledgement?: boolean;
+    },
+  ): Promise<TerminalStatus> {
     const response = await authApiClient.post<TerminalStatus>(
       `/mt5-accounts/${accountId}/enable-autosync`,
       credentials
@@ -71,6 +89,26 @@ export const terminalService = {
   async getTerminalToken(accountId: string): Promise<{ token: string }> {
     const response = await authApiClient.get<{ token: string }>(
       `/mt5-accounts/${accountId}/terminal-token`
+    );
+    return response.data;
+  },
+
+  /**
+   * Get account-bound local connector bundle for EA setup
+   */
+  async getLocalConnectorConfig(accountId: string): Promise<LocalConnectorConfig> {
+    const response = await authApiClient.get<LocalConnectorConfig>(
+      `/mt5-accounts/${accountId}/local-connector-config`
+    );
+    return response.data;
+  },
+
+  /**
+   * Request a manual sync from local MT5 terminal
+   */
+  async requestManualSync(accountId: string): Promise<{ queued: boolean; message: string }> {
+    const response = await authApiClient.post<{ queued: boolean; message: string }>(
+      `/mt5-accounts/${accountId}/sync-terminal`
     );
     return response.data;
   },

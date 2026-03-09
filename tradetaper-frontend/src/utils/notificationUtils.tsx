@@ -9,6 +9,9 @@ import {
   FaExclamationTriangle,
   FaLink,
   FaSync,
+  FaUsers,
+  FaCommentDots,
+  FaAt,
 } from 'react-icons/fa';
 
 // Helper: Parse economic event data from title or type
@@ -55,7 +58,7 @@ export const getNotificationStyle = (notification: Notification) => {
     case NotificationType.TRADE_CLOSED:
       return { icon: <FaChartLine />, color: 'text-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-900/20' };
     case NotificationType.MT5_SYNC_COMPLETE:
-      return { icon: <FaSync />, color: 'text-blue-500', bg: 'bg-blue-50 dark:bg-emerald-900/20' };
+      return { icon: <FaSync />, color: 'text-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-900/20' };
     case NotificationType.MT5_SYNC_ERROR:
       return { icon: <FaExclamationTriangle />, color: 'text-red-500', bg: 'bg-red-50 dark:bg-red-900/20' };
     case NotificationType.ECONOMIC_EVENT_1H:
@@ -67,11 +70,22 @@ export const getNotificationStyle = (notification: Notification) => {
     case NotificationType.STRATEGY_ALERT:
       return { icon: <FaExclamationTriangle />, color: 'text-yellow-500', bg: 'bg-yellow-50 dark:bg-yellow-900/20' };
     case NotificationType.SYSTEM_UPDATE:
-      return { icon: <FaCog />, color: 'text-gray-500', bg: 'bg-gray-50 dark:bg-gray-800' };
+      return { icon: <FaCog />, color: 'text-gray-500', bg: 'bg-gray-50 dark:bg-black' };
+    case NotificationType.SUBSCRIPTION_EXPIRY:
+    case NotificationType.SUBSCRIPTION_RENEWED:
+    case NotificationType.SUBSCRIPTION_REMINDER:
+    case NotificationType.TRIAL_ENDED:
+      return { icon: <FaBell />, color: 'text-amber-600', bg: 'bg-amber-50 dark:bg-amber-900/20' };
     case NotificationType.ACCOUNT_LINKED:
     case NotificationType.ACCOUNT_UNLINKED:
-      return { icon: <FaLink />, color: 'text-blue-500', bg: 'bg-blue-50 dark:bg-emerald-900/20' };
+      return { icon: <FaLink />, color: 'text-emerald-600', bg: 'bg-emerald-50 dark:bg-emerald-900/20' };
+    case NotificationType.COMMUNITY_POST:
+      return { icon: <FaUsers />, color: 'text-emerald-600', bg: 'bg-emerald-50 dark:bg-emerald-900/20' };
+    case NotificationType.COMMUNITY_REPLY:
+      return { icon: <FaCommentDots />, color: 'text-teal-600', bg: 'bg-teal-50 dark:bg-emerald-900/20' };
+    case NotificationType.COMMUNITY_MENTION:
+      return { icon: <FaAt />, color: 'text-emerald-600', bg: 'bg-emerald-50 dark:bg-emerald-900/20' };
     default:
-      return { icon: <FaBell />, color: 'text-gray-500', bg: 'bg-gray-50 dark:bg-gray-800' };
+      return { icon: <FaBell />, color: 'text-gray-500', bg: 'bg-gray-50 dark:bg-black' };
   }
 };

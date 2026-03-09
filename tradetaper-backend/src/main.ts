@@ -50,6 +50,14 @@ async function bootstrap() {
         'X-CSRF-Token',
         'CSRF-Token',
         'x-csrf-token',
+        'Cache-Control',
+        'cache-control',
+        'Pragma',
+        'pragma',
+        'Accept',
+        'accept',
+        'X-Requested-With',
+        'x-requested-with',
       ],
       credentials: true,
     };
@@ -120,10 +128,7 @@ async function bootstrap() {
       // Custom middleware wrapper to exclude webhook and admin auth endpoints from CSRF protection
       app.use((req: any, res: any, next: any) => {
         const path = req.path || '';
-        if (
-          path.includes('/api/v1/webhook') ||
-          path.includes('/admin/auth/')
-        ) {
+        if (path.includes('/api/v1/webhook') || path.includes('/admin/auth/')) {
           next();
         } else {
           doubleCsrfProtection(req, res, next);

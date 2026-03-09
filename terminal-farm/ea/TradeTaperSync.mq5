@@ -5,14 +5,17 @@
 //+------------------------------------------------------------------+
 #property copyright "TradeTaper"
 #property link      "https://www.tradetaper.io"
-#property version   "1.10"
+#property version   "1.14"
 #property strict
 
 //--- Input parameters
-input string   APIEndpoint       = "https://api.tradetaper.com";  // TradeTaper API URL
-input string   APIKey            = "";                             // API Key (provided by TradeTaper)
+input string   APIEndpoint       = "https://api.tradetaper.com";  // TradeTaper API URL (root or /api/v1)
+input string   APIKey            = "";                             // Legacy API key (optional when using AuthToken)
 input string   TerminalId        = "";                             // Terminal ID (auto-generated)
 input string   AuthToken         = "";                             // Per-terminal JWT (preferred)
+input string   PairingCode       = "";                             // Account-bound pairing code from TradeTaper
+input string   Mt5LoginOverride  = "";                             // Optional: MT5 login override (blank = auto-detect)
+input string   Mt5ServerOverride = "";                             // Optional: MT5 server override (blank = auto-detect)
 input int      HeartbeatInterval = 30;                             // Heartbeat interval (seconds)
 input int      SyncInterval      = 60;                             // Trade sync interval (seconds)
 input int      PositionInterval  = 15;                             // Live position push interval (seconds) [FIX #1]
@@ -25,25 +28,69 @@ datetime lastHeartbeat    = 0;
 datetime lastSync         = 0;
 datetime lastPositionSync = 0;  // [FIX #1] Separate position sync timer
 bool     isInitialized    = false;
+string   ApiBase          = "";
+string   RuntimeId        = "";
 
 // GlobalVariable names for persistence across restarts [FIX #10]
-string GV_LAST_DEAL_COUNT = "TT_LastDealCount_" + TerminalId;
-string GV_LAST_SYNC_TIME  = "TT_LastSyncTime_"  + TerminalId;
+string GV_LAST_DEAL_COUNT_PREFIX = "TT_LastDealCount_";
+string GV_LAST_SYNC_TIME_PREFIX  = "TT_LastSyncTime_";
+
+//+------------------------------------------------------------------+
+//| Normalize API base URL (ensures single /api/v1 suffix)          |
+//+------------------------------------------------------------------+
+string NormalizeApiBase(string endpoint)
+{
+    string base = endpoint;
+
+    while(StringLen(base) > 0 && StringSubstr(base, StringLen(base) - 1, 1) == "/")
+    {
+        base = StringSubstr(base, 0, StringLen(base) - 1);
+    }
+
+    if(StringFind(base, "/api/v1") == -1)
+        base += "/api/v1";
+
+    return base;
+}
 
 //+------------------------------------------------------------------+
 //| Expert initialization function                                    |
 //+------------------------------------------------------------------+
 int OnInit()
 {
-    if(StringLen(TerminalId) == 0)
+    string terminalId = GetTerminalId();
+    string authToken = GetAuthToken();
+    string pairingCode = GetPairingCode();
+    string apiKey = GetApiKey();
+
+    if(StringLen(terminalId) == 0)
     {
         Print("Error: TerminalId is required");
         return(INIT_FAILED);
     }
 
-    Print("TradeTaper Sync EA v1.10 initialized");
-    Print("Terminal ID: ", TerminalId);
-    Print("API Endpoint: ", APIEndpoint);
+    ApiBase = NormalizeApiBase(APIEndpoint);
+    RuntimeId = BuildRuntimeId();
+
+    Print("TradeTaper Sync EA v1.14 initialized");
+    Print("Terminal ID: ", terminalId);
+    Print("API Endpoint: ", ApiBase);
+    Print("Runtime ID: ", RuntimeId);
+    Print("MT5 Identity: ", GetMt5Login(), "@", GetMt5Server());
+
+    if(StringLen(authToken) == 0 && StringLen(apiKey) == 0)
+    {
+        Print("Error: Missing auth credentials. Provide AuthToken (preferred) or legacy APIKey. PairingCode alone is not sufficient.");
+        return(INIT_FAILED);
+    }
+
+    if(StringLen(authToken) > 0 && StringFind(authToken, ".") == -1)
+        Print("Warning: AuthToken format looks invalid (expected JWT). Re-copy token from Local MT5 connector config.");
+
+    if(StringLen(authToken) == 0)
+        Print("Warning: AuthToken is empty (legacy API key mode).");
+    if(StringLen(pairingCode) == 0)
+        Print("Warning: PairingCode is empty. Use connector v2 config for account-safe sync.");
 
     // Set timer for periodic tasks
     EventSetTimer(10);
@@ -53,6 +100,9 @@ int OnInit()
     SendHeartbeat();
     SyncDealHistoryIncremental(); // [FIX #2] Use incremental history
     SyncPositions();
+    lastHeartbeat = TimeCurrent();
+    lastSync = lastHeartbeat;
+    lastPositionSync = lastHeartbeat;
 
     isInitialized = true;
     return(INIT_SUCCEEDED);
@@ -120,6 +170,96 @@ string EscapeJSON(string text)
     return output;
 }
 
+string GetMt5Login()
+{
+    string login = Mt5LoginOverride;
+    StringTrimLeft(login);
+    StringTrimRight(login);
+    if(StringLen(login) > 0)
+        return login;
+
+    return IntegerToString((long)AccountInfoInteger(ACCOUNT_LOGIN));
+}
+
+string GetTerminalId()
+{
+    string value = TerminalId;
+    StringTrimLeft(value);
+    StringTrimRight(value);
+    return value;
+}
+
+string GetAuthToken()
+{
+    string value = AuthToken;
+    StringTrimLeft(value);
+    StringTrimRight(value);
+    return value;
+}
+
+string GetPairingCode()
+{
+    string value = PairingCode;
+    StringTrimLeft(value);
+    StringTrimRight(value);
+    return value;
+}
+
+string GetApiKey()
+{
+    string value = APIKey;
+    StringTrimLeft(value);
+    StringTrimRight(value);
+    return value;
+}
+
+string GetMt5Server()
+{
+    string server = Mt5ServerOverride;
+    StringTrimLeft(server);
+    StringTrimRight(server);
+    if(StringLen(server) > 0)
+        return server;
+
+    return AccountInfoString(ACCOUNT_SERVER);
+}
+
+string NormalizeKeyToken(string value)
+{
+    string token = value;
+    StringTrimLeft(token);
+    StringTrimRight(token);
+    if(StringLen(token) == 0)
+        return "unknown";
+
+    for(int i = 0; i < StringLen(token); i++)
+    {
+        ushort ch = StringGetCharacter(token, i);
+        bool isDigit = (ch >= 48 && ch <= 57);
+        bool isUpper = (ch >= 65 && ch <= 90);
+        bool isLower = (ch >= 97 && ch <= 122);
+        if(!(isDigit || isUpper || isLower))
+            StringSetCharacter(token, i, 95); // '_'
+    }
+    return token;
+}
+
+string BuildSyncStateKey(string prefix)
+{
+    string login = NormalizeKeyToken(GetMt5Login());
+    string server = NormalizeKeyToken(GetMt5Server());
+    string terminal = NormalizeKeyToken(GetTerminalId());
+    return prefix + terminal + "_" + login + "_" + server;
+}
+
+string BuildRuntimeId()
+{
+    MathSrand((int)(TimeLocal() + GetTickCount()));
+    int randomPart = MathRand();
+    long accountLogin = AccountInfoInteger(ACCOUNT_LOGIN);
+    return "rt_" + IntegerToString((long)TimeCurrent()) + "_" + IntegerToString(randomPart) + "_" + IntegerToString(accountLogin);
+}
+
 //+------------------------------------------------------------------+
 //| Helper: Write debug log                                           |
 //+------------------------------------------------------------------+
@@ -139,20 +279,27 @@ void WriteLog(string message)
 //+------------------------------------------------------------------+
 string SendRequestWithRetry(string url, string jsonData, int maxRetries = 2)
 {
+    string lastError = "Error: Unknown request failure";
+
     for(int attempt = 0; attempt <= maxRetries; attempt++)
     {
         string result = SendRequest(url, jsonData);
+        lastError = result;
 
-        // Success check
-        if(StringFind(result, "\"success\"") >= 0 || StringFind(result, "success") >= 0)
+        // Success check (strict)
+        if(StringFind(result, "\"success\":true") >= 0)
         {
             if(attempt > 0)
                 WriteLog("Request succeeded after " + IntegerToString(attempt) + " retries for " + url);
             return result;
         }
 
-        // Check if it's a terminal error (4xx) — not worth retrying
-        if(StringFind(result, "Error: 4") >= 0 || StringFind(result, "\"error\"") >= 0)
+        // Do not retry request/auth/validation failures
+        if(StringFind(result, "HTTP 4") == 0 ||
+           StringFind(result, "\"statusCode\":4") >= 0 ||
+           StringFind(result, "Invalid API key") >= 0 ||
+           StringFind(result, "\"success\":false") >= 0 ||
+           StringFind(result, "Error 4014") == 0)
         {
             WriteLog("Terminal error (no retry): " + result);
             return result;
@@ -161,11 +308,14 @@ string SendRequestWithRetry(string url, string jsonData, int maxRetries = 2)
         if(attempt < maxRetries)
         {
             int sleepMs = 1000 * (attempt + 1); // 1s, 2s backoff
-            WriteLog("Request failed (attempt " + IntegerToString(attempt + 1) + "), retrying in " + IntegerToString(sleepMs/1000) + "s...");
+            WriteLog(
+                "Request failed (attempt " + IntegerToString(attempt + 1) +
+                "), retrying in " + IntegerToString(sleepMs/1000) + "s. Result: " + result
+            );
             Sleep(sleepMs);
         }
     }
-    return "Error: Max retries exceeded";
+    return lastError;
 }
 
 //+------------------------------------------------------------------+
@@ -178,8 +328,9 @@ string SendRequest(string url, string jsonData)
     string resultHeaders;
     string headers = "Content-Type: application/json\r\n";
 
-    if(StringLen(APIKey) > 0)
-        headers += "X-Api-Key: " + APIKey + "\r\n";
+    string apiKey = GetApiKey();
+    if(StringLen(apiKey) > 0)
+        headers += "X-Api-Key: " + apiKey + "\r\n";
 
     StringToCharArray(jsonData, postData, 0, StringLen(jsonData));
 
@@ -196,10 +347,23 @@ string SendRequest(string url, string jsonData)
     if(response == -1)
     {
         int errorCode = GetLastError();
-        return "Error: " + IntegerToString(errorCode);
+        if(errorCode == 4014)
+            return "Error 4014: WebRequest blocked. Add this URL in MT5 Allow WebRequest list: " + ApiBase;
+        if(errorCode == 5202)
+            return "Error 5202: Network timeout while reaching " + url;
+        if(errorCode == 5203)
+            return "Error 5203: Connection failed while reaching " + url;
+        return "Error " + IntegerToString(errorCode) + ": WebRequest failed for " + url;
     }
 
-    return CharArrayToString(resultData);
+    string body = CharArrayToString(resultData);
+    if(response < 200 || response >= 300)
+        return "HTTP " + IntegerToString(response) + ": " + body;
+
+    if(StringLen(body) == 0)
+        return "Error: Empty response body (HTTP " + IntegerToString(response) + ")";
+
+    return body;
 }
 
 //+------------------------------------------------------------------+
@@ -243,6 +407,10 @@ string ParsePayload(string json)
 //+------------------------------------------------------------------+
 void FetchCandles(string symbol, string timeframeStr, string startStr, string endStr, string tradeId)
 {
+    string terminalId = GetTerminalId();
+    string authToken = GetAuthToken();
+    string pairingCode = GetPairingCode();
+
     ENUM_TIMEFRAMES period = PERIOD_H1;
     if(timeframeStr == "1m")  period = PERIOD_M1;
     else if(timeframeStr == "5m")  period = PERIOD_M5;
@@ -309,9 +477,15 @@ void FetchCandles(string symbol, string timeframeStr, string startStr, string en
     if(copied > 0)
     {
         string json = "{";
-        json += "\"terminalId\":\"" + TerminalId + "\",";
-        if(StringLen(AuthToken) > 0)
-            json += "\"authToken\":\"" + AuthToken + "\",";
+        json += "\"terminalId\":\"" + EscapeJSON(terminalId) + "\",";
+        if(StringLen(authToken) > 0)
+            json += "\"authToken\":\"" + EscapeJSON(authToken) + "\",";
+        if(StringLen(pairingCode) > 0)
+            json += "\"pairingCode\":\"" + EscapeJSON(pairingCode) + "\",";
+        if(StringLen(RuntimeId) > 0)
+            json += "\"runtimeId\":\"" + EscapeJSON(RuntimeId) + "\",";
+        json += "\"mt5Login\":\"" + EscapeJSON(GetMt5Login()) + "\",";
+        json += "\"mt5Server\":\"" + EscapeJSON(GetMt5Server()) + "\",";
         json += "\"tradeId\":\"" + tradeId + "\",";
         json += "\"symbol\":\"" + symbol + "\",";
         json += "\"candles\":[";
@@ -329,7 +503,7 @@ void FetchCandles(string symbol, string timeframeStr, string startStr, string en
         }
         json += "]}";
 
-        string url = APIEndpoint + "/webhook/terminal/candles";
+        string url = ApiBase + "/webhook/terminal/candles";
         SendRequestWithRetry(url, json, 1); // [FIX #6] 1 retry for candles
         WriteLog("Sent " + IntegerToString(copied) + " candles for " + symbol);
     }
@@ -344,13 +518,25 @@ void FetchCandles(string symbol, string timeframeStr, string startStr, string en
 //+------------------------------------------------------------------+
 void SendHeartbeat()
 {
-    string url = APIEndpoint + "/webhook/terminal/heartbeat";
+    string terminalId = GetTerminalId();
+    string authToken = GetAuthToken();
+    string pairingCode = GetPairingCode();
+
+    string url = ApiBase + "/webhook/terminal/heartbeat";
 
     string json = "{";
-    json += "\"terminalId\":\"" + TerminalId + "\",";
-    if(StringLen(AuthToken) > 0)
-        json += "\"authToken\":\"" + AuthToken + "\",";
+    json += "\"terminalId\":\"" + EscapeJSON(terminalId) + "\",";
+    if(StringLen(authToken) > 0)
+        json += "\"authToken\":\"" + EscapeJSON(authToken) + "\",";
+    if(StringLen(pairingCode) > 0)
+        json += "\"pairingCode\":\"" + EscapeJSON(pairingCode) + "\",";
+    if(StringLen(RuntimeId) > 0)
+        json += "\"runtimeId\":\"" + EscapeJSON(RuntimeId) + "\",";
+    json += "\"mt5Login\":\"" + EscapeJSON(GetMt5Login()) + "\",";
+    json += "\"mt5Server\":\"" + EscapeJSON(GetMt5Server()) + "\",";
     json += "\"accountInfo\":{";
+    json += "\"login\":\"" + EscapeJSON(GetMt5Login()) + "\",";
+    json += "\"server\":\"" + EscapeJSON(GetMt5Server()) + "\",";
     json += "\"balance\":"    + DoubleToString(AccountInfoDouble(ACCOUNT_BALANCE),     2) + ",";
     json += "\"equity\":"     + DoubleToString(AccountInfoDouble(ACCOUNT_EQUITY),      2) + ",";
     json += "\"margin\":"     + DoubleToString(AccountInfoDouble(ACCOUNT_MARGIN),      2) + ",";
@@ -361,7 +547,7 @@ void SendHeartbeat()
     string result = SendRequestWithRetry(url, json, MaxRetries); // [FIX #6]
     WriteLog("Heartbeat response: " + result);
 
-    if(StringFind(result, "success") >= 0)
+    if(StringFind(result, "\"success\":true") >= 0)
     {
         Print("Heartbeat OK");
 
@@ -402,9 +588,16 @@ void SendHeartbeat()
 //+------------------------------------------------------------------+
 void SyncDealHistoryIncremental()
 {
+    string terminalId = GetTerminalId();
+    string authToken = GetAuthToken();
+    string pairingCode = GetPairingCode();
+
+    string gvLastDealCount = BuildSyncStateKey(GV_LAST_DEAL_COUNT_PREFIX);
+    string gvLastSyncTime  = BuildSyncStateKey(GV_LAST_SYNC_TIME_PREFIX);
+
     // [FIX #10] Restore state from GlobalVariables (persist across EA restarts)
-    int  restoredDealCount = (int)GlobalVariableGet(GV_LAST_DEAL_COUNT);
-    long restoredSyncTime  = (long)GlobalVariableGet(GV_LAST_SYNC_TIME);
+    int  restoredDealCount = (int)GlobalVariableGet(gvLastDealCount);
+    long restoredSyncTime  = (long)GlobalVariableGet(gvLastSyncTime);
 
     // [FIX #2] Only fetch from last sync time, not from epoch
     // Use 1-day lookback on first run to catch any recent trades
@@ -504,17 +697,23 @@ void SyncDealHistoryIncremental()
         tradesJson += "]";
 
         string json = "{";
-        json += "\"terminalId\":\"" + TerminalId + "\",";
-        if(StringLen(AuthToken) > 0)
-            json += "\"authToken\":\"" + AuthToken + "\",";
+        json += "\"terminalId\":\"" + EscapeJSON(terminalId) + "\",";
+        if(StringLen(authToken) > 0)
+            json += "\"authToken\":\"" + EscapeJSON(authToken) + "\",";
+        if(StringLen(pairingCode) > 0)
+            json += "\"pairingCode\":\"" + EscapeJSON(pairingCode) + "\",";
+        if(StringLen(RuntimeId) > 0)
+            json += "\"runtimeId\":\"" + EscapeJSON(RuntimeId) + "\",";
+        json += "\"mt5Login\":\"" + EscapeJSON(GetMt5Login()) + "\",";
+        json += "\"mt5Server\":\"" + EscapeJSON(GetMt5Server()) + "\",";
         json += "\"batchIndex\":" + IntegerToString(batchStart / MaxDealsPerBatch) + ",";
         json += "\"trades\":" + tradesJson;
         json += "}";
 
-        string url    = APIEndpoint + "/webhook/terminal/trades";
+        string url    = ApiBase + "/webhook/terminal/trades";
         string result = SendRequestWithRetry(url, json, MaxRetries); // [FIX #6]
 
-        if(StringFind(result, "success") >= 0)
+        if(StringFind(result, "\"success\":true") >= 0)
         {
             totalSent += (batchEnd - batchStart);
             WriteLog("Batch " + IntegerToString(batchStart/MaxDealsPerBatch + 1) + " sent: " + IntegerToString(batchEnd - batchStart) + " deals.");
@@ -532,8 +731,8 @@ void SyncDealHistoryIncremental()
         WriteLog("Success: Trade sync completed. Total=" + IntegerToString(totalSent));
 
         // [FIX #10] Persist state globally so it survives EA restart
-        GlobalVariableSet(GV_LAST_DEAL_COUNT, totalDeals);
-        GlobalVariableSet(GV_LAST_SYNC_TIME,  (double)TimeCurrent());
+        GlobalVariableSet(gvLastDealCount, totalDeals);
+        GlobalVariableSet(gvLastSyncTime,  (double)TimeCurrent());
     }
     else
     {
@@ -546,6 +745,10 @@ void SyncDealHistoryIncremental()
 //+------------------------------------------------------------------+
 void SyncPositions()
 {
+    string terminalId = GetTerminalId();
+    string authToken = GetAuthToken();
+    string pairingCode = GetPairingCode();
+
     int totalPositions = PositionsTotal();
 
     string positionsJson = "[";
@@ -592,16 +795,22 @@ void SyncPositions()
     positionsJson += "]";
 
     string json = "{";
-    json += "\"terminalId\":\"" + TerminalId + "\",";
-    if(StringLen(AuthToken) > 0)
-        json += "\"authToken\":\"" + AuthToken + "\",";
+    json += "\"terminalId\":\"" + EscapeJSON(terminalId) + "\",";
+    if(StringLen(authToken) > 0)
+        json += "\"authToken\":\"" + EscapeJSON(authToken) + "\",";
+    if(StringLen(pairingCode) > 0)
+        json += "\"pairingCode\":\"" + EscapeJSON(pairingCode) + "\",";
+    if(StringLen(RuntimeId) > 0)
+        json += "\"runtimeId\":\"" + EscapeJSON(RuntimeId) + "\",";
+    json += "\"mt5Login\":\"" + EscapeJSON(GetMt5Login()) + "\",";
+    json += "\"mt5Server\":\"" + EscapeJSON(GetMt5Server()) + "\",";
     json += "\"positions\":" + positionsJson;
     json += "}";
 
-    string url    = APIEndpoint + "/webhook/terminal/positions";
+    string url    = ApiBase + "/webhook/terminal/positions";
     string result = SendRequestWithRetry(url, json, 1); // [FIX #6] 1 retry for positions
 
-    if(StringFind(result, "success") >= 0)
+    if(StringFind(result, "\"success\":true") >= 0)
         Print("Position sync OK: ", totalPositions, " positions");
     else
         WriteLog("Position sync failed: " + result);

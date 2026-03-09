@@ -21,6 +21,10 @@ import { User } from './entities/user.entity';
 import { MetaApiService } from './metaapi.service';
 import { MT5PositionsGateway } from '../websocket/mt5-positions.gateway'; // [FIX #15]
 import { Subscription } from '../subscriptions/entities/subscription.entity';
+import {
+  TerminalInstance,
+  TerminalStatus,
+} from '../terminal-farm/entities/terminal-instance.entity';
 
 import {
   SynchronizationListener,
@@ -39,6 +43,8 @@ export class MT5AccountsService {
   constructor(
     @InjectRepository(MT5Account)
     private readonly mt5AccountRepository: Repository<MT5Account>,
+    @InjectRepository(TerminalInstance)
+    private readonly terminalRepository: Repository<TerminalInstance>,
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
     private readonly configService: ConfigService,
@@ -85,6 +91,33 @@ export class MT5AccountsService {
     return { used, max: maxAccounts, extraSlots };
   }
 
+  private clearMetaApiListener(metaApiAccountId: string): void {
+    if (this.metaApiListeners.has(metaApiAccountId)) {
+      this.metaApiListeners.delete(metaApiAccountId);
+    }
+  }
+
+  private async assertLocalTerminalIsNotActive(accountId: string): Promise<void> {
+    const terminal = await this.terminalRepository.findOne({
+      where: { accountId },
+    });
+
+    if (!terminal) return;
+
+    const blockingStatuses: TerminalStatus[] = [
+      TerminalStatus.PENDING,
+      TerminalStatus.STARTING,
+      TerminalStatus.RUNNING,
+      TerminalStatus.STOPPING,
+    ];
+
+    if (blockingStatuses.includes(terminal.status)) {
+      throw new BadRequestException(
+        'Local MT5 terminal sync is active for this account. Disable Local Auto-Sync before using MetaAPI sync.',
+      );
+    }
+  }
+
   /**
    * Completely disconnects and removes a MetaAPI account
    * Stops streaming, undeploys from MetaAPI, and clears DB state
@@ -107,28 +140,25 @@ export class MT5AccountsService {
 
     try {
       // 1. Stop streaming if active
-      if (account.isStreamingActive) {
+      this.clearMetaApiListener(metaApiAccountId);
+      try {
         await this.metaApiService.closeConnection(metaApiAccountId);
-        const listener = this.metaApiListeners.get(metaApiAccountId);
-        if (listener) {
-          try {
-            const connection = await this.metaApiService.getStreamingConnection(metaApiAccountId);
-            if (connection) {
-              connection.removeSynchronizationListener(listener);
-            }
-          } catch (e) {
-            this.logger.warn(`Could not remove MetaAPI listener during disconnect: ${e.message}`);
-          }
-          this.metaApiListeners.delete(metaApiAccountId);
-        }
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        this.logger.warn(
+          `Could not close MetaAPI connection ${metaApiAccountId} during disconnect: ${message}`,
+        );
       }
 
       // 2. Undeploy and Delete from MetaAPI cloud
       try {
         await this.metaApiService.removeAccount(metaApiAccountId);
         this.logger.log(`Deleted MetaAPI account ${metaApiAccountId} from cloud`);
-      } catch (e) {
-        this.logger.warn(`Failed to delete MetaAPI account ${metaApiAccountId} from cloud: ${e.message}. It might already be deleted.`);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        this.logger.warn(
+          `Failed to delete MetaAPI account ${metaApiAccountId} from cloud: ${message}. It might already be deleted.`,
+        );
       }
 
       // 3. Clear MetaAPI specific fields from local DB, but keep the account record
@@ -147,9 +177,85 @@ export class MT5AccountsService {
 
       this.logger.log(`Successfully disconnected MetaAPI for account ${accountId}`);
     } catch (error) {
-      this.logger.error(`Error disconnecting MetaAPI account ${accountId}: ${error.message}`);
-      throw new InternalServerErrorException(`Failed to disconnect MetaAPI: ${error.message}`);
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.error(`Error disconnecting MetaAPI account ${accountId}: ${message}`);
+      throw new InternalServerErrorException(`Failed to disconnect MetaAPI: ${message}`);
     }
+  }
+
+  async pauseMetaApiStreaming(accountId: string, userId: string): Promise<void> {
+    const account = await this.mt5AccountRepository.findOne({
+      where: { id: accountId, userId },
+    });
+
+    if (!account) {
+      throw new NotFoundException('MT5 account not found');
+    }
+
+    if (!account.metaApiAccountId) {
+      throw new BadRequestException('Account is not connected to MetaApi');
+    }
+
+    const metaApiAccountId = account.metaApiAccountId;
+    this.logger.log(
+      `Pausing MetaAPI streaming for account ${accountId} (${metaApiAccountId})`,
+    );
+
+    this.clearMetaApiListener(metaApiAccountId);
+    try {
+      await this.metaApiService.closeConnection(metaApiAccountId);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.warn(
+        `MetaAPI closeConnection failed while pausing ${metaApiAccountId}: ${message}`,
+      );
+    }
+
+    await this.mt5AccountRepository.update(accountId, {
+      isStreamingActive: false,
+      autoSyncEnabled: false,
+      connectionStatus: 'PAUSED',
+      connectionState: 'DISCONNECTED',
+      lastSyncError: null,
+      lastSyncErrorAt: null,
+      metadata: {
+        ...(account.metadata || {}),
+        syncMode: 'terminal',
+      } as Record<string, any>,
+    });
+  }
+
+  async resumeMetaApiStreaming(
+    accountId: string,
+    userId: string,
+  ): Promise<{ imported: number; skipped: number; failed: number }> {
+    const account = await this.mt5AccountRepository.findOne({
+      where: { id: accountId, userId },
+    });
+
+    if (!account) {
+      throw new NotFoundException('MT5 account not found');
+    }
+
+    if (!account.metaApiAccountId) {
+      throw new BadRequestException('Account is not connected to MetaApi');
+    }
+
+    await this.assertLocalTerminalIsNotActive(accountId);
+
+    await this.mt5AccountRepository.update(accountId, {
+      autoSyncEnabled: true,
+      connectionStatus: 'CONNECTING',
+      connectionState: 'CONNECTING',
+      lastSyncError: null,
+      lastSyncErrorAt: null,
+      metadata: {
+        ...(account.metadata || {}),
+        syncMode: 'metaapi',
+      } as Record<string, any>,
+    });
+
+    return this.syncMetaApiAccount(accountId, { startStreaming: true });
   }
 
   private readonly metaApiListeners = new Map<
@@ -228,13 +334,7 @@ export class MT5AccountsService {
     createDto: CreateMT5AccountDto,
     userId: string,
   ): Promise<MT5AccountResponseDto> {
-    this.logger.log(`Creating MetaApi MT5 account for user ${userId}`);
-
-    if (!this.metaApiService.isEnabled()) {
-      throw new BadRequestException(
-        'MetaApi integration is not configured. Please contact support.',
-      );
-    }
+    this.logger.log(`Creating MT5 account for user ${userId}`);
 
     const user = await this.userRepository.findOne({ where: { id: userId } });
     if (!user) {
@@ -276,14 +376,39 @@ export class MT5AccountsService {
       throw new BadRequestException('MT5 account already linked. This login and server combination already exists.');
     }
 
-    // [FIX #2] provisionAccount() returns immediately after submitting deploy
-    const provision = await this.metaApiService.provisionAccount({
-      accountName: createDto.accountName,
-      server: createDto.server,
-      login: createDto.login,
-      password: createDto.password,
-      isRealAccount: createDto.isRealAccount ?? false,
-    });
+    const metaApiEnabled = this.metaApiService.isEnabled();
+    let provision:
+      | {
+          metaApiAccountId: string;
+          provisioningProfileId?: string;
+          region: string;
+        }
+      | null = null;
+    let provisioningError: string | null = null;
+
+    if (metaApiEnabled) {
+      try {
+        // [FIX #2] provisionAccount() returns immediately after submitting deploy
+        provision = await this.metaApiService.provisionAccount({
+          accountName: createDto.accountName,
+          server: createDto.server,
+          login: createDto.login,
+          password: createDto.password,
+          isRealAccount: createDto.isRealAccount ?? false,
+        });
+      } catch (error: any) {
+        provisioningError = error?.message || 'MetaApi provisioning failed';
+        this.logger.warn(
+          `MetaApi provisioning failed for ${createDto.login}@${createDto.server}. Creating account for local terminal sync. Error: ${provisioningError}`,
+        );
+      }
+    } else {
+      provisioningError =
+        'MetaApi integration is disabled. Account created for local terminal sync.';
+      this.logger.warn(
+        `MetaApi is disabled. Creating account ${createDto.login}@${createDto.server} for local terminal sync only.`,
+      );
+    }
 
     const mt5Account = this.mt5AccountRepository.create({
       accountName: createDto.accountName,
@@ -296,52 +421,65 @@ export class MT5AccountsService {
       currency: createDto.currency || 'USD',
       isActive: createDto.isActive ?? true,
       isRealAccount: createDto.isRealAccount ?? false,
-      connectionStatus: 'CONNECTING',
-      deploymentState: 'DEPLOYING',  // [FIX #2] starts as DEPLOYING, not yet DEPLOYED
-      connectionState: 'CONNECTING',
+      connectionStatus: provision ? 'CONNECTING' : 'DISCONNECTED',
+      deploymentState: provision ? 'DEPLOYING' : 'UNDEPLOYED',
+      connectionState: provision ? 'CONNECTING' : 'DISCONNECTED',
       initialBalance: createDto.initialBalance ?? 0,
       balance: createDto.initialBalance ?? 0,
       equity: createDto.initialBalance ?? 0,
       leverage: createDto.leverage ?? 100,
       target: createDto.target ?? 0,
       autoSyncEnabled: true,
-      metaApiAccountId: provision.metaApiAccountId,
-      provisioningProfileId: provision.provisioningProfileId,
-      region: provision.region,
+      metaApiAccountId: provision?.metaApiAccountId ?? null,
+      provisioningProfileId: provision?.provisioningProfileId ?? null,
+      region: provision?.region ?? 'local',
+      lastSyncError: provisioningError,
       metadata: {
-        provider: 'metaapi',
+        provider: provision ? 'metaapi' : 'local_terminal',
+        metaApiEnabled,
+        metaApiProvisioningStatus: provision ? 'started' : 'failed_or_skipped',
+        ...(provisioningError
+          ? { metaApiProvisioningError: provisioningError }
+          : {}),
         loginServerFingerprint: fingerprint, // [FIX #16] store fingerprint in metadata
       },
     });
 
     const savedAccount = await this.mt5AccountRepository.save(mt5Account);
-    this.logger.log(
-      `MT5 MetaApi account ${savedAccount.id} created successfully (deploying in background).`,
-    );
+    if (provision) {
+      this.logger.log(
+        `MT5 account ${savedAccount.id} created successfully (MetaApi deploying in background).`,
+      );
 
-    // [FIX #2] Background: wait for deploy, then sync
-    void this.metaApiService
-      .waitForDeployment(provision.metaApiAccountId)
-      .then(async (deployResult) => {
-        await this.mt5AccountRepository.update(savedAccount.id, {
-          deploymentState: deployResult.deploymentState,
-          connectionStatus: 'CONNECTED',
+      // [FIX #2] Background: wait for deploy, then sync
+      void this.metaApiService
+        .waitForDeployment(provision.metaApiAccountId)
+        .then(async (deployResult) => {
+          await this.mt5AccountRepository.update(savedAccount.id, {
+            deploymentState: deployResult.deploymentState,
+            connectionStatus: 'CONNECTED',
+            lastSyncError: null,
+          });
+          return this.syncMetaApiAccount(savedAccount.id, {
+            fullHistory: true,
+            startStreaming: true,
+          });
+        })
+        .catch((error) => {
+          this.logger.error(
+            `MetaApi background deploy/sync failed for account ${savedAccount.id}: ${error.message}`,
+          );
+          void this.mt5AccountRepository.update(savedAccount.id, {
+            deploymentState: 'ERROR',
+            connectionStatus: 'DISCONNECTED',
+            lastSyncError: error.message,
+          });
         });
-        return this.syncMetaApiAccount(savedAccount.id, {
-          fullHistory: true,
-          startStreaming: true,
-        });
-      })
-      .catch((error) => {
-        this.logger.error(
-          `MetaApi background deploy/sync failed for account ${savedAccount.id}: ${error.message}`,
-        );
-        void this.mt5AccountRepository.update(savedAccount.id, {
-          deploymentState: 'ERROR',
-          connectionStatus: 'DISCONNECTED',
-          lastSyncError: error.message,
-        });
-      });
+    } else {
+      this.logger.log(
+        `MT5 account ${savedAccount.id} created in local-sync mode (MetaApi unavailable).`,
+      );
+    }
 
     return this.mapToResponseDto(savedAccount);
   }
@@ -541,6 +679,8 @@ export class MT5AccountsService {
     if (!this.metaApiService.isEnabled()) {
       throw new BadRequestException('MetaApi integration is not configured');
     }
+
+    await this.assertLocalTerminalIsNotActive(accountId);
 
     try {
       const connection = await this.metaApiService.getStreamingConnection(

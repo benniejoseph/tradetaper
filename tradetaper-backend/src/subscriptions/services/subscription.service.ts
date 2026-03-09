@@ -469,6 +469,7 @@ export class SubscriptionService {
       | 'notes'
       | 'strategies',
   ): Promise<boolean> {
+    const subscriptionEntity = await this.getOrCreateSubscription(userId);
     const subscription = await this.getCurrentSubscription(userId);
     const plan = this.getPricingPlan(subscription.currentPlan);
 
@@ -491,6 +492,17 @@ export class SubscriptionService {
 
     // Safety check if usage is defined
     if (typeof usage === 'undefined') return true;
+
+    // Include paid add-on slots for MT5 accounts.
+    if (feature === 'mt5Accounts') {
+      const baseLimit = Number(limit);
+      const extraSlots = subscriptionEntity.extraMt5Slots || 0;
+      const effectiveLimit =
+        baseLimit === 0 && extraSlots > 0
+          ? extraSlots
+          : baseLimit + extraSlots;
+      return usage < effectiveLimit;
+    }
 
     return usage < limit;
   }

@@ -6,6 +6,7 @@ import {
   IsArray,
   ValidateNested,
   IsNumber,
+  IsBoolean,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { TerminalStatus } from '../entities/terminal-instance.entity';
@@ -16,14 +17,21 @@ export class CreateTerminalDto {
 }
 
 export class EnableAutoSyncDto {
+  @IsOptional()
   @IsString()
-  server: string;
+  server?: string;
 
+  @IsOptional()
   @IsString()
-  login: string;
+  login?: string;
 
+  @IsOptional()
   @IsString()
-  password: string;
+  password?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  confirmRiskAcknowledgement?: boolean;
 }
 
 export class UpdateTerminalStatusDto {
@@ -48,11 +56,28 @@ export class TerminalHeartbeatDto {
   authToken?: string;
 
   @IsOptional()
+  @IsString()
+  pairingCode?: string;
+
+  @IsOptional()
+  @IsString()
+  runtimeId?: string;
+
+  @IsOptional()
+  @IsString()
+  mt5Server?: string;
+
+  @IsOptional()
+  @IsString()
+  mt5Login?: string;
+
+  @IsOptional()
   accountInfo?: {
     balance: number;
     equity: number;
     margin: number;
     freeMargin: number;
+    floatingPnl?: number;
   };
 }
 
@@ -140,6 +165,22 @@ export class TerminalSyncDto {
   authToken?: string;
 
   @IsOptional()
+  @IsString()
+  pairingCode?: string;
+
+  @IsOptional()
+  @IsString()
+  runtimeId?: string;
+
+  @IsOptional()
+  @IsString()
+  mt5Server?: string;
+
+  @IsOptional()
+  @IsString()
+  mt5Login?: string;
+
+  @IsOptional()
   @IsNumber()
   batchIndex?: number;
 
@@ -190,6 +231,22 @@ export class TerminalPositionsDto {
   @IsOptional()
   @IsString()
   authToken?: string;
+
+  @IsOptional()
+  @IsString()
+  pairingCode?: string;
+
+  @IsOptional()
+  @IsString()
+  runtimeId?: string;
+
+  @IsOptional()
+  @IsString()
+  mt5Server?: string;
+
+  @IsOptional()
+  @IsString()
+  mt5Login?: string;
 
   @IsArray()
   @ValidateNested({ each: true })
@@ -245,6 +302,22 @@ export class TerminalCandlesSyncDto {
   @IsString()
   authToken?: string;
 
+  @IsOptional()
+  @IsString()
+  pairingCode?: string;
+
+  @IsOptional()
+  @IsString()
+  runtimeId?: string;
+
+  @IsOptional()
+  @IsString()
+  mt5Server?: string;
+
+  @IsOptional()
+  @IsString()
+  mt5Login?: string;
+
   @IsString()
   tradeId: string;
 
@@ -255,4 +328,14 @@ export class TerminalCandlesSyncDto {
   @ValidateNested({ each: true })
   @Type(() => TerminalCandleDto)
   candles: TerminalCandleDto[];
+}
+
+export interface LocalConnectorConfigDto {
+  terminalId: string;
+  authToken: string;
+  pairingCode: string;
+  mt5Login: string;
+  mt5Server: string;
+  apiEndpoint: string;
+  connectorVersion: string;
 }

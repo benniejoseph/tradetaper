@@ -6,9 +6,11 @@ import {
   NotificationPriority,
 } from './entities/notification.entity';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, In } from 'typeorm';
+import { Repository, In, FindOptionsWhere } from 'typeorm';
 import { NotificationPreference } from './entities/notification-preference.entity';
 import { EconomicEventAlert } from '../market-intelligence/entities/economic-event-alert.entity';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Cache } from 'cache-manager';
 
 import { EconomicCalendarService } from '../market-intelligence/economic-calendar.service';
 
@@ -26,9 +28,6 @@ interface ScheduledEconomicEvent {
 export class NotificationSchedulerService {
   private readonly logger = new Logger(NotificationSchedulerService.name);
 
-  // Track which events we've already sent alerts for
-  private alertsSent = new Map<string, Set<string>>();
-
   constructor(
     private readonly notificationsService: NotificationsService,
     @Inject(forwardRef(() => EconomicCalendarService))
@@ -37,6 +36,7 @@ export class NotificationSchedulerService {
     private readonly preferenceRepository: Repository<NotificationPreference>,
     @InjectRepository(EconomicEventAlert)
     private readonly economicAlertRepository: Repository<EconomicEventAlert>,
+    @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
   ) {}
 
   /**
@@ -165,8 +165,6 @@ export class NotificationSchedulerService {
         }
       }
 
-      // Clean up old tracking data
-      this.cleanupOldAlerts();
     } catch (error) {
       this.logger.error('Failed to check economic events', error);
     }
@@ -202,11 +200,17 @@ export class NotificationSchedulerService {
     notificationType: NotificationType,
     explicitUserIds?: Set<string>,
   ): Promise<void> {
-    // Check if we've already sent this alert
-    const sentAlerts = this.alertsSent.get(event.id) || new Set();
-    if (sentAlerts.has(alertType)) {
+    const dedupeKey = this.getAlertDedupeKey(event.id, alertType);
+    const alreadySent = await this.cacheManager.get(dedupeKey);
+    if (alreadySent) {
       return;
     }
+
+    await this.cacheManager.set(
+      dedupeKey,
+      true,
+      this.getAlertDedupeTtlMs(event.scheduledTime),
+    );
 
     this.logger.log(
       `Sending ${alertType} alert for economic event: ${event.title}`,
@@ -260,7 +264,9 @@ export class NotificationSchedulerService {
     }
 
     // Send to each subscribed user
-    for (const userId of targetUserIds) {
+    let successCount = 0;
+
+    await this.processInBatches(targetUserIds, 20, async (userId) => {
       const pref = prefMap.get(userId);
       if (
         pref &&
@@ -268,10 +274,11 @@ export class NotificationSchedulerService {
         pref.economicEventCurrencies.length > 0 &&
         !pref.economicEventCurrencies.includes(event.currency)
       ) {
-        continue;
+        return;
       }
+
       try {
-        await this.notificationsService.send({
+        const sent = await this.notificationsService.send({
           userId,
           type: notificationType,
           title,
@@ -291,14 +298,17 @@ export class NotificationSchedulerService {
           actionUrl: '/market-intelligence?tab=economic-calendar',
           icon: this.getEventIcon(event.importance),
         });
+        if (sent) {
+          successCount += 1;
+        }
       } catch (error) {
         this.logger.error(`Failed to send alert to user ${userId}`, error);
       }
-    }
+    });
 
-    // Mark as sent
-    sentAlerts.add(alertType);
-    this.alertsSent.set(event.id, sentAlerts);
+    if (successCount === 0) {
+      await this.cacheManager.del(dedupeKey);
+    }
   }
 
   /**
@@ -308,9 +318,23 @@ export class NotificationSchedulerService {
     importance: 'low' | 'medium' | 'high',
     alertType: '1h' | '45m' | '30m' | '15m' | 'now',
   ): Promise<NotificationPreference[]> {
-    const preferences = await this.preferenceRepository.find({
-      where: { enabled: true },
-    });
+    const where: FindOptionsWhere<NotificationPreference> = { enabled: true };
+
+    switch (alertType) {
+      case '1h':
+        where.economicAlert1h = true;
+        break;
+      case '45m':
+      case '30m':
+      case '15m':
+        where.economicAlert15m = true;
+        break;
+      case 'now':
+        where.economicAlertNow = true;
+        break;
+    }
+
+    const preferences = await this.preferenceRepository.find({ where });
 
     return preferences.filter((pref) => {
       // Check if user wants alerts for this importance level
@@ -318,20 +342,7 @@ export class NotificationSchedulerService {
         return false;
       }
 
-      // Check if user wants this type of alert
-      switch (alertType) {
-        case '1h':
-          return pref.economicAlert1h;
-        case '45m':
-        case '30m':
-        case '15m':
-          // Reuse '15m' preference for all countdown intervals if enabled
-          return pref.economicAlert15m;
-        case 'now':
-          return pref.economicAlertNow;
-        default:
-          return false;
-      }
+      return true;
     });
   }
 
@@ -341,9 +352,9 @@ export class NotificationSchedulerService {
    */
   private async getUpcomingEconomicEvents(): Promise<ScheduledEconomicEvent[]> {
     // Fetch from Economic Calendar Service
-    // Range: Now to Now + 2 hours to catch 1h alerts
+    // Range: Now to Now + 4 hours to support pre-compute windows.
     const now = new Date();
-    const twoHoursLater = new Date(now.getTime() + 2 * 60 * 60 * 1000);
+    const fourHoursLater = new Date(now.getTime() + 4 * 60 * 60 * 1000);
 
     // Format dates for service if needed?
     // Service accepts ISO strings or undefined?
@@ -351,7 +362,7 @@ export class NotificationSchedulerService {
 
     const response = await this.economicCalendarService.getEconomicCalendar(
       now.toISOString(),
-      twoHoursLater.toISOString(),
+      fourHoursLater.toISOString(),
     );
 
     return response.events.map((e) => ({
@@ -392,19 +403,30 @@ export class NotificationSchedulerService {
     );
   }
 
-  private cleanupOldAlerts(): void {
+  private getAlertDedupeKey(eventId: string, alertType: string): string {
+    return `notifications:economic-alert:${eventId}:${alertType}`;
+  }
+
+  private getAlertDedupeTtlMs(scheduledTime: Date): number {
+    const fallbackMs = 6 * 60 * 60 * 1000;
     const now = Date.now();
-    const oneHourAgo = now - 60 * 60 * 1000;
+    const eventTime = scheduledTime.getTime();
+    if (Number.isNaN(eventTime)) {
+      return fallbackMs;
+    }
 
-    // Remove entries for events that are more than 1 hour old
-    for (const [eventId] of this.alertsSent) {
-      // Extract timestamp from event ID (format: event-{index}-{timestamp})
-      const parts = eventId.split('-');
-      const timestamp = parseInt(parts[parts.length - 1], 10);
+    // Keep dedupe window through event time plus a buffer.
+    return Math.max(eventTime - now + 2 * 60 * 60 * 1000, 30 * 60 * 1000);
+  }
 
-      if (timestamp < oneHourAgo) {
-        this.alertsSent.delete(eventId);
-      }
+  private async processInBatches<T>(
+    items: T[],
+    batchSize: number,
+    processor: (item: T) => Promise<void>,
+  ): Promise<void> {
+    for (let i = 0; i < items.length; i += batchSize) {
+      const batch = items.slice(i, i + batchSize);
+      await Promise.allSettled(batch.map((item) => processor(item)));
     }
   }
 }

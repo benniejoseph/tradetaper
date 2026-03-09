@@ -8,6 +8,7 @@ import { BacktestInsightsService } from './services/backtest-insights.service';
 import { CandleManagementService } from './services/candle-management.service';
 import { ReplaySessionService } from './services/replay-session.service';
 import { BacktestTrade } from './entities/backtest-trade.entity';
+import { BacktestChartLayout } from './entities/backtest-chart-layout.entity';
 import { MarketLog } from './entities/market-log.entity';
 import { MarketCandle } from './entities/market-candle.entity';
 import { ReplaySession } from './entities/replay-session.entity';
@@ -17,6 +18,7 @@ import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
   imports: [
     TypeOrmModule.forFeature([
       BacktestTrade,
+      BacktestChartLayout,
       MarketLog,
       MarketCandle,
       ReplaySession,

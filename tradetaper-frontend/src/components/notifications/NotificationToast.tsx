@@ -21,7 +21,8 @@ export default function NotificationToast({ t, notification }: NotificationToast
 
   const handleClick = () => {
     toast.dismiss(t.id);
-    if (notification.status !== 'read') {
+    const isUnread = notification.status === 'delivered' && !notification.readAt;
+    if (isUnread) {
       dispatch(markNotificationAsRead(notification.id));
     }
     if (notification.actionUrl) {
@@ -33,7 +34,7 @@ export default function NotificationToast({ t, notification }: NotificationToast
     <div
       className={`${
         t.visible ? 'animate-in slide-in-from-top-2 fade-in duration-300' : 'animate-out bg-transparent border-transparent text-transparent fade-out duration-300 pointer-events-none'
-      } max-w-sm w-full bg-white dark:bg-gray-800 shadow-xl rounded-xl border border-gray-200 dark:border-gray-700 pointer-events-auto flex hover:border-gray-300 dark:hover:border-gray-600 transition-colors cursor-pointer group`}
+      } max-w-sm w-full bg-white dark:bg-black shadow-xl rounded-xl border border-gray-200 dark:border-white/10 pointer-events-auto flex hover:border-gray-300 dark:hover:border-emerald-500/30 transition-colors cursor-pointer group`}
       onClick={handleClick}
     >
       <div className="flex-1 w-0 p-4">
@@ -58,18 +59,18 @@ export default function NotificationToast({ t, notification }: NotificationToast
               {notification.message}
             </p>
             <p className="text-xs text-gray-400 mt-2 font-medium">
-              Just now
+              {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
             </p>
           </div>
         </div>
       </div>
-      <div className="flex border-l border-gray-200 dark:border-gray-700">
+      <div className="flex border-l border-gray-200 dark:border-white/10">
         <button
           onClick={(e) => {
             e.stopPropagation();
             toast.dismiss(t.id);
           }}
-          className="w-full border-none border-transparent rounded-none rounded-r-xl p-4 flex items-center justify-center text-sm font-medium text-gray-400 hover:text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none"
+          className="w-full border-none border-transparent rounded-none rounded-r-xl p-4 flex items-center justify-center text-sm font-medium text-gray-400 hover:text-gray-500 hover:bg-gray-50 dark:hover:bg-black transition-colors focus:outline-none"
         >
           <FaTimes className="w-4 h-4" />
         </button>

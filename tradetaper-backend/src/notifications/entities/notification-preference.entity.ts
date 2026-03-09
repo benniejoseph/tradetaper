@@ -77,6 +77,8 @@ export class NotificationPreference {
         [NotificationType.SYSTEM_UPDATE]: DEFAULT_CHANNEL_PREFERENCE,
         [NotificationType.SUBSCRIPTION_EXPIRY]: EMAIL_PREFERENCE,
         [NotificationType.SUBSCRIPTION_RENEWED]: EMAIL_PREFERENCE,
+        [NotificationType.SUBSCRIPTION_REMINDER]: EMAIL_PREFERENCE,
+        [NotificationType.TRIAL_ENDED]: EMAIL_PREFERENCE,
 
         // Account
         [NotificationType.ACCOUNT_LINKED]: DEFAULT_CHANNEL_PREFERENCE,

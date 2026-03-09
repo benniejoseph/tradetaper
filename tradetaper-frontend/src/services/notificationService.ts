@@ -35,6 +35,8 @@ export enum NotificationType {
   SYSTEM_UPDATE = 'system_update',
   SUBSCRIPTION_EXPIRY = 'subscription_expiry',
   SUBSCRIPTION_RENEWED = 'subscription_renewed',
+  SUBSCRIPTION_REMINDER = 'subscription_reminder',
+  TRIAL_ENDED = 'trial_ended',
   ACCOUNT_LINKED = 'account_linked',
   ACCOUNT_UNLINKED = 'account_unlinked',
   COMMUNITY_POST = 'community_post',
@@ -91,8 +93,8 @@ class NotificationService {
     if (filter.status) params.append('status', filter.status);
     if (filter.type) params.append('type', filter.type);
     if (filter.unreadOnly) params.append('unreadOnly', 'true');
-    if (filter.limit) params.append('limit', filter.limit.toString());
-    if (filter.offset) params.append('offset', filter.offset.toString());
+    if (filter.limit !== undefined) params.append('limit', filter.limit.toString());
+    if (filter.offset !== undefined) params.append('offset', filter.offset.toString());
 
     const response = await api.get(`/notifications?${params.toString()}`);
     return response.data;

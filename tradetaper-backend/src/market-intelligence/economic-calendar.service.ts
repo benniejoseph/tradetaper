@@ -6,9 +6,19 @@ import { ConfigService } from '@nestjs/config';
 import { NewsAnalysisService } from './news-analysis.service';
 import { XMLParser } from 'fast-xml-parser'; // Added
 import { parse } from 'date-fns'; // Added for date parsing // Added
+import { Cron, CronExpression } from '@nestjs/schedule';
 import { MarketDataAggregatorService } from './market-data-aggregator.service';
 import { MultiModelOrchestratorService } from '../agents/llm/multi-model-orchestrator.service';
 import { EconomicEventAnalysis } from './entities/economic-event-analysis.entity';
+import { EconomicEventRelease } from './entities/economic-event-release.entity';
+
+type EconomicReleaseStatus = 'upcoming' | 'live' | 'released';
+
+interface EconomicEventSurprise {
+  direction: 'better' | 'worse' | 'in-line' | 'unknown';
+  value?: number;
+  percent?: number;
+}
 
 export interface EconomicEvent {
   id: string;
@@ -36,6 +46,8 @@ export interface EconomicEvent {
   ticker?: string;
   symbol?: string;
   lastUpdate?: string;
+  releaseStatus?: EconomicReleaseStatus;
+  surprise?: EconomicEventSurprise;
   description: string;
   impact: {
     expected: 'bullish' | 'bearish' | 'neutral';
@@ -53,6 +65,10 @@ export interface EconomicEventHistoryItem {
   previous?: number | string;
   revised?: number | string;
   reference?: string;
+  source?: string;
+  surpriseDirection?: EconomicEventSurprise['direction'];
+  surpriseValue?: number;
+  surprisePercent?: number;
 }
 
 export interface EconomicEventAiSummary {
@@ -97,6 +113,20 @@ export interface EconomicImpactAnalysis {
     consensus?: string;
   };
   cachedAt?: string;
+  eventMetrics?: {
+    releaseStatus: EconomicReleaseStatus;
+    minutesFromRelease: number;
+    surpriseDirection: EconomicEventSurprise['direction'];
+    surpriseValue?: number;
+    surprisePercent?: number;
+  };
+  impactPlaybook?: {
+    fx: string;
+    indices: string;
+    metals: string;
+    rates: string;
+    crypto: string;
+  };
   preEventAnalysis: {
     marketExpectations: string;
     keyLevelsToWatch: number[];
@@ -150,6 +180,8 @@ export class EconomicCalendarService {
     private readonly orchestrator: MultiModelOrchestratorService,
     @InjectRepository(EconomicEventAnalysis)
     private readonly economicAnalysisRepository: Repository<EconomicEventAnalysis>,
+    @InjectRepository(EconomicEventRelease)
+    private readonly economicReleaseRepository: Repository<EconomicEventRelease>,
     private readonly marketDataAggregator: MarketDataAggregatorService,
   ) {}
 
@@ -157,6 +189,7 @@ export class EconomicCalendarService {
     from?: string,
     to?: string,
     importance?: string,
+    forceRefresh = false,
   ): Promise<{
     events: EconomicEvent[];
     weeklyAnalysis: Record<string, unknown>;
@@ -169,7 +202,12 @@ export class EconomicCalendarService {
       // - Economic Calendar APIs
       // - Central bank announcements
 
-      const events = await this.fetchEconomicEvents(from, to, importance);
+      const events = await this.fetchEconomicEvents(
+        from,
+        to,
+        importance,
+        forceRefresh,
+      );
       const weeklyAnalysis = await this.generateWeeklyAnalysis(events);
 
       return {
@@ -221,12 +259,14 @@ export class EconomicCalendarService {
     from?: string,
     to?: string,
     importance?: string,
+    forceRefresh = false,
   ): Promise<EconomicEvent[]> {
     const currentDate = new Date();
     const fromDate = from ? new Date(from) : null;
     const toDate = to ? new Date(to) : null;
 
     if (
+      !forceRefresh &&
       this.eventCache &&
       Date.now() - this.eventCache.timestamp < this.CACHE_TTL
     ) {
@@ -238,7 +278,7 @@ export class EconomicCalendarService {
       );
     }
 
-    if (this.eventFetchInFlight) {
+    if (!forceRefresh && this.eventFetchInFlight) {
       const inflightEvents = await this.eventFetchInFlight;
       return this.applyEventFilters(inflightEvents, fromDate, toDate, importance);
     }
@@ -284,12 +324,19 @@ export class EconomicCalendarService {
         }
       }
 
+      const normalizedEvents = events
+        .map((event) => this.enrichEventMetrics(event))
+        .filter((event) => Number.isFinite(event.date?.getTime?.()));
+      const dedupedEvents = this.deduplicateEvents(normalizedEvents);
+
+      await this.persistReleaseSnapshots(dedupedEvents);
+
       this.eventCache = {
         timestamp: Date.now(),
-        data: events,
+        data: dedupedEvents,
       };
 
-      return events;
+      return dedupedEvents;
     })();
 
     try {
@@ -303,12 +350,12 @@ export class EconomicCalendarService {
   private eventCache: { timestamp: number; data: EconomicEvent[] } | null =
     null;
   private eventFetchInFlight: Promise<EconomicEvent[]> | null = null;
-  private readonly CACHE_TTL = 10 * 60 * 1000; // 10 minutes
+  private readonly CACHE_TTL = 60 * 1000; // 1 minute for near-live actuals
   private analysisCache = new Map<
     string,
     { timestamp: number; data: EconomicImpactAnalysis }
   >();
-  private readonly ANALYSIS_TTL = 12 * 60 * 60 * 1000; // 12 hours
+  private readonly ANALYSIS_TTL = 30 * 60 * 1000; // 30 minutes to keep post-release context fresh
 
   private applyEventFilters(
     events: EconomicEvent[],
@@ -329,6 +376,226 @@ export class EconomicCalendarService {
       result = result.filter((event) => event.importance === importance);
     }
     return result;
+  }
+
+  private normalizeCalendarValue(value: unknown): string | undefined {
+    if (value === null || value === undefined) return undefined;
+    const cleaned = String(value)
+      .replace(/\u00a0/g, ' ')
+      .replace(/&nbsp;/gi, ' ')
+      .trim();
+    if (!cleaned) return undefined;
+
+    const lower = cleaned.toLowerCase();
+    if (
+      ['n/a', 'na', 'none', 'null', '--', '-', 'pending', 'tba'].includes(
+        lower,
+      )
+    ) {
+      return undefined;
+    }
+    return cleaned;
+  }
+
+  private toNumericValue(value?: string | number): number | undefined {
+    if (value === undefined || value === null || value === '') {
+      return undefined;
+    }
+    const normalized = String(value).replace(/,/g, '').trim();
+    if (!normalized) {
+      return undefined;
+    }
+
+    const multiplier = normalized.endsWith('K')
+      ? 1_000
+      : normalized.endsWith('M')
+        ? 1_000_000
+        : normalized.endsWith('B')
+          ? 1_000_000_000
+          : 1;
+
+    const numericPart = normalized
+      .replace(/[KMB]$/i, '')
+      .replace(/[^0-9.+-]/g, '');
+    if (!numericPart) {
+      return undefined;
+    }
+    const parsed = Number.parseFloat(numericPart);
+    if (!Number.isFinite(parsed)) {
+      return undefined;
+    }
+    return parsed * multiplier;
+  }
+
+  private normalizeImportanceLabel(impact?: string): 'low' | 'medium' | 'high' {
+    const normalized = (impact || '').trim().toLowerCase();
+    if (normalized.startsWith('high')) return 'high';
+    if (normalized.startsWith('medium') || normalized.startsWith('med')) {
+      return 'medium';
+    }
+    return 'low';
+  }
+
+  private normalizeCurrencyCode(input?: string): string {
+    if (!input) return 'USD';
+    const upper = input.trim().toUpperCase();
+    if (/^[A-Z]{3}$/.test(upper)) {
+      return upper;
+    }
+    return this.mapCountryToCurrency(input);
+  }
+
+  private computeReleaseStatus(
+    eventDate: Date,
+    hasActualValue: boolean,
+  ): EconomicReleaseStatus {
+    const now = Date.now();
+    const deltaMs = now - eventDate.getTime();
+
+    if (hasActualValue) {
+      return 'released';
+    }
+
+    // Keep a short live window after scheduled release even when feed lags.
+    if (deltaMs >= 0 && deltaMs <= 30 * 60 * 1000) {
+      return 'live';
+    }
+    return deltaMs < 0 ? 'upcoming' : 'released';
+  }
+
+  private computeSurprise(
+    actual?: string | number,
+    forecast?: string | number,
+  ): EconomicEventSurprise {
+    const actualNum = this.toNumericValue(actual);
+    const forecastNum = this.toNumericValue(forecast);
+    if (!Number.isFinite(actualNum) || !Number.isFinite(forecastNum)) {
+      return { direction: 'unknown' };
+    }
+
+    const value = Number(actualNum! - forecastNum!);
+    const percent =
+      forecastNum === 0
+        ? undefined
+        : Number(((value / Math.abs(forecastNum!)) * 100).toFixed(2));
+    if (Math.abs(value) < 1e-9) {
+      return { direction: 'in-line', value: 0, percent: 0 };
+    }
+
+    return {
+      direction: value > 0 ? 'better' : 'worse',
+      value: Number(value.toFixed(4)),
+      percent,
+    };
+  }
+
+  private enrichEventMetrics(event: EconomicEvent): EconomicEvent {
+    const actual = this.normalizeCalendarValue(event.actual);
+    const forecast = this.normalizeCalendarValue(event.forecast);
+    const previous = this.normalizeCalendarValue(event.previous);
+    const revised = this.normalizeCalendarValue(event.revised);
+    const status = this.computeReleaseStatus(event.date, Boolean(actual));
+    const surprise = this.computeSurprise(actual, forecast);
+
+    return {
+      ...event,
+      currency: this.normalizeCurrencyCode(event.currency || event.country),
+      importance: this.normalizeImportanceLabel(event.importance),
+      actual,
+      forecast,
+      previous,
+      revised,
+      releaseStatus: status,
+      surprise,
+    };
+  }
+
+  private deduplicateEvents(events: EconomicEvent[]): EconomicEvent[] {
+    const byKey = new Map<string, EconomicEvent>();
+    for (const event of events) {
+      const key = `${this.buildEventKey(event)}:${event.date.toISOString()}`;
+      const existing = byKey.get(key);
+      if (!existing) {
+        byKey.set(key, event);
+        continue;
+      }
+
+      // Prefer records with actual/revised values when duplicates exist.
+      const currentScore =
+        Number(Boolean(event.actual)) +
+        Number(Boolean(event.revised)) +
+        Number(Boolean(event.forecast));
+      const existingScore =
+        Number(Boolean(existing.actual)) +
+        Number(Boolean(existing.revised)) +
+        Number(Boolean(existing.forecast));
+      if (currentScore >= existingScore) {
+        byKey.set(key, event);
+      }
+    }
+    return Array.from(byKey.values());
+  }
+
+  private async persistReleaseSnapshots(events: EconomicEvent[]): Promise<void> {
+    const rows = events
+      .filter((event) => Number.isFinite(event.date.getTime()))
+      .map((event) => {
+        const eventKey = this.buildEventKey(event);
+        const actualNumeric = this.toNumericValue(event.actual);
+        const forecastNumeric = this.toNumericValue(event.forecast);
+        const previousNumeric = this.toNumericValue(event.previous);
+
+        return {
+          eventId: event.id,
+          eventKey,
+          title: event.title,
+          country: event.country,
+          currency: event.currency,
+          importance: event.importance,
+          eventDate: event.date,
+          releaseStatus:
+            event.releaseStatus ||
+            this.computeReleaseStatus(event.date, Boolean(event.actual)),
+          actual:
+            event.actual === undefined ? undefined : String(event.actual),
+          forecast:
+            event.forecast === undefined ? undefined : String(event.forecast),
+          previous:
+            event.previous === undefined ? undefined : String(event.previous),
+          revised:
+            event.revised === undefined ? undefined : String(event.revised),
+          actualNumeric,
+          forecastNumeric,
+          previousNumeric,
+          surpriseNumeric:
+            Number.isFinite(actualNumeric) && Number.isFinite(forecastNumeric)
+              ? Number((actualNumeric! - forecastNumeric!).toFixed(4))
+              : undefined,
+          surprisePercent:
+            Number.isFinite(actualNumeric) &&
+            Number.isFinite(forecastNumeric) &&
+            forecastNumeric !== 0
+              ? Number(
+                  (
+                    ((actualNumeric! - forecastNumeric!) /
+                      Math.abs(forecastNumeric!)) *
+                    100
+                  ).toFixed(2),
+                )
+              : undefined,
+          source: event.source,
+        } satisfies Partial<EconomicEventRelease>;
+      });
+
+    if (!rows.length) {
+      return;
+    }
+
+    try {
+      await this.economicReleaseRepository.upsert(rows, ['eventKey', 'eventDate']);
+    } catch (error) {
+      this.logger.warn('Failed to persist economic release snapshots', error);
+    }
   }
 
   private getFredApiKey(): string | undefined {
@@ -369,8 +636,8 @@ export class EconomicCalendarService {
 
       const events = rawEvents
         .map((e: Record<string, any>) => {
-          const dateStr = e.date; // MM-DD-YYYY
-          const timeStr = e.time; // 1:30pm
+          const dateStr = String(e.date || '').trim(); // MM-DD-YYYY
+          const timeStr = String(e.time || '').trim(); // 1:30pm
 
           let eventDate = new Date();
           try {
@@ -394,26 +661,41 @@ export class EconomicCalendarService {
             // Fallback to today if parse fails
           }
 
+          const rawCurrency = this.normalizeCurrencyCode(e.country);
+          const impactLabel = this.normalizeImportanceLabel(e.impact);
+          const actual = this.normalizeCalendarValue(e.actual);
+          const forecast = this.normalizeCalendarValue(e.forecast);
+          const previous = this.normalizeCalendarValue(e.previous);
+          const revised = this.normalizeCalendarValue(e.revised);
+          const surprise = this.computeSurprise(actual, forecast);
+          const releaseStatus = this.computeReleaseStatus(
+            eventDate,
+            Boolean(actual),
+          );
+
           return {
             id: `ff-${e.title}-${eventDate.getTime()}`,
             title: e.title,
             country: e.country,
-            currency: e.country,
+            currency: rawCurrency,
             date: eventDate,
-            time: e.time,
-            importance: e.impact.toLowerCase(),
-            actual: e.actual,
-            forecast: e.forecast,
-            previous: e.previous,
+            time: timeStr || 'TBA',
+            importance: impactLabel,
+            actual,
+            forecast,
+            previous,
+            revised,
+            releaseStatus,
+            surprise,
             source: 'ForexFactory',
             sourceUrl: 'https://www.forexfactory.com/calendar',
             description: `${e.title} (${e.impact} Impact)`,
             impact: {
               expected: 'neutral',
               explanation: 'Real-time economic event from ForexFactory',
-              affectedSymbols: this.mapCurrencyToSymbols(e.country),
+              affectedSymbols: this.mapCurrencyToSymbols(rawCurrency),
               volatilityRating:
-                e.impact === 'High' ? 8 : e.impact === 'Medium' ? 5 : 2,
+                impactLabel === 'high' ? 8 : impactLabel === 'medium' ? 5 : 2,
             },
             isNewsDerived: false,
           };
@@ -680,23 +962,30 @@ export class EconomicCalendarService {
   private mapNewsToEvents(newsList: Record<string, any>[]): EconomicEvent[] {
     return newsList
       .filter((news) => news.category === 'economy' || news.category === 'fed')
-      .map((news) => ({
-        id: `news_${news.id}`,
-        title: news.title,
-        country: 'Global', // News often global
-        currency: 'USD', // Default
-        date: news.publishedAt,
-        time: news.publishedAt.toLocaleTimeString(),
-        importance: news.impact === 'high' ? 'high' : 'medium',
-        description: news.summary,
-        impact: {
-          expected: news.sentiment,
-          explanation: `Based on news analysis: ${news.title}`,
-          affectedSymbols: news.symbols || ['SPX500', 'EURUSD'],
-          volatilityRating: news.impact === 'high' ? 8 : 5,
-        },
-        isNewsDerived: true,
-      }));
+      .map((news) => {
+        const publishedAt = new Date(news.publishedAt);
+        const importance = news.impact === 'high' ? 'high' : 'medium';
+        return {
+          id: `news_${news.id}`,
+          title: news.title,
+          country: 'Global', // News often global
+          currency: 'USD', // Default
+          date: Number.isFinite(publishedAt.getTime()) ? publishedAt : new Date(),
+          time: Number.isFinite(publishedAt.getTime())
+            ? publishedAt.toISOString().slice(11, 16)
+            : 'TBA',
+          importance,
+          description: news.summary,
+          releaseStatus: 'released',
+          impact: {
+            expected: news.sentiment,
+            explanation: `Based on news analysis: ${news.title}`,
+            affectedSymbols: news.symbols || ['SPX500', 'EURUSD'],
+            volatilityRating: news.impact === 'high' ? 8 : 5,
+          },
+          isNewsDerived: true,
+        };
+      });
   }
 
   private generateEventsForDay(date: Date): EconomicEvent[] {
@@ -1024,24 +1313,29 @@ export class EconomicCalendarService {
       ? await this.getLatestAnalysisByEventKey(eventKey)
       : null;
 
-    const fredSeries = this.mapEventToFredSeries(event.title);
-    let history = fredSeries ? await this.fetchFredHistory(fredSeries) : [];
-    let historySource: 'FRED' | 'ECB' | 'ONS' | undefined = fredSeries
-      ? 'FRED'
-      : undefined;
+    const persistedHistory = eventKey
+      ? await this.getReleaseHistoryByEventKey(eventKey, 24)
+      : [];
 
-    if (history.length === 0) {
+    const fredSeries = this.mapEventToFredSeries(event.title);
+    let fallbackHistory = fredSeries ? await this.fetchFredHistory(fredSeries) : [];
+    let historySource: 'FRED' | 'ECB' | 'ONS' | 'TRADETAPER' | undefined =
+      persistedHistory.length > 0 ? 'TRADETAPER' : fredSeries ? 'FRED' : undefined;
+
+    if (fallbackHistory.length === 0) {
       const ecbSeries = this.mapEventToEcbSeries(event.title, event.currency);
       if (ecbSeries) {
-        history = await this.fetchEcbHistory(ecbSeries);
-        if (history.length > 0) historySource = 'ECB';
+        fallbackHistory = await this.fetchEcbHistory(ecbSeries);
+        if (fallbackHistory.length > 0) historySource = 'ECB';
       }
     }
 
-    if (history.length === 0 && event.currency === 'GBP') {
-      history = await this.fetchOnsCpihHistory();
-      if (history.length > 0) historySource = 'ONS';
+    if (fallbackHistory.length === 0 && event.currency === 'GBP') {
+      fallbackHistory = await this.fetchOnsCpihHistory();
+      if (fallbackHistory.length > 0) historySource = 'ONS';
     }
+
+    const history = this.mergeHistory(persistedHistory, fallbackHistory, 24);
     const aiSummary = await this.generateAiSummary(
       event,
       history,
@@ -1065,6 +1359,16 @@ export class EconomicCalendarService {
       confidence,
       sourceQuality,
       cachedAt: new Date().toISOString(),
+      eventMetrics: {
+        releaseStatus:
+          event.releaseStatus ||
+          this.computeReleaseStatus(event.date, Boolean(event.actual)),
+        minutesFromRelease: this.getMinutesFromRelease(event.date),
+        surpriseDirection: event.surprise?.direction || 'unknown',
+        surpriseValue: event.surprise?.value,
+        surprisePercent: event.surprise?.percent,
+      },
+      impactPlaybook: this.buildImpactPlaybook(event),
       detailedAnalysis: {
         ...base.detailedAnalysis,
         summary:
@@ -1352,8 +1656,113 @@ ${JSON.stringify(context)}
       .slice(0, 6);
   }
 
+  private async getReleaseHistoryByEventKey(
+    eventKey: string,
+    limit = 24,
+  ): Promise<EconomicEventHistoryItem[]> {
+    const rows = await this.economicReleaseRepository.find({
+      where: { eventKey },
+      order: { eventDate: 'DESC' },
+      take: limit,
+    });
+
+    return rows.map((row) => {
+      const surpriseDirection =
+        row.surpriseNumeric === null || row.surpriseNumeric === undefined
+          ? 'unknown'
+          : row.surpriseNumeric > 0
+            ? 'better'
+            : row.surpriseNumeric < 0
+              ? 'worse'
+              : 'in-line';
+
+      return {
+        date: row.eventDate.toISOString(),
+        actual: row.actual || undefined,
+        forecast: row.forecast || undefined,
+        previous: row.previous || undefined,
+        revised: row.revised || undefined,
+        source: row.source || 'TradeTaper',
+        surpriseDirection,
+        surpriseValue:
+          row.surpriseNumeric === null || row.surpriseNumeric === undefined
+            ? undefined
+            : Number(row.surpriseNumeric),
+        surprisePercent:
+          row.surprisePercent === null || row.surprisePercent === undefined
+            ? undefined
+            : Number(row.surprisePercent),
+      };
+    });
+  }
+
+  private mergeHistory(
+    persisted: EconomicEventHistoryItem[],
+    fallback: EconomicEventHistoryItem[],
+    limit = 24,
+  ): EconomicEventHistoryItem[] {
+    const merged = [...persisted];
+    const seen = new Set(
+      merged.map((item) => `${item.date}:${item.actual || ''}:${item.forecast || ''}`),
+    );
+
+    for (const item of fallback) {
+      const key = `${item.date}:${item.actual || ''}:${item.forecast || ''}`;
+      if (seen.has(key)) continue;
+      merged.push(item);
+      seen.add(key);
+    }
+
+    return merged
+      .filter((item) => item?.date)
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      .slice(0, limit);
+  }
+
+  private getMinutesFromRelease(eventDate: Date): number {
+    return Math.round((Date.now() - eventDate.getTime()) / 60000);
+  }
+
+  private buildImpactPlaybook(event: EconomicEvent): EconomicImpactAnalysis['impactPlaybook'] {
+    const surpriseDirection = event.surprise?.direction || 'unknown';
+    const currency = event.currency || 'USD';
+    const polarity =
+      surpriseDirection === 'better'
+        ? 'stronger-than-forecast'
+        : surpriseDirection === 'worse'
+          ? 'weaker-than-forecast'
+          : 'in-line';
+
+    return {
+      fx:
+        polarity === 'stronger-than-forecast'
+          ? `${currency} pairs can trend with momentum after spread normalization.`
+          : polarity === 'weaker-than-forecast'
+            ? `${currency} can weaken first, then mean-revert near liquidity zones.`
+            : `${currency} pairs typically revert unless a secondary headline changes expectations.`,
+      indices:
+        polarity === 'weaker-than-forecast'
+          ? 'Equity indices may reprice growth and earnings lower.'
+          : 'Indices react to growth-vs-rates balance; wait for first pullback confirmation.',
+      metals:
+        currency === 'USD'
+          ? 'Gold often moves inverse to USD/rates impulse; watch real-yield reaction.'
+          : 'Metals react through USD and global risk sentiment transmission.',
+      rates:
+        'Short-end yields reprice policy path first; watch 2Y proxies for confirmation.',
+      crypto:
+        'Crypto typically follows liquidity/risk appetite after macro volatility cools.',
+    };
+  }
+
   private buildEventKey(event: EconomicEvent): string {
-    return `${event.currency}:${event.title}`.toLowerCase();
+    const normalizedTitle = (event.title || '')
+      .toLowerCase()
+      .replace(/\s+/g, ' ')
+      .trim();
+    const normalizedCurrency = (event.currency || '').toLowerCase().trim();
+    const normalizedCountry = (event.country || '').toLowerCase().trim();
+    return `${normalizedCurrency}:${normalizedCountry}:${normalizedTitle}`;
   }
 
   private calculateFallbackConfidence(
@@ -1400,6 +1809,13 @@ ${JSON.stringify(context)}
     });
 
     if (!stored || !stored.analysis) {
+      return null;
+    }
+
+    if (
+      stored.updatedAt &&
+      Date.now() - stored.updatedAt.getTime() >= this.ANALYSIS_TTL
+    ) {
       return null;
     }
 
@@ -1480,5 +1896,14 @@ ${JSON.stringify(context)}
     const cached = await this.getCachedAnalysis(eventId);
     if (cached) return;
     await this.generateEventImpactAnalysis(eventId);
+  }
+
+  @Cron(CronExpression.EVERY_MINUTE)
+  async refreshEconomicReleaseSnapshots(): Promise<void> {
+    try {
+      await this.fetchEconomicEvents(undefined, undefined, undefined, true);
+    } catch (error) {
+      this.logger.warn('Scheduled economic release refresh failed', error);
+    }
   }
 }

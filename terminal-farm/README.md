@@ -44,9 +44,11 @@ This directory contains the infrastructure for running MT5 terminals server-side
    docker-compose up -d
    ```
 
-4. **Configure terminal auth (recommended):**
-   - Generate token from backend: `GET /mt5-accounts/:accountId/terminal-token`
-   - Set the token in MT5 EA input as `AuthToken`
+4. **Configure account-bound connector auth (recommended):**
+   - Generate bundle from backend: `GET /mt5-accounts/:accountId/local-connector-config`
+   - Set `TerminalId`, `AuthToken`, and `PairingCode` in EA inputs
+   - Keep MT5 account login/server aligned with the bundle to prevent cross-account sync
+   - Do not run the same connector bundle on two MT5 instances simultaneously (runtime lock protection)
 
 5. **View terminal (optional):**
    Connect via VNC to `localhost:5900`
@@ -98,6 +100,7 @@ For 100+ users: Kubernetes cluster
 
 - MT5 credentials are passed as environment variables
 - Never commit `.env` files
-- Use `AuthToken` for per-terminal JWT auth (preferred)
+- Use `AuthToken` + `PairingCode` for account-bound JWT auth (preferred)
+- Runtime session lock blocks duplicate active connector runs using the same credentials
 - `TERMINAL_WEBHOOK_SECRET` remains supported for legacy terminals
 - Consider VPN for terminal-to-API communication

@@ -17,6 +17,7 @@ import { KnowledgeDocument } from '../knowledge-base/entities/knowledge-document
 import { VectorEmbedding } from '../knowledge-base/entities/vector-embedding.entity';
 import { TradeCandle } from '../trades/entities/trade-candle.entity';
 import { BacktestTrade } from '../backtesting/entities/backtest-trade.entity';
+import { BacktestChartLayout } from '../backtesting/entities/backtest-chart-layout.entity';
 import { MarketLog } from '../backtesting/entities/market-log.entity';
 import { MarketCandle } from '../backtesting/entities/market-candle.entity';
 import { ReplaySession } from '../backtesting/entities/replay-session.entity';
@@ -26,10 +27,13 @@ import { CommunityFollow } from '../community/entities/community-follow.entity';
 import { CommunityPostReply } from '../community/entities/community-post-reply.entity';
 import { EconomicEventAlert } from '../market-intelligence/entities/economic-event-alert.entity';
 import { EconomicEventAnalysis } from '../market-intelligence/entities/economic-event-analysis.entity';
+import { EconomicEventRelease } from '../market-intelligence/entities/economic-event-release.entity';
 import { CotWeeklyReport } from '../market-intelligence/entities/cot-weekly-report.entity';
 import { AuthSession } from '../auth/entities/auth-session.entity';
 import { AdminMfaCredential } from '../admin/entities/admin-mfa-credential.entity';
 import { AdminAuthAuditLog } from '../admin/entities/admin-auth-audit-log.entity';
+import { Notification } from '../notifications/entities/notification.entity';
+import { NotificationPreference } from '../notifications/entities/notification-preference.entity';
 import { Connector } from '@google-cloud/cloud-sql-connector';
 
 import { Logger } from '@nestjs/common';
@@ -78,6 +82,7 @@ async function createDataSource() {
           VectorEmbedding,
           TradeCandle,
           BacktestTrade,
+          BacktestChartLayout,
           MarketLog,
           MarketCandle,
           ReplaySession,
@@ -87,10 +92,13 @@ async function createDataSource() {
           CommunityPostReply,
           EconomicEventAlert,
           EconomicEventAnalysis,
+          EconomicEventRelease,
           CotWeeklyReport,
           AuthSession,
           AdminMfaCredential,
           AdminAuthAuditLog,
+          Notification,
+          NotificationPreference,
         ],
         migrations: ['dist/migrations/*{.ts,.js}'],
         synchronize: false,
@@ -124,6 +132,7 @@ async function createDataSource() {
           VectorEmbedding,
           TradeCandle,
           BacktestTrade,
+          BacktestChartLayout,
           MarketLog,
           MarketCandle,
           ReplaySession,
@@ -133,10 +142,13 @@ async function createDataSource() {
           CommunityPostReply,
           EconomicEventAlert,
           EconomicEventAnalysis,
+          EconomicEventRelease,
           CotWeeklyReport,
           AuthSession,
           AdminMfaCredential,
           AdminAuthAuditLog,
+          Notification,
+          NotificationPreference,
         ],
         migrations: ['dist/migrations/*{.ts,.js}'],
         synchronize: false,
@@ -171,6 +183,7 @@ async function createDataSource() {
         VectorEmbedding,
         TradeCandle,
         BacktestTrade,
+        BacktestChartLayout,
         MarketLog,
         MarketCandle,
         ReplaySession,
@@ -180,10 +193,13 @@ async function createDataSource() {
         CommunityPostReply,
         EconomicEventAlert,
         EconomicEventAnalysis,
+        EconomicEventRelease,
         CotWeeklyReport,
         AuthSession,
         AdminMfaCredential,
         AdminAuthAuditLog,
+        Notification,
+        NotificationPreference,
       ],
       migrations: ['src/migrations/*{.ts,.js}'],
       synchronize: false,

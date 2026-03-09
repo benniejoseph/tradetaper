@@ -36,7 +36,9 @@ export class AiQuotaService {
   private async initRedis(): Promise<void> {
     const url = this.configService.get<string>('REDIS_URL');
     if (!url) {
-      this.logger.warn('AiQuotaService: REDIS_URL not configured — quota enforcement disabled (fail-open)');
+      this.logger.warn(
+        'AiQuotaService: REDIS_URL not configured — quota enforcement disabled (fail-open)',
+      );
       return;
     }
     try {
@@ -51,7 +53,9 @@ export class AiQuotaService {
         this.ready = false;
         if (!this.redisErrorLogged) {
           this.redisErrorLogged = true;
-          this.logger.warn(`AiQuotaService Redis unavailable: ${err.message}. Quota enforcement disabled.`);
+          this.logger.warn(
+            `AiQuotaService Redis unavailable: ${err.message}. Quota enforcement disabled.`,
+          );
         }
       });
       await this.client.connect();
@@ -63,13 +67,24 @@ export class AiQuotaService {
       this.ready = false;
       this.client = null;
       this.redisErrorLogged = true;
-      this.logger.warn(`AiQuotaService: Failed to connect to Redis: ${err.message}. Quota enforcement disabled.`);
+      this.logger.warn(
+        `AiQuotaService: Failed to connect to Redis: ${err.message}. Quota enforcement disabled.`,
+      );
     }
   }
 
   /** Returns the quota limit for the given plan. null = unlimited. 0 = blocked. */
   getQuotaForPlan(plan: string): number | null {
-    return PLAN_AI_QUOTAS[plan] ?? PLAN_AI_QUOTAS['free'];
+    const normalizedPlan = String(plan || '')
+      .trim()
+      .toLowerCase();
+    if (Object.prototype.hasOwnProperty.call(PLAN_AI_QUOTAS, normalizedPlan)) {
+      return PLAN_AI_QUOTAS[normalizedPlan];
+    }
+    this.logger.warn(
+      `AiQuotaService: Unknown plan "${plan}" in quota check. Falling back to free limits.`,
+    );
+    return PLAN_AI_QUOTAS['free'];
   }
 
   /**
@@ -87,7 +102,8 @@ export class AiQuotaService {
       throw new HttpException(
         {
           statusCode: 403,
-          message: 'AI features are not available on your current plan. Upgrade to Premium to unlock.',
+          message:
+            'AI features are not available on your current plan. Upgrade to Premium to unlock.',
           code: 'AI_ACCESS_DENIED',
           upgradeUrl: '/plans',
         },
@@ -99,7 +115,9 @@ export class AiQuotaService {
       // No Redis — fail open (log warning, don't block users)
       if (!this.quotaBypassLogged) {
         this.quotaBypassLogged = true;
-        this.logger.warn('AiQuotaService: Redis not ready, skipping quota checks (fail-open)');
+        this.logger.warn(
+          'AiQuotaService: Redis not ready, skipping quota checks (fail-open)',
+        );
       }
       return;
     }
@@ -129,11 +147,16 @@ export class AiQuotaService {
       );
     }
 
-    this.logger.debug(`AI quota: user ${userId} — ${current}/${limit} calls used this month`);
+    this.logger.debug(
+      `AI quota: user ${userId} — ${current}/${limit} calls used this month`,
+    );
   }
 
   /** Get current month usage for a user (for display in UI) */
-  async getCurrentUsage(userId: string, plan: string): Promise<{ used: number; limit: number | null }> {
+  async getCurrentUsage(
+    userId: string,
+    plan: string,
+  ): Promise<{ used: number; limit: number | null }> {
     const limit = this.getQuotaForPlan(plan);
     if (!this.ready || !this.client) return { used: 0, limit };
 
@@ -151,7 +174,15 @@ export class AiQuotaService {
 
   private secondsUntilEndOfMonth(): number {
     const now = new Date();
-    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1, 0, 0, 0, 0);
+    const endOfMonth = new Date(
+      now.getFullYear(),
+      now.getMonth() + 1,
+      1,
+      0,
+      0,
+      0,
+      0,
+    );
     return Math.floor((endOfMonth.getTime() - now.getTime()) / 1000);
   }
 }

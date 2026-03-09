@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Put,
   Body,
   Patch,
   Param,
@@ -372,6 +373,125 @@ export class BacktestingController {
     return this.candleManagementService.getCandles(symbol, tf, start, end);
   }
 
+  // ============ TRADINGVIEW ADVANCED DATAFEED (UDF-LIKE) ============
+
+  @Get('tv/config')
+  getTradingViewConfig() {
+    return {
+      supports_search: true,
+      supports_group_request: false,
+      supports_marks: false,
+      supports_timescale_marks: false,
+      supports_time: true,
+      supported_resolutions: ['1', '5', '15', '30', '60', '240', '1D'],
+    };
+  }
+
+  @Get('tv/time')
+  getTradingViewServerTime() {
+    return Math.floor(Date.now() / 1000);
+  }
+
+  @Get('tv/search')
+  async searchTradingViewSymbols(
+    @Request() req,
+    @Query('query') query?: string,
+    @Query('limit') limit?: string,
+  ) {
+    const q = (query || '').trim().toUpperCase();
+    const max = Math.min(Math.max(parseInt(limit || '20', 10) || 20, 1), 50);
+    const symbols = await this.getTradingViewSymbolUniverse(req.user.id);
+
+    return symbols
+      .filter((symbol) => !q || symbol.includes(q))
+      .slice(0, max)
+      .map((symbol) => ({
+        symbol,
+        full_name: `TradeTaper:${symbol}`,
+        description: `${symbol} (TradeTaper Backtesting Feed)`,
+        exchange: 'TradeTaper',
+        ticker: symbol,
+        type: this.getTradingViewSymbolType(symbol),
+      }));
+  }
+
+  @Get('tv/symbols')
+  async resolveTradingViewSymbol(
+    @Request() req,
+    @Query('symbol') symbol?: string,
+  ) {
+    const normalized = this.normalizeTradingViewSymbol(symbol);
+    const symbols = await this.getTradingViewSymbolUniverse(req.user.id);
+    const resolvedSymbol =
+      symbols.find((s) => s === normalized) || normalized || 'XAUUSD';
+
+    return this.buildTradingViewSymbolInfo(resolvedSymbol);
+  }
+
+  @Get('tv/history')
+  async getTradingViewHistory(
+    @Request() req,
+    @Query('symbol') symbol?: string,
+    @Query('resolution') resolution?: string,
+    @Query('from') from?: string,
+    @Query('to') to?: string,
+  ) {
+    const normalizedSymbol = this.normalizeTradingViewSymbol(symbol);
+    const timeframe = this.mapTradingViewResolutionToTimeframe(resolution);
+    const fromSec = Number(from);
+    const toSec = Number(to);
+
+    if (
+      !normalizedSymbol ||
+      !Number.isFinite(fromSec) ||
+      !Number.isFinite(toSec)
+    ) {
+      return { s: 'error', errmsg: 'Invalid history query params' };
+    }
+
+    const safeFrom = Math.max(0, Math.floor(fromSec));
+    const safeTo = Math.max(safeFrom + 1, Math.floor(toSec));
+
+    const rows = await this.candleManagementService.getCandles(
+      normalizedSymbol,
+      timeframe,
+      new Date(safeFrom * 1000),
+      new Date(safeTo * 1000),
+    );
+
+    const bars = (rows || [])
+      .filter((row) => Number.isFinite(Number(row?.time)))
+      .map((row) => ({
+        time: Number(row.time),
+        open: Number(row.open),
+        high: Number(row.high),
+        low: Number(row.low),
+        close: Number(row.close),
+      }))
+      .filter(
+        (bar) =>
+          Number.isFinite(bar.open) &&
+          Number.isFinite(bar.high) &&
+          Number.isFinite(bar.low) &&
+          Number.isFinite(bar.close),
+      )
+      .sort((a, b) => a.time - b.time);
+
+    if (bars.length === 0) {
+      return { s: 'no_data', nextTime: safeFrom };
+    }
+
+    return {
+      s: 'ok',
+      t: bars.map((bar) => bar.time),
+      o: bars.map((bar) => bar.open),
+      h: bars.map((bar) => bar.high),
+      l: bars.map((bar) => bar.low),
+      c: bars.map((bar) => bar.close),
+      v: bars.map(() => 0),
+    };
+  }
+
   @Post('candles/:symbol/fetch')
   async fetchCandles(
     @Param('symbol') symbol: string,
@@ -425,6 +545,30 @@ export class BacktestingController {
     return this.replaySessionService.getSession(id, req.user.id);
   }
 
+  @Get('sessions/:id/chart-layout')
+  async getSessionChartLayout(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Request() req,
+  ) {
+    const layout = await this.replaySessionService.getChartLayout(id, req.user.id);
+    return { layout };
+  }
+
+  @Put('sessions/:id/chart-layout')
+  async saveSessionChartLayout(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: { layout?: Record<string, unknown> | null },
+    @Request() req,
+  ) {
+    const layout = await this.replaySessionService.saveChartLayout(
+      id,
+      req.user.id,
+      body?.layout || null,
+    );
+
+    return { layout };
+  }
+
   @Patch('sessions/:id')
   async updateSession(
     @Param('id', ParseUUIDPipe) id: string,
@@ -458,5 +602,111 @@ export class BacktestingController {
   @Post('sessions/:id/abandon')
   async abandonSession(@Param('id', ParseUUIDPipe) id: string, @Request() req) {
     return this.replaySessionService.abandonSession(id, req.user.id);
+  }
+
+  private normalizeTradingViewSymbol(symbol?: string): string {
+    if (!symbol) return '';
+    const upper = symbol.trim().toUpperCase();
+    const value = upper.includes(':') ? upper.split(':').pop() || upper : upper;
+    return value.replace(/[^A-Z0-9._-]/g, '');
+  }
+
+  private mapTradingViewResolutionToTimeframe(resolution?: string): string {
+    const r = (resolution || '60').toUpperCase();
+    switch (r) {
+      case '1':
+        return '1m';
+      case '5':
+        return '5m';
+      case '15':
+        return '15m';
+      case '30':
+        return '30m';
+      case '60':
+      case '1H':
+        return '1h';
+      case '240':
+      case '4H':
+        return '4h';
+      case '1D':
+      case 'D':
+        return '1d';
+      default:
+        return '1h';
+    }
+  }
+
+  private getTradingViewSymbolType(symbol: string): string {
+    if (symbol.startsWith('XAU') || symbol.startsWith('XAG')) return 'metal';
+    if (
+      symbol.startsWith('US') ||
+      symbol.startsWith('NAS') ||
+      symbol.startsWith('SPX') ||
+      symbol.startsWith('DJ')
+    ) {
+      return 'index';
+    }
+    if (symbol.endsWith('USD') && symbol.length >= 6) return 'forex';
+    if (symbol.startsWith('BTC') || symbol.startsWith('ETH')) return 'crypto';
+    return 'forex';
+  }
+
+  private getTradingViewPriceScale(symbol: string): number {
+    if (symbol.endsWith('JPY')) return 1000;
+    if (symbol.startsWith('XAU') || symbol.startsWith('XAG')) return 100;
+    if (symbol.startsWith('US') || symbol.startsWith('NAS') || symbol.startsWith('SPX')) {
+      return 100;
+    }
+    return 100000;
+  }
+
+  private buildTradingViewSymbolInfo(symbol: string) {
+    return {
+      name: symbol,
+      ticker: symbol,
+      full_name: `TradeTaper:${symbol}`,
+      description: `${symbol} (TradeTaper Backtesting Feed)`,
+      type: this.getTradingViewSymbolType(symbol),
+      session: '24x7',
+      exchange: 'TradeTaper',
+      listed_exchange: 'TradeTaper',
+      timezone: 'Etc/UTC',
+      minmov: 1,
+      pricescale: this.getTradingViewPriceScale(symbol),
+      has_intraday: true,
+      has_daily: true,
+      has_weekly_and_monthly: false,
+      has_no_volume: false,
+      supported_resolutions: ['1', '5', '15', '30', '60', '240', '1D'],
+      volume_precision: 2,
+      data_status: 'streaming',
+    };
+  }
+
+  private async getTradingViewSymbolUniverse(userId: string): Promise<string[]> {
+    const defaults = [
+      'XAUUSD',
+      'XAGUSD',
+      'EURUSD',
+      'GBPUSD',
+      'USDJPY',
+      'AUDUSD',
+      'USDCAD',
+      'USDCHF',
+      'NZDUSD',
+      'US100',
+      'US500',
+      'US30',
+      'BTCUSD',
+      'ETHUSD',
+    ];
+    const userSymbols = await this.backtestingService.getDistinctSymbols(userId);
+    return Array.from(
+      new Set(
+        [...defaults, ...(userSymbols || [])]
+          .map((s) => this.normalizeTradingViewSymbol(s))
+          .filter(Boolean),
+      ),
+    );
   }
 }
