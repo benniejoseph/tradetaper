@@ -1,0 +1,4 @@
+interface:
+  display_name: "Economic Calendar Reliability"
+  short_description: "Harden calendar ingest against 429s and stale release updates."
+  default_prompt: "Improve economic calendar reliability, actual-value updates, and historical retention."

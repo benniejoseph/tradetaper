@@ -1,0 +1,4 @@
+interface:
+  display_name: "Backtesting Datafeed Debug"
+  short_description: "Diagnose candle feed, symbol mapping, and replay data quality."
+  default_prompt: "Debug backtesting datafeed issues and stabilize chart replay data."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "MT5 Local Sync Debug"
+  short_description: "Debug MT5 EA and local connector sync failures end-to-end."
+  default_prompt: "Debug local MT5 sync failures between EA and backend webhooks."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Subscription Feature Gates"
+  short_description: "Add and verify Essential/Premium feature gating across stack."
+  default_prompt: "Add or fix subscription feature gates with backend enforcement and UI fallbacks."

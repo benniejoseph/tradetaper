@@ -1,0 +1,4 @@
+interface:
+  display_name: "Deploy TradeTaper"
+  short_description: "Deploy backend and frontend with safe production checks."
+  default_prompt: "Deploy TradeTaper backend and frontend, then run smoke checks."

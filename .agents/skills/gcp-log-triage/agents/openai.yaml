@@ -1,0 +1,4 @@
+interface:
+  display_name: "GCP Log Triage"
+  short_description: "Triage Cloud Run and API failures from production logs."
+  default_prompt: "Triage recent production errors from Cloud Run logs and suggest exact fixes."

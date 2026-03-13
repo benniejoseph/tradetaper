@@ -1,0 +1,4 @@
+interface:
+  display_name: "OANDA Data Integration"
+  short_description: "Integrate OANDA v20 candles for chart and backtesting feeds."
+  default_prompt: "Implement OANDA candle ingestion and stable symbol/timeframe mapping for TradeTaper."
