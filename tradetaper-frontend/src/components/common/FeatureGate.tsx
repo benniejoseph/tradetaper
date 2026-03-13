@@ -8,6 +8,7 @@ import { PlanLimits } from '@/types/pricing';
 export type GateFeature =
   | 'discipline'
   | 'aiAnalysis'
+  | 'aiCoach'
   | 'chartAnalysis'
   | 'backtesting'
   | 'advancedAnalytics'
@@ -34,6 +35,11 @@ const GATE_COPY: Record<GateFeature, { title: string; description: string; requi
     title: 'AI Analysis Locked',
     description: 'Get Gemini-powered trade analysis and chart insights. Upgrade to Premium.',
     requiredPlan: 'Premium',
+  },
+  aiCoach: {
+    title: 'AI Trader Coach Locked',
+    description: 'Chat with your AI trader + psychology coach. Available on Essential (limited) and Premium (full).',
+    requiredPlan: 'Essential',
   },
   chartAnalysis: {
     title: 'Live Chart Analysis Locked',
@@ -95,6 +101,9 @@ export const FeatureGate: React.FC<FeatureGateProps> = ({ feature, children, blu
     case 'chartAnalysis':
     case 'mentor':
       hasAccess = !!limits.aiAnalysis;
+      break;
+    case 'aiCoach':
+      hasAccess = planId === 'essential' || planId === 'premium';
       break;
     case 'backtesting':
       hasAccess = limits.backtesting === 'full';

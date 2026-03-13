@@ -171,6 +171,10 @@ export interface EconomicImpactAnalysis {
 export class EconomicCalendarService {
   private readonly logger = new Logger(EconomicCalendarService.name);
   private fredApiKey: string | undefined;
+  private forexFactoryRateLimitedUntil = 0;
+  private forexFactoryLastFetchAt = 0;
+  private readonly FOREX_FACTORY_DEFAULT_COOLDOWN_MS = 10 * 60 * 1000;
+  private readonly FOREX_FACTORY_MIN_FETCH_INTERVAL_MS = 5 * 60 * 1000;
 
   constructor(
     private readonly httpService: HttpService,
@@ -278,7 +282,9 @@ export class EconomicCalendarService {
       );
     }
 
-    if (!forceRefresh && this.eventFetchInFlight) {
+    // Coalesce concurrent fetches even when one caller requests force refresh,
+    // to avoid duplicate upstream requests from parallel HTTP/cron triggers.
+    if (this.eventFetchInFlight) {
       const inflightEvents = await this.eventFetchInFlight;
       return this.applyEventFilters(inflightEvents, fromDate, toDate, importance);
     }
@@ -292,6 +298,27 @@ export class EconomicCalendarService {
         }
       } catch (e) {
         this.logger.error('Failed to fetch ForexFactory events', e);
+      }
+
+      if (events.length === 0) {
+        try {
+          const snapshotEvents = await this.fetchEventsFromReleaseSnapshots(
+            fromDate,
+            toDate,
+            importance,
+          );
+          if (snapshotEvents.length > 0) {
+            this.logger.log(
+              `Using ${snapshotEvents.length} events from stored release snapshots`,
+            );
+            events.push(...snapshotEvents);
+          }
+        } catch (snapshotError) {
+          this.logger.warn(
+            'Failed to load economic events from release snapshots',
+            snapshotError,
+          );
+        }
       }
 
       if (events.length === 0) {
@@ -608,6 +635,34 @@ export class EconomicCalendarService {
   }
 
   private async fetchForexFactoryEvents(): Promise<EconomicEvent[]> {
+    const now = Date.now();
+
+    if (now < this.forexFactoryRateLimitedUntil) {
+      const waitSeconds = Math.ceil(
+        (this.forexFactoryRateLimitedUntil - now) / 1000,
+      );
+      this.logger.warn(
+        `Skipping ForexFactory fetch due to active cooldown (${waitSeconds}s remaining)`,
+      );
+      return [];
+    }
+
+    if (
+      this.forexFactoryLastFetchAt > 0 &&
+      now - this.forexFactoryLastFetchAt <
+        this.FOREX_FACTORY_MIN_FETCH_INTERVAL_MS
+    ) {
+      const waitSeconds = Math.ceil(
+        (this.FOREX_FACTORY_MIN_FETCH_INTERVAL_MS -
+          (now - this.forexFactoryLastFetchAt)) /
+          1000,
+      );
+      this.logger.debug(
+        `Skipping ForexFactory fetch due to min fetch interval (${waitSeconds}s remaining)`,
+      );
+      return [];
+    }
+
     try {
       const url = 'https://nfs.faireconomy.media/ff_calendar_thisweek.xml';
       this.logger.log(`Fetching FF Calendar from ${url}`);
@@ -621,6 +676,7 @@ export class EconomicCalendarService {
         },
       });
       const xmlData = response.data;
+      this.forexFactoryLastFetchAt = now;
 
       const parser = new XMLParser();
       const jObj = parser.parse(xmlData);
@@ -703,11 +759,220 @@ export class EconomicCalendarService {
         .filter((e) => e !== null) as EconomicEvent[];
 
       return events;
-    } catch (error) {
-      this.logger.error('Critical error fetching FF Events', error);
+    } catch (error: unknown) {
+      const status = this.extractHttpStatus(error);
+      if (status === 429) {
+        const retryAfterMs = Math.max(
+          this.FOREX_FACTORY_DEFAULT_COOLDOWN_MS,
+          this.extractRetryAfterMs(error) ??
+            this.FOREX_FACTORY_DEFAULT_COOLDOWN_MS,
+        );
+        this.forexFactoryRateLimitedUntil = now + retryAfterMs;
+        this.logger.warn(
+          `ForexFactory responded with 429. Cooling down for ${Math.ceil(retryAfterMs / 1000)}s before next attempt.`,
+        );
+        return [];
+      }
+
+      this.forexFactoryRateLimitedUntil =
+        now + this.FOREX_FACTORY_DEFAULT_COOLDOWN_MS;
+      this.logger.warn(
+        'Error fetching FF events. Temporarily backing off before retrying.',
+        error,
+      );
 
       return [];
     }
+  }
+
+  private extractHttpStatus(error: unknown): number | undefined {
+    if (!error || typeof error !== 'object') {
+      return undefined;
+    }
+
+    const asAny = error as {
+      status?: number | string;
+      response?: { status?: number | string };
+      message?: string;
+    };
+
+    const statusCandidate = asAny.response?.status ?? asAny.status;
+    if (typeof statusCandidate === 'number') {
+      return statusCandidate;
+    }
+    if (typeof statusCandidate === 'string') {
+      const parsed = Number.parseInt(statusCandidate, 10);
+      if (Number.isFinite(parsed)) {
+        return parsed;
+      }
+    }
+    if (typeof asAny.message === 'string') {
+      const match = asAny.message.match(/\bstatus code (\d{3})\b/i);
+      if (match?.[1]) {
+        const parsed = Number.parseInt(match[1], 10);
+        if (Number.isFinite(parsed)) {
+          return parsed;
+        }
+      }
+    }
+
+    return undefined;
+  }
+
+  private extractRetryAfterMs(error: unknown): number | null {
+    if (!error || typeof error !== 'object') {
+      return null;
+    }
+
+    const headers = (
+      error as {
+        response?: {
+          headers?:
+            | Record<string, string | string[] | undefined>
+            | { get?: (name: string) => string | null };
+        };
+      }
+    ).response?.headers;
+
+    let rawRetryAfter:
+      | string
+      | string[]
+      | undefined
+      | null = undefined;
+
+    if (
+      headers &&
+      typeof (headers as { get?: (name: string) => string | null }).get ===
+        'function'
+    ) {
+      rawRetryAfter =
+        (headers as { get: (name: string) => string | null }).get(
+          'retry-after',
+        ) ??
+        (headers as { get: (name: string) => string | null }).get(
+          'Retry-After',
+        );
+    } else if (headers && typeof headers === 'object') {
+      rawRetryAfter =
+        (headers as Record<string, string | string[] | undefined>)[
+          'retry-after'
+        ] ??
+        (headers as Record<string, string | string[] | undefined>)[
+          'Retry-After'
+        ];
+    }
+
+    if (!rawRetryAfter) {
+      return null;
+    }
+
+    const headerValue = Array.isArray(rawRetryAfter)
+      ? rawRetryAfter[0]
+      : rawRetryAfter;
+    if (!headerValue) {
+      return null;
+    }
+
+    const asSeconds = Number.parseInt(headerValue, 10);
+    if (Number.isFinite(asSeconds) && asSeconds > 0) {
+      return asSeconds * 1000;
+    }
+
+    const retryDate = new Date(headerValue);
+    if (!Number.isFinite(retryDate.getTime())) {
+      return null;
+    }
+
+    const deltaMs = retryDate.getTime() - Date.now();
+    if (deltaMs <= 0) {
+      return null;
+    }
+
+    return deltaMs;
+  }
+
+  private async fetchEventsFromReleaseSnapshots(
+    fromDate: Date | null,
+    toDate: Date | null,
+    importance?: string,
+  ): Promise<EconomicEvent[]> {
+    const query = this.economicReleaseRepository.createQueryBuilder('release');
+
+    if (fromDate && Number.isFinite(fromDate.getTime())) {
+      query.andWhere('release.eventDate >= :fromDate', { fromDate });
+    }
+    if (toDate && Number.isFinite(toDate.getTime())) {
+      const endDate = new Date(toDate);
+      endDate.setHours(23, 59, 59, 999);
+      query.andWhere('release.eventDate <= :toDate', { toDate: endDate });
+    }
+    if (!fromDate && !toDate) {
+      const start = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+      const end = new Date(Date.now() + 10 * 24 * 60 * 60 * 1000);
+      query.andWhere('release.eventDate BETWEEN :start AND :end', {
+        start,
+        end,
+      });
+    }
+
+    const normalizedImportance = importance?.trim().toLowerCase();
+    if (normalizedImportance) {
+      query.andWhere('LOWER(release.importance) = :importance', {
+        importance: normalizedImportance,
+      });
+    }
+
+    const rows = await query
+      .orderBy('release.eventDate', 'ASC')
+      .addOrderBy('release.updatedAt', 'DESC')
+      .take(500)
+      .getMany();
+
+    return rows.map((row) => this.mapReleaseSnapshotToEvent(row));
+  }
+
+  private mapReleaseSnapshotToEvent(release: EconomicEventRelease): EconomicEvent {
+    const eventDate = new Date(release.eventDate);
+    const currency = this.normalizeCurrencyCode(
+      release.currency || release.country || 'USD',
+    );
+    const importance = this.normalizeImportanceLabel(release.importance);
+    const actual = this.normalizeCalendarValue(release.actual);
+    const forecast = this.normalizeCalendarValue(release.forecast);
+    const previous = this.normalizeCalendarValue(release.previous);
+    const revised = this.normalizeCalendarValue(release.revised);
+
+    return {
+      id:
+        release.eventId ||
+        `snapshot-${release.eventKey}-${eventDate.getTime()}`,
+      calendarId: release.eventKey,
+      title: release.title,
+      country: release.country || 'Unknown',
+      currency,
+      date: eventDate,
+      time: eventDate.toISOString().slice(11, 16),
+      importance,
+      actual,
+      forecast,
+      previous,
+      revised,
+      releaseStatus:
+        (release.releaseStatus as EconomicReleaseStatus) ||
+        this.computeReleaseStatus(eventDate, Boolean(actual)),
+      surprise: this.computeSurprise(actual, forecast),
+      source: release.source || 'ReleaseSnapshot',
+      description: `${release.title} (${importance} Impact)`,
+      impact: {
+        expected: 'neutral',
+        explanation:
+          'Recovered from stored economic release snapshots while upstream feed was unavailable.',
+        affectedSymbols: this.mapCurrencyToSymbols(currency),
+        volatilityRating:
+          importance === 'high' ? 8 : importance === 'medium' ? 5 : 2,
+      },
+      isNewsDerived: false,
+    };
   }
 
   private mapImportanceToImpact(
@@ -1898,7 +2163,7 @@ ${JSON.stringify(context)}
     await this.generateEventImpactAnalysis(eventId);
   }
 
-  @Cron(CronExpression.EVERY_MINUTE)
+  @Cron(CronExpression.EVERY_5_MINUTES)
   async refreshEconomicReleaseSnapshots(): Promise<void> {
     try {
       await this.fetchEconomicEvents(undefined, undefined, undefined, true);

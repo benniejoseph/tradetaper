@@ -18,13 +18,17 @@ export default function NotificationToast({ t, notification }: NotificationToast
   const router = useRouter();
   const dispatch = useDispatch<AppDispatch>();
   const style = getNotificationStyle(notification);
+  const isUnread = notification.status === 'delivered' && !notification.readAt;
 
-  const handleClick = () => {
-    toast.dismiss(t.id);
-    const isUnread = notification.status === 'delivered' && !notification.readAt;
+  const markReadIfNeeded = () => {
     if (isUnread) {
       dispatch(markNotificationAsRead(notification.id));
     }
+  };
+
+  const handleClick = () => {
+    toast.dismiss(t.id);
+    markReadIfNeeded();
     if (notification.actionUrl) {
       router.push(notification.actionUrl);
     }
@@ -69,6 +73,7 @@ export default function NotificationToast({ t, notification }: NotificationToast
           onClick={(e) => {
             e.stopPropagation();
             toast.dismiss(t.id);
+            markReadIfNeeded();
           }}
           className="w-full border-none border-transparent rounded-none rounded-r-xl p-4 flex items-center justify-center text-sm font-medium text-gray-400 hover:text-gray-500 hover:bg-gray-50 dark:hover:bg-black transition-colors focus:outline-none"
         >

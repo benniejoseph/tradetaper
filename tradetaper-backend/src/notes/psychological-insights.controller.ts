@@ -3,6 +3,7 @@ import {
   Post,
   Param,
   Get,
+  BadRequestException,
   UseGuards,
   Req,
   Query,
@@ -16,6 +17,34 @@ import {
   FeatureAccessGuard,
   RequireFeature,
 } from '../subscriptions/guards/feature-access.guard';
+
+const parseOptionalDate = (
+  value: string | undefined,
+  fieldName: string,
+): Date | undefined => {
+  if (!value) return undefined;
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    throw new BadRequestException(`${fieldName} must be a valid date`);
+  }
+  return parsed;
+};
+
+const parseOptionalInt = (
+  value: string | undefined,
+  fieldName: string,
+  min: number,
+  max: number,
+): number | undefined => {
+  if (value === undefined) return undefined;
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed < min || parsed > max) {
+    throw new BadRequestException(
+      `${fieldName} must be an integer between ${min} and ${max}`,
+    );
+  }
+  return parsed;
+};
 
 @Controller('notes/:noteId/psychological-insights')
 @UseGuards(JwtAuthGuard, FeatureAccessGuard)
@@ -42,12 +71,18 @@ export class PsychologicalInsightsController {
   async getInsightsForNote(
     @Param('noteId') noteId: string,
     @Req() req: AuthenticatedRequest,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+    @Query('limit') limit?: string,
+    @Query('offset') offset?: string,
   ) {
-    // This is a simple implementation. You might want to add more specific logic
-    // to fetch insights related to a specific note if needed.
-    // The current getPsychologicalProfile gets all insights for a user.
-    return this.psychologicalInsightsService.getPsychologicalProfile(
+    return this.psychologicalInsightsService.getInsightsForNote(
+      noteId,
       req.user.id,
+      parseOptionalDate(startDate, 'startDate'),
+      parseOptionalDate(endDate, 'endDate'),
+      parseOptionalInt(limit, 'limit', 1, 200),
+      parseOptionalInt(offset, 'offset', 0, 100000),
     );
   }
 }
@@ -65,18 +100,34 @@ export class PsychologicalProfileController {
     @Req() req: AuthenticatedRequest,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
+    @Query('accountId') accountId?: string,
+    @Query('limit') limit?: string,
+    @Query('offset') offset?: string,
   ) {
     const userId = req.user.id;
     return this.psychologicalInsightsService.getPsychologicalProfile(
       userId,
-      startDate ? new Date(startDate) : undefined,
-      endDate ? new Date(endDate) : undefined,
+      parseOptionalDate(startDate, 'startDate'),
+      parseOptionalDate(endDate, 'endDate'),
+      accountId,
+      parseOptionalInt(limit, 'limit', 1, 200),
+      parseOptionalInt(offset, 'offset', 0, 100000),
     );
   }
 
   @Get('summary')
-  async getProfileSummary(@Req() req: AuthenticatedRequest) {
+  async getProfileSummary(
+    @Req() req: AuthenticatedRequest,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+    @Query('accountId') accountId?: string,
+  ) {
     const userId = req.user.id;
-    return this.psychologicalInsightsService.getPsychologicalSummary(userId);
+    return this.psychologicalInsightsService.getPsychologicalSummary(
+      userId,
+      parseOptionalDate(startDate, 'startDate'),
+      parseOptionalDate(endDate, 'endDate'),
+      accountId,
+    );
   }
 }

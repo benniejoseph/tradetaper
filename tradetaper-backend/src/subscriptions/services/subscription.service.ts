@@ -164,6 +164,7 @@ export class SubscriptionService {
           '7 Strategies',
           '1GB Storage',
           'Economic Chart & News Hub',
+          'AI Trader Coach (limited monthly chats)',
           'Access to Discipline Page',
           '50 Notes',
           'Restriction on Pattern Discovery',
@@ -208,6 +209,7 @@ export class SubscriptionService {
           'Unlimited Notes',
           '5GB Storage',
           'Full Market Intelligence',
+          'AI Trader Coach (unlimited)',
           'Full Discipline Access',
           'Full Backtesting Access',
           'AI Psychology Insights',
@@ -426,6 +428,10 @@ export class SubscriptionService {
         return plan.limits.discipline;
       case 'community':
         return subscription.plan === 'essential' || subscription.plan === 'premium';
+      case 'aiCoach':
+        return (
+          subscription.plan === 'essential' || subscription.plan === 'premium'
+        );
       case 'mentor':
       case 'aiAnalysis':
       case 'chartAnalysis':

@@ -95,19 +95,19 @@ export default function Sidebar({ isOpen, toggleSidebar, isMobile, onExpandChang
                         ${isMobile ? 'w-72' : ''}`}>
         
         {/* Header with Logo */}
-        <div className="p-4 sm:p-6">
-          <div className={`relative flex items-center ${isExpanded || isMobile ? 'justify-between' : 'justify-center'}`}>
+        <div className={`${isExpanded || isMobile ? 'p-4 sm:p-6' : 'px-2 py-4'}`}>
+          <div className={`relative flex items-center ${isExpanded || isMobile ? 'justify-between' : 'flex-col justify-center gap-2'}`}>
             <Link href="/dashboard" 
                   className={`flex items-center group focus:outline-none transition-all duration-300 ${isExpanded || isMobile ? 'space-x-3 justify-start' : 'justify-center w-full'}`}
                   onClick={handleLinkClick}>
               <div className={`relative ${isExpanded || isMobile ? '-ml-2' : 'mx-auto'}`}>
-                <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl flex items-center justify-center group-hover:scale-105 transition-all duration-300">
+                <div className={`${isExpanded || isMobile ? 'w-14 h-14 sm:w-16 sm:h-16' : 'w-11 h-11'} rounded-xl flex items-center justify-center group-hover:scale-105 transition-all duration-300`}>
                   <Image
                     src="/tradetaperLogo.png"
                     alt="TradeTaper"
                     width={48}
                     height={48}
-                    className="h-10 w-10 sm:h-12 sm:w-12 object-contain"
+                    className={`${isExpanded || isMobile ? 'h-10 w-10 sm:h-12 sm:w-12' : 'h-9 w-9'} object-contain`}
                   />
                 </div>
               </div>
@@ -119,11 +119,11 @@ export default function Sidebar({ isOpen, toggleSidebar, isMobile, onExpandChang
               </div>
             </Link>
             
-            <div className={`flex items-center space-x-2 ${isMobile ? 'mt-5' : 'absolute right-0 top-1/2 -translate-y-1/2'}`}>
+            <div className={`flex items-center space-x-2 ${isMobile ? 'mt-5' : isExpanded ? 'absolute right-0 top-1/2 -translate-y-1/2' : 'justify-center w-full'}`}>
               {!isMobile && (
                 <button 
                   onClick={toggleExpanded}
-                  className="p-2 ml-2 rounded-lg bg-gray-100/80 dark:bg-[#141414] hover:bg-emerald-500 dark:hover:bg-emerald-600 text-gray-600 dark:text-gray-400 hover:text-white transition-all duration-200 hover:scale-105"
+                  className={`p-2 rounded-lg bg-gray-100/80 dark:bg-[#141414] hover:bg-emerald-500 dark:hover:bg-emerald-600 text-gray-600 dark:text-gray-400 hover:text-white transition-all duration-200 hover:scale-105 ${isExpanded ? 'ml-2' : ''}`}
                   aria-label={isExpanded ? "Collapse sidebar" : "Expand sidebar"}>
                   {isExpanded ? <FaChevronLeft className="h-4 w-4" /> : <FaChevronRight className="h-4 w-4" />}
                 </button>

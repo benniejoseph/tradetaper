@@ -46,12 +46,43 @@ interface TradingViewBacktestChartProps {
   timeframe: string;
   isDark: boolean;
   replayTo?: number;
+  sessionStart?: number;
+  sessionEnd?: number;
   className?: string;
   onUnavailable?: (reason: string) => void;
   sessionId?: string;
 }
 
-const CHARTING_LIBRARY_SRC = '/charting_library/charting_library.standalone.js';
+const DEFAULT_LOCAL_LIBRARY_PATH = '/charting_library/';
+const LOCAL_LIBRARY_SOURCES = [
+  '/charting_library/charting_library.js',
+  '/charting_library/charting_library.standalone.js',
+];
+
+const normalizeLibraryPath = (value: string): string => {
+  if (!value) return value;
+  return value.endsWith('/') ? value : `${value}/`;
+};
+
+const deriveLibraryPathFromSrc = (src: string): string => {
+  const markers = ['/charting_library.js', '/charting_library.standalone.js'];
+  for (const marker of markers) {
+    const index = src.lastIndexOf(marker);
+    if (index >= 0) {
+      return normalizeLibraryPath(src.substring(0, index));
+    }
+  }
+  const lastSlash = src.lastIndexOf('/');
+  if (lastSlash >= 0) {
+    return normalizeLibraryPath(src.substring(0, lastSlash));
+  }
+  return DEFAULT_LOCAL_LIBRARY_PATH;
+};
+
+interface LibraryCandidate {
+  src: string;
+  libraryPath: string;
+}
 
 const normalizeApiBase = (value: string): string => value.replace(/\/+$/, '');
 
@@ -69,6 +100,12 @@ const parseJsonObject = (value: string | null): Record<string, unknown> | null =
   }
 };
 
+const normalizeSymbolForTradingView = (value: string): string => {
+  const upper = (value || '').trim().toUpperCase();
+  const maybeSymbol = upper.includes(':') ? upper.split(':').pop() || upper : upper;
+  return maybeSymbol.replace(/[^A-Z0-9._-]/g, '') || 'XAUUSD';
+};
+
 const TradingViewBacktestChart = forwardRef<
   TradingViewBacktestChartHandle,
   TradingViewBacktestChartProps
@@ -78,6 +115,8 @@ const TradingViewBacktestChart = forwardRef<
     timeframe,
     isDark,
     replayTo,
+    sessionStart,
+    sessionEnd,
     className,
     onUnavailable,
     sessionId,
@@ -86,10 +125,14 @@ const TradingViewBacktestChart = forwardRef<
 ) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const widgetRef = useRef<TradingViewWidgetApi | null>(null);
+  const libraryPathRef = useRef<string>(DEFAULT_LOCAL_LIBRARY_PATH);
   const replayToRef = useRef<number | undefined>(replayTo);
+  const previousReplayToRef = useRef<number | null>(null);
   const symbolRef = useRef(symbol);
   const timeframeRef = useRef(timeframe);
   const isDarkRef = useRef(isDark);
+  const sessionStartRef = useRef<number | undefined>(sessionStart);
+  const sessionEndRef = useRef<number | undefined>(sessionEnd);
   const [libraryReady, setLibraryReady] = useState(false);
   const [chartReady, setChartReady] = useState(false);
 
@@ -97,6 +140,8 @@ const TradingViewBacktestChart = forwardRef<
   symbolRef.current = symbol;
   timeframeRef.current = timeframe;
   isDarkRef.current = isDark;
+  sessionStartRef.current = sessionStart;
+  sessionEndRef.current = sessionEnd;
 
   const apiBase = useMemo(
     () =>
@@ -109,6 +154,8 @@ const TradingViewBacktestChart = forwardRef<
       createTradingViewBacktestingDatafeed({
         apiBaseUrl: apiBase,
         getReplayTo: () => replayToRef.current,
+        getSessionStart: () => sessionStartRef.current,
+        getSessionEnd: () => sessionEndRef.current,
       }),
     [apiBase],
   );
@@ -181,11 +228,11 @@ const TradingViewBacktestChart = forwardRef<
       if (cancelled || !containerRef.current || !window.TradingView?.widget) return;
 
       const widget = new window.TradingView.widget({
-        symbol: symbolRef.current,
+        symbol: normalizeSymbolForTradingView(symbolRef.current),
         interval: mapReplayTimeframeToTradingViewResolution(timeframeRef.current),
         container: containerRef.current,
         datafeed,
-        library_path: '/charting_library/',
+        library_path: libraryPathRef.current,
         locale: 'en',
         timezone: 'Etc/UTC',
         autosize: true,
@@ -198,51 +245,91 @@ const TradingViewBacktestChart = forwardRef<
       });
     };
 
-    if (window.TradingView?.widget) {
-      setLibraryReady(true);
-      initWidget();
-      return () => {
-        cancelled = true;
-        widgetRef.current?.remove();
-        widgetRef.current = null;
-        setChartReady(false);
-      };
+    const rawCandidates: LibraryCandidate[] = [];
+
+    const envLibrarySrc = (process.env.NEXT_PUBLIC_TRADINGVIEW_LIBRARY_SRC || '').trim();
+    const envLibraryPath = (process.env.NEXT_PUBLIC_TRADINGVIEW_LIBRARY_PATH || '').trim();
+    for (const src of LOCAL_LIBRARY_SOURCES) {
+      rawCandidates.push({
+        src,
+        libraryPath: DEFAULT_LOCAL_LIBRARY_PATH,
+      });
     }
 
-    const existing = document.querySelector<HTMLScriptElement>(
-      `script[src="${CHARTING_LIBRARY_SRC}"]`,
+    if (envLibrarySrc) {
+      rawCandidates.push({
+        src: envLibrarySrc,
+        libraryPath: normalizeLibraryPath(
+          envLibraryPath || deriveLibraryPathFromSrc(envLibrarySrc),
+        ),
+      });
+    }
+    const candidates = rawCandidates.filter((candidate, index) =>
+      rawCandidates.findIndex((item) => item.src === candidate.src) === index,
     );
 
-    const handleLoaded = () => {
-      if (cancelled) return;
-      setLibraryReady(true);
-      initWidget();
-    };
-    const handleError = () => {
+    const loadScript = async (src: string): Promise<void> =>
+      await new Promise((resolve, reject) => {
+        const existing = document.querySelector<HTMLScriptElement>(`script[src="${src}"]`);
+        if (existing) {
+          if (existing.dataset.tvLoaded === 'true') {
+            resolve();
+            return;
+          }
+          const handleLoaded = () => {
+            existing.dataset.tvLoaded = 'true';
+            existing.removeEventListener('load', handleLoaded);
+            existing.removeEventListener('error', handleError);
+            resolve();
+          };
+          const handleError = () => {
+            existing.removeEventListener('load', handleLoaded);
+            existing.removeEventListener('error', handleError);
+            reject(new Error(`Failed to load ${src}`));
+          };
+          existing.addEventListener('load', handleLoaded);
+          existing.addEventListener('error', handleError);
+          return;
+        }
+
+        const script = document.createElement('script');
+        script.src = src;
+        script.async = true;
+        script.onload = () => {
+          script.dataset.tvLoaded = 'true';
+          resolve();
+        };
+        script.onerror = () => reject(new Error(`Failed to load ${src}`));
+        document.body.appendChild(script);
+      });
+
+    const bootstrap = async () => {
+      const tried: string[] = [];
+      for (const candidate of candidates) {
+        tried.push(candidate.src);
+        try {
+          await loadScript(candidate.src);
+          if (cancelled) return;
+          if (!window.TradingView?.widget) continue;
+          libraryPathRef.current = candidate.libraryPath;
+          setLibraryReady(true);
+          initWidget();
+          return;
+        } catch {
+          // Try next candidate.
+        }
+      }
+
       if (cancelled) return;
       onUnavailable?.(
-        'TradingView Advanced library is missing. Add charting_library files to /public/charting_library.',
+        `TradingView Advanced library unavailable. Tried ${tried.length} source(s). Configure NEXT_PUBLIC_TRADINGVIEW_LIBRARY_SRC or add licensed files to /public/charting_library.`,
       );
     };
 
-    if (existing) {
-      existing.addEventListener('load', handleLoaded);
-      existing.addEventListener('error', handleError);
-    } else {
-      const script = document.createElement('script');
-      script.src = CHARTING_LIBRARY_SRC;
-      script.async = true;
-      script.onload = handleLoaded;
-      script.onerror = handleError;
-      document.body.appendChild(script);
-    }
+    void bootstrap();
 
     return () => {
       cancelled = true;
-      if (existing) {
-        existing.removeEventListener('load', handleLoaded);
-        existing.removeEventListener('error', handleError);
-      }
       widgetRef.current?.remove();
       widgetRef.current = null;
       setChartReady(false);
@@ -259,7 +346,7 @@ const TradingViewBacktestChart = forwardRef<
     const widget = widgetRef.current;
     if (!widget || !chartReady) return;
     widget.activeChart?.().setSymbol?.(
-      symbol,
+      normalizeSymbolForTradingView(symbol),
       mapReplayTimeframeToTradingViewResolution(timeframe),
       () => undefined,
     );
@@ -268,8 +355,20 @@ const TradingViewBacktestChart = forwardRef<
   useEffect(() => {
     const widget = widgetRef.current;
     if (!widget || !chartReady || replayTo == null) return;
-    widget.activeChart?.().resetData?.();
+    const replayToSeconds = Math.floor(replayTo);
+    const previousReplayTo = previousReplayToRef.current;
+    previousReplayToRef.current = replayToSeconds;
+
+    // Let realtime polling drive forward playback to keep motion smooth.
+    // Force a reset only when user moves replay backwards.
+    if (previousReplayTo != null && replayToSeconds < previousReplayTo) {
+      widget.activeChart?.().resetData?.();
+    }
   }, [chartReady, replayTo]);
+
+  useEffect(() => {
+    previousReplayToRef.current = null;
+  }, [symbol, timeframe]);
 
   useEffect(() => {
     const widget = widgetRef.current;
@@ -323,7 +422,7 @@ const TradingViewBacktestChart = forwardRef<
     <div className={`relative h-full w-full overflow-hidden ${className || ''}`}>
       <div ref={containerRef} className="h-full w-full" />
       {!libraryReady && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black/80 text-emerald-200 text-sm">
+        <div className="absolute inset-0 flex items-center justify-center bg-black/80 text-emerald-200 text-sm text-center px-4">
           Loading TradingView Advanced chart...
         </div>
       )}

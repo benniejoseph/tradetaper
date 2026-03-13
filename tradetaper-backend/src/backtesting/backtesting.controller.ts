@@ -13,8 +13,10 @@ import {
   ParseUUIDPipe,
   Res,
   HttpStatus,
+  ServiceUnavailableException,
 } from '@nestjs/common';
 import { Response } from 'express';
+import { ConfigService } from '@nestjs/config';
 import { BacktestingService } from './backtesting.service';
 import { TagService } from './services/tag.service';
 import { BacktestInsightsService } from './services/backtest-insights.service';
@@ -40,6 +42,7 @@ export class BacktestingController {
     private readonly insightsService: BacktestInsightsService,
     private readonly candleManagementService: CandleManagementService,
     private readonly replaySessionService: ReplaySessionService,
+    private readonly configService: ConfigService,
   ) {}
 
   // ============ CRUD ============
@@ -375,6 +378,46 @@ export class BacktestingController {
 
   // ============ TRADINGVIEW ADVANCED DATAFEED (UDF-LIKE) ============
 
+  private isTradingViewAdvancedEnabled(): boolean {
+    const value = this.configService.get<string>('BACKTEST_TV_ADVANCED_ENABLED');
+    if (value == null) return true;
+
+    const raw = value.trim().toLowerCase();
+    if (!raw) return true;
+
+    if (
+      raw === '0' ||
+      raw === 'false' ||
+      raw === 'no' ||
+      raw === 'off' ||
+      raw === 'disabled'
+    ) {
+      return false;
+    }
+
+    return true;
+  }
+
+  private getTradingViewGateReason(): string {
+    return (
+      this.configService.get<string>('BACKTEST_TV_ADVANCED_DISABLED_REASON') ||
+      'TradingView Advanced Charts are temporarily disabled pending license approval.'
+    );
+  }
+
+  private assertTradingViewAdvancedEnabled(): void {
+    if (this.isTradingViewAdvancedEnabled()) return;
+    throw new ServiceUnavailableException(this.getTradingViewGateReason());
+  }
+
+  @Get('tv/status')
+  getTradingViewStatus() {
+    return {
+      enabled: this.isTradingViewAdvancedEnabled(),
+      reason: this.getTradingViewGateReason(),
+    };
+  }
+
   @Get('tv/config')
   getTradingViewConfig() {
     return {
@@ -384,11 +427,14 @@ export class BacktestingController {
       supports_timescale_marks: false,
       supports_time: true,
       supported_resolutions: ['1', '5', '15', '30', '60', '240', '1D'],
+      advanced_enabled: this.isTradingViewAdvancedEnabled(),
+      advanced_disabled_reason: this.getTradingViewGateReason(),
     };
   }
 
   @Get('tv/time')
   getTradingViewServerTime() {
+    this.assertTradingViewAdvancedEnabled();
     return Math.floor(Date.now() / 1000);
   }
 
@@ -398,6 +444,7 @@ export class BacktestingController {
     @Query('query') query?: string,
     @Query('limit') limit?: string,
   ) {
+    this.assertTradingViewAdvancedEnabled();
     const q = (query || '').trim().toUpperCase();
     const max = Math.min(Math.max(parseInt(limit || '20', 10) || 20, 1), 50);
     const symbols = await this.getTradingViewSymbolUniverse(req.user.id);
@@ -420,6 +467,7 @@ export class BacktestingController {
     @Request() req,
     @Query('symbol') symbol?: string,
   ) {
+    this.assertTradingViewAdvancedEnabled();
     const normalized = this.normalizeTradingViewSymbol(symbol);
     const symbols = await this.getTradingViewSymbolUniverse(req.user.id);
     const resolvedSymbol =
@@ -435,7 +483,9 @@ export class BacktestingController {
     @Query('resolution') resolution?: string,
     @Query('from') from?: string,
     @Query('to') to?: string,
+    @Query('countback') countback?: string,
   ) {
+    this.assertTradingViewAdvancedEnabled();
     const normalizedSymbol = this.normalizeTradingViewSymbol(symbol);
     const timeframe = this.mapTradingViewResolutionToTimeframe(resolution);
     const fromSec = Number(from);
@@ -451,12 +501,24 @@ export class BacktestingController {
 
     const safeFrom = Math.max(0, Math.floor(fromSec));
     const safeTo = Math.max(safeFrom + 1, Math.floor(toSec));
+    const minValidTime = Math.floor(new Date('2000-01-01T00:00:00.000Z').getTime() / 1000);
+    const resolutionSeconds = this.mapTradingViewResolutionToSeconds(resolution);
+    const maxBars = this.maxTradingViewBarsForResolution(resolution);
+    const parsedCountBack = Number(countback);
+    const boundedCountBack = Number.isFinite(parsedCountBack)
+      ? Math.min(Math.max(Math.floor(parsedCountBack), 50), maxBars)
+      : maxBars;
+    const boundedTo = Math.max(safeTo, minValidTime + 1);
+    const boundedFrom = Math.max(
+      minValidTime,
+      Math.max(safeFrom, boundedTo - boundedCountBack * resolutionSeconds),
+    );
 
     const rows = await this.candleManagementService.getCandles(
       normalizedSymbol,
       timeframe,
-      new Date(safeFrom * 1000),
-      new Date(safeTo * 1000),
+      new Date(boundedFrom * 1000),
+      new Date(boundedTo * 1000),
     );
 
     const bars = (rows || [])
@@ -478,7 +540,7 @@ export class BacktestingController {
       .sort((a, b) => a.time - b.time);
 
     if (bars.length === 0) {
-      return { s: 'no_data', nextTime: safeFrom };
+      return { s: 'no_data', nextTime: boundedFrom };
     }
 
     return {
@@ -633,6 +695,56 @@ export class BacktestingController {
         return '1d';
       default:
         return '1h';
+    }
+  }
+
+  private mapTradingViewResolutionToSeconds(resolution?: string): number {
+    const r = (resolution || '60').toUpperCase();
+    switch (r) {
+      case '1':
+        return 60;
+      case '5':
+        return 300;
+      case '15':
+        return 900;
+      case '30':
+        return 1800;
+      case '60':
+      case '1H':
+        return 3600;
+      case '240':
+      case '4H':
+        return 14400;
+      case '1D':
+      case 'D':
+        return 86400;
+      default:
+        return 3600;
+    }
+  }
+
+  private maxTradingViewBarsForResolution(resolution?: string): number {
+    const r = (resolution || '60').toUpperCase();
+    switch (r) {
+      case '1':
+        return 12000;
+      case '5':
+        return 12000;
+      case '15':
+        return 12000;
+      case '30':
+        return 12000;
+      case '60':
+      case '1H':
+        return 15000;
+      case '240':
+      case '4H':
+        return 18000;
+      case '1D':
+      case 'D':
+        return 20000;
+      default:
+        return 12000;
     }
   }
 

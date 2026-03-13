@@ -1290,26 +1290,33 @@ export class TerminalFarmService {
       `Trade sync complete: ${imported} imported, ${skipped} skipped, ${failed} failed`,
     );
 
-    // Send MT5_SYNC_COMPLETE notification
-    try {
-      await this.notificationsService.send({
-        userId: terminal.account.userId,
-        type: NotificationType.MT5_SYNC_COMPLETE,
-        title: 'MT5 Sync Complete',
-        message: `Successfully synced ${imported} trades from MT5${imported > 0 ? `. ${skipped} skipped, ${failed} failed.` : ''}`,
-        data: {
-          terminalId: terminal.id,
-          accountId: terminal.accountId,
-          accountName: terminal.account.accountName,
-          imported,
-          skipped,
-          failed,
-          syncTime: new Date().toISOString(),
-        },
-      });
-    } catch (error) {
-      this.logger.error(
-        `Failed to send MT5 sync complete notification: ${error.message}`,
+    // Send MT5_SYNC_COMPLETE notification only when at least one trade was created/updated.
+    // Avoid notification spam for heartbeat sync cycles that import zero trades.
+    if (imported > 0) {
+      try {
+        await this.notificationsService.send({
+          userId: terminal.account.userId,
+          type: NotificationType.MT5_SYNC_COMPLETE,
+          title: 'MT5 Sync Complete',
+          message: `Successfully synced ${imported} trades from MT5. ${skipped} skipped, ${failed} failed.`,
+          data: {
+            terminalId: terminal.id,
+            accountId: terminal.accountId,
+            accountName: terminal.account.accountName,
+            imported,
+            skipped,
+            failed,
+            syncTime: new Date().toISOString(),
+          },
+        });
+      } catch (error) {
+        this.logger.error(
+          `Failed to send MT5 sync complete notification: ${error.message}`,
+        );
+      }
+    } else {
+      this.logger.debug(
+        `Skipping MT5 sync complete notification for terminal ${terminal.id} (0 trades imported)`,
       );
     }
 

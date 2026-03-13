@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Between } from 'typeorm';
+import { Repository, Between, In } from 'typeorm';
 import { MarketCandle } from '../entities/market-candle.entity';
 import { ConfigService } from '@nestjs/config';
 import { HttpService } from '@nestjs/axios';
@@ -9,6 +9,22 @@ import { firstValueFrom } from 'rxjs';
 @Injectable()
 export class CandleManagementService {
   private readonly logger = new Logger(CandleManagementService.name);
+  private static readonly MIN_VALID_CANDLE_DATE = new Date('2000-01-01T00:00:00.000Z');
+  private static readonly MAX_TWELVE_DATA_OUTPUTSIZE = 5000;
+  private static readonly BACKTEST_PROVIDER_SOURCES = [
+    'oanda',
+    'twelvedata',
+    'alphavantage',
+  ] as const;
+  private static readonly MAX_HISTORY_RANGE_DAYS_BY_TIMEFRAME: Record<string, number> = {
+    '1m': 120,
+    '5m': 365,
+    '15m': 365 * 2,
+    '30m': 365 * 3,
+    '1h': 365 * 5,
+    '4h': 365 * 8,
+    '1d': 365 * 20,
+  };
 
   constructor(
     @InjectRepository(MarketCandle)
@@ -177,7 +193,7 @@ export class CandleManagementService {
   }
 
   // ─────────────────────────────────────────────────────────────
-  // OLDER ENTRY POINT: Yahoo Finance / TwelveData (unchanged)
+  // BACKTESTING ENTRY POINT: external provider-backed candles
   // ─────────────────────────────────────────────────────────────
 
   /**
@@ -197,48 +213,89 @@ export class CandleManagementService {
     startDate: Date,
     endDate: Date,
   ): Promise<MarketCandle[]> {
+    const symbolCode = (symbol || '').toUpperCase().trim();
+    const timeframeCode = (timeframe || '1h').toLowerCase().trim();
+    const { from: boundedStartDate, to: boundedEndDate } =
+      this.clampHistoryRange(timeframeCode, startDate, endDate);
+
     const existing = await this.marketCandleRepo.find({
       where: {
-        symbol,
-        timeframe,
-        timestamp: Between(startDate, endDate),
+        symbol: symbolCode,
+        timeframe: timeframeCode,
+        source: In([...CandleManagementService.BACKTEST_PROVIDER_SOURCES]),
+        timestamp: Between(boundedStartDate, boundedEndDate),
       },
       order: { timestamp: 'ASC' },
     });
 
     const expectedCount = this.calculateExpectedCandles(
-      timeframe,
-      startDate,
-      endDate,
+      timeframeCode,
+      boundedStartDate,
+      boundedEndDate,
     );
     if (existing.length >= expectedCount * 0.9) {
       this.logger.log(
-        `Cache HIT: ${existing.length} candles for ${symbol} ${timeframe}`,
+        `Cache HIT: ${existing.length} candles for ${symbolCode} ${timeframeCode}`,
       );
       return existing;
     }
 
-    // ── Primary: TwelveData (800 req/day free, India-accessible) ────────────
-    this.logger.log(`Cache MISS: Fetching from TwelveData (${symbol} ${timeframe})`);
-    let candles = await this.fetchFromTwelveData(symbol, timeframe, startDate, endDate);
-    let source = 'twelvedata';
+    let candles: any[] = [];
+    let source = '';
+
+    // ── Primary: OANDA (when configured, best quality for FX/metals) ────────
+    if (this.canUseOandaForSymbol(symbolCode)) {
+      this.logger.log(`Cache MISS: Fetching from OANDA (${symbolCode} ${timeframeCode})`);
+      candles = await this.fetchFromOanda(
+        symbolCode,
+        timeframeCode,
+        boundedStartDate,
+        boundedEndDate,
+      );
+      if (candles.length > 0) {
+        source = 'oanda';
+      }
+    }
+
+    // ── Secondary: TwelveData with pagination ────────────────────────────────
+    if (candles.length === 0) {
+      this.logger.log(`Cache MISS: Fetching from TwelveData (${symbolCode} ${timeframeCode})`);
+      candles = await this.fetchFromTwelveData(
+        symbolCode,
+        timeframeCode,
+        boundedStartDate,
+        boundedEndDate,
+      );
+      if (candles.length > 0) {
+        source = 'twelvedata';
+      }
+    }
 
     // ── Secondary: Alpha Vantage (25 req/day free backup) ───────────────────
     if (candles.length === 0) {
-      this.logger.warn(`TwelveData returned no data for ${symbol} ${timeframe} — trying Alpha Vantage`);
-      candles = await this.fetchFromAlphaVantage(symbol, timeframe, startDate, endDate);
-      source = 'alphavantage';
+      this.logger.warn(
+        `Primary sources returned no data for ${symbolCode} ${timeframeCode} — trying Alpha Vantage`,
+      );
+      candles = await this.fetchFromAlphaVantage(
+        symbolCode,
+        timeframeCode,
+        boundedStartDate,
+        boundedEndDate,
+      );
+      if (candles.length > 0) {
+        source = 'alphavantage';
+      }
     }
 
     if (candles.length === 0) {
-      this.logger.warn(`No candles returned from any source for ${symbol} ${timeframe}`);
+      this.logger.warn(`No candles returned from any source for ${symbolCode} ${timeframeCode}`);
       return existing;
     }
 
-    const entities = candles.map((c) =>
-      this.marketCandleRepo.create({
-        symbol,
-        timeframe,
+    const upsertRows: Omit<MarketCandle, 'id' | 'createdAt' | 'updatedAt'>[] =
+      candles.map((c) => ({
+        symbol: symbolCode,
+        timeframe: timeframeCode,
         timestamp: new Date(c.time * 1000),
         open: c.open,
         high: c.high,
@@ -246,17 +303,27 @@ export class CandleManagementService {
         close: c.close,
         volume: c.tickVolume ?? 0,
         source,
-      }),
-    );
+      }))
+      .filter((row) => this.isValidCandleRow(row));
 
     try {
-      await this.marketCandleRepo.save(entities, { chunk: 100 });
-      this.logger.log(`Stored ${entities.length} candles from ${source} for ${symbol} ${timeframe}`);
+      await this.upsertCandles(upsertRows);
+      this.logger.log(
+        `Upserted ${upsertRows.length} candles from ${source} for ${symbolCode} ${timeframeCode}`,
+      );
     } catch (error) {
       this.logger.error(`Failed to store candles: ${error.message}`);
     }
 
-    return entities;
+    return this.marketCandleRepo.find({
+      where: {
+        symbol: symbolCode,
+        timeframe: timeframeCode,
+        source: In([...CandleManagementService.BACKTEST_PROVIDER_SOURCES]),
+        timestamp: Between(boundedStartDate, boundedEndDate),
+      },
+      order: { timestamp: 'ASC' },
+    });
   }
 
   async getCandles(
@@ -265,17 +332,38 @@ export class CandleManagementService {
     startDate: Date,
     endDate: Date,
   ): Promise<any[]> {
+    const symbolCode = (symbol || '').toUpperCase().trim();
+    const timeframeCode = (timeframe || '1h').toLowerCase().trim();
+    const { from: boundedStartDate, to: boundedEndDate } =
+      this.clampHistoryRange(timeframeCode, startDate, endDate);
     let candles = await this.marketCandleRepo.find({
-      where: { symbol, timeframe, timestamp: Between(startDate, endDate) },
+      where: {
+        symbol: symbolCode,
+        timeframe: timeframeCode,
+        source: In([...CandleManagementService.BACKTEST_PROVIDER_SOURCES]),
+        timestamp: Between(boundedStartDate, boundedEndDate),
+      },
       order: { timestamp: 'ASC' },
     });
 
-    const expectedCount = this.calculateExpectedCandles(timeframe, startDate, endDate);
+    const expectedCount = this.calculateExpectedCandles(timeframeCode, boundedStartDate, boundedEndDate);
     if (candles.length < expectedCount * 0.5) {
       this.logger.log(
-        `Cache insufficient (${candles.length}/${expectedCount}), fetching from Yahoo Finance`,
+        `Cache insufficient (${candles.length}/${expectedCount}), fetching from provider pipeline for ${symbolCode} ${timeframeCode}`,
       );
-      candles = await this.fetchAndStoreCandles(symbol, timeframe, startDate, endDate);
+      candles = await this.fetchAndStoreCandles(symbolCode, timeframeCode, boundedStartDate, boundedEndDate);
+    }
+
+    if (candles.length === 0) {
+      // Final fallback for nonstandard instruments where only terminal candles may exist.
+      candles = await this.marketCandleRepo.find({
+        where: {
+          symbol: symbolCode,
+          timeframe: timeframeCode,
+          timestamp: Between(boundedStartDate, boundedEndDate),
+        },
+        order: { timestamp: 'ASC' },
+      });
     }
 
     return this.toChartFormat(candles);
@@ -516,7 +604,44 @@ export class CandleManagementService {
       '1m': 1, '5m': 5, '15m': 15, '30m': 30, '1h': 60, '4h': 240, '1d': 1440,
     };
     const interval = intervalMap[timeframe] || 1;
-    return Math.floor(diffMin / interval);
+    const rawExpected = Math.floor(diffMin / interval);
+    const intraday = ['1m', '5m', '15m', '30m', '1h', '4h'].includes(timeframe);
+    const marketHoursAdjustment = intraday ? 0.72 : 1; // approx 24/5 sessions + holidays
+    return Math.max(1, Math.floor(rawExpected * marketHoursAdjustment));
+  }
+
+  private clampHistoryRange(
+    timeframe: string,
+    requestedStart: Date,
+    requestedEnd: Date,
+  ): { from: Date; to: Date } {
+    const safeStart = new Date(requestedStart);
+    const safeEnd = new Date(requestedEnd);
+    const minDateMs = CandleManagementService.MIN_VALID_CANDLE_DATE.getTime();
+
+    const normalizedEndMs = Number.isFinite(safeEnd.getTime())
+      ? safeEnd.getTime()
+      : Date.now();
+    const normalizedStartMs = Number.isFinite(safeStart.getTime())
+      ? safeStart.getTime()
+      : normalizedEndMs - 24 * 60 * 60 * 1000;
+
+    let boundedFromMs = Math.max(normalizedStartMs, minDateMs);
+    let boundedToMs = Math.max(normalizedEndMs, boundedFromMs + 1000);
+
+    const maxDays =
+      CandleManagementService.MAX_HISTORY_RANGE_DAYS_BY_TIMEFRAME[timeframe] ??
+      CandleManagementService.MAX_HISTORY_RANGE_DAYS_BY_TIMEFRAME['1h'];
+    const maxRangeMs = maxDays * 24 * 60 * 60 * 1000;
+    const minAllowedFrom = boundedToMs - maxRangeMs;
+    if (boundedFromMs < minAllowedFrom) {
+      boundedFromMs = minAllowedFrom;
+    }
+
+    return {
+      from: new Date(boundedFromMs),
+      to: new Date(boundedToMs),
+    };
   }
 
   async cleanupOldCandles(daysToKeep = 90): Promise<number> {
@@ -676,43 +801,114 @@ export class CandleManagementService {
 
     const twelveSymbol = this.toTwelveDataSymbol(symbol);
     const interval = this.toTwelveDataInterval(timeframe);
-    const startStr = startDate.toISOString().split('T')[0];
-    const endStr = endDate.toISOString().split('T')[0];
+    const intervalSeconds = this.timeframeToSeconds(timeframe);
+    const expectedBars = this.calculateExpectedCandles(timeframe, startDate, endDate);
+    const pagesNeeded = Math.max(
+      1,
+      Math.ceil(expectedBars / CandleManagementService.MAX_TWELVE_DATA_OUTPUTSIZE),
+    );
+    const maxPages = Math.min(pagesNeeded + 1, 20);
 
-    try {
-      const url = 'https://api.twelvedata.com/time_series';
-      const response = await firstValueFrom(
-        this.httpService.get(url, {
-          params: { symbol: twelveSymbol, interval, start_date: startStr, end_date: endStr, apikey: apiKey, outputsize: 5000 },
-          timeout: 30000,
-        }),
-      );
+    const allByTime = new Map<number, any>();
+    let cursorEnd = new Date(endDate);
+    let fetchedPages = 0;
 
-      if (response.data.status === 'error') {
-        this.logger.error(`TwelveData API error: ${response.data.message}`);
-        return [];
+    while (cursorEnd > startDate && fetchedPages < maxPages) {
+      try {
+        const response = await firstValueFrom(
+          this.httpService.get('https://api.twelvedata.com/time_series', {
+            params: {
+              symbol: twelveSymbol,
+              interval,
+              start_date: this.toTwelveDataDateTime(startDate),
+              end_date: this.toTwelveDataDateTime(cursorEnd),
+              apikey: apiKey,
+              outputsize: CandleManagementService.MAX_TWELVE_DATA_OUTPUTSIZE,
+              order: 'DESC',
+              timezone: 'UTC',
+            },
+            timeout: 30000,
+          }),
+        );
+
+        if (response.data?.status === 'error') {
+          this.logger.error(`TwelveData API error: ${response.data.message}`);
+          break;
+        }
+
+        const values = Array.isArray(response.data?.values)
+          ? response.data.values
+          : [];
+        if (values.length === 0) {
+          break;
+        }
+
+        let oldestTimeSec = Number.POSITIVE_INFINITY;
+        for (const candle of values) {
+          const timeSec = Math.floor(new Date(candle.datetime).getTime() / 1000);
+          if (!Number.isFinite(timeSec)) continue;
+          if (timeSec < Math.floor(startDate.getTime() / 1000)) continue;
+          if (timeSec > Math.floor(endDate.getTime() / 1000)) continue;
+          if (!this.isValidCandleTimestamp(timeSec)) continue;
+
+          const parsed = {
+            time: timeSec,
+            open: parseFloat(candle.open),
+            high: parseFloat(candle.high),
+            low: parseFloat(candle.low),
+            close: parseFloat(candle.close),
+            tickVolume: parseFloat(candle.volume || 0),
+          };
+
+          if (
+            !Number.isFinite(parsed.open) ||
+            !Number.isFinite(parsed.high) ||
+            !Number.isFinite(parsed.low) ||
+            !Number.isFinite(parsed.close)
+          ) {
+            continue;
+          }
+
+          allByTime.set(timeSec, parsed);
+          if (timeSec < oldestTimeSec) {
+            oldestTimeSec = timeSec;
+          }
+        }
+
+        fetchedPages += 1;
+        if (!Number.isFinite(oldestTimeSec)) {
+          break;
+        }
+
+        const nextEndSec = oldestTimeSec - intervalSeconds;
+        if (nextEndSec <= Math.floor(startDate.getTime() / 1000)) {
+          break;
+        }
+        cursorEnd = new Date(nextEndSec * 1000);
+      } catch (error) {
+        this.logger.error(`Failed to fetch from TwelveData: ${error.message}`);
+        break;
       }
-
-      const values = response.data.values || [];
-      return values
-        .map((candle: any) => ({
-          time: Math.floor(new Date(candle.datetime).getTime() / 1000),
-          open: parseFloat(candle.open),
-          high: parseFloat(candle.high),
-          low: parseFloat(candle.low),
-          close: parseFloat(candle.close),
-          tickVolume: parseFloat(candle.volume || 0),
-        }))
-        .reverse();
-    } catch (error) {
-      this.logger.error(`Failed to fetch from TwelveData: ${error.message}`);
-      return [];
     }
+
+    const candles = Array.from(allByTime.values()).sort((a, b) => a.time - b.time);
+    this.logger.log(
+      `[TwelveData] Fetched ${candles.length} candles for ${symbol} ${timeframe} across ${fetchedPages} page(s)`,
+    );
+    return candles;
   }
 
   private toTwelveDataSymbol(symbol: string): string {
     const map: Record<string, string> = {
-      XAUUSD: 'XAU/USD', XAGUSD: 'XAG/USD', XTIUSD: 'WTI/USD', XBRUSD: 'BRENT/USD',
+      XAUUSD: 'XAU/USD',
+      XAGUSD: 'XAG/USD',
+      XTIUSD: 'WTI/USD',
+      XBRUSD: 'BRENT/USD',
+      US100: 'NDX',
+      US500: 'SPX',
+      US30: 'DJI',
+      NAS100: 'NDX',
+      SPX500: 'SPX',
     };
     if (map[symbol]) return map[symbol];
     if (this.isForex(symbol) && !symbol.includes('/'))
@@ -754,7 +950,12 @@ export class CandleManagementService {
       return [];
     }
 
-    const { fromSym, toSym } = this.toAvSymbol(symbol);
+    const avPair = this.toAvSymbol(symbol);
+    if (!avPair) {
+      this.logger.warn(`[AV] Symbol ${symbol} is not supported by Alpha Vantage FX endpoints`);
+      return [];
+    }
+    const { fromSym, toSym } = avPair;
     const isDaily = timeframe === '1d';
 
     try {
@@ -805,14 +1006,16 @@ export class CandleManagementService {
   }
 
   /** Map TradeTaper symbol → Alpha Vantage from/to pair (e.g. XAUUSD → XAU/USD) */
-  private toAvSymbol(symbol: string): { fromSym: string; toSym: string } {
+  private toAvSymbol(symbol: string): { fromSym: string; toSym: string } | null {
     const map: Record<string, [string, string]> = {
       XAUUSD: ['XAU', 'USD'], XAGUSD: ['XAG', 'USD'],
       BTCUSD: ['BTC', 'USD'], ETHUSD: ['ETH', 'USD'],
     };
     if (map[symbol]) return { fromSym: map[symbol][0], toSym: map[symbol][1] };
-    if (symbol.length === 6) return { fromSym: symbol.slice(0, 3), toSym: symbol.slice(3, 6) };
-    return { fromSym: symbol.slice(0, 3), toSym: symbol.slice(3) };
+    if (symbol.length === 6 && this.isForex(symbol)) {
+      return { fromSym: symbol.slice(0, 3), toSym: symbol.slice(3, 6) };
+    }
+    return null;
   }
 
   /** Map TradeTaper timeframe → Alpha Vantage interval string */
@@ -835,5 +1038,52 @@ export class CandleManagementService {
 
   private isCrypto(symbol: string): boolean {
     return symbol.includes('BTC') || symbol.includes('ETH') || symbol.includes('USDT');
+  }
+
+  private timeframeToSeconds(timeframe: string): number {
+    const map: Record<string, number> = {
+      '1m': 60,
+      '5m': 300,
+      '15m': 900,
+      '30m': 1800,
+      '1h': 3600,
+      '4h': 14400,
+      '1d': 86400,
+    };
+    return map[timeframe] || 3600;
+  }
+
+  private isValidCandleTimestamp(timeSec: number): boolean {
+    const date = new Date(timeSec * 1000);
+    return (
+      Number.isFinite(date.getTime()) &&
+      date >= CandleManagementService.MIN_VALID_CANDLE_DATE
+    );
+  }
+
+  private isValidCandleRow(
+    row: Omit<MarketCandle, 'id' | 'createdAt' | 'updatedAt'>,
+  ): boolean {
+    if (!row?.timestamp || !Number.isFinite(row.timestamp.getTime())) return false;
+    if (row.timestamp < CandleManagementService.MIN_VALID_CANDLE_DATE) return false;
+    return (
+      Number.isFinite(Number(row.open)) &&
+      Number.isFinite(Number(row.high)) &&
+      Number.isFinite(Number(row.low)) &&
+      Number.isFinite(Number(row.close)) &&
+      Number(row.open) > 0 &&
+      Number(row.high) > 0 &&
+      Number(row.low) > 0 &&
+      Number(row.close) > 0
+    );
+  }
+
+  private toTwelveDataDateTime(value: Date): string {
+    return value.toISOString().replace('T', ' ').slice(0, 19);
+  }
+
+  private canUseOandaForSymbol(symbol: string): boolean {
+    if (!this.configService.get<string>('OANDA_API_KEY')) return false;
+    return this.isForex(symbol) || ['XAUUSD', 'XAGUSD'].includes(symbol);
   }
 }

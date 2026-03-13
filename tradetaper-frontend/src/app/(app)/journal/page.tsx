@@ -24,7 +24,6 @@ import "react-datepicker/dist/react-datepicker.css";
 import { useDebounce } from '@/hooks/useDebounce';
 import { CurrencyAmount } from '@/components/common/CurrencyAmount';
 import TradeActionModal from '@/components/trades/TradeActionModal';
-import LivePositionsPanel from '@/components/trades/LivePositionsPanel';
 
 export default function JournalPage() {
   const dispatch = useDispatch<AppDispatch>();
@@ -37,11 +36,6 @@ export default function JournalPage() {
   const manualAccounts = useSelector(selectAvailableAccounts);
   const mt5Accounts = useSelector(selectMT5Accounts);
   const [isTradeActionOpen, setIsTradeActionOpen] = useState(false);
-  const selectedMT5Account = useMemo(
-    () => mt5Accounts.find(acc => acc.id === selectedMT5AccountId),
-    [mt5Accounts, selectedMT5AccountId]
-  );
-  const hasMT5Accounts = mt5Accounts.length > 0;
 
   // State for filters and UI
   const [activePositionFilter, setActivePositionFilter] = useState<'all' | 'open' | 'closed'>('all');
@@ -341,14 +335,6 @@ export default function JournalPage() {
           </button>
         </div>
       </div>
-
-      {hasMT5Accounts && (
-        <LivePositionsPanel
-          accountId={selectedMT5Account?.id}
-          accountName={selectedMT5Account?.accountName}
-          isMT5={Boolean(selectedMT5Account)}
-        />
-      )}
 
       {/* Compact Stats Strip */}
       <div className="grid grid-cols-2 lg:grid-cols-6 gap-3">

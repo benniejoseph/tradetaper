@@ -3,6 +3,7 @@ import {
   Get,
   Post,
   Body,
+  BadRequestException,
   Patch,
   Param,
   Delete,
@@ -88,9 +89,15 @@ export class NotesController {
   @RequireFeature('psychology')
   async getPsychologicalProfile(
     @Request() req: AuthenticatedRequest,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+    @Query('accountId') accountId?: string,
   ): Promise<Record<string, unknown>> {
     return this.psychologicalInsightsService.getPsychologicalSummary(
       req.user.id,
+      this.parseOptionalDate(startDate, 'startDate'),
+      this.parseOptionalDate(endDate, 'endDate'),
+      accountId,
     );
   }
 
@@ -155,5 +162,17 @@ export class NotesController {
     @Request() req: AuthenticatedRequest,
   ): Promise<void> {
     return this.notesService.remove(id, req.user.id);
+  }
+
+  private parseOptionalDate(
+    value: string | undefined,
+    fieldName: string,
+  ): Date | undefined {
+    if (!value) return undefined;
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) {
+      throw new BadRequestException(`${fieldName} must be a valid date`);
+    }
+    return parsed;
   }
 }

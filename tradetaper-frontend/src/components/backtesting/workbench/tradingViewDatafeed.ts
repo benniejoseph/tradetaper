@@ -31,9 +31,23 @@ interface TvPeriodParams {
 interface TradingViewDatafeedOptions {
   apiBaseUrl: string;
   getReplayTo?: () => number | undefined;
+  getSessionStart?: () => number | undefined;
+  getSessionEnd?: () => number | undefined;
 }
 
 const SUPPORTED_RESOLUTIONS = ['1', '5', '15', '30', '60', '240', '1D'];
+const DEFAULT_SYMBOLS = [
+  'XAUUSD',
+  'XAGUSD',
+  'EURUSD',
+  'GBPUSD',
+  'USDJPY',
+  'US100',
+  'US500',
+  'US30',
+  'BTCUSD',
+  'ETHUSD',
+];
 
 const normalizeApiBase = (value: string): string => value.replace(/\/+$/, '');
 
@@ -102,12 +116,92 @@ const mapTimeframeToResolution = (tf: string): string => {
 
 export const mapReplayTimeframeToTradingViewResolution = mapTimeframeToResolution;
 
+const mapResolutionToSeconds = (resolution: string): number => {
+  const value = (resolution || '').toUpperCase();
+  switch (value) {
+    case '1':
+      return 60;
+    case '5':
+      return 300;
+    case '15':
+      return 900;
+    case '30':
+      return 1800;
+    case '60':
+    case '1H':
+      return 3600;
+    case '240':
+    case '4H':
+      return 14400;
+    case '1D':
+    case 'D':
+      return 86400;
+    default:
+      return 60;
+  }
+};
+
+const inferSymbolType = (symbol: string): string => {
+  if (symbol.startsWith('XAU') || symbol.startsWith('XAG')) return 'metal';
+  if (
+    symbol.startsWith('US') ||
+    symbol.startsWith('NAS') ||
+    symbol.startsWith('SPX') ||
+    symbol.startsWith('DJ')
+  ) {
+    return 'index';
+  }
+  if (symbol.endsWith('USD') && symbol.length >= 6) return 'forex';
+  if (symbol.startsWith('BTC') || symbol.startsWith('ETH')) return 'crypto';
+  return 'forex';
+};
+
+const inferPriceScale = (symbol: string): number => {
+  if (symbol.endsWith('JPY')) return 1000;
+  if (symbol.startsWith('XAU') || symbol.startsWith('XAG')) return 100;
+  if (symbol.startsWith('US') || symbol.startsWith('NAS') || symbol.startsWith('SPX')) {
+    return 100;
+  }
+  return 100000;
+};
+
+const normalizeSymbol = (value: string): string => {
+  const upper = value.trim().toUpperCase();
+  const maybeSymbol = upper.includes(':') ? upper.split(':').pop() || upper : upper;
+  return maybeSymbol.replace(/[^A-Z0-9._-]/g, '') || 'XAUUSD';
+};
+
+const buildFallbackSymbolInfo = (symbolName: string) => {
+  const symbol = normalizeSymbol(symbolName);
+  return {
+    name: symbol,
+    ticker: symbol,
+    full_name: `TradeTaper:${symbol}`,
+    description: `${symbol} (TradeTaper Backtesting Feed)`,
+    type: inferSymbolType(symbol),
+    session: '24x7',
+    exchange: 'TradeTaper',
+    listed_exchange: 'TradeTaper',
+    timezone: 'Etc/UTC',
+    minmov: 1,
+    pricescale: inferPriceScale(symbol),
+    has_intraday: true,
+    has_daily: true,
+    has_weekly_and_monthly: false,
+    has_no_volume: false,
+    supported_resolutions: SUPPORTED_RESOLUTIONS,
+    volume_precision: 2,
+    data_status: 'streaming',
+  };
+};
+
 export function createTradingViewBacktestingDatafeed(
   options: TradingViewDatafeedOptions,
 ) {
-  const { apiBaseUrl, getReplayTo } = options;
+  const { apiBaseUrl, getReplayTo, getSessionStart, getSessionEnd } = options;
   const subscriberMap = new Map<string, ReturnType<typeof setInterval>>();
   const lastBarTimeBySubscriber = new Map<string, number>();
+  const lastReplayTimeBySubscriber = new Map<string, number>();
 
   const parseHistoryBars = (
     payload: {
@@ -191,6 +285,15 @@ export function createTradingViewBacktestingDatafeed(
       }
     },
 
+    getServerTime: async (callback: (time: number) => void) => {
+      try {
+        const serverTime = await fetchJson<number>(apiBaseUrl, '/backtesting/tv/time');
+        callback(Number.isFinite(serverTime) ? serverTime : Math.floor(Date.now() / 1000));
+      } catch {
+        callback(Math.floor(Date.now() / 1000));
+      }
+    },
+
     searchSymbols: async (
       userInput: string,
       _exchange: string,
@@ -205,14 +308,24 @@ export function createTradingViewBacktestingDatafeed(
         );
         onResultReadyCallback(symbols);
       } catch {
-        onResultReadyCallback([]);
+        const q = (userInput || '').trim().toUpperCase();
+        onResultReadyCallback(
+          DEFAULT_SYMBOLS.filter((symbol) => !q || symbol.includes(q)).map((symbol) => ({
+            symbol,
+            full_name: `TradeTaper:${symbol}`,
+            description: `${symbol} (TradeTaper Backtesting Feed)`,
+            exchange: 'TradeTaper',
+            ticker: symbol,
+            type: inferSymbolType(symbol),
+          })),
+        );
       }
     },
 
     resolveSymbol: async (
       symbolName: string,
       onSymbolResolvedCallback: (symbolInfo: unknown) => void,
-      onResolveErrorCallback: TvErrorCallback,
+      _onResolveErrorCallback: TvErrorCallback,
     ) => {
       try {
         const symbolInfo = await fetchJson<unknown>(
@@ -221,10 +334,8 @@ export function createTradingViewBacktestingDatafeed(
           { symbol: symbolName },
         );
         onSymbolResolvedCallback(symbolInfo);
-      } catch (error) {
-        const message =
-          error instanceof Error ? error.message : 'Unable to resolve symbol';
-        onResolveErrorCallback(message);
+      } catch {
+        onSymbolResolvedCallback(buildFallbackSymbolInfo(symbolName));
       }
     },
 
@@ -237,14 +348,31 @@ export function createTradingViewBacktestingDatafeed(
     ) => {
       try {
         const replayTo = getReplayTo?.();
+        const sessionStart = getSessionStart?.();
+        const sessionEnd = getSessionEnd?.();
         const requestedTo = Math.floor(periodParams.to);
-        const effectiveTo =
-          replayTo && Number.isFinite(replayTo)
-            ? Math.min(requestedTo, Math.floor(replayTo))
+        const resolutionSeconds = mapResolutionToSeconds(resolution);
+        const countBack = Math.max(Number(periodParams.countBack) || 500, 200);
+        const upperBound =
+          sessionEnd && Number.isFinite(sessionEnd)
+            ? Math.min(requestedTo, Math.floor(sessionEnd))
             : requestedTo;
+        const replayBound =
+          replayTo && Number.isFinite(replayTo)
+            ? Math.min(upperBound, Math.floor(replayTo))
+            : upperBound;
+        const effectiveTo = replayBound;
+        const lookbackFrom = Math.max(
+          0,
+          effectiveTo - countBack * resolutionSeconds,
+        );
+        const effectiveFrom =
+          sessionStart && Number.isFinite(sessionStart)
+            ? Math.max(Math.floor(periodParams.from), Math.floor(sessionStart), lookbackFrom)
+            : Math.max(Math.floor(periodParams.from), lookbackFrom);
 
-        if (effectiveTo <= periodParams.from) {
-          onHistoryCallback([], { noData: true, nextTime: periodParams.from });
+        if (effectiveTo <= effectiveFrom) {
+          onHistoryCallback([], { noData: true, nextTime: effectiveFrom });
           return;
         }
 
@@ -260,8 +388,9 @@ export function createTradingViewBacktestingDatafeed(
         }>(apiBaseUrl, '/backtesting/tv/history', {
           symbol: symbolInfo.ticker || symbolInfo.name || 'XAUUSD',
           resolution,
-          from: Math.floor(periodParams.from),
+          from: effectiveFrom,
           to: effectiveTo,
+          countback: countBack,
         });
 
         if (payload?.s === 'no_data') {
@@ -291,13 +420,27 @@ export function createTradingViewBacktestingDatafeed(
       }) => void,
       subscriberUID: string,
     ) => {
+      const resolutionSeconds = mapResolutionToSeconds(resolution);
+      const pollIntervalMs = 350;
       const interval = setInterval(async () => {
         try {
           const replayTo = getReplayTo?.();
           if (!replayTo || !Number.isFinite(replayTo)) return;
 
-          const to = Math.floor(replayTo);
-          const from = Math.max(0, to - 24 * 60 * 60);
+          const sessionStart = getSessionStart?.();
+          const sessionEnd = getSessionEnd?.();
+          const to = sessionEnd && Number.isFinite(sessionEnd)
+            ? Math.min(Math.floor(replayTo), Math.floor(sessionEnd))
+            : Math.floor(replayTo);
+          const previousReplayTo = lastReplayTimeBySubscriber.get(subscriberUID);
+          if (previousReplayTo === to) return;
+          lastReplayTimeBySubscriber.set(subscriberUID, to);
+
+          const lookbackSeconds = Math.max(resolutionSeconds * 8, 600);
+          const fromByLookback = Math.max(0, to - lookbackSeconds);
+          const from = sessionStart && Number.isFinite(sessionStart)
+            ? Math.max(fromByLookback, Math.floor(sessionStart))
+            : fromByLookback;
           const payload = await fetchJson<{
             s?: string;
             t?: number[];
@@ -311,6 +454,7 @@ export function createTradingViewBacktestingDatafeed(
             resolution,
             from,
             to,
+            countback: Math.max(Math.floor(lookbackSeconds / resolutionSeconds), 50),
           });
           const bars = parseHistoryBars(payload || null);
           const lastBar = bars[bars.length - 1];
@@ -324,7 +468,7 @@ export function createTradingViewBacktestingDatafeed(
         } catch {
           // Keep polling loop resilient; charting library handles retries visually.
         }
-      }, 1500);
+      }, pollIntervalMs);
 
       subscriberMap.set(subscriberUID, interval);
     },
@@ -334,6 +478,7 @@ export function createTradingViewBacktestingDatafeed(
       if (interval) clearInterval(interval);
       subscriberMap.delete(subscriberUID);
       lastBarTimeBySubscriber.delete(subscriberUID);
+      lastReplayTimeBySubscriber.delete(subscriberUID);
     },
   };
 }

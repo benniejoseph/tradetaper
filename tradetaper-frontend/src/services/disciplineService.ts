@@ -156,8 +156,11 @@ export interface ApproveTradeDto {
 
 export const disciplineService = {
   // Get discipline stats (XP, level, badges, etc.)
-  getStats: async (): Promise<TraderDiscipline> => {
-    const response = await authApiClient.get('/discipline/stats');
+  getStats: async (accountId?: string): Promise<TraderDiscipline> => {
+    const suffix = accountId
+      ? `?accountId=${encodeURIComponent(accountId)}`
+      : '';
+    const response = await authApiClient.get(`/discipline/stats${suffix}`);
     return response.data;
   },
 

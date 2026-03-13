@@ -470,3 +470,57 @@
 .react-calendar-heatmap .color-scale-red-2 { fill: #be123c; }
 .react-calendar-heatmap .color-scale-red-3 { fill: #f43f5e; }
 .react-calendar-heatmap .color-scale-red-4 { fill: #fb7185; }
+
+@keyframes tt-loader-candle {
+  0% {
+    transform: scaleY(0.55);
+    opacity: 0.45;
+  }
+  45% {
+    transform: scaleY(1);
+    opacity: 1;
+  }
+  100% {
+    transform: scaleY(0.62);
+    opacity: 0.6;
+  }
+}
+
+@keyframes tt-loader-write {
+  0% {
+    transform: translateX(-130%);
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(360%);
+    opacity: 0.92;
+  }
+}
+
+@keyframes tt-loader-blink {
+  0%,
+  100% {
+    transform: scale(0.85);
+    opacity: 0.25;
+  }
+  45% {
+    transform: scale(1.1);
+    opacity: 1;
+  }
+}
+
+.animate-tt-loader-candle {
+  transform-origin: center bottom;
+  animation: tt-loader-candle 1.55s ease-in-out infinite;
+}
+
+.animate-tt-loader-write {
+  animation: tt-loader-write 2.1s linear infinite;
+}
+
+.animate-tt-loader-blink {
+  animation: tt-loader-blink 1.25s ease-in-out infinite;
+}

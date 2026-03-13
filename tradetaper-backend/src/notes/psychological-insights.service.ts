@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, SelectQueryBuilder } from 'typeorm';
 import { PsychologicalInsight } from './entities/psychological-insight.entity';
 import { Note } from './entities/note.entity';
 import { GeminiPsychologyService } from './gemini-psychology.service';
@@ -8,6 +8,8 @@ import { GeminiPsychologyService } from './gemini-psychology.service';
 @Injectable()
 export class PsychologicalInsightsService {
   private readonly logger = new Logger(PsychologicalInsightsService.name);
+  private static readonly DEFAULT_PROFILE_LIMIT = 100;
+  private static readonly MAX_PROFILE_LIMIT = 200;
 
   constructor(
     @InjectRepository(PsychologicalInsight)
@@ -88,10 +90,47 @@ export class PsychologicalInsightsService {
     userId: string,
     startDate?: Date,
     endDate?: Date,
+    accountId?: string,
+    limit?: number,
+    offset?: number,
   ): Promise<PsychologicalInsight[]> {
+    const boundedLimit = this.normalizeLimit(limit);
+    const boundedOffset = this.normalizeOffset(offset);
+    const query = this.buildProfileQuery(userId, startDate, endDate, accountId)
+      .orderBy('insight.analysisDate', 'DESC')
+      .addOrderBy('insight.id', 'DESC')
+      .take(boundedLimit)
+      .skip(boundedOffset);
+
+    return query.getMany();
+  }
+
+  async getInsightsForNote(
+    noteId: string,
+    userId: string,
+    startDate?: Date,
+    endDate?: Date,
+    limit?: number,
+    offset?: number,
+  ): Promise<PsychologicalInsight[]> {
+    const noteExists = await this.noteRepository.exist({
+      where: { id: noteId, userId },
+    });
+    if (!noteExists) {
+      return [];
+    }
+
+    const boundedLimit = this.normalizeLimit(limit);
+    const boundedOffset = this.normalizeOffset(offset);
+
     const query = this.psychologicalInsightRepository
       .createQueryBuilder('insight')
-      .where('insight.userId = :userId', { userId });
+      .where('insight.userId = :userId', { userId })
+      .andWhere('insight.noteId = :noteId', { noteId })
+      .orderBy('insight.analysisDate', 'DESC')
+      .addOrderBy('insight.id', 'DESC')
+      .take(boundedLimit)
+      .skip(boundedOffset);
 
     if (startDate) {
       query.andWhere('insight.analysisDate >= :startDate', { startDate });
@@ -103,32 +142,116 @@ export class PsychologicalInsightsService {
     return query.getMany();
   }
 
-  async getPsychologicalSummary(userId: string): Promise<any> {
-    const insights = await this.getPsychologicalProfile(userId);
+  async getPsychologicalSummary(
+    userId: string,
+    startDate?: Date,
+    endDate?: Date,
+    accountId?: string,
+  ): Promise<{
+    totalInsights: number;
+    insightTypeCounts: Record<string, number>;
+    sentimentCounts: Record<string, number>;
+    averageConfidence: number;
+  }> {
+    const baseQuery = this.buildProfileQuery(
+      userId,
+      startDate,
+      endDate,
+      accountId,
+    );
 
-    const summary = {
-      totalInsights: insights.length,
-      insightTypeCounts: {},
-      sentimentCounts: {},
-      averageConfidence: 0,
+    const [totalRow, confidenceRow, insightTypeRows, sentimentRows] =
+      await Promise.all([
+        baseQuery.clone().select('COUNT(*)', 'count').getRawOne<{ count: string }>(),
+        baseQuery
+          .clone()
+          .select('COALESCE(AVG(insight.confidenceScore), 0)', 'average')
+          .getRawOne<{ average: string }>(),
+        baseQuery
+          .clone()
+          .select('insight.insightType', 'name')
+          .addSelect('COUNT(*)', 'count')
+          .groupBy('insight.insightType')
+          .getRawMany<{ name: string; count: string }>(),
+        baseQuery
+          .clone()
+          .andWhere('insight.sentiment IS NOT NULL')
+          .select('insight.sentiment', 'name')
+          .addSelect('COUNT(*)', 'count')
+          .groupBy('insight.sentiment')
+          .getRawMany<{ name: string; count: string }>(),
+      ]);
+
+    const insightTypeCounts = insightTypeRows.reduce<Record<string, number>>(
+      (acc, row) => {
+        if (!row.name) return acc;
+        acc[row.name] = Number(row.count) || 0;
+        return acc;
+      },
+      {},
+    );
+
+    const sentimentCounts = sentimentRows.reduce<Record<string, number>>(
+      (acc, row) => {
+        if (!row.name) return acc;
+        acc[row.name] = Number(row.count) || 0;
+        return acc;
+      },
+      {},
+    );
+
+    return {
+      totalInsights: Number(totalRow?.count) || 0,
+      insightTypeCounts,
+      sentimentCounts,
+      averageConfidence: Number(confidenceRow?.average) || 0,
     };
+  }
 
-    let totalConfidence = 0;
-    insights.forEach((insight) => {
-      summary.insightTypeCounts[insight.insightType] =
-        (summary.insightTypeCounts[insight.insightType] || 0) + 1;
-      if (insight.sentiment) {
-        summary.sentimentCounts[insight.sentiment] =
-          (summary.sentimentCounts[insight.sentiment] || 0) + 1;
-      }
-      if (insight.confidenceScore !== null) {
-        totalConfidence += insight.confidenceScore;
-      }
-    });
+  private buildProfileQuery(
+    userId: string,
+    startDate?: Date,
+    endDate?: Date,
+    accountId?: string,
+  ): SelectQueryBuilder<PsychologicalInsight> {
+    const query = this.psychologicalInsightRepository
+      .createQueryBuilder('insight')
+      .where('insight.userId = :userId', { userId });
 
-    summary.averageConfidence =
-      insights.length > 0 ? totalConfidence / insights.length : 0;
+    if (startDate) {
+      query.andWhere('insight.analysisDate >= :startDate', { startDate });
+    }
+    if (endDate) {
+      query.andWhere('insight.analysisDate <= :endDate', { endDate });
+    }
 
-    return summary;
+    const normalizedAccountId = accountId?.trim();
+    if (normalizedAccountId) {
+      query
+        .leftJoin('insight.note', 'note')
+        .andWhere(
+          '(note.accountId = :accountId OR note.mt5AccountId = :accountId)',
+          { accountId: normalizedAccountId },
+        );
+    }
+
+    return query;
+  }
+
+  private normalizeLimit(limit?: number): number {
+    if (typeof limit !== 'number' || !Number.isFinite(limit)) {
+      return PsychologicalInsightsService.DEFAULT_PROFILE_LIMIT;
+    }
+    return Math.min(
+      Math.max(Math.floor(limit), 1),
+      PsychologicalInsightsService.MAX_PROFILE_LIMIT,
+    );
+  }
+
+  private normalizeOffset(offset?: number): number {
+    if (typeof offset !== 'number' || !Number.isFinite(offset)) {
+      return 0;
+    }
+    return Math.max(Math.floor(offset), 0);
   }
 }

@@ -132,7 +132,9 @@ export default function BacktestingPage() {
               <span className="font-bold text-gray-900 dark:text-white text-base leading-snug">
                 Chart Replay Workbench
               </span>
-              <span className="px-2 py-0.5 rounded-md bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 text-[10px] font-semibold uppercase tracking-wide">
+                  <span
+                className="px-2 py-0.5 rounded-md text-[10px] font-semibold uppercase tracking-wide bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300"
+              >
                 Live
               </span>
             </div>

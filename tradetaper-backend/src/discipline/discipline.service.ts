@@ -149,14 +149,170 @@ export class DisciplineService {
     return discipline;
   }
 
-  async getDisciplineStats(userId: string): Promise<TraderDiscipline> {
-    return this.getOrCreateDiscipline(userId);
+  async getDisciplineStats(
+    userId: string,
+    accountId?: string,
+  ): Promise<TraderDiscipline> {
+    const discipline = await this.getOrCreateDiscipline(userId);
+    const normalizedAccountId = this.normalizeAccountScope(accountId) ?? undefined;
+
+    const tradeQuery = this.tradeRepo
+      .createQueryBuilder('trade')
+      .where('trade.userId = :userId', { userId })
+      .andWhere('trade.status = :status', { status: TradeStatus.CLOSED });
+
+    if (normalizedAccountId) {
+      tradeQuery.andWhere('trade.accountId = :accountId', {
+        accountId: normalizedAccountId,
+      });
+    }
+
+    const [executedTradesRow, violationsRow, unauthorizedRow, latestTradeRow, tradeDateRows] =
+      await Promise.all([
+        tradeQuery
+          .clone()
+          .select('COUNT(*)', 'count')
+          .getRawOne<{ count: string }>(),
+        tradeQuery
+          .clone()
+          .andWhere(
+            '(trade.followedPlan = false OR (trade.ruleViolations IS NOT NULL AND trade.ruleViolations <> \'\'))',
+          )
+          .select('COUNT(*)', 'count')
+          .getRawOne<{ count: string }>(),
+        tradeQuery
+          .clone()
+          .andWhere('trade.followedPlan = false')
+          .select('COUNT(*)', 'count')
+          .getRawOne<{ count: string }>(),
+        tradeQuery
+          .clone()
+          .select('MAX(COALESCE(trade.closeTime, trade.openTime))', 'lastTradeAt')
+          .getRawOne<{ lastTradeAt: string | null }>(),
+        tradeQuery
+          .clone()
+          .select("DATE(timezone('UTC', COALESCE(trade.closeTime, trade.openTime)))", 'tradeDate')
+          .groupBy('tradeDate')
+          .orderBy('tradeDate', 'DESC')
+          .getRawMany<{ tradeDate: string | null }>(),
+      ]);
+
+    const totalExecutedTrades = Number(executedTradesRow?.count) || 0;
+    const totalRuleViolations = Number(violationsRow?.count) || 0;
+    const totalUnauthorizedTrades = Number(unauthorizedRow?.count) || 0;
+    const computedScore = this.calculateDisciplineScoreFromTrades(
+      totalExecutedTrades,
+      totalRuleViolations,
+      totalUnauthorizedTrades,
+      Number(discipline.disciplineScore) || 100,
+    );
+
+    const { currentStreak, longestStreak } = this.calculateTradingStreaks(
+      tradeDateRows
+        .map((row) => row.tradeDate)
+        .filter((value): value is string => Boolean(value)),
+    );
+
+    return {
+      ...discipline,
+      totalExecutedTrades,
+      totalRuleViolations,
+      totalUnauthorizedTrades,
+      disciplineScore: computedScore,
+      currentStreak,
+      longestStreak: Math.max(Number(discipline.longestStreak) || 0, longestStreak),
+      lastTradeAt: latestTradeRow?.lastTradeAt
+        ? new Date(latestTradeRow.lastTradeAt)
+        : discipline.lastTradeAt,
+    };
   }
 
   private normalizeAccountScope(accountId?: string): string | null {
     if (accountId === undefined) return null;
     const normalized = accountId.trim();
     return normalized.length > 0 ? normalized : null;
+  }
+
+  private calculateDisciplineScoreFromTrades(
+    totalExecutedTrades: number,
+    totalRuleViolations: number,
+    totalUnauthorizedTrades: number,
+    fallbackScore: number,
+  ): number {
+    if (totalExecutedTrades <= 0) {
+      return Math.max(0, Math.min(100, fallbackScore));
+    }
+
+    const violationRate = totalRuleViolations / totalExecutedTrades;
+    const unauthorizedRate = totalUnauthorizedTrades / totalExecutedTrades;
+
+    let score = 100;
+    score -= violationRate * 45;
+    score -= unauthorizedRate * 35;
+
+    if (totalRuleViolations === 0) {
+      score += 3;
+    }
+    if (totalUnauthorizedTrades === 0) {
+      score += 2;
+    }
+
+    return Math.max(0, Math.min(100, Number(score.toFixed(2))));
+  }
+
+  private calculateTradingStreaks(tradeDates: string[]): {
+    currentStreak: number;
+    longestStreak: number;
+  } {
+    if (!tradeDates.length) {
+      return { currentStreak: 0, longestStreak: 0 };
+    }
+
+    const uniqueDayNumbers = Array.from(
+      new Set(
+        tradeDates.map((value) => {
+          const date = new Date(`${value}T00:00:00.000Z`);
+          return Math.floor(date.getTime() / 86400000);
+        }),
+      ),
+    ).sort((a, b) => b - a);
+
+    if (uniqueDayNumbers.length === 0) {
+      return { currentStreak: 0, longestStreak: 0 };
+    }
+
+    let longestStreak = 1;
+    let runningStreak = 1;
+
+    for (let i = 1; i < uniqueDayNumbers.length; i += 1) {
+      const previous = uniqueDayNumbers[i - 1];
+      const current = uniqueDayNumbers[i];
+      if (previous - current === 1) {
+        runningStreak += 1;
+        longestStreak = Math.max(longestStreak, runningStreak);
+      } else {
+        runningStreak = 1;
+      }
+    }
+
+    const todayDayNumber = Math.floor(Date.now() / 86400000);
+    const latestTradeDay = uniqueDayNumbers[0];
+    if (latestTradeDay < todayDayNumber - 1) {
+      return { currentStreak: 0, longestStreak };
+    }
+
+    let currentStreak = 1;
+    for (let i = 1; i < uniqueDayNumbers.length; i += 1) {
+      const previous = uniqueDayNumbers[i - 1];
+      const current = uniqueDayNumbers[i];
+      if (previous - current === 1) {
+        currentStreak += 1;
+      } else {
+        break;
+      }
+    }
+
+    return { currentStreak, longestStreak };
   }
 
   private normalizeRequiredText(

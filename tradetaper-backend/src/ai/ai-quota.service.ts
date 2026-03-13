@@ -8,7 +8,7 @@ import { createClient, RedisClientType } from 'redis';
  */
 const PLAN_AI_QUOTAS: Record<string, number | null> = {
   free: 0,
-  essential: 0,
+  essential: 120, // limited monthly AI usage
   premium: null, // unlimited
 };
 
@@ -103,7 +103,7 @@ export class AiQuotaService {
         {
           statusCode: 403,
           message:
-            'AI features are not available on your current plan. Upgrade to Premium to unlock.',
+            'AI features are not available on your current plan. Upgrade to Essential or Premium to unlock.',
           code: 'AI_ACCESS_DENIED',
           upgradeUrl: '/plans',
         },

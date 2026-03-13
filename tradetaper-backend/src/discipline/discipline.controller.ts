@@ -34,8 +34,11 @@ export class DisciplineController {
   // ============== DISCIPLINE STATS ==============
 
   @Get('stats')
-  async getStats(@Request() req: AuthenticatedRequest) {
-    return this.disciplineService.getDisciplineStats(req.user.id);
+  async getStats(
+    @Request() req: AuthenticatedRequest,
+    @Query('accountId') accountId?: string,
+  ) {
+    return this.disciplineService.getDisciplineStats(req.user.id, accountId);
   }
 
   @Get('signals')

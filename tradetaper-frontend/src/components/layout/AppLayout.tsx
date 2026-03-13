@@ -2,6 +2,7 @@
 "use client";
 import React, { ReactNode, useState, useEffect, useCallback, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { usePathname } from 'next/navigation';
 import { AppDispatch, RootState } from '@/store/store';
 import { fetchMT5Accounts, selectSelectedMT5AccountId } from '@/store/features/mt5AccountsSlice';
 import { fetchAccounts, selectSelectedAccountId } from '@/store/features/accountSlice';
@@ -28,6 +29,7 @@ interface AppLayoutProps {
 }
 
 export default function AppLayout({ children }: AppLayoutProps) {
+  const pathname = usePathname();
   const dispatch = useDispatch<AppDispatch>();
   const { isAuthenticated } = useSelector((state: RootState) => state.auth);
   const notifications = useSelector(
@@ -290,6 +292,8 @@ export default function AppLayout({ children }: AppLayoutProps) {
     setIsSidebarOpen(!isSidebarOpen);
   };
 
+  const isBacktestingSessionRoute = pathname?.startsWith('/backtesting/session/');
+
   return (
     <ProtectedRoute>
       <div className="h-screen flex flex-col bg-white dark:bg-black">
@@ -309,18 +313,28 @@ export default function AppLayout({ children }: AppLayoutProps) {
               ? 'ml-72' 
               : 'ml-20'
         }`}>
-          {/* Trial Banner — visible only when status is 'trialing' */}
-          <TrialBanner />
+          {!isBacktestingSessionRoute && (
+            <>
+              {/* Trial Banner — visible only when status is 'trialing' */}
+              <TrialBanner />
 
-          {/* Content Header */}
-          <ContentHeader
-            toggleSidebar={toggleSidebar} 
-            isMobile={isMobile}
-            isSidebarExpanded={isSidebarExpanded}
-          />
+              {/* Content Header */}
+              <ContentHeader
+                toggleSidebar={toggleSidebar}
+                isMobile={isMobile}
+                isSidebarExpanded={isSidebarExpanded}
+              />
+            </>
+          )}
           
           {/* Page Content */}
-          <main className="flex-1 p-4 md:p-6 lg:p-8 max-w-full h-full overflow-auto">
+          <main
+            className={`flex-1 max-w-full h-full ${
+              isBacktestingSessionRoute
+                ? 'p-0 overflow-hidden'
+                : 'p-4 md:p-6 lg:p-8 overflow-auto'
+            }`}
+          >
             <div className="w-full h-full">
               {children}
             </div>

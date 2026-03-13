@@ -20,6 +20,7 @@ const AI_QUOTA_FEATURES = new Set([
   'chartAnalysis',
   'psychology',
   'mentor',
+  'aiCoach',
   'marketIntelligenceAi',
 ]);
 

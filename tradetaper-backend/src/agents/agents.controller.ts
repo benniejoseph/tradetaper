@@ -297,6 +297,37 @@ export class AgentsController {
   }
 
   /**
+   * Chat with Expert Trader + Psychologist coach using user's trade history
+   */
+  @Post('coach/chat')
+  @UseGuards(FeatureAccessGuard)
+  @RequireFeature('aiCoach')
+  async chatWithTraderCoach(
+    @Req() req: AuthenticatedRequest,
+    @Body()
+    body: {
+      message: string;
+      accountId?: string;
+      history?: Array<{ role: 'user' | 'assistant'; content: string }>;
+    },
+  ) {
+    const context = this.orchestrator.createContext(req.user.id);
+
+    const response = await this.orchestrator.routeToCapability(
+      'trader-psych-coach-chat',
+      {
+        action: 'coach-chat',
+        message: body.message,
+        accountId: body.accountId,
+        history: body.history || [],
+      },
+      context,
+    );
+
+    return response;
+  }
+
+  /**
    * Get agent orchestrator stats
    */
   @Get('stats')

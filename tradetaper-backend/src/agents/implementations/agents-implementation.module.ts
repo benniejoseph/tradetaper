@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { NotesModule } from '../../notes/notes.module';
 import { MarketIntelligenceModule } from '../../market-intelligence/market-intelligence.module';
 import { PredictiveTradesModule } from '../../predictive-trades/predictive-trades.module';
@@ -10,7 +11,11 @@ import { TradeAssistantAgent } from './trade-assistant.agent';
 import { NewsSentimentAgent } from './news-sentiment.agent';
 import { ICTBacktestAgent } from './ict-backtest.agent';
 import { ICTMentorAgent } from './ict-mentor.agent';
+import { TraderPsychCoachAgent } from './trader-psych-coach.agent';
 import { KnowledgeBaseModule } from '../../knowledge-base/knowledge-base.module';
+import { Trade } from '../../trades/entities/trade.entity';
+import { MT5Account } from '../../users/entities/mt5-account.entity';
+import { Account } from '../../users/entities/account.entity';
 
 /**
  * Agents Implementation Module
@@ -30,6 +35,7 @@ import { KnowledgeBaseModule } from '../../knowledge-base/knowledge-base.module'
  */
 @Module({
   imports: [
+    TypeOrmModule.forFeature([Trade, MT5Account, Account]),
     NotesModule, // For PsychologyAgent, JournalAgent
     MarketIntelligenceModule, // For MarketAnalystAgent, ICTBacktestAgent
     PredictiveTradesModule, // For TradeAssistantAgent
@@ -44,6 +50,7 @@ import { KnowledgeBaseModule } from '../../knowledge-base/knowledge-base.module'
     NewsSentimentAgent,
     ICTBacktestAgent,
     ICTMentorAgent,
+    TraderPsychCoachAgent,
   ],
   exports: [
     PsychologyAgent,
@@ -54,6 +61,7 @@ import { KnowledgeBaseModule } from '../../knowledge-base/knowledge-base.module'
     NewsSentimentAgent,
     ICTBacktestAgent,
     ICTMentorAgent,
+    TraderPsychCoachAgent,
   ],
 })
 export class AgentsImplementationModule {}
