@@ -24,7 +24,7 @@ type Kpi = {
   label: string;
   value: string;
   delta: string;
-  icon: React.ComponentType<{ className?: string }>;
+  icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>;
 };
 
 const kpis: Kpi[] = [
