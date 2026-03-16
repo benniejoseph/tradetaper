@@ -153,7 +153,7 @@ export default function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
                     <Link
                       href={item.href}
                       className={cn(
-                        'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 relative',
+                        'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 relative overflow-hidden',
                         isCollapsed && 'justify-center'
                       )}
                       style={{
@@ -174,7 +174,9 @@ export default function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
                           style={{ background: 'var(--accent-primary)' }}
                         />
                       )}
-                      <item.icon className="w-4 h-4 flex-shrink-0" />
+                      <span className="inline-flex items-center justify-center w-4 h-4 flex-shrink-0">
+                        <item.icon className="w-4 h-4 block" />
+                      </span>
                       {!isCollapsed && <span>{item.label}</span>}
                     </Link>
 

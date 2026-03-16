@@ -25,11 +25,11 @@
   --text-muted: #94A3B8;
   --text-disabled: #CBD5E1;
 
-  /* Accent — Indigo */
-  --accent-primary: #4F46E5;
-  --accent-primary-hover: #4338CA;
-  --accent-primary-subtle: #EEF2FF;
-  --accent-primary-muted: #C7D2FE;
+  /* Accent — Emerald */
+  --accent-primary: #059669;
+  --accent-primary-hover: #047857;
+  --accent-primary-subtle: #ECFDF5;
+  --accent-primary-muted: #A7F3D0;
 
   /* Accent — Emerald */
   --accent-success: #059669;
@@ -50,12 +50,12 @@
   --sidebar-bg: #FFFFFF;
   --sidebar-border: #E2E8F0;
   --sidebar-text: #475569;
-  --sidebar-text-active: #4F46E5;
-  --sidebar-item-active: #EEF2FF;
+  --sidebar-text-active: #047857;
+  --sidebar-item-active: #ECFDF5;
   --sidebar-item-hover: #F8FAFC;
 
   /* Gradients */
-  --gradient-brand: linear-gradient(135deg, #4F46E5 0%, #7C3AED 50%, #EC4899 100%);
+  --gradient-brand: linear-gradient(135deg, #047857 0%, #059669 50%, #10B981 100%);
   --gradient-success: linear-gradient(135deg, #059669 0%, #10B981 100%);
   --gradient-card: linear-gradient(135deg, #FFFFFF 0%, #F8FAFC 100%);
 
@@ -64,7 +64,7 @@
   --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.07), 0 2px 4px -2px rgb(0 0 0 / 0.07);
   --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.07), 0 4px 6px -4px rgb(0 0 0 / 0.07);
   --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.08), 0 8px 10px -6px rgb(0 0 0 / 0.08);
-  --shadow-glow: 0 0 0 3px rgba(79, 70, 229, 0.15);
+  --shadow-glow: 0 0 0 3px rgba(5, 150, 105, 0.18);
 }
 
 .dark {
@@ -86,11 +86,11 @@
   --text-muted: #64748B;
   --text-disabled: #334155;
 
-  /* Accent — Indigo */
-  --accent-primary: #6366F1;
-  --accent-primary-hover: #5B5BF0;
-  --accent-primary-subtle: #1E1E3F;
-  --accent-primary-muted: #3730A3;
+  /* Accent — Emerald */
+  --accent-primary: #10B981;
+  --accent-primary-hover: #059669;
+  --accent-primary-subtle: #0D2B22;
+  --accent-primary-muted: #065F46;
 
   /* Accent — Emerald */
   --accent-success: #10B981;
@@ -111,12 +111,12 @@
   --sidebar-bg: #0D0D14;
   --sidebar-border: #1E1E2E;
   --sidebar-text: #64748B;
-  --sidebar-text-active: #818CF8;
-  --sidebar-item-active: #1E1E3F;
+  --sidebar-text-active: #34D399;
+  --sidebar-item-active: #0D2B22;
   --sidebar-item-hover: #1A1A24;
 
   /* Gradients */
-  --gradient-brand: linear-gradient(135deg, #6366F1 0%, #8B5CF6 50%, #EC4899 100%);
+  --gradient-brand: linear-gradient(135deg, #065F46 0%, #059669 50%, #10B981 100%);
   --gradient-success: linear-gradient(135deg, #059669 0%, #10B981 100%);
   --gradient-card: linear-gradient(135deg, #13131A 0%, #1A1A24 100%);
 
@@ -125,7 +125,7 @@
   --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.4), 0 2px 4px -2px rgb(0 0 0 / 0.4);
   --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.4), 0 4px 6px -4px rgb(0 0 0 / 0.4);
   --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.5), 0 8px 10px -6px rgb(0 0 0 / 0.5);
-  --shadow-glow: 0 0 0 3px rgba(99, 102, 241, 0.25);
+  --shadow-glow: 0 0 0 3px rgba(16, 185, 129, 0.24);
 }
 
 /* ================================================================
@@ -195,7 +195,7 @@ body {
 
 .admin-btn-primary:hover {
   background: var(--accent-primary-hover);
-  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.28);
   transform: translateY(-1px);
 }
 
@@ -399,7 +399,7 @@ body {
    ================================================================ */
 
 .text-gradient {
-  background: var(--gradient-brand);
+  background: linear-gradient(135deg, #10B981 0%, #34D399 50%, #6EE7B7 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
