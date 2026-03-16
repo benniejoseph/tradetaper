@@ -271,4 +271,24 @@ export class TradesController {
       accountId,
     );
   }
+
+  @Post('maintenance/backfill-mae-mfe')
+  @HttpCode(HttpStatus.OK)
+  backfillMaeMfe(
+    @Request() req,
+    @Query('accountId') accountId?: string,
+    @Query('limit') limit = 500,
+    @Query('force') force = 'false',
+  ): Promise<{
+    scanned: number;
+    updated: number;
+    skippedNoCandles: number;
+    errors: number;
+  }> {
+    return this.tradesService.backfillMaeMfeForUser(req.user, {
+      accountId,
+      limit: Number(limit) || 500,
+      force: force === 'true',
+    });
+  }
 }

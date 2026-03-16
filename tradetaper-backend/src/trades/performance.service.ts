@@ -212,19 +212,61 @@ export class PerformanceService {
   }
 
   private calculateMetrics(trades: Trade[]): PerformanceMetrics {
-    const totalTrades = trades.length;
-    const winningTrades = trades.filter((t) => (t.profitOrLoss || 0) > 0);
-    const losingTrades = trades.filter((t) => (t.profitOrLoss || 0) < 0);
+    const toNumber = (value: unknown): number => {
+      if (value === null || value === undefined) return 0;
+      const parsed = typeof value === 'number' ? value : Number(value);
+      return Number.isFinite(parsed) ? parsed : 0;
+    };
+    const toNumberOrNull = (value: unknown): number | null => {
+      if (value === null || value === undefined || value === '') return null;
+      const parsed = typeof value === 'number' ? value : Number(value);
+      return Number.isFinite(parsed) ? parsed : null;
+    };
+    const resolveRMultiple = (trade: Trade): number | null => {
+      const stored = toNumberOrNull(trade.rMultiple);
+      if (stored !== null) return stored;
 
-    const totalPnL = trades.reduce((sum, t) => sum + (t.profitOrLoss || 0), 0);
+      const openPrice = toNumberOrNull(trade.openPrice);
+      const closePrice = toNumberOrNull(trade.closePrice);
+      const stopLoss = toNumberOrNull(trade.stopLoss);
+      if (openPrice === null || closePrice === null || stopLoss === null) {
+        return null;
+      }
+
+      const riskPerUnit = Math.abs(openPrice - stopLoss);
+      if (riskPerUnit <= 0) return null;
+
+      const side = String(trade.side || '').toLowerCase();
+      const rewardPerUnit =
+        side === 'long'
+          ? closePrice - openPrice
+          : side === 'short'
+            ? openPrice - closePrice
+            : null;
+
+      if (rewardPerUnit === null || !Number.isFinite(rewardPerUnit)) {
+        return null;
+      }
+
+      const derived = rewardPerUnit / riskPerUnit;
+      return Number.isFinite(derived) ? derived : null;
+    };
+
+    const totalTrades = trades.length;
+    const winningTrades = trades.filter((t) => toNumber(t.profitOrLoss) > 0);
+    const losingTrades = trades.filter((t) => toNumber(t.profitOrLoss) < 0);
+
+    const totalPnL = trades.reduce((sum, t) => sum + toNumber(t.profitOrLoss), 0);
     const totalCommissions = trades.reduce(
-      (sum, t) => sum + (t.commission || 0),
+      (sum, t) => sum + Math.abs(toNumber(t.commission)),
       0,
     );
     const netPnL = totalPnL - totalCommissions;
     const totalTradedValue = trades.reduce((sum, t) => {
-      if (t.openPrice && t.quantity) {
-        return sum + Math.abs(Number(t.openPrice) * Number(t.quantity));
+      const openPrice = toNumber(t.openPrice);
+      const quantity = toNumber(t.quantity);
+      if (openPrice && quantity) {
+        return sum + Math.abs(openPrice * quantity);
       }
       return sum;
     }, 0);
@@ -234,14 +276,14 @@ export class PerformanceService {
 
     const averageWin =
       winningTrades.length > 0
-        ? winningTrades.reduce((sum, t) => sum + (t.profitOrLoss || 0), 0) /
+        ? winningTrades.reduce((sum, t) => sum + toNumber(t.profitOrLoss), 0) /
           winningTrades.length
         : 0;
 
     const averageLoss =
       losingTrades.length > 0
         ? Math.abs(
-            losingTrades.reduce((sum, t) => sum + (t.profitOrLoss || 0), 0) /
+            losingTrades.reduce((sum, t) => sum + toNumber(t.profitOrLoss), 0) /
               losingTrades.length,
           )
         : 0;
@@ -250,23 +292,27 @@ export class PerformanceService {
 
     const largestWin =
       winningTrades.length > 0
-        ? Math.max(...winningTrades.map((t) => t.profitOrLoss || 0))
+        ? Math.max(...winningTrades.map((t) => toNumber(t.profitOrLoss)))
         : 0;
 
     const largestLoss =
       losingTrades.length > 0
-        ? Math.min(...losingTrades.map((t) => t.profitOrLoss || 0))
+        ? Math.min(...losingTrades.map((t) => toNumber(t.profitOrLoss)))
         : 0;
 
+    const achievedRMultiples = trades
+      .map((trade) => resolveRMultiple(trade))
+      .filter((value): value is number => value !== null);
     const averageRMultiple =
-      trades.length > 0
-        ? trades.reduce((sum, t) => sum + (t.rMultiple || 0), 0) / trades.length
+      achievedRMultiples.length > 0
+        ? achievedRMultiples.reduce((sum, value) => sum + value, 0) /
+          achievedRMultiples.length
         : 0;
 
     const expectancy = totalTrades > 0 ? totalPnL / totalTrades : 0;
 
     // Calculate Sharpe ratio (simplified)
-    const returns = trades.map((t) => t.profitOrLoss || 0);
+    const returns = trades.map((t) => toNumber(t.profitOrLoss));
     const avgReturn =
       returns.length > 0
         ? returns.reduce((a, b) => a + b, 0) / returns.length
@@ -280,11 +326,11 @@ export class PerformanceService {
     const sharpeRatio = stdDev > 0 ? avgReturn / stdDev : 0;
 
     // Calculate max drawdown
-    const maxDrawdown = this.calculateMaxDrawdown(trades);
+    const maxDrawdown = this.calculateMaxDrawdown(trades, toNumber);
 
     // Calculate consecutive wins/losses
     const { consecutiveWins, consecutiveLosses } =
-      this.calculateConsecutiveStreaks(trades);
+      this.calculateConsecutiveStreaks(trades, toNumber);
 
     // Calculate trading days
     const tradingDays = this.calculateTradingDays(trades);
@@ -315,7 +361,10 @@ export class PerformanceService {
     };
   }
 
-  private calculateMaxDrawdown(trades: Trade[]): number {
+  private calculateMaxDrawdown(
+    trades: Trade[],
+    toNumber: (value: unknown) => number,
+  ): number {
     const sortedTrades = trades
       .filter((t) => t.closeTime)
       .sort(
@@ -328,7 +377,7 @@ export class PerformanceService {
     let runningPnL = 0;
 
     for (const trade of sortedTrades) {
-      runningPnL += trade.profitOrLoss || 0;
+      runningPnL += toNumber(trade.profitOrLoss);
       if (runningPnL > peak) {
         peak = runningPnL;
       }
@@ -341,7 +390,10 @@ export class PerformanceService {
     return maxDrawdown;
   }
 
-  private calculateConsecutiveStreaks(trades: Trade[]): {
+  private calculateConsecutiveStreaks(
+    trades: Trade[],
+    toNumber: (value: unknown) => number,
+  ): {
     consecutiveWins: number;
     consecutiveLosses: number;
   } {
@@ -358,7 +410,7 @@ export class PerformanceService {
     let currentLosses = 0;
 
     for (const trade of sortedTrades) {
-      const pnl = trade.profitOrLoss || 0;
+      const pnl = toNumber(trade.profitOrLoss);
       if (pnl > 0) {
         currentWins++;
         currentLosses = 0;
@@ -383,6 +435,12 @@ export class PerformanceService {
   }
 
   private groupTradesByDay(trades: Trade[]): DailyPerformance[] {
+    const toNumber = (value: unknown): number => {
+      if (value === null || value === undefined) return 0;
+      const parsed = typeof value === 'number' ? value : Number(value);
+      return Number.isFinite(parsed) ? parsed : 0;
+    };
+
     const dailyGroups: { [key: string]: Trade[] } = {};
 
     trades.forEach((trade) => {
@@ -400,10 +458,10 @@ export class PerformanceService {
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([date, dayTrades]) => {
         const dayPnL = dayTrades.reduce(
-          (sum, t) => sum + (t.profitOrLoss || 0),
+          (sum, t) => sum + toNumber(t.profitOrLoss),
           0,
         );
-        const wins = dayTrades.filter((t) => (t.profitOrLoss || 0) > 0).length;
+        const wins = dayTrades.filter((t) => toNumber(t.profitOrLoss) > 0).length;
         const winRate =
           dayTrades.length > 0 ? (wins / dayTrades.length) * 100 : 0;
 
@@ -420,6 +478,12 @@ export class PerformanceService {
   }
 
   private groupTradesByMonth(trades: Trade[]): MonthlyPerformance[] {
+    const toNumber = (value: unknown): number => {
+      if (value === null || value === undefined) return 0;
+      const parsed = typeof value === 'number' ? value : Number(value);
+      return Number.isFinite(parsed) ? parsed : 0;
+    };
+
     const monthlyGroups: { [key: string]: Trade[] } = {};
 
     trades.forEach((trade) => {
@@ -437,11 +501,11 @@ export class PerformanceService {
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([month, monthTrades]) => {
         const monthPnL = monthTrades.reduce(
-          (sum, t) => sum + (t.profitOrLoss || 0),
+          (sum, t) => sum + toNumber(t.profitOrLoss),
           0,
         );
         const wins = monthTrades.filter(
-          (t) => (t.profitOrLoss || 0) > 0,
+          (t) => toNumber(t.profitOrLoss) > 0,
         ).length;
         const winRate =
           monthTrades.length > 0 ? (wins / monthTrades.length) * 100 : 0;

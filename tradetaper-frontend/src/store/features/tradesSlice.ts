@@ -116,6 +116,10 @@ function transformApiTradeToFrontend(apiTrade: any): Trade {
       ruleViolations: apiTrade.ruleViolations,
       // Performance Metrics
       plannedRR: parseOptionalNumber(apiTrade.plannedRR),
+      maePrice: parseOptionalNumber(apiTrade.maePrice),
+      mfePrice: parseOptionalNumber(apiTrade.mfePrice),
+      maePips: parseOptionalNumber(apiTrade.maePips),
+      mfePips: parseOptionalNumber(apiTrade.mfePips),
       executionGrade: apiTrade.executionGrade,
       // Market Context
       marketCondition: apiTrade.marketCondition,

@@ -192,8 +192,8 @@ export class DisciplineService {
         tradeQuery
           .clone()
           .select("DATE(timezone('UTC', COALESCE(trade.closeTime, trade.openTime)))", 'tradeDate')
-          .groupBy('tradeDate')
-          .orderBy('tradeDate', 'DESC')
+          .groupBy("DATE(timezone('UTC', COALESCE(trade.closeTime, trade.openTime)))")
+          .orderBy("DATE(timezone('UTC', COALESCE(trade.closeTime, trade.openTime)))", 'DESC')
           .getRawMany<{ tradeDate: string | null }>(),
       ]);
 

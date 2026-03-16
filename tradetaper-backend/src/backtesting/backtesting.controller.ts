@@ -529,13 +529,16 @@ export class BacktestingController {
         high: Number(row.high),
         low: Number(row.low),
         close: Number(row.close),
+        volume: Number(row.volume ?? 0),
       }))
       .filter(
         (bar) =>
           Number.isFinite(bar.open) &&
           Number.isFinite(bar.high) &&
           Number.isFinite(bar.low) &&
-          Number.isFinite(bar.close),
+          Number.isFinite(bar.close) &&
+          bar.time >= boundedFrom &&
+          bar.time <= boundedTo,
       )
       .sort((a, b) => a.time - b.time);
 
@@ -550,7 +553,7 @@ export class BacktestingController {
       h: bars.map((bar) => bar.high),
       l: bars.map((bar) => bar.low),
       c: bars.map((bar) => bar.close),
-      v: bars.map(() => 0),
+      v: bars.map((bar) => (Number.isFinite(bar.volume) ? bar.volume : 0)),
     };
   }
 

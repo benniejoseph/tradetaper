@@ -1,6 +1,11 @@
 const { spawn } = require('child_process');
+if (!process.env.STITCH_TOKEN) {
+  console.error('Missing STITCH_TOKEN env var');
+  process.exit(1);
+}
+
 const server = spawn('npx', ['-y', 'stitch-mcp'], {
-  env: { ...process.env, STITCH_TOKEN: "AQ.Ab8RN6Jl55m0Y5eCRKWUTO-FKTZZZAKKPuxH-GthTNzc-lbCVw" },
+  env: { ...process.env, STITCH_TOKEN: process.env.STITCH_TOKEN },
   stdio: ['pipe', 'pipe', 'inherit']
 });
 server.stdout.on('data', data => console.log('OUT:', data.toString()));

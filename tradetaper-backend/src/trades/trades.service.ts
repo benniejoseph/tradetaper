@@ -773,6 +773,10 @@ Return a JSON object strictly matching this schema:
         'trade.commission',
         'trade.profitOrLoss',
         'trade.rMultiple',
+        'trade.maePrice',
+        'trade.mfePrice',
+        'trade.maePips',
+        'trade.mfePips',
         'trade.session',
         'trade.notes',
         'trade.isStarred',
@@ -803,6 +807,175 @@ Return a JSON object strictly matching this schema:
       page,
       limit,
     };
+  }
+
+  async backfillMaeMfeForUser(
+    userContext: UserResponseDto,
+    options?: {
+      accountId?: string;
+      limit?: number;
+      force?: boolean;
+    },
+  ): Promise<{
+    scanned: number;
+    updated: number;
+    skippedNoCandles: number;
+    errors: number;
+  }> {
+    const limit = Math.min(Math.max(options?.limit ?? 500, 1), 5000);
+    const force = Boolean(options?.force);
+
+    const qb = this.tradesRepository
+      .createQueryBuilder('trade')
+      .where('trade.userId = :userId', { userId: userContext.id })
+      .andWhere('trade.status = :status', { status: TradeStatus.CLOSED })
+      .andWhere('trade.openTime IS NOT NULL')
+      .andWhere('trade.closeTime IS NOT NULL')
+      .andWhere('trade.openPrice IS NOT NULL');
+
+    if (options?.accountId) {
+      qb.andWhere('trade.accountId = :accountId', { accountId: options.accountId });
+    }
+
+    if (!force) {
+      qb.andWhere(
+        '(trade.maePrice IS NULL OR trade.mfePrice IS NULL OR trade.maePips IS NULL OR trade.mfePips IS NULL)',
+      );
+    }
+
+    const trades = await qb
+      .orderBy('trade.closeTime', 'DESC')
+      .take(limit)
+      .getMany();
+
+    let updated = 0;
+    let skippedNoCandles = 0;
+    let errors = 0;
+
+    for (const trade of trades) {
+      try {
+        const windowStart = new Date(trade.openTime);
+        const windowEnd = new Date(trade.closeTime!);
+        const from = windowStart <= windowEnd ? windowStart : windowEnd;
+        const to = windowStart <= windowEnd ? windowEnd : windowStart;
+
+        // Priority 1: trade/MT5 candle store for this exact trade window.
+        const tradeWindowCandles = await this.candleManagementService.getCandlesForTrade(
+          trade.id,
+          {
+            symbol: trade.symbol,
+            openTime: trade.openTime,
+            closeTime: trade.closeTime,
+          },
+          {
+            bufferHours: 1,
+            accountId: trade.accountId ?? undefined,
+          },
+        );
+
+        let candles = Array.isArray(tradeWindowCandles?.candles)
+          ? tradeWindowCandles.candles
+          : [];
+
+        // Priority 2: provider-backed backtesting candles.
+        if (candles.length === 0) {
+          candles = await this.candleManagementService.getCandles(
+            trade.symbol,
+            '1m',
+            from,
+            to,
+          );
+        }
+
+        if (!Array.isArray(candles) || candles.length === 0) {
+          const executionCandles = Array.isArray(trade.executionCandles)
+            ? trade.executionCandles
+            : [];
+          candles = executionCandles
+            .map((c: any) => ({
+              high: Number(c?.high),
+              low: Number(c?.low),
+            }))
+            .filter((c) => Number.isFinite(c.high) && Number.isFinite(c.low));
+        }
+
+        if (!Array.isArray(candles) || candles.length === 0) {
+          skippedNoCandles += 1;
+          continue;
+        }
+
+        let highest = Number.NEGATIVE_INFINITY;
+        let lowest = Number.POSITIVE_INFINITY;
+        for (const candle of candles) {
+          const high = Number((candle as any)?.high);
+          const low = Number((candle as any)?.low);
+          if (!Number.isFinite(high) || !Number.isFinite(low)) continue;
+          if (high > highest) highest = high;
+          if (low < lowest) lowest = low;
+        }
+
+        if (!Number.isFinite(highest) || !Number.isFinite(lowest)) {
+          skippedNoCandles += 1;
+          continue;
+        }
+
+        const entry = Number(trade.openPrice);
+        const pipSize = this.resolvePipSize(trade.symbol);
+        let maePrice = 0;
+        let mfePrice = 0;
+
+        if (trade.side === TradeDirection.LONG) {
+          maePrice = Math.max(0, entry - lowest);
+          mfePrice = Math.max(0, highest - entry);
+        } else {
+          maePrice = Math.max(0, highest - entry);
+          mfePrice = Math.max(0, entry - lowest);
+        }
+
+        const maePips = pipSize > 0 ? maePrice / pipSize : 0;
+        const mfePips = pipSize > 0 ? mfePrice / pipSize : 0;
+
+        await this.tradesRepository.update(trade.id, {
+          maePrice: Number(maePrice.toFixed(8)),
+          mfePrice: Number(mfePrice.toFixed(8)),
+          maePips: Number(maePips.toFixed(2)),
+          mfePips: Number(mfePips.toFixed(2)),
+        });
+        updated += 1;
+      } catch (error) {
+        errors += 1;
+        this.logger.warn(
+          `MAE/MFE backfill failed for trade ${trade.id}: ${error.message}`,
+        );
+      }
+    }
+
+    return {
+      scanned: trades.length,
+      updated,
+      skippedNoCandles,
+      errors,
+    };
+  }
+
+  private resolvePipSize(symbolRaw?: string): number {
+    const symbol = (symbolRaw || '').toUpperCase();
+
+    if (!symbol) return 0.0001;
+    if (symbol.includes('JPY') && symbol.length >= 6) return 0.01;
+    if (symbol.startsWith('XAU') || symbol.startsWith('XAG')) return 0.1;
+    if (
+      symbol.includes('US30') ||
+      symbol.includes('NAS') ||
+      symbol.includes('SPX') ||
+      symbol.includes('GER') ||
+      symbol.includes('DJ') ||
+      symbol.includes('NQ') ||
+      symbol.includes('ES')
+    ) {
+      return 1;
+    }
+    return 0.0001;
   }
 
   async findDuplicate(

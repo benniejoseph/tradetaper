@@ -59,7 +59,9 @@ function getErrorMessage(
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const from = searchParams.get('from') || '/';
+  const rawFrom = searchParams.get('from') || '/';
+  const safeFrom =
+    rawFrom.startsWith('/') && !rawFrom.startsWith('//') ? rawFrom : '/';
 
   const [step, setStep] = useState<LoginStep>('credentials');
   const [email, setEmail] = useState('');
@@ -162,7 +164,7 @@ function LoginForm() {
     }
 
     toast.success('Welcome back!');
-    router.push(from);
+    router.push(safeFrom);
   };
 
   const handleMfaVerification = async (): Promise<void> => {
@@ -185,7 +187,7 @@ function LoginForm() {
     }
 
     toast.success('Admin verification complete');
-    router.push(from);
+    router.push(safeFrom);
   };
 
   const handleEnrollmentComplete = async (): Promise<void> => {
@@ -292,7 +294,7 @@ function LoginForm() {
               type="button"
               onClick={() => {
                 toast.success('MFA setup completed');
-                router.push(from);
+                router.push(safeFrom);
               }}
               className="admin-btn-primary flex-1 justify-center"
             >

@@ -360,18 +360,50 @@ export default function TestingPage() {
   const runSecurityTests = async (): Promise<TestResult[]> => {
     const tests: TestResult[] = [];
 
-    // Mock security tests (in real implementation, these would be actual security checks)
     const securityChecks = [
-      { name: 'Authentication Required', check: () => true },
-      { name: 'HTTPS Enforcement', check: () => window.location.protocol === 'https:' },
-      { name: 'Admin Authorization', check: () => true },
-      { name: 'CORS Configuration', check: () => true },
-      { name: 'Rate Limiting', check: () => true },
+      {
+        name: 'Authentication Required',
+        check: async () => {
+          try {
+            await adminApi.getLogs(1, 0);
+            return true;
+          } catch {
+            return false;
+          }
+        },
+      },
+      {
+        name: 'HTTPS Enforcement',
+        check: async () => window.location.protocol === 'https:',
+      },
+      {
+        name: 'HttpOnly Session Cookie',
+        check: async () => !document.cookie.includes('admin_token='),
+      },
+      {
+        name: 'Secure Headers Present',
+        check: async () => {
+          const response = await fetch(window.location.origin, { method: 'HEAD' });
+          const xfo = response.headers.get('x-frame-options');
+          const xcto = response.headers.get('x-content-type-options');
+          return xfo === 'DENY' && xcto === 'nosniff';
+        },
+      },
+      {
+        name: 'API Rejects Invalid Token',
+        check: async () => {
+          const response = await fetch('/api/health', {
+            headers: { Authorization: 'Bearer invalid-token' },
+          });
+          // If local app has no /api/health, treat non-2xx as pass for this negative check.
+          return response.status >= 400;
+        },
+      },
     ];
 
     for (const check of securityChecks) {
       try {
-        const result = check.check();
+        const result = await check.check();
         tests.push({
           id: `security-${check.name.toLowerCase().replace(/\s+/g, '-')}-${Date.now()}`,
           name: check.name,

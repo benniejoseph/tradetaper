@@ -4,11 +4,11 @@ import React from 'react';
 import { 
   FaBrain, 
   FaCalendarAlt,
-  FaNewspaper,
+  FaChartLine,
   FaChartPie,
 } from 'react-icons/fa';
 import EconomicCalendar from '@/components/market-intelligence/EconomicCalendar';
-import NewsFeed from '@/components/market-intelligence/NewsFeed';
+import PolymarketFeed from '@/components/market-intelligence/PolymarketFeed';
 import SentimentDashboard from '@/components/market-intelligence/SentimentDashboard';
 import CommitmentOfTraders from '@/components/market-intelligence/CommitmentOfTraders';
 import { FeatureGate } from '@/components/common/FeatureGate';
@@ -20,7 +20,7 @@ export default function MarketIntelligencePage() {
   const searchParams = useSearchParams();
   
   const requestedTab = searchParams.get('tab') || 'economic-calendar';
-  const validTabs = new Set(['economic-calendar', 'news', 'ai-analysis', 'cot']);
+  const validTabs = new Set(['economic-calendar', 'polymarket', 'ai-analysis', 'cot']);
   const activeTab = validTabs.has(requestedTab) ? requestedTab : 'economic-calendar';
 
   const handleTabChange = (tabId: string) => {
@@ -41,7 +41,7 @@ export default function MarketIntelligencePage() {
                 Market Intelligence
               </h1>
               <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">
-                Economic calendar, market news, and AI analysis
+                Economic calendar, prediction markets, and AI analysis
               </p>
             </div>
           </div>
@@ -53,7 +53,7 @@ export default function MarketIntelligencePage() {
             {[
               { id: 'economic-calendar', label: 'Economic Calendar', icon: FaCalendarAlt },
               { id: 'cot', label: 'Commitment of Traders', icon: FaChartPie },
-              { id: 'news', label: 'News Hub', icon: FaNewspaper },
+              { id: 'polymarket', label: 'Polymarket', icon: FaChartLine },
               { id: 'ai-analysis', label: 'AI Analysis', icon: FaBrain },
             ].map(tab => (
               <button
@@ -79,10 +79,10 @@ export default function MarketIntelligencePage() {
           </div>
         )}
 
-        {/* News Tab */}
-        {activeTab === 'news' && (
+        {/* Polymarket Tab */}
+        {activeTab === 'polymarket' && (
           <div className="space-y-6">
-            <NewsFeed />
+            <PolymarketFeed />
           </div>
         )}
 

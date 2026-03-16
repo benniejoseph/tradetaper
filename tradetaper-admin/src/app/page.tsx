@@ -53,7 +53,7 @@ export default function Dashboard() {
   const { data: stats, isLoading: statsLoading, refetch: refetchStats } = useQuery({
     queryKey: ['dashboard-stats'],
     queryFn: () => adminApi.getDashboardStats(),
-    refetchInterval: 30000,
+    refetchInterval: 60000,
   });
 
   const { data: userAnalytics, isLoading: userLoading } = useQuery({
@@ -77,13 +77,13 @@ export default function Dashboard() {
   const { data: systemHealth } = useQuery({
     queryKey: ['system-health'],
     queryFn: () => adminApi.getSystemHealth(),
-    refetchInterval: 15000,
+    refetchInterval: 30000,
   });
 
   const { data: activityFeed, isLoading: activityLoading } = useQuery({
     queryKey: ['activity-feed'],
     queryFn: () => adminApi.getActivityFeed(15),
-    refetchInterval: 5000,
+    refetchInterval: 15000,
   });
 
   const { data: recentUsers } = useQuery({

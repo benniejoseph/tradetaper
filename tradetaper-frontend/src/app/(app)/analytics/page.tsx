@@ -51,7 +51,6 @@ import DrawdownCurveCard from '@/components/dashboard/DrawdownCurveCard';
 import RollingReturnCard from '@/components/dashboard/RollingReturnCard';
 import RollingProfitFactorCard from '@/components/dashboard/RollingProfitFactorCard';
 import RollingExpectancyCard from '@/components/dashboard/RollingExpectancyCard';
-import MaeMfeScatterCard from '@/components/dashboard/MaeMfeScatterCard';
 import { authApiClient } from '@/services/api';
 
 const timeRangeDaysMapping: { [key: string]: number } = {
@@ -339,37 +338,6 @@ export default function AnalyticsPage() {
       }));
   }, [closedTradesSorted, rollingWindowSize]);
 
-  const maeMfePipsData = useMemo(() => {
-    return closedTradesSorted
-      .map(trade => {
-        if (typeof trade.maePips !== 'number' || typeof trade.mfePips !== 'number') return null;
-        const mae = trade.maePips > 0 ? -trade.maePips : trade.maePips;
-        const mfe = Math.abs(trade.mfePips);
-        return {
-          id: trade.id,
-          mae,
-          mfe,
-          pnl: trade.profitOrLoss || 0,
-        };
-      })
-      .filter((point): point is { id: string; mae: number; mfe: number; pnl: number } => Boolean(point));
-  }, [closedTradesSorted]);
-
-  const maeMfePriceData = useMemo(() => {
-    return closedTradesSorted
-      .map(trade => {
-        if (typeof trade.maePrice !== 'number' || typeof trade.mfePrice !== 'number') return null;
-        const mae = trade.maePrice > 0 ? -trade.maePrice : trade.maePrice;
-        const mfe = Math.abs(trade.mfePrice);
-        return {
-          id: trade.id,
-          mae,
-          mfe,
-          pnl: trade.profitOrLoss || 0,
-        };
-      })
-      .filter((point): point is { id: string; mae: number; mfe: number; pnl: number } => Boolean(point));
-  }, [closedTradesSorted]);
 
   const numberOfTradingDays = useMemo(() => {
     if (!dashboardStats || dashboardStats.closedTrades === 0 || !filteredTrades) return 1;
@@ -545,7 +513,6 @@ export default function AnalyticsPage() {
               <PairsPerformanceTable data={pairsPerformance} />
             </div>
             <LongShortAnalysisCard trades={filteredTrades || []} gridSpan="lg:col-span-6" />
-            <MaeMfeScatterCard pipsData={maeMfePipsData} priceData={maeMfePriceData} timeRange={timeRange} onTimeRangeChange={setTimeRange} />
           </div>
         </div>
 

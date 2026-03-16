@@ -24,6 +24,7 @@ import { TradingViewAdvancedService } from './tradingview/tradingview-advanced.s
 import { TradingViewAdvancedController } from './tradingview/tradingview-advanced.controller';
 import { GeminiInsightsService } from './gemini-insights.service';
 import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
+import { PolymarketService } from './polymarket.service';
 
 @Module({
   imports: [
@@ -57,6 +58,7 @@ import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
     MarketSentimentService, // Added
     CotDataService,
     CotAnalysisService,
+    PolymarketService,
   ],
   exports: [
     MarketIntelligenceService,
@@ -70,6 +72,7 @@ import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
     MarketSentimentService, // Added
     CotDataService,
     CotAnalysisService,
+    PolymarketService,
   ],
 })
 export class MarketIntelligenceModule {}

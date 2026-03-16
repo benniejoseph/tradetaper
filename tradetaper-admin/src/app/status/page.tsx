@@ -152,7 +152,7 @@ export default function StatusPage() {
     // Check Admin Login Endpoint
     try {
       const startTime = Date.now();
-      const response = await fetch('https://api.tradetaper.com/api/v1/auth/admin/login', {
+      const response = await fetch('https://api.tradetaper.com/api/v1/admin/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: 'test', password: 'test' })
@@ -166,7 +166,7 @@ export default function StatusPage() {
           status: 'online',
           responseTime,
           lastChecked: new Date().toISOString(),
-          url: 'https://api.tradetaper.com/api/v1/auth/admin/login',
+          url: 'https://api.tradetaper.com/api/v1/admin/auth/login',
           details: { note: 'Endpoint accessible (401 expected)' }
         });
       } else if (response.status === 404) {
@@ -174,7 +174,7 @@ export default function StatusPage() {
           name: 'Admin Login',
           status: 'offline',
           lastChecked: new Date().toISOString(),
-          url: 'https://api.tradetaper.com/api/v1/auth/admin/login',
+          url: 'https://api.tradetaper.com/api/v1/admin/auth/login',
           error: 'Endpoint not found (404)'
         });
       } else {
@@ -182,7 +182,7 @@ export default function StatusPage() {
           name: 'Admin Login',
           status: 'degraded',
           lastChecked: new Date().toISOString(),
-          url: 'https://api.tradetaper.com/api/v1/auth/admin/login',
+          url: 'https://api.tradetaper.com/api/v1/admin/auth/login',
           error: `HTTP ${response.status}`
         });
       }
@@ -191,7 +191,7 @@ export default function StatusPage() {
         name: 'Admin Login',
         status: 'offline',
         lastChecked: new Date().toISOString(),
-        url: 'https://api.tradetaper.com/api/v1/auth/admin/login',
+        url: 'https://api.tradetaper.com/api/v1/admin/auth/login',
         error: error.message
       });
     }

@@ -2,7 +2,6 @@ import {
   Injectable,
   Logger,
   BadRequestException,
-  InternalServerErrorException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import MetaApi, { StreamingMetaApiConnectionInstance } from 'metaapi.cloud-sdk';
@@ -27,8 +26,15 @@ interface CachedConnection {
   lastUsed: number;
 }
 
+interface KnownServerResult {
+  name: string;
+  broker?: string;
+  type?: string;
+}
+
 /** [FIX #3] TTL-evicting connection cache */
 const IDLE_TTL_MS = 10 * 60 * 1000; // 10-minute idle eviction
+const SERVER_SEARCH_CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
 
 @Injectable()
 export class MetaApiService {
@@ -40,6 +46,11 @@ export class MetaApiService {
 
   /** [FIX #3] Cache now stores {connection, lastUsed} and is periodically evicted */
   private readonly connectionCache = new Map<string, CachedConnection>();
+  private readonly knownServersCache = new Map<
+    string,
+    { expiresAt: number; data: KnownServerResult[] }
+  >();
+  private lastSuccessfulKnownServers: KnownServerResult[] = [];
   private evictionTimer: ReturnType<typeof setInterval> | null = null;
 
   constructor(private readonly configService: ConfigService) {
@@ -136,10 +147,37 @@ export class MetaApiService {
     }
   }
 
-  async getKnownServers(
+  private getFallbackServers(): KnownServerResult[] {
+    return [
+      { name: 'ICMarketsSC-Demo', broker: 'IC Markets', type: 'demo' },
+      { name: 'ICMarketsSC-Live', broker: 'IC Markets', type: 'real' },
+      { name: 'Exness-MT5Real', broker: 'Exness', type: 'real' },
+      { name: 'Exness-MT5Trial', broker: 'Exness', type: 'demo' },
+      { name: 'FTMO-Server', broker: 'FTMO', type: 'real' },
+      { name: 'MetaQuotes-Demo', broker: 'MetaQuotes', type: 'demo' },
+      { name: 'Pepperstone-Edge', broker: 'Pepperstone', type: 'real' },
+    ];
+  }
+
+  private filterServerResults(
+    list: KnownServerResult[],
     query: string,
-    version = 5,
-  ): Promise<Array<{ name: string; broker?: string; type?: string }>> {
+  ): KnownServerResult[] {
+    const q = query.toLowerCase();
+    return list
+      .filter(
+        (item) =>
+          item.name.toLowerCase().includes(q) ||
+          item.broker?.toLowerCase().includes(q),
+      )
+      .slice(0, 50);
+  }
+
+  private delay(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  async getKnownServers(query: string, version = 5): Promise<KnownServerResult[]> {
     if (!this.metaApiToken || !this.metaApiDomain || !this.enabled) {
       throw new BadRequestException('MetaApi integration is not configured');
     }
@@ -149,61 +187,118 @@ export class MetaApiService {
       return [];
     }
 
+    const cacheKey = `${version}:${trimmedQuery.toLowerCase()}`;
+    const now = Date.now();
+    const cached = this.knownServersCache.get(cacheKey);
+    if (cached && cached.expiresAt > now) {
+      return cached.data;
+    }
+
     const baseDomain = this.metaApiDomain.replace(/^https?:\/\//, '');
     const url = `https://mt-provisioning-api-v1.${baseDomain}/known-mt-servers/${version}/search?query=${encodeURIComponent(
       trimmedQuery,
     )}`;
 
-    try {
-      const allowInsecureTls =
-        this.configService.get<string>('ALLOW_INSECURE_METAAPI_TLS') === 'true';
-      const requestConfig: Record<string, unknown> = {
-        headers: {
-          'auth-token': this.metaApiToken,
-          Accept: 'application/json',
-        },
-        timeout: 15000,
-      };
+    const allowInsecureTls =
+      this.configService.get<string>('ALLOW_INSECURE_METAAPI_TLS') === 'true';
+    const timeoutMs = parseInt(
+      this.configService.get<string>('METAAPI_SERVER_SEARCH_TIMEOUT_MS', '20000'),
+      10,
+    );
+    const maxRetries = parseInt(
+      this.configService.get<string>('METAAPI_SERVER_SEARCH_RETRIES', '2'),
+      10,
+    );
 
-      if (allowInsecureTls) {
-        const httpsAgent = new (require('https').Agent)({
-          rejectUnauthorized: false,
-        });
-        requestConfig.httpsAgent = httpsAgent;
-        this.logger.warn(
-          'ALLOW_INSECURE_METAAPI_TLS=true enables insecure TLS validation for MetaApi server search',
-        );
-      }
+    const requestConfig: Record<string, unknown> = {
+      headers: {
+        'auth-token': this.metaApiToken,
+        Accept: 'application/json',
+      },
+      timeout: timeoutMs,
+    };
 
-      const axios = require('axios');
-
-      const response = await axios.get(url, requestConfig);
-
-      const data = response.data as Record<string, string[]>;
-      const results: Array<{ name: string; broker?: string; type?: string }> =
-        [];
-
-      if (data && typeof data === 'object') {
-        Object.entries(data).forEach(([broker, servers]) => {
-          if (!Array.isArray(servers)) return;
-          servers.forEach((server) => {
-            const serverName = String(server);
-            const type = serverName.toLowerCase().includes('demo')
-              ? 'demo'
-              : 'real';
-            results.push({ name: serverName, broker, type });
-          });
-        });
-      }
-
-      return results.slice(0, 50);
-    } catch (error) {
-      if (error instanceof BadRequestException) {
-        throw error;
-      }
-      this.logger.error('Failed to fetch MetaApi servers', error);
-      throw new InternalServerErrorException('Failed to fetch server list');
+    if (allowInsecureTls) {
+      const httpsAgent = new (require('https').Agent)({
+        rejectUnauthorized: false,
+      });
+      requestConfig.httpsAgent = httpsAgent;
+      this.logger.warn(
+        'ALLOW_INSECURE_METAAPI_TLS=true enables insecure TLS validation for MetaApi server search',
+      );
     }
+
+    const axios = require('axios');
+    let lastError: unknown = null;
+
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        const response = await axios.get(url, requestConfig);
+        const data = response.data as Record<string, string[]>;
+        const results: KnownServerResult[] = [];
+
+        if (data && typeof data === 'object') {
+          Object.entries(data).forEach(([broker, servers]) => {
+            if (!Array.isArray(servers)) return;
+            servers.forEach((server) => {
+              const serverName = String(server);
+              const type = serverName.toLowerCase().includes('demo')
+                ? 'demo'
+                : 'real';
+              results.push({ name: serverName, broker, type });
+            });
+          });
+        }
+
+        const trimmedResults = results.slice(0, 50);
+        this.knownServersCache.set(cacheKey, {
+          expiresAt: Date.now() + SERVER_SEARCH_CACHE_TTL_MS,
+          data: trimmedResults,
+        });
+        if (trimmedResults.length > 0) {
+          this.lastSuccessfulKnownServers = trimmedResults;
+        }
+        return trimmedResults;
+      } catch (error) {
+        lastError = error;
+        const err = error as { code?: string; response?: { status?: number } };
+        const status = err?.response?.status;
+        const retryable =
+          err?.code === 'ECONNABORTED' ||
+          err?.code === 'ETIMEDOUT' ||
+          err?.code === 'ECONNRESET' ||
+          status === 429 ||
+          (typeof status === 'number' && status >= 500);
+
+        if (!retryable || attempt === maxRetries) {
+          break;
+        }
+
+        const backoffMs = Math.min(1000 * (attempt + 1), 3000);
+        this.logger.warn(
+          `MetaApi server search retry ${attempt + 1}/${maxRetries} for query "${trimmedQuery}" after ${backoffMs}ms`,
+        );
+        await this.delay(backoffMs);
+      }
+    }
+
+    const fromLastSuccess = this.filterServerResults(
+      this.lastSuccessfulKnownServers,
+      trimmedQuery,
+    );
+    if (fromLastSuccess.length > 0) {
+      this.logger.warn(
+        `MetaApi server search failed for "${trimmedQuery}". Returning cached fallback results`,
+      );
+      return fromLastSuccess;
+    }
+
+    const fromStaticFallback = this.filterServerResults(
+      this.getFallbackServers(),
+      trimmedQuery,
+    );
+    this.logger.error('Failed to fetch MetaApi servers', lastError as Error);
+    return fromStaticFallback;
   }
 
   /**

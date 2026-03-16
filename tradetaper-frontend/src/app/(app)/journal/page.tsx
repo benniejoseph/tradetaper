@@ -24,6 +24,7 @@ import "react-datepicker/dist/react-datepicker.css";
 import { useDebounce } from '@/hooks/useDebounce';
 import { CurrencyAmount } from '@/components/common/CurrencyAmount';
 import TradeActionModal from '@/components/trades/TradeActionModal';
+import { authApiClient } from '@/services/api';
 
 export default function JournalPage() {
   const dispatch = useDispatch<AppDispatch>();
@@ -49,6 +50,15 @@ export default function JournalPage() {
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(25);
+  const [monthlySummaryNetPnl, setMonthlySummaryNetPnl] = useState<number | null>(null);
+  const toNumber = (value: unknown): number => {
+    if (value === null || value === undefined) return 0;
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : 0;
+  };
+
+  // Align account precedence with selector UX: MT5 selection wins if both IDs exist.
+  const currentAccountId = selectedMT5AccountId || selectedAccountId || undefined;
 
   const debouncedSearchQuery = useDebounce(searchQuery, 300);
 
@@ -96,7 +106,6 @@ export default function JournalPage() {
 
   useEffect(() => {
     if (!isAuthenticated) return;
-    const currentAccountId = selectedAccountId || selectedMT5AccountId;
     const status =
       activePositionFilter === 'all'
         ? undefined
@@ -120,8 +129,7 @@ export default function JournalPage() {
   }, [
     dispatch,
     isAuthenticated,
-    selectedAccountId,
-    selectedMT5AccountId,
+    currentAccountId,
     page,
     limit,
     activePositionFilter,
@@ -132,7 +140,6 @@ export default function JournalPage() {
 
   useEffect(() => {
     if (!isAuthenticated) return;
-    const currentAccountId = selectedAccountId || selectedMT5AccountId;
     const status =
       activePositionFilter === 'all'
         ? undefined
@@ -152,13 +159,39 @@ export default function JournalPage() {
   }, [
     dispatch,
     isAuthenticated,
-    selectedAccountId,
-    selectedMT5AccountId,
+    currentAccountId,
     activePositionFilter,
     debouncedSearchQuery,
     dateRange,
     showOnlyStarred,
   ]);
+
+  useEffect(() => {
+    const fetchMonthlySummary = async () => {
+      if (!isAuthenticated) {
+        setMonthlySummaryNetPnl(null);
+        return;
+      }
+
+      try {
+        const now = new Date();
+        const response = await authApiClient.get('/trades/summary', {
+          params: {
+            accountId: currentAccountId,
+            from: startOfMonth(now).toISOString(),
+            to: endOfMonth(now).toISOString(),
+            _ts: Date.now(),
+          },
+        });
+        const parsed = toNumber(response?.data?.netPnL);
+        setMonthlySummaryNetPnl(Number.isFinite(parsed) ? parsed : 0);
+      } catch {
+        setMonthlySummaryNetPnl(null);
+      }
+    };
+
+    void fetchMonthlySummary();
+  }, [isAuthenticated, currentAccountId]);
 
   // Merge and normalize accounts
   const allAccounts = useMemo(() => {
@@ -190,56 +223,75 @@ export default function JournalPage() {
   const filteredTrades = allTrades;
 
   const headerStats = useMemo(() => {
+    const closedTrades = filteredTrades.filter(
+      (t) =>
+        t.status === TradeStatus.CLOSED &&
+        Number.isFinite(Number(t.profitOrLoss)),
+    );
+    const winningTrades = closedTrades.filter((t) => toNumber(t.profitOrLoss) > 0);
+    const losingTrades = closedTrades.filter((t) => toNumber(t.profitOrLoss) < 0);
+    const winRate = closedTrades.length > 0 ? (winningTrades.length / closedTrades.length) * 100 : 0;
+    const longTrades = filteredTrades.filter(
+      (t) => (t.direction || '').toLowerCase() === 'long',
+    ).length;
+    const shortTrades = filteredTrades.filter(
+      (t) => (t.direction || '').toLowerCase() === 'short',
+    ).length;
+    const totalPnl = closedTrades.reduce(
+      (sum, t) => sum + toNumber(t.profitOrLoss) - Math.abs(toNumber(t.commission)),
+      0,
+    );
+
+    const now = new Date();
+    const startOfMonthDate = startOfMonth(now);
+    const endOfMonthDate = endOfMonth(now);
+    const monthlyClosedTrades = closedTrades.filter((trade) => {
+      const exitTimestamp = trade.exitDate || trade.entryDate;
+      if (!exitTimestamp) return false;
+      try {
+        const exitD = parseISO(exitTimestamp);
+        return (
+          isValid(exitD) &&
+          isWithinInterval(exitD, { start: startOfMonthDate, end: endOfMonthDate })
+        );
+      } catch {
+        return false;
+      }
+    });
+    const fallbackMonthlyPnl = monthlyClosedTrades.reduce(
+      (sum, t) => sum + toNumber(t.profitOrLoss) - Math.abs(toNumber(t.commission)),
+      0,
+    );
+
     if (summary) {
       return {
-        winRate: summary.winRate || 0,
-        longTrades: 0,
-        shortTrades: 0,
-        totalPnl: summary.netPnL || 0,
-        monthlyPnl: 0,
-        winningTradesCount: summary.winningTrades || 0,
-        losingTradesCount: summary.losingTrades || 0,
+        winRate: toNumber(summary.winRate),
+        longTrades,
+        shortTrades,
+        totalPnl: toNumber(summary.netPnL),
+        monthlyPnl: monthlySummaryNetPnl ?? fallbackMonthlyPnl,
+        winningTradesCount: toNumber(summary.winningTrades),
+        losingTradesCount: toNumber(summary.losingTrades),
       };
     }
     if (!filteredTrades || filteredTrades.length === 0) {
       return { winRate: 0, longTrades: 0, shortTrades: 0, totalPnl: 0, monthlyPnl: 0, winningTradesCount: 0, losingTradesCount: 0 };
     }
-    const closedTrades = filteredTrades.filter(t => t.status === TradeStatus.CLOSED && typeof t.profitOrLoss === 'number');
-    const winningTrades = closedTrades.filter(t => t.profitOrLoss! > 0);
-    const losingTrades = closedTrades.filter(t => t.profitOrLoss! < 0);
-    const winRate = closedTrades.length > 0 ? (winningTrades.length / closedTrades.length) * 100 : 0;
-    const longTrades = filteredTrades.filter(t => t.direction === 'Long').length;
-    const shortTrades = filteredTrades.filter(t => t.direction === 'Short').length;
-    const totalPnl = closedTrades.reduce((sum, t) => sum + (t.profitOrLoss || 0), 0);
-
-    const now = new Date();
-    const startOfMonthDate = startOfMonth(now);
-    const endOfMonthDate = endOfMonth(now);
-
-    const monthlyClosedTrades = closedTrades.filter(trade => {
-        if (!trade.exitDate) return false;
-        try {
-            const exitD = parseISO(trade.exitDate);
-            return isValid(exitD) && isWithinInterval(exitD, { start: startOfMonthDate, end: endOfMonthDate });
-        } catch {
-            return false;
-        }
-    });
-    const monthlyPnl = monthlyClosedTrades.reduce((sum, t) => sum + (t.profitOrLoss || 0), 0);
+    const monthlyPnl = fallbackMonthlyPnl;
 
     return { winRate, longTrades, shortTrades, totalPnl, monthlyPnl, winningTradesCount: winningTrades.length, losingTradesCount: losingTrades.length };
-  }, [filteredTrades, summary]);
+  }, [filteredTrades, summary, monthlySummaryNetPnl]);
 
   const footerStats = useMemo(() => {
     if (summary) {
       return {
-        totalNetPnl: summary.netPnL || 0,
-        totalTrades: summary.totalTrades || 0,
-        totalCommissions: summary.totalCommissions || 0,
-        averageWin: summary.averageWin || 0,
-        averageLoss: summary.averageLoss || 0,
-        averageRR: summary.averageRMultiple || 0,
-        totalTradedValue: summary.totalTradedValue || 0,
+        totalNetPnl: toNumber(summary.netPnL),
+        totalTrades: total || toNumber(summary.totalTrades),
+        totalCommissions: toNumber(summary.totalCommissions),
+        averageWin: toNumber(summary.averageWin),
+        averageLoss: -Math.abs(toNumber(summary.averageLoss)),
+        averageRR: toNumber(summary.averageRMultiple),
+        totalTradedValue: toNumber(summary.totalTradedValue),
       };
     }
     if (!filteredTrades || filteredTrades.length === 0) {
@@ -254,24 +306,36 @@ export default function JournalPage() {
       };
     }
     const dashboardCalculatedStats = calculateDashboardStats(filteredTrades);
+    const closedTrades = filteredTrades.filter((trade) => trade.status === TradeStatus.CLOSED);
+    const fallbackNetAfterCommission = closedTrades.reduce(
+      (sum, trade) =>
+        sum + toNumber(trade.profitOrLoss) - Math.abs(toNumber(trade.commission)),
+      0,
+    );
+    const fallbackCommissions = closedTrades.reduce(
+      (sum, trade) => sum + Math.abs(toNumber(trade.commission)),
+      0,
+    );
     
     const totalTradedValue = filteredTrades.reduce((sum, trade) => {
-      if (trade.entryPrice && trade.quantity) {
-        return sum + (Math.abs(trade.entryPrice * trade.quantity));
+      const entryPrice = toNumber(trade.entryPrice);
+      const quantity = toNumber(trade.quantity);
+      if (entryPrice && quantity) {
+        return sum + Math.abs(entryPrice * quantity);
       }
       return sum;
     }, 0);
 
     return {
-      totalNetPnl: dashboardCalculatedStats.totalNetPnl,
+      totalNetPnl: fallbackNetAfterCommission,
       totalTrades: dashboardCalculatedStats.totalTrades,
-      totalCommissions: dashboardCalculatedStats.totalCommissions,
+      totalCommissions: fallbackCommissions,
       averageWin: dashboardCalculatedStats.averageWin,
       averageLoss: dashboardCalculatedStats.averageLoss,
       averageRR: dashboardCalculatedStats.averageRR,
       totalTradedValue,
     };
-  }, [filteredTrades, summary]);
+  }, [filteredTrades, summary, total]);
 
   const handleRowClick = (trade: Trade) => {
     dispatch(setCurrentTrade(trade));
@@ -513,7 +577,7 @@ export default function JournalPage() {
               { label: 'Commissions', value: footerStats.totalCommissions, color: 'text-gray-900 dark:text-white', isAmount: true },
               { label: 'Total Value', value: footerStats.totalTradedValue, color: 'text-gray-900 dark:text-white', isAmount: true, info: 'Total volume traded (Entry Price × Quantity)' },
               { label: 'Avg Win', value: footerStats.averageWin, color: 'text-green-600 dark:text-green-400', isAmount: true, showSign: true },
-              { label: 'Avg Loss', value: footerStats.averageLoss, color: 'text-red-600 dark:text-red-400', isAmount: true, showSign: true },
+              { label: 'Avg Loss', value: footerStats.averageLoss, color: 'text-red-600 dark:text-red-400', isAmount: true, showSign: false },
               { label: 'Avg R:R', value: `${footerStats.averageRR.toFixed(2)}R`, color: 'text-gray-900 dark:text-white', isAmount: false },
             ].map((stat, index) => (
               <div key={index} className="text-center p-4 bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-950/20 dark:to-emerald-900/20 rounded-xl hover:from-emerald-100 hover:to-emerald-200 dark:hover:from-emerald-900/30 dark:hover:to-emerald-800/30 transition-colors duration-200 min-w-0">

@@ -95,12 +95,15 @@ export default function DashboardPage() {
   const showAlert = (message: string, title = 'Notice') =>
     setAlertState({ isOpen: true, title, message });
 
-  const currentAccountId = selectedAccountId || selectedMT5AccountId;
-
   const selectedMT5Account = useMemo(
     () => allMT5Accounts.find((account) => account.id === selectedMT5AccountId) || null,
     [allMT5Accounts, selectedMT5AccountId],
   );
+
+  const effectiveRegularAccountId = selectedAccount?.id ?? null;
+  const effectiveMT5AccountId = selectedMT5Account?.id ?? null;
+  // Keep precedence aligned with header UX: MT5 selection should win when both IDs are present.
+  const currentAccountId = effectiveMT5AccountId || effectiveRegularAccountId || null;
 
   const rangeParams = useMemo(() => {
     const days = timeRangeDaysMapping[timeRange];
@@ -202,19 +205,29 @@ export default function DashboardPage() {
     return trades.filter((trade) => trade.accountId === currentAccountId);
   }, [trades, currentAccountId]);
 
-  const lifetimePnlFromTrades = useMemo(() => {
-    return accountScopedTrades.reduce((sum, trade) => {
-      if (trade.status !== TradeStatus.CLOSED) return sum;
-      return sum + toNumber(trade.profitOrLoss);
+  const tradeDerivedLifetime = useMemo(() => {
+    const closedTrades = accountScopedTrades.filter(
+      (trade) => trade.status === TradeStatus.CLOSED,
+    );
+
+    const netPnl = closedTrades.reduce((sum, trade) => {
+      const grossPnl = toNumber(trade.profitOrLoss);
+      const commissionCost = Math.abs(toNumber(trade.commission));
+      return sum + (grossPnl - commissionCost);
     }, 0);
+
+    return {
+      closedTradesCount: closedTrades.length,
+      netPnl,
+    };
   }, [accountScopedTrades]);
 
   const baselineForDrawdown = useMemo(() => {
-    if (selectedAccountId && selectedAccount) {
-      return Math.max(toNumber(selectedAccount.balance), 1);
-    }
     if (selectedMT5AccountId && selectedMT5Account) {
       return Math.max(toNumber(selectedMT5Account.balance), 1);
+    }
+    if (selectedAccountId && selectedAccount) {
+      return Math.max(toNumber(selectedAccount.balance), 1);
     }
     const allRegularStarting = allRegularAccounts.reduce(
       (sum: number, account) => sum + toNumber(account.balance),
@@ -307,31 +320,57 @@ export default function DashboardPage() {
   }, [periodSummary, calculatedStats, baselineForDrawdown]);
 
   const { personalTargetCurrent, isAllAccountsSelected } = useMemo(() => {
-    const isAllAccounts = !selectedAccountId && !selectedMT5AccountId;
-    const lifetimePnlCandidate = toNumber(lifetimeSummary?.totalPnL, Number.NaN);
-    const currentForTarget = Number.isFinite(lifetimePnlCandidate)
-      ? lifetimePnlCandidate
-      : lifetimePnlFromTrades;
+    const isAllAccounts = !effectiveRegularAccountId && !effectiveMT5AccountId;
+    const lifetimeNetPnlCandidate = toNumber(
+      lifetimeSummary?.netPnL,
+      Number.NaN,
+    );
+    const tradeDerivedNetPnl = tradeDerivedLifetime.netPnl;
+
+    const hasClosedTradeEvidence = tradeDerivedLifetime.closedTradesCount > 0;
+    const summaryLooksZero = Number.isFinite(lifetimeNetPnlCandidate)
+      ? Math.abs(lifetimeNetPnlCandidate) < 0.000001
+      : false;
+    const tradeDerivedLooksMeaningful = Math.abs(tradeDerivedNetPnl) > 0.000001;
+
+    // Guard against stale/incorrect summary zeros while account-scoped closed trades exist.
+    const currentForTarget =
+      Number.isFinite(lifetimeNetPnlCandidate) &&
+      !(summaryLooksZero && hasClosedTradeEvidence && tradeDerivedLooksMeaningful)
+        ? lifetimeNetPnlCandidate
+        : tradeDerivedNetPnl;
+
     return {
       personalTargetCurrent: currentForTarget,
       isAllAccountsSelected: isAllAccounts,
     };
-  }, [selectedAccountId, selectedMT5AccountId, lifetimeSummary?.totalPnL, lifetimePnlFromTrades]);
+  }, [
+    effectiveRegularAccountId,
+    effectiveMT5AccountId,
+    lifetimeSummary?.netPnL,
+    tradeDerivedLifetime,
+  ]);
 
   const personalTargetGoal = useMemo(() => {
+    if (selectedMT5AccountId && selectedMT5Account) {
+      return selectedMT5Account.target || 1000;
+    }
     if (selectedAccountId && selectedAccount) {
       return selectedAccount.target || 1000;
-    }
-    if (selectedMT5AccountId) {
-      const mt5Acc = allMT5Accounts.find(a => a.id === selectedMT5AccountId);
-      return mt5Acc?.target || 1000;
     }
     const totalGoal = [
       ...allRegularAccounts.map((account) => toNumber(account.target)),
       ...allMT5Accounts.map((account) => toNumber(account.target)),
     ].reduce((sum, value) => sum + value, 0);
     return totalGoal > 0 ? totalGoal : 1000;
-  }, [selectedAccountId, selectedAccount, selectedMT5AccountId, allRegularAccounts, allMT5Accounts]);
+  }, [
+    selectedMT5AccountId,
+    selectedMT5Account,
+    selectedAccountId,
+    selectedAccount,
+    allRegularAccounts,
+    allMT5Accounts,
+  ]);
 
   const equityCurve = useMemo(() => {
     if (filteredTrades && filteredTrades.length > 0) {
@@ -360,15 +399,15 @@ export default function DashboardPage() {
       return Number(acc.balance) || 0;
     };
 
-    if (selectedAccountId) {
-      if (!selectedAccount) return 0;
-      return getManualBalance(selectedAccount, toNumber(lifetimeSummary?.totalPnL, NaN));
-    }
-
     if (selectedMT5AccountId) {
       const mt5Acc = allMT5Accounts.find(a => a.id === selectedMT5AccountId);
       if (!mt5Acc) return 0;
       return getMT5Balance(mt5Acc);
+    }
+    
+    if (selectedAccountId) {
+      if (!selectedAccount) return 0;
+      return getManualBalance(selectedAccount, toNumber(lifetimeSummary?.totalPnL, NaN));
     }
 
     let total = 0;
@@ -440,10 +479,10 @@ export default function DashboardPage() {
     }
 
     try {
-      if (selectedAccountId && selectedAccount) {
-        await dispatch(updateAccountThunk({ id: selectedAccount.id, target: newGoal })).unwrap();
-      } else if (selectedMT5AccountId) {
+      if (selectedMT5AccountId) {
         await dispatch(updateMT5Account({ id: selectedMT5AccountId, data: { target: newGoal } })).unwrap();
+      } else if (selectedAccountId && selectedAccount) {
+        await dispatch(updateAccountThunk({ id: selectedAccount.id, target: newGoal })).unwrap();
       } else {
         throw new Error('No account selected.');
       }

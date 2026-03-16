@@ -16,6 +16,11 @@ export class CandleManagementService {
     'twelvedata',
     'alphavantage',
   ] as const;
+  private static readonly SOURCE_PRIORITY: Record<string, number> = {
+    oanda: 3,
+    twelvedata: 2,
+    alphavantage: 1,
+  };
   private static readonly MAX_HISTORY_RANGE_DAYS_BY_TIMEFRAME: Record<string, number> = {
     '1m': 120,
     '5m': 365,
@@ -199,13 +204,10 @@ export class CandleManagementService {
   /**
    * Fetch and store candles for the backtesting module.
    *
-   * Source priority (India-friendly, no geo-restricted services):
-   *  1. TwelveData  — 800 req/day free, 30+ yr history, forex/metals/crypto ✅
-   *  2. Alpha Vantage — 25 req/day free backup, same asset classes          ✅
-   *
-   * OANDA is kept as a utility method for non-Indian deployments but is NOT
-   * in the active fetch pipeline.  Set OANDA_API_KEY in env to re-enable it
-   * by inserting a fetchFromOanda() call above TwelveData if needed.
+   * Source priority:
+   *  1. OANDA (when token is configured, highest-quality FX/CFD feed)
+   *  2. TwelveData
+   *  3. Alpha Vantage
    */
   async fetchAndStoreCandles(
     symbol: string,
@@ -233,11 +235,24 @@ export class CandleManagementService {
       boundedStartDate,
       boundedEndDate,
     );
-    if (existing.length >= expectedCount * 0.9) {
+    const existingOandaRows = existing.filter(
+      (row) => (row.source || '').toLowerCase() === 'oanda',
+    ).length;
+    const existingOandaRatio =
+      existing.length > 0 ? existingOandaRows / existing.length : 0;
+    const shouldRefreshForOanda =
+      this.canUseOandaForSymbol(symbolCode) && existingOandaRatio < 0.8;
+
+    if (existing.length >= expectedCount * 0.9 && !shouldRefreshForOanda) {
       this.logger.log(
         `Cache HIT: ${existing.length} candles for ${symbolCode} ${timeframeCode}`,
       );
       return existing;
+    }
+    if (shouldRefreshForOanda && existing.length > 0) {
+      this.logger.log(
+        `[Backtesting] Refreshing ${symbolCode} ${timeframeCode} with OANDA priority (existing ratio ${(existingOandaRatio * 100).toFixed(1)}%)`,
+      );
     }
 
     let candles: any[] = [];
@@ -296,7 +311,10 @@ export class CandleManagementService {
       candles.map((c) => ({
         symbol: symbolCode,
         timeframe: timeframeCode,
-        timestamp: new Date(c.time * 1000),
+        timestamp: this.alignTimestampToTimeframe(
+          new Date(c.time * 1000),
+          timeframeCode,
+        ),
         open: c.open,
         high: c.high,
         low: c.low,
@@ -307,7 +325,9 @@ export class CandleManagementService {
       .filter((row) => this.isValidCandleRow(row));
 
     try {
-      await this.upsertCandles(upsertRows);
+      // Provider candles are canonical for backtesting, so update conflicting
+      // rows (including stale fallback rows) on the same symbol/timeframe/timestamp.
+      await this.upsertCandles(upsertRows, { updateOnConflict: true });
       this.logger.log(
         `Upserted ${upsertRows.length} candles from ${source} for ${symbolCode} ${timeframeCode}`,
       );
@@ -336,42 +356,186 @@ export class CandleManagementService {
     const timeframeCode = (timeframe || '1h').toLowerCase().trim();
     const { from: boundedStartDate, to: boundedEndDate } =
       this.clampHistoryRange(timeframeCode, startDate, endDate);
-    let candles = await this.marketCandleRepo.find({
-      where: {
-        symbol: symbolCode,
-        timeframe: timeframeCode,
-        source: In([...CandleManagementService.BACKTEST_PROVIDER_SOURCES]),
-        timestamp: Between(boundedStartDate, boundedEndDate),
-      },
-      order: { timestamp: 'ASC' },
-    });
+    let providerRows = await this.loadProviderRows(
+      symbolCode,
+      timeframeCode,
+      boundedStartDate,
+      boundedEndDate,
+    );
 
-    const expectedCount = this.calculateExpectedCandles(timeframeCode, boundedStartDate, boundedEndDate);
-    if (candles.length < expectedCount * 0.5) {
+    const expectedCount = this.calculateExpectedCandles(
+      timeframeCode,
+      boundedStartDate,
+      boundedEndDate,
+    );
+    const coverageRatio = expectedCount > 0 ? providerRows.length / expectedCount : 1;
+    const oandaRows = providerRows.filter(
+      (row) => (row.source || '').toLowerCase() === 'oanda',
+    ).length;
+    const oandaRatio = providerRows.length > 0 ? oandaRows / providerRows.length : 0;
+    const shouldRefreshForOanda =
+      this.canUseOandaForSymbol(symbolCode) && oandaRatio < 0.8;
+
+    if (providerRows.length === 0 || coverageRatio < 0.65 || shouldRefreshForOanda) {
       this.logger.log(
-        `Cache insufficient (${candles.length}/${expectedCount}), fetching from provider pipeline for ${symbolCode} ${timeframeCode}`,
+        `[Backtesting] Cache insufficient (${providerRows.length}/${expectedCount}, ${(
+          coverageRatio * 100
+        ).toFixed(1)}%, oandaRatio ${(oandaRatio * 100).toFixed(
+          1,
+        )}%) for ${symbolCode} ${timeframeCode}. Fetching fresh provider data...`,
       );
-      candles = await this.fetchAndStoreCandles(symbolCode, timeframeCode, boundedStartDate, boundedEndDate);
+      await this.fetchAndStoreCandles(
+        symbolCode,
+        timeframeCode,
+        boundedStartDate,
+        boundedEndDate,
+      );
+      providerRows = await this.loadProviderRows(
+        symbolCode,
+        timeframeCode,
+        boundedStartDate,
+        boundedEndDate,
+      );
     }
 
-    if (candles.length === 0) {
-      // Final fallback for nonstandard instruments where only terminal candles may exist.
-      candles = await this.marketCandleRepo.find({
-        where: {
-          symbol: symbolCode,
-          timeframe: timeframeCode,
-          timestamp: Between(boundedStartDate, boundedEndDate),
-        },
-        order: { timestamp: 'ASC' },
-      });
-    }
+    const normalized = this.normalizeProviderRowsToChartFormat(
+      providerRows,
+      timeframeCode,
+      boundedStartDate,
+      boundedEndDate,
+    );
 
-    return this.toChartFormat(candles);
+    this.logger.log(
+      `[Backtesting] Returning ${normalized.length} normalized candles for ${symbolCode} ${timeframeCode} (${boundedStartDate.toISOString()} → ${boundedEndDate.toISOString()})`,
+    );
+
+    return normalized;
   }
 
   // ─────────────────────────────────────────────────────────────
   // PRIVATE HELPERS
   // ─────────────────────────────────────────────────────────────
+
+  private async loadProviderRows(
+    symbol: string,
+    timeframe: string,
+    from: Date,
+    to: Date,
+  ): Promise<MarketCandle[]> {
+    return this.marketCandleRepo.find({
+      where: {
+        symbol,
+        timeframe,
+        source: In([...CandleManagementService.BACKTEST_PROVIDER_SOURCES]),
+        timestamp: Between(from, to),
+      },
+      order: { timestamp: 'ASC' },
+    });
+  }
+
+  private normalizeProviderRowsToChartFormat(
+    rows: MarketCandle[],
+    timeframe: string,
+    from: Date,
+    to: Date,
+  ): Array<{
+    time: number;
+    open: number;
+    high: number;
+    low: number;
+    close: number;
+    volume: number;
+  }> {
+    if (!Array.isArray(rows) || rows.length === 0) return [];
+
+    const fromSec = Math.floor(from.getTime() / 1000);
+    const toSec = Math.floor(to.getTime() / 1000);
+    const byBucket = new Map<
+      number,
+      {
+        time: number;
+        open: number;
+        high: number;
+        low: number;
+        close: number;
+        volume: number;
+        sourcePriority: number;
+        rawTimestampMs: number;
+      }
+    >();
+
+    for (const row of rows) {
+      const rawTsSec = Math.floor(row.timestamp.getTime() / 1000);
+      if (!Number.isFinite(rawTsSec)) continue;
+      if (rawTsSec < fromSec || rawTsSec > toSec) continue;
+
+      const bucketTime = this.alignTimestampToTimeframe(
+        new Date(rawTsSec * 1000),
+        timeframe,
+      ).getTime();
+      if (!Number.isFinite(bucketTime)) continue;
+
+      const open = Number(row.open);
+      const high = Number(row.high);
+      const low = Number(row.low);
+      const close = Number(row.close);
+      const volume = Number(row.volume ?? 0);
+      if (
+        !Number.isFinite(open) ||
+        !Number.isFinite(high) ||
+        !Number.isFinite(low) ||
+        !Number.isFinite(close)
+      ) {
+        continue;
+      }
+
+      const normalizedHigh = Math.max(high, open, close, low);
+      const normalizedLow = Math.min(low, open, close, high);
+      const sourcePriority = this.getSourcePriority(row.source);
+      const existing = byBucket.get(bucketTime);
+      if (!existing) {
+        byBucket.set(bucketTime, {
+          time: Math.floor(bucketTime / 1000),
+          open,
+          high: normalizedHigh,
+          low: normalizedLow,
+          close,
+          volume: Number.isFinite(volume) ? volume : 0,
+          sourcePriority,
+          rawTimestampMs: row.timestamp.getTime(),
+        });
+        continue;
+      }
+
+      const shouldReplace =
+        sourcePriority > existing.sourcePriority ||
+        (sourcePriority === existing.sourcePriority &&
+          row.timestamp.getTime() >= existing.rawTimestampMs);
+      if (shouldReplace) {
+        byBucket.set(bucketTime, {
+          time: Math.floor(bucketTime / 1000),
+          open,
+          high: normalizedHigh,
+          low: normalizedLow,
+          close,
+          volume: Number.isFinite(volume) ? volume : 0,
+          sourcePriority,
+          rawTimestampMs: row.timestamp.getTime(),
+        });
+      }
+    }
+
+    return Array.from(byBucket.values())
+      .sort((a, b) => a.time - b.time)
+      .map((bar) => ({
+        time: bar.time,
+        open: bar.open,
+        high: bar.high,
+        low: bar.low,
+        close: bar.close,
+        volume: bar.volume,
+      }));
+  }
 
   /**
    * Detect contiguous missing minute intervals in the existing data.
@@ -509,6 +673,7 @@ export class CandleManagementService {
   /** Upsert candles — insert or skip on conflict (symbol, timeframe, timestamp) */
   private async upsertCandles(
     candles: Omit<MarketCandle, 'id' | 'createdAt' | 'updatedAt'>[],
+    options?: { updateOnConflict?: boolean },
   ): Promise<void> {
     if (candles.length === 0) return;
     // Deduplicate before inserting
@@ -523,13 +688,24 @@ export class CandleManagementService {
     // Chunk into batches of 500 to respect max parameters
     for (let i = 0; i < unique.length; i += 500) {
       const chunk = unique.slice(i, i + 500);
-      await this.marketCandleRepo
+      const query = this.marketCandleRepo
         .createQueryBuilder()
         .insert()
         .into(MarketCandle)
-        .values(chunk as any)
-        .orIgnore() // ON CONFLICT DO NOTHING — preserves existing data
-        .execute();
+        .values(chunk as any);
+
+      if (options?.updateOnConflict) {
+        // Clean canonical backtesting source rows on re-fetch.
+        query.orUpdate(
+          ['open', 'high', 'low', 'close', 'volume', 'source'],
+          ['symbol', 'timeframe', 'timestamp'],
+        );
+      } else {
+        // Default behavior for terminal/metaapi gap filler writes.
+        query.orIgnore();
+      }
+
+      await query.execute();
     }
   }
 
@@ -587,6 +763,32 @@ export class CandleManagementService {
   private ceilToMinute(d: Date): Date {
     const ms = Math.ceil(d.getTime() / 60_000) * 60_000;
     return new Date(ms);
+  }
+
+  private getSourcePriority(source?: string | null): number {
+    if (!source) return 0;
+    return CandleManagementService.SOURCE_PRIORITY[source.toLowerCase()] ?? 0;
+  }
+
+  private alignTimestampToTimeframe(timestamp: Date, timeframe: string): Date {
+    if (!timestamp || !Number.isFinite(timestamp.getTime())) {
+      return timestamp;
+    }
+
+    // Preserve provider-defined daily boundary (e.g. OANDA day rollovers).
+    if (timeframe === '1d') {
+      return new Date(Math.floor(timestamp.getTime() / 1000) * 1000);
+    }
+
+    const intervalSeconds = this.timeframeToSeconds(timeframe);
+    if (!Number.isFinite(intervalSeconds) || intervalSeconds <= 0) {
+      return new Date(Math.floor(timestamp.getTime() / 1000) * 1000);
+    }
+
+    const bucketSec =
+      Math.floor(Math.floor(timestamp.getTime() / 1000) / intervalSeconds) *
+      intervalSeconds;
+    return new Date(bucketSec * 1000);
   }
 
   // ─────────────────────────────────────────────────────────────
@@ -671,80 +873,102 @@ export class CandleManagementService {
     startDate: Date,
     endDate: Date,
   ): Promise<any[]> {
-    const apiKey = this.configService.get<string>('OANDA_API_KEY');
-    const apiEnv = this.configService.get<string>('OANDA_API_ENV') ?? 'practice';
+    const apiKey =
+      this.configService.get<string>('OANDA_API_KEY') ||
+      this.configService.get<string>('OANDA_API_TOKEN');
+    const apiEnv = (this.configService.get<string>('OANDA_API_ENV') ?? 'practice').toLowerCase();
 
     if (!apiKey) {
-      this.logger.warn('[OANDA] OANDA_API_KEY not configured — skipping');
+      this.logger.warn('[OANDA] OANDA token not configured (OANDA_API_KEY/OANDA_API_TOKEN) — skipping');
       return [];
     }
-
-    const baseUrl =
-      apiEnv === 'live'
-        ? 'https://api-fxtrade.oanda.com'
-        : 'https://api-fxpractice.oanda.com';
 
     const instrument  = this.toOandaSymbol(symbol);
     const granularity = this.toOandaGranularity(timeframe);
     const stepMs      = this.oandaGranularityToMs(granularity);
+    const baseUrls =
+      apiEnv === 'live'
+        ? ['https://api-fxtrade.oanda.com', 'https://api-fxpractice.oanda.com']
+        : ['https://api-fxpractice.oanda.com', 'https://api-fxtrade.oanda.com'];
 
-    const allCandles: any[] = [];
-    let from = new Date(startDate);
+    for (const baseUrl of baseUrls) {
+      const allCandles: any[] = [];
+      let from = new Date(startDate);
+      let baseHealthy = true;
 
-    while (from < endDate) {
-      try {
-        const response = await firstValueFrom(
-          this.httpService.get(
-            `${baseUrl}/v3/instruments/${instrument}/candles`,
-            {
-              headers: {
-                Authorization: `Bearer ${apiKey}`,
-                'Content-Type': 'application/json',
+      while (from < endDate) {
+        try {
+          const response = await firstValueFrom(
+            this.httpService.get(
+              `${baseUrl}/v3/instruments/${instrument}/candles`,
+              {
+                headers: {
+                  Authorization: `Bearer ${apiKey}`,
+                  'Content-Type': 'application/json',
+                  'Accept-Datetime-Format': 'RFC3339',
+                },
+                params: {
+                  granularity,
+                  from:  from.toISOString(),
+                  to:    endDate.toISOString(),
+                  price: 'M',   // mid prices
+                  count: 5000,  // max per request
+                },
+                timeout: 30_000,
               },
-              params: {
-                granularity,
-                from:  from.toISOString(),
-                to:    endDate.toISOString(),
-                price: 'M',   // mid prices
-                count: 5000,  // max per request
-              },
-              timeout: 30_000,
-            },
-          ),
-        );
+            ),
+          );
 
-        const raw: any[] = response.data?.candles ?? [];
-        if (raw.length === 0) break;
+          const raw: any[] = response.data?.candles ?? [];
+          if (raw.length === 0) break;
 
-        for (const c of raw) {
-          // skip in-progress (incomplete) candle
-          if (!c.complete) continue;
-          allCandles.push({
-            time:      Math.floor(new Date(c.time).getTime() / 1000),
-            open:      parseFloat(c.mid.o),
-            high:      parseFloat(c.mid.h),
-            low:       parseFloat(c.mid.l),
-            close:     parseFloat(c.mid.c),
-            tickVolume: c.volume ?? 0,
-          });
+          for (const c of raw) {
+            // skip in-progress (incomplete) candle
+            if (!c.complete) continue;
+            allCandles.push({
+              time:      Math.floor(new Date(c.time).getTime() / 1000),
+              open:      parseFloat(c.mid.o),
+              high:      parseFloat(c.mid.h),
+              low:       parseFloat(c.mid.l),
+              close:     parseFloat(c.mid.c),
+              tickVolume: c.volume ?? 0,
+            });
+          }
+
+          // If fewer than 5000 rows returned we've hit the end of the range
+          if (raw.length < 5000) break;
+
+          // Advance to the candle after the last one received
+          from = new Date(new Date(raw[raw.length - 1].time).getTime() + stepMs);
+        } catch (error) {
+          const statusCode = error?.response?.status;
+          const msg = error?.response?.data?.errorMessage ?? error.message;
+          this.logger.error(`[OANDA] Fetch failed on ${baseUrl} for ${instrument} ${granularity}: ${msg}`);
+
+          // Try alternate base URL for auth/account-environment mismatch.
+          if (statusCode === 401 || statusCode === 403 || statusCode === 404) {
+            baseHealthy = false;
+          }
+          break;
         }
+      }
 
-        // If fewer than 5000 rows returned we've hit the end of the range
-        if (raw.length < 5000) break;
+      if (allCandles.length > 0) {
+        this.logger.log(
+          `[OANDA] Fetched ${allCandles.length} candles for ${instrument} ${granularity} via ${baseUrl}`,
+        );
+        return allCandles;
+      }
 
-        // Advance to the candle after the last one received
-        from = new Date(new Date(raw[raw.length - 1].time).getTime() + stepMs);
-      } catch (error) {
-        const msg = error?.response?.data?.errorMessage ?? error.message;
-        this.logger.error(`[OANDA] Fetch failed for ${instrument} ${granularity}: ${msg}`);
-        break;
+      if (baseHealthy) {
+        // Base URL worked but returned no candles; no need to try alternate env.
+        this.logger.warn(`[OANDA] No candles returned for ${instrument} ${granularity} via ${baseUrl}`);
+        return [];
       }
     }
 
-    this.logger.log(
-      `[OANDA] Fetched ${allCandles.length} candles for ${instrument} ${granularity}`,
-    );
-    return allCandles;
+    this.logger.warn(`[OANDA] No data fetched from any environment for ${instrument} ${granularity}`);
+    return [];
   }
 
   /** Map TradeTaper symbol → OANDA instrument name (e.g. EURUSD → EUR_USD) */
@@ -752,10 +976,18 @@ export class CandleManagementService {
     const map: Record<string, string> = {
       XAUUSD: 'XAU_USD',
       XAGUSD: 'XAG_USD',
-      XTIUSD: 'BCO_USD',
+      XTIUSD: 'WTICO_USD',
       XBRUSD: 'BCO_USD',
       BTCUSD: 'BTC_USD',
       ETHUSD: 'ETH_USD',
+      NAS100: 'NAS100_USD',
+      US100: 'NAS100_USD',
+      SPX500: 'SPX500_USD',
+      US500: 'SPX500_USD',
+      US30: 'US30_USD',
+      DE40: 'DE40_EUR',
+      UK100: 'UK100_GBP',
+      JP225: 'JP225_USD',
     };
     if (map[symbol]) return map[symbol];
     // Forex pairs: 6-char e.g. EURUSD → EUR_USD
@@ -784,7 +1016,7 @@ export class CandleManagementService {
   }
 
   // ─────────────────────────────────────────────────────────────
-  // TWELVEDATA  (primary free source – 800 req/day)
+  // TWELVEDATA  (secondary source – 800 req/day)
   // ─────────────────────────────────────────────────────────────
 
   private async fetchFromTwelveData(
@@ -1083,7 +1315,23 @@ export class CandleManagementService {
   }
 
   private canUseOandaForSymbol(symbol: string): boolean {
-    if (!this.configService.get<string>('OANDA_API_KEY')) return false;
-    return this.isForex(symbol) || ['XAUUSD', 'XAGUSD'].includes(symbol);
+    const token =
+      this.configService.get<string>('OANDA_API_KEY') ||
+      this.configService.get<string>('OANDA_API_TOKEN');
+    if (!token) return false;
+    return this.isForex(symbol) || [
+      'XAUUSD',
+      'XAGUSD',
+      'XTIUSD',
+      'XBRUSD',
+      'NAS100',
+      'US100',
+      'SPX500',
+      'US500',
+      'US30',
+      'DE40',
+      'UK100',
+      'JP225',
+    ].includes(symbol);
   }
 }

@@ -21,7 +21,7 @@ export default function LogsPage() {
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['admin-logs', levelFilter],
     queryFn: () => adminApi.getLogs(100, 0, levelFilter || undefined),
-    refetchInterval: 3000,
+    refetchInterval: 10000,
   });
 
   const logs = (data as any)?.data || [];
@@ -42,7 +42,7 @@ export default function LogsPage() {
             <Terminal className="w-5 h-5" style={{ color: '#10B981' }} />
             <div>
               <h1 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>System Logs</h1>
-              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Auto-refreshes every 3s • {filteredLogs.length} entries</p>
+              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Auto-refreshes every 10s • {filteredLogs.length} entries</p>
             </div>
           </div>
           <div className="flex items-center gap-2">

@@ -18,7 +18,6 @@ import {
   RequireFeature,
 } from '../subscriptions/guards/feature-access.guard';
 import { MarketIntelligenceService } from './market-intelligence.service';
-import { NewsAnalysisService } from './news-analysis.service';
 import { ICTAnalysisService } from './ict-analysis.service';
 import { EconomicCalendarService } from './economic-calendar.service';
 import { EconomicAlertsService } from './economic-alerts.service';
@@ -26,6 +25,7 @@ import { AIMarketPredictionService } from './ai-market-prediction.service';
 import { MarketSentimentService } from './market-sentiment.service'; // Added
 import { CotDataService } from './cot-data.service';
 import { CotAnalysisService } from './cot-analysis.service';
+import { PolymarketService } from './polymarket.service';
 
 @Controller('market-intelligence')
 export class MarketIntelligenceController {
@@ -33,7 +33,6 @@ export class MarketIntelligenceController {
 
   constructor(
     private readonly marketIntelligenceService: MarketIntelligenceService,
-    private readonly newsAnalysisService: NewsAnalysisService,
     private readonly ictAnalysisService: ICTAnalysisService,
     private readonly economicCalendarService: EconomicCalendarService,
     private readonly economicAlertsService: EconomicAlertsService,
@@ -41,6 +40,7 @@ export class MarketIntelligenceController {
     private readonly marketSentimentService: MarketSentimentService, // Added
     private readonly cotDataService: CotDataService,
     private readonly cotAnalysisService: CotAnalysisService,
+    private readonly polymarketService: PolymarketService,
   ) {}
 
   // Public endpoint for testing live data integration
@@ -111,41 +111,6 @@ export class MarketIntelligenceController {
     }
   }
 
-  @UseGuards(JwtAuthGuard)
-  @Get('news')
-  async getMarketNews(
-    @Query('category') category?: string,
-    @Query('limit') limit?: string,
-  ) {
-    const parsedLimit = Number.parseInt(limit || '', 10);
-    const safeLimit = Number.isFinite(parsedLimit) ? parsedLimit : undefined;
-    this.logger.log(
-      `Getting market news (Category: ${category || 'All'}, Limit: ${safeLimit || 'default'})`,
-    );
-    try {
-      const newsResult = await this.newsAnalysisService.getMarketNews(
-        category,
-        safeLimit,
-      );
-      return newsResult;
-    } catch (error) {
-      this.logger.error('Failed to get market news', error);
-      throw new HttpException(
-        'Failed to fetch market news',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
-  }
-
-  @UseGuards(JwtAuthGuard)
-  @Get('news/categories')
-  getNewsCategories() {
-    return {
-      categories: this.newsAnalysisService.getAvailableCategories(),
-      defaultCategory: 'all',
-    };
-  }
-
   @UseGuards(JwtAuthGuard, FeatureAccessGuard)
   @RequireFeature('marketIntelligenceAi')
   @Get('ai-analysis')
@@ -188,6 +153,28 @@ export class MarketIntelligenceController {
       this.logger.error('Failed to get AI pair analysis', error);
       throw new HttpException(
         'Failed to fetch AI analysis',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('polymarket')
+  async getPolymarketMarkets(
+    @Query('assetClass') assetClass?: string,
+    @Query('limit') limit?: string,
+  ) {
+    const parsedLimit = Number.parseInt(limit || '', 10);
+    const safeLimit = Number.isFinite(parsedLimit) ? parsedLimit : 40;
+    this.logger.log(
+      `Getting Polymarket markets (assetClass=${assetClass || 'all'}, limit=${safeLimit})`,
+    );
+    try {
+      return await this.polymarketService.getMarkets(assetClass || 'all', safeLimit);
+    } catch (error) {
+      this.logger.error('Failed to fetch Polymarket markets', error);
+      throw new HttpException(
+        'Failed to fetch Polymarket markets',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
