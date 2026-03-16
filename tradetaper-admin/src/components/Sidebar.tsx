@@ -24,6 +24,7 @@ import {
   Moon,
   BarChart3,
   Shield,
+  WandSparkles,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import toast from 'react-hot-toast';
@@ -40,6 +41,7 @@ const menuSections = [
     items: [
       { icon: LayoutDashboard, label: 'Dashboard', href: '/' },
       { icon: Activity, label: 'Live Activity', href: '/activity' },
+      { icon: WandSparkles, label: 'UI Lab', href: '/ui-lab' },
     ],
   },
   {

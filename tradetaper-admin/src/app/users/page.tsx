@@ -74,6 +74,10 @@ export default function UsersPage() {
   const total = (data as any)?.total || 0;
   const totalPages = (data as any)?.totalPages || 1;
   const verifiedCount = users.filter((u: any) => u.isEmailVerified).length;
+  const paidCount = users.filter((u: any) => {
+    const plan = u.subscription?.plan;
+    return plan && String(plan).toLowerCase() !== 'free';
+  }).length;
 
   return (
     <div className="flex h-screen" style={{ background: 'var(--bg-base)' }}>
@@ -116,15 +120,20 @@ export default function UsersPage() {
         </header>
 
         {/* Stats Strip */}
-        <div className="px-6 py-3 border-b flex gap-6" style={{ background: 'var(--bg-surface)', borderColor: 'var(--border-subtle)' }}>
+        <div className="px-6 py-4 border-b grid grid-cols-1 md:grid-cols-3 gap-3" style={{ background: 'var(--bg-surface)', borderColor: 'var(--border-subtle)' }}>
           {[
-            { label: 'Total', value: formatNumber(total), color: '#6366F1' },
-            { label: 'Verified', value: `${verifiedCount}/${users.length}`, color: '#10B981' },
+            { label: 'Total Users', value: formatNumber(total), color: '#6366F1', icon: Users },
+            { label: 'Verified Users', value: `${verifiedCount}/${users.length || 0}`, color: '#10B981', icon: CheckCircle2 },
+            { label: 'Paid Users (Page)', value: `${paidCount}/${users.length || 0}`, color: '#8B5CF6', icon: CreditCard },
           ].map((s) => (
-            <div key={s.label} className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full" style={{ background: s.color }} />
-              <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{s.label}:</span>
-              <span className="text-sm font-semibold" style={{ color: s.color }}>{s.value}</span>
+            <div key={s.label} className="admin-card p-3 flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: `${s.color}18` }}>
+                <s.icon className="w-4 h-4" style={{ color: s.color }} />
+              </div>
+              <div>
+                <p className="text-[11px] uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>{s.label}</p>
+                <p className="text-sm font-semibold" style={{ color: s.color }}>{s.value}</p>
+              </div>
             </div>
           ))}
         </div>

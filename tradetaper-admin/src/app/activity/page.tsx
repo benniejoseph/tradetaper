@@ -17,6 +17,7 @@ const ACTIVITY_COLORS: Record<string, string> = {
 
 export default function ActivityPage() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [filter, setFilter] = useState<'all' | 'trade' | 'auth' | 'billing'>('all');
 
   const { data: feed, isLoading, refetch } = useQuery({
     queryKey: ['activity-feed-full'],
@@ -25,6 +26,14 @@ export default function ActivityPage() {
   });
 
   const activities = feed || [];
+
+  const filteredActivities = activities.filter((a: any) => {
+    if (filter === 'all') return true;
+    if (filter === 'trade') return (a.type || '').includes('trade');
+    if (filter === 'auth') return (a.type || '').includes('login') || (a.type || '').includes('auth');
+    if (filter === 'billing') return (a.type || '').includes('subscription') || (a.type || '').includes('billing');
+    return true;
+  });
 
   const eventBreakdown = activities.reduce((acc: Record<string, number>, a: any) => {
     acc[a.type] = (acc[a.type] || 0) + 1;
@@ -44,12 +53,29 @@ export default function ActivityPage() {
             </div>
             <div>
               <h1 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>Live Activity</h1>
-              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Auto-refreshes every 5s</p>
+              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Auto-refreshes every 5s • Operations event stream</p>
             </div>
           </div>
-          <button className="admin-btn-secondary" onClick={() => refetch()}>
-            <RefreshCw className="w-4 h-4" />
-          </button>
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 p-1 rounded-xl" style={{ background: 'var(--bg-muted)' }}>
+              {(['all', 'trade', 'auth', 'billing'] as const).map((t) => (
+                <button
+                  key={t}
+                  onClick={() => setFilter(t)}
+                  className="px-2.5 py-1.5 rounded-lg text-xs font-medium capitalize transition-colors"
+                  style={{
+                    background: filter === t ? 'var(--accent-primary)' : 'transparent',
+                    color: filter === t ? '#fff' : 'var(--text-secondary)',
+                  }}
+                >
+                  {t}
+                </button>
+              ))}
+            </div>
+            <button className="admin-btn-secondary" onClick={() => refetch()}>
+              <RefreshCw className="w-4 h-4" />
+            </button>
+          </div>
         </header>
 
         <div className="flex-1 overflow-auto p-6">
@@ -95,7 +121,7 @@ export default function ActivityPage() {
               <div className="flex items-center gap-2 p-4 border-b" style={{ borderColor: 'var(--border-subtle)' }}>
                 <span className="w-2 h-2 rounded-full animate-pulse-dot" style={{ background: '#10B981' }} />
                 <h3 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>Event Stream</h3>
-                <span className="badge badge-muted ml-auto">{activities.length} events</span>
+                <span className="badge badge-muted ml-auto">{filteredActivities.length} events</span>
               </div>
               <div className="overflow-y-auto flex-1 p-3">
                 {isLoading ? (
@@ -108,7 +134,7 @@ export default function ActivityPage() {
                       </div>
                     </div>
                   ))
-                ) : activities.length === 0 ? (
+                ) : filteredActivities.length === 0 ? (
                   <div className="text-center py-20">
                     <Activity className="w-12 h-12 mx-auto mb-3 opacity-20" style={{ color: 'var(--text-muted)' }} />
                     <p className="font-medium" style={{ color: 'var(--text-secondary)' }}>No Activity Yet</p>
@@ -116,7 +142,7 @@ export default function ActivityPage() {
                   </div>
                 ) : (
                   <div className="space-y-1.5">
-                    {activities.map((a: any, i: number) => (
+                    {filteredActivities.map((a: any, i: number) => (
                       <motion.div
                         key={a.id}
                         initial={{ opacity: 0, x: -8 }}

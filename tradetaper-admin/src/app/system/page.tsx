@@ -67,6 +67,12 @@ export default function SystemPage() {
     { label: 'API Calls (24h)', value: health?.apiCalls24h != null ? health.apiCalls24h.toLocaleString() : '—', icon: Cpu, color: '#8B5CF6' },
   ];
 
+  const serviceRows = [
+    { label: 'API Server', status: health?.status === 'healthy' ? 'operational' : 'degraded', color: '#10B981' },
+    { label: 'PostgreSQL Database', status: health?.databaseConnections != null ? 'operational' : 'unknown', color: '#6366F1' },
+    { label: 'Cache Layer', status: health?.cacheHitRate != null ? 'operational' : 'unknown', color: '#F59E0B' },
+  ];
+
   return (
     <div className="flex h-screen" style={{ background: 'var(--bg-base)' }}>
       <Sidebar isCollapsed={sidebarCollapsed} onToggle={() => setSidebarCollapsed(!sidebarCollapsed)} />
@@ -77,7 +83,7 @@ export default function SystemPage() {
             <Server className="w-5 h-5" style={{ color: 'var(--accent-primary)' }} />
             <div>
               <h1 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>System Health</h1>
-              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Real-time • 10s refresh</p>
+              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Real-time infrastructure telemetry • 10s refresh</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -133,22 +139,34 @@ export default function SystemPage() {
           {/* Backend Services */}
           <div>
             <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: 'var(--text-muted)' }}>Services</p>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              {[
-                { label: 'API Server', status: health?.status === 'healthy' ? 'operational' : 'degraded', color: '#10B981' },
-                { label: 'PostgreSQL Database', status: health?.databaseConnections != null ? 'operational' : 'unknown', color: '#6366F1' },
-                { label: 'Cache Layer', status: health?.cacheHitRate != null ? 'operational' : 'unknown', color: '#F59E0B' },
-              ].map((svc) => (
-                <div key={svc.label} className="admin-card p-4 flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: `${svc.color}18` }}>
-                    <div className="w-3 h-3 rounded-full animate-pulse-dot" style={{ background: svc.color }} />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{svc.label}</p>
-                    <p className="text-xs capitalize" style={{ color: svc.color }}>{svc.status}</p>
-                  </div>
-                </div>
-              ))}
+            <div className="admin-card overflow-hidden">
+              <table className="admin-table">
+                <thead>
+                  <tr>
+                    <th>Service</th>
+                    <th>Status</th>
+                    <th>Health</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {serviceRows.map((svc) => (
+                    <tr key={svc.label}>
+                      <td>
+                        <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{svc.label}</span>
+                      </td>
+                      <td>
+                        <span className="badge badge-muted capitalize">{svc.status}</span>
+                      </td>
+                      <td>
+                        <div className="flex items-center gap-2">
+                          <div className="w-2.5 h-2.5 rounded-full animate-pulse-dot" style={{ background: svc.color }} />
+                          <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>Monitoring</span>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
         </div>
