@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { useTheme } from 'next-themes';
 import {
   LayoutDashboard,
@@ -88,11 +88,10 @@ export default function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
   };
 
   return (
-    <motion.aside
-      animate={{ width: isCollapsed ? 68 : 240 }}
-      transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
-      className="flex flex-col h-screen flex-shrink-0 relative"
+    <aside
+      className="flex flex-col h-screen flex-shrink-0 relative overflow-hidden transition-[width] duration-200 ease-out"
       style={{
+        width: isCollapsed ? 68 : 240,
         background: 'var(--sidebar-bg)',
         borderRight: '1px solid var(--sidebar-border)',
       }}
@@ -100,39 +99,26 @@ export default function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-4 border-b"
            style={{ borderColor: 'var(--sidebar-border)', minHeight: 64 }}>
-        <AnimatePresence mode="wait">
-          {!isCollapsed && (
-            <motion.div
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -10 }}
-              transition={{ duration: 0.15 }}
-              className="flex items-center gap-3 min-w-0"
-            >
-              <div className="flex-shrink-0 w-8 h-8 rounded-xl flex items-center justify-center"
-                   style={{ background: 'var(--gradient-brand)' }}>
-                <TrendingUp className="w-4 h-4 text-white" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-sm font-bold truncate" style={{ color: 'var(--text-primary)' }}>TradeTaper</p>
-                <div className="flex items-center gap-1">
-                  <Shield className="w-2.5 h-2.5" style={{ color: 'var(--accent-primary)' }} />
-                  <p className="text-[10px] font-medium" style={{ color: 'var(--accent-primary)' }}>Admin</p>
-                </div>
-              </div>
-            </motion.div>
-          )}
-          {isCollapsed && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="w-8 h-8 rounded-xl flex items-center justify-center mx-auto"
-              style={{ background: 'var(--gradient-brand)' }}
-            >
+        {!isCollapsed ? (
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="flex-shrink-0 w-8 h-8 rounded-xl flex items-center justify-center"
+                 style={{ background: 'var(--gradient-brand)' }}>
               <TrendingUp className="w-4 h-4 text-white" />
-            </motion.div>
-          )}
-        </AnimatePresence>
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-bold truncate" style={{ color: 'var(--text-primary)' }}>TradeTaper</p>
+              <div className="flex items-center gap-1">
+                <Shield className="w-2.5 h-2.5" style={{ color: 'var(--accent-primary)' }} />
+                <p className="text-[10px] font-medium" style={{ color: 'var(--accent-primary)' }}>Admin</p>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="w-8 h-8 rounded-xl flex items-center justify-center mx-auto"
+            style={{ background: 'var(--gradient-brand)' }}>
+            <TrendingUp className="w-4 h-4 text-white" />
+          </div>
+        )}
 
         <button
           onClick={onToggle}
@@ -253,6 +239,6 @@ export default function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
           {!isCollapsed && <span>Sign Out</span>}
         </button>
       </div>
-    </motion.aside>
+    </aside>
   );
 }

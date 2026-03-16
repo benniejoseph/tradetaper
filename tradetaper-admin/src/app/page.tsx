@@ -114,10 +114,10 @@ export default function Dashboard() {
   ];
 
   return (
-    <div className="flex h-screen" style={{ background: 'var(--bg-base)' }}>
+    <div className="flex h-screen overflow-hidden" style={{ background: 'var(--bg-base)' }}>
       <Sidebar isCollapsed={sidebarCollapsed} onToggle={() => setSidebarCollapsed(!sidebarCollapsed)} />
 
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
         {/* Header */}
         <header className="px-6 py-4 border-b flex items-center justify-between"
                 style={{ background: 'var(--bg-surface)', borderColor: 'var(--border-subtle)' }}>
@@ -149,9 +149,9 @@ export default function Dashboard() {
         </header>
 
         {/* Main */}
-        <main className="flex-1 overflow-y-auto p-6 space-y-6">
+        <main className="flex-1 overflow-y-auto overflow-x-hidden p-6 space-y-6">
           {/* KPI Cards */}
-          <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6 gap-4">
             {statsLoading || subLoading ? (
               Array.from({ length: 6 }).map((_, i) => (
                 <div key={i} className="admin-card p-5 animate-pulse">
