@@ -1527,6 +1527,13 @@ export class AdminController {
     return this.adminService.getActivityFeed(parseInt(limit));
   }
 
+  @Get('subscription/analytics')
+  async getSubscriptionAnalytics(
+    @Query('timeRange') timeRange: string = '30d',
+  ) {
+    return this.adminService.getSubscriptionAnalytics(timeRange);
+  }
+
   @Get('users')
   async getUsers(
     @Query('page') page: string = '1',

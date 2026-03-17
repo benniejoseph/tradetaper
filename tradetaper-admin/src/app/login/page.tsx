@@ -18,6 +18,8 @@ import {
 import toast from 'react-hot-toast';
 import { API_BASE_URL } from '@/lib/api-base-url';
 
+const ADMIN_TOKEN_STORAGE_KEY = 'admin_token';
+
 type LoginStep = 'credentials' | 'mfa' | 'enroll' | 'recovery-codes';
 type MfaMethod = 'otp' | 'recovery';
 
@@ -54,6 +56,12 @@ function getErrorMessage(
     return payload.message[0];
   }
   return fallback;
+}
+
+function persistAdminToken(accessToken?: string): void {
+  if (typeof window !== 'undefined' && accessToken) {
+    localStorage.setItem(ADMIN_TOKEN_STORAGE_KEY, accessToken);
+  }
 }
 
 function LoginForm() {
@@ -163,6 +171,7 @@ function LoginForm() {
       return;
     }
 
+    persistAdminToken(data?.access_token);
     toast.success('Welcome back!');
     router.push(safeFrom);
   };
@@ -186,6 +195,7 @@ function LoginForm() {
       throw new Error(getErrorMessage(data, 'MFA verification failed'));
     }
 
+    persistAdminToken(data?.access_token);
     toast.success('Admin verification complete');
     router.push(safeFrom);
   };
@@ -210,6 +220,7 @@ function LoginForm() {
       throw new Error('Recovery codes were not returned');
     }
 
+    persistAdminToken(data?.access_token);
     setRecoveryCodes(data.recoveryCodes);
     setStep('recovery-codes');
     toast.success('MFA activated. Save your recovery codes now.');
@@ -613,15 +624,15 @@ export default function LoginPage() {
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div
           className="absolute -top-40 -right-40 w-96 h-96 rounded-full opacity-20"
-          style={{ background: 'radial-gradient(circle, #6366F1, transparent)' }}
-        />
-        <div
-          className="absolute -bottom-40 -left-40 w-96 h-96 rounded-full opacity-20"
           style={{ background: 'radial-gradient(circle, #10B981, transparent)' }}
         />
         <div
+          className="absolute -bottom-40 -left-40 w-96 h-96 rounded-full opacity-20"
+          style={{ background: 'radial-gradient(circle, #34D399, transparent)' }}
+        />
+        <div
           className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full opacity-5"
-          style={{ background: 'radial-gradient(circle, #8B5CF6, transparent)' }}
+          style={{ background: 'radial-gradient(circle, #065F46, transparent)' }}
         />
       </div>
 

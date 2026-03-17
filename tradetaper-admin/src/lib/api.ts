@@ -1,9 +1,7 @@
 import axios from 'axios';
 import { API_BASE_URL } from './api-base-url';
 
-// No authentication interceptors - open access
-
-// Authentication functions removed - open access admin panel
+const ADMIN_TOKEN_STORAGE_KEY = 'admin_token';
 
 // Types
 export interface User {
@@ -211,27 +209,41 @@ class AdminApi {
   }
 
   private initializeAxios() {
-    if (typeof window !== 'undefined') {
-      // Client-side initialization
-      this.axiosInstance = axios.create({
-        baseURL: this.baseUrl,
-        timeout: 10000,
-        withCredentials: true,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-    } else {
-      // Server-side: minimal axios instance (no auth needed for SSR)
-      this.axiosInstance = axios.create({
-        baseURL: this.baseUrl,
-        timeout: 10000,
-        withCredentials: true,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-    }
+    this.axiosInstance = axios.create({
+      baseURL: this.baseUrl,
+      timeout: 10000,
+      withCredentials: true,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    this.axiosInstance.interceptors.request.use((config: any) => {
+      if (typeof window !== 'undefined') {
+        const token = localStorage.getItem(ADMIN_TOKEN_STORAGE_KEY);
+        if (token) {
+          config.headers = config.headers || {};
+          config.headers.Authorization = `Bearer ${token}`;
+        }
+      }
+      return config;
+    });
+
+    this.axiosInstance.interceptors.response.use(
+      (response: any) => response,
+      (error: any) => {
+        if (typeof window !== 'undefined' && error?.response?.status === 401) {
+          localStorage.removeItem(ADMIN_TOKEN_STORAGE_KEY);
+
+          const isLoginRoute = window.location.pathname.startsWith('/login');
+          if (!isLoginRoute) {
+            const from = `${window.location.pathname}${window.location.search}`;
+            window.location.assign(`/login?from=${encodeURIComponent(from)}`);
+          }
+        }
+        return Promise.reject(error);
+      },
+    );
   }
 
   async login(
@@ -259,6 +271,9 @@ class AdminApi {
       { email, password },
       { withCredentials: true },
     );
+    if (typeof window !== 'undefined' && res.data?.access_token) {
+      localStorage.setItem(ADMIN_TOKEN_STORAGE_KEY, res.data.access_token);
+    }
     return res.data;
   }
 
@@ -278,6 +293,9 @@ class AdminApi {
       payload,
       { withCredentials: true },
     );
+    if (typeof window !== 'undefined' && res.data?.access_token) {
+      localStorage.setItem(ADMIN_TOKEN_STORAGE_KEY, res.data.access_token);
+    }
     return res.data;
   }
 
@@ -313,6 +331,9 @@ class AdminApi {
       { bootstrapToken, otpCode },
       { withCredentials: true },
     );
+    if (typeof window !== 'undefined' && res.data?.access_token) {
+      localStorage.setItem(ADMIN_TOKEN_STORAGE_KEY, res.data.access_token);
+    }
     return res.data;
   }
 
@@ -378,13 +399,10 @@ class AdminApi {
   }
 
   async logout() {
-    await axios.post(
-      `${this.baseUrl}/admin/auth/logout`,
-      {},
-      { withCredentials: true },
-    );
+    const axiosInstance = this.ensureAxiosInstance();
+    await axiosInstance.post('/admin/auth/logout', {});
     if (typeof window !== 'undefined') {
-      localStorage.removeItem('admin_token');
+      localStorage.removeItem(ADMIN_TOKEN_STORAGE_KEY);
     }
   }
 

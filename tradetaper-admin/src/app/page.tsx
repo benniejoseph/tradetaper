@@ -16,7 +16,6 @@ import {
   Download,
   CreditCard,
   Globe,
-  Zap,
 } from 'lucide-react';
 import {
   LineChart,
@@ -80,12 +79,19 @@ function KpiCard({
   );
 }
 
-function SectionCard({ title, children, className = '' }: { title: string; children: React.ReactNode; className?: string }) {
+function SectionCard({ title, children, className = '', delay = 0 }: { title: string; children: React.ReactNode; className?: string; delay?: number }) {
   return (
-    <div className={`admin-card p-5 ${className}`}>
-      <h3 className="text-lg font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>{title}</h3>
-      {children}
-    </div>
+    <motion.div 
+      initial={{ opacity: 0, y: 15 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, delay, ease: 'easeOut' }}
+      className={`admin-card p-5 flex flex-col ${className}`}
+    >
+      <h3 className="text-lg font-semibold mb-4 flex-shrink-0" style={{ color: 'var(--text-primary)' }}>{title}</h3>
+      <div className="flex-1 min-h-0">
+        {children}
+      </div>
+    </motion.div>
   );
 }
 
@@ -93,28 +99,49 @@ export default function Dashboard() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [timeRange, setTimeRange] = useState<'7d' | '30d' | '90d' | '1y'>('30d');
 
-  const { data: stats, isLoading: statsLoading, refetch: refetchStats } = useQuery({
+  const {
+    data: stats,
+    isLoading: statsLoading,
+    isError: statsError,
+    refetch: refetchStats,
+  } = useQuery({
     queryKey: ['dashboard-stats'],
     queryFn: () => adminApi.getDashboardStats(),
     refetchInterval: 60000,
+    retry: 1,
+    retryDelay: 750,
   });
 
-  const { data: userAnalytics, isLoading: userLoading } = useQuery({
+  const { data: userAnalytics, isLoading: userLoading, isError: userError } = useQuery({
     queryKey: ['user-analytics', timeRange],
     queryFn: () => adminApi.getUserAnalytics(timeRange),
     refetchInterval: 60000,
+    retry: 1,
+    retryDelay: 750,
   });
 
-  const { data: revenueAnalytics, isLoading: revenueLoading } = useQuery({
+  const {
+    data: revenueAnalytics,
+    isLoading: revenueLoading,
+    isError: revenueError,
+  } = useQuery({
     queryKey: ['revenue-analytics', timeRange],
     queryFn: () => adminApi.getRevenueAnalytics(timeRange),
     refetchInterval: 60000,
+    retry: 1,
+    retryDelay: 750,
   });
 
-  const { data: subscriptionAnalytics, isLoading: subLoading } = useQuery({
+  const {
+    data: subscriptionAnalytics,
+    isLoading: subLoading,
+    isError: subError,
+  } = useQuery({
     queryKey: ['subscription-analytics', timeRange],
     queryFn: () => adminApi.getSubscriptionAnalytics(timeRange),
     refetchInterval: 60000,
+    retry: 1,
+    retryDelay: 750,
   });
 
   const { data: systemHealth } = useQuery({
@@ -123,10 +150,12 @@ export default function Dashboard() {
     refetchInterval: 30000,
   });
 
-  const { data: activityFeed, isLoading: activityLoading } = useQuery({
+  const { data: activityFeed, isLoading: activityLoading, isError: activityError } = useQuery({
     queryKey: ['activity-feed'],
     queryFn: () => adminApi.getActivityFeed(15),
     refetchInterval: 15000,
+    retry: 1,
+    retryDelay: 750,
   });
 
   const { data: recentUsers } = useQuery({
@@ -137,7 +166,10 @@ export default function Dashboard() {
 
   const plans = subscriptionAnalytics?.subscriptionDistribution || [];
   const totalPlanUsers = plans.reduce((s, p) => s + p.count, 0);
-  const paidUsers = plans.filter((p) => p.plan !== 'Free').reduce((s, p) => s + p.count, 0);
+  const paidUsers = plans
+    .filter((p) => p.plan?.toLowerCase() !== 'free')
+    .reduce((s, p) => s + p.count, 0);
+  const showKpiSkeleton = statsLoading && !stats;
 
   const tooltipStyle: React.CSSProperties = {
     backgroundColor: 'var(--bg-surface)',
@@ -157,24 +189,32 @@ export default function Dashboard() {
   ];
 
   return (
-    <div className="flex h-screen overflow-hidden" style={{ background: 'var(--bg-base)' }}>
+    <div className="flex h-dvh overflow-hidden" style={{ background: 'var(--bg-base)' }}>
       <Sidebar isCollapsed={sidebarCollapsed} onToggle={() => setSidebarCollapsed(!sidebarCollapsed)} />
 
       <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
-        <header className="px-6 py-4 border-b" style={{ background: 'var(--bg-surface)', borderColor: 'var(--border-subtle)' }}>
-          <div className="max-w-[1680px] mx-auto flex items-center justify-between gap-4">
+        <header
+          className="sticky top-0 z-40 border-b px-8 py-5 backdrop-blur-xl"
+          style={{
+            background: 'color-mix(in srgb, var(--bg-surface) 92%, transparent)',
+            borderColor: 'var(--border-subtle)',
+          }}
+        >
+          <div className="max-w-[var(--content-max-width)] mx-auto flex flex-wrap items-center justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-bold text-gradient">Dashboard</h1>
+              <h1 className="text-3xl font-bold" style={{ color: 'var(--accent-primary)' }}>
+                Dashboard
+              </h1>
               <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>
                 Platform overview and operations health
               </p>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex w-full lg:w-auto flex-wrap items-center gap-2">
               <select
                 value={timeRange}
                 onChange={(e) => setTimeRange(e.target.value as any)}
-                className="admin-select text-sm min-w-[140px]"
+                className="admin-select text-sm min-w-[140px] flex-1 lg:flex-none"
               >
                 <option value="7d">Last 7 days</option>
                 <option value="30d">Last 30 days</option>
@@ -192,10 +232,23 @@ export default function Dashboard() {
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto overflow-x-hidden p-6">
-          <div className="max-w-[1680px] mx-auto space-y-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6 gap-4">
-              {statsLoading || subLoading
+        <main className="flex-1 overflow-y-auto overflow-x-hidden p-6 lg:p-8">
+          <div className="mx-auto max-w-[var(--content-max-width)] space-y-8">
+            {(statsError || userError || revenueError || subError || activityError) && (
+              <div
+                className="rounded-xl border px-4 py-3 text-sm"
+                style={{
+                  background: 'var(--accent-warning-subtle)',
+                  borderColor: 'var(--accent-warning-muted)',
+                  color: 'var(--accent-warning)',
+                }}
+              >
+                Some dashboard data could not be loaded. Retrying automatically.
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
+              {showKpiSkeleton
                 ? Array.from({ length: 6 }).map((_, i) => (
                     <div key={i} className="admin-card p-5 min-h-[132px] animate-pulse">
                       <div className="w-10 h-10 rounded-xl mb-5" style={{ background: 'var(--bg-muted)' }} />
@@ -206,8 +259,8 @@ export default function Dashboard() {
                 : kpiCards.map((card, i) => <KpiCard key={card.label} {...card} delay={i * 0.05} />)}
             </div>
 
-            <div className="grid grid-cols-1 2xl:grid-cols-2 gap-6">
-              <SectionCard title="User Growth">
+            <div className="grid grid-cols-1 gap-8 2xl:grid-cols-2">
+              <SectionCard title="User Growth" delay={0.1}>
                 {userLoading ? (
                   <div className="h-[320px] rounded-xl animate-pulse" style={{ background: 'var(--bg-muted)' }} />
                 ) : (
@@ -231,7 +284,7 @@ export default function Dashboard() {
                 )}
               </SectionCard>
 
-              <SectionCard title="Revenue">
+              <SectionCard title="Revenue" delay={0.2}>
                 {revenueLoading ? (
                   <div className="h-[320px] rounded-xl animate-pulse" style={{ background: 'var(--bg-muted)' }} />
                 ) : (
@@ -250,9 +303,9 @@ export default function Dashboard() {
               </SectionCard>
             </div>
 
-            <div className="grid grid-cols-1 2xl:grid-cols-12 gap-6">
+            <div className="grid grid-cols-1 gap-8 2xl:grid-cols-12">
               <div className="2xl:col-span-4">
-                <SectionCard title="Live Activity" className="h-[360px]">
+                <SectionCard title="Live Activity" className="h-[360px]" delay={0.3}>
                   <div className="h-[290px] overflow-y-auto pr-1 space-y-2">
                     {activityLoading ? (
                       Array.from({ length: 5 }).map((_, i) => (
@@ -286,7 +339,7 @@ export default function Dashboard() {
               </div>
 
               <div className="2xl:col-span-4">
-                <SectionCard title="Subscription Plans" className="h-[360px]">
+                <SectionCard title="Subscription Plans" className="h-[360px]" delay={0.4}>
                   {subLoading ? (
                     <div className="h-[290px] rounded-xl animate-pulse" style={{ background: 'var(--bg-muted)' }} />
                   ) : plans.length ? (
@@ -327,7 +380,7 @@ export default function Dashboard() {
               </div>
 
               <div className="2xl:col-span-4">
-                <SectionCard title="System Health" className="h-[360px]">
+                <SectionCard title="System Health" className="h-[360px]" delay={0.5}>
                   <div className="grid grid-cols-2 gap-3 mb-4">
                     {[
                       { label: 'Response', value: systemHealth?.responseTime != null ? `${systemHealth.responseTime}ms` : '—', color: '#10B981' },

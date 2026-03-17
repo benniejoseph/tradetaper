@@ -7,6 +7,9 @@
    ================================================================ */
 
 :root {
+  color-scheme: light;
+  --content-max-width: 1840px;
+
   /* Backgrounds */
   --bg-base: #F8FAFC;
   --bg-surface: #FFFFFF;
@@ -68,63 +71,65 @@
 }
 
 .dark {
+  color-scheme: dark;
+
   /* Backgrounds */
-  --bg-base: #0A0A0F;
-  --bg-surface: #13131A;
-  --bg-surface-hover: #1A1A24;
-  --bg-muted: #1E1E2E;
-  --bg-subtle: #252538;
+  --bg-base: #000000;
+  --bg-surface: #0b0e13;
+  --bg-surface-hover: #141923;
+  --bg-muted: #171d28;
+  --bg-subtle: #273041;
 
   /* Borders */
-  --border-subtle: #1E1E2E;
-  --border-default: #2A2A3E;
-  --border-strong: #3D3D5C;
+  --border-subtle: #1e2533;
+  --border-default: #2a3446;
+  --border-strong: #3b4861;
 
   /* Text */
-  --text-primary: #F1F5F9;
-  --text-secondary: #94A3B8;
-  --text-muted: #64748B;
-  --text-disabled: #334155;
+  --text-primary: #f3f6fb;
+  --text-secondary: #c6cfdd;
+  --text-muted: #99a6bc;
+  --text-disabled: #5f6f87;
 
   /* Accent — Emerald */
   --accent-primary: #10B981;
   --accent-primary-hover: #059669;
-  --accent-primary-subtle: #0D2B22;
-  --accent-primary-muted: #065F46;
+  --accent-primary-subtle: #022C22;
+  --accent-primary-muted: #064E3B;
 
   /* Accent — Emerald */
   --accent-success: #10B981;
-  --accent-success-subtle: #0D2B22;
-  --accent-success-muted: #065F46;
+  --accent-success-subtle: #022C22;
+  --accent-success-muted: #064E3B;
 
   /* Accent — Rose */
   --accent-danger: #F87171;
-  --accent-danger-subtle: #2D1515;
+  --accent-danger-subtle: #450A0A;
   --accent-danger-muted: #7F1D1D;
 
   /* Accent — Amber */
   --accent-warning: #FBBF24;
-  --accent-warning-subtle: #2D2006;
+  --accent-warning-subtle: #451A03;
   --accent-warning-muted: #78350F;
 
   /* Sidebar */
-  --sidebar-bg: #0D0D14;
-  --sidebar-border: #1E1E2E;
-  --sidebar-text: #64748B;
+  --sidebar-bg: #06090f;
+  --sidebar-border: #1b2230;
+  --sidebar-text: #c4cfdf;
   --sidebar-text-active: #34D399;
-  --sidebar-item-active: #0D2B22;
-  --sidebar-item-hover: #1A1A24;
+  --sidebar-item-active: #022C22;
+  --sidebar-item-hover: #111824;
 
   /* Gradients */
-  --gradient-brand: linear-gradient(135deg, #065F46 0%, #059669 50%, #10B981 100%);
+  --gradient-brand: linear-gradient(135deg, #064E3B 0%, #059669 50%, #10B981 100%);
   --gradient-success: linear-gradient(135deg, #059669 0%, #10B981 100%);
-  --gradient-card: linear-gradient(135deg, #13131A 0%, #1A1A24 100%);
+  --gradient-card: linear-gradient(135deg, #0A0A0A 0%, #141414 100%);
 
   /* Shadows */
-  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
-  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.4), 0 2px 4px -2px rgb(0 0 0 / 0.4);
-  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.4), 0 4px 6px -4px rgb(0 0 0 / 0.4);
-  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.5), 0 8px 10px -6px rgb(0 0 0 / 0.5);
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.5);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.6), 0 2px 4px -2px rgb(0 0 0 / 0.6);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.6), 0 4px 6px -4px rgb(0 0 0 / 0.6);
+  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.8), 0 8px 10px -6px rgb(0 0 0 / 0.8);
   --shadow-glow: 0 0 0 3px rgba(16, 185, 129, 0.24);
 }
 
@@ -143,6 +148,7 @@ html {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   scroll-behavior: smooth;
+  font-size: clamp(16px, 0.25vw + 12px, 19px);
 }
 
 body {
@@ -150,6 +156,7 @@ body {
   color: var(--text-primary);
   transition: background-color 200ms ease, color 200ms ease;
   min-height: 100vh;
+  line-height: 1.5;
 }
 
 /* ================================================================
@@ -181,12 +188,12 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 16px;
+  padding: 10px 18px;
   background: var(--accent-primary);
   color: #FFFFFF;
   border-radius: 10px;
   border: none;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 500;
   cursor: pointer;
   transition: background 150ms ease, transform 100ms ease, box-shadow 150ms ease;
@@ -207,12 +214,12 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 16px;
+  padding: 10px 18px;
   background: var(--bg-muted);
   color: var(--text-secondary);
   border: 1px solid var(--border-default);
   border-radius: 10px;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 500;
   cursor: pointer;
   transition: all 150ms ease;
@@ -227,12 +234,12 @@ body {
 
 .admin-input {
   width: 100%;
-  padding: 10px 14px;
+  padding: 11px 15px;
   background: var(--bg-muted);
   border: 1px solid var(--border-default);
   border-radius: 10px;
   color: var(--text-primary);
-  font-size: 14px;
+  font-size: 15px;
   font-family: 'Inter', sans-serif;
   transition: border-color 150ms ease, box-shadow 150ms ease;
   outline: none;
@@ -248,12 +255,12 @@ body {
 }
 
 .admin-select {
-  padding: 8px 12px;
+  padding: 10px 14px;
   background: var(--bg-muted);
   border: 1px solid var(--border-default);
   border-radius: 10px;
   color: var(--text-primary);
-  font-size: 14px;
+  font-size: 15px;
   font-family: 'Inter', sans-serif;
   cursor: pointer;
   outline: none;
@@ -275,11 +282,11 @@ body {
 }
 
 .admin-table th {
-  padding: 12px 16px;
+  padding: 14px 18px;
   text-align: left;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--text-muted);
   background: var(--bg-muted);
@@ -297,8 +304,8 @@ body {
 }
 
 .admin-table td {
-  padding: 14px 16px;
-  font-size: 14px;
+  padding: 16px 18px;
+  font-size: 15px;
   color: var(--text-primary);
   border-bottom: 1px solid var(--border-subtle);
   vertical-align: middle;
@@ -327,9 +334,45 @@ body {
   gap: 4px;
   padding: 3px 10px;
   border-radius: 9999px;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 500;
   line-height: 1.4;
+}
+
+@media (min-width: 1800px) {
+  .admin-btn-primary,
+  .admin-btn-secondary,
+  .admin-input,
+  .admin-select {
+    font-size: 15.5px;
+  }
+
+  .admin-table th {
+    font-size: 12.5px;
+  }
+
+  .admin-table td {
+    font-size: 15.5px;
+  }
+}
+
+@media (max-width: 1280px) {
+  .admin-btn-primary,
+  .admin-btn-secondary,
+  .admin-input,
+  .admin-select {
+    font-size: 14px;
+  }
+
+  .admin-table th {
+    padding: 12px 14px;
+    font-size: 11px;
+  }
+
+  .admin-table td {
+    padding: 12px 14px;
+    font-size: 14px;
+  }
 }
 
 .badge-success { background: var(--accent-success-subtle); color: var(--accent-success); }

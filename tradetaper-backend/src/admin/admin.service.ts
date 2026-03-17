@@ -26,62 +26,239 @@ export class AdminService {
     private dataSource: DataSource,
   ) {}
 
+  private toNumber(value: unknown): number {
+    if (typeof value === 'number') return value;
+    if (typeof value === 'string') {
+      const parsed = Number(value);
+      return Number.isFinite(parsed) ? parsed : 0;
+    }
+    return 0;
+  }
+
+  private percentGrowth(current: number, previous: number): number {
+    if (previous <= 0) {
+      return current > 0 ? 100 : 0;
+    }
+    return Math.round(((current - previous) / previous) * 10000) / 100;
+  }
+
+  private getRangeStart(days: number): Date {
+    const start = new Date();
+    start.setUTCDate(start.getUTCDate() - (days - 1));
+    start.setUTCHours(0, 0, 0, 0);
+    return start;
+  }
+
+  private getPreviousRangeStart(days: number): Date {
+    const start = this.getRangeStart(days);
+    const previousStart = new Date(start);
+    previousStart.setUTCDate(previousStart.getUTCDate() - days);
+    return previousStart;
+  }
+
+  private buildUtcDateLabels(days: number): string[] {
+    const labels: string[] = [];
+    const start = this.getRangeStart(days);
+    for (let i = 0; i < days; i += 1) {
+      const date = new Date(start);
+      date.setUTCDate(start.getUTCDate() + i);
+      labels.push(date.toISOString().slice(0, 10));
+    }
+    return labels;
+  }
+
   async getDashboardStats() {
-    // Get real counts from database
-    const totalUsers = await this.userRepository.count();
-    const totalTrades = await this.tradeRepository.count();
-    const totalSubscriptions = await this.subscriptionRepository.count();
+    const periodDays = 30;
+    const currentStart = this.getRangeStart(periodDays);
+    const previousStart = this.getPreviousRangeStart(periodDays);
+
+    const [
+      totalUsers,
+      totalTrades,
+      totalSubscriptions,
+      totalRevenueRaw,
+      currentUsersRaw,
+      previousUsersRaw,
+      currentTradesRaw,
+      previousTradesRaw,
+      currentActiveUsersRaw,
+      previousActiveUsersRaw,
+      currentRevenueRaw,
+      previousRevenueRaw,
+      closedTradeSummaryRaw,
+    ] = await Promise.all([
+      this.userRepository.count(),
+      this.tradeRepository.count(),
+      this.subscriptionRepository.count(),
+      this.subscriptionRepository
+        .createQueryBuilder('sub')
+        .select(
+          "COALESCE(SUM(CASE WHEN LOWER(sub.plan) <> 'free' THEN sub.price ELSE 0 END), 0)",
+          'value',
+        )
+        .getRawOne(),
+      this.userRepository
+        .createQueryBuilder('user')
+        .select('COUNT(*)', 'value')
+        .where('user.createdAt >= :start', { start: currentStart })
+        .getRawOne(),
+      this.userRepository
+        .createQueryBuilder('user')
+        .select('COUNT(*)', 'value')
+        .where('user.createdAt >= :start AND user.createdAt < :end', {
+          start: previousStart,
+          end: currentStart,
+        })
+        .getRawOne(),
+      this.tradeRepository
+        .createQueryBuilder('trade')
+        .select('COUNT(*)', 'value')
+        .where('trade.openTime >= :start', { start: currentStart })
+        .getRawOne(),
+      this.tradeRepository
+        .createQueryBuilder('trade')
+        .select('COUNT(*)', 'value')
+        .where('trade.openTime >= :start AND trade.openTime < :end', {
+          start: previousStart,
+          end: currentStart,
+        })
+        .getRawOne(),
+      this.tradeRepository
+        .createQueryBuilder('trade')
+        .select('COUNT(DISTINCT trade.userId)', 'value')
+        .where('trade.openTime >= :start', { start: currentStart })
+        .getRawOne(),
+      this.tradeRepository
+        .createQueryBuilder('trade')
+        .select('COUNT(DISTINCT trade.userId)', 'value')
+        .where('trade.openTime >= :start AND trade.openTime < :end', {
+          start: previousStart,
+          end: currentStart,
+        })
+        .getRawOne(),
+      this.subscriptionRepository
+        .createQueryBuilder('sub')
+        .select(
+          "COALESCE(SUM(CASE WHEN LOWER(sub.plan) <> 'free' THEN sub.price ELSE 0 END), 0)",
+          'value',
+        )
+        .where('sub.createdAt >= :start', { start: currentStart })
+        .getRawOne(),
+      this.subscriptionRepository
+        .createQueryBuilder('sub')
+        .select(
+          "COALESCE(SUM(CASE WHEN LOWER(sub.plan) <> 'free' THEN sub.price ELSE 0 END), 0)",
+          'value',
+        )
+        .where('sub.createdAt >= :start AND sub.createdAt < :end', {
+          start: previousStart,
+          end: currentStart,
+        })
+        .getRawOne(),
+      this.tradeRepository
+        .createQueryBuilder('trade')
+        .select('COUNT(*)', 'total')
+        .addSelect(
+          'SUM(CASE WHEN COALESCE(trade.profitOrLoss, 0) > 0 THEN 1 ELSE 0 END)',
+          'wins',
+        )
+        .where('trade.status = :status', { status: TradeStatus.CLOSED })
+        .getRawOne(),
+    ]);
+
+    const totalRevenue = this.toNumber(totalRevenueRaw?.value);
+    const currentUsers = this.toNumber(currentUsersRaw?.value);
+    const previousUsers = this.toNumber(previousUsersRaw?.value);
+    const currentTrades = this.toNumber(currentTradesRaw?.value);
+    const previousTrades = this.toNumber(previousTradesRaw?.value);
+    const currentActiveUsers = this.toNumber(currentActiveUsersRaw?.value);
+    const previousActiveUsers = this.toNumber(previousActiveUsersRaw?.value);
+    const currentRevenue = this.toNumber(currentRevenueRaw?.value);
+    const previousRevenue = this.toNumber(previousRevenueRaw?.value);
+    const closedTrades = this.toNumber(closedTradeSummaryRaw?.total);
+    const winningTrades = this.toNumber(closedTradeSummaryRaw?.wins);
+    const successRate =
+      closedTrades > 0
+        ? Math.round((winningTrades / closedTrades) * 10000) / 100
+        : 0;
 
     return {
       totalUsers,
       totalTrades,
       totalSubscriptions,
-      activeUsers: 0, // Would need to calculate based on recent activity
-      totalRevenue: 0, // Would need to calculate from subscriptions
+      activeUsers: currentActiveUsers,
+      userGrowth: this.percentGrowth(currentUsers, previousUsers),
+      activeGrowth: this.percentGrowth(currentActiveUsers, previousActiveUsers),
+      totalRevenue,
+      revenueGrowth: this.percentGrowth(currentRevenue, previousRevenue),
+      tradeGrowth: this.percentGrowth(currentTrades, previousTrades),
       avgTradesPerUser:
         totalUsers > 0 ? Math.round((totalTrades / totalUsers) * 100) / 100 : 0,
-      successRate: 0, // Would need to calculate from trade outcomes
-      monthlyGrowth: 0, // Would need historical data
+      successRate,
+      monthlyGrowth: this.percentGrowth(currentUsers, previousUsers),
     };
   }
 
-  getUserAnalytics(timeRange: string) {
-    // Generate sample data points for the chart
+  async getUserAnalytics(timeRange: string) {
     const days = this.getDaysFromTimeRange(timeRange);
-    const data: Array<{ date: string; users: number }> = [];
+    const start = this.getRangeStart(days);
 
-    for (let i = days - 1; i >= 0; i--) {
-      const date = new Date();
-      date.setDate(date.getDate() - i);
-      data.push({
-        date: date.toISOString().split('T')[0],
-        users: 0, // Real data would come from database queries
-      });
+    const rows = await this.userRepository
+      .createQueryBuilder('user')
+      .select("TO_CHAR(DATE_TRUNC('day', user.createdAt), 'YYYY-MM-DD')", 'date')
+      .addSelect('COUNT(*)', 'count')
+      .where('user.createdAt >= :start', { start })
+      .groupBy("DATE_TRUNC('day', user.createdAt)")
+      .orderBy("DATE_TRUNC('day', user.createdAt)", 'ASC')
+      .getRawMany<{ date: string; count: string }>();
+
+    const buckets = new Map<string, number>();
+    for (const row of rows) {
+      buckets.set(row.date, this.toNumber(row.count));
     }
 
+    const labels = this.buildUtcDateLabels(days);
+    const data = labels.map((date) => ({
+      date,
+      users: buckets.get(date) || 0,
+    }));
+
     return {
-      labels: data.map((d) => d.date),
+      labels,
       values: data.map((d) => d.users),
       data,
     };
   }
 
-  getRevenueAnalytics(timeRange: string) {
-    // Generate sample data points for the chart
+  async getRevenueAnalytics(timeRange: string) {
     const days = this.getDaysFromTimeRange(timeRange);
-    const data: Array<{ date: string; revenue: number }> = [];
+    const start = this.getRangeStart(days);
 
-    for (let i = days - 1; i >= 0; i--) {
-      const date = new Date();
-      date.setDate(date.getDate() - i);
-      data.push({
-        date: date.toISOString().split('T')[0],
-        revenue: 0, // Real data would come from database queries
-      });
+    const rows = await this.subscriptionRepository
+      .createQueryBuilder('sub')
+      .select("TO_CHAR(DATE_TRUNC('day', sub.createdAt), 'YYYY-MM-DD')", 'date')
+      .addSelect(
+        "COALESCE(SUM(CASE WHEN LOWER(sub.plan) <> 'free' THEN sub.price ELSE 0 END), 0)",
+        'revenue',
+      )
+      .where('sub.createdAt >= :start', { start })
+      .groupBy("DATE_TRUNC('day', sub.createdAt)")
+      .orderBy("DATE_TRUNC('day', sub.createdAt)", 'ASC')
+      .getRawMany<{ date: string; revenue: string }>();
+
+    const buckets = new Map<string, number>();
+    for (const row of rows) {
+      buckets.set(row.date, this.toNumber(row.revenue));
     }
 
+    const labels = this.buildUtcDateLabels(days);
+    const data = labels.map((date) => ({
+      date,
+      revenue: Math.round((buckets.get(date) || 0) * 100) / 100,
+    }));
+
     return {
-      labels: data.map((d) => d.date),
+      labels,
       values: data.map((d) => d.revenue),
       data,
     };
@@ -99,9 +276,123 @@ export class AdminService {
     };
   }
 
-  getActivityFeed(_limit: number = 5) {
-    // Return empty array since we don't have activity tracking yet
-    return [];
+  async getActivityFeed(limit: number = 5) {
+    const cappedLimit = Math.min(Math.max(limit, 1), 50);
+
+    const [recentTrades, recentUsers, recentSubscriptions] = await Promise.all([
+      this.tradeRepository
+        .createQueryBuilder('trade')
+        .leftJoinAndSelect('trade.user', 'user')
+        .orderBy('trade.createdAt', 'DESC')
+        .take(cappedLimit)
+        .getMany(),
+      this.userRepository
+        .createQueryBuilder('user')
+        .orderBy('user.createdAt', 'DESC')
+        .take(cappedLimit)
+        .getMany(),
+      this.subscriptionRepository
+        .createQueryBuilder('sub')
+        .leftJoinAndSelect('sub.user', 'user')
+        .orderBy('sub.updatedAt', 'DESC')
+        .take(cappedLimit)
+        .getMany(),
+    ]);
+
+    const activity = [
+      ...recentTrades.map((trade) => ({
+        id: `trade-${trade.id}`,
+        type: trade.status === TradeStatus.CLOSED ? 'trade_closed' : 'trade_created',
+        description:
+          trade.status === TradeStatus.CLOSED
+            ? `Trade closed on ${trade.symbol} — P/L ${this.toNumber(trade.profitOrLoss) >= 0 ? '+' : ''}${this.toNumber(trade.profitOrLoss).toFixed(2)}`
+            : `New trade opened on ${trade.symbol}`,
+        timestamp: (
+          trade.closeTime ||
+          trade.openTime ||
+          trade.createdAt
+        ).toISOString(),
+        user: {
+          id: trade.user?.id || trade.userId,
+          name:
+            trade.user?.firstName ||
+            trade.user?.email?.split('@')[0] ||
+            'Trader',
+        },
+      })),
+      ...recentUsers.map((user) => ({
+        id: `user-${user.id}`,
+        type: 'user_created',
+        description: `New user signup: ${user.email}`,
+        timestamp: user.createdAt.toISOString(),
+        user: {
+          id: user.id,
+          name: user.firstName || user.email.split('@')[0],
+        },
+      })),
+      ...recentSubscriptions.map((sub) => ({
+        id: `sub-${sub.id}`,
+        type: 'subscription_changed',
+        description: `Subscription ${sub.plan} is ${sub.status}`,
+        timestamp: (sub.updatedAt || sub.createdAt).toISOString(),
+        user: {
+          id: sub.user?.id || sub.userId,
+          name: sub.user?.firstName || sub.user?.email?.split('@')[0] || 'User',
+        },
+      })),
+    ];
+
+    return activity
+      .sort(
+        (a, b) =>
+          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
+      )
+      .slice(0, cappedLimit);
+  }
+
+  async getSubscriptionAnalytics(_timeRange: string) {
+    const planColors: Record<string, string> = {
+      free: '#6B7280',
+      essential: '#10B981',
+      premium: '#22D3EE',
+    };
+
+    const rows = await this.subscriptionRepository
+      .createQueryBuilder('sub')
+      .select('LOWER(sub.plan)', 'plan')
+      .addSelect('COUNT(*)', 'count')
+      .addSelect(
+        "COALESCE(SUM(CASE WHEN LOWER(sub.plan) <> 'free' THEN sub.price ELSE 0 END), 0)",
+        'revenue',
+      )
+      .addSelect(
+        "COALESCE(AVG(CASE WHEN LOWER(sub.plan) <> 'free' THEN sub.price END), 0)",
+        'price',
+      )
+      .where('sub.status NOT IN (:...excludedStatuses)', {
+        excludedStatuses: [
+          SubscriptionStatus.INCOMPLETE,
+          SubscriptionStatus.INCOMPLETE_EXPIRED,
+        ],
+      })
+      .groupBy('LOWER(sub.plan)')
+      .orderBy('COUNT(*)', 'DESC')
+      .getRawMany<{
+        plan: string;
+        count: string;
+        revenue: string;
+        price: string;
+      }>();
+
+    return {
+      subscriptionDistribution: rows.map((row) => ({
+        plan: row.plan || 'unknown',
+        count: this.toNumber(row.count),
+        revenue: Math.round(this.toNumber(row.revenue) * 100) / 100,
+        price: Math.round(this.toNumber(row.price) * 100) / 100,
+        color: planColors[row.plan] || '#34D399',
+      })),
+    };
   }
 
   async getUsers(page: number = 1, limit: number = 20, search?: string) {
@@ -331,6 +622,8 @@ export class AdminService {
         return 30;
       case '90d':
         return 90;
+      case '1y':
+        return 365;
       default:
         return 30;
     }

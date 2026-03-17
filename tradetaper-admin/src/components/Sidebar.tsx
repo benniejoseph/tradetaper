@@ -3,7 +3,6 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { motion } from 'framer-motion';
 import { useTheme } from 'next-themes';
 import {
   LayoutDashboard,
@@ -23,7 +22,6 @@ import {
   Sun,
   Moon,
   BarChart3,
-  Shield,
   WandSparkles,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -89,108 +87,97 @@ export default function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
 
   return (
     <aside
-      className="flex flex-col h-screen flex-shrink-0 relative overflow-hidden transition-[width] duration-200 ease-out"
+      className={cn(
+        'flex h-screen flex-shrink-0 flex-col border-r transition-all duration-300 ease-out',
+        isCollapsed ? 'w-[92px]' : 'w-[296px]',
+      )}
       style={{
-        width: isCollapsed ? 68 : 240,
         background: 'var(--sidebar-bg)',
-        borderRight: '1px solid var(--sidebar-border)',
+        borderColor: 'var(--sidebar-border)',
       }}
     >
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 py-4 border-b"
-           style={{ borderColor: 'var(--sidebar-border)', minHeight: 64 }}>
-        {!isCollapsed ? (
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="flex-shrink-0 w-8 h-8 rounded-xl flex items-center justify-center"
-                 style={{ background: 'var(--gradient-brand)' }}>
-              <TrendingUp className="w-4 h-4 text-white" />
+      <div className={cn('border-b', isCollapsed ? 'px-2 py-5' : 'px-5 py-6')} style={{ borderColor: 'var(--sidebar-border)' }}>
+        <div className={cn('flex items-center', isCollapsed ? 'flex-col justify-center gap-3' : 'justify-between gap-3')}>
+          <Link href="/" className={cn('flex items-center transition-all duration-200', isCollapsed ? 'justify-center' : 'gap-3')}>
+            <div className={cn('flex items-center justify-center', isCollapsed ? 'h-11 w-11' : 'h-10 w-10')}>
+              <TrendingUp className={cn('text-emerald-500', isCollapsed ? 'h-6 w-6' : 'h-9 w-9')} />
             </div>
-            <div className="min-w-0">
-              <p className="text-sm font-bold truncate" style={{ color: 'var(--text-primary)' }}>TradeTaper</p>
-              <div className="flex items-center gap-1">
-                <Shield className="w-2.5 h-2.5" style={{ color: 'var(--accent-primary)' }} />
-                <p className="text-[10px] font-medium" style={{ color: 'var(--accent-primary)' }}>Admin</p>
+            {!isCollapsed && (
+              <div className="min-w-0">
+                <p className="text-[2rem] leading-none font-bold tracking-tight" style={{ color: 'var(--text-primary)' }}>
+                  TradeTaper
+                </p>
+                <span className="mt-1 block text-base font-medium text-emerald-500">Admin</span>
               </div>
-            </div>
-          </div>
-        ) : (
-          <div className="w-8 h-8 rounded-xl flex items-center justify-center mx-auto"
-            style={{ background: 'var(--gradient-brand)' }}>
-            <TrendingUp className="w-4 h-4 text-white" />
-          </div>
-        )}
+            )}
+          </Link>
 
-        <button
-          onClick={onToggle}
-          className="flex-shrink-0 w-6 h-6 rounded-lg flex items-center justify-center transition-colors ml-2"
-          style={{ background: 'var(--bg-muted)', color: 'var(--text-muted)' }}
-        >
-          {isCollapsed ? <ChevronRight className="w-3.5 h-3.5" /> : <ChevronLeft className="w-3.5 h-3.5" />}
-        </button>
+          <button
+            onClick={onToggle}
+            className="h-10 w-10 rounded-xl transition-colors"
+            style={{
+              background: 'var(--bg-muted)',
+              color: 'var(--text-muted)',
+            }}
+            aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          >
+            {isCollapsed ? <ChevronRight className="mx-auto h-5 w-5" /> : <ChevronLeft className="mx-auto h-5 w-5" />}
+          </button>
+        </div>
       </div>
 
-      {/* Navigation */}
-      <div className="flex-1 overflow-y-auto py-4 px-2">
+      <nav className="flex-1 overflow-y-auto px-3 py-4">
         {menuSections.map((section) => (
-          <div key={section.section} className="mb-6">
+          <div key={section.section} className="mb-7">
             {!isCollapsed && (
-              <p className="px-3 mb-2 text-[10px] font-semibold uppercase tracking-widest"
-                 style={{ color: 'var(--text-muted)' }}>
+              <p className="mb-2 px-3 text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: 'var(--text-muted)' }}>
                 {section.section}
               </p>
             )}
 
-            <div className="space-y-0.5">
+            <div className="space-y-1">
               {section.items.map((item) => {
                 const active = isActive(item.href);
                 return (
                   <div
                     key={item.href}
-                    className="relative"
+                    className="relative group"
                     onMouseEnter={() => setHoveredItem(item.href)}
                     onMouseLeave={() => setHoveredItem(null)}
                   >
                     <Link
                       href={item.href}
                       className={cn(
-                        'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 relative overflow-hidden',
-                        isCollapsed && 'justify-center'
+                        'relative flex items-center rounded-xl text-base font-medium transition-all duration-200 overflow-hidden',
+                        isCollapsed ? 'justify-center px-2 py-3.5' : 'gap-3 px-4 py-3.5',
+                        'hover:bg-[var(--sidebar-item-hover)]',
+                        active
+                          ? 'text-emerald-500'
+                          : ''
                       )}
                       style={{
+                        color: active ? '#10B981' : 'var(--sidebar-text)',
                         background: active ? 'var(--sidebar-item-active)' : 'transparent',
-                        color: active ? 'var(--sidebar-text-active)' : 'var(--sidebar-text)',
-                      }}
-                      onMouseEnter={(e) => {
-                        if (!active) (e.currentTarget as HTMLElement).style.background = 'var(--sidebar-item-hover)';
-                      }}
-                      onMouseLeave={(e) => {
-                        if (!active) (e.currentTarget as HTMLElement).style.background = 'transparent';
                       }}
                     >
                       {active && (
-                        <motion.div
-                          layoutId="activeIndicator"
-                          className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-6 rounded-r"
-                          style={{ background: 'var(--accent-primary)' }}
-                        />
+                        <>
+                          <span className="absolute inset-0 rounded-xl bg-emerald-500/12 border border-emerald-400/20" />
+                          <span className="absolute inset-x-3 top-1/2 -translate-y-1/2 h-8 rounded-full bg-emerald-400/25 blur-xl" />
+                        </>
                       )}
-                      <span className="inline-flex items-center justify-center w-4 h-4 flex-shrink-0">
-                        <item.icon className="w-4 h-4 block" />
-                      </span>
+                      <item.icon
+                        className="relative z-10 h-5 w-5 flex-shrink-0"
+                        style={{ color: active ? '#10B981' : 'var(--text-muted)' }}
+                      />
                       {!isCollapsed && <span>{item.label}</span>}
+                      {active && !isCollapsed && <span className="relative z-10 ml-auto h-2 w-2 rounded-full bg-emerald-500" />}
                     </Link>
 
-                    {/* Tooltip for collapsed */}
                     {isCollapsed && hoveredItem === item.href && (
-                      <div
-                        className="absolute left-full ml-2 top-1/2 -translate-y-1/2 px-3 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap z-50 shadow-lg"
-                        style={{
-                          background: 'var(--bg-surface)',
-                          border: '1px solid var(--border-default)',
-                          color: 'var(--text-primary)',
-                        }}
-                      >
+                      <div className="absolute left-16 top-1/2 -translate-y-1/2 bg-gray-900 dark:bg-gray-700 text-white text-sm px-3 py-1.5 rounded-lg shadow-lg z-50 whitespace-nowrap">
                         {item.label}
+                        <div className="absolute left-0 top-1/2 -translate-x-1 -translate-y-1/2 h-2 w-2 rotate-45 bg-gray-900 dark:bg-gray-700" />
                       </div>
                     )}
                   </div>
@@ -199,45 +186,34 @@ export default function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
             </div>
           </div>
         ))}
-      </div>
+      </nav>
 
-      {/* Footer */}
-      <div className="px-2 py-3 border-t" style={{ borderColor: 'var(--sidebar-border)' }}>
-        {/* Theme Toggle */}
+      <div className="space-y-1.5 border-t px-3 py-3" style={{ borderColor: 'var(--sidebar-border)' }}>
         <button
           onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
           className={cn(
-            'w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors mb-1',
-            isCollapsed && 'justify-center'
+            'w-full flex items-center rounded-xl text-base font-medium transition-all duration-200',
+            isCollapsed ? 'justify-center px-2 py-3' : 'gap-3 px-4 py-3.5',
+            'hover:bg-[var(--sidebar-item-hover)]'
           )}
-          style={{ color: 'var(--text-muted)' }}
-          onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--sidebar-item-hover)')}
-          onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+          style={{ color: 'var(--sidebar-text)', background: 'transparent' }}
           title={theme === 'dark' ? 'Switch to Light' : 'Switch to Dark'}
         >
-          {theme === 'dark' ? <Sun className="w-4 h-4 flex-shrink-0" /> : <Moon className="w-4 h-4 flex-shrink-0" />}
+          {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
           {!isCollapsed && <span>{theme === 'dark' ? 'Light Mode' : 'Dark Mode'}</span>}
         </button>
 
-        {/* Logout */}
         <button
           onClick={handleLogout}
           className={cn(
-            'w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors',
-            isCollapsed && 'justify-center'
+            'w-full flex items-center rounded-xl text-base font-medium transition-all duration-200',
+            isCollapsed ? 'justify-center px-2 py-3' : 'gap-3 px-4 py-3.5',
+            'hover:bg-red-500/10 hover:text-red-500'
           )}
-          style={{ color: 'var(--text-muted)' }}
-          onMouseEnter={(e) => {
-            (e.currentTarget as HTMLElement).style.background = 'var(--accent-danger-subtle)';
-            (e.currentTarget as HTMLElement).style.color = 'var(--accent-danger)';
-          }}
-          onMouseLeave={(e) => {
-            (e.currentTarget as HTMLElement).style.background = 'transparent';
-            (e.currentTarget as HTMLElement).style.color = 'var(--text-muted)';
-          }}
+          style={{ color: 'var(--sidebar-text)' }}
           title="Logout"
         >
-          <LogOut className="w-4 h-4 flex-shrink-0" />
+          <LogOut className="h-5 w-5" />
           {!isCollapsed && <span>Sign Out</span>}
         </button>
       </div>
