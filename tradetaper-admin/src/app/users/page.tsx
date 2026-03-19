@@ -2,15 +2,21 @@
 
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import Sidebar from '@/components/Sidebar';
 import {
   Users, Search, Download, CheckCircle2, XCircle, ArrowUpRight,
   RefreshCw, ChevronLeft, ChevronRight, CreditCard, BarChart3, Eye, X,
 } from 'lucide-react';
 import { formatNumber } from '@/lib/utils';
-import adminApi from '@/lib/api';
-import { API_BASE_URL } from '@/lib/api-base-url';
+import adminApi, {
+  AdminAccountRecord,
+  AdminTradeRecord,
+  AdminUserDetailResponse,
+} from '@/lib/api';
+import { downloadCsv } from '@/lib/csv';
+import { formatPlanLabel, isFreePlan } from '@/lib/subscription-plan';
+import { containerVariants, itemVariants } from '@/lib/animation-variants';
 import toast from 'react-hot-toast';
 
 export default function UsersPage() {
@@ -25,15 +31,11 @@ export default function UsersPage() {
     queryFn: () => adminApi.getUsers(page, 25, search || undefined),
   });
 
-  const { data: userDetail, isLoading: detailLoading } = useQuery({
+  const { data: userDetail, isLoading: detailLoading } = useQuery<AdminUserDetailResponse | null>({
     queryKey: ['user-detail', selectedUser],
     queryFn: async () => {
       if (!selectedUser) return null;
-      const res = await fetch(
-        `${API_BASE_URL}/admin/users/${selectedUser}`,
-        { credentials: 'include' }
-      );
-      return res.json();
+      return adminApi.getUserDetail(selectedUser);
     },
     enabled: !!selectedUser,
   });
@@ -47,37 +49,27 @@ export default function UsersPage() {
   const exportCsv = () => {
     if (!data?.data?.length) return toast.error('No data to export');
     const headers = ['ID', 'Name', 'Email', 'Plan', 'Verified', 'Created'];
-    const rows = data.data.map((u: any) => [
+    const rows = data.data.map((u) => [
       u.id, `${u.firstName || ''} ${u.lastName || ''}`.trim(), u.email,
-      u.subscription?.plan || 'Free',
+      formatPlanLabel(u.subscription?.plan, u.subscription?.tier),
       u.isEmailVerified ? 'Yes' : 'No',
       new Date(u.createdAt).toLocaleDateString(),
     ]);
-    const csv = [headers, ...rows].map((r) => r.map(String).join(',')).join('\n');
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a'); a.href = url; a.download = 'users.csv'; a.click();
+    downloadCsv('users.csv', headers, rows);
     toast.success('Exported CSV');
   };
 
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: { opacity: 1, transition: { staggerChildren: 0.04 } }
-  };
-  
-  const itemVariants = {
-    hidden: { opacity: 0, y: 15 },
-    visible: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 300, damping: 24 } }
-  };
 
-  const users = (data as any)?.data || [];
-  const total = (data as any)?.total || 0;
-  const totalPages = (data as any)?.totalPages || 1;
-  const verifiedCount = users.filter((u: any) => u.isEmailVerified).length;
-  const paidCount = users.filter((u: any) => {
-    const plan = u.subscription?.plan;
-    return plan && String(plan).toLowerCase() !== 'free';
-  }).length;
+  const users = data?.data ?? [];
+  const total = data?.total ?? 0;
+  const totalPages = data?.totalPages ?? 1;
+  const verifiedCount = users.filter((u) => !!u.isEmailVerified).length;
+  const paidCount = users.filter((u) => !isFreePlan(u.subscription?.plan, u.subscription?.tier)).length;
+  const detailUser = userDetail?.user;
+  const hasDetailUser = !!(userDetail && !userDetail.error && detailUser);
+  const detailTotalPnl = Number(userDetail?.totalPnl ?? 0);
+  const detailTrades: AdminTradeRecord[] = userDetail?.trades ?? [];
+  const detailAccounts: AdminAccountRecord[] = userDetail?.accounts ?? [];
 
   return (
     <div className="flex h-dvh min-w-0" style={{ background: 'var(--bg-base)' }}>
@@ -85,37 +77,49 @@ export default function UsersPage() {
 
       <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
         {/* Header */}
-        <header className="px-8 py-5 border-b"
-                style={{ background: 'var(--bg-surface)', borderColor: 'var(--border-subtle)' }}>
-          <div className="mx-auto w-full max-w-[var(--content-max-width)] flex flex-wrap items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <Users className="w-6 h-6" style={{ color: 'var(--accent-primary)' }} />
+        <header
+          className="sticky top-0 z-40 border-b px-6 py-3 backdrop-blur-xl flex-shrink-0"
+          style={{
+            background: 'color-mix(in srgb, var(--bg-surface) 92%, transparent)',
+            borderColor: 'var(--border-subtle)',
+          }}
+        >
+          <div className="mx-auto w-full max-w-[var(--content-max-width)] flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <Users className="w-5 h-5 flex-shrink-0" style={{ color: 'var(--accent-primary)' }} />
               <div>
-                <h1 className="text-3xl leading-none font-bold" style={{ color: 'var(--text-primary)' }}>Users</h1>
-                <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>
+                <h1 className="text-xl font-bold leading-none" style={{ color: 'var(--text-primary)' }}>Users</h1>
+                <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
                   {total > 0 ? `${formatNumber(total)} total users` : 'Loading...'}
                 </p>
               </div>
             </div>
 
-            <div className="flex w-full lg:w-auto flex-wrap items-center gap-3">
-              <form onSubmit={handleSearch} className="flex w-full sm:w-auto flex-wrap items-center gap-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <form onSubmit={handleSearch} className="flex items-center gap-2">
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: 'var(--text-muted)' }} />
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5" style={{ color: 'var(--text-muted)' }} />
                   <input
                     value={searchInput}
                     onChange={(e) => setSearchInput(e.target.value)}
                     placeholder="Search users…"
-                    className="admin-input pl-10 w-full sm:w-80"
+                    className="admin-input pl-8"
+                    style={{ width: 220 }}
                   />
                 </div>
                 <button type="submit" className="admin-btn-primary">Search</button>
               </form>
-              <button className="admin-btn-secondary" onClick={() => refetch()}>
-                <RefreshCw className="w-4 h-4" />
+              <button
+                type="button"
+                className="admin-btn-secondary"
+                onClick={() => refetch()}
+                title="Refresh users"
+                aria-label="Refresh users"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
               </button>
               <button className="admin-btn-secondary" onClick={exportCsv}>
-                <Download className="w-4 h-4" />
+                <Download className="w-3.5 h-3.5" />
                 <span>Export</span>
               </button>
             </div>
@@ -123,12 +127,12 @@ export default function UsersPage() {
         </header>
 
         {/* Stats Strip */}
-        <div className="px-8 py-5 border-b" style={{ background: 'var(--bg-surface)', borderColor: 'var(--border-subtle)' }}>
-          <div className="mx-auto w-full max-w-[var(--content-max-width)] grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="px-6 py-3 border-b flex-shrink-0" style={{ background: 'var(--bg-surface)', borderColor: 'var(--border-subtle)' }}>
+          <div className="mx-auto w-full max-w-[var(--content-max-width)] grid grid-cols-3 gap-3">
             {[
               { label: 'Total Users', value: formatNumber(total), color: '#6366F1', icon: Users },
-              { label: 'Verified Users', value: `${verifiedCount}/${users.length || 0}`, color: '#10B981', icon: CheckCircle2 },
-              { label: 'Paid Users (Page)', value: `${paidCount}/${users.length || 0}`, color: '#8B5CF6', icon: CreditCard },
+              { label: 'Verified (Page)', value: `${verifiedCount}/${users.length || 0}`, color: '#10B981', icon: CheckCircle2 },
+              { label: 'Paid (Page)', value: `${paidCount}/${users.length || 0}`, color: '#8B5CF6', icon: CreditCard },
             ].map((s) => (
               <div key={s.label} className="admin-card p-4 flex items-center gap-3">
                 <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: `${s.color}18` }}>
@@ -144,11 +148,11 @@ export default function UsersPage() {
         </div>
 
         {/* Content */}
-        <div className="flex-1 min-h-0 overflow-hidden p-6 lg:p-8">
-          <div className="mx-auto w-full max-w-[var(--content-max-width)] h-full flex min-h-0 overflow-hidden gap-4 lg:gap-6">
+        <div className="flex-1 min-h-0 overflow-hidden p-5">
+          <div className="mx-auto w-full max-w-[var(--content-max-width)] h-full flex min-h-0 overflow-hidden gap-4">
             {/* Table */}
-            <div className="flex-1 min-w-0 overflow-auto">
-              <div className="admin-card overflow-hidden min-w-[1100px]">
+            <div className="flex-1 min-w-0 overflow-x-auto overflow-y-auto">
+              <div className="admin-card overflow-hidden" style={{ minWidth: 800 }}>
                 <table className="admin-table">
                   <thead>
                     <tr>
@@ -178,12 +182,30 @@ export default function UsersPage() {
                         <Users className="w-10 h-10 mx-auto mb-3 opacity-20" style={{ color: 'var(--text-muted)' }} />
                         <p style={{ color: 'var(--text-muted)' }}>No users found</p>
                       </td></tr>
-                    ) : users.map((u: any) => (
+                    ) : users.map((u) => {
+                      const userPlanLabel = formatPlanLabel(
+                        u.subscription?.plan,
+                        u.subscription?.tier,
+                      );
+                      const isFreeTier = isFreePlan(
+                        u.subscription?.plan,
+                        u.subscription?.tier,
+                      );
+                      return (
                       <motion.tr
                         variants={itemVariants}
                         key={u.id}
                         style={{ cursor: 'pointer' }}
                         onClick={() => setSelectedUser(u.id)}
+                        onKeyDown={(event) => {
+                          if (event.key === 'Enter' || event.key === ' ') {
+                            event.preventDefault();
+                            setSelectedUser(u.id);
+                          }
+                        }}
+                        tabIndex={0}
+                        role="button"
+                        aria-label={`View details for ${u.firstName ? `${u.firstName} ${u.lastName || ''}`.trim() : u.email}`}
                         whileHover={{ scale: 0.995, backgroundColor: 'var(--bg-surface-hover)' }}
                         transition={{ duration: 0.15 }}
                       >
@@ -200,8 +222,8 @@ export default function UsersPage() {
                         </td>
                         <td className="text-sm" style={{ color: 'var(--text-secondary)' }}>{u.email}</td>
                         <td>
-                          <span className={`badge ${u.subscription?.plan === 'Free' || !u.subscription ? 'badge-muted' : 'badge-primary'}`}>
-                            {u.subscription?.plan || 'Free'}
+                          <span className={`badge ${isFreeTier ? 'badge-muted' : 'badge-primary'}`}>
+                            {userPlanLabel}
                           </span>
                         </td>
                         <td>
@@ -213,12 +235,23 @@ export default function UsersPage() {
                           {new Date(u.createdAt).toLocaleDateString()}
                         </td>
                         <td>
-                          <button className="p-2 rounded-lg transition-colors" style={{ background: 'var(--bg-muted)' }}>
+                          <button
+                            type="button"
+                            className="p-2 rounded-lg transition-colors"
+                            style={{ background: 'var(--bg-muted)' }}
+                            aria-label={`Open user details for ${u.firstName ? `${u.firstName} ${u.lastName || ''}`.trim() : u.email}`}
+                            title="Open user details"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              setSelectedUser(u.id);
+                            }}
+                          >
                             <Eye className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />
                           </button>
                         </td>
                       </motion.tr>
-                    ))}
+                      );
+                    })}
                   </motion.tbody>
                 </table>
 
@@ -229,10 +262,24 @@ export default function UsersPage() {
                       Page {page} of {totalPages} • {total} total
                     </p>
                     <div className="flex gap-2">
-                      <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} className="admin-btn-secondary py-2 px-3.5 disabled:opacity-40">
+                      <button
+                        type="button"
+                        onClick={() => setPage(p => Math.max(1, p - 1))}
+                        disabled={page === 1}
+                        className="admin-btn-secondary py-2 px-3.5 disabled:opacity-40"
+                        aria-label="Previous page"
+                        title="Previous page"
+                      >
                         <ChevronLeft className="w-4 h-4" />
                       </button>
-                      <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="admin-btn-secondary py-2 px-3.5 disabled:opacity-40">
+                      <button
+                        type="button"
+                        onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                        disabled={page === totalPages}
+                        className="admin-btn-secondary py-2 px-3.5 disabled:opacity-40"
+                        aria-label="Next page"
+                        title="Next page"
+                      >
                         <ChevronRight className="w-4 h-4" />
                       </button>
                     </div>
@@ -242,6 +289,7 @@ export default function UsersPage() {
             </div>
 
             {/* User Detail Panel */}
+          <AnimatePresence>
             {selectedUser && (
               <motion.div
                 initial={{ x: '100%', opacity: 0 }}
@@ -254,7 +302,14 @@ export default function UsersPage() {
                 <div className="flex items-center justify-between p-5 border-b sticky top-0 z-10"
                      style={{ background: 'var(--bg-surface)', borderColor: 'var(--border-subtle)' }}>
                   <h3 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>User Detail</h3>
-                  <button onClick={() => setSelectedUser(null)} className="p-1.5 rounded-lg" style={{ background: 'var(--bg-muted)' }}>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedUser(null)}
+                    className="p-1.5 rounded-lg"
+                    style={{ background: 'var(--bg-muted)' }}
+                    aria-label="Close user detail panel"
+                    title="Close details"
+                  >
                     <X className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />
                   </button>
                 </div>
@@ -264,28 +319,28 @@ export default function UsersPage() {
                       <div key={i} className="h-10 rounded-xl" style={{ background: 'var(--bg-muted)' }} />
                     ))}
                   </div>
-                ) : userDetail && !userDetail.error ? (
+                ) : hasDetailUser ? (
                   <div className="p-5 space-y-6">
                     {/* User info */}
                     <div className="admin-card p-5">
                       <div className="flex items-center gap-3 mb-3">
                         <div className="w-12 h-12 rounded-xl flex items-center justify-center text-lg font-bold text-white"
                              style={{ background: 'var(--gradient-brand)' }}>
-                          {(userDetail.user.firstName?.[0] || userDetail.user.email[0]).toUpperCase()}
+                          {(detailUser?.firstName?.[0] || detailUser?.email?.[0] || '?').toUpperCase()}
                         </div>
                         <div>
                           <p className="font-semibold" style={{ color: 'var(--text-primary)' }}>
-                            {userDetail.user.firstName ? `${userDetail.user.firstName} ${userDetail.user.lastName || ''}`.trim() : 'No name'}
+                            {detailUser?.firstName ? `${detailUser.firstName} ${detailUser.lastName || ''}`.trim() : 'No name'}
                           </p>
-                          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>{userDetail.user.email}</p>
+                          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>{detailUser?.email || '—'}</p>
                         </div>
                       </div>
                       <div className="grid grid-cols-2 gap-2">
                         {[
-                          { label: 'Trades', value: userDetail.tradeCount, icon: BarChart3, color: '#6366F1' },
-                          { label: 'Accounts', value: userDetail.accountCount, icon: CreditCard, color: '#10B981' },
-                          { label: 'Total P&L', value: `$${Number(userDetail.totalPnl || 0).toFixed(2)}`, icon: ArrowUpRight, color: userDetail.totalPnl >= 0 ? '#10B981' : '#F43F5E' },
-                          { label: 'Plan', value: userDetail.user.subscription?.plan || 'Free', icon: CreditCard, color: '#8B5CF6' },
+                          { label: 'Trades', value: userDetail?.tradeCount ?? 0, icon: BarChart3, color: '#6366F1' },
+                          { label: 'Accounts', value: userDetail?.accountCount ?? 0, icon: CreditCard, color: '#10B981' },
+                          { label: 'Total P&L', value: `$${detailTotalPnl.toFixed(2)}`, icon: ArrowUpRight, color: detailTotalPnl >= 0 ? '#10B981' : '#F43F5E' },
+                          { label: 'Plan', value: formatPlanLabel(detailUser?.subscription?.plan, detailUser?.subscription?.tier), icon: CreditCard, color: '#8B5CF6' },
                         ].map((m) => (
                           <div key={m.label} className="rounded-xl p-3" style={{ background: 'var(--bg-muted)' }}>
                             <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{m.label}</p>
@@ -296,15 +351,15 @@ export default function UsersPage() {
                     </div>
 
                     {/* Recent Trades */}
-                    {userDetail.trades?.length > 0 && (
+                    {detailTrades.length > 0 && (
                       <div>
                         <p className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--text-muted)' }}>Recent Trades</p>
                         <div className="space-y-1.5">
-                          {userDetail.trades.slice(0, 5).map((t: any) => (
+                          {detailTrades.slice(0, 5).map((t) => (
                             <div key={t.id} className="flex items-center justify-between rounded-xl p-3" style={{ background: 'var(--bg-muted)' }}>
                               <div>
                                 <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{t.symbol}</p>
-                                <span className={`badge ${t.side === 'LONG' || t.side === 'long' ? 'badge-success' : 'badge-danger'}`}>{t.side}</span>
+                                <span className={`badge ${t.side === 'LONG' || t.side === 'long' ? 'badge-success' : 'badge-danger'}`}>{t.side || '—'}</span>
                               </div>
                               <p className={`text-sm font-semibold ${Number(t.profitOrLoss) >= 0 ? 'text-green-500' : 'text-red-500'}`}>
                                 {t.profitOrLoss != null ? `$${Number(t.profitOrLoss).toFixed(2)}` : 'Open'}
@@ -316,11 +371,11 @@ export default function UsersPage() {
                     )}
 
                     {/* Accounts */}
-                    {userDetail.accounts?.length > 0 && (
+                    {detailAccounts.length > 0 && (
                       <div>
                         <p className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--text-muted)' }}>Accounts</p>
                         <div className="space-y-1.5">
-                          {userDetail.accounts.map((a: any) => (
+                          {detailAccounts.map((a) => (
                             <div key={a.id} className="flex items-center justify-between rounded-xl p-3" style={{ background: 'var(--bg-muted)' }}>
                               <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{a.name || 'Account'}</p>
                               <p className="text-sm font-semibold" style={{ color: 'var(--accent-success)' }}>
@@ -333,8 +388,8 @@ export default function UsersPage() {
                     )}
 
                     <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                      ID: {userDetail.user.id}<br/>
-                      Joined: {new Date(userDetail.user.createdAt).toLocaleString()}
+                      ID: {detailUser?.id || '—'}<br/>
+                      Joined: {detailUser?.createdAt ? new Date(detailUser.createdAt).toLocaleString() : '—'}
                     </p>
                   </div>
                 ) : (
@@ -344,6 +399,7 @@ export default function UsersPage() {
                 )}
               </motion.div>
             )}
+          </AnimatePresence>
           </div>
         </div>
       </div>

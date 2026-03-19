@@ -11,6 +11,11 @@ import { Reflector } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
+import {
+  ADMIN_ROLES_KEY,
+  AdminRole,
+  isAdminRole,
+} from '../decorators/admin-roles.decorator';
 
 @Injectable()
 export class AdminGuard implements CanActivate {
@@ -46,6 +51,21 @@ export class AdminGuard implements CanActivate {
     return true;
   }
 
+  private resolveDefaultAdminRole(): AdminRole {
+    const configuredRole = this.configService.get<string>('ADMIN_ROLE')?.trim();
+    if (configuredRole && isAdminRole(configuredRole)) {
+      return configuredRole;
+    }
+    return 'super-admin';
+  }
+
+  private resolveAdminRole(payloadRole: unknown): AdminRole {
+    if (isAdminRole(payloadRole)) {
+      return payloadRole;
+    }
+    return this.resolveDefaultAdminRole();
+  }
+
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
       context.getHandler(),
@@ -54,6 +74,11 @@ export class AdminGuard implements CanActivate {
     if (isPublic) {
       return true;
     }
+
+    const requiredRoles = this.reflector.getAllAndOverride<AdminRole[]>(
+      ADMIN_ROLES_KEY,
+      [context.getHandler(), context.getClass()],
+    );
 
     const request = context.switchToHttp().getRequest();
     const authHeader = request.headers.authorization as string | undefined;
@@ -83,6 +108,7 @@ export class AdminGuard implements CanActivate {
         sub: string;
         email: string;
         role?: string;
+        adminRole?: string;
         mfa?: boolean;
       }>(token, {
         secret: adminJwtSecret,
@@ -90,6 +116,15 @@ export class AdminGuard implements CanActivate {
 
       if (payload.role !== 'admin') {
         throw new ForbiddenException('Admin privileges are required');
+      }
+      const adminRole = this.resolveAdminRole(payload.adminRole);
+
+      if (
+        requiredRoles &&
+        requiredRoles.length > 0 &&
+        !requiredRoles.includes(adminRole)
+      ) {
+        throw new ForbiddenException('Insufficient admin role permissions');
       }
       if (this.isAdminMfaRequired() && payload.mfa !== true) {
         throw new UnauthorizedException('Admin MFA verification is required');
@@ -99,6 +134,7 @@ export class AdminGuard implements CanActivate {
         id: payload.sub,
         email: payload.email,
         role: payload.role,
+        adminRole,
         mfa: payload.mfa === true,
       };
       return true;

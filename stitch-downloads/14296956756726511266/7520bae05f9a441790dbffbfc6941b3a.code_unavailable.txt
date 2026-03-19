@@ -1,0 +1,5 @@
+Stitch get_screen response for this screen contains htmlCode as an empty object:
+  "htmlCode": {}
+
+No hosted code download URL was provided by the API for this screen at retrieval time.
+Use Stitch export/code generation for this screen, then rerun retrieval.

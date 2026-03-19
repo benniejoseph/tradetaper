@@ -58,6 +58,17 @@ export class LLMCostManagerService {
   // Model pricing (as of 2024/2025 - update regularly)
   private readonly modelPricing: Map<string, ModelPricing> = new Map([
     [
+      'gemini-3-flash-preview',
+      {
+        model: 'gemini-3-flash-preview',
+        provider: 'google',
+        promptCostPer1K: 0.00025,
+        completionCostPer1K: 0.001,
+        contextWindow: 1000000,
+        recommended: true,
+      },
+    ],
+    [
       'gemini-3-pro-preview',
       {
         model: 'gemini-3-pro-preview',
@@ -69,9 +80,9 @@ export class LLMCostManagerService {
       },
     ],
     [
-      'gemini-1.5-flash',
+      'gemini-2.0-flash-lite',
       {
-        model: 'gemini-1.5-flash',
+        model: 'gemini-2.0-flash-lite',
         provider: 'google',
         promptCostPer1K: 0.0001875,
         completionCostPer1K: 0.000375,
@@ -80,12 +91,12 @@ export class LLMCostManagerService {
       },
     ],
     [
-      'gemini-1.5-pro',
+      'gemini-2.0-flash',
       {
-        model: 'gemini-1.5-pro',
+        model: 'gemini-2.0-flash',
         provider: 'google',
-        promptCostPer1K: 0.00125,
-        completionCostPer1K: 0.005,
+        promptCostPer1K: 0.00035,
+        completionCostPer1K: 0.0015,
         contextWindow: 2000000,
         recommended: false,
       },
@@ -211,13 +222,13 @@ export class LLMCostManagerService {
     let recommendedModels: string[];
     switch (taskComplexity) {
       case 'simple':
-        recommendedModels = ['gemini-1.5-flash'];
+        recommendedModels = ['gemini-2.0-flash-lite'];
         break;
       case 'medium':
-        recommendedModels = ['gemini-1.5-flash'];
+        recommendedModels = ['gemini-2.0-flash'];
         break;
       case 'complex':
-        recommendedModels = ['gemini-3-pro-preview', 'gemini-1.5-pro'];
+        recommendedModels = ['gemini-3-flash-preview', 'gemini-3-pro-preview'];
         break;
     }
     if (maxCost) {
@@ -226,7 +237,7 @@ export class LLMCostManagerService {
         return pricing && pricing.promptCostPer1K <= maxCost;
       });
     }
-    return recommendedModels[0] || 'gemini-1.5-flash';
+    return recommendedModels[0] || 'gemini-2.0-flash-lite';
   }
 
   async getSystemStats(): Promise<any> {

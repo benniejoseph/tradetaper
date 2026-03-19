@@ -17,6 +17,7 @@ import {
   TrendingUp,
   UserCheck,
   Users,
+  LucideIcon,
 } from 'lucide-react';
 import Sidebar from '@/components/Sidebar';
 
@@ -54,7 +55,7 @@ const auditTrail = [
   { time: '08:08', actor: 'ops@tradetaper.com', action: 'Reset MFA challenge', source: 'Security' },
 ];
 
-function SectionTitle({ icon: Icon, title, subtitle }: { icon: any; title: string; subtitle: string }) {
+function SectionTitle({ icon: Icon, title, subtitle }: { icon: LucideIcon; title: string; subtitle: string }) {
   return (
     <div className="flex items-center justify-between gap-4 mb-4">
       <div className="flex items-center gap-3">

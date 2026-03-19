@@ -1,6 +1,8 @@
 import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
+import os from 'os';
+import { statfsSync } from 'fs';
 import { User } from '../users/entities/user.entity';
 import { Account } from '../users/entities/account.entity';
 import { Trade } from '../trades/entities/trade.entity';
@@ -9,10 +11,21 @@ import {
   SubscriptionStatus,
 } from '../subscriptions/entities/subscription.entity';
 import { TradeDirection, TradeStatus, AssetType } from '../types/enums';
+import { RequestMetricsStore } from '../common/services/request-metrics.store';
 
 @Injectable()
 export class AdminService {
   private readonly logger = new Logger(AdminService.name);
+  private readonly nonActiveSubscriptionStatuses: SubscriptionStatus[] = [
+    SubscriptionStatus.INCOMPLETE,
+    SubscriptionStatus.INCOMPLETE_EXPIRED,
+  ];
+  private readonly revenueSubscriptionStatuses: SubscriptionStatus[] = [
+    SubscriptionStatus.ACTIVE,
+    SubscriptionStatus.TRIALING,
+    SubscriptionStatus.PAST_DUE,
+    SubscriptionStatus.UNPAID,
+  ];
 
   constructor(
     @InjectRepository(User)
@@ -33,6 +46,157 @@ export class AdminService {
       return Number.isFinite(parsed) ? parsed : 0;
     }
     return 0;
+  }
+
+  private toNullableNumber(value: unknown): number | null {
+    if (value === null || value === undefined) {
+      return null;
+    }
+    return this.toNumber(value);
+  }
+
+  private round(value: number, digits: number = 2): number {
+    const factor = 10 ** digits;
+    return Math.round(value * factor) / factor;
+  }
+
+  private parseTimeRangeToMs(timeRange: string, fallbackMs: number): number {
+    const normalized = (timeRange || '').trim().toLowerCase();
+    const match = normalized.match(/^(\d+)(m|h|d)$/);
+    if (!match) {
+      return fallbackMs;
+    }
+    const amount = Number(match[1]);
+    const unit = match[2];
+    if (!Number.isFinite(amount) || amount <= 0) {
+      return fallbackMs;
+    }
+    switch (unit) {
+      case 'm':
+        return amount * 60 * 1000;
+      case 'h':
+        return amount * 60 * 60 * 1000;
+      case 'd':
+        return amount * 24 * 60 * 60 * 1000;
+      default:
+        return fallbackMs;
+    }
+  }
+
+  private getMemoryUsagePercent(): number {
+    const total = os.totalmem();
+    if (!Number.isFinite(total) || total <= 0) {
+      return 0;
+    }
+    const used = process.memoryUsage().rss;
+    return this.round(Math.min((used / total) * 100, 100));
+  }
+
+  private getCpuUsagePercent(): number {
+    const cpuCount = os.cpus().length || 1;
+    const loadAverage = os.loadavg()[0] || 0;
+    return this.round(Math.min((loadAverage / cpuCount) * 100, 100));
+  }
+
+  private getDiskUsagePercent(): number {
+    try {
+      const stats = statfsSync('/');
+      const totalBytes = Number(stats.blocks) * Number(stats.bsize);
+      const freeBytes = Number(stats.bfree) * Number(stats.bsize);
+      if (!Number.isFinite(totalBytes) || totalBytes <= 0) {
+        return 0;
+      }
+      const usedBytes = Math.max(totalBytes - freeBytes, 0);
+      return this.round(Math.min((usedBytes / totalBytes) * 100, 100));
+    } catch {
+      return 0;
+    }
+  }
+
+  private getSubscriptionPlanSql(alias: string): string {
+    return `COALESCE(NULLIF(LOWER(${alias}.plan::text), ''), LOWER(${alias}.tier::text), 'free')`;
+  }
+
+  private normalizePlanKey(plan?: string | null, tier?: string | null): string {
+    const raw = (plan || tier || '').trim().toLowerCase();
+    if (!raw) return 'free';
+    switch (raw) {
+      case 'free':
+      case 'starter':
+      case 'basic':
+        return 'free';
+      case 'pro':
+        return 'essential';
+      default:
+        return raw;
+    }
+  }
+
+  private toPlanLabel(plan?: string | null, tier?: string | null): string {
+    const key = this.normalizePlanKey(plan, tier);
+    switch (key) {
+      case 'free':
+        return 'Free';
+      case 'essential':
+        return 'Essential';
+      case 'premium':
+        return 'Premium';
+      case 'enterprise':
+        return 'Enterprise';
+      default:
+        return key.charAt(0).toUpperCase() + key.slice(1);
+    }
+  }
+
+  private async getLatestSubscriptionsForUsers(userIds: string[]) {
+    const subscriptionsByUserId = new Map<
+      string,
+      {
+        plan: string;
+        planKey: string;
+        status: string | null;
+        price: number;
+      }
+    >();
+
+    if (userIds.length === 0) {
+      return subscriptionsByUserId;
+    }
+
+    const rows = await this.subscriptionRepository
+      .createQueryBuilder('sub')
+      .select('sub.userId', 'userId')
+      .addSelect('sub.plan', 'plan')
+      .addSelect('sub.tier', 'tier')
+      .addSelect('sub.status', 'status')
+      .addSelect('sub.price', 'price')
+      .where('sub.userId IN (:...userIds)', { userIds })
+      .andWhere('sub.status NOT IN (:...excludedStatuses)', {
+        excludedStatuses: this.nonActiveSubscriptionStatuses,
+      })
+      .distinctOn(['sub.userId'])
+      .orderBy('sub.userId', 'ASC')
+      .addOrderBy('sub.updatedAt', 'DESC')
+      .addOrderBy('sub.createdAt', 'DESC')
+      .getRawMany<{
+        userId: string;
+        plan: string | null;
+        tier: string | null;
+        status: string | null;
+        price: string | null;
+      }>();
+
+    for (const row of rows) {
+      const planKey = this.normalizePlanKey(row.plan, row.tier);
+      subscriptionsByUserId.set(row.userId, {
+        planKey,
+        plan: this.toPlanLabel(row.plan, row.tier),
+        status: row.status,
+        price: Math.round(this.toNumber(row.price) * 100) / 100,
+      });
+    }
+
+    return subscriptionsByUserId;
   }
 
   private percentGrowth(current: number, previous: number): number {
@@ -71,6 +235,7 @@ export class AdminService {
     const periodDays = 30;
     const currentStart = this.getRangeStart(periodDays);
     const previousStart = this.getPreviousRangeStart(periodDays);
+    const planSql = this.getSubscriptionPlanSql('sub');
 
     const [
       totalUsers,
@@ -89,13 +254,21 @@ export class AdminService {
     ] = await Promise.all([
       this.userRepository.count(),
       this.tradeRepository.count(),
-      this.subscriptionRepository.count(),
+      this.subscriptionRepository
+        .createQueryBuilder('sub')
+        .where('sub.status NOT IN (:...excludedStatuses)', {
+          excludedStatuses: this.nonActiveSubscriptionStatuses,
+        })
+        .getCount(),
       this.subscriptionRepository
         .createQueryBuilder('sub')
         .select(
-          "COALESCE(SUM(CASE WHEN LOWER(sub.plan) <> 'free' THEN sub.price ELSE 0 END), 0)",
+          `COALESCE(SUM(CASE WHEN ${planSql} <> 'free' THEN sub.price ELSE 0 END), 0)`,
           'value',
         )
+        .where('sub.status IN (:...statuses)', {
+          statuses: this.revenueSubscriptionStatuses,
+        })
         .getRawOne(),
       this.userRepository
         .createQueryBuilder('user')
@@ -139,20 +312,26 @@ export class AdminService {
       this.subscriptionRepository
         .createQueryBuilder('sub')
         .select(
-          "COALESCE(SUM(CASE WHEN LOWER(sub.plan) <> 'free' THEN sub.price ELSE 0 END), 0)",
+          `COALESCE(SUM(CASE WHEN ${planSql} <> 'free' THEN sub.price ELSE 0 END), 0)`,
           'value',
         )
         .where('sub.createdAt >= :start', { start: currentStart })
+        .andWhere('sub.status IN (:...statuses)', {
+          statuses: this.revenueSubscriptionStatuses,
+        })
         .getRawOne(),
       this.subscriptionRepository
         .createQueryBuilder('sub')
         .select(
-          "COALESCE(SUM(CASE WHEN LOWER(sub.plan) <> 'free' THEN sub.price ELSE 0 END), 0)",
+          `COALESCE(SUM(CASE WHEN ${planSql} <> 'free' THEN sub.price ELSE 0 END), 0)`,
           'value',
         )
         .where('sub.createdAt >= :start AND sub.createdAt < :end', {
           start: previousStart,
           end: currentStart,
+        })
+        .andWhere('sub.status IN (:...statuses)', {
+          statuses: this.revenueSubscriptionStatuses,
         })
         .getRawOne(),
       this.tradeRepository
@@ -233,15 +412,19 @@ export class AdminService {
   async getRevenueAnalytics(timeRange: string) {
     const days = this.getDaysFromTimeRange(timeRange);
     const start = this.getRangeStart(days);
+    const planSql = this.getSubscriptionPlanSql('sub');
 
     const rows = await this.subscriptionRepository
       .createQueryBuilder('sub')
       .select("TO_CHAR(DATE_TRUNC('day', sub.createdAt), 'YYYY-MM-DD')", 'date')
       .addSelect(
-        "COALESCE(SUM(CASE WHEN LOWER(sub.plan) <> 'free' THEN sub.price ELSE 0 END), 0)",
+        `COALESCE(SUM(CASE WHEN ${planSql} <> 'free' THEN sub.price ELSE 0 END), 0)`,
         'revenue',
       )
       .where('sub.createdAt >= :start', { start })
+      .andWhere('sub.status IN (:...statuses)', {
+        statuses: this.revenueSubscriptionStatuses,
+      })
       .groupBy("DATE_TRUNC('day', sub.createdAt)")
       .orderBy("DATE_TRUNC('day', sub.createdAt)", 'ASC')
       .getRawMany<{ date: string; revenue: string }>();
@@ -264,15 +447,166 @@ export class AdminService {
     };
   }
 
-  getSystemHealth() {
+  async getSystemHealth() {
+    const metricsLast24h = RequestMetricsStore.getMetricsSince(24 * 60 * 60 * 1000);
+    const metricsLast5m = RequestMetricsStore.getMetricsSince(5 * 60 * 1000);
+    const apiCalls24h = metricsLast24h.length;
+    const errors24h = metricsLast24h.filter((metric) => metric.statusCode >= 500).length;
+
+    let dbLatencyMs = 0;
+    let dbConnections = 0;
+    let cacheHitRate = 0;
+    let dbIsHealthy = true;
+
+    try {
+      const start = Date.now();
+      await this.dataSource.query('SELECT 1');
+      dbLatencyMs = Date.now() - start;
+
+      const dbConnectionRow = await this.dataSource.query(
+        `SELECT COUNT(*)::int AS value
+         FROM pg_stat_activity
+         WHERE datname = current_database()`,
+      );
+      dbConnections = this.toNumber(dbConnectionRow?.[0]?.value);
+
+      const cacheHitRow = await this.dataSource.query(
+        `SELECT CASE
+            WHEN SUM(blks_hit + blks_read) = 0 THEN 0
+            ELSE ROUND((SUM(blks_hit)::numeric / NULLIF(SUM(blks_hit + blks_read), 0)) * 100, 2)
+          END AS value
+         FROM pg_stat_database
+         WHERE datname = current_database()`,
+      );
+      cacheHitRate = this.toNumber(cacheHitRow?.[0]?.value);
+    } catch (error) {
+      dbIsHealthy = false;
+      this.logger.warn(
+        `System health DB probe failed: ${
+          error instanceof Error ? error.message : 'unknown error'
+        }`,
+      );
+    }
+
+    const requestResponseTime =
+      metricsLast5m.length > 0
+        ? metricsLast5m.reduce((sum, metric) => sum + metric.durationMs, 0) /
+          metricsLast5m.length
+        : 0;
+    const responseTime = this.round(
+      requestResponseTime > 0 ? requestResponseTime : dbLatencyMs,
+    );
+    const memoryUsage = this.getMemoryUsagePercent();
+    const cpuUsage = this.getCpuUsagePercent();
+    const diskUsage = this.getDiskUsagePercent();
+    const uptimeSeconds = process.uptime();
+    const uptimeDays = uptimeSeconds / (24 * 60 * 60);
+    const uptime = this.round(Math.min((uptimeDays / 30) * 100, 100));
+
+    const status: 'healthy' | 'warning' | 'critical' =
+      !dbIsHealthy || responseTime > 1_500 || cpuUsage > 90 || memoryUsage > 95
+        ? 'critical'
+        : responseTime > 700 || cpuUsage > 80 || memoryUsage > 85
+          ? 'warning'
+          : 'healthy';
+
     return {
-      status: 'healthy',
-      uptime: 99.9,
-      responseTime: 45,
-      memoryUsage: 68,
-      cpuUsage: 23,
-      cacheHitRate: 94,
+      status,
+      uptime,
+      responseTime,
+      memoryUsage,
+      cpuUsage,
+      diskUsage,
+      databaseConnections: dbConnections,
+      errors24h,
+      apiCalls24h,
+      cacheHitRate: this.round(cacheHitRate),
       timestamp: new Date().toISOString(),
+    };
+  }
+
+  async getSystemLogs(
+    limit: number = 100,
+    offset: number = 0,
+    level?: string,
+    startDate?: string,
+    endDate?: string,
+  ) {
+    const resolvedLimit = Math.min(Math.max(limit, 1), 250);
+    const resolvedOffset = Math.max(offset, 0);
+    const normalizedLevel = level?.trim().toLowerCase();
+    const now = Date.now();
+    const startTimestamp = startDate
+      ? new Date(startDate).getTime()
+      : now - 24 * 60 * 60 * 1000;
+    const endTimestamp = endDate ? new Date(endDate).getTime() : now;
+    const isValidRange =
+      Number.isFinite(startTimestamp) &&
+      Number.isFinite(endTimestamp) &&
+      endTimestamp >= startTimestamp;
+
+    const logs = RequestMetricsStore.getRecentLogs(7 * 24 * 60 * 60 * 1000).filter(
+      (entry) => {
+        if (normalizedLevel && entry.level !== normalizedLevel) {
+          return false;
+        }
+        if (!isValidRange) {
+          return true;
+        }
+        const timestamp = new Date(entry.timestamp).getTime();
+        return timestamp >= startTimestamp && timestamp <= endTimestamp;
+      },
+    );
+
+    const paginated = logs
+      .slice(resolvedOffset, resolvedOffset + resolvedLimit)
+      .map((entry, index) => ({
+        id: `${entry.timestamp}-${resolvedOffset + index}`,
+        level: entry.level,
+        message: entry.message,
+        context: 'ApiCall',
+        details: {
+          method: entry.method,
+          endpoint: entry.endpoint,
+          statusCode: entry.statusCode,
+          responseTime: entry.responseTime,
+        },
+        timestamp: entry.timestamp,
+        endpoint: entry.endpoint,
+        method: entry.method,
+      }));
+
+    return {
+      data: paginated,
+      total: logs.length,
+      limit: resolvedLimit,
+      offset: resolvedOffset,
+    };
+  }
+
+  async getPerformanceMetrics(timeRange: string = '1h') {
+    const rangeMs = this.parseTimeRangeToMs(timeRange, 60 * 60 * 1000);
+    const baseSeries = RequestMetricsStore.buildPerformanceSeries(rangeMs, 12);
+    const cpuUsage = this.getCpuUsagePercent();
+    const memoryUsage = this.getMemoryUsagePercent();
+
+    return {
+      data: baseSeries.map((item) => ({
+        ...item,
+        cpuUsage,
+        memoryUsage,
+      })),
+    };
+  }
+
+  async getApiUsageStats(timeRange: string = '24h') {
+    const rangeMs = this.parseTimeRangeToMs(timeRange, 24 * 60 * 60 * 1000);
+    const usage = RequestMetricsStore.buildUsageStats(rangeMs);
+    return {
+      totalRequests: usage.totalRequests,
+      requestsByEndpoint: usage.requestsByEndpoint,
+      requestsByMethod: usage.requestsByMethod,
+      timeRange,
     };
   }
 
@@ -350,32 +684,33 @@ export class AdminService {
       .slice(0, cappedLimit);
   }
 
-  async getSubscriptionAnalytics(_timeRange: string) {
+  async getSubscriptionAnalytics(timeRange: string) {
     const planColors: Record<string, string> = {
       free: '#6B7280',
       essential: '#10B981',
       premium: '#22D3EE',
     };
+    const days = this.getDaysFromTimeRange(timeRange);
+    const start = this.getRangeStart(days);
+    const planSql = this.getSubscriptionPlanSql('sub');
 
     const rows = await this.subscriptionRepository
       .createQueryBuilder('sub')
-      .select('LOWER(sub.plan)', 'plan')
+      .select(planSql, 'plan')
       .addSelect('COUNT(*)', 'count')
       .addSelect(
-        "COALESCE(SUM(CASE WHEN LOWER(sub.plan) <> 'free' THEN sub.price ELSE 0 END), 0)",
+        `COALESCE(SUM(CASE WHEN ${planSql} <> 'free' THEN sub.price ELSE 0 END), 0)`,
         'revenue',
       )
       .addSelect(
-        "COALESCE(AVG(CASE WHEN LOWER(sub.plan) <> 'free' THEN sub.price END), 0)",
+        `COALESCE(AVG(CASE WHEN ${planSql} <> 'free' THEN sub.price END), 0)`,
         'price',
       )
-      .where('sub.status NOT IN (:...excludedStatuses)', {
-        excludedStatuses: [
-          SubscriptionStatus.INCOMPLETE,
-          SubscriptionStatus.INCOMPLETE_EXPIRED,
-        ],
+      .where('sub.createdAt >= :start', { start })
+      .andWhere('sub.status NOT IN (:...excludedStatuses)', {
+        excludedStatuses: this.nonActiveSubscriptionStatuses,
       })
-      .groupBy('LOWER(sub.plan)')
+      .groupBy(planSql)
       .orderBy('COUNT(*)', 'DESC')
       .getRawMany<{
         plan: string;
@@ -386,11 +721,12 @@ export class AdminService {
 
     return {
       subscriptionDistribution: rows.map((row) => ({
-        plan: row.plan || 'unknown',
+        plan: this.toPlanLabel(row.plan),
+        planKey: this.normalizePlanKey(row.plan),
         count: this.toNumber(row.count),
         revenue: Math.round(this.toNumber(row.revenue) * 100) / 100,
         price: Math.round(this.toNumber(row.price) * 100) / 100,
-        color: planColors[row.plan] || '#34D399',
+        color: planColors[this.normalizePlanKey(row.plan)] || '#34D399',
       })),
     };
   }
@@ -410,9 +746,21 @@ export class AdminService {
       .take(limit);
 
     const [users, total] = await qb.getManyAndCount();
+    const subscriptionsByUserId = await this.getLatestSubscriptionsForUsers(
+      users.map((user) => user.id),
+    );
+    const data = users.map((user) => ({
+      ...user,
+      subscription: subscriptionsByUserId.get(user.id) || {
+        plan: 'Free',
+        planKey: 'free',
+        status: null,
+        price: 0,
+      },
+    }));
 
     return {
-      data: users,
+      data,
       total,
       page,
       limit,
@@ -441,19 +789,43 @@ export class AdminService {
     const totalPnl = trades
       .filter((t) => t.profitOrLoss != null)
       .reduce((sum, t) => sum + Number(t.profitOrLoss || 0), 0);
+    const subscriptionsByUserId = await this.getLatestSubscriptionsForUsers([
+      userId,
+    ]);
+
+    const normalizedTrades = trades.map((trade) => ({
+      ...trade,
+      openPrice: this.toNumber(trade.openPrice),
+      closePrice: this.toNullableNumber(trade.closePrice),
+      profitOrLoss: this.toNullableNumber(trade.profitOrLoss),
+    }));
+
+    const normalizedAccounts = accounts.map((account) => ({
+      ...account,
+      balance: this.toNullableNumber(account.balance),
+    }));
 
     return {
-      user,
-      trades,
+      user: {
+        ...user,
+        subscription: subscriptionsByUserId.get(userId) || {
+          plan: 'Free',
+          planKey: 'free',
+          status: null,
+          price: 0,
+        },
+      },
+      trades: normalizedTrades,
       tradeCount,
-      accounts,
+      accounts: normalizedAccounts,
       accountCount,
       totalPnl,
     };
   }
 
   async getTrades(page: number = 1, limit: number = 50, status?: string, userId?: string) {
-    const qb = this.tradeRepository.createQueryBuilder('trade')
+    const qb = this.tradeRepository
+      .createQueryBuilder('trade')
       .leftJoinAndSelect('trade.user', 'user')
       .orderBy('trade.createdAt', 'DESC')
       .skip((page - 1) * limit)
@@ -462,27 +834,57 @@ export class AdminService {
     if (status) qb.andWhere('trade.status = :status', { status });
     if (userId) qb.andWhere('user.id = :userId', { userId });
 
-    const [trades, total] = await qb.getManyAndCount();
+    const summaryQb = this.tradeRepository
+      .createQueryBuilder('trade')
+      .select('COALESCE(SUM(COALESCE(trade.profitOrLoss, 0)), 0)', 'totalPnl')
+      .addSelect(
+        'SUM(CASE WHEN trade.status = :closedStatus AND COALESCE(trade.profitOrLoss, 0) > 0 THEN 1 ELSE 0 END)',
+        'winCount',
+      )
+      .addSelect(
+        'SUM(CASE WHEN trade.status = :closedStatus THEN 1 ELSE 0 END)',
+        'closedCount',
+      )
+      .setParameter('closedStatus', TradeStatus.CLOSED);
 
-    const totalPnl = trades
-      .filter((t) => t.profitOrLoss != null)
-      .reduce((sum, t) => sum + Number(t.profitOrLoss || 0), 0);
+    if (status) summaryQb.andWhere('trade.status = :status', { status });
+    if (userId) summaryQb.andWhere('trade.userId = :userId', { userId });
 
-    const winCount = trades.filter((t) => Number(t.profitOrLoss || 0) > 0).length;
-    const winRate = trades.length > 0 ? Math.round((winCount / trades.length) * 100) : 0;
+    const [[trades, total], summaryRaw] = await Promise.all([
+      qb.getManyAndCount(),
+      summaryQb.getRawOne<{
+        totalPnl: string;
+        winCount: string;
+        closedCount: string;
+      }>(),
+    ]);
+
+    const totalPnl = Math.round(this.toNumber(summaryRaw?.totalPnl) * 100) / 100;
+    const winCount = this.toNumber(summaryRaw?.winCount);
+    const closedCount = this.toNumber(summaryRaw?.closedCount);
+    const winRate =
+      closedCount > 0 ? Math.round((winCount / closedCount) * 100) : 0;
+
+    const normalizedTrades = trades.map((trade) => ({
+      ...trade,
+      openPrice: this.toNumber(trade.openPrice),
+      closePrice: this.toNullableNumber(trade.closePrice),
+      profitOrLoss: this.toNullableNumber(trade.profitOrLoss),
+    }));
 
     return {
-      data: trades,
+      data: normalizedTrades,
       total,
       page,
       limit,
       totalPages: Math.ceil(total / limit),
-      summary: { totalPnl, winRate, winCount },
+      summary: { totalPnl, winRate, winCount, closedCount },
     };
   }
 
   async getAccounts(page: number = 1, limit: number = 50, userId?: string) {
-    const qb = this.accountRepository.createQueryBuilder('account')
+    const qb = this.accountRepository
+      .createQueryBuilder('account')
       .leftJoinAndSelect('account.user', 'user')
       .orderBy('account.createdAt', 'DESC')
       .skip((page - 1) * limit)
@@ -490,13 +892,26 @@ export class AdminService {
 
     if (userId) qb.andWhere('user.id = :userId', { userId });
 
-    const [accounts, total] = await qb.getManyAndCount();
+    const balanceQb = this.accountRepository
+      .createQueryBuilder('account')
+      .select('COALESCE(SUM(COALESCE(account.balance, 0)), 0)', 'totalBalance');
+    if (userId) {
+      balanceQb.where('account.userId = :userId', { userId });
+    }
 
-    const totalBalance = accounts
-      .reduce((sum, a) => sum + Number(a.balance || 0), 0);
+    const [[accounts, total], balanceRaw] = await Promise.all([
+      qb.getManyAndCount(),
+      balanceQb.getRawOne<{ totalBalance: string }>(),
+    ]);
+    const totalBalance = Math.round(this.toNumber(balanceRaw?.totalBalance) * 100) / 100;
+
+    const normalizedAccounts = accounts.map((account) => ({
+      ...account,
+      balance: this.toNullableNumber(account.balance),
+    }));
 
     return {
-      data: accounts,
+      data: normalizedAccounts,
       total,
       page,
       limit,
@@ -506,16 +921,32 @@ export class AdminService {
   }
 
   async getSubscriptions(page: number = 1, limit: number = 50, status?: string, plan?: string) {
-    const qb = this.subscriptionRepository.createQueryBuilder('sub')
+    const qb = this.subscriptionRepository
+      .createQueryBuilder('sub')
       .leftJoinAndSelect('sub.user', 'user')
       .orderBy('sub.createdAt', 'DESC')
       .skip((page - 1) * limit)
       .take(limit);
 
-    if (status) qb.andWhere('sub.status = :status', { status });
-    if (plan) qb.andWhere('sub.plan = :plan', { plan });
+    if (status) {
+      qb.andWhere('LOWER(sub.status) = :status', {
+        status: status.trim().toLowerCase(),
+      });
+    }
+    if (plan) {
+      const normalizedPlan = this.normalizePlanKey(plan);
+      qb.andWhere(`${this.getSubscriptionPlanSql('sub')} = :plan`, {
+        plan: normalizedPlan,
+      });
+    }
 
     const [subscriptions, total] = await qb.getManyAndCount();
+    const data = subscriptions.map((subscription) => ({
+      ...subscription,
+      plan: this.toPlanLabel(subscription.plan, subscription.tier),
+      planKey: this.normalizePlanKey(subscription.plan, subscription.tier),
+      price: this.toNullableNumber(subscription.price),
+    }));
 
     // Active count
     const activeCount = await this.subscriptionRepository.count({
@@ -523,7 +954,7 @@ export class AdminService {
     });
 
     return {
-      data: subscriptions,
+      data,
       total,
       page,
       limit,

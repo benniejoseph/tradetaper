@@ -60,10 +60,6 @@ export class SemanticCacheService {
     const cached = await this.cacheManager.get<CachedResponse>(key);
 
     if (cached) {
-      // Update hit count
-      cached.hits++;
-      await this.cacheManager.set(key, cached, this.getTTL(cached));
-
       // Update stats
       this.stats.cacheHits++;
       this.stats.tokensSaved += cached.tokensUsed;
@@ -71,7 +67,7 @@ export class SemanticCacheService {
       this.updateHitRate();
 
       this.logger.debug(
-        `Cache HIT for prompt hash ${key.substring(0, 8)}... (hits: ${cached.hits})`,
+        `Cache HIT for prompt hash ${key.substring(0, 8)}...`,
       );
 
       return cached.response;

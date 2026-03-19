@@ -38,6 +38,10 @@ firebase-adminsdk*.json
 *-credentials.json
 service-account*.json
 
+# Supabase local link/runtime metadata
+supabase/.temp/
+supabase/.branches/
+
 # Logs
 *.log
 dev.log.env.yaml

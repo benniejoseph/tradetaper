@@ -1,75 +1,106 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { motion } from 'framer-motion';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import Sidebar from '@/components/Sidebar';
 import {
   Database, ChevronLeft, ChevronRight, RefreshCw,
   Table2, Play, AlertTriangle,
 } from 'lucide-react';
 import { adminApi } from '@/lib/api';
-import { API_BASE_URL } from '@/lib/api-base-url';
+import { getAdminCapabilities } from '@/lib/admin-access';
 import toast from 'react-hot-toast';
+
+type DatabaseColumn = Awaited<ReturnType<typeof adminApi.getDatabaseColumns>>[number];
+type DatabaseRowsResponse = Awaited<ReturnType<typeof adminApi.getDatabaseRows>>;
+type DatabaseRow = DatabaseRowsResponse['data'][number];
+type SqlQueryResponse = Awaited<ReturnType<typeof adminApi.runSqlQuery>>;
+
+const getErrorMessage = (error: unknown): string => {
+  if (typeof error === 'object' && error !== null) {
+    const maybeResponse = (error as { response?: { data?: { message?: string; error?: string } } }).response;
+    return maybeResponse?.data?.message || maybeResponse?.data?.error || 'Failed to execute SQL';
+  }
+  return 'Failed to execute SQL';
+};
 
 export default function DatabasePage() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [selectedTable, setSelectedTable] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [sql, setSql] = useState('SELECT * FROM users LIMIT 10;');
-  const [sqlResult, setSqlResult] = useState<any>(null);
+  const [sqlResult, setSqlResult] = useState<SqlQueryResponse | null>(null);
   const [sqlLoading, setSqlLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<'data' | 'sql'>('data');
+  const { data: adminSession } = useQuery({
+    queryKey: ['admin-session'],
+    queryFn: () => adminApi.getAdminSession(),
+    staleTime: 60_000,
+    retry: false,
+  });
+  const capabilities = getAdminCapabilities(adminSession?.adminRole);
 
   const { data: tables, isLoading: tablesLoading } = useQuery({
     queryKey: ['db-tables'],
     queryFn: () => adminApi.getDatabaseTables(),
+    enabled: capabilities.canViewDatabase,
   });
 
   const { data: columns, isLoading: columnsLoading } = useQuery({
     queryKey: ['db-columns', selectedTable],
     queryFn: () => adminApi.getDatabaseColumns(selectedTable!),
-    enabled: !!selectedTable,
+    enabled: !!selectedTable && capabilities.canViewDatabase,
   });
 
-  const { data: rows, isLoading: rowsLoading } = useQuery({
+  const { data: rows, isLoading: rowsLoading } = useQuery<DatabaseRowsResponse>({
     queryKey: ['db-rows', selectedTable, page],
     queryFn: () => adminApi.getDatabaseRows(selectedTable!, page, 20),
-    enabled: !!selectedTable,
-    keepPreviousData: true,
-  } as any);
+    enabled: !!selectedTable && capabilities.canViewDatabase,
+    placeholderData: keepPreviousData,
+  });
 
   const runSql = useCallback(async () => {
+    if (!capabilities.canRunSql) {
+      toast.error('SQL runner is restricted to super-admin role');
+      return;
+    }
     if (!sql.trim()) return toast.error('Enter SQL query');
     setSqlLoading(true);
     setSqlResult(null);
     try {
-      const res = await fetch(
-        `${API_BASE_URL}/admin/database/run-sql?confirm=ADMIN_SQL_EXECUTE`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          credentials: 'include',
-          body: JSON.stringify({ sql }),
-        }
-      );
-      const data = await res.json();
+      const data = await adminApi.runSqlQuery(sql);
       setSqlResult(data);
       if (data.success) toast.success(`Query executed — ${Array.isArray(data.result) ? data.result.length : 0} rows`);
       else toast.error(data.error || 'Query failed');
-    } catch (e) {
-      toast.error('Failed to execute SQL');
+    } catch (error: unknown) {
+      toast.error(getErrorMessage(error));
     } finally {
       setSqlLoading(false);
     }
-  }, [sql]);
+  }, [sql, capabilities.canRunSql]);
 
-  const rowData = (rows as any)?.data || [];
-  const totalRows = (rows as any)?.total || 0;
-  const totalPages = (rows as any)?.totalPages || 1;
-  const columnDefs = (columns as any) || [];
+  const rowData = rows?.data || [];
+  const totalRows = rows?.total || 0;
+  const totalPages = rows?.totalPages || 1;
+  const columnDefs = columns || [];
+
+  if (adminSession && !capabilities.canViewDatabase) {
+    return (
+      <div className="flex h-screen" style={{ background: 'var(--bg-base)' }}>
+        <Sidebar isCollapsed={sidebarCollapsed} onToggle={() => setSidebarCollapsed(!sidebarCollapsed)} />
+        <div className="flex-1 flex items-center justify-center p-6">
+          <div className="admin-card p-6 max-w-md w-full text-center">
+            <h1 className="text-lg font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>
+              Database Access Restricted
+            </h1>
+            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
+              Your admin role does not include database viewer permissions.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-screen" style={{ background: 'var(--bg-base)' }}>
@@ -123,10 +154,12 @@ export default function DatabasePage() {
                       className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${activeTab === 'data' ? 'admin-btn-primary' : 'admin-btn-secondary'}`}>
                 Table View
               </button>
-              <button onClick={() => setActiveTab('sql')}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${activeTab === 'sql' ? 'admin-btn-primary' : 'admin-btn-secondary'}`}>
-                SQL Runner
-              </button>
+              {capabilities.canRunSql && (
+                <button onClick={() => setActiveTab('sql')}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${activeTab === 'sql' ? 'admin-btn-primary' : 'admin-btn-secondary'}`}>
+                  SQL Runner
+                </button>
+              )}
             </div>
           </header>
 
@@ -136,7 +169,7 @@ export default function DatabasePage() {
               {!columnsLoading && columnDefs.length > 0 && (
                 <div className="px-4 py-2 border-b flex gap-2 flex-wrap"
                      style={{ background: 'var(--bg-muted)', borderColor: 'var(--border-subtle)' }}>
-                  {columnDefs.map((c: any) => (
+                  {columnDefs.map((c: DatabaseColumn) => (
                     <span key={c.column_name} className="badge badge-muted text-[10px] font-mono">
                       {c.column_name}: <span style={{ color: 'var(--accent-primary)', opacity: 0.7 }}>{c.data_type}</span>
                     </span>
@@ -161,9 +194,9 @@ export default function DatabasePage() {
                           </tr>
                         </thead>
                         <tbody>
-                          {rowData.map((row: any, i: number) => (
+                          {rowData.map((row: DatabaseRow, i: number) => (
                             <tr key={i}>
-                              {Object.values(row).map((v: any, j) => (
+                              {Object.values(row).map((v, j) => (
                                 <td key={j}>
                                   <span className="font-mono text-xs block max-w-xs truncate" title={String(v ?? '')}>
                                     {v == null ? <span style={{ color: 'var(--text-muted)' }}>NULL</span> : String(v)}
@@ -179,8 +212,26 @@ export default function DatabasePage() {
                       <div className="flex items-center justify-between px-4 py-3 border-t" style={{ borderColor: 'var(--border-subtle)' }}>
                         <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Page {page}/{totalPages} • {totalRows} rows</p>
                         <div className="flex gap-2">
-                          <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} className="admin-btn-secondary py-1 px-3 disabled:opacity-40"><ChevronLeft className="w-4 h-4" /></button>
-                          <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="admin-btn-secondary py-1 px-3 disabled:opacity-40"><ChevronRight className="w-4 h-4" /></button>
+                          <button
+                            type="button"
+                            onClick={() => setPage(p => Math.max(1, p - 1))}
+                            disabled={page === 1}
+                            className="admin-btn-secondary py-1 px-3 disabled:opacity-40"
+                            aria-label="Previous page"
+                            title="Previous page"
+                          >
+                            <ChevronLeft className="w-4 h-4" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                            disabled={page === totalPages}
+                            className="admin-btn-secondary py-1 px-3 disabled:opacity-40"
+                            aria-label="Next page"
+                            title="Next page"
+                          >
+                            <ChevronRight className="w-4 h-4" />
+                          </button>
                         </div>
                       </div>
                     )}
@@ -188,7 +239,7 @@ export default function DatabasePage() {
                 )}
               </div>
             </div>
-          ) : activeTab === 'sql' ? (
+          ) : activeTab === 'sql' && capabilities.canRunSql ? (
             <div className="flex-1 overflow-auto p-4 space-y-4">
               <div className="admin-card p-4">
                 <div className="flex items-center justify-between mb-3">
@@ -231,9 +282,9 @@ export default function DatabasePage() {
                           <tr>{Object.keys(sqlResult.result[0]).map(k => <th key={k}>{k}</th>)}</tr>
                         </thead>
                         <tbody>
-                          {sqlResult.result.map((row: any, i: number) => (
+                          {sqlResult.result.map((row, i: number) => (
                             <tr key={i}>
-                              {Object.values(row).map((v: any, j) => (
+                              {Object.values(row).map((v, j) => (
                                 <td key={j}><span className="font-mono text-xs">{v == null ? 'NULL' : String(v)}</span></td>
                               ))}
                             </tr>

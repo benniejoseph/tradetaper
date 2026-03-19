@@ -6,7 +6,8 @@
     "dev": "next dev -p 3002 --turbopack",
     "build": "next build",
     "start": "next start -p 3002",
-    "lint": "next lint"
+    "lint": "next lint",
+    "generate:admin-contracts": "openapi-typescript ./openapi/admin-contracts.yaml -o ./src/lib/generated/admin-contracts.ts"
   },
   "dependencies": {
     "@headlessui/react": "^2.2.4",
@@ -40,6 +41,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "15.3.3",
+    "openapi-typescript": "^7.13.0",
     "tailwindcss": "^4",
     "typescript": "^5"
   }

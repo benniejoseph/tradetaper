@@ -33,6 +33,7 @@ export interface LLMRequest {
   qualityThreshold?: number;
   images?: string[]; // Array of base64 strings or URLs
   modelPreference?: string;
+  responseJsonSchema?: Record<string, unknown>;
 }
 
 export interface LLMResponse {
@@ -68,23 +69,30 @@ export class MultiModelOrchestratorService {
   // Model configurations in priority order
   private readonly models: ModelConfig[] = [
     {
-      name: 'gemini-3-pro-preview',
+      name: 'gemini-3-flash-preview',
       provider: 'google',
-      priority: 0, // Highest priority, advanced reasoning
+      priority: 0,
       enabled: true,
       maxRetries: 3,
     },
     {
-      name: 'gemini-1.5-pro',
+      name: 'gemini-3-pro-preview',
       provider: 'google',
-      priority: 1,
+      priority: 1, // Highest-quality reasoning fallback
+      enabled: true,
+      maxRetries: 3,
+    },
+    {
+      name: 'gemini-2.0-flash',
+      provider: 'google',
+      priority: 2,
       enabled: true,
       maxRetries: 2,
     },
     {
-      name: 'gemini-1.5-flash',
+      name: 'gemini-2.0-flash-lite',
       provider: 'google',
-      priority: 2,
+      priority: 3,
       enabled: true,
       maxRetries: 2,
     },
@@ -282,6 +290,12 @@ export class MultiModelOrchestratorService {
       temperature: request.temperature ?? 0.7,
       hasMedia: Boolean(request.images && request.images.length > 0),
       mediaCount: request.images?.length || 0,
+      schemaHash: request.responseJsonSchema
+        ? crypto
+            .createHash('sha256')
+            .update(JSON.stringify(request.responseJsonSchema))
+            .digest('hex')
+        : null,
     };
 
     return crypto
@@ -300,14 +314,14 @@ export class MultiModelOrchestratorService {
     if (optimizeFor === 'cost') {
       // Use flash for simple/medium to save cost
       return complexity === 'complex'
-        ? 'gemini-3-pro-preview'
-        : 'gemini-1.5-flash';
+        ? 'gemini-3-flash-preview'
+        : 'gemini-2.0-flash-lite';
     } else if (optimizeFor === 'quality') {
       // Use best available model
       return 'gemini-3-pro-preview';
     } else {
       // Speed
-      return 'gemini-1.5-flash';
+      return 'gemini-2.0-flash-lite';
     }
   }
 
@@ -393,6 +407,9 @@ export class MultiModelOrchestratorService {
     // Force JSON output if requested
     if (request.requireJson) {
       generationConfig.responseMimeType = 'application/json';
+      if (request.responseJsonSchema) {
+        generationConfig.responseSchema = request.responseJsonSchema;
+      }
     }
 
     const parts: Array<any> = [];

@@ -8,6 +8,7 @@ import { Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
 import { Request, Response } from 'express';
 import { ProductionLoggerService } from '../services/logger.service';
+import { RequestMetricsStore } from '../services/request-metrics.store';
 
 @Injectable()
 export class LoggingInterceptor implements NestInterceptor {
@@ -28,6 +29,16 @@ export class LoggingInterceptor implements NestInterceptor {
         next: (data) => {
           const duration = Date.now() - startTime;
           const { statusCode } = response;
+          const metricPath = request.originalUrl || url;
+
+          RequestMetricsStore.record({
+            timestamp: Date.now(),
+            method,
+            path: metricPath,
+            statusCode,
+            durationMs: duration,
+            userId: userId || null,
+          });
 
           // Log API call
           this.logger.logApiCall(method, url, statusCode, duration, userId);
@@ -46,6 +57,16 @@ export class LoggingInterceptor implements NestInterceptor {
         error: (error) => {
           const duration = Date.now() - startTime;
           const statusCode = error.status || 500;
+          const metricPath = request.originalUrl || url;
+
+          RequestMetricsStore.record({
+            timestamp: Date.now(),
+            method,
+            path: metricPath,
+            statusCode,
+            durationMs: duration,
+            userId: userId || null,
+          });
 
           // Log failed API call
           this.logger.logApiCall(

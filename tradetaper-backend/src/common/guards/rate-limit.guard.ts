@@ -67,22 +67,18 @@ export class RateLimitGuard implements CanActivate {
       : this.getDefaultKey(request);
 
     const now = Date.now();
-    const windowStart = now - options.windowMs;
+    const bucket = Math.floor(now / options.windowMs);
+    const bucketStart = bucket * options.windowMs;
+    const bucketKey = `${key}:${bucket}`;
 
-    // Get current request timestamps
-    const requestTimestamps: number[] =
-      (await this.cacheManager.get(key)) || [];
-
-    // Filter out expired timestamps
-    const validTimestamps = requestTimestamps.filter(
-      (timestamp) => timestamp > windowStart,
-    );
+    const rawCount = await this.cacheManager.get<number>(bucketKey);
+    const requestCount =
+      typeof rawCount === 'number' && Number.isFinite(rawCount) ? rawCount : 0;
 
     // Check if limit exceeded
-    if (validTimestamps.length >= options.maxRequests) {
-      const oldestTimestamp = Math.min(...validTimestamps);
+    if (requestCount >= options.maxRequests) {
       const retryAfter = Math.ceil(
-        (oldestTimestamp + options.windowMs - now) / 1000,
+        (bucketStart + options.windowMs - now) / 1000,
       );
 
       throw new HttpException(
@@ -95,9 +91,8 @@ export class RateLimitGuard implements CanActivate {
       );
     }
 
-    // Add current timestamp and save
-    validTimestamps.push(now);
-    await this.cacheManager.set(key, validTimestamps, options.windowMs);
+    // Increment current fixed-window counter
+    await this.cacheManager.set(bucketKey, requestCount + 1, options.windowMs);
 
     return true;
   }

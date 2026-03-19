@@ -5,7 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import Sidebar from '@/components/Sidebar';
 import { Activity, Zap, RefreshCw } from 'lucide-react';
-import { adminApi } from '@/lib/api';
+import { Activity as ActivityItem, adminApi } from '@/lib/api';
 
 const ACTIVITY_COLORS: Record<string, string> = {
   login: '#6366F1',
@@ -27,7 +27,7 @@ export default function ActivityPage() {
 
   const activities = feed || [];
 
-  const filteredActivities = activities.filter((a: any) => {
+  const filteredActivities = activities.filter((a) => {
     if (filter === 'all') return true;
     if (filter === 'trade') return (a.type || '').includes('trade');
     if (filter === 'auth') return (a.type || '').includes('login') || (a.type || '').includes('auth');
@@ -35,7 +35,7 @@ export default function ActivityPage() {
     return true;
   });
 
-  const eventBreakdown = activities.reduce((acc: Record<string, number>, a: any) => {
+  const eventBreakdown = activities.reduce<Record<string, number>>((acc, a) => {
     acc[a.type] = (acc[a.type] || 0) + 1;
     return acc;
   }, {});
@@ -72,7 +72,13 @@ export default function ActivityPage() {
                 </button>
               ))}
             </div>
-            <button className="admin-btn-secondary" onClick={() => refetch()}>
+            <button
+              type="button"
+              className="admin-btn-secondary"
+              onClick={() => refetch()}
+              aria-label="Refresh activity feed"
+              title="Refresh activity feed"
+            >
               <RefreshCw className="w-4 h-4" />
             </button>
           </div>
@@ -142,7 +148,7 @@ export default function ActivityPage() {
                   </div>
                 ) : (
                   <div className="space-y-1.5">
-                    {filteredActivities.map((a: any, i: number) => (
+                    {filteredActivities.map((a: ActivityItem, i: number) => (
                       <motion.div
                         key={a.id}
                         initial={{ opacity: 0, x: -8 }}

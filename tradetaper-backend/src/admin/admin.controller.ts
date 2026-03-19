@@ -27,6 +27,11 @@ import {
   AuthRateLimit,
   RateLimitGuard,
 } from '../common/guards/rate-limit.guard';
+import {
+  AdminRoles,
+  AdminRole,
+  isAdminRole,
+} from '../auth/decorators/admin-roles.decorator';
 import { ConfigService } from '@nestjs/config';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
@@ -78,6 +83,7 @@ interface AdminAuditContext {
 
 @Controller('admin')
 @UseGuards(AdminGuard, RateLimitGuard)
+@AdminRoles('super-admin', 'billing-admin', 'readonly-ops')
 export class AdminController {
   private readonly logger = new Logger(AdminController.name);
 
@@ -234,6 +240,50 @@ export class AdminController {
       return null;
     }
     return this.normalizeAdminEmail(configured);
+  }
+
+  private normalizeAdminRole(value: string | undefined | null): AdminRole | null {
+    if (!value) {
+      return null;
+    }
+    const normalized = value.trim().toLowerCase();
+    if (isAdminRole(normalized)) {
+      return normalized;
+    }
+    return null;
+  }
+
+  private getConfiguredAdminRole(): AdminRole {
+    return this.normalizeAdminRole(this.configService.get<string>('ADMIN_ROLE')) || 'super-admin';
+  }
+
+  private getAdminRoleBindings(): Map<string, AdminRole> {
+    const rawBindings = this.configService
+      .get<string>('ADMIN_ROLE_BINDINGS')
+      ?.trim();
+    const bindings = new Map<string, AdminRole>();
+
+    if (!rawBindings) {
+      return bindings;
+    }
+
+    for (const entry of rawBindings.split(',')) {
+      const [emailPart, rolePart] = entry.split(':');
+      const normalizedEmail = this.normalizeAdminEmail(emailPart || '');
+      const normalizedRole = this.normalizeAdminRole(rolePart);
+      if (!normalizedEmail || !normalizedRole) {
+        continue;
+      }
+      bindings.set(normalizedEmail, normalizedRole);
+    }
+
+    return bindings;
+  }
+
+  private resolveAdminRoleForEmail(adminEmail: string): AdminRole {
+    const normalizedEmail = this.normalizeAdminEmail(adminEmail);
+    const bindings = this.getAdminRoleBindings();
+    return bindings.get(normalizedEmail) || this.getConfiguredAdminRole();
   }
 
   private isAdminMfaRequired(): boolean {
@@ -680,12 +730,17 @@ export class AdminController {
     return false;
   }
 
-  private signAdminAccessToken(email: string, mfaVerified: boolean): string {
+  private signAdminAccessToken(
+    email: string,
+    mfaVerified: boolean,
+    adminRole: AdminRole,
+  ): string {
     const normalizedEmail = email.trim().toLowerCase();
     const payload = {
       sub: `admin:${normalizedEmail}`,
       email: normalizedEmail,
       role: 'admin',
+      adminRole,
       mfa: mfaVerified,
       amr: mfaVerified ? ['pwd', 'otp'] : ['pwd'],
     };
@@ -1011,6 +1066,8 @@ export class AdminController {
     }
 
     const normalizedRequestEmail = this.normalizeAdminEmail(body.email);
+    const resolvedAdminRole =
+      this.resolveAdminRoleForEmail(normalizedRequestEmail);
     const isEmailValid = this.safeEqual(
       normalizedRequestEmail,
       configuredAdminEmail,
@@ -1060,7 +1117,11 @@ export class AdminController {
           await this.adminMfaCredentialRepository.save(resolvedSecret.credential);
         }
 
-        const token = this.signAdminAccessToken(normalizedRequestEmail, true);
+        const token = this.signAdminAccessToken(
+          normalizedRequestEmail,
+          true,
+          resolvedAdminRole,
+        );
         this.setAdminCookie(res, token);
         await this.logAdminAuthAudit(req, 'login', 'success', {
           adminEmail: normalizedRequestEmail,
@@ -1069,6 +1130,7 @@ export class AdminController {
         return {
           access_token: token,
           role: 'admin',
+          adminRole: resolvedAdminRole,
           mfaVerified: true,
           mfaMethod: 'otp',
         };
@@ -1090,13 +1152,17 @@ export class AdminController {
       };
     }
 
-    const token = this.signAdminAccessToken(normalizedRequestEmail, false);
+    const token = this.signAdminAccessToken(
+      normalizedRequestEmail,
+      false,
+      resolvedAdminRole,
+    );
     this.setAdminCookie(res, token);
     await this.logAdminAuthAudit(req, 'login', 'success', {
       adminEmail: normalizedRequestEmail,
       metadata: { mfa: false },
     });
-    return { access_token: token, role: 'admin' };
+    return { access_token: token, role: 'admin', adminRole: resolvedAdminRole };
   }
 
   @Public()
@@ -1230,7 +1296,12 @@ export class AdminController {
     );
     await this.clearAdminMfaBootstrap(bootstrap.bootstrapId);
 
-    const token = this.signAdminAccessToken(bootstrap.email, true);
+    const resolvedAdminRole = this.resolveAdminRoleForEmail(bootstrap.email);
+    const token = this.signAdminAccessToken(
+      bootstrap.email,
+      true,
+      resolvedAdminRole,
+    );
     this.setAdminCookie(res, token);
     await this.logAdminAuthAudit(req, 'mfa-bootstrap-complete', 'success', {
       adminEmail: bootstrap.email,
@@ -1239,6 +1310,7 @@ export class AdminController {
     return {
       access_token: token,
       role: 'admin',
+      adminRole: resolvedAdminRole,
       mfaVerified: true,
       mfaEnrolled: true,
       recoveryCodes,
@@ -1350,7 +1422,12 @@ export class AdminController {
     }
 
     await this.clearAdminMfaChallenge(challenge.challengeId);
-    const token = this.signAdminAccessToken(challenge.email, true);
+    const resolvedAdminRole = this.resolveAdminRoleForEmail(challenge.email);
+    const token = this.signAdminAccessToken(
+      challenge.email,
+      true,
+      resolvedAdminRole,
+    );
     this.setAdminCookie(res, token);
     await this.logAdminAuthAudit(req, 'mfa-verify', 'success', {
       adminEmail: challenge.email,
@@ -1362,9 +1439,39 @@ export class AdminController {
     return {
       access_token: token,
       role: 'admin',
+      adminRole: resolvedAdminRole,
       mfaVerified: true,
       mfaMethod: verificationMode,
       recoveryCodesRemaining: credential?.recoveryCodeHashes?.length,
+    };
+  }
+
+  @Get('auth/me')
+  async getAdminSession(
+    @Req()
+    req: Request & {
+      user?: {
+        email?: string;
+        role?: string;
+        adminRole?: AdminRole;
+        mfa?: boolean;
+      };
+    },
+  ) {
+    const adminEmail =
+      typeof req.user?.email === 'string'
+        ? this.normalizeAdminEmail(req.user.email)
+        : this.getConfiguredAdminEmail();
+    if (!adminEmail) {
+      throw new UnauthorizedException('Admin identity unavailable');
+    }
+
+    return {
+      email: adminEmail,
+      role: 'admin',
+      adminRole:
+        req.user?.adminRole || this.resolveAdminRoleForEmail(adminEmail),
+      mfaVerified: req.user?.mfa === true,
     };
   }
 
@@ -1534,6 +1641,42 @@ export class AdminController {
     return this.adminService.getSubscriptionAnalytics(timeRange);
   }
 
+  @Get('logs')
+  async getLogs(
+    @Query('limit') limit: string = '100',
+    @Query('offset') offset: string = '0',
+    @Query('level') level?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ) {
+    return this.adminService.getSystemLogs(
+      parseInt(limit, 10) || 100,
+      parseInt(offset, 10) || 0,
+      level,
+      startDate,
+      endDate,
+    );
+  }
+
+  @Get('logs/stream')
+  async getLogsStream() {
+    const latestLogs = await this.adminService.getSystemLogs(50, 0);
+    return {
+      message: 'Live stream snapshot',
+      latestLogs: latestLogs.data,
+    };
+  }
+
+  @Get('analytics/performance')
+  async getPerformanceMetrics(@Query('timeRange') timeRange: string = '1h') {
+    return this.adminService.getPerformanceMetrics(timeRange);
+  }
+
+  @Get('api/usage')
+  async getApiUsageStats(@Query('timeRange') timeRange: string = '24h') {
+    return this.adminService.getApiUsageStats(timeRange);
+  }
+
   @Get('users')
   async getUsers(
     @Query('page') page: string = '1',
@@ -1578,21 +1721,25 @@ export class AdminController {
   }
 
   @Get('database/tables')
+  @AdminRoles('super-admin', 'readonly-ops')
   async getDatabaseTables() {
     return this.adminService.getDatabaseTables();
   }
 
   @Get('database/table/:table')
+  @AdminRoles('super-admin', 'readonly-ops')
   async getDatabaseTable(@Param('table') table: string) {
     return this.adminService.getDatabaseTable(table);
   }
 
   @Get('database/columns/:table')
+  @AdminRoles('super-admin', 'readonly-ops')
   async getDatabaseColumns(@Param('table') table: string) {
     return this.adminService.getDatabaseColumns(table);
   }
 
   @Get('database/rows/:table')
+  @AdminRoles('super-admin', 'readonly-ops')
   async getDatabaseRows(
     @Param('table') table: string,
     @Query('page') page: string = '1',
@@ -1606,12 +1753,14 @@ export class AdminController {
   }
 
   @Post('seed-sample-data')
+  @AdminRoles('super-admin')
   async seedSampleData() {
     this.ensureDangerousOperationsAllowed();
     return this.adminService.seedSampleData();
   }
 
   @Post('test-user/create')
+  @AdminRoles('super-admin')
   async createTestUser() {
     this.ensureDangerousOperationsAllowed();
     const result = await this.testUserSeedService.createTestUser();
@@ -1628,6 +1777,7 @@ export class AdminController {
   }
 
   @Delete('test-user/delete')
+  @AdminRoles('super-admin')
   async deleteTestUser() {
     this.ensureDangerousOperationsAllowed();
     await this.testUserSeedService.deleteTestUser();
@@ -1637,6 +1787,7 @@ export class AdminController {
   }
 
   @Delete('database/clear-table/:tableName')
+  @AdminRoles('super-admin')
   async clearTable(
     @Param('tableName') tableName: string,
     @Query('confirm') confirm: string,
@@ -1657,6 +1808,7 @@ export class AdminController {
   }
 
   @Delete('database/clear-all-tables')
+  @AdminRoles('super-admin')
   async clearAllTables(
     @Query('confirm') confirm: string,
     @Query('doubleConfirm') doubleConfirm: string,
@@ -1682,11 +1834,13 @@ export class AdminController {
   }
 
   @Get('database/table-stats')
+  @AdminRoles('super-admin', 'readonly-ops')
   async getTableStats() {
     return this.adminService.getTableStats();
   }
 
   @Post('database/run-sql')
+  @AdminRoles('super-admin')
   async runSql(
     @Query('confirm') confirm: string,
     @Body() body: { sql: string },

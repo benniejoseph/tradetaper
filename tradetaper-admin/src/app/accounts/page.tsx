@@ -1,12 +1,13 @@
 'use client';
 
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import Sidebar from '@/components/Sidebar';
 import { Wallet, RefreshCw, ChevronLeft, ChevronRight, Download } from 'lucide-react';
 import { formatNumber } from '@/lib/utils';
-import { API_BASE_URL } from '@/lib/api-base-url';
+import { adminApi } from '@/lib/api';
+import { downloadCsv } from '@/lib/csv';
 import toast from 'react-hot-toast';
 
 export default function AccountsPage() {
@@ -15,34 +16,25 @@ export default function AccountsPage() {
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['admin-accounts', page],
-    queryFn: async () => {
-      const res = await fetch(
-        `${API_BASE_URL}/admin/accounts?page=${page}&limit=50`,
-        { credentials: 'include' }
-      );
-      return res.json();
-    },
-    keepPreviousData: true,
-  } as any);
+    queryFn: () => adminApi.getAccounts(page, 50),
+    placeholderData: keepPreviousData,
+  });
 
-  const accounts = (data as any)?.data || [];
-  const total = (data as any)?.total || 0;
-  const totalPages = (data as any)?.totalPages || 1;
-  const summary = (data as any)?.summary || {};
+  const accounts = data?.data ?? [];
+  const total = data?.total ?? 0;
+  const totalPages = data?.totalPages ?? 1;
+  const summary = data?.summary;
 
   const exportCsv = () => {
     if (!accounts.length) return toast.error('No data');
     const headers = ['ID', 'Name', 'User', 'Balance', 'Currency', 'Created'];
-    const rows = accounts.map((a: any) => [
+    const rows = accounts.map((a) => [
       a.id, a.name || 'Account',
       a.user ? `${a.user.firstName || ''} ${a.user.lastName || ''}`.trim() || a.user?.email : '—',
       a.balance ?? '—', a.currency || 'USD',
       new Date(a.createdAt).toLocaleDateString(),
     ]);
-    const csv = [headers, ...rows].map(r => r.map(String).join(',')).join('\n');
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const a2 = document.createElement('a'); a2.href = URL.createObjectURL(blob);
-    a2.download = 'accounts.csv'; a2.click();
+    downloadCsv('accounts.csv', headers, rows);
     toast.success('Exported CSV');
   };
 
@@ -60,7 +52,15 @@ export default function AccountsPage() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <button className="admin-btn-secondary" onClick={() => refetch()}><RefreshCw className="w-4 h-4" /></button>
+            <button
+              type="button"
+              className="admin-btn-secondary"
+              onClick={() => refetch()}
+              aria-label="Refresh accounts"
+              title="Refresh accounts"
+            >
+              <RefreshCw className="w-4 h-4" />
+            </button>
             <button className="admin-btn-secondary" onClick={exportCsv}><Download className="w-4 h-4" /><span>Export</span></button>
           </div>
         </header>
@@ -70,7 +70,7 @@ export default function AccountsPage() {
              style={{ background: 'var(--bg-surface)', borderColor: 'var(--border-subtle)' }}>
           {[
             { label: 'Total Accounts', value: formatNumber(total), color: '#10B981' },
-            { label: 'Total Balance', value: summary.totalBalance != null ? `$${Number(summary.totalBalance).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—', color: '#6366F1' },
+            { label: 'Total Balance', value: summary?.totalBalance != null ? `$${Number(summary.totalBalance).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—', color: '#6366F1' },
           ].map(s => (
             <div key={s.label} className="flex items-center gap-2">
               <div className="w-2 h-2 rounded-full" style={{ background: s.color }} />
@@ -104,7 +104,7 @@ export default function AccountsPage() {
                     <Wallet className="w-10 h-10 mx-auto mb-2 opacity-20" style={{ color: 'var(--text-muted)' }} />
                     <p style={{ color: 'var(--text-muted)' }}>No accounts found</p>
                   </td></tr>
-                ) : accounts.map((a: any) => (
+                ) : accounts.map((a) => (
                   <tr key={a.id}>
                     <td>
                       <div className="flex items-center gap-2">
@@ -132,8 +132,26 @@ export default function AccountsPage() {
               <div className="flex items-center justify-between px-4 py-3 border-t" style={{ borderColor: 'var(--border-subtle)' }}>
                 <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Page {page} of {totalPages}</p>
                 <div className="flex gap-2">
-                  <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} className="admin-btn-secondary py-1.5 px-3 disabled:opacity-40"><ChevronLeft className="w-4 h-4" /></button>
-                  <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="admin-btn-secondary py-1.5 px-3 disabled:opacity-40"><ChevronRight className="w-4 h-4" /></button>
+                  <button
+                    type="button"
+                    onClick={() => setPage(p => Math.max(1, p - 1))}
+                    disabled={page === 1}
+                    className="admin-btn-secondary py-1.5 px-3 disabled:opacity-40"
+                    aria-label="Previous page"
+                    title="Previous page"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                    disabled={page === totalPages}
+                    className="admin-btn-secondary py-1.5 px-3 disabled:opacity-40"
+                    aria-label="Next page"
+                    title="Next page"
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
                 </div>
               </div>
             )}

@@ -49,9 +49,16 @@ import { PropFirmModule } from './prop-firm/prop-firm.module';
       inject: [ConfigService],
       useFactory: async (configService: ConfigService) => {
         const redisUrl = configService.get<string>('REDIS_URL');
+        const redisCacheEnabled = (
+          configService.get<string>('REDIS_CACHE_ENABLED') || 'false'
+        )
+          .trim()
+          .toLowerCase();
+        const useRedisCache =
+          redisCacheEnabled === 'true' || redisCacheEnabled === '1';
 
-        // If Redis URL is provided, use Redis; otherwise fall back to in-memory
-        if (redisUrl) {
+        // Use Redis-backed cache only when explicitly enabled.
+        if (redisUrl && useRedisCache) {
           const keyv = new Keyv({
             store: new KeyvRedis(redisUrl),
             namespace: 'tradetaper',
@@ -63,7 +70,7 @@ import { PropFirmModule } from './prop-firm/prop-firm.module';
           };
         }
 
-        // Fallback to in-memory cache if Redis not configured
+        // Fallback to in-memory cache to avoid exhausting Redis request quotas.
         return {
           ttl: 600,
         };

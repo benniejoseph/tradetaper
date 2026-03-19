@@ -74,32 +74,48 @@ export default function SystemPage() {
   ];
 
   return (
-    <div className="flex h-screen" style={{ background: 'var(--bg-base)' }}>
+    <div className="flex h-dvh" style={{ background: 'var(--bg-base)' }}>
       <Sidebar isCollapsed={sidebarCollapsed} onToggle={() => setSidebarCollapsed(!sidebarCollapsed)} />
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <header className="px-6 py-4 border-b flex items-center justify-between"
-                style={{ background: 'var(--bg-surface)', borderColor: 'var(--border-subtle)' }}>
-          <div className="flex items-center gap-3">
-            <Server className="w-5 h-5" style={{ color: 'var(--accent-primary)' }} />
-            <div>
-              <h1 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>System Health</h1>
-              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Real-time infrastructure telemetry • 10s refresh</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            {health && (
-              <div className="flex items-center gap-2">
-                {statusIcon(health.status)}
-                <span className={`badge ${health.status === 'healthy' ? 'badge-success' : health.status === 'warning' ? 'badge-warning' : 'badge-danger'}`}>
-                  {health.status?.toUpperCase()}
-                </span>
+      <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
+        <header
+          className="sticky top-0 z-40 border-b px-6 py-3.5 backdrop-blur-xl"
+          style={{
+            background: 'color-mix(in srgb, var(--bg-surface) 92%, transparent)',
+            borderColor: 'var(--border-subtle)',
+          }}
+        >
+          <div className="max-w-[var(--content-max-width)] mx-auto flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <Server className="w-6 h-6" style={{ color: 'var(--accent-primary)' }} />
+              <div>
+                <h1 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>System Health</h1>
+                <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-muted)' }}>Real-time infrastructure telemetry • 10s refresh</p>
               </div>
-            )}
-            <button className="admin-btn-secondary" onClick={() => refetch()}><RefreshCw className="w-4 h-4" /></button>
+            </div>
+            <div className="flex items-center gap-3">
+              {health && (
+                <div className="flex items-center gap-2">
+                  {statusIcon(health.status)}
+                  <span className={`badge ${health.status === 'healthy' ? 'badge-success' : health.status === 'warning' ? 'badge-warning' : 'badge-danger'}`}>
+                    {health.status?.toUpperCase()}
+                  </span>
+                </div>
+              )}
+              <button
+                type="button"
+                className="admin-btn-secondary"
+                onClick={() => refetch()}
+                aria-label="Refresh system health"
+                title="Refresh system health"
+              >
+                <RefreshCw className="w-4 h-4" />
+              </button>
+            </div>
           </div>
         </header>
 
-        <div className="flex-1 overflow-auto p-6 space-y-6">
+        <div className="flex-1 overflow-auto p-5">
+          <div className="max-w-[var(--content-max-width)] mx-auto space-y-4">
           {/* Health Rings */}
           <div>
             <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: 'var(--text-muted)' }}>Resource Usage</p>
@@ -159,7 +175,7 @@ export default function SystemPage() {
                       </td>
                       <td>
                         <div className="flex items-center gap-2">
-                          <div className="w-2.5 h-2.5 rounded-full animate-pulse-dot" style={{ background: svc.color }} />
+                          <div className="w-2.5 h-2.5 rounded-full animate-pulse" style={{ background: svc.color }} />
                           <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>Monitoring</span>
                         </div>
                       </td>
@@ -168,6 +184,7 @@ export default function SystemPage() {
                 </tbody>
               </table>
             </div>
+          </div>
           </div>
         </div>
       </div>

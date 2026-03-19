@@ -1,4 +1,8 @@
-import { ExecutionContext, UnauthorizedException } from '@nestjs/common';
+import {
+  ExecutionContext,
+  ForbiddenException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
@@ -75,6 +79,7 @@ describe('AdminGuard', () => {
       id: 'admin:admin@tradetaper.com',
       email: 'admin@tradetaper.com',
       role: 'admin',
+      adminRole: 'super-admin',
       mfa: true,
     });
   });
@@ -107,5 +112,27 @@ describe('AdminGuard', () => {
         }),
       ),
     ).rejects.toBeInstanceOf(UnauthorizedException);
+  });
+
+  it('rejects admin token when route requires a different scoped role', async () => {
+    reflector.getAllAndOverride
+      .mockReturnValueOnce(false)
+      .mockReturnValueOnce(['billing-admin']);
+    jwtService.verify.mockReturnValue({
+      sub: 'admin:admin@tradetaper.com',
+      email: 'admin@tradetaper.com',
+      role: 'admin',
+      adminRole: 'readonly-ops',
+      mfa: true,
+    } as never);
+
+    await expect(
+      guard.canActivate(
+        createContext({
+          headers: { authorization: 'Bearer token' },
+          cookies: {},
+        }),
+      ),
+    ).rejects.toBeInstanceOf(ForbiddenException);
   });
 });

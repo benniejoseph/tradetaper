@@ -1,0 +1,1106 @@
+openapi: 3.0.3
+info:
+  title: TradeTaper Admin API Contracts
+  version: 1.0.0
+  description: OpenAPI contract used to generate typed admin frontend DTOs.
+servers:
+  - url: https://api.tradetaper.com/api/v1
+paths:
+  /admin/dashboard/stats:
+    get:
+      operationId: getDashboardStats
+      responses:
+        '200':
+          description: Dashboard KPI summary
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DashboardStats'
+  /admin/user-analytics/{timeRange}:
+    get:
+      operationId: getUserAnalytics
+      parameters:
+        - $ref: '#/components/parameters/TimeRangeParam'
+      responses:
+        '200':
+          description: User analytics trend
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnalyticsData'
+  /admin/revenue-analytics/{timeRange}:
+    get:
+      operationId: getRevenueAnalytics
+      parameters:
+        - $ref: '#/components/parameters/TimeRangeParam'
+      responses:
+        '200':
+          description: Revenue analytics trend
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnalyticsData'
+  /admin/system-health:
+    get:
+      operationId: getSystemHealth
+      responses:
+        '200':
+          description: System health snapshot
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SystemHealth'
+  /admin/activity-feed:
+    get:
+      operationId: getActivityFeed
+      parameters:
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+      responses:
+        '200':
+          description: Recent activity
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ActivityItem'
+  /admin/subscription/analytics:
+    get:
+      operationId: getSubscriptionAnalytics
+      parameters:
+        - in: query
+          name: timeRange
+          schema:
+            type: string
+            enum: [7d, 30d, 90d, 1y]
+      responses:
+        '200':
+          description: Subscription breakdown
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubscriptionAnalytics'
+  /admin/users:
+    get:
+      operationId: getUsers
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - in: query
+          name: search
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Paginated users
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsersResponse'
+  /admin/users/{userId}:
+    get:
+      operationId: getUserDetail
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: User detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminUserDetailResponse'
+  /admin/trades:
+    get:
+      operationId: getTrades
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - in: query
+          name: status
+          schema:
+            type: string
+        - in: query
+          name: userId
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Paginated trades
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminTradesResponse'
+  /admin/accounts:
+    get:
+      operationId: getAccounts
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - in: query
+          name: userId
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Paginated accounts
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminAccountsResponse'
+  /admin/subscriptions:
+    get:
+      operationId: getSubscriptions
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - in: query
+          name: status
+          schema:
+            type: string
+        - in: query
+          name: plan
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Paginated subscriptions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminSubscriptionsResponse'
+  /admin/auth/audit-logs:
+    get:
+      operationId: getAuthAuditLogs
+      parameters:
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            minimum: 1
+        - in: query
+          name: offset
+          schema:
+            type: integer
+            minimum: 0
+        - in: query
+          name: eventType
+          schema:
+            type: string
+        - in: query
+          name: outcome
+          schema:
+            type: string
+            enum: [success, failure]
+      responses:
+        '200':
+          description: Admin auth audit log entries
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminAuthAuditLogsResponse'
+  /admin/auth/me:
+    get:
+      operationId: getAdminSession
+      responses:
+        '200':
+          description: Current authenticated admin session
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminSession'
+  /admin/logs:
+    get:
+      operationId: getSystemLogs
+      parameters:
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            minimum: 1
+        - in: query
+          name: offset
+          schema:
+            type: integer
+            minimum: 0
+        - in: query
+          name: level
+          schema:
+            type: string
+            enum: [info, warn, error]
+        - in: query
+          name: startDate
+          schema:
+            type: string
+        - in: query
+          name: endDate
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Recent backend request logs
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminSystemLogsResponse'
+  /admin/logs/stream:
+    get:
+      operationId: getLogsStream
+      responses:
+        '200':
+          description: Snapshot of latest logs for stream-like UI updates
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - message
+                  - latestLogs
+                properties:
+                  message:
+                    type: string
+                  latestLogs:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AdminSystemLogEntry'
+  /admin/analytics/performance:
+    get:
+      operationId: getPerformanceMetrics
+      parameters:
+        - in: query
+          name: timeRange
+          schema:
+            type: string
+            example: 1h
+      responses:
+        '200':
+          description: Request performance telemetry
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PerformanceMetricsResponse'
+  /admin/api/usage:
+    get:
+      operationId: getApiUsageStats
+      parameters:
+        - in: query
+          name: timeRange
+          schema:
+            type: string
+            example: 24h
+      responses:
+        '200':
+          description: API usage metrics by endpoint and method
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiUsageStats'
+  /admin/database/tables:
+    get:
+      operationId: getDatabaseTables
+      responses:
+        '200':
+          description: Table names
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+  /admin/database/columns/{table}:
+    get:
+      operationId: getDatabaseColumns
+      parameters:
+        - in: path
+          name: table
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Table columns
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DatabaseColumn'
+  /admin/database/rows/{table}:
+    get:
+      operationId: getDatabaseRows
+      parameters:
+        - in: path
+          name: table
+          required: true
+          schema:
+            type: string
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+      responses:
+        '200':
+          description: Table rows
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DatabaseRowsResponse'
+  /admin/database/run-sql:
+    post:
+      operationId: runSqlQuery
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SqlQueryRequest'
+      responses:
+        '200':
+          description: SQL execution response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SqlQueryResponse'
+components:
+  parameters:
+    TimeRangeParam:
+      in: path
+      name: timeRange
+      required: true
+      schema:
+        type: string
+        enum: [7d, 30d, 90d, 1y]
+    PageParam:
+      in: query
+      name: page
+      schema:
+        type: integer
+        minimum: 1
+    LimitParam:
+      in: query
+      name: limit
+      schema:
+        type: integer
+        minimum: 1
+  schemas:
+    DashboardStats:
+      type: object
+      required:
+        - totalUsers
+        - userGrowth
+        - activeUsers
+        - activeGrowth
+        - totalRevenue
+        - revenueGrowth
+        - totalTrades
+        - tradeGrowth
+      properties:
+        totalUsers:
+          type: number
+        userGrowth:
+          type: number
+        activeUsers:
+          type: number
+        activeGrowth:
+          type: number
+        totalRevenue:
+          type: number
+        revenueGrowth:
+          type: number
+        totalTrades:
+          type: number
+        tradeGrowth:
+          type: number
+        totalSubscriptions:
+          type: number
+        avgTradesPerUser:
+          type: number
+        successRate:
+          type: number
+        monthlyGrowth:
+          type: number
+    AnalyticsPoint:
+      type: object
+      required:
+        - date
+      properties:
+        date:
+          type: string
+        users:
+          type: number
+        revenue:
+          type: number
+        trades:
+          type: number
+    AnalyticsData:
+      type: object
+      required:
+        - labels
+        - values
+        - data
+      properties:
+        labels:
+          type: array
+          items:
+            type: string
+        values:
+          type: array
+          items:
+            type: number
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/AnalyticsPoint'
+    SystemHealth:
+      type: object
+      required:
+        - status
+        - uptime
+        - responseTime
+        - memoryUsage
+        - cpuUsage
+        - cacheHitRate
+      properties:
+        status:
+          type: string
+          enum: [healthy, warning, critical]
+        uptime:
+          type: number
+        responseTime:
+          type: number
+        memoryUsage:
+          type: number
+        cpuUsage:
+          type: number
+        diskUsage:
+          type: number
+        databaseConnections:
+          type: number
+        errors24h:
+          type: number
+        apiCalls24h:
+          type: number
+        cacheHitRate:
+          type: number
+        timestamp:
+          type: string
+    ActivityUser:
+      type: object
+      required:
+        - id
+        - name
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+    ActivityItem:
+      type: object
+      required:
+        - id
+        - type
+        - description
+        - timestamp
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+        description:
+          type: string
+        timestamp:
+          type: string
+        user:
+          $ref: '#/components/schemas/ActivityUser'
+    SubscriptionDistributionItem:
+      type: object
+      required:
+        - plan
+        - count
+        - revenue
+      properties:
+        plan:
+          type: string
+        planKey:
+          type: string
+        count:
+          type: number
+        revenue:
+          type: number
+        color:
+          type: string
+        price:
+          type: number
+    SubscriptionAnalytics:
+      type: object
+      required:
+        - subscriptionDistribution
+      properties:
+        subscriptionDistribution:
+          type: array
+          items:
+            $ref: '#/components/schemas/SubscriptionDistributionItem'
+    AdminUserReference:
+      type: object
+      required:
+        - id
+        - email
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+        firstName:
+          type: string
+          nullable: true
+        lastName:
+          type: string
+          nullable: true
+    AdminUserSubscription:
+      type: object
+      properties:
+        plan:
+          type: string
+          nullable: true
+        tier:
+          type: string
+          nullable: true
+        planKey:
+          type: string
+          nullable: true
+        status:
+          type: string
+          nullable: true
+        price:
+          type: number
+          nullable: true
+    AdminUserRecord:
+      allOf:
+        - $ref: '#/components/schemas/AdminUserReference'
+        - type: object
+          required:
+            - createdAt
+          properties:
+            createdAt:
+              type: string
+            updatedAt:
+              type: string
+            isEmailVerified:
+              type: boolean
+            subscription:
+              allOf:
+                - $ref: '#/components/schemas/AdminUserSubscription'
+              nullable: true
+    AdminTradeRecord:
+      type: object
+      required:
+        - id
+        - symbol
+        - side
+        - status
+        - createdAt
+      properties:
+        id:
+          type: string
+        symbol:
+          type: string
+        side:
+          type: string
+        status:
+          type: string
+        openPrice:
+          type: number
+          nullable: true
+        closePrice:
+          type: number
+          nullable: true
+        profitOrLoss:
+          type: number
+          nullable: true
+        createdAt:
+          type: string
+        openTime:
+          type: string
+          nullable: true
+        closeTime:
+          type: string
+          nullable: true
+        user:
+          allOf:
+            - $ref: '#/components/schemas/AdminUserReference'
+          nullable: true
+    AdminAccountRecord:
+      type: object
+      required:
+        - id
+        - createdAt
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+          nullable: true
+        balance:
+          type: number
+          nullable: true
+        currency:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+        user:
+          allOf:
+            - $ref: '#/components/schemas/AdminUserReference'
+          nullable: true
+    AdminSubscriptionRecord:
+      type: object
+      required:
+        - id
+        - createdAt
+      properties:
+        id:
+          type: string
+        plan:
+          type: string
+          nullable: true
+        tier:
+          type: string
+          nullable: true
+        planKey:
+          type: string
+          nullable: true
+        status:
+          type: string
+          nullable: true
+        price:
+          type: number
+          nullable: true
+        stripeSubscriptionId:
+          type: string
+          nullable: true
+        startDate:
+          type: string
+          nullable: true
+        endDate:
+          type: string
+          nullable: true
+        currentPeriodStart:
+          type: string
+          nullable: true
+        currentPeriodEnd:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+        user:
+          allOf:
+            - $ref: '#/components/schemas/AdminUserReference'
+          nullable: true
+    UsersResponse:
+      type: object
+      required:
+        - data
+        - total
+        - page
+        - limit
+        - totalPages
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/AdminUserRecord'
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+        totalPages:
+          type: integer
+    AdminTradesSummary:
+      type: object
+      required:
+        - totalPnl
+        - winRate
+        - winCount
+      properties:
+        totalPnl:
+          type: number
+        winRate:
+          type: number
+        winCount:
+          type: number
+        closedCount:
+          type: number
+    AdminAccountsSummary:
+      type: object
+      required:
+        - totalBalance
+      properties:
+        totalBalance:
+          type: number
+    AdminSubscriptionsSummary:
+      type: object
+      required:
+        - activeCount
+      properties:
+        activeCount:
+          type: number
+    AdminTradesResponse:
+      type: object
+      required:
+        - data
+        - total
+        - page
+        - limit
+        - totalPages
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/AdminTradeRecord'
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+        totalPages:
+          type: integer
+        summary:
+          $ref: '#/components/schemas/AdminTradesSummary'
+    AdminAccountsResponse:
+      type: object
+      required:
+        - data
+        - total
+        - page
+        - limit
+        - totalPages
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/AdminAccountRecord'
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+        totalPages:
+          type: integer
+        summary:
+          $ref: '#/components/schemas/AdminAccountsSummary'
+    AdminSubscriptionsResponse:
+      type: object
+      required:
+        - data
+        - total
+        - page
+        - limit
+        - totalPages
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/AdminSubscriptionRecord'
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+        totalPages:
+          type: integer
+        summary:
+          $ref: '#/components/schemas/AdminSubscriptionsSummary'
+    AdminUserDetailResponse:
+      type: object
+      properties:
+        error:
+          type: string
+        user:
+          $ref: '#/components/schemas/AdminUserRecord'
+        trades:
+          type: array
+          items:
+            $ref: '#/components/schemas/AdminTradeRecord'
+        tradeCount:
+          type: integer
+        accounts:
+          type: array
+          items:
+            $ref: '#/components/schemas/AdminAccountRecord'
+        accountCount:
+          type: integer
+        totalPnl:
+          type: number
+    AdminAuthAuditLogEntry:
+      type: object
+      required:
+        - id
+        - eventType
+        - outcome
+        - createdAt
+      properties:
+        id:
+          type: string
+        eventType:
+          type: string
+        outcome:
+          type: string
+          enum: [success, failure]
+        adminEmail:
+          type: string
+          nullable: true
+        ipAddress:
+          type: string
+          nullable: true
+        userAgent:
+          type: string
+          nullable: true
+        reason:
+          type: string
+          nullable: true
+        requestId:
+          type: string
+          nullable: true
+        metadata:
+          type: object
+          nullable: true
+          additionalProperties: true
+        createdAt:
+          type: string
+    AdminAuthAuditLogsResponse:
+      type: object
+      required:
+        - data
+        - total
+        - limit
+        - offset
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/AdminAuthAuditLogEntry'
+        total:
+          type: integer
+        limit:
+          type: integer
+        offset:
+          type: integer
+    AdminRole:
+      type: string
+      enum: [super-admin, billing-admin, readonly-ops]
+    AdminSession:
+      type: object
+      required:
+        - email
+        - role
+        - adminRole
+        - mfaVerified
+      properties:
+        email:
+          type: string
+        role:
+          type: string
+          enum: [admin]
+        adminRole:
+          $ref: '#/components/schemas/AdminRole'
+        mfaVerified:
+          type: boolean
+    AdminSystemLogEntry:
+      type: object
+      required:
+        - id
+        - level
+        - message
+        - timestamp
+      properties:
+        id:
+          type: string
+        level:
+          type: string
+          enum: [error, warn, info]
+        message:
+          type: string
+        context:
+          type: string
+          nullable: true
+        details:
+          type: object
+          nullable: true
+          additionalProperties: true
+        timestamp:
+          type: string
+        userId:
+          type: string
+          nullable: true
+        endpoint:
+          type: string
+          nullable: true
+        method:
+          type: string
+          nullable: true
+    AdminSystemLogsResponse:
+      type: object
+      required:
+        - data
+        - total
+        - limit
+        - offset
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/AdminSystemLogEntry'
+        total:
+          type: integer
+        limit:
+          type: integer
+        offset:
+          type: integer
+    PerformanceMetricPoint:
+      type: object
+      required:
+        - timestamp
+        - responseTime
+        - throughput
+        - errorRate
+        - cpuUsage
+        - memoryUsage
+      properties:
+        timestamp:
+          type: string
+        responseTime:
+          type: number
+        throughput:
+          type: number
+        errorRate:
+          type: number
+        cpuUsage:
+          type: number
+        memoryUsage:
+          type: number
+    PerformanceMetricsResponse:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/PerformanceMetricPoint'
+    ApiUsageEndpoint:
+      type: object
+      required:
+        - endpoint
+        - count
+        - avgResponseTime
+      properties:
+        endpoint:
+          type: string
+        count:
+          type: number
+        avgResponseTime:
+          type: number
+    ApiUsageMethod:
+      type: object
+      required:
+        - method
+        - count
+        - percentage
+      properties:
+        method:
+          type: string
+        count:
+          type: number
+        percentage:
+          type: number
+    ApiUsageStats:
+      type: object
+      required:
+        - totalRequests
+        - requestsByEndpoint
+        - requestsByMethod
+        - timeRange
+      properties:
+        totalRequests:
+          type: number
+        requestsByEndpoint:
+          type: array
+          items:
+            $ref: '#/components/schemas/ApiUsageEndpoint'
+        requestsByMethod:
+          type: array
+          items:
+            $ref: '#/components/schemas/ApiUsageMethod'
+        timeRange:
+          type: string
+    DatabaseColumn:
+      type: object
+      required:
+        - column_name
+        - data_type
+        - is_nullable
+      properties:
+        column_name:
+          type: string
+        data_type:
+          type: string
+        is_nullable:
+          type: string
+        column_default:
+          type: string
+          nullable: true
+    DatabaseRow:
+      type: object
+      additionalProperties: true
+    DatabaseRowsResponse:
+      type: object
+      required:
+        - data
+        - total
+        - page
+        - limit
+        - totalPages
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/DatabaseRow'
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+        totalPages:
+          type: integer
+    SqlQueryRequest:
+      type: object
+      required:
+        - sql
+      properties:
+        sql:
+          type: string
+    SqlQueryResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        result:
+          type: array
+          items:
+            $ref: '#/components/schemas/DatabaseRow'
+        error:
+          type: string
+        message:
+          type: string

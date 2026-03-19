@@ -3,22 +3,16 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import Sidebar from '@/components/Sidebar';
+import { API_BASE_URL } from '@/lib/api-base-url';
 import { 
   Server, 
-  Database, 
-  Cloud, 
   CheckCircle, 
   XCircle, 
   AlertTriangle, 
   Clock, 
   RefreshCw,
   ExternalLink,
-  Globe,
-  Zap,
-  Shield,
   Activity,
-  Wifi,
-  HardDrive
 } from 'lucide-react';
 
 interface ServiceStatus {
@@ -27,7 +21,7 @@ interface ServiceStatus {
   responseTime?: number;
   lastChecked: string;
   url?: string;
-  details?: any;
+  details?: Record<string, unknown> | null;
   error?: string;
 }
 
@@ -77,252 +71,157 @@ export default function StatusPage() {
 
   const checkAllServices = async () => {
     setIsRefreshing(true);
-    const newServices: ServiceStatus[] = [];
-
-    // Check Backend API
     try {
-      const startTime = Date.now();
-      const response = await fetch('https://api.tradetaper.com/api/v1/health');
-      const responseTime = Date.now() - startTime;
-      
-      if (response.ok) {
-        const data = await response.json();
-        newServices.push({
-          name: 'Backend API',
-          status: 'online',
-          responseTime,
-          lastChecked: new Date().toISOString(),
-          url: 'https://api.tradetaper.com',
-          details: data
-        });
-      } else {
-        newServices.push({
-          name: 'Backend API',
-          status: 'degraded',
-          lastChecked: new Date().toISOString(),
-          url: 'https://api.tradetaper.com',
-          error: `HTTP ${response.status}`
-        });
-      }
-    } catch (error: any) {
-      newServices.push({
-        name: 'Backend API',
-        status: 'offline',
-        lastChecked: new Date().toISOString(),
-        url: 'https://api.tradetaper.com',
-        error: error.message
-      });
-    }
+      const checkedAt = new Date().toISOString();
+      const newServices: ServiceStatus[] = [];
+      const apiOrigin = API_BASE_URL.replace(/\/api\/v1$/, '');
 
-    // Check Backend Ping Endpoint
-    try {
-      const startTime = Date.now();
-      const response = await fetch('https://api.tradetaper.com/api/v1/ping');
-      const responseTime = Date.now() - startTime;
-      
-      if (response.ok) {
-        const data = await response.json();
-        newServices.push({
-          name: 'Backend Ping',
-          status: 'online',
-          responseTime,
-          lastChecked: new Date().toISOString(),
-          url: 'https://api.tradetaper.com/api/v1/ping',
-          details: data
+      try {
+        const startTime = Date.now();
+        const response = await fetch(`${apiOrigin}/api/v1/health`, {
+          cache: 'no-store',
         });
-      } else {
-        newServices.push({
-          name: 'Backend Ping',
-          status: 'offline',
-          lastChecked: new Date().toISOString(),
-          url: 'https://api.tradetaper.com/api/v1/ping',
-          error: `HTTP ${response.status}`
-        });
-      }
-    } catch (error: any) {
-      newServices.push({
-        name: 'Backend Ping',
-        status: 'offline',
-        lastChecked: new Date().toISOString(),
-        url: 'https://api.tradetaper.com/api/v1/ping',
-        error: error.message
-      });
-    }
+        const responseTime = Date.now() - startTime;
 
-    // Check Admin Login Endpoint
-    try {
-      const startTime = Date.now();
-      const response = await fetch('https://api.tradetaper.com/api/v1/admin/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: 'test', password: 'test' })
-      });
-      const responseTime = Date.now() - startTime;
-      
-      if (response.status === 401) {
-        // 401 is expected for wrong credentials, means endpoint is working
-        newServices.push({
-          name: 'Admin Login',
-          status: 'online',
-          responseTime,
-          lastChecked: new Date().toISOString(),
-          url: 'https://api.tradetaper.com/api/v1/admin/auth/login',
-          details: { note: 'Endpoint accessible (401 expected)' }
-        });
-      } else if (response.status === 404) {
-        newServices.push({
-          name: 'Admin Login',
-          status: 'offline',
-          lastChecked: new Date().toISOString(),
-          url: 'https://api.tradetaper.com/api/v1/admin/auth/login',
-          error: 'Endpoint not found (404)'
-        });
-      } else {
-        newServices.push({
-          name: 'Admin Login',
-          status: 'degraded',
-          lastChecked: new Date().toISOString(),
-          url: 'https://api.tradetaper.com/api/v1/admin/auth/login',
-          error: `HTTP ${response.status}`
-        });
-      }
-    } catch (error: any) {
-      newServices.push({
-        name: 'Admin Login',
-        status: 'offline',
-        lastChecked: new Date().toISOString(),
-        url: 'https://api.tradetaper.com/api/v1/admin/auth/login',
-        error: error.message
-      });
-    }
-
-    // Check Database Access
-    try {
-      const startTime = Date.now();
-      const response = await fetch('https://api.tradetaper.com/api/v1/admin/database/tables', {
-        headers: { 'Authorization': 'Bearer mock-token' }
-      });
-      const responseTime = Date.now() - startTime;
-      
-      if (response.status === 401) {
-        // 401 means endpoint exists but requires auth
-        newServices.push({
-          name: 'Database Access',
-          status: 'online',
-          responseTime,
-          lastChecked: new Date().toISOString(),
-          details: { note: 'Endpoint accessible (auth required)' }
-        });
-      } else if (response.status === 404) {
-        newServices.push({
-          name: 'Database Access',
-          status: 'offline',
-          lastChecked: new Date().toISOString(),
-          error: 'Endpoint not found (404)'
-        });
-      } else if (response.ok) {
-        newServices.push({
-          name: 'Database Access',
-          status: 'online',
-          responseTime,
-          lastChecked: new Date().toISOString(),
-          details: { note: 'Endpoint accessible' }
-        });
-      } else {
-        newServices.push({
-          name: 'Database Access',
-          status: 'degraded',
-          lastChecked: new Date().toISOString(),
-          error: `HTTP ${response.status}`
-        });
-      }
-    } catch (error: any) {
-      newServices.push({
-        name: 'Database Access',
-        status: 'offline',
-        lastChecked: new Date().toISOString(),
-        error: error.message
-      });
-    }
-
-    // Check Frontend
-    try {
-      const startTime = Date.now();
-      const response = await fetch('https://tradetaper-frontend-benniejosephs-projects.vercel.app');
-      const responseTime = Date.now() - startTime;
-      
-      if (response.ok) {
-        newServices.push({
-          name: 'Frontend',
-          status: 'online',
-          responseTime,
-          lastChecked: new Date().toISOString(),
-          url: 'https://tradetaper-frontend-benniejosephs-projects.vercel.app'
-        });
-      } else {
-        newServices.push({
-          name: 'Frontend',
-          status: 'degraded',
-          lastChecked: new Date().toISOString(),
-          url: 'https://tradetaper-frontend-benniejosephs-projects.vercel.app',
-          error: `HTTP ${response.status}`
-        });
-      }
-    } catch (error: any) {
-      newServices.push({
-        name: 'Frontend',
-        status: 'offline',
-        lastChecked: new Date().toISOString(),
-        url: 'https://tradetaper-frontend-benniejosephs-projects.vercel.app',
-        error: error.message
-      });
-    }
-
-    // Check Current Admin (this page)
-    newServices.push({
-      name: 'Admin Panel',
-      status: 'online',
-      lastChecked: new Date().toISOString(),
-      url: window.location.origin,
-      details: { note: 'Currently viewing' }
-    });
-
-    setServices(newServices);
-    setLastRefresh(new Date().toISOString());
-    setIsRefreshing(false);
-
-    // Update system info
-    const backendService = newServices.find(s => s.name === 'Backend API');
-    setSystemInfo({
-      deployment: {
-        backend: {
-          url: 'https://api.tradetaper.com',
-          version: backendService?.details?.version || 'Unknown',
-          uptime: backendService?.details?.uptime || 0,
-          status: backendService?.status || 'unknown'
-        },
-        admin: {
-          url: window.location.origin,
-          status: 'online',
-          lastDeploy: 'Latest'
-        },
-        frontend: {
-          url: 'https://tradetaper-frontend-benniejosephs-projects.vercel.app',
-          status: newServices.find(s => s.name === 'Frontend')?.status || 'unknown',
-          lastDeploy: 'Latest'
+        if (response.ok) {
+          const data = await response.json().catch(() => null);
+          newServices.push({
+            name: 'Backend API',
+            status: 'online',
+            responseTime,
+            lastChecked: checkedAt,
+            url: `${apiOrigin}/api/v1/health`,
+            details: data,
+          });
+        } else {
+          newServices.push({
+            name: 'Backend API',
+            status: 'degraded',
+            responseTime,
+            lastChecked: checkedAt,
+            url: `${apiOrigin}/api/v1/health`,
+            error: `HTTP ${response.status}`,
+          });
         }
-      },
-      database: {
-        status: backendService?.details?.database || 'unknown',
-        connectionCount: 0,
-        responseTime: backendService?.responseTime || 0
-      },
-      external: {
-        railway: backendService?.status === 'online',
-        vercel: true,
-        github: true
+      } catch (error: unknown) {
+        newServices.push({
+          name: 'Backend API',
+          status: 'offline',
+          lastChecked: checkedAt,
+          url: `${apiOrigin}/api/v1/health`,
+          error: error instanceof Error ? error.message : 'Request failed',
+        });
       }
-    });
+
+      try {
+        const startTime = Date.now();
+        const response = await fetch(`${API_BASE_URL}/admin/system-health`, {
+          credentials: 'include',
+          cache: 'no-store',
+        });
+        const responseTime = Date.now() - startTime;
+
+        if (response.ok) {
+          const data = await response.json().catch(() => null);
+          newServices.push({
+            name: 'Admin API',
+            status: 'online',
+            responseTime,
+            lastChecked: checkedAt,
+            url: `${API_BASE_URL}/admin/system-health`,
+            details: data,
+          });
+        } else if (response.status === 401) {
+          newServices.push({
+            name: 'Admin API',
+            status: 'degraded',
+            responseTime,
+            lastChecked: checkedAt,
+            url: `${API_BASE_URL}/admin/system-health`,
+            error: 'Admin session expired',
+          });
+        } else {
+          newServices.push({
+            name: 'Admin API',
+            status: 'degraded',
+            responseTime,
+            lastChecked: checkedAt,
+            url: `${API_BASE_URL}/admin/system-health`,
+            error: `HTTP ${response.status}`,
+          });
+        }
+      } catch (error: unknown) {
+        newServices.push({
+          name: 'Admin API',
+          status: 'offline',
+          lastChecked: checkedAt,
+          url: `${API_BASE_URL}/admin/system-health`,
+          error: error instanceof Error ? error.message : 'Request failed',
+        });
+      }
+
+      newServices.push({
+        name: 'Admin Panel',
+        status: 'online',
+        lastChecked: checkedAt,
+        url: window.location.origin,
+        details: { note: 'Currently viewing' },
+      });
+
+      setServices(newServices);
+      setLastRefresh(checkedAt);
+
+      const backendPublic = newServices.find((s) => s.name === 'Backend API');
+      const adminApi = newServices.find((s) => s.name === 'Admin API');
+      const backendDetails = backendPublic?.details || {};
+      const adminDetails = adminApi?.details || {};
+
+      setSystemInfo({
+        deployment: {
+          backend: {
+            url: apiOrigin,
+            version: typeof backendDetails.version === 'string' ? backendDetails.version : 'n/a',
+            uptime:
+              typeof adminDetails.uptime === 'number'
+                ? adminDetails.uptime
+                : typeof backendDetails.uptime === 'number'
+                  ? backendDetails.uptime
+                  : 0,
+            status: backendPublic?.status || 'unknown',
+          },
+          admin: {
+            url: window.location.origin,
+            status: 'online',
+            lastDeploy: 'Latest',
+          },
+          frontend: {
+            url: 'Not monitored from browser',
+            status: 'unknown',
+            lastDeploy: 'N/A',
+          },
+        },
+        database: {
+          status:
+            typeof backendDetails.db === 'string'
+              ? backendDetails.db
+              : typeof adminDetails.database === 'string'
+                ? adminDetails.database
+                : 'unknown',
+          connectionCount:
+            typeof adminDetails.databaseConnections === 'number'
+              ? adminDetails.databaseConnections
+              : 0,
+          responseTime: adminApi?.responseTime || backendPublic?.responseTime || 0,
+        },
+        external: {
+          railway: backendPublic?.status === 'online',
+          vercel: true,
+          github: false,
+        },
+      });
+    } finally {
+      setIsRefreshing(false);
+    }
   };
 
   const getStatusIcon = (status: string) => {
@@ -335,19 +234,6 @@ export default function StatusPage() {
         return <XCircle className="w-5 h-5 text-red-400" />;
       default:
         return <Clock className="w-5 h-5 text-gray-400" />;
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'online':
-        return 'border-green-500/30 bg-green-900/20';
-      case 'degraded':
-        return 'border-yellow-500/30 bg-yellow-900/20';
-      case 'offline':
-        return 'border-red-500/30 bg-red-900/20';
-      default:
-        return 'border-gray-500/30 bg-gray-900/20';
     }
   };
 
@@ -370,237 +256,210 @@ export default function StatusPage() {
   };
 
   return (
-    <div className="flex h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-black">
+    <div className="flex h-dvh" style={{ background: 'var(--bg-base)' }}>
       <Sidebar isCollapsed={sidebarCollapsed} onToggle={() => setSidebarCollapsed(!sidebarCollapsed)} />
-      
-      <div className="flex-1 overflow-hidden">
-        <main className="flex-1 scrollable-content p-6">
-      <div className="max-w-7xl mx-auto">
+
+      <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
         {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="mb-8"
+        <header
+          className="sticky top-0 z-40 border-b px-6 py-3 backdrop-blur-xl flex-shrink-0"
+          style={{
+            background: 'color-mix(in srgb, var(--bg-surface) 92%, transparent)',
+            borderColor: 'var(--border-subtle)',
+          }}
         >
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center">
-              <div className="inline-flex items-center justify-center w-12 h-12 bg-gradient-to-r from-blue-600 to-green-600 rounded-xl mr-4">
-                <Activity className="w-6 h-6 text-white" />
-              </div>
+          <div className="max-w-[var(--content-max-width)] mx-auto flex items-center justify-between gap-4">
+            <div className="flex items-center gap-2.5">
+              <Activity className="w-5 h-5 flex-shrink-0" style={{ color: 'var(--accent-primary)' }} />
               <div>
-                <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-green-400 bg-clip-text text-transparent">
+                <h1 className="text-xl font-bold leading-none" style={{ color: 'var(--text-primary)' }}>
                   System Status
                 </h1>
-                <p className="text-gray-400">Real-time monitoring of all TradeTaper services</p>
+                <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                  Real-time monitoring of all TradeTaper services
+                </p>
               </div>
             </div>
             <button
               onClick={checkAllServices}
               disabled={isRefreshing}
-              className="flex items-center space-x-2 px-4 py-2 bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 rounded-lg transition-all"
+              className="admin-btn-secondary"
             >
-              <RefreshCw className={`w-4 h-4 text-blue-400 ${isRefreshing ? 'animate-spin' : ''}`} />
-              <span className="text-blue-400">Refresh</span>
+              <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+              <span>Refresh</span>
             </button>
           </div>
+        </header>
 
-          {/* Overall Status */}
-          <div className="bg-gray-900/80 backdrop-blur-xl border border-gray-700/50 rounded-2xl p-6 mb-8">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className={`text-2xl font-bold ${overallStatusColor()}`}>{overallStatus()}</h2>
-                <p className="text-gray-400">Last updated: {new Date(lastRefresh).toLocaleString()}</p>
-              </div>
-              <div className="flex items-center space-x-4">
-                <div className="text-center">
-                  <p className="text-2xl font-bold text-white">{services.filter(s => s.status === 'online').length}</p>
-                  <p className="text-xs text-gray-400">Online</p>
-                </div>
-                <div className="text-center">
-                  <p className="text-2xl font-bold text-yellow-400">{services.filter(s => s.status === 'degraded').length}</p>
-                  <p className="text-xs text-gray-400">Degraded</p>
-                </div>
-                <div className="text-center">
-                  <p className="text-2xl font-bold text-red-400">{services.filter(s => s.status === 'offline').length}</p>
-                  <p className="text-xs text-gray-400">Offline</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </motion.div>
+        <main className="flex-1 overflow-auto p-5">
+          <div className="max-w-[var(--content-max-width)] mx-auto space-y-4">
 
-        {/* Services Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-          {services.map((service, index) => (
+            {/* Overall Status Banner */}
             <motion.div
-              key={service.name}
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: index * 0.1 }}
-              className={`p-6 rounded-2xl border backdrop-blur-xl ${getStatusColor(service.status)}`}
+              className="admin-card p-4 flex flex-wrap items-center justify-between gap-4"
             >
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center space-x-3">
-                  {getStatusIcon(service.status)}
-                  <h3 className="text-lg font-semibold text-white">{service.name}</h3>
-                </div>
-                {service.url && (
-                  <a
-                    href={service.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-gray-400 hover:text-white transition-colors"
-                  >
-                    <ExternalLink className="w-4 h-4" />
-                  </a>
-                )}
+              <div>
+                <p className={`text-base font-bold ${overallStatusColor()}`}>{overallStatus()}</p>
+                <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                  Last updated: {new Date(lastRefresh).toLocaleTimeString()}
+                </p>
               </div>
-
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-sm text-gray-400">Status</span>
-                  <span className={`text-sm capitalize ${
-                    service.status === 'online' ? 'text-green-400' :
-                    service.status === 'degraded' ? 'text-yellow-400' :
-                    service.status === 'offline' ? 'text-red-400' :
-                    'text-gray-400'
-                  }`}>
-                    {service.status}
-                  </span>
-                </div>
-
-                {service.responseTime && (
-                  <div className="flex justify-between">
-                    <span className="text-sm text-gray-400">Response Time</span>
-                    <span className="text-sm text-white">{service.responseTime}ms</span>
+              <div className="flex items-center gap-6">
+                {[
+                  { label: 'Online', count: services.filter(s => s.status === 'online').length, color: '#10B981' },
+                  { label: 'Degraded', count: services.filter(s => s.status === 'degraded').length, color: '#FBBF24' },
+                  { label: 'Offline', count: services.filter(s => s.status === 'offline').length, color: '#F43F5E' },
+                ].map(stat => (
+                  <div key={stat.label} className="text-center">
+                    <p className="text-xl font-bold" style={{ color: stat.color }}>{stat.count}</p>
+                    <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{stat.label}</p>
                   </div>
-                )}
-
-                <div className="flex justify-between">
-                  <span className="text-sm text-gray-400">Last Checked</span>
-                  <span className="text-sm text-white">
-                    {new Date(service.lastChecked).toLocaleTimeString()}
-                  </span>
-                </div>
-
-                {service.error && (
-                  <div className="mt-3 p-2 bg-red-900/30 border border-red-700/50 rounded">
-                    <p className="text-xs text-red-300">{service.error}</p>
-                  </div>
-                )}
-
-                {service.details && (
-                  <div className="mt-3 p-2 bg-gray-800/50 rounded">
-                    <pre className="text-xs text-gray-300 overflow-x-auto">
-                      {JSON.stringify(service.details, null, 2)}
-                    </pre>
-                  </div>
-                )}
+                ))}
               </div>
             </motion.div>
-          ))}
-        </div>
 
-        {/* System Information */}
-        {systemInfo && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.8 }}
-            className="bg-gray-900/80 backdrop-blur-xl border border-gray-700/50 rounded-2xl p-6"
-          >
-            <h3 className="text-xl font-bold text-white mb-6 flex items-center">
-              <Server className="w-6 h-6 mr-2" />
-              System Information
-            </h3>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {/* Deployment Info */}
-              <div>
-                <h4 className="text-lg font-semibold text-white mb-4">Deployments</h4>
-                <div className="space-y-3">
-                  <div className="flex justify-between">
-                    <span className="text-gray-400">Backend</span>
-                    <span className={`text-sm ${
-                      systemInfo.deployment.backend.status === 'online' ? 'text-green-400' : 'text-red-400'
-                    }`}>
-                      v{systemInfo.deployment.backend.version}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-400">Admin</span>
-                    <span className="text-green-400 text-sm">Active</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-400">Frontend</span>
-                    <span className={`text-sm ${
-                      systemInfo.deployment.frontend.status === 'online' ? 'text-green-400' : 'text-red-400'
-                    }`}>
-                      {systemInfo.deployment.frontend.status}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* External Services */}
-              <div>
-                <h4 className="text-lg font-semibold text-white mb-4">External Services</h4>
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-400">Railway</span>
-                    {systemInfo.external.railway ? (
-                      <CheckCircle className="w-4 h-4 text-green-400" />
-                    ) : (
-                      <XCircle className="w-4 h-4 text-red-400" />
+            {/* Services Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+              {services.map((service, index) => (
+                <motion.div
+                  key={service.name}
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.35, delay: index * 0.05 }}
+                  className="admin-card p-4"
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      {getStatusIcon(service.status)}
+                      <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{service.name}</span>
+                    </div>
+                    {service.url && (
+                      <a
+                        href={service.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label={`Open ${service.name} endpoint`}
+                        title={`Open ${service.name} endpoint`}
+                        style={{ color: 'var(--text-muted)' }}
+                        className="hover:opacity-70 transition-opacity"
+                      >
+                        <ExternalLink className="w-3.5 h-3.5" />
+                      </a>
                     )}
                   </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-400">Vercel</span>
-                    {systemInfo.external.vercel ? (
-                      <CheckCircle className="w-4 h-4 text-green-400" />
-                    ) : (
-                      <XCircle className="w-4 h-4 text-red-400" />
-                    )}
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-400">GitHub</span>
-                    {systemInfo.external.github ? (
-                      <CheckCircle className="w-4 h-4 text-green-400" />
-                    ) : (
-                      <XCircle className="w-4 h-4 text-red-400" />
-                    )}
-                  </div>
-                </div>
-              </div>
 
-              {/* Performance */}
-              <div>
-                <h4 className="text-lg font-semibold text-white mb-4">Performance</h4>
-                <div className="space-y-3">
-                  <div className="flex justify-between">
-                    <span className="text-gray-400">Uptime</span>
-                    <span className="text-white text-sm">
-                      {Math.floor(systemInfo.deployment.backend.uptime / 3600)}h
-                    </span>
+                  <div className="space-y-1.5">
+                    <div className="flex justify-between">
+                      <span className="text-xs" style={{ color: 'var(--text-muted)' }}>Status</span>
+                      <span className={`text-xs font-semibold capitalize ${
+                        service.status === 'online' ? 'text-green-400' :
+                        service.status === 'degraded' ? 'text-yellow-400' :
+                        service.status === 'offline' ? 'text-red-400' : ''
+                      }`} style={service.status === 'unknown' ? { color: 'var(--text-muted)' } : {}}>
+                        {service.status}
+                      </span>
+                    </div>
+
+                    {service.responseTime != null && (
+                      <div className="flex justify-between">
+                        <span className="text-xs" style={{ color: 'var(--text-muted)' }}>Response</span>
+                        <span className="text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>{service.responseTime}ms</span>
+                      </div>
+                    )}
+
+                    <div className="flex justify-between">
+                      <span className="text-xs" style={{ color: 'var(--text-muted)' }}>Checked</span>
+                      <span className="text-xs font-mono" style={{ color: 'var(--text-secondary)' }}>
+                        {new Date(service.lastChecked).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </div>
+
+                    {service.error && (
+                      <div className="mt-2 px-2 py-1.5 rounded-md text-[10px]"
+                        style={{ background: 'var(--accent-danger-subtle)', color: 'var(--accent-danger)' }}>
+                        {service.error}
+                      </div>
+                    )}
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-400">DB Status</span>
-                    <span className={`text-sm ${
-                      systemInfo.database.status === 'connected' ? 'text-green-400' : 'text-red-400'
-                    }`}>
-                      {systemInfo.database.status}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-400">Response Time</span>
-                    <span className="text-white text-sm">{systemInfo.database.responseTime}ms</span>
-                  </div>
-                </div>
-              </div>
+                </motion.div>
+              ))}
             </div>
-          </motion.div>
-        )}
+
+            {/* System Information */}
+            {systemInfo && (
+              <motion.div
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.35, delay: 0.4 }}
+                className="admin-card p-5"
+              >
+                <h3 className="text-sm font-semibold mb-4 flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
+                  <Server className="w-4 h-4" style={{ color: 'var(--accent-primary)' }} />
+                  System Information
+                </h3>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                  <div>
+                    <p className="text-[10px] font-semibold uppercase tracking-wider mb-3" style={{ color: 'var(--text-muted)' }}>Deployments</p>
+                    <div className="space-y-2">
+                      {[
+                        { label: 'Backend', value: `v${systemInfo.deployment.backend.version}`, ok: systemInfo.deployment.backend.status === 'online' },
+                        { label: 'Admin', value: 'Active', ok: true },
+                        { label: 'Frontend', value: systemInfo.deployment.frontend.status, ok: systemInfo.deployment.frontend.status === 'online' },
+                      ].map(d => (
+                        <div key={d.label} className="flex justify-between">
+                          <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{d.label}</span>
+                          <span className="text-xs font-semibold" style={{ color: d.ok ? '#10B981' : '#F43F5E' }}>{d.value}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <p className="text-[10px] font-semibold uppercase tracking-wider mb-3" style={{ color: 'var(--text-muted)' }}>External Services</p>
+                    <div className="space-y-2">
+                      {[
+                        { label: 'GCP Cloud Run', ok: systemInfo.external.railway },
+                        { label: 'Vercel', ok: systemInfo.external.vercel },
+                        { label: 'GitHub', ok: systemInfo.external.github },
+                      ].map(ext => (
+                        <div key={ext.label} className="flex justify-between items-center">
+                          <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{ext.label}</span>
+                          {ext.ok
+                            ? <CheckCircle className="w-3.5 h-3.5 text-green-400" />
+                            : <XCircle className="w-3.5 h-3.5 text-red-400" />}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <p className="text-[10px] font-semibold uppercase tracking-wider mb-3" style={{ color: 'var(--text-muted)' }}>Performance</p>
+                    <div className="space-y-2">
+                      <div className="flex justify-between">
+                        <span className="text-xs" style={{ color: 'var(--text-muted)' }}>Uptime</span>
+                        <span className="text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>
+                          {Math.floor(systemInfo.deployment.backend.uptime / 3600)}h
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-xs" style={{ color: 'var(--text-muted)' }}>DB Status</span>
+                        <span className="text-xs font-semibold" style={{ color: systemInfo.database.status === 'connected' ? '#10B981' : '#F43F5E' }}>
+                          {systemInfo.database.status}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-xs" style={{ color: 'var(--text-muted)' }}>Response</span>
+                        <span className="text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>{systemInfo.database.responseTime}ms</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
           </div>
         </main>
       </div>

@@ -18,14 +18,13 @@ import {
 import toast from 'react-hot-toast';
 import { API_BASE_URL } from '@/lib/api-base-url';
 
-const ADMIN_TOKEN_STORAGE_KEY = 'admin_token';
-
 type LoginStep = 'credentials' | 'mfa' | 'enroll' | 'recovery-codes';
 type MfaMethod = 'otp' | 'recovery';
 
 interface AdminLoginResponse {
   access_token?: string;
   role?: 'admin';
+  adminRole?: 'super-admin' | 'billing-admin' | 'readonly-ops';
   mfaRequired?: boolean;
   mfaEnrollmentRequired?: boolean;
   challengeMethod?: 'totp' | 'totp_or_recovery';
@@ -56,12 +55,6 @@ function getErrorMessage(
     return payload.message[0];
   }
   return fallback;
-}
-
-function persistAdminToken(accessToken?: string): void {
-  if (typeof window !== 'undefined' && accessToken) {
-    localStorage.setItem(ADMIN_TOKEN_STORAGE_KEY, accessToken);
-  }
 }
 
 function LoginForm() {
@@ -171,7 +164,6 @@ function LoginForm() {
       return;
     }
 
-    persistAdminToken(data?.access_token);
     toast.success('Welcome back!');
     router.push(safeFrom);
   };
@@ -195,7 +187,6 @@ function LoginForm() {
       throw new Error(getErrorMessage(data, 'MFA verification failed'));
     }
 
-    persistAdminToken(data?.access_token);
     toast.success('Admin verification complete');
     router.push(safeFrom);
   };
@@ -220,7 +211,6 @@ function LoginForm() {
       throw new Error('Recovery codes were not returned');
     }
 
-    persistAdminToken(data?.access_token);
     setRecoveryCodes(data.recoveryCodes);
     setStep('recovery-codes');
     toast.success('MFA activated. Save your recovery codes now.');
@@ -319,6 +309,7 @@ function LoginForm() {
             <>
               <div>
                 <label
+                  htmlFor="admin-email"
                   className="block text-sm font-medium mb-2"
                   style={{ color: 'var(--text-secondary)' }}
                 >
@@ -338,12 +329,15 @@ function LoginForm() {
                     className="admin-input pl-10"
                     autoComplete="email"
                     id="admin-email"
+                    aria-invalid={!!error}
+                    aria-describedby={error ? 'admin-login-error' : undefined}
                   />
                 </div>
               </div>
 
               <div>
                 <label
+                  htmlFor="admin-password"
                   className="block text-sm font-medium mb-2"
                   style={{ color: 'var(--text-secondary)' }}
                 >
@@ -363,13 +357,16 @@ function LoginForm() {
                     className="admin-input pl-10 pr-10"
                     autoComplete="current-password"
                     id="admin-password"
+                    aria-invalid={!!error}
+                    aria-describedby={error ? 'admin-login-error' : undefined}
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 transition-colors"
                     style={{ color: 'var(--text-muted)' }}
-                    tabIndex={-1}
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    aria-pressed={showPassword}
                   >
                     {showPassword ? (
                       <EyeOff className="w-4 h-4" />
@@ -423,6 +420,7 @@ function LoginForm() {
               {mfaMethod === 'otp' ? (
                 <div>
                   <label
+                    htmlFor="admin-otp-code"
                     className="block text-sm font-medium mb-2"
                     style={{ color: 'var(--text-secondary)' }}
                   >
@@ -447,12 +445,15 @@ function LoginForm() {
                       pattern="\d{6}"
                       maxLength={6}
                       id="admin-otp-code"
+                      aria-invalid={!!error}
+                      aria-describedby={error ? 'admin-login-error' : undefined}
                     />
                   </div>
                 </div>
               ) : (
                 <div>
                   <label
+                    htmlFor="admin-recovery-code"
                     className="block text-sm font-medium mb-2"
                     style={{ color: 'var(--text-secondary)' }}
                   >
@@ -472,6 +473,8 @@ function LoginForm() {
                       className="admin-input pl-10 font-mono uppercase"
                       autoComplete="off"
                       id="admin-recovery-code"
+                      aria-invalid={!!error}
+                      aria-describedby={error ? 'admin-login-error' : undefined}
                     />
                   </div>
                 </div>
@@ -503,12 +506,12 @@ function LoginForm() {
               </div>
 
               <div>
-                <label
+                <p
                   className="block text-sm font-medium mb-2"
                   style={{ color: 'var(--text-secondary)' }}
                 >
                   Setup Key
-                </label>
+                </p>
                 <div
                   className="admin-input font-mono text-sm break-all"
                   style={{ minHeight: 44 }}
@@ -527,6 +530,7 @@ function LoginForm() {
 
               <div>
                 <label
+                  htmlFor="admin-enrollment-otp-code"
                   className="block text-sm font-medium mb-2"
                   style={{ color: 'var(--text-secondary)' }}
                 >
@@ -553,6 +557,8 @@ function LoginForm() {
                     pattern="\d{6}"
                     maxLength={6}
                     id="admin-enrollment-otp-code"
+                    aria-invalid={!!error}
+                    aria-describedby={error ? 'admin-login-error' : undefined}
                   />
                 </div>
               </div>
@@ -566,6 +572,9 @@ function LoginForm() {
                 animate={{ opacity: 1, height: 'auto' }}
                 exit={{ opacity: 0, height: 0 }}
                 className="flex items-center gap-2 p-3 rounded-lg text-sm"
+                id="admin-login-error"
+                role="alert"
+                aria-live="assertive"
                 style={{
                   background: 'var(--accent-danger-subtle)',
                   color: 'var(--accent-danger)',

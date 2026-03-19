@@ -50,6 +50,19 @@ export class TerminalFailedTradesQueue
   ) {}
 
   async onModuleInit() {
+    const forceInMemory = (
+      this.configService.get<string>('TERMINAL_QUEUE_IN_MEMORY_ONLY') || 'false'
+    )
+      .trim()
+      .toLowerCase();
+    if (forceInMemory === 'true' || forceInMemory === '1') {
+      this.logger.warn(
+        'TERMINAL_QUEUE_IN_MEMORY_ONLY enabled. Using in-memory failed-trades queue.',
+      );
+      this.useInMemory = true;
+      return;
+    }
+
     const redisUrl = this.configService.get<string>('REDIS_URL');
 
     if (!redisUrl) {

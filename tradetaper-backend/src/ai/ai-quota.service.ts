@@ -73,6 +73,18 @@ export class AiQuotaService {
     }
   }
 
+  private handleRedisRuntimeError(error: unknown): void {
+    this.ready = false;
+    const message =
+      error instanceof Error ? error.message : 'Unknown Redis error';
+    if (!this.redisErrorLogged) {
+      this.redisErrorLogged = true;
+      this.logger.warn(
+        `AiQuotaService Redis runtime error: ${message}. Quota enforcement disabled (fail-open).`,
+      );
+    }
+  }
+
   /** Returns the quota limit for the given plan. null = unlimited. 0 = blocked. */
   getQuotaForPlan(plan: string): number | null {
     const normalizedPlan = String(plan || '')
@@ -123,33 +135,45 @@ export class AiQuotaService {
     }
 
     const key = this.buildKey(userId);
-    const current = await this.client.incr(key);
+    try {
+      const current = await this.client.incr(key);
 
-    // On first increment, set TTL to end of current month
-    if (current === 1) {
-      await this.client.expire(key, this.secondsUntilEndOfMonth());
-    }
+      // On first increment, set TTL to end of current month
+      if (current === 1) {
+        await this.client.expire(key, this.secondsUntilEndOfMonth());
+      }
 
-    if (current > limit) {
-      // Decrement back to prevent overcounting
-      void this.client.decr(key);
+      if (current > limit) {
+        // Decrement back to prevent overcounting
+        void this.client.decr(key).catch(() => undefined);
 
-      throw new HttpException(
-        {
-          statusCode: 429,
-          message: `Monthly AI call limit reached (${limit} calls/month on your plan). Upgrade to Premium for unlimited access.`,
-          code: 'AI_QUOTA_EXCEEDED',
-          limit,
-          used: current - 1,
-          upgradeUrl: '/plans',
-        },
-        HttpStatus.TOO_MANY_REQUESTS,
+        throw new HttpException(
+          {
+            statusCode: 429,
+            message: `Monthly AI call limit reached (${limit} calls/month on your plan). Upgrade to Premium for unlimited access.`,
+            code: 'AI_QUOTA_EXCEEDED',
+            limit,
+            used: current - 1,
+            upgradeUrl: '/plans',
+          },
+          HttpStatus.TOO_MANY_REQUESTS,
+        );
+      }
+
+      this.logger.debug(
+        `AI quota: user ${userId} — ${current}/${limit} calls used this month`,
       );
+    } catch (error) {
+      // Fail-open on Redis runtime errors (e.g. Upstash request cap reached)
+      this.handleRedisRuntimeError(error);
+      if (!this.quotaBypassLogged) {
+        this.quotaBypassLogged = true;
+        this.logger.warn(
+          'AiQuotaService: Bypassing quota checks due to Redis runtime errors',
+        );
+      }
+      return;
     }
-
-    this.logger.debug(
-      `AI quota: user ${userId} — ${current}/${limit} calls used this month`,
-    );
   }
 
   /** Get current month usage for a user (for display in UI) */
@@ -161,9 +185,14 @@ export class AiQuotaService {
     if (!this.ready || !this.client) return { used: 0, limit };
 
     const key = this.buildKey(userId);
-    const raw = await this.client.get(key);
-    const used = raw ? parseInt(raw, 10) : 0;
-    return { used, limit };
+    try {
+      const raw = await this.client.get(key);
+      const used = raw ? parseInt(raw, 10) : 0;
+      return { used, limit };
+    } catch (error) {
+      this.handleRedisRuntimeError(error);
+      return { used: 0, limit };
+    }
   }
 
   private buildKey(userId: string): string {
