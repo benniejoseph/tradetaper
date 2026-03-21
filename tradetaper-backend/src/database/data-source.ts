@@ -41,9 +41,22 @@ import { Logger } from '@nestjs/common';
 const dbLogger = new Logger('DatabaseDataSource');
 
 const isProduction = process.env.NODE_ENV === 'production';
+const parsePositiveInt = (value: string | undefined, fallback: number): number => {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : fallback;
+};
+const splitCsv = (value: string | undefined): string[] =>
+  (value || '')
+    .split(',')
+    .map((entry) => entry.trim())
+    .filter((entry) => entry.length > 0);
+const selectPoolerUser = (): string | undefined => {
+  const candidates = splitCsv(process.env.DB_USER_CANDIDATES);
+  return candidates.find((candidate) => candidate.includes('.')) || candidates[0];
+};
 
 dbLogger.log(
-  `Database configuration: isProduction=${isProduction}, nodeEnv=${process.env.NODE_ENV}, dbHost=${process.env.DB_HOST}`,
+  `Database configuration: isProduction=${isProduction}, nodeEnv=${process.env.NODE_ENV}, dbHost=${process.env.DB_POOLER_HOST || process.env.DB_HOST}`,
 );
 
 async function createDataSource() {
@@ -106,15 +119,44 @@ async function createDataSource() {
       });
     } else {
       // Use standard connection (e.g. Supabase / External Postgres)
+      const usePooler = Boolean(process.env.DB_POOLER_HOST);
+      const host = process.env.DB_POOLER_HOST || process.env.DB_HOST;
+      const port = usePooler
+        ? parsePositiveInt(process.env.DB_POOLER_PORT, 6543)
+        : parsePositiveInt(process.env.DB_PORT, 5432);
+      const username = usePooler
+        ? selectPoolerUser() ||
+          process.env.DB_USER ||
+          process.env.DB_USERNAME ||
+          process.env.DATABASE_USERNAME
+        : process.env.DB_USER ||
+          process.env.DB_USERNAME ||
+          process.env.DATABASE_USERNAME ||
+          selectPoolerUser();
+      const timeoutMs = parsePositiveInt(process.env.DB_CONNECTION_TIMEOUT_MS, 15000);
+
+      if (!host) {
+        throw new Error(
+          'Database host is not configured. Set DB_POOLER_HOST or DB_HOST.',
+        );
+      }
+
       return new DataSource({
         type: 'postgres',
-        host: process.env.DB_HOST,
-        port: parseInt(process.env.DB_PORT || '5432', 10),
-        username: process.env.DB_USER || process.env.DB_USERNAME,
+        host,
+        port,
+        username,
         password: process.env.DB_PASSWORD,
         database:
           process.env.DB_DATABASE || process.env.DB_NAME || 'tradetaper',
         ssl: { rejectUnauthorized: false }, // Required for Supabase/Cloud
+        extra: {
+          connectionTimeoutMillis: timeoutMs,
+          query_timeout: parsePositiveInt(process.env.DB_QUERY_TIMEOUT_MS, 60000),
+          statement_timeout: parsePositiveInt(process.env.DB_QUERY_TIMEOUT_MS, 60000),
+          keepAlive: true,
+          keepAliveInitialDelayMillis: 10000,
+        },
         entities: [
           User,
           Account,

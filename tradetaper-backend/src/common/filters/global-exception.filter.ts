@@ -75,6 +75,15 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       errorResponse.details = this.getErrorDetails(exception);
     }
 
+    // Route handlers that use @Res() can finish the response before an
+    // interceptor/filter-level error is observed. Avoid writing twice.
+    if (response.headersSent) {
+      this.logger.warn(
+        `Headers already sent for ${request.method} ${request.url}; skipping error response`,
+      );
+      return;
+    }
+
     // Send response
     response.status(statusCode).json(errorResponse);
   }
@@ -103,7 +112,9 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       // Database connection errors
       if (
         exception.message.includes('ECONNREFUSED') ||
-        exception.message.includes('ENOTFOUND')
+        exception.message.includes('ENOTFOUND') ||
+        exception.message.includes('connection timeout') ||
+        exception.message.includes('Connection terminated due to connection timeout')
       ) {
         return {
           statusCode: HttpStatus.SERVICE_UNAVAILABLE,

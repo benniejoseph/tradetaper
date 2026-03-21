@@ -165,6 +165,62 @@ export interface AnalysisData {
   dateRange: { start: string; end: string } | null;
 }
 
+export interface ReplaySessionSourceSummary {
+  source: string;
+  trades: number;
+  winRate: number;
+  pnl: number;
+}
+
+export interface ReplaySessionTradeAnalytics {
+  totalTrades: number;
+  wins: number;
+  losses: number;
+  breakevens: number;
+  winRate: number;
+  netPnl: number;
+  grossProfit: number;
+  grossLoss: number;
+  profitFactor: number;
+  expectancy: number;
+  averageWin: number;
+  averageLoss: number;
+  averagePnl: number;
+  largestWin: number;
+  largestLoss: number;
+  maxConsecutiveWins: number;
+  maxConsecutiveLosses: number;
+  averageHoldingMinutes: number;
+  startingBalance: number;
+  endingBalance: number;
+  maxDrawdown: number;
+  maxDrawdownPct: number;
+  sourceBreakdown: ReplaySessionSourceSummary[];
+}
+
+export interface ReplaySessionReviewReport {
+  sessionId: string;
+  symbol: string;
+  timeframe: string;
+  status: 'in_progress' | 'completed' | 'abandoned' | string;
+  generatedAt: string;
+  period: {
+    startDate: string;
+    endDate: string;
+  };
+  inputs: {
+    closedTrades: number;
+    openPositions: number;
+    pendingOrders: number;
+    journalEntries: number;
+  };
+  tradeAnalytics: ReplaySessionTradeAnalytics;
+  executionFindings: string[];
+  behavioralInsights: string[];
+  journalHighlights: string[];
+  nextSessionChecklist: string[];
+}
+
 // Constants for dropdowns
 export const TIMEFRAMES: { value: Timeframe; label: string }[] = [
   { value: 'M1', label: '1 Minute' },

@@ -40,6 +40,18 @@ export class ReplaySession {
   @Column('json', { nullable: true })
   trades: Record<string, unknown>[]; // Array of {entry, exit, pnl, type}
 
+  @Column('jsonb', { default: () => "'[]'::jsonb" })
+  openPositions: Record<string, unknown>[];
+
+  @Column('jsonb', { default: () => "'[]'::jsonb" })
+  pendingOrders: Record<string, unknown>[];
+
+  @Column('jsonb', { default: () => "'[]'::jsonb" })
+  journalEntries: Record<string, unknown>[];
+
+  @Column('jsonb', { nullable: true })
+  reviewReport: unknown | null;
+
   @Column('decimal', { precision: 10, scale: 2, nullable: true })
   totalPnl: number;
 

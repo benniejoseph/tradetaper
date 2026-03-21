@@ -610,6 +610,59 @@ export class BacktestingController {
     return this.replaySessionService.getSession(id, req.user.id);
   }
 
+  @Get('sessions/:id/review-report')
+  async getSessionReviewReport(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Query('refresh') refresh: string | undefined,
+    @Request() req,
+  ) {
+    const shouldRefresh =
+      refresh === '1' || refresh === 'true' || refresh === 'yes';
+
+    return this.replaySessionService.getSessionReviewReport(id, req.user.id, {
+      refresh: shouldRefresh,
+    });
+  }
+
+  @Post('sessions/:id/review-report')
+  async generateSessionReviewReport(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Request() req,
+  ) {
+    return this.replaySessionService.generateSessionReviewReport(
+      id,
+      req.user.id,
+    );
+  }
+
+  @Get('sessions/:id/review-report/export')
+  async exportSessionReviewReport(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Query('format') format: string | undefined,
+    @Query('refresh') refresh: string | undefined,
+    @Request() req,
+    @Res() res: Response,
+  ) {
+    const normalizedFormat = (format || 'json').toLowerCase();
+    const exportFormat = normalizedFormat === 'pdf' ? 'pdf' : 'json';
+    const shouldRefresh =
+      refresh === '1' || refresh === 'true' || refresh === 'yes';
+
+    const exported = await this.replaySessionService.exportSessionReviewReport(
+      id,
+      req.user.id,
+      exportFormat,
+      { refresh: shouldRefresh },
+    );
+
+    res.setHeader('Content-Type', exported.contentType);
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="${exported.filename}"`,
+    );
+    res.status(HttpStatus.OK).send(exported.content);
+  }
+
   @Get('sessions/:id/chart-layout')
   async getSessionChartLayout(
     @Param('id', ParseUUIDPipe) id: string,
@@ -640,8 +693,15 @@ export class BacktestingController {
     @Body()
     body: {
       trades?: Record<string, unknown>[];
+      openPositions?: Record<string, unknown>[];
+      pendingOrders?: Record<string, unknown>[];
+      journalEntries?: Record<string, unknown>[];
       endingBalance?: number;
       totalPnl?: number;
+      totalTrades?: number;
+      winningTrades?: number;
+      losingTrades?: number;
+      winRate?: number;
       status?: 'in_progress' | 'completed' | 'abandoned';
     },
     @Request() req,

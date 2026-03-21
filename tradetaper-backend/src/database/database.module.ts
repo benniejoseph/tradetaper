@@ -10,43 +10,93 @@ import { TypeOrmModule } from '@nestjs/typeorm';
         const logger = new Logger('DatabaseModule');
         const isProduction =
           configService.get<string>('NODE_ENV') === 'production';
+        const parsePositiveInt = (
+          value: string | undefined,
+          fallback: number,
+        ): number => {
+          const parsed = Number(value);
+          return Number.isFinite(parsed) && parsed > 0
+            ? Math.floor(parsed)
+            : fallback;
+        };
+        const splitCsv = (value: string | undefined): string[] =>
+          (value || '')
+            .split(',')
+            .map((entry) => entry.trim())
+            .filter((entry) => entry.length > 0);
 
         if (isProduction) {
           const instanceName = configService.get<string>(
             'INSTANCE_CONNECTION_NAME',
           );
-          // Check for DB_SSL (default true in prod if not specified, safe for Cloud)
-          const isSSL = configService.get<string>('DB_SSL') === 'true' || true;
+          const sslRaw =
+            configService.get<string>('DB_SSL')?.trim().toLowerCase() ?? 'true';
+          const isSSL = ['true', '1', 'yes'].includes(sslRaw);
 
-          let hostConfig: Record<string, unknown> = {};
-          if (instanceName) {
-            logger.log('Using Unix socket for Cloud Run');
-            hostConfig = {
-              host: `/cloudsql/${instanceName}`,
-            };
-          } else {
-            logger.log('Using Standard TCP Connection (IPv4)');
-            hostConfig = {
-              host: configService.get<string>('DB_HOST'),
-              port: Number(configService.get<string>('DB_PORT') || 5432),
-              ssl: isSSL ? { rejectUnauthorized: false } : false,
-              extra: {
-                connectionTimeoutMillis: 60000,
-                query_timeout: 60000,
-              },
-            };
+          const poolerHost = configService.get<string>('DB_POOLER_HOST')?.trim();
+          const directHost = configService.get<string>('DB_HOST')?.trim();
+          const poolerPort = parsePositiveInt(
+            configService.get<string>('DB_POOLER_PORT'),
+            6543,
+          );
+          const directPort = parsePositiveInt(
+            configService.get<string>('DB_PORT'),
+            5432,
+          );
+
+          const poolerCandidates = splitCsv(
+            configService.get<string>('DB_USER_CANDIDATES'),
+          );
+          const poolerPreferredUser =
+            poolerCandidates.find((candidate) => candidate.includes('.')) ||
+            poolerCandidates[0];
+
+          const selectedHost = poolerHost || directHost;
+          const selectedPort = poolerHost ? poolerPort : directPort;
+          const username = poolerHost
+            ? poolerPreferredUser ||
+              configService.get<string>('DB_USER') ||
+              configService.get<string>('DB_USERNAME') ||
+              configService.get<string>('DATABASE_USERNAME')
+            : configService.get<string>('DB_USER') ||
+              configService.get<string>('DB_USERNAME') ||
+              configService.get<string>('DATABASE_USERNAME') ||
+              poolerPreferredUser;
+
+          if (!instanceName && !selectedHost) {
+            throw new Error(
+              'Database host is not configured. Set DB_POOLER_HOST or DB_HOST.',
+            );
           }
+
+          const connectionTimeoutMillis = parsePositiveInt(
+            configService.get<string>('DB_CONNECTION_TIMEOUT_MS'),
+            15000,
+          );
+          const idleTimeoutMillis = parsePositiveInt(
+            configService.get<string>('DB_IDLE_TIMEOUT_MS'),
+            30000,
+          );
+          const queryTimeoutMillis = parsePositiveInt(
+            configService.get<string>('DB_QUERY_TIMEOUT_MS'),
+            60000,
+          );
+          const maxPoolSize = parsePositiveInt(
+            configService.get<string>('DB_POOL_MAX'),
+            10,
+          );
 
           const config = {
             type: 'postgres',
-            ...hostConfig,
+            host: instanceName ? `/cloudsql/${instanceName}` : selectedHost,
+            port: selectedPort,
+            ssl:
+              instanceName || !isSSL ? false : { rejectUnauthorized: false },
             database:
               configService.get<string>('DB_DATABASE') ||
               configService.get<string>('DB_NAME') ||
               configService.get<string>('DATABASE_NAME'),
-            username:
-              configService.get<string>('DB_USER') ||
-              configService.get<string>('DATABASE_USERNAME'),
+            username,
             password:
               configService.get<string>('DB_PASSWORD') ||
               configService.get<string>('DATABASE_PASSWORD'),
@@ -59,16 +109,18 @@ import { TypeOrmModule } from '@nestjs/typeorm';
             retryDelay: 3000,
             // Connection Pool Settings for Cloud Run
             extra: {
-              max: 10, // Max DB connections per container
-              connectionTimeoutMillis: 5000, // 5s timeout for new connection
-              idleTimeoutMillis: 5000, // Close idle connections after 5s to avoid cold starts
-              query_timeout: 60000, // 60s query timeout
-              keepAlive: true, // Internal keepalive
+              max: maxPoolSize,
+              connectionTimeoutMillis,
+              idleTimeoutMillis,
+              query_timeout: queryTimeoutMillis,
+              statement_timeout: queryTimeoutMillis,
+              keepAlive: true,
+              keepAliveInitialDelayMillis: 10000,
             },
           } as any;
 
           logger.log(
-            `Final database config: type=${config.type}, database=${config.database}, username=${config.username}, hasPassword=${!!config.password}`,
+            `Database connection mode=${instanceName ? 'cloudsql-socket' : poolerHost ? 'supabase-pooler' : 'tcp-direct'}, host=${config.host}, port=${config.port}, database=${config.database}, username=${config.username}, hasPassword=${!!config.password}`,
           );
 
           return config;

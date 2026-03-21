@@ -7,6 +7,7 @@ import { TagService } from './services/tag.service';
 import { BacktestInsightsService } from './services/backtest-insights.service';
 import { CandleManagementService } from './services/candle-management.service';
 import { ReplaySessionService } from './services/replay-session.service';
+import { ReplaySessionFinalizerService } from './services/replay-session-finalizer.service';
 import { BacktestTrade } from './entities/backtest-trade.entity';
 import { BacktestChartLayout } from './entities/backtest-chart-layout.entity';
 import { MarketLog } from './entities/market-log.entity';
@@ -33,6 +34,7 @@ import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
     BacktestInsightsService,
     CandleManagementService,
     ReplaySessionService,
+    ReplaySessionFinalizerService,
   ],
   exports: [
     BacktestingService,

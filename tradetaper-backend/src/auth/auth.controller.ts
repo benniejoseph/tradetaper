@@ -405,6 +405,9 @@ export class AuthController {
         'http://localhost:3000';
       const errorMessage = this.getPublicOAuthErrorMessage(error);
       const errorUrl = `${frontendUrl}/auth/google/callback?error=${encodeURIComponent(errorMessage)}`;
+      if (res.headersSent) {
+        return;
+      }
       return res.redirect(errorUrl);
     }
   }

@@ -14,6 +14,30 @@ import { RequestMetricsStore } from '../services/request-metrics.store';
 export class LoggingInterceptor implements NestInterceptor {
   constructor(private readonly logger: ProductionLoggerService) {}
 
+  private getResponseSizeBytes(data: unknown): number {
+    if (data === null || data === undefined) {
+      return 0;
+    }
+
+    if (Buffer.isBuffer(data)) {
+      return data.length;
+    }
+
+    if (typeof data === 'string') {
+      return Buffer.byteLength(data);
+    }
+
+    try {
+      const serialized = JSON.stringify(data);
+      if (typeof serialized !== 'string') {
+        return 0;
+      }
+      return Buffer.byteLength(serialized);
+    } catch {
+      return 0;
+    }
+  }
+
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     const request = context.switchToHttp().getRequest<Request>();
     const response = context.switchToHttp().getResponse<Response>();
@@ -50,7 +74,7 @@ export class LoggingInterceptor implements NestInterceptor {
               statusCode,
               ip,
               userAgent,
-              responseSize: JSON.stringify(data).length,
+              responseSize: this.getResponseSizeBytes(data),
             });
           }
         },

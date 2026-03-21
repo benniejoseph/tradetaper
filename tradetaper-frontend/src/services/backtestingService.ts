@@ -9,6 +9,7 @@ import {
   CreateMarketLogDto,
   UpdateMarketLogDto,
   MarketPatternDiscovery,
+  ReplaySessionReviewReport,
 } from '@/types/backtesting';
 
 // ✅ Use correct environment variable and production default
@@ -344,6 +345,74 @@ export const backtestingService = {
     });
     if (!response.ok) throw new Error('Failed to fetch pattern analysis');
     return response.json();
+  },
+
+  // ============ SESSION REVIEW REPORT ============ 
+
+  async getSessionReviewReport(
+    sessionId: string,
+    options?: { refresh?: boolean }
+  ): Promise<ReplaySessionReviewReport> {
+    const query = options?.refresh ? '?refresh=true' : '';
+    const response = await fetch(
+      `${API_URL}/backtesting/sessions/${sessionId}/review-report${query}`,
+      {
+        headers: getAuthHeaders(),
+        credentials: 'include',
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch session review report');
+    }
+
+    return response.json();
+  },
+
+  async generateSessionReviewReport(sessionId: string): Promise<ReplaySessionReviewReport> {
+    const response = await fetch(`${API_URL}/backtesting/sessions/${sessionId}/review-report`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to generate session review report');
+    }
+
+    return response.json();
+  },
+
+  async exportSessionReviewReport(
+    sessionId: string,
+    format: 'json' | 'pdf' = 'json',
+    options?: { refresh?: boolean }
+  ): Promise<{ blob: Blob; filename: string; contentType: string }> {
+    const params = new URLSearchParams();
+    params.set('format', format);
+    if (options?.refresh) {
+      params.set('refresh', 'true');
+    }
+
+    const response = await fetch(
+      `${API_URL}/backtesting/sessions/${sessionId}/review-report/export?${params.toString()}`,
+      {
+        headers: getAuthHeaders(),
+        credentials: 'include',
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`Failed to export session review report (${format})`);
+    }
+
+    const blob = await response.blob();
+    const contentType = response.headers.get('content-type') || blob.type || 'application/octet-stream';
+    const disposition = response.headers.get('content-disposition') || '';
+    const filenameMatch = disposition.match(/filename=\"?([^\";]+)\"?/i);
+    const filename = filenameMatch?.[1] || `session-review.${format}`;
+
+    return { blob, filename, contentType };
   },
 
   // ============ EXPORT ============
