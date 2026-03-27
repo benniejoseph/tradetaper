@@ -10,6 +10,7 @@ import {
   deleteMT5Account,
   syncMT5Account,
   createMT5Account,
+  CreateMT5AccountPayload,
   updateMT5Account,
   setDefaultMT5Account,
   MT5Account
@@ -33,7 +34,11 @@ import { authApiClient } from '@/services/api';
 import { useCurrency } from '@/hooks/useCurrency';
 import { MT5_SLOT_PRICE } from '@/config/pricing';
 
-const MT5AccountsList: React.FC = () => {
+interface MT5AccountsListProps {
+  hideAddButton?: boolean;
+}
+
+const MT5AccountsList: React.FC<MT5AccountsListProps> = ({ hideAddButton = false }) => {
   const dispatch = useDispatch<AppDispatch>();
   const accounts = useSelector(selectMT5Accounts);
   const isLoading = useSelector(selectMT5AccountsLoading);
@@ -67,7 +72,10 @@ const MT5AccountsList: React.FC = () => {
       const res = await authApiClient.post('/subscriptions/addon/mt5-slot');
       const order = res.data;
       
-      const rzp = new (window as any).Razorpay({
+      const razorpayWindow = window as Window & {
+        Razorpay: new (options: Record<string, unknown>) => { open: () => void };
+      };
+      const rzp = new razorpayWindow.Razorpay({
         key: order.key,
         amount: order.amount,
         currency: order.currency,
@@ -142,7 +150,7 @@ const MT5AccountsList: React.FC = () => {
     setExpandedAccountId(expandedAccountId === id ? null : id);
   };
 
-  const handleSaveAccount = async (formData: any) => {
+  const handleSaveAccount = async (formData: CreateMT5AccountPayload) => {
     try {
       if (editingAccount) {
         await dispatch(updateMT5Account({
@@ -163,8 +171,9 @@ const MT5AccountsList: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex justify-between items-center bg-white dark:bg-gray-900 p-4 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm">
-        <div className="flex items-center space-x-3">
+      <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3">
           <div className="p-2 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg">
             <FaServer className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
           </div>
@@ -176,38 +185,39 @@ const MT5AccountsList: React.FC = () => {
           </div>
         </div>
         
-        {/* Account Limits & Add button */}
-        <div className="flex items-center space-x-3">
-          {limits && (
-            <div className="text-sm px-3 py-1.5 rounded-full bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300">
-              <span className="font-semibold text-gray-900 dark:text-white">{limits.used}</span> / {limits.max} Slots Used
-            </div>
-          )}
-          {!showForm && limits && limits.used < limits.max && (
-            <button 
-              onClick={handleAddAccount}
-              className="flex items-center space-x-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm"
-            >
-              <FaPlus className="w-3 h-3" />
-              <span>Add Account</span>
-            </button>
-          )}
-          {(!showForm && limits && limits.used >= limits.max) && (
-            <button 
-              onClick={handleBuySlot}
-              disabled={buyingSlot}
-              className="flex items-center space-x-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:opacity-90 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm disabled:opacity-50"
-            >
-              {buyingSlot ? <FaSpinner className="w-3 h-3 animate-spin" /> : <FaPlus className="w-3 h-3" />}
-              <span>Buy Extra Slot ({MT5_SLOT_PRICE[currency.code].label})</span>
-            </button>
-          )}
+          {/* Account Limits & Add button */}
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center sm:gap-3">
+            {limits && (
+              <div className="text-sm px-3 py-1.5 rounded-full bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 text-center sm:text-left">
+                <span className="font-semibold text-gray-900 dark:text-white">{limits.used}</span> / {limits.max} Slots Used
+              </div>
+            )}
+            {!hideAddButton && !showForm && limits && limits.used < limits.max && (
+              <button
+                onClick={handleAddAccount}
+                className="inline-flex items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-emerald-700"
+              >
+                <FaPlus className="h-3 w-3" />
+                <span>Add Account</span>
+              </button>
+            )}
+            {!showForm && limits && limits.used >= limits.max && (
+              <button
+                onClick={handleBuySlot}
+                disabled={buyingSlot}
+                className="inline-flex items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-emerald-600 to-green-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:opacity-90 disabled:opacity-50"
+              >
+                {buyingSlot ? <FaSpinner className="h-3 w-3 animate-spin" /> : <FaPlus className="h-3 w-3" />}
+                <span>Buy Extra Slot ({MT5_SLOT_PRICE[currency.code].label})</span>
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
       {/* Add/Edit Form */}
       {showForm && (
-        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-6 shadow-sm">
+        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4 sm:p-6 shadow-sm">
           <h4 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">
             {editingAccount ? 'Edit Account' : 'Connect New Account'}
           </h4>
@@ -233,139 +243,273 @@ const MT5AccountsList: React.FC = () => {
           <FaServer className="w-10 h-10 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
           <h3 className="text-gray-900 dark:text-white font-medium">No accounts connected</h3>
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Add an MT5 account to start syncing trades.</p>
-          <button 
-            onClick={handleAddAccount}
-            className="text-emerald-600 hover:text-emerald-700 font-medium text-sm"
-          >
-            Connect Account
-          </button>
+          {!hideAddButton ? (
+            <button 
+              onClick={handleAddAccount}
+              className="text-emerald-600 hover:text-emerald-700 font-medium text-sm"
+            >
+              Connect Account
+            </button>
+          ) : (
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              Use the global <strong>Add Account</strong> button to connect an account.
+            </p>
+          )}
         </div>
       )}
 
-      {/* Compact Table */}
+      {/* Accounts */}
       {accounts.length > 0 && !showForm && (
-        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden shadow-sm">
-          <div className="overflow-x-auto">
+        <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
+          <div className="divide-y divide-gray-100 dark:divide-gray-800/50 md:hidden">
+            {accounts.map((account) => (
+              <div key={account.id} className="space-y-3 p-4">
+                <div
+                  className="flex cursor-pointer items-start justify-between gap-3"
+                  onClick={() => toggleExpand(account.id)}
+                >
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h4 className="truncate font-semibold text-gray-900 dark:text-white">
+                        {account.accountName}
+                      </h4>
+                      <span
+                        className={`rounded-full px-2 py-0.5 text-[10px] uppercase tracking-wide ${
+                          account.accountCategory === 'prop_firm'
+                            ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300'
+                            : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'
+                        }`}
+                      >
+                        {account.accountCategory === 'prop_firm' ? 'Prop Firm' : 'Personal'}
+                      </span>
+                    </div>
+                    <p className="mt-1 flex items-center text-xs text-gray-500 dark:text-gray-400">
+                      <FaUser className="mr-1 h-3 w-3 opacity-70" /> {account.login}
+                    </p>
+                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{account.server}</p>
+                  </div>
+                  <button
+                    onClick={(e) => handleSetDefaultAccount(account.id, e)}
+                    className={`rounded p-1.5 transition-colors ${
+                      account.isDefault
+                        ? 'text-yellow-500 hover:bg-yellow-50 dark:hover:bg-yellow-900/20'
+                        : 'text-gray-300 hover:bg-gray-50 hover:text-yellow-500 dark:text-gray-600 dark:hover:bg-gray-800'
+                    }`}
+                    title={account.isDefault ? 'Default Account' : 'Make Default'}
+                  >
+                    {account.isDefault ? <FaStar className="h-5 w-5" /> : <FaRegStar className="h-5 w-5" />}
+                  </button>
+                </div>
+
+                <div className="flex items-center justify-between gap-3">
+                  <div className="font-mono text-sm font-medium text-gray-900 dark:text-white">
+                    {account.currency} {(account.balance ?? 0).toLocaleString()}
+                  </div>
+                  <button
+                    onClick={() => toggleExpand(account.id)}
+                    className="inline-flex items-center gap-2 rounded-full bg-gray-100 px-2.5 py-1 text-xs text-gray-600 transition-colors hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+                  >
+                    <span
+                      className={`h-2 w-2 rounded-full ${
+                        account.connectionStatus === 'CONNECTED' ? 'bg-emerald-500' : 'bg-gray-400'
+                      }`}
+                    />
+                    {(account.connectionStatus || 'disconnected').toLowerCase()}
+                    {expandedAccountId === account.id ? <FaChevronUp className="h-3 w-3" /> : <FaChevronDown className="h-3 w-3" />}
+                  </button>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                  {confirmDelete === account.id ? (
+                    <div className="flex w-full items-center justify-between gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 dark:border-red-900/40 dark:bg-red-900/10">
+                      <span className="text-xs font-medium text-red-600 dark:text-red-300">Delete this account?</span>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => handleDeleteAccount(account.id)}
+                          className="rounded bg-red-500 px-2 py-1 text-xs font-medium text-white transition-colors hover:bg-red-600"
+                        >
+                          Yes
+                        </button>
+                        <button
+                          onClick={() => setConfirmDelete(null)}
+                          className="rounded bg-gray-200 px-2 py-1 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300"
+                        >
+                          No
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <button
+                        onClick={(e) => handleSyncAccount(account.id, e)}
+                        disabled={syncingAccount === account.id}
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-200 px-3 py-1.5 text-xs font-medium text-emerald-600 transition-colors hover:bg-emerald-50 dark:border-emerald-900/40 dark:text-emerald-300 dark:hover:bg-emerald-900/20"
+                        title="Sync Account Now"
+                      >
+                        <FaSync className={`h-3 w-3 ${syncingAccount === account.id ? 'animate-spin' : ''}`} />
+                        Sync
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleEditAccount(account);
+                        }}
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-200 px-3 py-1.5 text-xs font-medium text-emerald-600 transition-colors hover:bg-emerald-50 dark:border-emerald-900/40 dark:text-emerald-300 dark:hover:bg-emerald-900/20"
+                        title="Edit Account"
+                      >
+                        <FaEdit className="h-3 w-3" />
+                        Edit
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setConfirmDelete(account.id);
+                        }}
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-600 transition-colors hover:bg-red-50 dark:border-red-900/40 dark:text-red-300 dark:hover:bg-red-900/20"
+                        title="Delete Account"
+                      >
+                        <FaTrash className="h-3 w-3" />
+                        Delete
+                      </button>
+                    </>
+                  )}
+                </div>
+
+                {expandedAccountId === account.id && (
+                  <div className="rounded-lg border border-gray-200 bg-gray-50/70 p-3 dark:border-gray-800 dark:bg-gray-800/30">
+                    <MetaApiStatusCard account={account} />
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+
+          <div className="hidden overflow-x-auto md:block">
             <table className="w-full text-left text-sm">
-              <thead className="bg-gray-50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-800">
+              <thead className="border-b border-gray-200 bg-gray-50 dark:border-gray-800 dark:bg-gray-800/50">
                 <tr>
-                   <th className="px-5 py-3 font-medium text-gray-500 dark:text-gray-400">Account</th>
-                   <th className="px-5 py-3 font-medium text-gray-500 dark:text-gray-400">Server</th>
-                   <th className="px-5 py-3 font-medium text-gray-500 dark:text-gray-400">Balance</th>
-                   <th className="px-5 py-3 font-medium text-gray-500 dark:text-gray-400 text-center">Default</th>
-                   <th className="px-5 py-3 font-medium text-gray-500 dark:text-gray-400 text-center">MetaApi Status</th>
-                   <th className="px-5 py-3 font-medium text-gray-500 dark:text-gray-400 text-right">Actions</th>
+                  <th className="px-5 py-3 font-medium text-gray-500 dark:text-gray-400">Account</th>
+                  <th className="px-5 py-3 font-medium text-gray-500 dark:text-gray-400">Server</th>
+                  <th className="px-5 py-3 font-medium text-gray-500 dark:text-gray-400">Balance</th>
+                  <th className="px-5 py-3 text-center font-medium text-gray-500 dark:text-gray-400">Default</th>
+                  <th className="px-5 py-3 text-center font-medium text-gray-500 dark:text-gray-400">MetaApi Status</th>
+                  <th className="px-5 py-3 text-right font-medium text-gray-500 dark:text-gray-400">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-gray-800/50">
                 {accounts.map((account) => (
                   <React.Fragment key={account.id}>
-                    <tr 
-                      className={`
-                        hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors cursor-pointer
-                        ${expandedAccountId === account.id ? 'bg-gray-50 dark:bg-gray-800/30' : ''}
-                      `}
+                    <tr
+                      className={`cursor-pointer transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/30 ${
+                        expandedAccountId === account.id ? 'bg-gray-50 dark:bg-gray-800/30' : ''
+                      }`}
                       onClick={() => toggleExpand(account.id)}
                     >
                       <td className="px-5 py-3">
-                         <div className="font-medium text-gray-900 dark:text-white flex items-center space-x-2">
-                           {account.accountName}
-                         </div>
-                         <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center mt-0.5">
-                            <FaUser className="w-3 h-3 mr-1 opacity-70" /> {account.login}
-                         </div>
+                        <div className="flex items-center gap-2 font-medium text-gray-900 dark:text-white">
+                          {account.accountName}
+                          <span
+                            className={`rounded-full px-2 py-0.5 text-[10px] uppercase tracking-wide ${
+                              account.accountCategory === 'prop_firm'
+                                ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300'
+                                : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'
+                            }`}
+                          >
+                            {account.accountCategory === 'prop_firm' ? 'Prop Firm' : 'Personal'}
+                          </span>
+                        </div>
+                        <div className="mt-0.5 flex items-center text-xs text-gray-500 dark:text-gray-400">
+                          <FaUser className="mr-1 h-3 w-3 opacity-70" /> {account.login}
+                        </div>
                       </td>
-                      <td className="px-5 py-3 text-gray-600 dark:text-gray-300">
-                        {account.server}
-                      </td>
+                      <td className="px-5 py-3 text-gray-600 dark:text-gray-300">{account.server}</td>
                       <td className="px-5 py-3 font-mono font-medium text-gray-900 dark:text-white">
                         {account.currency} {(account.balance ?? 0).toLocaleString()}
                       </td>
                       <td className="px-5 py-3 text-center" onClick={(e) => e.stopPropagation()}>
                         <button
                           onClick={(e) => handleSetDefaultAccount(account.id, e)}
-                          className={`p-1.5 rounded transition-colors ${account.isDefault ? 'text-yellow-500 hover:bg-yellow-50 dark:hover:bg-yellow-900/20' : 'text-gray-300 dark:text-gray-600 hover:text-yellow-500 hover:bg-gray-50 dark:hover:bg-gray-800'}`}
-                          title={account.isDefault ? "Default Account" : "Make Default"}
+                          className={`rounded p-1.5 transition-colors ${
+                            account.isDefault
+                              ? 'text-yellow-500 hover:bg-yellow-50 dark:hover:bg-yellow-900/20'
+                              : 'text-gray-300 hover:bg-gray-50 hover:text-yellow-500 dark:text-gray-600 dark:hover:bg-gray-800'
+                          }`}
+                          title={account.isDefault ? 'Default Account' : 'Make Default'}
                         >
-                          {account.isDefault ? (
-                            <FaStar className="w-5 h-5 drop-shadow-sm" />
-                          ) : (
-                            <FaRegStar className="w-5 h-5" />
-                          )}
+                          {account.isDefault ? <FaStar className="h-5 w-5 drop-shadow-sm" /> : <FaRegStar className="h-5 w-5" />}
                         </button>
                       </td>
                       <td className="px-5 py-3 text-center" onClick={(e) => e.stopPropagation()}>
                         <button
                           onClick={() => toggleExpand(account.id)}
-                          className="inline-flex items-center justify-center px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-800 text-xs text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                          className="inline-flex items-center justify-center rounded-full bg-gray-100 px-2 py-1 text-xs text-gray-600 transition-colors hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
                         >
                           <span className="inline-flex items-center gap-2">
                             <span
                               className={`h-2 w-2 rounded-full ${
-                                account.connectionStatus === 'CONNECTED'
-                                  ? 'bg-emerald-500'
-                                  : 'bg-gray-400'
+                                account.connectionStatus === 'CONNECTED' ? 'bg-emerald-500' : 'bg-gray-400'
                               }`}
                             />
                             {(account.connectionStatus || 'disconnected').toLowerCase()}
                           </span>
-                          {expandedAccountId === account.id ? (
-                            <FaChevronUp className="ml-2 w-3 h-3" />
-                          ) : (
-                            <FaChevronDown className="ml-2 w-3 h-3" />
-                          )}
+                          {expandedAccountId === account.id ? <FaChevronUp className="ml-2 h-3 w-3" /> : <FaChevronDown className="ml-2 h-3 w-3" />}
                         </button>
                       </td>
-                      <td className="px-5 py-3 text-right space-x-2" onClick={(e) => e.stopPropagation()}>
+                      <td className="px-5 py-3 text-right" onClick={(e) => e.stopPropagation()}>
                         {confirmDelete === account.id ? (
-                           <div className="flex items-center justify-end space-x-2 animate-fadeIn">
-                             <span className="text-xs text-red-500 font-medium mr-1">Sure?</span>
-                             <button 
-                               onClick={() => handleDeleteAccount(account.id)}
-                               className="text-xs bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded transition-colors"
-                             >
-                               Yes
-                             </button>
-                             <button 
-                               onClick={() => setConfirmDelete(null)}
-                               className="text-xs bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-2 py-1 rounded transition-colors hover:bg-gray-300"
-                             >
-                               No
-                             </button>
-                           </div>
+                          <div className="animate-fadeIn flex items-center justify-end gap-2">
+                            <span className="mr-1 text-xs font-medium text-red-500">Sure?</span>
+                            <button
+                              onClick={() => handleDeleteAccount(account.id)}
+                              className="rounded bg-red-500 px-2 py-1 text-xs text-white transition-colors hover:bg-red-600"
+                            >
+                              Yes
+                            </button>
+                            <button
+                              onClick={() => setConfirmDelete(null)}
+                              className="rounded bg-gray-200 px-2 py-1 text-xs text-gray-700 transition-colors hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300"
+                            >
+                              No
+                            </button>
+                          </div>
                         ) : (
-                          <>
+                          <div className="inline-flex items-center gap-2">
                             <button
                               onClick={(e) => handleSyncAccount(account.id, e)}
                               disabled={syncingAccount === account.id}
-                              className="p-1.5 text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded transition-colors"
+                              className="rounded p-1.5 text-emerald-500 transition-colors hover:bg-emerald-50 dark:hover:bg-emerald-900/20"
                               title="Sync Account Now"
                             >
-                              <FaSync className={`w-4 h-4 ${syncingAccount === account.id ? 'animate-spin' : ''}`} />
+                              <FaSync className={`h-4 w-4 ${syncingAccount === account.id ? 'animate-spin' : ''}`} />
                             </button>
                             <button
-                              onClick={(e) => { e.stopPropagation(); handleEditAccount(account); }}
-                              className="p-1.5 text-blue-500 hover:bg-blue-50 dark:hover:bg-emerald-900/20 rounded transition-colors"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleEditAccount(account);
+                              }}
+                              className="rounded p-1.5 text-emerald-500 transition-colors hover:bg-emerald-50 dark:hover:bg-emerald-900/20"
                               title="Edit Account"
                             >
-                              <FaEdit className="w-4 h-4" />
+                              <FaEdit className="h-4 w-4" />
                             </button>
                             <button
-                              onClick={(e) => { e.stopPropagation(); setConfirmDelete(account.id); }}
-                              className="p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setConfirmDelete(account.id);
+                              }}
+                              className="rounded p-1.5 text-red-500 transition-colors hover:bg-red-50 dark:hover:bg-red-900/20"
                               title="Delete Account"
                             >
-                              <FaTrash className="w-4 h-4" />
+                              <FaTrash className="h-4 w-4" />
                             </button>
-                          </>
+                          </div>
                         )}
                       </td>
                     </tr>
-                    
-                    {/* Expanded Row — MetaApi Status only */}
+
                     {expandedAccountId === account.id && (
                       <tr>
-                        <td colSpan={5} className="bg-gray-50/50 dark:bg-gray-800/20 p-4 border-b border-gray-100 dark:border-gray-800 animate-slideDown">
+                        <td colSpan={6} className="animate-slideDown border-b border-gray-100 bg-gray-50/50 p-4 dark:border-gray-800 dark:bg-gray-800/20">
                           <MetaApiStatusCard account={account} />
                         </td>
                       </tr>

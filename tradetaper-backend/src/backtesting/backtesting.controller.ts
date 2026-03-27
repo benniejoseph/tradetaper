@@ -521,26 +521,44 @@ export class BacktestingController {
       new Date(boundedTo * 1000),
     );
 
-    const bars = (rows || [])
-      .filter((row) => Number.isFinite(Number(row?.time)))
-      .map((row) => ({
-        time: Number(row.time),
-        open: Number(row.open),
-        high: Number(row.high),
-        low: Number(row.low),
-        close: Number(row.close),
-        volume: Number(row.volume ?? 0),
-      }))
-      .filter(
-        (bar) =>
-          Number.isFinite(bar.open) &&
-          Number.isFinite(bar.high) &&
-          Number.isFinite(bar.low) &&
-          Number.isFinite(bar.close) &&
-          bar.time >= boundedFrom &&
-          bar.time <= boundedTo,
-      )
-      .sort((a, b) => a.time - b.time);
+    let bars = this.normalizeTradingViewBars(rows || [], boundedFrom, boundedTo);
+
+    const rangeSeconds = Math.max(1, boundedTo - boundedFrom);
+    const expectedBars = Math.max(
+      1,
+      Math.floor(rangeSeconds / Math.max(1, resolutionSeconds)),
+    );
+    const coverageRatio = bars.length / expectedBars;
+    const shouldFallbackToOneMinuteAggregation =
+      timeframe !== '1m' &&
+      rangeSeconds <= 120 * 24 * 60 * 60 && // keep fallback bounded for performance
+      (bars.length === 0 ||
+        coverageRatio < 0.65 ||
+        this.hasTradingViewBarDiscontinuities(bars, resolutionSeconds));
+
+    if (shouldFallbackToOneMinuteAggregation) {
+      const oneMinuteRows = await this.candleManagementService.getCandles(
+        normalizedSymbol,
+        '1m',
+        new Date(boundedFrom * 1000),
+        new Date(boundedTo * 1000),
+      );
+      const oneMinuteBars = this.normalizeTradingViewBars(
+        oneMinuteRows || [],
+        boundedFrom,
+        boundedTo,
+      );
+      const aggregatedBars = this.aggregateTradingViewBarsFromOneMinute(
+        oneMinuteBars,
+        resolutionSeconds,
+        boundedFrom,
+        boundedTo,
+      );
+
+      if (aggregatedBars.length > 0) {
+        bars = aggregatedBars;
+      }
+    }
 
     if (bars.length === 0) {
       return { s: 'no_data', nextTime: boundedFrom };
@@ -835,6 +853,198 @@ export class BacktestingController {
     return 100000;
   }
 
+  private getTradingViewSession(symbol: string): string {
+    const type = this.getTradingViewSymbolType(symbol);
+    if (type === 'crypto') {
+      return '24x7';
+    }
+
+    // Most non-crypto instruments in this feed follow 24/5 trading.
+    return '0000-2359:12345';
+  }
+
+  private normalizeTradingViewBars(
+    rows: Array<{
+      time?: number;
+      timestamp?: Date | string | number;
+      open?: number;
+      high?: number;
+      low?: number;
+      close?: number;
+      volume?: number;
+    }>,
+    fromSec: number,
+    toSec: number,
+  ): Array<{
+    time: number;
+    open: number;
+    high: number;
+    low: number;
+    close: number;
+    volume: number;
+  }> {
+    if (!Array.isArray(rows) || rows.length === 0) return [];
+
+    const byTime = new Map<
+      number,
+      {
+        time: number;
+        open: number;
+        high: number;
+        low: number;
+        close: number;
+        volume: number;
+      }
+    >();
+
+    for (const row of rows) {
+      const rawTime = Number(row?.time);
+      const fallbackTimeMs = row?.timestamp ? new Date(row.timestamp).getTime() : NaN;
+      const rawSeconds = Number.isFinite(rawTime)
+        ? rawTime > 2_000_000_000_000
+          ? Math.floor(rawTime / 1000)
+          : Math.floor(rawTime)
+        : Number.isFinite(fallbackTimeMs)
+          ? Math.floor(fallbackTimeMs / 1000)
+          : NaN;
+      if (!Number.isFinite(rawSeconds)) continue;
+      if (rawSeconds < fromSec || rawSeconds > toSec) continue;
+
+      const open = Number(row?.open);
+      const high = Number(row?.high);
+      const low = Number(row?.low);
+      const close = Number(row?.close);
+      const volume = Number(row?.volume ?? 0);
+      if (
+        !Number.isFinite(open) ||
+        !Number.isFinite(high) ||
+        !Number.isFinite(low) ||
+        !Number.isFinite(close)
+      ) {
+        continue;
+      }
+
+      byTime.set(rawSeconds, {
+        time: rawSeconds,
+        open,
+        high: Math.max(high, open, close, low),
+        low: Math.min(low, open, close, high),
+        close,
+        volume: Number.isFinite(volume) ? volume : 0,
+      });
+    }
+
+    return Array.from(byTime.values()).sort((a, b) => a.time - b.time);
+  }
+
+  private aggregateTradingViewBarsFromOneMinute(
+    oneMinuteBars: Array<{
+      time: number;
+      open: number;
+      high: number;
+      low: number;
+      close: number;
+      volume: number;
+    }>,
+    resolutionSeconds: number,
+    fromSec: number,
+    toSec: number,
+  ): Array<{
+    time: number;
+    open: number;
+    high: number;
+    low: number;
+    close: number;
+    volume: number;
+  }> {
+    if (!Array.isArray(oneMinuteBars) || oneMinuteBars.length === 0) return [];
+
+    const bucketSize = Math.max(60, Math.floor(resolutionSeconds));
+    const buckets = new Map<
+      number,
+      {
+        time: number;
+        open: number;
+        high: number;
+        low: number;
+        close: number;
+        volume: number;
+      }
+    >();
+
+    const sortedBars = [...oneMinuteBars].sort((a, b) => a.time - b.time);
+    for (const bar of sortedBars) {
+      const barTime = Math.floor(Number(bar.time));
+      if (!Number.isFinite(barTime)) continue;
+      if (barTime < fromSec || barTime > toSec) continue;
+
+      const bucketTime = Math.floor(barTime / bucketSize) * bucketSize;
+      if (bucketTime < fromSec || bucketTime > toSec) continue;
+      const volume = Number(bar.volume ?? 0);
+      const existing = buckets.get(bucketTime);
+      if (!existing) {
+        buckets.set(bucketTime, {
+          time: bucketTime,
+          open: bar.open,
+          high: bar.high,
+          low: bar.low,
+          close: bar.close,
+          volume: Number.isFinite(volume) ? volume : 0,
+        });
+        continue;
+      }
+
+      existing.high = Math.max(existing.high, bar.high, bar.open, bar.close);
+      existing.low = Math.min(existing.low, bar.low, bar.open, bar.close);
+      existing.close = bar.close;
+      existing.volume += Number.isFinite(volume) ? volume : 0;
+    }
+
+    return Array.from(buckets.values()).sort((a, b) => a.time - b.time);
+  }
+
+  private hasTradingViewBarDiscontinuities(
+    bars: Array<{ time: number }>,
+    resolutionSeconds: number,
+  ): boolean {
+    if (!Array.isArray(bars) || bars.length < 25) return false;
+
+    const sortedBars = [...bars].sort((a, b) => a.time - b.time);
+    const interval = Math.max(60, Math.floor(resolutionSeconds));
+    let irregularTransitions = 0;
+    let severeTransitions = 0;
+
+    for (let i = 1; i < sortedBars.length; i++) {
+      const prev = Number(sortedBars[i - 1]?.time);
+      const curr = Number(sortedBars[i]?.time);
+      if (!Number.isFinite(prev) || !Number.isFinite(curr)) {
+        irregularTransitions += 1;
+        continue;
+      }
+
+      const delta = curr - prev;
+      if (delta <= 0) {
+        irregularTransitions += 1;
+        continue;
+      }
+
+      const ratio = delta / interval;
+      if (ratio > 1.5) {
+        irregularTransitions += 1;
+      }
+      if (ratio > 8) {
+        severeTransitions += 1;
+      }
+    }
+
+    const irregularThreshold = Math.max(4, Math.floor(sortedBars.length * 0.2));
+    const severeThreshold = Math.max(3, Math.floor(sortedBars.length * 0.08));
+    return (
+      irregularTransitions >= irregularThreshold ||
+      severeTransitions >= severeThreshold
+    );
+  }
+
   private buildTradingViewSymbolInfo(symbol: string) {
     return {
       name: symbol,
@@ -842,7 +1052,7 @@ export class BacktestingController {
       full_name: `TradeTaper:${symbol}`,
       description: `${symbol} (TradeTaper Backtesting Feed)`,
       type: this.getTradingViewSymbolType(symbol),
-      session: '24x7',
+      session: this.getTradingViewSession(symbol),
       exchange: 'TradeTaper',
       listed_exchange: 'TradeTaper',
       timezone: 'Etc/UTC',
@@ -852,6 +1062,7 @@ export class BacktestingController {
       has_daily: true,
       has_weekly_and_monthly: false,
       has_no_volume: false,
+      has_empty_bars: false,
       supported_resolutions: ['1', '5', '15', '30', '60', '240', '1D'],
       volume_precision: 2,
       data_status: 'streaming',

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { AnimatedCard } from '@/components/ui/AnimatedCard';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend } from 'recharts';
 import { PsychologicalInsight, ProfileSummary } from '@/types/psychology';
@@ -75,6 +75,24 @@ export default function MindsetInsightsPanel({
   riskScore = null,
   signalsMetrics = null,
 }: MindsetInsightsPanelProps) {
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const mediaQuery = window.matchMedia('(max-width: 640px)');
+    const handleMediaChange = () => setIsMobile(mediaQuery.matches);
+    handleMediaChange();
+
+    if (typeof mediaQuery.addEventListener === 'function') {
+      mediaQuery.addEventListener('change', handleMediaChange);
+      return () => mediaQuery.removeEventListener('change', handleMediaChange);
+    }
+
+    mediaQuery.addListener(handleMediaChange);
+    return () => mediaQuery.removeListener(handleMediaChange);
+  }, []);
+
   const insightTypeChartData = useMemo(() => {
     if (!summary) return [];
     return Object.entries(summary.insightTypeCounts || {})
@@ -201,7 +219,7 @@ export default function MindsetInsightsPanel({
 
           <AnimatedCard animate={false} variant="default" className="space-y-3">
             <h4 className="text-sm font-bold text-gray-900 dark:text-white">Behavior Pressure</h4>
-            <div className="grid grid-cols-2 gap-3 text-xs">
+            <div className="grid grid-cols-1 gap-3 text-xs sm:grid-cols-2">
               <div className="rounded-lg border border-gray-200 p-3 dark:border-white/10">
                 <p className="text-gray-500 dark:text-gray-400">Risk score</p>
                 <p className="mt-1 text-lg font-bold text-gray-900 dark:text-white">
@@ -267,7 +285,7 @@ export default function MindsetInsightsPanel({
         </AnimatedCard>
         <AnimatedCard animate={false} variant="default" className="p-5">
           <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Dominant Pattern</p>
-          <div className="mt-2 text-lg font-black text-gray-900 dark:text-white">{topInsight || '—'}</div>
+          <div className="mt-2 break-words text-lg font-black text-gray-900 dark:text-white">{topInsight || '—'}</div>
           <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
             Concentration: {patternConcentration.toFixed(0)}%
           </p>
@@ -310,7 +328,7 @@ export default function MindsetInsightsPanel({
 
         <AnimatedCard animate={false} variant="default" className="space-y-3">
           <h4 className="text-sm font-bold text-gray-900 dark:text-white">Behavior Pressure</h4>
-          <div className="grid grid-cols-2 gap-3 text-xs">
+          <div className="grid grid-cols-1 gap-3 text-xs sm:grid-cols-2">
             <div className="rounded-lg border border-gray-200 p-3 dark:border-white/10">
               <p className="text-gray-500 dark:text-gray-400">Risk score</p>
               <p className="mt-1 text-lg font-bold text-gray-900 dark:text-white">
@@ -340,30 +358,46 @@ export default function MindsetInsightsPanel({
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <AnimatedCard animate={false} variant="default" className="space-y-3">
+        <AnimatedCard animate={false} variant="default" className="space-y-3 overflow-hidden">
           <h4 className="text-sm font-bold text-gray-900 dark:text-white">Insights by Type</h4>
-          <div className="h-64">
+          <div className="h-56 sm:h-64">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={insightTypeChartData}>
-                <XAxis dataKey="name" tick={{ fontSize: 11 }} />
-                <YAxis tick={{ fontSize: 11 }} />
+              <BarChart data={insightTypeChartData} margin={{ top: 8, right: 8, left: isMobile ? -24 : 0, bottom: 24 }}>
+                <XAxis
+                  dataKey="name"
+                  interval={0}
+                  tick={{ fontSize: isMobile ? 10 : 11 }}
+                  tickFormatter={(value) => (isMobile ? String(value).slice(0, 8) : value)}
+                  angle={isMobile ? -20 : 0}
+                  textAnchor={isMobile ? 'end' : 'middle'}
+                  height={isMobile ? 42 : 30}
+                />
+                <YAxis hide={isMobile} tick={{ fontSize: 11 }} />
                 <Tooltip />
-                <Legend />
+                {!isMobile && <Legend />}
                 <Bar dataKey="count" fill="#10b981" radius={[6, 6, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
         </AnimatedCard>
 
-        <AnimatedCard animate={false} variant="default" className="space-y-3">
+        <AnimatedCard animate={false} variant="default" className="space-y-3 overflow-hidden">
           <h4 className="text-sm font-bold text-gray-900 dark:text-white">Sentiment Mix</h4>
-          <div className="h-64">
+          <div className="h-56 sm:h-64">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={sentimentChartData}>
-                <XAxis dataKey="name" tick={{ fontSize: 11 }} />
-                <YAxis tick={{ fontSize: 11 }} />
+              <BarChart data={sentimentChartData} margin={{ top: 8, right: 8, left: isMobile ? -24 : 0, bottom: 24 }}>
+                <XAxis
+                  dataKey="name"
+                  interval={0}
+                  tick={{ fontSize: isMobile ? 10 : 11 }}
+                  tickFormatter={(value) => (isMobile ? String(value).slice(0, 8) : value)}
+                  angle={isMobile ? -20 : 0}
+                  textAnchor={isMobile ? 'end' : 'middle'}
+                  height={isMobile ? 42 : 30}
+                />
+                <YAxis hide={isMobile} tick={{ fontSize: 11 }} />
                 <Tooltip />
-                <Legend />
+                {!isMobile && <Legend />}
                 <Bar dataKey="count" fill="#34d399" radius={[6, 6, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
@@ -379,16 +413,16 @@ export default function MindsetInsightsPanel({
           ) : (
             recentInsights.map((insight) => (
               <div key={insight.id} className="rounded-xl border border-gray-200 p-4 dark:border-white/10">
-                <div className="flex items-start justify-between">
+                <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
                   <div>
-                    <p className="text-sm font-semibold text-gray-900 dark:text-white">{insight.insightType}</p>
+                    <p className="break-words text-sm font-semibold text-gray-900 dark:text-white">{insight.insightType}</p>
                     <p className="text-xs text-gray-500">
                       {new Date(insight.analysisDate).toLocaleDateString()}
                     </p>
                   </div>
-                  <div className="text-[11px] text-gray-500">{insight.sentiment}</div>
+                  <div className="break-words text-[11px] text-gray-500">{insight.sentiment}</div>
                 </div>
-                <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
+                <p className="mt-2 break-words text-sm text-gray-600 dark:text-gray-300">
                   &ldquo;{insight.extractedText}&rdquo;
                 </p>
                 <div className="mt-2 text-[11px] text-gray-500">

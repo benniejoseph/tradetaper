@@ -10,6 +10,10 @@ import {
 } from 'typeorm';
 import { User } from './user.entity';
 
+@Index('IDX_mt5_accounts_user_fingerprint_unique', ['userId', 'loginServerFingerprint'], {
+  unique: true,
+  where: '"loginServerFingerprint" IS NOT NULL',
+})
 @Entity('mt5_accounts')
 export class MT5Account {
   @PrimaryGeneratedColumn('uuid')

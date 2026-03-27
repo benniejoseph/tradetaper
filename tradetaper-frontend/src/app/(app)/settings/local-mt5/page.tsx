@@ -381,7 +381,7 @@ export default function LocalMT5SyncPage() {
       {/* Header */}
       <div className="space-y-2">
         <div className="flex flex-wrap items-center gap-3">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-emerald-500 to-emerald-400 bg-clip-text text-transparent">
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-emerald-500 to-emerald-400 bg-clip-text text-transparent sm:text-4xl">
             Local MT5 Sync
           </h1>
           <span className="px-3 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
@@ -427,12 +427,12 @@ export default function LocalMT5SyncPage() {
 
       {/* Account Selector */}
       {accounts.length > 0 && (
-        <div className="flex items-center gap-4">
+        <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:gap-4">
           <label className="text-sm font-medium text-gray-700 dark:text-gray-400">Select Account:</label>
           <select
             value={selectedAccountId || ''}
             onChange={(e) => setSelectedAccountId(e.target.value)}
-            className="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-2 text-gray-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+            className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-gray-900 focus:border-transparent focus:ring-2 focus:ring-emerald-500 dark:border-gray-700 dark:bg-gray-800 dark:text-white sm:w-auto sm:min-w-[320px]"
           >
             {accounts.map(acc => (
               <option key={acc.id} value={acc.id}>
@@ -446,7 +446,7 @@ export default function LocalMT5SyncPage() {
       {accounts.length === 0 && (
         <div className="rounded-2xl border border-gray-200 dark:border-gray-700/50 bg-white dark:bg-gray-900/50 p-8 text-center">
           <FaExclamationTriangle className="w-8 h-8 text-yellow-400 mx-auto mb-3" />
-          <p className="text-gray-700 dark:text-gray-300">No MT5 accounts found. Add an account in <strong>Settings → MetaApi Integration</strong> first.</p>
+          <p className="text-gray-700 dark:text-gray-300">No MT5 accounts found. Use the global <strong>Add Account</strong> button in Accounts Hub first.</p>
         </div>
       )}
 
@@ -458,7 +458,7 @@ export default function LocalMT5SyncPage() {
             <p className="font-semibold text-amber-700 dark:text-amber-300">MetaAPI Cloud is currently active for this account</p>
             <p className="text-amber-700/90 dark:text-amber-400/80 mt-0.5">
               Clicking <strong>Enable Auto-Sync</strong> will automatically pause MetaAPI streaming and switch to Local Terminal mode.
-              You can re-enable MetaAPI anytime from <strong>Settings → MetaApi Integration</strong>.
+              You can re-enable MetaAPI anytime from <strong>Accounts Hub → MetaAPI Sync</strong>.
             </p>
           </div>
         </div>
@@ -500,7 +500,7 @@ export default function LocalMT5SyncPage() {
       {selectedAccountId && (
         <>
           {activeMode === 'metaapi' ? (
-            <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-8 text-center flex flex-col items-center justify-center min-h-[300px]">
+            <div className="flex min-h-[240px] flex-col items-center justify-center rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-6 text-center sm:min-h-[300px] sm:p-8">
               <div className="p-4 bg-emerald-500/10 rounded-full mb-4">
                 <FaCloud className="w-10 h-10 text-emerald-400" />
               </div>
@@ -518,7 +518,7 @@ export default function LocalMT5SyncPage() {
               {/* Terminal Status Card */}
               <div className="rounded-2xl border border-gray-200 dark:border-gray-700/50 bg-gradient-to-br from-white to-gray-50 dark:from-gray-900/80 dark:to-gray-800/60 backdrop-blur-xl shadow-xl overflow-hidden">
                 <div className="p-6">
-                  <div className="flex items-center justify-between mb-6">
+                  <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div className="flex items-center gap-3">
                       <div className="p-3 bg-gradient-to-r from-emerald-500/20 to-emerald-400/20 rounded-xl">
                         <FaDesktop className="w-5 h-5 text-emerald-400" />
@@ -529,7 +529,7 @@ export default function LocalMT5SyncPage() {
                       </div>
                     </div>
                     {terminalStatus?.status && (
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-center sm:justify-end">
                         <button
                           onClick={() => void fetchConnectorConfig()}
                           disabled={connectorLoading}
@@ -641,18 +641,18 @@ export default function LocalMT5SyncPage() {
 
                   {/* Status Info */}
                   {terminalStatus?.status === 'RUNNING' && (
-                    <div className="space-y-3 mb-6">
-                      <div className="flex justify-between text-sm">
+                    <div className="mb-6 space-y-3">
+                      <div className="flex flex-col gap-1 text-sm sm:flex-row sm:items-center sm:justify-between">
                         <span className="text-gray-600 dark:text-gray-400">Last Heartbeat</span>
-                        <span className="text-gray-800 dark:text-gray-200">
+                        <span className="text-gray-800 dark:text-gray-200 sm:text-right">
                           {terminalStatus.lastHeartbeat
                             ? new Date(terminalStatus.lastHeartbeat).toLocaleString()
                             : '—'}
                         </span>
                       </div>
-                      <div className="flex justify-between text-sm">
+                      <div className="flex flex-col gap-1 text-sm sm:flex-row sm:items-center sm:justify-between">
                         <span className="text-gray-600 dark:text-gray-400">Last Sync</span>
-                        <span className="text-gray-800 dark:text-gray-200">
+                        <span className="text-gray-800 dark:text-gray-200 sm:text-right">
                           {terminalStatus.lastSyncAt
                             ? new Date(terminalStatus.lastSyncAt).toLocaleString()
                             : 'Never'}
@@ -662,12 +662,12 @@ export default function LocalMT5SyncPage() {
                   )}
 
                   {/* Action Buttons */}
-                  <div className="flex flex-wrap gap-3">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
                     {!terminalStatus || terminalStatus.status === 'STOPPED' ? (
                       <button
                         onClick={handleEnableSync}
                         disabled={loading || disconnectingMetaApi || !disclaimerAccepted}
-                        className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white rounded-xl font-medium transition-all disabled:opacity-50"
+                        className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 px-5 py-2.5 font-medium text-white transition-all hover:from-emerald-600 hover:to-emerald-700 disabled:opacity-50 sm:w-auto"
                         title={!disclaimerAccepted ? 'Accept disclaimer to enable' : undefined}
                       >
                         <FaPlay className="w-3 h-3" />
@@ -679,7 +679,7 @@ export default function LocalMT5SyncPage() {
                           <button
                             onClick={handleManualSync}
                             disabled={syncing}
-                            className="flex items-center gap-2 px-4 py-2.5 bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-500 dark:text-emerald-400 border border-emerald-500/30 rounded-xl font-medium transition-all disabled:opacity-50"
+                            className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/15 px-4 py-2.5 font-medium text-emerald-500 transition-all hover:bg-emerald-500/25 disabled:opacity-50 dark:text-emerald-400 sm:w-auto"
                           >
                             <FaSync className={`w-3 h-3 ${syncing ? 'animate-spin' : ''}`} />
                             {syncing ? 'Syncing…' : 'Manual Sync'}
@@ -688,7 +688,7 @@ export default function LocalMT5SyncPage() {
                         <button
                           onClick={handleDisableSync}
                           disabled={loading}
-                          className="flex items-center gap-2 px-4 py-2.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 rounded-xl font-medium transition-all disabled:opacity-50"
+                          className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-2.5 font-medium text-red-400 transition-all hover:bg-red-500/20 disabled:opacity-50 sm:w-auto"
                         >
                           <FaStop className="w-3 h-3" />
                           {loading ? 'Stopping...' : 'Disable'}
@@ -745,10 +745,52 @@ export default function LocalMT5SyncPage() {
               </div>
             </div>
 
-            <div className="overflow-x-auto">
+            <div className="space-y-3 md:hidden">
+              {positions.map((pos) => (
+                <div key={pos.ticket} className="rounded-xl border border-gray-200 bg-white/70 p-3 dark:border-gray-700/50 dark:bg-gray-900/60">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="font-medium text-gray-900 dark:text-white">{pos.symbol}</p>
+                      <span className={`mt-1 inline-flex rounded px-2 py-0.5 text-xs font-semibold ${pos.type === 'BUY' ? 'bg-emerald-500/20 text-emerald-500 dark:text-emerald-300' : 'bg-red-500/20 text-red-500 dark:text-red-300'}`}>
+                        {pos.type}
+                      </span>
+                    </div>
+                    <p className={`text-sm font-semibold ${(pos.profit || 0) >= 0 ? 'text-emerald-500 dark:text-emerald-300' : 'text-red-500 dark:text-red-300'}`}>
+                      {typeof pos.profit === 'number' ? `$${pos.profit.toFixed(2)}` : '—'}
+                    </p>
+                  </div>
+                  <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                    <div className="rounded-lg bg-gray-100/80 px-2 py-1.5 dark:bg-gray-800/70">
+                      <span className="text-gray-500 dark:text-gray-400">Volume </span>
+                      <span className="font-medium text-gray-900 dark:text-gray-100">{pos.volume}</span>
+                    </div>
+                    <div className="rounded-lg bg-gray-100/80 px-2 py-1.5 dark:bg-gray-800/70">
+                      <span className="text-gray-500 dark:text-gray-400">Open </span>
+                      <span className="font-medium text-gray-900 dark:text-gray-100">
+                        {typeof pos.openPrice === 'number' ? pos.openPrice.toFixed(5) : '—'}
+                      </span>
+                    </div>
+                    <div className="rounded-lg bg-gray-100/80 px-2 py-1.5 dark:bg-gray-800/70">
+                      <span className="text-gray-500 dark:text-gray-400">SL </span>
+                      <span className="font-medium text-gray-900 dark:text-gray-100">
+                        {typeof pos.stopLoss === 'number' ? pos.stopLoss.toFixed(5) : '—'}
+                      </span>
+                    </div>
+                    <div className="rounded-lg bg-gray-100/80 px-2 py-1.5 dark:bg-gray-800/70">
+                      <span className="text-gray-500 dark:text-gray-400">TP </span>
+                      <span className="font-medium text-gray-900 dark:text-gray-100">
+                        {typeof pos.takeProfit === 'number' ? pos.takeProfit.toFixed(5) : '—'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="hidden overflow-x-auto md:block">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="text-gray-600 dark:text-gray-400 text-xs uppercase border-b border-gray-200 dark:border-gray-700/50">
+                  <tr className="border-b border-gray-200 text-xs uppercase text-gray-600 dark:border-gray-700/50 dark:text-gray-400">
                     <th className="text-left py-2 px-3">Symbol</th>
                     <th className="text-left py-2 px-3">Type</th>
                     <th className="text-right py-2 px-3">Volume</th>
@@ -760,7 +802,7 @@ export default function LocalMT5SyncPage() {
                 </thead>
                 <tbody>
                   {positions.map((pos) => (
-                    <tr key={pos.ticket} className="border-b border-gray-200 dark:border-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-800/30 transition-colors">
+                    <tr key={pos.ticket} className="border-b border-gray-200 transition-colors hover:bg-gray-100 dark:border-gray-800/50 dark:hover:bg-gray-800/30">
                       <td className="py-3 px-3 font-medium text-gray-900 dark:text-white">{pos.symbol}</td>
                       <td className="py-3 px-3">
                         <span className={`px-2 py-0.5 rounded text-xs font-semibold ${pos.type === 'BUY' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'}`}>
@@ -768,11 +810,17 @@ export default function LocalMT5SyncPage() {
                         </span>
                       </td>
                       <td className="py-3 px-3 text-right text-gray-700 dark:text-gray-300">{pos.volume}</td>
-                      <td className="py-3 px-3 text-right text-gray-700 dark:text-gray-300">{pos.openPrice?.toFixed(5)}</td>
-                      <td className="py-3 px-3 text-right text-gray-600 dark:text-gray-400">{pos.stopLoss?.toFixed(5) || '—'}</td>
-                      <td className="py-3 px-3 text-right text-gray-600 dark:text-gray-400">{pos.takeProfit?.toFixed(5) || '—'}</td>
+                      <td className="py-3 px-3 text-right text-gray-700 dark:text-gray-300">
+                        {typeof pos.openPrice === 'number' ? pos.openPrice.toFixed(5) : '—'}
+                      </td>
+                      <td className="py-3 px-3 text-right text-gray-600 dark:text-gray-400">
+                        {typeof pos.stopLoss === 'number' ? pos.stopLoss.toFixed(5) : '—'}
+                      </td>
+                      <td className="py-3 px-3 text-right text-gray-600 dark:text-gray-400">
+                        {typeof pos.takeProfit === 'number' ? pos.takeProfit.toFixed(5) : '—'}
+                      </td>
                       <td className={`py-3 px-3 text-right font-medium ${(pos.profit || 0) >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                        {pos.profit !== undefined ? `$${pos.profit.toFixed(2)}` : '—'}
+                        {typeof pos.profit === 'number' ? `$${pos.profit.toFixed(2)}` : '—'}
                       </td>
                     </tr>
                   ))}

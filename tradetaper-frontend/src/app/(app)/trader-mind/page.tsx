@@ -211,7 +211,7 @@ export default function DisciplinePage() {
 
   return (
     <FeatureGate feature="discipline">
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 md:p-8">
+      <div className="min-h-screen bg-gray-50 p-3 dark:bg-gray-900 sm:p-4 md:p-8">
         {/* Cooldown Overlay */}
         {cooldown && !cooldown.isCompleted && !cooldown.isSkipped && (
           <CooldownOverlay
@@ -228,10 +228,10 @@ export default function DisciplinePage() {
           {/* Header */}
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-black text-gray-900 dark:text-white uppercase tracking-tighter">
+              <h1 className="text-2xl font-black uppercase tracking-tighter text-gray-900 dark:text-white sm:text-3xl">
                 Trader Mind
               </h1>
-              <p className="text-gray-500 dark:text-gray-400 font-medium">
+              <p className="text-sm font-medium text-gray-500 dark:text-gray-400 sm:text-base">
                 Build discipline, consistency, and execution focus
               </p>
             </div>
@@ -243,20 +243,20 @@ export default function DisciplinePage() {
                 <p className="text-xs font-bold uppercase tracking-[0.2em] text-gray-500 dark:text-gray-400">
                   Active Scope
                 </p>
-                <h2 className="mt-2 text-xl font-black text-gray-900 dark:text-white">
+                <h2 className="mt-2 break-words text-lg font-black text-gray-900 dark:text-white sm:text-xl">
                   {selectedScopeLabel}
                 </h2>
                 <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                   Psychology range: {WINDOW_LABEL[mindWindow]}
                 </p>
               </div>
-              <div className="inline-flex flex-wrap gap-2 rounded-xl border border-gray-200 bg-white p-1 dark:border-white/10 dark:bg-black/30">
+              <div className="grid w-full grid-cols-4 gap-2 rounded-xl border border-gray-200 bg-white p-1 dark:border-white/10 dark:bg-black/30 sm:inline-flex sm:w-auto sm:flex-wrap">
                 {(['7d', '30d', '90d', 'all'] as MindWindow[]).map((windowKey) => (
                   <button
                     key={windowKey}
                     type="button"
                     onClick={() => setMindWindow(windowKey)}
-                    className={`rounded-lg px-3 py-1.5 text-xs font-bold transition ${
+                    className={`rounded-lg px-3 py-1.5 text-center text-xs font-bold transition ${
                       mindWindow === windowKey
                         ? 'bg-emerald-600 text-white shadow-sm'
                         : 'text-gray-600 hover:bg-emerald-50 hover:text-emerald-700 dark:text-gray-300 dark:hover:bg-emerald-900/30 dark:hover:text-emerald-200'

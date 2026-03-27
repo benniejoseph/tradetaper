@@ -16,7 +16,7 @@ import {
 import { 
   FaPlus, FaEdit, FaTrash, FaSave, FaTimes, FaExclamationTriangle,
   FaDollarSign, FaBuilding, FaCheck, FaCrown, FaUsers,
-  FaChartLine, FaShieldAlt, FaSpinner, FaFilter
+  FaSpinner, FaFilter
 } from 'react-icons/fa';
 import AlertModal from '@/components/ui/AlertModal';
 
@@ -27,6 +27,10 @@ interface AccountFormData {
   currency?: string;
   description?: string;
   target?: string; // Input as string, convert to number on save
+  accountCategory: 'personal' | 'prop_firm';
+  propFirmPhase?: string;
+  propMaxLoss?: string;
+  propDailyMaxLoss?: string;
 }
 
 interface ManageAccountsProps {
@@ -39,7 +43,11 @@ const initialFormState: AccountFormData = {
   balance: '',
   currency: 'USD',
   description: '',
-  target: ''
+  target: '',
+  accountCategory: 'personal',
+  propFirmPhase: '',
+  propMaxLoss: '',
+  propDailyMaxLoss: '',
 };
 
 export default function ManageAccounts({ addFormSignal = 0, hideAddButton = false }: ManageAccountsProps) {
@@ -90,7 +98,19 @@ export default function ManageAccounts({ addFormSignal = 0, hideAddButton = fals
       balance: account.balance.toString(),
       currency: account.currency,
       description: account.description || '',
-      target: account.target?.toString() || ''
+      target: account.target?.toString() || '',
+      accountCategory:
+        account.accountCategory === 'prop_firm' ? 'prop_firm' : 'personal',
+      propFirmPhase: account.propFirmPhase || '',
+      propMaxLoss:
+        account.propMaxLoss !== null && account.propMaxLoss !== undefined
+          ? account.propMaxLoss.toString()
+          : '',
+      propDailyMaxLoss:
+        account.propDailyMaxLoss !== null &&
+        account.propDailyMaxLoss !== undefined
+          ? account.propDailyMaxLoss.toString()
+          : '',
     });
     setShowAddForm(true); // Re-use the same form for editing
   };
@@ -113,6 +133,22 @@ export default function ManageAccounts({ addFormSignal = 0, hideAddButton = fals
         return;
     }
 
+    const parseOptionalNumber = (value?: string): number | undefined => {
+      if (!value || value.trim() === '') return undefined;
+      const parsed = parseFloat(value);
+      return Number.isFinite(parsed) ? parsed : undefined;
+    };
+
+    const accountCategory = formData.accountCategory || 'personal';
+    const targetNum = parseOptionalNumber(formData.target);
+    const propMaxLoss = parseOptionalNumber(formData.propMaxLoss);
+    const propDailyMaxLoss = parseOptionalNumber(formData.propDailyMaxLoss);
+
+    if (accountCategory === 'prop_firm' && targetNum === undefined) {
+      showAlert('Profit target is required for Prop Firm accounts.', 'Missing Profit Target');
+      return;
+    }
+
     try {
       if (isEditing && formData.id) {
         await dispatch(updateAccountThunk({ 
@@ -121,7 +157,16 @@ export default function ManageAccounts({ addFormSignal = 0, hideAddButton = fals
           balance: balanceNum,
           currency: formData.currency,
           description: formData.description?.trim() || undefined,
-          target: formData.target ? parseFloat(formData.target) : undefined
+          target: targetNum,
+          accountCategory,
+          propFirmPhase:
+            accountCategory === 'prop_firm'
+              ? formData.propFirmPhase?.trim() || undefined
+              : undefined,
+          propMaxLoss:
+            accountCategory === 'prop_firm' ? propMaxLoss : undefined,
+          propDailyMaxLoss:
+            accountCategory === 'prop_firm' ? propDailyMaxLoss : undefined,
         })).unwrap();
       } else {
         await dispatch(createAccount({ 
@@ -129,7 +174,16 @@ export default function ManageAccounts({ addFormSignal = 0, hideAddButton = fals
           balance: balanceNum,
           currency: formData.currency,
           description: formData.description?.trim() || undefined,
-          target: formData.target ? parseFloat(formData.target) : undefined
+          target: targetNum,
+          accountCategory,
+          propFirmPhase:
+            accountCategory === 'prop_firm'
+              ? formData.propFirmPhase?.trim() || undefined
+              : undefined,
+          propMaxLoss:
+            accountCategory === 'prop_firm' ? propMaxLoss : undefined,
+          propDailyMaxLoss:
+            accountCategory === 'prop_firm' ? propDailyMaxLoss : undefined,
         })).unwrap();
       }
       handleCancelEdit(); // Close form and reset
@@ -167,7 +221,7 @@ export default function ManageAccounts({ addFormSignal = 0, hideAddButton = fals
               </p>
               <button 
                 onClick={() => dispatch(fetchAccounts())}
-                className="inline-flex items-center space-x-2 bg-gradient-to-r from-blue-500 to-green-500 hover:from-blue-600 hover:to-green-600 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl"
+                className="inline-flex items-center space-x-2 bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl"
               >
                 <span>Retry</span>
               </button>
@@ -182,9 +236,9 @@ export default function ManageAccounts({ addFormSignal = 0, hideAddButton = fals
     <div className="space-y-8">
       {/* Add/Edit Form Card */}
       {showAddForm && (
-        <div className="bg-white/90 dark:bg-black/70 backdrop-blur-xl rounded-2xl border border-gray-200/70 dark:border-gray-800 p-6 shadow-sm">
-          <div className="flex items-center space-x-3 mb-6">
-            <div className="p-2 bg-gradient-to-r from-blue-500/20 to-green-500/20 rounded-xl">
+        <div className="bg-white/90 dark:bg-black/70 backdrop-blur-xl rounded-2xl border border-gray-200/70 dark:border-gray-800 p-4 sm:p-6 shadow-sm">
+          <div className="mb-6 flex items-start gap-3">
+            <div className="p-2 bg-gradient-to-r from-emerald-500/20 to-green-500/20 rounded-xl">
               {isEditing ? <FaEdit className="w-5 h-5 text-emerald-600 dark:text-emerald-400" /> : <FaPlus className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />}
             </div>
             <div>
@@ -272,6 +326,88 @@ export default function ManageAccounts({ addFormSignal = 0, hideAddButton = fals
 
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Account Type
+              </label>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setFormData((prev) => ({ ...prev, accountCategory: 'personal' }))
+                  }
+                  className={`rounded-xl border px-3 py-2 text-sm font-medium transition ${
+                    formData.accountCategory === 'personal'
+                      ? 'border-emerald-400 bg-emerald-50 text-emerald-700 dark:border-emerald-500 dark:bg-emerald-900/30 dark:text-emerald-300'
+                      : 'border-gray-200 dark:border-gray-800 text-gray-600 dark:text-gray-300'
+                  }`}
+                >
+                  Personal
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setFormData((prev) => ({ ...prev, accountCategory: 'prop_firm' }))
+                  }
+                  className={`rounded-xl border px-3 py-2 text-sm font-medium transition ${
+                    formData.accountCategory === 'prop_firm'
+                      ? 'border-emerald-400 bg-emerald-50 text-emerald-700 dark:border-emerald-500 dark:bg-emerald-900/30 dark:text-emerald-300'
+                      : 'border-gray-200 dark:border-gray-800 text-gray-600 dark:text-gray-300'
+                  }`}
+                >
+                  Prop Firm
+                </button>
+              </div>
+            </div>
+
+            {formData.accountCategory === 'prop_firm' && (
+              <div className="space-y-4 rounded-xl border border-emerald-200 dark:border-emerald-800/60 bg-emerald-50/40 dark:bg-emerald-900/10 p-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Phase
+                  </label>
+                  <input
+                    type="text"
+                    name="propFirmPhase"
+                    value={formData.propFirmPhase || ''}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-3 border border-gray-200/60 dark:border-gray-800 rounded-xl bg-white/80 dark:bg-black/60 backdrop-blur-sm focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all duration-200 text-gray-900 dark:text-white placeholder-gray-400"
+                    placeholder="Challenge / Verification / Funded"
+                  />
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Max Loss
+                    </label>
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      name="propMaxLoss"
+                      value={formData.propMaxLoss || ''}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-3 border border-gray-200/60 dark:border-gray-800 rounded-xl bg-white/80 dark:bg-black/60 backdrop-blur-sm focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all duration-200 text-gray-900 dark:text-white placeholder-gray-400"
+                      placeholder="e.g. 12000"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Daily Max Loss
+                    </label>
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      name="propDailyMaxLoss"
+                      value={formData.propDailyMaxLoss || ''}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-3 border border-gray-200/60 dark:border-gray-800 rounded-xl bg-white/80 dark:bg-black/60 backdrop-blur-sm focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all duration-200 text-gray-900 dark:text-white placeholder-gray-400"
+                      placeholder="e.g. 5000"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Description (Optional)
               </label>
               <textarea 
@@ -284,19 +420,19 @@ export default function ManageAccounts({ addFormSignal = 0, hideAddButton = fals
               />
             </div>
             
-            <div className="flex justify-end space-x-3 pt-4">
+            <div className="flex flex-col-reverse gap-3 pt-4 sm:flex-row sm:justify-end">
               <button 
                 type="button" 
                 onClick={handleCancelEdit}
                 disabled={isLoading}
-                className="flex items-center space-x-2 bg-gray-100/80 dark:bg-gray-900/60 hover:bg-gray-500 dark:hover:bg-gray-500 text-gray-600 dark:text-gray-400 hover:text-white px-6 py-3 rounded-xl font-medium transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed">
+                className="inline-flex w-full items-center justify-center space-x-2 rounded-xl bg-gray-100/80 px-6 py-3 font-medium text-gray-600 transition-all duration-200 hover:bg-gray-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-50 dark:bg-gray-900/60 dark:text-gray-400 dark:hover:bg-gray-500 sm:w-auto">
                 <FaTimes className="w-4 h-4" />
                 <span>Cancel</span>
               </button>
               <button 
                 type="submit"
                 disabled={isLoading}
-                className="flex items-center space-x-2 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white px-6 py-3 rounded-xl font-medium transition-all duration-200 hover:scale-105 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed">
+                className="inline-flex w-full items-center justify-center space-x-2 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 px-6 py-3 font-medium text-white shadow-lg transition-all duration-200 hover:from-emerald-600 hover:to-emerald-700 hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto">
                 {isLoading ? <FaSpinner className="w-4 h-4 animate-spin" /> : <FaSave className="w-4 h-4" />}
                 <span>{isEditing ? 'Save Changes' : 'Add Account'}</span>
               </button>
@@ -307,12 +443,12 @@ export default function ManageAccounts({ addFormSignal = 0, hideAddButton = fals
 
       {/* Accounts List */}
       <div className="space-y-4">
-        <div className="flex justify-between items-center border-b border-gray-200/60 dark:border-gray-800 pb-4">
+        <div className="flex flex-col gap-3 border-b border-gray-200/60 pb-4 dark:border-gray-800 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center space-x-3">
             <div className="p-2 bg-emerald-500/10 rounded-xl">
               <FaUsers className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Your Accounts</h3>
               <span className="text-xs font-medium text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-900/60 px-2 py-0.5 rounded-full">
                 {accounts.length} configured
@@ -320,7 +456,7 @@ export default function ManageAccounts({ addFormSignal = 0, hideAddButton = fals
             </div>
           </div>
           
-          <div className="flex items-center gap-3">
+          <div className="flex items-center justify-between gap-3 sm:justify-end">
             <button className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
               <FaFilter className="w-4 h-4" />
             </button>
@@ -328,7 +464,7 @@ export default function ManageAccounts({ addFormSignal = 0, hideAddButton = fals
               <button 
                 onClick={handleAddNewAccount}
                 disabled={isLoading}
-                className="flex items-center space-x-2 bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed">
+                className="inline-flex items-center space-x-2 rounded-xl bg-emerald-500 px-4 py-2 text-sm font-medium text-white transition-all duration-200 hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-50">
                 <FaPlus className="w-3.5 h-3.5" />
                 <span>Add Account</span>
               </button>
@@ -359,17 +495,24 @@ export default function ManageAccounts({ addFormSignal = 0, hideAddButton = fals
                 <p className="text-gray-600 dark:text-gray-400 mb-6">
                   Get started by adding your first trading account to track your performance.
                 </p>
-                <button 
-                  onClick={handleAddNewAccount}
-                  className="inline-flex items-center space-x-2 bg-emerald-500 hover:bg-emerald-600 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl">
-                  <FaPlus className="w-4 h-4" />
-                  <span>Add Your First Account</span>
-                </button>
+                {!hideAddButton && (
+                  <button 
+                    onClick={handleAddNewAccount}
+                    className="inline-flex items-center space-x-2 bg-emerald-500 hover:bg-emerald-600 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl">
+                    <FaPlus className="w-4 h-4" />
+                    <span>Add Your First Account</span>
+                  </button>
+                )}
+                {hideAddButton && (
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    Use the global <strong>Add Account</strong> button in Accounts Hub.
+                  </p>
+                )}
               </div>
             </div>
           </div>
         ) : (
-          <div className="grid gap-6">
+          <div className="grid gap-4 sm:gap-6">
             {accounts.map(account => (
               <div 
                 key={account.id} 
@@ -377,68 +520,77 @@ export default function ManageAccounts({ addFormSignal = 0, hideAddButton = fals
                   account.id === selectedAccountId 
                     ? 'border-green-300 dark:border-green-600 shadow-lg shadow-green-500/20' 
                     : 'border-gray-200/50 dark:border-gray-700/50'
-                } p-6 transition-all duration-300 hover:shadow-2xl hover:-translate-y-1`}>
+                } p-4 sm:p-6 transition-all duration-300 hover:shadow-2xl hover:-translate-y-1`}>
                 
                 {/* Selected Badge */}
                 {account.id === selectedAccountId && (
-                  <div className="absolute -top-2 -right-2 bg-gradient-to-r from-green-500 to-blue-500 text-white p-2 rounded-full shadow-lg">
+                  <div className="absolute -top-2 -right-2 bg-gradient-to-r from-emerald-500 to-green-500 text-white p-2 rounded-full shadow-lg">
                     <FaCrown className="w-4 h-4" />
                   </div>
                 )}
                 
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-4">
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                  <div className="flex items-start gap-3 sm:gap-4">
                     <div className={`p-3 rounded-xl ${
                       account.id === selectedAccountId 
-                        ? 'bg-gradient-to-r from-green-500/20 to-blue-500/20' 
+                        ? 'bg-gradient-to-r from-emerald-500/20 to-green-500/20' 
                         : 'bg-gradient-to-r from-gray-500/20 to-gray-600/20'
                     }`}>
-                      <FaBuilding className={`w-6 h-6 ${
+                      <FaBuilding className={`h-5 w-5 sm:h-6 sm:w-6 ${
                         account.id === selectedAccountId 
                           ? 'text-emerald-600 dark:text-emerald-400' 
                           : 'text-gray-600 dark:text-gray-400'
                       }`} />
                     </div>
                     
-                    <div>
-                      <div className="flex items-center space-x-2">
-                        <h4 className={`text-xl font-semibold ${
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h4 className={`text-lg font-semibold sm:text-xl ${
                           account.id === selectedAccountId 
                             ? 'text-emerald-600 dark:text-emerald-400' 
                             : 'text-gray-900 dark:text-white'
                         }`}>
                           {account.name}
                         </h4>
-                        {account.id === selectedAccountId && (
-                          <div className="flex items-center space-x-1 bg-emerald-100 dark:bg-emerald-950/30 px-2 py-1 rounded-lg">
-                            <FaCheck className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
-                            <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400">Active</span>
-                          </div>
-                        )}
-                      </div>
-                      <div className="flex items-center space-x-4 mt-1">
-                        <span className="text-2xl font-bold text-gray-900 dark:text-white">
+                      {account.id === selectedAccountId && (
+                        <div className="flex items-center space-x-1 bg-emerald-100 dark:bg-emerald-950/30 px-2 py-1 rounded-lg">
+                          <FaCheck className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+                          <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400">Active</span>
+                        </div>
+                      )}
+                      <span className={`text-[10px] uppercase tracking-wide px-2 py-1 rounded-full ${
+                        account.accountCategory === 'prop_firm'
+                          ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300'
+                          : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'
+                      }`}>
+                        {account.accountCategory === 'prop_firm' ? 'Prop Firm' : 'Personal'}
+                      </span>
+                    </div>
+                      <div className="mt-1 flex items-center">
+                        <span className="text-xl font-bold text-gray-900 dark:text-white sm:text-2xl">
                           {account.currency} {Number(account.balance).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </span>
                       </div>
                       {account.description && (
-                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{account.description}</p>
+                        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{account.description}</p>
                       )}
                     </div>
                   </div>
                   
-                  <div className="flex items-center space-x-2">
+                  <div className="flex w-full flex-wrap items-center gap-2 lg:w-auto lg:justify-end">
                     <button 
                       onClick={() => handleEditAccount(account)}
                       disabled={isLoading}
-                      className="p-2 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 rounded-xl transition-all duration-200 hover:scale-110 disabled:opacity-50 disabled:cursor-not-allowed">
-                      <FaEdit className="w-4 h-4" />
+                      className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-200 px-3 py-2 text-sm font-medium text-emerald-600 transition-all duration-200 hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-50 dark:border-emerald-900/40 dark:text-emerald-300">
+                      <FaEdit className="w-3.5 h-3.5" />
+                      Edit
                     </button>
                     <button 
                       onClick={() => setShowConfirmDelete(account.id)}
                       disabled={isLoading}
-                      className="p-2 text-red-600 dark:text-red-400 hover:bg-red-500/20 rounded-xl transition-all duration-200 hover:scale-110 disabled:opacity-50 disabled:cursor-not-allowed">
-                      <FaTrash className="w-4 h-4" />
+                      className="inline-flex items-center gap-1.5 rounded-xl border border-red-200 px-3 py-2 text-sm font-medium text-red-600 transition-all duration-200 hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-50 dark:border-red-900/40 dark:text-red-300">
+                      <FaTrash className="w-3.5 h-3.5" />
+                      Delete
                     </button>
                   </div>
                 </div>
@@ -462,7 +614,7 @@ export default function ManageAccounts({ addFormSignal = 0, hideAddButton = fals
               </p>
             </div>
             
-            <div className="flex space-x-3">
+            <div className="flex flex-col-reverse gap-3 sm:flex-row">
               <button 
                 onClick={() => setShowConfirmDelete(null)}
                 disabled={isLoading}

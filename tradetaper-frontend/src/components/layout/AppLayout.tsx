@@ -296,7 +296,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
 
   return (
     <ProtectedRoute>
-      <div className="h-screen flex flex-col bg-white dark:bg-black">
+      <div className="min-h-dvh h-dvh flex flex-col bg-white dark:bg-black">
         {/* Sidebar */}
         <Sidebar 
           isOpen={isSidebarOpen} 
@@ -306,7 +306,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
         />
         
         {/* Main Content Area */}
-        <div className={`flex-1 flex flex-col transition-all duration-500 overflow-hidden ${
+        <div className={`flex-1 min-h-0 flex flex-col transition-all duration-500 overflow-x-hidden ${
           isMobile 
             ? 'ml-0' 
             : isSidebarExpanded 
@@ -329,13 +329,13 @@ export default function AppLayout({ children }: AppLayoutProps) {
           
           {/* Page Content */}
           <main
-            className={`flex-1 max-w-full h-full ${
+            className={`flex-1 max-w-full min-h-0 ${
               isBacktestingSessionRoute
-                ? 'p-0 overflow-hidden'
-                : 'p-4 md:p-6 lg:p-8 overflow-auto'
+                ? 'h-full p-0 overflow-hidden'
+                : 'p-4 md:p-6 lg:p-8 overflow-y-auto overflow-x-hidden'
             }`}
           >
-            <div className="w-full h-full">
+            <div className={`w-full ${isBacktestingSessionRoute ? 'h-full' : ''}`}>
               {children}
             </div>
           </main>

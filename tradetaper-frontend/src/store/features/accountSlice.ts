@@ -9,6 +9,10 @@ export interface Account {
   currency: string;
   description?: string;
   target?: number;
+  accountCategory?: 'personal' | 'prop_firm';
+  propFirmPhase?: string | null;
+  propMaxLoss?: number | null;
+  propDailyMaxLoss?: number | null;
   isActive?: boolean;
   createdAt: string;
   updatedAt: string;
@@ -20,6 +24,10 @@ export interface CreateAccountPayload {
   currency?: string;
   description?: string;
   target?: number;
+  accountCategory?: 'personal' | 'prop_firm';
+  propFirmPhase?: string;
+  propMaxLoss?: number;
+  propDailyMaxLoss?: number;
   isActive?: boolean;
 }
 
@@ -30,6 +38,10 @@ export interface UpdateAccountPayload {
   currency?: string;
   description?: string;
   target?: number;
+  accountCategory?: 'personal' | 'prop_firm';
+  propFirmPhase?: string;
+  propMaxLoss?: number;
+  propDailyMaxLoss?: number;
   isActive?: boolean;
 }
 

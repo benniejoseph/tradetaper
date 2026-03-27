@@ -35,14 +35,14 @@ export default function WinRateCard({
       onTimeRangeChange={onTimeRangeChange}
       gridSpan="sm:col-span-2 lg:col-span-3"
     >
-      <div className="flex flex-col items-center justify-center space-y-6 h-full pb-4">
-        <div className="relative w-72 h-72">
+      <div className="flex h-full flex-col items-center justify-center space-y-4 pb-2 sm:space-y-6 sm:pb-4">
+        <div className="relative w-full max-w-[18rem] aspect-square">
           <ResponsiveContainer width="100%" height="100%">
             <RadialBarChart 
               cx="50%" 
               cy="50%" 
-              innerRadius="78%"
-              outerRadius="115%"
+              innerRadius="74%"
+              outerRadius="108%"
               barSize={22}
               data={winrateChartData} 
               startAngle={90}
@@ -57,14 +57,14 @@ export default function WinRateCard({
               />
               <defs>
                 <linearGradient id="winrateGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                  <stop offset="0%" stopColor="#3B82F6" />
-                  <stop offset="100%" stopColor="#10B981" />
+                  <stop offset="0%" stopColor="#34D399" />
+                  <stop offset="100%" stopColor="#059669" />
                 </linearGradient>
               </defs>
             </RadialBarChart>
           </ResponsiveContainer>
           <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <div className="text-5xl font-bold text-gray-900 dark:text-white">
+            <div className="text-[clamp(2rem,9vw,3rem)] font-bold text-gray-900 dark:text-white">
               {winRate.toFixed(1)}%
             </div>
             <div className="text-sm text-gray-500 dark:text-gray-400 font-medium mt-1">
@@ -73,10 +73,10 @@ export default function WinRateCard({
           </div>
         </div>
 
-        <div className="w-full max-w-md px-6">
+        <div className="w-full max-w-md px-2 sm:px-6">
           <div className="flex justify-between items-center mb-2">
-            <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Risk-Reward Ratio</span>
-            <span className="text-sm font-bold text-gray-900 dark:text-white">{averageRR.toFixed(2)}</span>
+            <span className="text-xs font-medium text-gray-600 dark:text-gray-400 sm:text-sm">Risk-Reward Ratio</span>
+            <span className="text-xs font-bold text-gray-900 dark:text-white sm:text-sm">{averageRR.toFixed(2)}</span>
           </div>
           <div className="relative h-3 bg-gradient-to-r from-emerald-100 to-emerald-200 dark:bg-gradient-to-r dark:from-emerald-950/30 dark:to-emerald-900/30 rounded-full overflow-hidden">
             <div 

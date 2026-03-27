@@ -118,7 +118,7 @@ export default function LivePositionsCard({ accountId, accountName, hasMT5Accoun
     try {
       const response = await terminalService.getLivePositions(accountId);
       setData(response);
-    } catch (err) {
+    } catch (_err) {
       setError('Unable to fetch live positions.');
     } finally {
       setLoading(false);
@@ -135,8 +135,10 @@ export default function LivePositionsCard({ accountId, accountName, hasMT5Accoun
 
   useEffect(() => {
     if (!isConnected || !accountId) return;
-    const unsubscribe = subscribe('mt5:positions', (payload: any) => {
-      if (!payload || payload.accountId !== accountId) return;
+    const unsubscribe = subscribe('mt5:positions', (payload: unknown) => {
+      if (!payload || typeof payload !== 'object') return;
+      const incoming = payload as { accountId?: string };
+      if (incoming.accountId !== accountId) return;
       setData(payload as LivePositionsResponse);
       setError(null);
       setLoading(false);
@@ -182,7 +184,7 @@ export default function LivePositionsCard({ accountId, accountName, hasMT5Accoun
           Connect an MT5 account to view live positions.
           <div className="mt-3">
             <Link
-              href="/settings/mt5-accounts"
+              href="/settings/accounts-hub"
               className="inline-flex items-center gap-2 rounded-full border border-emerald-200 dark:border-emerald-900/40 px-4 py-2 text-xs font-semibold text-emerald-600 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-900/30"
             >
               Connect MT5
@@ -199,11 +201,11 @@ export default function LivePositionsCard({ accountId, accountName, hasMT5Accoun
 
       {hasMT5Accounts && accountId && (
         <>
-          <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
-          <div className="text-xs text-gray-500 dark:text-gray-400">
+          <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div className="text-xs text-gray-500 dark:text-gray-400">
               {accountName ? `${accountName} • ` : ''}Streaming live
             </div>
-            <div className="flex items-center gap-2 text-xs">
+            <div className="flex flex-wrap items-center gap-2 text-xs">
               {statusBadge}
               {isStale && (
                 <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-semibold bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-200">
@@ -215,9 +217,9 @@ export default function LivePositionsCard({ accountId, accountName, hasMT5Accoun
             </div>
           </div>
 
-          <div className="flex items-center justify-between gap-4 mb-4">
+          <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="text-xs text-gray-500 dark:text-gray-400">Open positions: {data?.positions?.length || 0}</div>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3">
               <div className={`text-sm font-semibold ${totalOpenPnl >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
                 Open P&L {totalOpenPnl >= 0 ? '+' : ''}{formatNumber(totalOpenPnl, 2)}
               </div>
@@ -260,71 +262,143 @@ export default function LivePositionsCard({ accountId, accountName, hasMT5Accoun
           )}
 
           {data?.enabled && data.positions && data.positions.length > 0 && (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm">
-                <thead>
-                  <tr className="text-[10px] uppercase text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-emerald-900/40">
-                    <th className="py-2">Symbol</th>
-                    <th className="py-2">Side</th>
-                    <th className="py-2">P/L</th>
-                    <th className="py-2">Change</th>
-                    <th className="py-2">Targets</th>
-                    <th className="py-2">Duration</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.positions.map((pos) => {
-                    const open = Number(pos.openPrice);
-                    const current = Number(pos.currentPrice);
-                    const profit = Number(pos.profit);
-                    const change = computeChange(pos);
-                    const changePct = open ? (change / open) * 100 : 0;
-                    const targets = getTargets(pos);
-                    return (
-                      <tr key={pos.ticket} className="border-b border-gray-100 dark:border-emerald-900/20">
-                        <td className="py-3 font-semibold text-gray-900 dark:text-white">{pos.symbol}</td>
-                        <td className={`py-3 font-semibold ${pos.type === 'BUY' ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
-                          {pos.type}
-                        </td>
-                        <td className={`py-3 font-semibold ${profit >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
-                          {profit >= 0 ? '+' : ''}{formatNumber(profit, 2)}
-                        </td>
-                        <td className={`py-3 font-medium ${change >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
-                          {change >= 0 ? '+' : ''}{formatNumber(change, 5)} ({change >= 0 ? '+' : ''}{formatNumber(changePct, 2)}%)
-                        </td>
-                        <td className="py-3">
-                          {targets ? (
-                            <div className="min-w-[160px] space-y-1">
-                              <div className="text-[10px] text-gray-500 dark:text-gray-400">
-                                SL {formatNumber(targets.sl, 5)} • TP {formatNumber(targets.tp, 5)}
-                              </div>
-                              <div className="flex items-center gap-2 text-[10px]">
-                                <span className="text-red-500">to SL {formatDistance(targets.distanceToSL, pos.symbol)}</span>
-                                <span className="text-emerald-500">to TP {formatDistance(targets.distanceToTP, pos.symbol)}</span>
-                              </div>
-                              <div className="h-1.5 w-full rounded-full bg-gray-200 dark:bg-emerald-950/40 overflow-hidden">
-                                <div
-                                  className="h-full bg-gradient-to-r from-red-500/70 via-amber-400/70 to-emerald-500"
-                                  style={{ width: `${targets.progress * 100}%` }}
-                                />
-                              </div>
-                            </div>
-                          ) : (
-                            <span className="text-xs text-gray-400">Targets not set</span>
-                          )}
-                        </td>
-                        <td className="py-3 text-gray-600 dark:text-gray-300">
-                          <div className="flex items-center gap-2">
-                            <FaClock className="text-gray-400" />
-                            {formatDuration(pos.openTime)}
+            <>
+              <div className="space-y-3 md:hidden">
+                {data.positions.map((pos) => {
+                  const open = Number(pos.openPrice);
+                  const current = Number(pos.currentPrice);
+                  const profit = Number(pos.profit);
+                  const change = computeChange(pos);
+                  const changePct = open ? (change / open) * 100 : 0;
+                  const targets = getTargets(pos);
+
+                  return (
+                    <div key={pos.ticket} className="rounded-xl border border-gray-200 bg-white/70 p-3 dark:border-gray-800 dark:bg-gray-900/60">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <div className="text-sm font-semibold text-gray-900 dark:text-white">{pos.symbol}</div>
+                          <div className={`mt-1 inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                            pos.type === 'BUY'
+                              ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-200'
+                              : 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-200'
+                          }`}>
+                            {pos.type}
                           </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+                        </div>
+                        <div className={`text-sm font-semibold ${profit >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
+                          {profit >= 0 ? '+' : ''}{formatNumber(profit, 2)}
+                        </div>
+                      </div>
+
+                      <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                        <div className="rounded-lg bg-gray-100/80 px-2 py-1.5 dark:bg-gray-800/70">
+                          <span className="text-gray-500 dark:text-gray-400">Open </span>
+                          <span className="font-medium text-gray-900 dark:text-gray-100">{formatNumber(open, 5)}</span>
+                        </div>
+                        <div className="rounded-lg bg-gray-100/80 px-2 py-1.5 dark:bg-gray-800/70">
+                          <span className="text-gray-500 dark:text-gray-400">Current </span>
+                          <span className="font-medium text-gray-900 dark:text-gray-100">{formatNumber(current, 5)}</span>
+                        </div>
+                      </div>
+
+                      <div className={`mt-2 text-xs font-medium ${change >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
+                        Change {change >= 0 ? '+' : ''}{formatNumber(change, 5)} ({change >= 0 ? '+' : ''}{formatNumber(changePct, 2)}%)
+                      </div>
+
+                      {targets ? (
+                        <div className="mt-3 space-y-1">
+                          <div className="text-[10px] text-gray-500 dark:text-gray-400">
+                            SL {formatNumber(targets.sl, 5)} • TP {formatNumber(targets.tp, 5)}
+                          </div>
+                          <div className="flex items-center gap-2 text-[10px]">
+                            <span className="text-red-500">to SL {formatDistance(targets.distanceToSL, pos.symbol)}</span>
+                            <span className="text-emerald-500">to TP {formatDistance(targets.distanceToTP, pos.symbol)}</span>
+                          </div>
+                          <div className="h-1.5 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-emerald-950/40">
+                            <div
+                              className="h-full bg-gradient-to-r from-red-500/70 via-amber-400/70 to-emerald-500"
+                              style={{ width: `${targets.progress * 100}%` }}
+                            />
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="mt-2 text-xs text-gray-400">Targets not set</div>
+                      )}
+
+                      <div className="mt-3 flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300">
+                        <FaClock className="text-gray-400" />
+                        {formatDuration(pos.openTime)}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="hidden overflow-x-auto md:block">
+                <table className="w-full text-left text-sm">
+                  <thead>
+                    <tr className="border-b border-gray-200 text-[10px] uppercase text-gray-500 dark:border-emerald-900/40 dark:text-gray-400">
+                      <th className="py-2">Symbol</th>
+                      <th className="py-2">Side</th>
+                      <th className="py-2">P/L</th>
+                      <th className="py-2">Change</th>
+                      <th className="py-2">Targets</th>
+                      <th className="py-2">Duration</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {data.positions.map((pos) => {
+                      const open = Number(pos.openPrice);
+                      const profit = Number(pos.profit);
+                      const change = computeChange(pos);
+                      const changePct = open ? (change / open) * 100 : 0;
+                      const targets = getTargets(pos);
+                      return (
+                        <tr key={pos.ticket} className="border-b border-gray-100 dark:border-emerald-900/20">
+                          <td className="py-3 font-semibold text-gray-900 dark:text-white">{pos.symbol}</td>
+                          <td className={`py-3 font-semibold ${pos.type === 'BUY' ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
+                            {pos.type}
+                          </td>
+                          <td className={`py-3 font-semibold ${profit >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
+                            {profit >= 0 ? '+' : ''}{formatNumber(profit, 2)}
+                          </td>
+                          <td className={`py-3 font-medium ${change >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
+                            {change >= 0 ? '+' : ''}{formatNumber(change, 5)} ({change >= 0 ? '+' : ''}{formatNumber(changePct, 2)}%)
+                          </td>
+                          <td className="py-3">
+                            {targets ? (
+                              <div className="space-y-1">
+                                <div className="text-[10px] text-gray-500 dark:text-gray-400">
+                                  SL {formatNumber(targets.sl, 5)} • TP {formatNumber(targets.tp, 5)}
+                                </div>
+                                <div className="flex items-center gap-2 text-[10px]">
+                                  <span className="text-red-500">to SL {formatDistance(targets.distanceToSL, pos.symbol)}</span>
+                                  <span className="text-emerald-500">to TP {formatDistance(targets.distanceToTP, pos.symbol)}</span>
+                                </div>
+                                <div className="h-1.5 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-emerald-950/40">
+                                  <div
+                                    className="h-full bg-gradient-to-r from-red-500/70 via-amber-400/70 to-emerald-500"
+                                    style={{ width: `${targets.progress * 100}%` }}
+                                  />
+                                </div>
+                              </div>
+                            ) : (
+                              <span className="text-xs text-gray-400">Targets not set</span>
+                            )}
+                          </td>
+                          <td className="py-3 text-gray-600 dark:text-gray-300">
+                            <div className="flex items-center gap-2">
+                              <FaClock className="text-gray-400" />
+                              {formatDuration(pos.openTime)}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </>
           )}
         </>
       )}

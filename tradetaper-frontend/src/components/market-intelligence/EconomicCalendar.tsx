@@ -656,7 +656,7 @@ export default function EconomicCalendar() {
                     <div className="px-2 py-2 text-sm font-semibold text-gray-600 dark:text-gray-400 capitalize bg-transparent sticky top-0">
                       {group}
                     </div>
-                    <div className="px-4 py-2 text-xs text-gray-400 dark:text-gray-500 flex items-center justify-between">
+                    <div className="hidden sm:flex px-4 py-2 text-xs text-gray-400 dark:text-gray-500 items-center justify-between">
                       <span className="flex items-center gap-1">Event <span className="text-[10px]">▼</span></span>
                       <span className="flex gap-4 w-[200px] justify-end pr-2 text-right">
                         <span className="w-14">Actual</span>
@@ -677,21 +677,21 @@ export default function EconomicCalendar() {
                               setDetailTab('summary');
                               fetchEventDetails(event.id);
                             }}
-                            className={`w-full text-left px-4 py-4 transition-all relative rounded-lg border flex items-center justify-between gap-4 ${
+                            className={`w-full text-left px-4 py-4 transition-all relative rounded-lg border flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between ${
                               isSelected
                                 ? 'bg-[#0A1A14] border-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.2)] inset-0 z-10'
                                 : 'bg-transparent border-[#1A1A1A] hover:bg-[#111]'
                             }`}
                           >
-                            <div className="flex items-center gap-3 w-1/2 min-w-[300px]">
+                            <div className="flex flex-wrap items-center gap-2 min-w-0">
                               {/* Glowing Dot */}
                               <div className={`w-2 h-2 rounded-full flex-shrink-0 ${isSelected ? 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]' : 'bg-gray-400 dark:bg-gray-600'}`} />
-                              <span className="text-xs font-medium text-gray-500 dark:text-gray-400 whitespace-nowrap">{formatTime(event.date)}</span>
+                              <span className="text-[11px] font-medium text-gray-500 dark:text-gray-400">{formatTime(event.date)}</span>
                               <span className="text-gray-400 dark:text-gray-600">|</span>
                               <span className="text-sm">{getCountryFlag(event.country)}</span>
                               <span className="text-xs font-medium text-gray-900 dark:text-gray-300">{event.currency}</span>
                               <span className="text-gray-400 dark:text-gray-600">|</span>
-                              <span className="text-xs font-medium text-gray-900 dark:text-gray-200 truncate">
+                              <span className="text-xs font-medium text-gray-900 dark:text-gray-200 break-words">
                                 {event.title}
                               </span>
                               {getImpactBadge(event.importance)}
@@ -707,10 +707,19 @@ export default function EconomicCalendar() {
                               </span>
                             </div>
                             
-                            <div className="flex items-center gap-4 w-[200px] justify-end pr-2 font-mono text-xs text-right">
-                              <span className="w-14 font-semibold text-gray-700 dark:text-gray-300">{formatValue(event.actual)}</span>
-                              <span className="w-14 text-gray-500 dark:text-gray-500">{formatValue(event.forecast)}</span>
-                              <span className="w-14 text-gray-500 dark:text-gray-500">{formatValue(event.previous)}</span>
+                            <div className="grid grid-cols-3 gap-2 w-full sm:w-auto sm:min-w-[210px] font-mono text-xs text-right">
+                              <div>
+                                <span className="sm:hidden block text-[10px] text-gray-500 dark:text-gray-400 mb-0.5">Actual</span>
+                                <span className="font-semibold text-gray-700 dark:text-gray-300">{formatValue(event.actual)}</span>
+                              </div>
+                              <div>
+                                <span className="sm:hidden block text-[10px] text-gray-500 dark:text-gray-400 mb-0.5">Forecast</span>
+                                <span className="text-gray-500 dark:text-gray-500">{formatValue(event.forecast)}</span>
+                              </div>
+                              <div>
+                                <span className="sm:hidden block text-[10px] text-gray-500 dark:text-gray-400 mb-0.5">Previous</span>
+                                <span className="text-gray-500 dark:text-gray-500">{formatValue(event.previous)}</span>
+                              </div>
                             </div>
                           </button>
                         );
@@ -723,8 +732,8 @@ export default function EconomicCalendar() {
             </div>
           </div>
 
-          <div className="p-6 bg-white dark:bg-[#050505] border-l border-gray-200 dark:border-[#1A1A1A]">
-            <h4 className="text-xl font-bold text-gray-900 dark:text-white mb-6">AI Analysis & Market Impact</h4>
+          <div className="p-4 sm:p-6 bg-white dark:bg-[#050505] border-t lg:border-t-0 lg:border-l border-gray-200 dark:border-[#1A1A1A]">
+            <h4 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white mb-6">AI Analysis & Market Impact</h4>
             
             {!selectedEvent && (
               <div className="h-full flex flex-col items-center justify-center text-center text-gray-500 dark:text-gray-400 space-y-3 pb-20">
@@ -739,7 +748,7 @@ export default function EconomicCalendar() {
                 <p>Generating Deep AI Analysis...</p>
               </div>
             ) : selectedEvent && eventData && (
-              <div className="space-y-6 flex flex-col h-[calc(100%-40px)]">
+              <div className="space-y-6 flex flex-col">
                 
                 {/* 1. Outcome Meter Section */}
                 <div className="bg-white dark:bg-[#111] border border-gray-200 dark:border-[#222] rounded-xl p-5 shadow-sm dark:shadow-none">
@@ -830,8 +839,8 @@ export default function EconomicCalendar() {
                   {(selectedDetails?.detailedAnalysis?.whyTradersCare || selectedDetails?.detailedAnalysis?.usualEffect) && (
                     <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
                       {selectedDetails.detailedAnalysis.whyTradersCare && (
-                        <div className="p-3 bg-blue-50/50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/30 rounded-lg">
-                          <p className="text-xs font-bold text-blue-800 dark:text-blue-400 mb-1 flex items-center gap-1">
+                        <div className="p-3 bg-emerald-50/50 dark:bg-emerald-900/10 border border-emerald-100 dark:border-emerald-900/30 rounded-lg">
+                          <p className="text-xs font-bold text-emerald-800 dark:text-emerald-400 mb-1 flex items-center gap-1">
                             <FaExclamationTriangle className="w-3 h-3" /> Why Traders Care
                           </p>
                           <p className="text-xs text-gray-600 dark:text-gray-400">
@@ -841,8 +850,8 @@ export default function EconomicCalendar() {
                       )}
                       
                       {selectedDetails.detailedAnalysis.usualEffect && (
-                        <div className="p-3 bg-purple-50/50 dark:bg-purple-900/10 border border-purple-100 dark:border-purple-900/30 rounded-lg">
-                          <p className="text-xs font-bold text-purple-800 dark:text-purple-400 mb-1 flex items-center gap-1">
+                        <div className="p-3 bg-amber-50/50 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-900/30 rounded-lg">
+                          <p className="text-xs font-bold text-amber-800 dark:text-amber-400 mb-1 flex items-center gap-1">
                             <span>📖</span> How to Trade It
                           </p>
                           <p className="text-xs text-gray-600 dark:text-gray-400">
@@ -943,16 +952,17 @@ export default function EconomicCalendar() {
                 </div>
 
                 {/* 4. Tabs at bottom */}
-                <div className="mt-auto pt-4 flex gap-2 border-b border-gray-200 dark:border-[#222]">
+                <div className="mt-auto pt-4 flex flex-wrap sm:flex-nowrap gap-2 overflow-x-auto border-b border-gray-200 dark:border-[#222]">
                   <button 
                     onClick={() => setDetailTab('ai')}
-                    className={`pb-3 px-4 text-sm font-medium transition-colors ${detailTab === 'ai' || detailTab === 'summary' ? 'text-emerald-600 dark:text-emerald-400 border-b-2 border-emerald-600 dark:border-emerald-400' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
+                    className={`shrink-0 whitespace-nowrap pb-3 px-4 text-xs sm:text-sm font-medium transition-colors ${detailTab === 'ai' || detailTab === 'summary' ? 'text-emerald-600 dark:text-emerald-400 border-b-2 border-emerald-600 dark:border-emerald-400' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
                   >
-                    AI Market Analysis
+                    <span className="sm:hidden">AI Analysis</span>
+                    <span className="hidden sm:inline">AI Market Analysis</span>
                   </button>
                   <button 
                     onClick={() => setDetailTab('history')}
-                    className={`pb-3 px-4 text-sm font-medium transition-colors ${detailTab === 'history' ? 'text-emerald-600 dark:text-emerald-400 border-b-2 border-emerald-600 dark:border-emerald-400' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
+                    className={`shrink-0 whitespace-nowrap pb-3 px-4 text-xs sm:text-sm font-medium transition-colors ${detailTab === 'history' ? 'text-emerald-600 dark:text-emerald-400 border-b-2 border-emerald-600 dark:border-emerald-400' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
                   >
                     History
                   </button>
@@ -967,7 +977,7 @@ export default function EconomicCalendar() {
                      </div>
                     <div className="divide-y divide-gray-100 dark:divide-[#222]">
                       {eventHistory.slice(0, 5).map((item: any, idx: number) => (
-                        <div key={idx} className="grid grid-cols-6 gap-2 py-2 text-xs text-gray-600 dark:text-gray-300">
+                        <div key={idx} className="grid grid-cols-2 md:grid-cols-6 gap-2 py-2 text-xs text-gray-600 dark:text-gray-300">
                           <span>{item.date ? new Date(item.date).toLocaleDateString() : '—'}</span>
                           <span><strong className="text-gray-900 dark:text-white">{formatValue(item.actual)}</strong></span>
                           <span><strong className="text-gray-900 dark:text-white">{formatValue(item.forecast)}</strong></span>

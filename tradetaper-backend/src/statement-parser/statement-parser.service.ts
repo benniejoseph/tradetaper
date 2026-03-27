@@ -15,6 +15,8 @@ import { MT4HtmlParser } from './parsers/mt4-html.parser';
 import { MT5CsvParser } from './parsers/mt5-csv.parser';
 import { TradesService } from '../trades/trades.service';
 import { TradeStatus, TradeDirection, AssetType } from '../types/enums';
+import { Account } from '../users/entities/account.entity';
+import { MT5Account } from '../users/entities/mt5-account.entity';
 
 @Injectable()
 export class StatementParserService {
@@ -23,6 +25,10 @@ export class StatementParserService {
   constructor(
     @InjectRepository(StatementUpload)
     private readonly uploadRepository: Repository<StatementUpload>,
+    @InjectRepository(Account)
+    private readonly accountRepository: Repository<Account>,
+    @InjectRepository(MT5Account)
+    private readonly mt5AccountRepository: Repository<MT5Account>,
     private readonly mt4HtmlParser: MT4HtmlParser,
     private readonly mt5CsvParser: MT5CsvParser,
     private readonly tradesService: TradesService,
@@ -39,6 +45,10 @@ export class StatementParserService {
     this.logger.log(
       `Processing statement upload for user ${userId}, file: ${file.originalname}`,
     );
+
+    if (accountId) {
+      await this.assertUploadAccountOwnership(accountId, userId);
+    }
 
     // Create upload record
     const upload = this.uploadRepository.create({
@@ -106,6 +116,28 @@ export class StatementParserService {
       await this.uploadRepository.save(upload);
 
       throw error;
+    }
+  }
+
+  private async assertUploadAccountOwnership(
+    accountId: string,
+    userId: string,
+  ): Promise<void> {
+    const uuidPattern =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    if (!uuidPattern.test(accountId)) {
+      throw new BadRequestException('Invalid account id format');
+    }
+
+    const [manualAccountExists, mt5AccountExists] = await Promise.all([
+      this.accountRepository.exist({ where: { id: accountId, userId } }),
+      this.mt5AccountRepository.exist({ where: { id: accountId, userId } }),
+    ]);
+
+    if (!manualAccountExists && !mt5AccountExists) {
+      throw new BadRequestException(
+        'Account not found or does not belong to the current user',
+      );
     }
   }
 

@@ -128,6 +128,8 @@ const TradingViewBacktestChart = forwardRef<
   const libraryPathRef = useRef<string>(DEFAULT_LOCAL_LIBRARY_PATH);
   const replayToRef = useRef<number | undefined>(replayTo);
   const previousReplayToRef = useRef<number | null>(null);
+  // Keep callbacks in refs so replay-driven parent rerenders do not re-bootstrap the widget.
+  const onUnavailableRef = useRef(onUnavailable);
   const symbolRef = useRef(symbol);
   const timeframeRef = useRef(timeframe);
   const isDarkRef = useRef(isDark);
@@ -137,6 +139,7 @@ const TradingViewBacktestChart = forwardRef<
   const [chartReady, setChartReady] = useState(false);
 
   replayToRef.current = replayTo;
+  onUnavailableRef.current = onUnavailable;
   symbolRef.current = symbol;
   timeframeRef.current = timeframe;
   isDarkRef.current = isDark;
@@ -321,7 +324,7 @@ const TradingViewBacktestChart = forwardRef<
       }
 
       if (cancelled) return;
-      onUnavailable?.(
+      onUnavailableRef.current?.(
         `TradingView Advanced library unavailable. Tried ${tried.length} source(s). Configure NEXT_PUBLIC_TRADINGVIEW_LIBRARY_SRC or add licensed files to /public/charting_library.`,
       );
     };
@@ -334,7 +337,7 @@ const TradingViewBacktestChart = forwardRef<
       widgetRef.current = null;
       setChartReady(false);
     };
-  }, [datafeed, onUnavailable]);
+  }, [datafeed]);
 
   useEffect(() => {
     const widget = widgetRef.current;

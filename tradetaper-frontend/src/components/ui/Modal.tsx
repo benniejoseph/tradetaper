@@ -49,15 +49,15 @@ export default function Modal({
   if (!isOpen) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-[100] flex items-center justify-center px-4 py-6">
+    <div className="fixed inset-0 z-[100] flex items-end justify-center px-3 py-3 sm:items-center sm:px-4 sm:py-6">
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
       <div
-        className={`relative w-full ${sizeMap[size]} rounded-3xl border border-emerald-100/60 dark:border-emerald-900/40 bg-white dark:bg-zinc-950 shadow-2xl overflow-hidden`}
+        className={`relative max-h-[calc(100dvh-1.5rem)] w-full ${sizeMap[size]} overflow-hidden rounded-3xl border border-emerald-100/60 bg-white shadow-2xl dark:border-emerald-900/40 dark:bg-zinc-950 sm:max-h-[90dvh]`}
         role="dialog"
         aria-modal="true"
       >
         {(title || showCloseButton) && (
-          <div className="flex items-start justify-between gap-4 border-b border-gray-100 dark:border-zinc-800 px-6 py-4">
+          <div className="flex items-start justify-between gap-4 border-b border-gray-100 px-4 py-4 dark:border-zinc-800 sm:px-6">
             <div>
               {title && <h3 className="text-lg font-bold text-gray-900 dark:text-white">{title}</h3>}
               {description && (
@@ -75,9 +75,13 @@ export default function Modal({
             )}
           </div>
         )}
-        <div className="max-h-[75vh] overflow-y-auto px-6 py-5">{children}</div>
+        <div className="max-h-[calc(100dvh-12rem)] overflow-y-auto px-4 py-4 sm:max-h-[75vh] sm:px-6 sm:py-5">
+          {children}
+        </div>
         {footer && (
-          <div className="border-t border-gray-100 dark:border-zinc-800 px-6 py-4">{footer}</div>
+          <div className="border-t border-gray-100 px-4 py-4 dark:border-zinc-800 sm:px-6">
+            {footer}
+          </div>
         )}
       </div>
     </div>,

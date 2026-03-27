@@ -4,7 +4,14 @@ import {
   IsOptional,
   IsBoolean,
   IsNumber,
+  IsEnum,
 } from 'class-validator';
+import { Type } from 'class-transformer';
+
+export enum TradingAccountCategory {
+  PERSONAL = 'personal',
+  PROP_FIRM = 'prop_firm',
+}
 
 export class CreateMT5AccountDto {
   @IsNotEmpty()
@@ -41,15 +48,41 @@ export class CreateMT5AccountDto {
 
   @IsOptional()
   @IsNumber()
+  @Type(() => Number)
   initialBalance?: number;
 
   @IsOptional()
   @IsNumber()
+  @Type(() => Number)
   leverage?: number;
 
   @IsOptional()
   @IsNumber()
+  @Type(() => Number)
   target?: number;
+
+  @IsOptional()
+  @IsEnum(TradingAccountCategory)
+  accountCategory?: TradingAccountCategory;
+
+  @IsOptional()
+  @IsString()
+  propFirmPhase?: string;
+
+  @IsOptional()
+  @IsNumber()
+  @Type(() => Number)
+  propMaxLoss?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Type(() => Number)
+  propDailyMaxLoss?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Type(() => Number)
+  propProfitTarget?: number;
 }
 
 export class CreateManualMT5AccountDto {
@@ -61,9 +94,9 @@ export class CreateManualMT5AccountDto {
   @IsString()
   server?: string;
 
-  @IsOptional()
+  @IsNotEmpty()
   @IsString()
-  login?: string;
+  login: string;
 
   @IsOptional()
   @IsString()
@@ -83,7 +116,31 @@ export class CreateManualMT5AccountDto {
 
   @IsOptional()
   @IsNumber()
+  @Type(() => Number)
   target?: number;
+
+  @IsOptional()
+  @IsEnum(TradingAccountCategory)
+  accountCategory?: TradingAccountCategory;
+
+  @IsOptional()
+  @IsString()
+  propFirmPhase?: string;
+
+  @IsOptional()
+  @IsNumber()
+  @Type(() => Number)
+  propMaxLoss?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Type(() => Number)
+  propDailyMaxLoss?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Type(() => Number)
+  propProfitTarget?: number;
 }
 
 export class UpdateMT5AccountDto {
@@ -117,15 +174,41 @@ export class UpdateMT5AccountDto {
 
   @IsOptional()
   @IsNumber()
+  @Type(() => Number)
   initialBalance?: number;
 
   @IsOptional()
   @IsNumber()
+  @Type(() => Number)
   leverage?: number;
 
   @IsOptional()
   @IsNumber()
+  @Type(() => Number)
   target?: number;
+
+  @IsOptional()
+  @IsEnum(TradingAccountCategory)
+  accountCategory?: TradingAccountCategory;
+
+  @IsOptional()
+  @IsString()
+  propFirmPhase?: string;
+
+  @IsOptional()
+  @IsNumber()
+  @Type(() => Number)
+  propMaxLoss?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Type(() => Number)
+  propDailyMaxLoss?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Type(() => Number)
+  propProfitTarget?: number;
 }
 
 export class MT5AccountResponseDto {
@@ -144,6 +227,10 @@ export class MT5AccountResponseDto {
   accountType?: string;
   currency?: string;
   target?: number;
+  accountCategory?: TradingAccountCategory;
+  propFirmPhase?: string | null;
+  propMaxLoss?: number | null;
+  propDailyMaxLoss?: number | null;
   isRealAccount?: boolean;
   connectionStatus?: string;
   deploymentState?: string;

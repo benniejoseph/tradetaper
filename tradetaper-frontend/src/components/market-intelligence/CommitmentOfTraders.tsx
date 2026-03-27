@@ -386,13 +386,13 @@ export default function CommitmentOfTraders() {
   return (
     <div className="flex flex-col space-y-6">
       {/* 1. Header and Selectors */}
-      <div className="flex flex-col lg:flex-row gap-4 items-center justify-between">
-        <div className="flex space-x-2 bg-gray-100 dark:bg-zinc-900 p-1 rounded-xl">
+      <div className="flex flex-col lg:flex-row gap-4 items-stretch lg:items-center justify-between">
+        <div className="flex gap-2 overflow-x-auto max-w-full hide-scrollbar bg-gray-100 dark:bg-zinc-900 p-1 rounded-xl">
           {visibleCategories.map((cat) => (
             <button
               key={cat}
               onClick={() => setActiveCategory(cat)}
-              className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${
+              className={`shrink-0 px-4 py-2 rounded-lg text-sm font-bold transition-all ${
                 activeCategory === cat
                   ? 'bg-white dark:bg-[#111] text-gray-900 dark:text-white shadow'
                   : 'text-gray-500 hover:text-gray-900 dark:hover:text-emerald-300'
@@ -586,7 +586,7 @@ export default function CommitmentOfTraders() {
               ) : aiSummary ? (
                 <div className="space-y-6">
                   {/* Verdict Pill */}
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                     <span className="text-sm text-gray-500 dark:text-gray-400">Institutional Bias</span>
                     <div
                       className={`px-4 py-1.5 rounded-full text-sm font-bold border flex items-center gap-2 ${sentimentStyles.border} ${sentimentStyles.text} bg-white dark:bg-[#111]`}

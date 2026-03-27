@@ -53,9 +53,9 @@ export const terminalService = {
   async enableAutoSync(
     accountId: string,
     credentials?: {
-      server: string;
-      login: string;
-      password: string;
+      server?: string;
+      login?: string;
+      password?: string;
       confirmRiskAcknowledgement?: boolean;
     },
   ): Promise<TerminalStatus> {

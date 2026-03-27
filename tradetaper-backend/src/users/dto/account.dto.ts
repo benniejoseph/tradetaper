@@ -4,9 +4,15 @@ import {
   IsOptional,
   IsNumber,
   IsBoolean,
+  IsEnum,
   Min,
 } from 'class-validator';
 import { Type } from 'class-transformer';
+
+export enum AccountCategory {
+  PERSONAL = 'personal',
+  PROP_FIRM = 'prop_firm',
+}
 
 export class CreateAccountDto {
   @IsNotEmpty()
@@ -28,9 +34,30 @@ export class CreateAccountDto {
   description?: string;
 
   @IsNumber()
+  @Type(() => Number)
   @Min(0)
   @IsOptional()
   target?: number;
+
+  @IsOptional()
+  @IsEnum(AccountCategory)
+  accountCategory?: AccountCategory;
+
+  @IsOptional()
+  @IsString()
+  propFirmPhase?: string;
+
+  @IsOptional()
+  @IsNumber()
+  @Type(() => Number)
+  @Min(0)
+  propMaxLoss?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Type(() => Number)
+  @Min(0)
+  propDailyMaxLoss?: number;
 
   @IsOptional()
   @IsBoolean()
@@ -61,9 +88,30 @@ export class UpdateAccountDto {
   isActive?: boolean;
 
   @IsNumber()
+  @Type(() => Number)
   @Min(0)
   @IsOptional()
   target?: number;
+
+  @IsOptional()
+  @IsEnum(AccountCategory)
+  accountCategory?: AccountCategory;
+
+  @IsOptional()
+  @IsString()
+  propFirmPhase?: string;
+
+  @IsOptional()
+  @IsNumber()
+  @Type(() => Number)
+  @Min(0)
+  propMaxLoss?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Type(() => Number)
+  @Min(0)
+  propDailyMaxLoss?: number;
 }
 
 export class AccountResponseDto {
@@ -74,6 +122,10 @@ export class AccountResponseDto {
   description: string;
   isActive: boolean;
   target: number;
+  accountCategory: AccountCategory;
+  propFirmPhase?: string | null;
+  propMaxLoss?: number | null;
+  propDailyMaxLoss?: number | null;
   userId: string;
   createdAt: Date;
   updatedAt: Date;

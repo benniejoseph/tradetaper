@@ -200,11 +200,28 @@ async function createDataSource() {
   } else {
     // Development configuration
     const isSSL = configService.get<string>('DB_SSL') === 'true';
+    const devPoolerHost = configService.get<string>('DB_POOLER_HOST');
+    const usePooler = Boolean(devPoolerHost);
+    const host = usePooler
+      ? devPoolerHost!
+      : configService.get<string>('DB_HOST', 'localhost');
+    const port = usePooler
+      ? parsePositiveInt(configService.get<string>('DB_POOLER_PORT'), 6543)
+      : parsePositiveInt(configService.get<string>('DB_PORT'), 5432);
+    const username = usePooler
+      ? selectPoolerUser() ||
+        configService.get<string>('DB_USER') ||
+        configService.get<string>('DB_USERNAME') ||
+        configService.get<string>('DATABASE_USERNAME')
+      : configService.get<string>('DB_USERNAME') ||
+        configService.get<string>('DB_USER') ||
+        'postgres';
+
     return new DataSource({
       type: 'postgres',
-      host: configService.get<string>('DB_HOST', 'localhost'),
-      port: configService.get<number>('DB_PORT', 5432),
-      username: configService.get<string>('DB_USERNAME', 'postgres'),
+      host,
+      port,
+      username,
       password: configService.get<string>('DB_PASSWORD', 'postgres'),
       database: configService.get<string>('DB_DATABASE', 'tradetaper'),
       ssl: isSSL ? { rejectUnauthorized: false } : false,

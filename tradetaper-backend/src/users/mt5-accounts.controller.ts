@@ -45,28 +45,21 @@ export class MT5AccountsController {
     @Request() req,
     @Body() createMT5AccountDto: CreateManualMT5AccountDto,
   ) {
-    // Create account for manual file upload workflow
-    const manualAccount = {
-      id: `manual_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+    return this.mt5AccountsService.createManual({
       userId: req.user.id,
       accountName: createMT5AccountDto.accountName,
-      server: createMT5AccountDto.server || 'Manual-Upload',
+      server: createMT5AccountDto.server,
       login: createMT5AccountDto.login,
-      isRealAccount: createMT5AccountDto.isRealAccount || false,
-      isManual: true,
-      connectionStatus: 'manual',
-      balance: 0,
-      equity: 0,
-      margin: 0,
-      freeMargin: 0,
-      leverage: 1,
-      currency: 'USD',
-      trades: [],
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-
-    return this.mt5AccountsService.createManual(manualAccount);
+      currency: createMT5AccountDto.currency,
+      isRealAccount: createMT5AccountDto.isRealAccount,
+      target:
+        createMT5AccountDto.target ?? createMT5AccountDto.propProfitTarget ?? 0,
+      accountCategory: createMT5AccountDto.accountCategory,
+      propFirmPhase: createMT5AccountDto.propFirmPhase,
+      propMaxLoss: createMT5AccountDto.propMaxLoss,
+      propDailyMaxLoss: createMT5AccountDto.propDailyMaxLoss,
+      propProfitTarget: createMT5AccountDto.propProfitTarget,
+    });
   }
 
   @Get('limits')
@@ -93,7 +86,7 @@ export class MT5AccountsController {
     if (!account || account.userId !== req.user.id) {
       throw new BadRequestException('MT5 account not found');
     }
-    return account as MT5AccountResponseDto;
+    return this.mt5AccountsService.mapEntityToResponseDto(account);
   }
 
   @Get(':id/trades/live')

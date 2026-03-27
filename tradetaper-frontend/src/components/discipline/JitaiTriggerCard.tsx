@@ -40,9 +40,9 @@ export default function JitaiTriggerCard({
 
   return (
     <AnimatedCard animate={false} variant="default" className="space-y-4">
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
         <h3 className="text-lg font-bold text-gray-900 dark:text-white">In‑the‑Moment Coach</h3>
-        <div className="text-right">
+        <div className="text-left sm:text-right">
           <div className="text-[10px] uppercase tracking-widest text-gray-500 dark:text-gray-400 font-bold">
             Risk Score
           </div>
@@ -75,12 +75,12 @@ export default function JitaiTriggerCard({
             key={`${trigger.title}-${index}`}
             className={`rounded-xl border p-3 ${severityStyles[trigger.severity]} dark:border-white/10`}
           >
-            <div className="flex items-center justify-between text-xs font-bold uppercase tracking-wider">
-              <span>{trigger.title}</span>
+            <div className="flex flex-wrap items-start justify-between gap-2 text-xs font-bold uppercase tracking-wider">
+              <span className="min-w-0 flex-1 break-words">{trigger.title}</span>
               <span>{trigger.severity}</span>
             </div>
-            <div className="text-sm mt-1">{trigger.detail}</div>
-            <div className="text-[11px] mt-2">
+            <div className="mt-1 break-words text-sm">{trigger.detail}</div>
+            <div className="mt-2 break-words text-[11px]">
               <span className="font-bold">Suggestion:</span> {trigger.suggestion}
             </div>
           </div>

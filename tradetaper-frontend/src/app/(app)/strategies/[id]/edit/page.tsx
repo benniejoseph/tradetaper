@@ -8,9 +8,9 @@ import { strategiesService } from '@/services/strategiesService';
 function ContentHeader({ title, description }: { title: string; description?: string }) {
   return (
     <div className="mb-6">
-      <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{title}</h1>
+      <h1 className="text-xl font-bold text-gray-900 dark:text-white sm:text-2xl">{title}</h1>
       {description && (
-        <p className="text-gray-600 dark:text-gray-400 mt-1">{description}</p>
+        <p className="mt-1 text-sm text-gray-600 dark:text-gray-400 sm:text-base">{description}</p>
       )}
     </div>
   );
@@ -137,7 +137,7 @@ export default function EditStrategyPage() {
       />
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+        <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800 sm:p-6">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Basic Information</h3>
           
           <div className="space-y-4">
@@ -149,7 +149,7 @@ export default function EditStrategyPage() {
                 type="text"
                 value={strategy.name}
                 onChange={(e) => setStrategy(prev => prev ? { ...prev, name: e.target.value } : null)}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 focus:border-transparent focus:ring-2 focus:ring-emerald-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                 placeholder="e.g., Breakout Scalping, Trend Following"
                 required
               />
@@ -163,7 +163,7 @@ export default function EditStrategyPage() {
                 value={strategy.description || ''}
                 onChange={(e) => setStrategy(prev => prev ? { ...prev, description: e.target.value } : null)}
                 rows={3}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 focus:border-transparent focus:ring-2 focus:ring-emerald-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                 placeholder="Describe your strategy, rules, and methodology..."
               />
             </div>
@@ -177,9 +177,9 @@ export default function EditStrategyPage() {
                   value={strategy.tradingSession || ''}
                   onChange={(e) => setStrategy(prev => prev ? { 
                     ...prev, 
-                    tradingSession: e.target.value as any || null 
+                    tradingSession: (e.target.value || null) as Strategy['tradingSession'] | null
                   } : null)}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 focus:border-transparent focus:ring-2 focus:ring-emerald-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                 >
                   <option value="">Select session</option>
                   <option value="london">London</option>
@@ -210,7 +210,7 @@ export default function EditStrategyPage() {
                 type="text"
                 value={strategy.tags || ''}
                 onChange={(e) => setStrategy(prev => prev ? { ...prev, tags: e.target.value } : null)}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 focus:border-transparent focus:ring-2 focus:ring-emerald-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                 placeholder="scalping, momentum, reversal (comma separated)"
               />
             </div>
@@ -221,7 +221,7 @@ export default function EditStrategyPage() {
                 id="isActive"
                 checked={strategy.isActive}
                 onChange={(e) => setStrategy(prev => prev ? { ...prev, isActive: e.target.checked } : null)}
-                className="h-4 w-4 text-emerald-600 focus:ring-blue-500 border-gray-300 rounded"
+                className="h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
               />
               <label htmlFor="isActive" className="ml-2 block text-sm text-gray-700 dark:text-gray-300">
                 Strategy is active
@@ -231,43 +231,43 @@ export default function EditStrategyPage() {
         </div>
 
         {/* Checklist Section */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+        <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800 sm:p-6">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Trading Checklist</h3>
           
           <div className="space-y-3">
-            {strategy.checklist?.map((item, index) => (
-              <div key={item.id} className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+            {strategy.checklist?.map((item) => (
+              <div key={item.id} className="flex items-start gap-3 rounded-lg bg-gray-50 p-3 dark:bg-gray-700">
                 <MdDragIndicator className="text-gray-400 flex-shrink-0" />
                 <input
                   type="text"
                   value={item.text}
                   onChange={(e) => updateChecklistItem(item.id, e.target.value)}
-                  className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  className="min-w-0 flex-1 rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 focus:border-transparent focus:ring-2 focus:ring-emerald-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                   placeholder="Checklist item..."
                 />
                 <button
                   type="button"
                   onClick={() => removeChecklistItem(item.id)}
-                  className="p-2 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                  className="shrink-0 rounded-lg p-2 text-red-600 transition-colors hover:bg-red-100 dark:text-red-400 dark:hover:bg-red-900/20"
                 >
                   <FiTrash2 className="w-4 h-4" />
                 </button>
               </div>
             ))}
             
-            <div className="flex gap-3">
+            <div className="flex flex-col gap-3 sm:flex-row">
               <input
                 type="text"
                 value={newChecklistItem}
                 onChange={(e) => setNewChecklistItem(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addChecklistItem())}
-                className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addChecklistItem())}
+                className="flex-1 rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 focus:border-transparent focus:ring-2 focus:ring-emerald-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                 placeholder="Add checklist item..."
               />
               <button
                 type="button"
                 onClick={addChecklistItem}
-                className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors flex items-center"
+                className="inline-flex w-full items-center justify-center rounded-lg bg-emerald-600 px-4 py-2 text-white transition-colors hover:bg-emerald-700 sm:w-auto"
               >
                 <FiPlus className="w-4 h-4" />
               </button>
@@ -275,18 +275,18 @@ export default function EditStrategyPage() {
           </div>
         </div>
 
-        <div className="flex justify-end gap-3">
+        <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
           <button
             type="button"
             onClick={() => router.back()}
-            className="px-4 py-2 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+            className="w-full rounded-lg border border-gray-300 px-4 py-2 text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700 sm:w-auto"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={saving || !strategy.name.trim()}
-            className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="w-full rounded-lg bg-emerald-600 px-4 py-2 text-white transition-colors hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
           >
             {saving ? 'Saving...' : 'Save Changes'}
           </button>

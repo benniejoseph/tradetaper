@@ -157,27 +157,28 @@ export default function AIInsightsCard() {
   return (
     <div className="col-span-1 sm:col-span-2 lg:col-span-6 bg-white dark:bg-[#022c22] border border-slate-200 dark:border-emerald-900 rounded-xl shadow-sm p-0 overflow-hidden">
       {/* Header / Main Score Area - Emerald Gradient matching request */}
-      <div className="bg-gradient-to-r from-emerald-900 to-emerald-600 p-4 text-white flex flex-col md:flex-row items-center justify-between">
-          <div className="flex items-center gap-3">
+      <div className="bg-gradient-to-r from-emerald-900 to-emerald-600 p-4 text-white">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex w-full items-start gap-3 sm:w-auto sm:items-center">
                <div className="p-2 bg-white/10 rounded-full backdrop-blur-sm">
                   <FaRobot className="w-6 h-6 text-emerald-50" />
                </div>
-               <div>
-                   <h3 className="text-xl font-bold text-white">Trading Coach Insight</h3>
-                   <div className="flex items-center gap-2 mt-1">
+               <div className="min-w-0">
+                   <h3 className="text-lg sm:text-xl font-bold text-white leading-tight">Trading Coach Insight</h3>
+                   <div className="mt-1 flex flex-wrap items-center gap-2">
                       <span className="text-emerald-50 text-sm opacity-80">AI-Powered Analysis</span>
                       {loading && <FaSpinner className="animate-spin text-white" />}
                       {!loading && lastUpdated && (
-                          <span className="text-emerald-100/60 text-xs border-l border-emerald-500/50 pl-2 ml-1">
+                          <span className="hidden sm:inline text-emerald-100/60 text-xs border-l border-emerald-500/50 pl-2 ml-1">
                               Updated {formatDistanceToNow(lastUpdated, { addSuffix: true })}
                           </span>
                       )}
                    </div>
                </div>
           </div>
-          <div className="flex items-center gap-4 mt-3 md:mt-0">
-             <div className="text-right">
-                <div className="text-3xl font-black">{report?.traderScore || 0}</div>
+          <div className="flex w-full items-center justify-between gap-3 sm:w-auto sm:justify-end">
+             <div className="text-center sm:text-right">
+                <div className="text-3xl font-black leading-none">{report?.traderScore || 0}</div>
                 <div className="text-[10px] uppercase tracking-widest opacity-60">Trader Score</div>
              </div>
              
@@ -190,6 +191,7 @@ export default function AIInsightsCard() {
              >
                 <FaRedo className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
              </button>
+          </div>
           </div>
       </div>
 

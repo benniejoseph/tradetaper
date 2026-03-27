@@ -553,6 +553,23 @@ export class TerminalFarmService {
         throw new NotFoundException('Account not found');
       }
 
+      const connectionStatus = (account.connectionStatus || '').toUpperCase();
+      const metaApiStatesThatBlockLocal = new Set([
+        'CONNECTING',
+        'CONNECTED',
+        'SYNCHRONIZING',
+        'SYNCHRONIZED',
+      ]);
+      const isMetaApiCloudActive =
+        !!account.metaApiAccountId &&
+        (account.isStreamingActive ||
+          metaApiStatesThatBlockLocal.has(connectionStatus));
+      if (isMetaApiCloudActive) {
+        throw new BadRequestException(
+          'MetaAPI Cloud sync is active for this account. Pause MetaAPI streaming before enabling Local Auto-Sync.',
+        );
+      }
+
       if (dto?.confirmRiskAcknowledgement !== true) {
         throw new BadRequestException(
           'Please acknowledge the Local MT5 Sync disclaimer before enabling auto-sync.',

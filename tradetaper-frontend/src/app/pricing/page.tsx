@@ -61,10 +61,10 @@ export default function PricingPage() {
         <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.05)_1px,transparent_1px)] bg-[size:184px_184px] opacity-[0.15]" />
         <div className="absolute inset-y-0 left-0 w-[33%] bg-[repeating-linear-gradient(140deg,rgba(255,255,255,0.03)_0_1px,transparent_1px_5px)] opacity-35" />
         <div className="absolute inset-y-0 right-0 w-[33%] bg-[repeating-linear-gradient(40deg,rgba(255,255,255,0.03)_0_1px,transparent_1px_5px)] opacity-35" />
-        <div className="absolute left-1/2 top-[-16rem] h-[36rem] w-[36rem] -translate-x-1/2 rounded-full bg-emerald-400/22 blur-[130px]" />
-        <div className="absolute left-[76%] top-[18%] h-[18rem] w-[18rem] rounded-full bg-cyan-300/10 blur-[100px]" />
-        <div className="absolute left-[16%] top-[36%] h-[22rem] w-[22rem] rounded-full bg-emerald-300/10 blur-[120px]" />
-        <div className="absolute left-1/2 top-[28rem] h-40 w-[64rem] -translate-x-1/2 rounded-[999px] bg-gradient-to-b from-emerald-200/55 via-emerald-400/24 to-transparent blur-2xl" />
+        <div className="absolute left-1/2 top-[-10rem] h-[22rem] w-[22rem] -translate-x-1/2 rounded-full bg-emerald-400/22 blur-[90px] md:top-[-16rem] md:h-[36rem] md:w-[36rem] md:blur-[130px]" />
+        <div className="hidden md:block absolute left-[76%] top-[18%] h-[18rem] w-[18rem] rounded-full bg-cyan-300/10 blur-[100px]" />
+        <div className="hidden md:block absolute left-[16%] top-[36%] h-[22rem] w-[22rem] rounded-full bg-emerald-300/10 blur-[120px]" />
+        <div className="hidden md:block absolute left-1/2 top-[28rem] h-40 w-[64rem] -translate-x-1/2 rounded-[999px] bg-gradient-to-b from-emerald-200/55 via-emerald-400/24 to-transparent blur-2xl" />
 
         <div className="hidden md:block">
           <div className="absolute -left-24 top-0 h-[15rem] w-[22rem] rounded-[4.8rem] border border-white/10" />

@@ -176,7 +176,7 @@ const PolymarketFeed: React.FC = () => {
               </span>
             </div>
 
-            <div className="mt-3 grid grid-cols-3 gap-3 text-sm">
+            <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
               <div>
                 <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Liquidity</p>
                 <p className="font-semibold text-gray-900 dark:text-white">{currencyFormatter.format(market.liquidity)}</p>
@@ -185,7 +185,7 @@ const PolymarketFeed: React.FC = () => {
                 <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Volume</p>
                 <p className="font-semibold text-gray-900 dark:text-white">{currencyFormatter.format(market.volume)}</p>
               </div>
-              <div>
+              <div className="col-span-2 sm:col-span-1">
                 <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Expiry</p>
                 <p className="font-semibold text-gray-900 dark:text-white">{formatDate(market.endDate)}</p>
               </div>

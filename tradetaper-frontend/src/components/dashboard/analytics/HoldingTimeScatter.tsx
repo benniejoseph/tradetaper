@@ -1,5 +1,5 @@
 "use client";
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   ScatterChart,
   Scatter,
@@ -42,11 +42,31 @@ const CustomTooltip = ({ active, payload }: any) => {
 };
 
 export default function HoldingTimeScatter({ data }: Props) {
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(max-width: 640px)');
+    const updateIsMobile = () => setIsMobile(mediaQuery.matches);
+    updateIsMobile();
+
+    if (typeof mediaQuery.addEventListener === 'function') {
+      mediaQuery.addEventListener('change', updateIsMobile);
+      return () => mediaQuery.removeEventListener('change', updateIsMobile);
+    }
+
+    mediaQuery.addListener(updateIsMobile);
+    return () => mediaQuery.removeListener(updateIsMobile);
+  }, []);
+
+  const chartMargins = isMobile
+    ? { top: 12, right: 8, bottom: 12, left: -8 }
+    : { top: 20, right: 20, bottom: 20, left: 20 };
+
   return (
     <div className="h-[300px] w-full">
       <ResponsiveContainer width="100%" height="100%">
         <ScatterChart
-          margin={{ top: 20, right: 20, bottom: 20, left: 20 }}
+          margin={chartMargins}
         >
           <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.5} />
           <XAxis 
@@ -55,6 +75,8 @@ export default function HoldingTimeScatter({ data }: Props) {
             name="Duration" 
             unit="m" 
             stroke="#94a3b8" 
+            tick={{ fontSize: isMobile ? 10 : 11 }}
+            tickCount={isMobile ? 5 : 8}
           />
           <YAxis 
             type="number" 
@@ -62,6 +84,12 @@ export default function HoldingTimeScatter({ data }: Props) {
             name="PnL" 
             unit="$" 
             stroke="#94a3b8" 
+            tick={{ fontSize: isMobile ? 10 : 11 }}
+            tickFormatter={(value) => {
+              const abs = Math.abs(Number(value));
+              if (abs >= 1000) return `${value < 0 ? '-' : ''}$${(abs / 1000).toFixed(1)}k`;
+              return `$${value}`;
+            }}
           />
           <Tooltip content={<CustomTooltip />} cursor={{ strokeDasharray: '3 3' }} />
           <ReferenceLine y={0} stroke="#475569" />

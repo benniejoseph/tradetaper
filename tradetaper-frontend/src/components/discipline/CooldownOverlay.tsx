@@ -84,8 +84,7 @@ export const CooldownOverlay: React.FC<CooldownOverlayProps> = ({
   // Breathing exercise timer
   useEffect(() => {
     if (currentExercise !== 'breathing') return;
-    
-    const phases = ['Breathe In', 'Hold', 'Breathe Out', 'Hold'];
+
     const interval = setInterval(() => {
       setBreathingPhase((p) => {
         const next = (p + 1) % 4;
@@ -153,6 +152,13 @@ export const CooldownOverlay: React.FC<CooldownOverlayProps> = ({
   };
 
   const trigger = triggerReasons[session.triggerReason] || { title: 'Cooldown Active' };
+  const getExerciseContent = (exerciseId: ExerciseId): string => {
+    const exercise = EXERCISES[exerciseId];
+    if ('content' in exercise && typeof exercise.content === 'string') {
+      return exercise.content;
+    }
+    return '';
+  };
 
   return (
     <div
@@ -165,7 +171,7 @@ export const CooldownOverlay: React.FC<CooldownOverlayProps> = ({
         {!currentExercise && (
           <div className="bg-white dark:bg-black border border-gray-200 dark:border-white/10 rounded-2xl shadow-2xl overflow-hidden">
             {/* Header */}
-            <div className="bg-gradient-to-r from-orange-500 to-red-500 p-6 text-center text-white">
+            <div className="bg-gradient-to-r from-orange-500 to-red-500 p-5 text-center text-white sm:p-6">
               <h2 className="text-xl font-bold">{trigger.title}</h2>
               <p className="text-orange-100 text-sm mt-1">
                 Complete exercises to resume trading
@@ -180,8 +186,8 @@ export const CooldownOverlay: React.FC<CooldownOverlayProps> = ({
             </div>
 
               {/* Exercises */}
-              <div className="p-6 space-y-3">
-                <h3 className="font-semibold text-gray-900 dark:text-white mb-2">
+              <div className="space-y-3 p-4 sm:p-6">
+                <h3 className="mb-2 text-sm font-semibold text-gray-900 dark:text-white sm:text-base">
                   Required Exercises ({session.requiredExercises.length - remainingExercises.length}/{session.requiredExercises.length})
                 </h3>
                 
@@ -196,26 +202,26 @@ export const CooldownOverlay: React.FC<CooldownOverlayProps> = ({
                       key={exId}
                       onClick={() => !isCompleted && setCurrentExercise(exId as ExerciseId)}
                       disabled={isCompleted}
-                      className={`w-full p-4 rounded-xl text-left flex items-center gap-3 transition-all ${
+                      className={`flex w-full items-start gap-3 rounded-xl p-3 text-left transition-all sm:p-4 ${
                         isCompleted
                           ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800'
                           : 'bg-gray-50 dark:bg-gray-900/50 hover:bg-gray-100 dark:hover:bg-gray-800'
                       } border border-gray-100 dark:border-gray-800`}
                     >
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                      <div className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${
                         isCompleted ? 'bg-emerald-500 text-white' : 'bg-gray-200 dark:bg-gray-600'
                       }`}>
                         {isCompleted ? '✓' : '○'}
                       </div>
-                      <div className="flex-1">
-                        <div className="font-medium text-gray-900 dark:text-white">
+                      <div className="min-w-0 flex-1">
+                        <div className="break-words font-medium text-gray-900 dark:text-white">
                           {exercise.name}
                         </div>
-                        <div className="text-sm text-gray-500 dark:text-gray-400">
+                        <div className="break-words text-xs text-gray-500 dark:text-gray-400 sm:text-sm">
                           {exercise.description}
                         </div>
                       </div>
-                      {!isCompleted && <span className="text-gray-400">→</span>}
+                      {!isCompleted && <span className="hidden text-gray-400 sm:inline">→</span>}
                     </button>
                   );
                 })}
@@ -244,11 +250,11 @@ export const CooldownOverlay: React.FC<CooldownOverlayProps> = ({
 
           {/* Breathing Exercise */}
           {currentExercise === 'breathing' && (
-            <div className="bg-white dark:bg-black border border-gray-200 dark:border-white/10 rounded-2xl shadow-2xl p-8 text-center">
+            <div className="bg-white dark:bg-black border border-gray-200 dark:border-white/10 rounded-2xl shadow-2xl p-5 text-center sm:p-8">
               <div
-                className="w-40 h-40 mx-auto rounded-full bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center mb-6"
+                className="mx-auto mb-6 flex h-32 w-32 items-center justify-center rounded-full bg-gradient-to-br from-cyan-400 to-blue-500 sm:h-40 sm:w-40"
               >
-                <span className="text-white text-lg font-medium">
+                <span className="text-base font-medium text-white sm:text-lg">
                   {['Breathe In', 'Hold', 'Breathe Out', 'Hold'][breathingPhase]}
                 </span>
               </div>
@@ -276,7 +282,7 @@ export const CooldownOverlay: React.FC<CooldownOverlayProps> = ({
 
           {/* Journal Exercise */}
           {currentExercise === 'journal' && (
-            <div className="bg-white dark:bg-black border border-gray-200 dark:border-white/10 rounded-2xl shadow-2xl p-6">
+            <div className="bg-white dark:bg-black border border-gray-200 dark:border-white/10 rounded-2xl shadow-2xl p-4 sm:p-6">
               <h3 className="font-bold text-lg text-gray-900 dark:text-white mb-4">
                 Quick Journal
               </h3>
@@ -320,12 +326,12 @@ export const CooldownOverlay: React.FC<CooldownOverlayProps> = ({
 
           {/* Other Exercises (simple read & complete) */}
           {currentExercise && !['breathing', 'journal'].includes(currentExercise) && (
-            <div className="bg-white dark:bg-black border border-gray-200 dark:border-white/10 rounded-2xl shadow-2xl p-6">
+            <div className="bg-white dark:bg-black border border-gray-200 dark:border-white/10 rounded-2xl shadow-2xl p-4 sm:p-6">
               <h3 className="font-bold text-lg text-gray-900 dark:text-white mb-2">
                 {EXERCISES[currentExercise]?.name}
               </h3>
               <p className="text-gray-700 dark:text-gray-400 mb-6">
-                {(EXERCISES[currentExercise] as any)?.content}
+                {getExerciseContent(currentExercise)}
               </p>
               
               <button

@@ -211,7 +211,6 @@ export default function BacktestSessionPage() {
   });
 
   const [fullData, setFullData] = useState<CandleData[]>([]);
-  const [visibleData, setVisibleData] = useState<CandleData[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -236,6 +235,11 @@ export default function BacktestSessionPage() {
   const [sessionReviewReport, setSessionReviewReport] = useState<ReplaySessionReviewReport | null>(null);
   const [reviewLoading, setReviewLoading] = useState(false);
   const [reviewError, setReviewError] = useState<string | null>(null);
+  const [showMarketWatch, setShowMarketWatch] = useState(false);
+  const [showTradeTicket, setShowTradeTicket] = useState(false);
+  const [showBottomPanel, setShowBottomPanel] = useState(false);
+  const [overlayCollapsed, setOverlayCollapsed] = useState(false);
+  const [overlayPosition, setOverlayPosition] = useState({ x: 16, y: 12 });
 
   const [tvUnavailableReason, setTvUnavailableReason] = useState<string | null>(null);
 
@@ -254,7 +258,119 @@ export default function BacktestSessionPage() {
     [],
   );
 
+  const handleChartUnavailable = useCallback((reason: string) => {
+    setTvUnavailableReason(reason);
+    setIsPlaying(false);
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const rawLayout = window.localStorage.getItem('tt.backtesting.layout.v1');
+      if (!rawLayout) return;
+
+      const parsedLayout = JSON.parse(rawLayout) as Partial<{
+        showMarketWatch: boolean;
+        showTradeTicket: boolean;
+        showBottomPanel: boolean;
+      }>;
+
+      if (typeof parsedLayout.showMarketWatch === 'boolean') {
+        setShowMarketWatch(parsedLayout.showMarketWatch);
+      }
+      if (typeof parsedLayout.showTradeTicket === 'boolean') {
+        setShowTradeTicket(parsedLayout.showTradeTicket);
+      }
+      if (typeof parsedLayout.showBottomPanel === 'boolean') {
+        setShowBottomPanel(parsedLayout.showBottomPanel);
+      }
+    } catch {
+      // Ignore invalid persisted layout preferences.
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    window.localStorage.setItem(
+      'tt.backtesting.layout.v1',
+      JSON.stringify({
+        showMarketWatch,
+        showTradeTicket,
+        showBottomPanel,
+      }),
+    );
+  }, [showMarketWatch, showTradeTicket, showBottomPanel]);
+
+  const clampOverlayPosition = useCallback((x: number, y: number) => {
+    const viewport = chartViewportRef.current;
+    const overlay = overlayRef.current;
+
+    if (!viewport || !overlay) {
+      return {
+        x: Math.max(8, x),
+        y: Math.max(8, y),
+      };
+    }
+
+    const maxX = Math.max(8, viewport.clientWidth - overlay.offsetWidth - 8);
+    const maxY = Math.max(8, viewport.clientHeight - overlay.offsetHeight - 8);
+
+    return {
+      x: Math.min(Math.max(8, x), maxX),
+      y: Math.min(Math.max(8, y), maxY),
+    };
+  }, []);
+
+  const handleOverlayDragStart = useCallback(
+    (event: React.PointerEvent<HTMLButtonElement>) => {
+      event.preventDefault();
+      const baseX = overlayPosition.x;
+      const baseY = overlayPosition.y;
+      const startX = event.clientX;
+      const startY = event.clientY;
+
+      const onPointerMove = (moveEvent: PointerEvent) => {
+        const next = clampOverlayPosition(
+          baseX + (moveEvent.clientX - startX),
+          baseY + (moveEvent.clientY - startY),
+        );
+        setOverlayPosition(next);
+      };
+
+      const onPointerUp = () => {
+        window.removeEventListener('pointermove', onPointerMove);
+        window.removeEventListener('pointerup', onPointerUp);
+      };
+
+      window.addEventListener('pointermove', onPointerMove);
+      window.addEventListener('pointerup', onPointerUp);
+    },
+    [clampOverlayPosition, overlayPosition.x, overlayPosition.y],
+  );
+
+  useEffect(() => {
+    if (typeof ResizeObserver === 'undefined') return;
+
+    const resizeObserver = new ResizeObserver(() => {
+      setOverlayPosition((prev) => clampOverlayPosition(prev.x, prev.y));
+    });
+
+    if (chartViewportRef.current) {
+      resizeObserver.observe(chartViewportRef.current);
+    }
+
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, [clampOverlayPosition]);
+
+  useEffect(() => {
+    setOverlayPosition((prev) => clampOverlayPosition(prev.x, prev.y));
+  }, [clampOverlayPosition, overlayCollapsed]);
+
   const tradingViewRef = useRef<TradingViewBacktestChartHandle | null>(null);
+  const chartViewportRef = useRef<HTMLDivElement | null>(null);
+  const overlayRef = useRef<HTMLDivElement | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const fullDataRef = useRef(fullData);
   const tradesRef = useRef(trades);
@@ -358,7 +474,6 @@ export default function BacktestSessionPage() {
 
       const startIdx = Math.min(50, aggregated.length);
       setFullData(aggregated);
-      setVisibleData(aggregated.slice(0, startIdx));
       setCurrentIndex(startIdx - 1);
       setIsPlaying(false);
     } catch (err) {
@@ -675,7 +790,6 @@ export default function BacktestSessionPage() {
       }
 
       const nextCandle = fullDataRef.current[nextIndex];
-      setVisibleData((prevCandles) => [...prevCandles, nextCandle]);
       evaluateExecutionForCandle(nextCandle, nextIndex + 1);
       return nextIndex;
     });
@@ -684,7 +798,6 @@ export default function BacktestSessionPage() {
   const handlePrevCandle = useCallback(() => {
     setCurrentIndex((prev) => {
       if (prev <= 0) return prev;
-      setVisibleData((prevCandles) => prevCandles.slice(0, -1));
       return prev - 1;
     });
   }, []);
@@ -705,7 +818,6 @@ export default function BacktestSessionPage() {
     const nextIndex = clamped - 1;
     setIsPlaying(false);
     setCurrentIndex(nextIndex);
-    setVisibleData(data.slice(0, clamped));
   }, [showAlert]);
 
   useEffect(() => {
@@ -725,7 +837,8 @@ export default function BacktestSessionPage() {
     };
   }, [isPlaying, speed, handleNextCandle]);
 
-  const currentPrice = Number(visibleData[visibleData.length - 1]?.close || 0);
+  const currentCandle = fullData[currentIndex];
+  const currentPrice = Number(currentCandle?.close || 0);
 
   useEffect(() => {
     if (!Number.isFinite(currentPrice) || currentPrice <= 0) {
@@ -871,14 +984,14 @@ export default function BacktestSessionPage() {
       note: text,
       createdAt: Date.now(),
       candleIndex: Math.max(currentIndex + 1, 1),
-      candleTime: toFiniteNumber(visibleData[visibleData.length - 1]?.time, 0),
+      candleTime: toFiniteNumber(currentCandle?.time, 0),
     };
 
     setJournalEntries((prev) => [entry, ...prev]);
     setJournalDraft('');
     setSelectedTerminalTab('journal');
     showAlert('Journal note captured for this replay session.', 'Journal Saved');
-  }, [journalDraft, currentIndex, visibleData, showAlert]);
+  }, [journalDraft, currentIndex, currentCandle, showAlert]);
 
   const handleSaveSession = async () => {
     try {
@@ -1002,7 +1115,7 @@ export default function BacktestSessionPage() {
   }, [handleNextCandle, handlePrevCandle, isPlaying]);
 
   const currentCandleDate = useMemo(() => {
-    const ts = visibleData[visibleData.length - 1]?.time as number;
+    const ts = currentCandle?.time as number;
     if (!ts) return '—';
     const date = new Date(ts * 1000);
     return `${date.toLocaleDateString('en-GB', {
@@ -1013,7 +1126,7 @@ export default function BacktestSessionPage() {
       hour: '2-digit',
       minute: '2-digit',
     })}`;
-  }, [visibleData]);
+  }, [currentCandle]);
 
   const sessionStartSec = useMemo(() => {
     const first = fullData[0]?.time;
@@ -1356,33 +1469,178 @@ export default function BacktestSessionPage() {
     </div>
   );
 
-  const renderTerminalTabsPanel = () => (
-    <section className={`shrink-0 h-[240px] rounded-2xl border ${panelTheme.card} overflow-hidden`}>
-      <div className={`h-11 border-b ${panelTheme.chartTools} flex items-center px-2 gap-1`}>
-        {[
-          { id: 'positions', label: 'Positions' },
-          { id: 'pending', label: 'Pending' },
-          { id: 'history', label: 'History' },
-          { id: 'journal', label: 'Journal' },
-          { id: 'review', label: 'Review' },
-        ].map((tab) => (
+  const renderReplayOverlay = () => (
+    <div
+      ref={overlayRef}
+      className={`absolute z-20 rounded-xl border shadow-xl backdrop-blur-sm select-none ${
+        isDark ? 'border-zinc-700 bg-black/80' : 'border-zinc-300 bg-white/90'
+      }`}
+      style={{
+        left: overlayPosition.x,
+        top: overlayPosition.y,
+        width: overlayCollapsed ? 210 : 460,
+        maxWidth: 'calc(100% - 16px)',
+      }}
+    >
+      <div className={`flex items-center justify-between gap-2 border-b px-2 py-1.5 ${isDark ? 'border-zinc-700' : 'border-zinc-200'}`}>
+        <button
+          type="button"
+          onPointerDown={handleOverlayDragStart}
+          className={`inline-flex items-center gap-2 rounded-md px-2 py-1 text-[11px] transition-colors cursor-grab active:cursor-grabbing ${
+            isDark ? 'text-zinc-300 hover:bg-zinc-800' : 'text-zinc-700 hover:bg-zinc-100'
+          }`}
+          title="Drag replay controls"
+        >
+          <span className="font-semibold uppercase tracking-[0.08em]">Replay</span>
+          {!overlayCollapsed && <span className={panelTheme.muted}>{currentCandleDate}</span>}
+        </button>
+
+        <div className="flex items-center gap-1">
           <button
-            key={tab.id}
-            onClick={() => setSelectedTerminalTab(tab.id as TerminalTab)}
-            className={`h-8 px-3 rounded-md text-xs font-semibold border transition-colors ${
-              selectedTerminalTab === tab.id
-                ? 'bg-emerald-500 text-black border-emerald-500'
-                : isDark
-                  ? 'border-zinc-700 text-zinc-300 hover:bg-zinc-900'
-                  : 'border-zinc-300 text-zinc-700 hover:bg-zinc-100'
+            onClick={() => setOverlayCollapsed((prev) => !prev)}
+            className={`h-7 rounded-md border px-2 text-[11px] font-semibold transition-colors ${
+              isDark
+                ? 'border-zinc-700 text-zinc-300 hover:bg-zinc-800'
+                : 'border-zinc-300 text-zinc-700 hover:bg-zinc-100'
             }`}
           >
-            {tab.label}
+            {overlayCollapsed ? 'Expand' : 'Collapse'}
           </button>
-        ))}
+        </div>
       </div>
 
-      <div className="h-[calc(240px-44px)] overflow-auto p-3">
+      {!overlayCollapsed && (
+        <div className="space-y-2.5 p-2.5">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handlePrevCandle}
+                disabled={isPlaying || currentIndex <= 0}
+                className={`h-8 w-8 rounded-lg border transition-colors disabled:opacity-45 ${
+                  isDark ? 'border-zinc-700 hover:bg-zinc-900' : 'border-zinc-300 hover:bg-zinc-100'
+                }`}
+                title="Previous candle"
+              >
+                <FaStepBackward className="mx-auto text-xs" />
+              </button>
+
+              <button
+                onClick={() => setIsPlaying((prev) => !prev)}
+                className={`h-8 px-3 rounded-lg font-semibold text-xs transition-colors ${
+                  isPlaying
+                    ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                    : 'bg-emerald-500 text-black'
+                }`}
+              >
+                {isPlaying ? (
+                  <span className="inline-flex items-center gap-1.5"><FaPause /> Pause</span>
+                ) : (
+                  <span className="inline-flex items-center gap-1.5"><FaPlay /> Play</span>
+                )}
+              </button>
+
+              <button
+                onClick={handleNextCandle}
+                disabled={isPlaying || currentIndex >= fullData.length - 1}
+                className={`h-8 w-8 rounded-lg border transition-colors disabled:opacity-45 ${
+                  isDark ? 'border-zinc-700 hover:bg-zinc-900' : 'border-zinc-300 hover:bg-zinc-100'
+                }`}
+                title="Next candle"
+              >
+                <FaStepForward className="mx-auto text-xs" />
+              </button>
+            </div>
+
+            <div className={`text-[11px] ${panelTheme.muted}`}>
+              Candle {Math.max(currentIndex + 1, 0)} / {fullData.length}
+            </div>
+          </div>
+
+          <div className="flex items-center gap-1.5">
+            {[1000, 500, 200, 50].map((value) => (
+              <button
+                key={value}
+                onClick={() => setSpeed(value)}
+                className={`h-7 px-2 rounded-md text-[11px] font-semibold border transition-colors ${
+                  speed === value
+                    ? 'bg-emerald-500 text-black border-emerald-500'
+                    : isDark
+                      ? 'border-zinc-700 text-zinc-300 hover:bg-zinc-900'
+                      : 'border-zinc-300 text-zinc-700 hover:bg-zinc-100'
+                }`}
+              >
+                {speedLabelMap[value]}
+              </button>
+            ))}
+          </div>
+
+          <div className="space-y-1.5">
+            <input
+              type="range"
+              min={1}
+              max={Math.max(fullData.length, 1)}
+              value={Math.max(currentIndex + 1, 1)}
+              onChange={(event) => handleSeek(Number(event.target.value))}
+              className="w-full accent-emerald-500"
+            />
+            <div className="h-1.5 rounded-full bg-zinc-800/40 overflow-hidden">
+              <div
+                className="h-full bg-gradient-to-r from-emerald-500 to-emerald-300"
+                style={{ width: `${progressPercent}%` }}
+              />
+            </div>
+          </div>
+
+          <div className={`grid grid-cols-2 gap-2 text-[11px] ${panelTheme.muted}`}>
+            <span>{currentCandleDate}</span>
+            <span className="text-right">Win/Loss: {wins}/{losses}</span>
+            <span>Used Margin: ${usedMargin.toFixed(2)}</span>
+            <span className="text-right">Open/Pending: {openPositions.length}/{pendingOrders.length}</span>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
+  const renderTerminalTabsPanel = () => (
+    <section className={`shrink-0 h-[260px] md:h-[220px] rounded-2xl border ${panelTheme.card} overflow-hidden`}>
+      <div className={`h-11 border-b ${panelTheme.chartTools} flex items-center justify-between px-2 gap-2`}>
+        <div className="flex items-center gap-1 overflow-x-auto pr-2">
+          {[
+            { id: 'positions', label: 'Positions' },
+            { id: 'pending', label: 'Pending' },
+            { id: 'history', label: 'History' },
+            { id: 'journal', label: 'Journal' },
+            { id: 'review', label: 'Review' },
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setSelectedTerminalTab(tab.id as TerminalTab)}
+              className={`h-8 px-3 rounded-md text-xs font-semibold border transition-colors whitespace-nowrap ${
+                selectedTerminalTab === tab.id
+                  ? 'bg-emerald-500 text-black border-emerald-500'
+                  : isDark
+                    ? 'border-zinc-700 text-zinc-300 hover:bg-zinc-900'
+                    : 'border-zinc-300 text-zinc-700 hover:bg-zinc-100'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+        <button
+          onClick={() => setShowBottomPanel(false)}
+          className={`h-8 px-3 rounded-md text-xs font-semibold border transition-colors whitespace-nowrap ${
+            isDark
+              ? 'border-zinc-700 text-zinc-300 hover:bg-zinc-900'
+              : 'border-zinc-300 text-zinc-700 hover:bg-zinc-100'
+          }`}
+        >
+          Hide
+        </button>
+      </div>
+
+      <div className="h-[calc(260px-44px)] md:h-[calc(220px-44px)] overflow-auto p-3">
         {selectedTerminalTab === 'positions' && (
           <div className="space-y-2 text-sm">
             <div className="grid grid-cols-[1fr_0.8fr_0.9fr_0.9fr_0.8fr] gap-2 text-xs text-zinc-500 uppercase tracking-[0.12em]">
@@ -1801,7 +2059,45 @@ export default function BacktestSessionPage() {
                 </div>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center justify-end gap-2">
+                <div className={`inline-flex items-center rounded-md border p-1 ${isDark ? 'border-zinc-700 bg-black/25' : 'border-zinc-200 bg-white'}`}>
+                  <button
+                    onClick={() => setShowMarketWatch((prev) => !prev)}
+                    className={`hidden xl:inline-flex h-7 px-2.5 rounded text-[11px] font-semibold transition-colors ${
+                      showMarketWatch
+                        ? 'bg-emerald-500 text-black'
+                        : isDark
+                          ? 'text-zinc-300 hover:bg-zinc-800'
+                          : 'text-zinc-700 hover:bg-zinc-100'
+                    }`}
+                  >
+                    Watch
+                  </button>
+                  <button
+                    onClick={() => setShowTradeTicket((prev) => !prev)}
+                    className={`h-7 px-2.5 rounded text-[11px] font-semibold transition-colors ${
+                      showTradeTicket
+                        ? 'bg-emerald-500 text-black'
+                        : isDark
+                          ? 'text-zinc-300 hover:bg-zinc-800'
+                          : 'text-zinc-700 hover:bg-zinc-100'
+                    }`}
+                  >
+                    Ticket
+                  </button>
+                  <button
+                    onClick={() => setShowBottomPanel((prev) => !prev)}
+                    className={`h-7 px-2.5 rounded text-[11px] font-semibold transition-colors ${
+                      showBottomPanel
+                        ? 'bg-emerald-500 text-black'
+                        : isDark
+                          ? 'text-zinc-300 hover:bg-zinc-800'
+                          : 'text-zinc-700 hover:bg-zinc-100'
+                    }`}
+                  >
+                    Panels
+                  </button>
+                </div>
                 <button
                   onClick={() => setIsPlaying((prev) => !prev)}
                   className={`h-8 px-3 rounded-md border text-xs font-semibold transition-colors ${
@@ -1823,9 +2119,11 @@ export default function BacktestSessionPage() {
             </header>
 
             <section className="flex-1 min-h-0 flex gap-3">
-              <aside className={`hidden xl:block w-[260px] rounded-2xl border ${panelTheme.panel} overflow-hidden`}>
-                {renderWatchlistPanel()}
-              </aside>
+              {showMarketWatch && (
+                <aside className={`hidden xl:block w-[260px] rounded-2xl border ${panelTheme.panel} overflow-hidden`}>
+                  {renderWatchlistPanel()}
+                </aside>
+              )}
 
               <div className="flex-1 min-w-0 flex flex-col gap-3">
                 <div className="flex-1 min-h-0 flex gap-3">
@@ -1866,123 +2164,38 @@ export default function BacktestSessionPage() {
                     </div>
 
                     <div className="flex-1 min-h-0 flex">
-                      <div className="flex-1 min-w-0 h-full">
+                      <div ref={chartViewportRef} className="relative flex-1 min-w-0 h-full">
                         <TradingViewBacktestChart
                           ref={tradingViewRef}
                           sessionId={sessionId}
                           symbol={symbol}
                           timeframe={timeframe}
                           isDark={isDark}
-                          replayTo={Number(visibleData[visibleData.length - 1]?.time || 0)}
+                          replayTo={Number(currentCandle?.time || 0)}
                           sessionStart={sessionStartSec}
                           sessionEnd={sessionEndSec}
                           className="h-full w-full"
-                          onUnavailable={(reason) => {
-                            setTvUnavailableReason(reason);
-                            setError(reason);
-                          }}
+                          onUnavailable={handleChartUnavailable}
                         />
+                        {renderReplayOverlay()}
                       </div>
                     </div>
                   </section>
 
-                  <aside className={`hidden xl:block w-[320px] rounded-2xl border ${panelTheme.panel} overflow-hidden`}>
+                  {showTradeTicket && (
+                    <aside className={`hidden xl:block w-[320px] rounded-2xl border ${panelTheme.panel} overflow-hidden`}>
+                      {renderOrderPanel()}
+                    </aside>
+                  )}
+                </div>
+
+                {showTradeTicket && (
+                  <div className={`xl:hidden rounded-2xl border ${panelTheme.panel} overflow-hidden max-h-[440px]`}>
                     {renderOrderPanel()}
-                  </aside>
-                </div>
-
-                <div className={`xl:hidden rounded-2xl border ${panelTheme.panel} overflow-hidden max-h-[440px]`}>
-                  {renderOrderPanel()}
-                </div>
-
-                <section className={`shrink-0 rounded-2xl border ${panelTheme.card} p-3 md:p-4`}>
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={handlePrevCandle}
-                        disabled={isPlaying || currentIndex <= 0}
-                        className={`h-9 w-9 rounded-lg border transition-colors disabled:opacity-45 ${
-                          isDark ? 'border-zinc-700 hover:bg-zinc-900' : 'border-zinc-300 hover:bg-zinc-100'
-                        }`}
-                        title="Previous candle"
-                      >
-                        <FaStepBackward className="mx-auto" />
-                      </button>
-                      <button
-                        onClick={() => setIsPlaying((prev) => !prev)}
-                        className={`h-9 px-4 rounded-lg font-semibold text-sm transition-colors ${
-                          isPlaying
-                            ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
-                            : 'bg-emerald-500 text-black'
-                        }`}
-                      >
-                        {isPlaying ? (
-                          <span className="inline-flex items-center gap-2"><FaPause /> Pause</span>
-                        ) : (
-                          <span className="inline-flex items-center gap-2"><FaPlay /> Play</span>
-                        )}
-                      </button>
-                      <button
-                        onClick={handleNextCandle}
-                        disabled={isPlaying || currentIndex >= fullData.length - 1}
-                        className={`h-9 w-9 rounded-lg border transition-colors disabled:opacity-45 ${
-                          isDark ? 'border-zinc-700 hover:bg-zinc-900' : 'border-zinc-300 hover:bg-zinc-100'
-                        }`}
-                        title="Next candle"
-                      >
-                        <FaStepForward className="mx-auto" />
-                      </button>
-                    </div>
-
-                    <div className={`text-xs md:text-sm ${panelTheme.muted}`}>
-                      Candle {Math.max(currentIndex + 1, 0)} / {fullData.length}
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      {[1000, 500, 200, 50].map((value) => (
-                        <button
-                          key={value}
-                          onClick={() => setSpeed(value)}
-                          className={`h-8 px-2.5 rounded-md text-xs font-semibold border transition-colors ${
-                            speed === value
-                              ? 'bg-emerald-500 text-black border-emerald-500'
-                              : isDark
-                                ? 'border-zinc-700 text-zinc-300 hover:bg-zinc-900'
-                                : 'border-zinc-300 text-zinc-700 hover:bg-zinc-100'
-                          }`}
-                        >
-                          {speedLabelMap[value]}
-                        </button>
-                      ))}
-                    </div>
                   </div>
+                )}
 
-                  <div className="mt-3">
-                    <input
-                      type="range"
-                      min={1}
-                      max={Math.max(fullData.length, 1)}
-                      value={Math.max(currentIndex + 1, 1)}
-                      onChange={(event) => handleSeek(Number(event.target.value))}
-                      className="w-full accent-emerald-500"
-                    />
-                    <div className="mt-2 h-1.5 rounded-full bg-zinc-800/40 overflow-hidden">
-                      <div
-                        className="h-full bg-gradient-to-r from-emerald-500 to-emerald-300"
-                        style={{ width: `${progressPercent}%` }}
-                      />
-                    </div>
-                  </div>
-
-                  <div className={`mt-3 flex flex-wrap items-center justify-between gap-2 text-xs ${panelTheme.muted}`}>
-                    <span>{currentCandleDate}</span>
-                    <span>Win/Loss: {wins}/{losses}</span>
-                    <span>Used Margin: ${usedMargin.toFixed(2)}</span>
-                    <span>Open/Pending: {openPositions.length}/{pendingOrders.length}</span>
-                  </div>
-                </section>
-
-                {renderTerminalTabsPanel()}
+                {showBottomPanel && renderTerminalTabsPanel()}
               </div>
             </section>
 

@@ -13,6 +13,7 @@ import {
   CreateMT5AccountDto,
   UpdateMT5AccountDto,
   MT5AccountResponseDto,
+  TradingAccountCategory,
 } from './dto/mt5-account.dto';
 import { ConfigService } from '@nestjs/config';
 import * as crypto from 'crypto';
@@ -34,6 +35,21 @@ import {
   StreamingMetaApiConnectionInstance,
 } from 'metaapi.cloud-sdk';
 import { AssetType, TradeDirection, TradeStatus } from '../types/enums';
+
+type CreateManualMt5AccountInput = {
+  userId: string;
+  accountName: string;
+  login: string;
+  server?: string;
+  currency?: string;
+  isRealAccount?: boolean;
+  target?: number;
+  accountCategory?: TradingAccountCategory | string;
+  propFirmPhase?: string;
+  propMaxLoss?: number;
+  propDailyMaxLoss?: number;
+  propProfitTarget?: number;
+};
 
 @Injectable()
 export class MT5AccountsService {
@@ -244,7 +260,7 @@ export class MT5AccountsService {
     await this.assertLocalTerminalIsNotActive(accountId);
 
     await this.mt5AccountRepository.update(accountId, {
-      autoSyncEnabled: true,
+      autoSyncEnabled: false,
       connectionStatus: 'CONNECTING',
       connectionState: 'CONNECTING',
       lastSyncError: null,
@@ -327,6 +343,69 @@ export class MT5AccountsService {
       .digest('hex');
   }
 
+  private async findExistingAccountByFingerprint(
+    userId: string,
+    fingerprint: string,
+    excludeAccountId?: string,
+  ): Promise<MT5Account | null> {
+    const query = this.mt5AccountRepository
+      .createQueryBuilder('account')
+      .where('account.userId = :userId', { userId })
+      .andWhere(
+        "(account.loginServerFingerprint = :fingerprint OR account.metadata->>'loginServerFingerprint' = :fingerprint)",
+        { fingerprint },
+      );
+
+    if (excludeAccountId) {
+      query.andWhere('account.id != :excludeAccountId', { excludeAccountId });
+    }
+
+    return query.getOne();
+  }
+
+  private resolveAccountCategory(
+    value?: string | null,
+  ): TradingAccountCategory {
+    return value === TradingAccountCategory.PROP_FIRM
+      ? TradingAccountCategory.PROP_FIRM
+      : TradingAccountCategory.PERSONAL;
+  }
+
+  private extractProfileMetadata(metadata?: Record<string, any>): {
+    accountCategory: TradingAccountCategory;
+    propFirmPhase: string | null;
+    propMaxLoss: number | null;
+    propDailyMaxLoss: number | null;
+  } {
+    const accountCategory = this.resolveAccountCategory(
+      typeof metadata?.accountCategory === 'string'
+        ? metadata.accountCategory
+        : null,
+    );
+
+    const toNullableNumber = (value: unknown): number | null => {
+      if (value === null || value === undefined || value === '') return null;
+      const parsed = Number(value);
+      return Number.isFinite(parsed) ? parsed : null;
+    };
+
+    return {
+      accountCategory,
+      propFirmPhase:
+        accountCategory === TradingAccountCategory.PROP_FIRM
+          ? (metadata?.propFirmPhase ?? null)
+          : null,
+      propMaxLoss:
+        accountCategory === TradingAccountCategory.PROP_FIRM
+          ? toNullableNumber(metadata?.propMaxLoss)
+          : null,
+      propDailyMaxLoss:
+        accountCategory === TradingAccountCategory.PROP_FIRM
+          ? toNullableNumber(metadata?.propDailyMaxLoss)
+          : null,
+    };
+  }
+
   /**
    * Create a new MT5 account
    */
@@ -369,46 +448,21 @@ export class MT5AccountsService {
       createDto.login.toString(),
       createDto.server,
     );
-    const existingByFingerprint = await this.mt5AccountRepository.findOne({
-      where: { userId, loginServerFingerprint: fingerprint } as any,
-    });
+    const existingByFingerprint = await this.findExistingAccountByFingerprint(
+      userId,
+      fingerprint,
+    );
     if (existingByFingerprint) {
       throw new BadRequestException('MT5 account already linked. This login and server combination already exists.');
     }
 
-    const metaApiEnabled = this.metaApiService.isEnabled();
-    let provision:
-      | {
-          metaApiAccountId: string;
-          provisioningProfileId?: string;
-          region: string;
-        }
-      | null = null;
-    let provisioningError: string | null = null;
+    const accountCategory = this.resolveAccountCategory(
+      createDto.accountCategory,
+    );
+    const effectiveTarget =
+      createDto.target ?? createDto.propProfitTarget ?? 0;
 
-    if (metaApiEnabled) {
-      try {
-        // [FIX #2] provisionAccount() returns immediately after submitting deploy
-        provision = await this.metaApiService.provisionAccount({
-          accountName: createDto.accountName,
-          server: createDto.server,
-          login: createDto.login,
-          password: createDto.password,
-          isRealAccount: createDto.isRealAccount ?? false,
-        });
-      } catch (error: any) {
-        provisioningError = error?.message || 'MetaApi provisioning failed';
-        this.logger.warn(
-          `MetaApi provisioning failed for ${createDto.login}@${createDto.server}. Creating account for local terminal sync. Error: ${provisioningError}`,
-        );
-      }
-    } else {
-      provisioningError =
-        'MetaApi integration is disabled. Account created for local terminal sync.';
-      this.logger.warn(
-        `MetaApi is disabled. Creating account ${createDto.login}@${createDto.server} for local terminal sync only.`,
-      );
-    }
+    const metaApiEnabled = this.metaApiService.isEnabled();
 
     const mt5Account = this.mt5AccountRepository.create({
       accountName: createDto.accountName,
@@ -421,63 +475,56 @@ export class MT5AccountsService {
       currency: createDto.currency || 'USD',
       isActive: createDto.isActive ?? true,
       isRealAccount: createDto.isRealAccount ?? false,
-      connectionStatus: provision ? 'CONNECTING' : 'DISCONNECTED',
-      deploymentState: provision ? 'DEPLOYING' : 'UNDEPLOYED',
-      connectionState: provision ? 'CONNECTING' : 'DISCONNECTED',
+      connectionStatus: 'DISCONNECTED',
+      deploymentState: 'UNDEPLOYED',
+      connectionState: 'DISCONNECTED',
       initialBalance: createDto.initialBalance ?? 0,
       balance: createDto.initialBalance ?? 0,
       equity: createDto.initialBalance ?? 0,
       leverage: createDto.leverage ?? 100,
-      target: createDto.target ?? 0,
-      autoSyncEnabled: true,
-      metaApiAccountId: provision?.metaApiAccountId ?? null,
-      provisioningProfileId: provision?.provisioningProfileId ?? null,
-      region: provision?.region ?? 'local',
-      lastSyncError: provisioningError,
+      target: effectiveTarget,
+      autoSyncEnabled: false,
+      metaApiAccountId: null,
+      provisioningProfileId: null,
+      region: 'local',
+      lastSyncError: null,
+      loginServerFingerprint: fingerprint,
       metadata: {
-        provider: provision ? 'metaapi' : 'local_terminal',
+        provider: metaApiEnabled ? 'metaapi_pending' : 'local_terminal',
         metaApiEnabled,
-        metaApiProvisioningStatus: provision ? 'started' : 'failed_or_skipped',
-        ...(provisioningError
-          ? { metaApiProvisioningError: provisioningError }
-          : {}),
+        metaApiProvisioningStatus: metaApiEnabled ? 'pending' : 'disabled',
+        accountCategory,
+        propFirmPhase:
+          accountCategory === TradingAccountCategory.PROP_FIRM
+            ? createDto.propFirmPhase ?? null
+            : null,
+        propMaxLoss:
+          accountCategory === TradingAccountCategory.PROP_FIRM
+            ? createDto.propMaxLoss ?? null
+            : null,
+        propDailyMaxLoss:
+          accountCategory === TradingAccountCategory.PROP_FIRM
+            ? createDto.propDailyMaxLoss ?? null
+            : null,
+        propProfitTarget:
+          accountCategory === TradingAccountCategory.PROP_FIRM
+            ? effectiveTarget
+            : null,
         loginServerFingerprint: fingerprint, // [FIX #16] store fingerprint in metadata
       },
     });
 
     const savedAccount = await this.mt5AccountRepository.save(mt5Account);
-    if (provision) {
+    if (metaApiEnabled) {
       this.logger.log(
-        `MT5 account ${savedAccount.id} created successfully (MetaApi deploying in background).`,
+        `MT5 account ${savedAccount.id} created (MetaApi provisioning pending explicit sync).`,
       );
-
-      // [FIX #2] Background: wait for deploy, then sync
-      void this.metaApiService
-        .waitForDeployment(provision.metaApiAccountId)
-        .then(async (deployResult) => {
-          await this.mt5AccountRepository.update(savedAccount.id, {
-            deploymentState: deployResult.deploymentState,
-            connectionStatus: 'CONNECTED',
-            lastSyncError: null,
-          });
-          return this.syncMetaApiAccount(savedAccount.id, {
-            fullHistory: true,
-            startStreaming: true,
-          });
-        })
-        .catch((error) => {
-          this.logger.error(
-            `MetaApi background deploy/sync failed for account ${savedAccount.id}: ${error.message}`,
-          );
-          void this.mt5AccountRepository.update(savedAccount.id, {
-            deploymentState: 'ERROR',
-            connectionStatus: 'DISCONNECTED',
-            lastSyncError: error.message,
-          });
-        });
+      this.logger.log(
+        `MetaApi sync is explicit-only. Use POST /mt5-accounts/${savedAccount.id}/sync to start historical import and streaming.`,
+      );
     } else {
       this.logger.log(
-        `MT5 account ${savedAccount.id} created in local-sync mode (MetaApi unavailable).`,
+        `MT5 account ${savedAccount.id} created in local-sync mode (MetaApi disabled).`,
       );
     }
 
@@ -488,11 +535,22 @@ export class MT5AccountsService {
    * Create a manual MT5 account (for file upload workflow)
    */
   async createManual(
-    manualAccountData: Record<string, any>,
+    manualAccountData: CreateManualMt5AccountInput,
   ): Promise<Record<string, any>> {
     this.logger.log(
       `Creating manual MT5 account for user ${manualAccountData.userId}`,
     );
+
+    const normalizedLogin = String(manualAccountData.login || '').trim();
+    if (!normalizedLogin) {
+      throw new BadRequestException('Login is required for manual MT5 account');
+    }
+    const normalizedServer = String(
+      manualAccountData.server || 'Manual-Upload',
+    ).trim();
+    if (!normalizedServer) {
+      throw new BadRequestException('Server is required for manual MT5 account');
+    }
 
     // Check MT5 Account Limits based on Subscription tier + extra slots
     const subscription = await this.dataSource.getRepository(Subscription).findOne({
@@ -513,10 +571,29 @@ export class MT5AccountsService {
       );
     }
 
+    const accountCategory = this.resolveAccountCategory(
+      manualAccountData.accountCategory,
+    );
+    const effectiveTarget =
+      manualAccountData.target ?? manualAccountData.propProfitTarget ?? 0;
+    const fingerprint = this.accountFingerprint(
+      normalizedLogin,
+      normalizedServer,
+    );
+    const existingByFingerprint = await this.findExistingAccountByFingerprint(
+      manualAccountData.userId,
+      fingerprint,
+    );
+    if (existingByFingerprint) {
+      throw new BadRequestException(
+        'MT5 account already linked. This login and server combination already exists.',
+      );
+    }
+
     const mt5Account = this.mt5AccountRepository.create({
       accountName: manualAccountData.accountName,
-      server: manualAccountData.server,
-      login: manualAccountData.login.toString(),
+      server: normalizedServer,
+      login: normalizedLogin,
       password: 'manual-account',
       userId: manualAccountData.userId,
       accountType: 'demo',
@@ -529,8 +606,30 @@ export class MT5AccountsService {
       balance: 0,
       equity: 0,
       leverage: 1,
+      target: effectiveTarget,
       autoSyncEnabled: false,
-      metadata: { isManual: true },
+      loginServerFingerprint: fingerprint,
+      metadata: {
+        isManual: true,
+        accountCategory,
+        propFirmPhase:
+          accountCategory === TradingAccountCategory.PROP_FIRM
+            ? manualAccountData.propFirmPhase ?? null
+            : null,
+        propMaxLoss:
+          accountCategory === TradingAccountCategory.PROP_FIRM
+            ? manualAccountData.propMaxLoss ?? null
+            : null,
+        propDailyMaxLoss:
+          accountCategory === TradingAccountCategory.PROP_FIRM
+            ? manualAccountData.propDailyMaxLoss ?? null
+            : null,
+        propProfitTarget:
+          accountCategory === TradingAccountCategory.PROP_FIRM
+            ? effectiveTarget
+            : null,
+        loginServerFingerprint: fingerprint,
+      },
     });
 
     const savedAccount = await this.mt5AccountRepository.save(mt5Account);
@@ -613,6 +712,10 @@ export class MT5AccountsService {
     return this.mt5AccountRepository.findOne({ where: { id } });
   }
 
+  mapEntityToResponseDto(account: MT5Account): MT5AccountResponseDto {
+    return this.mapToResponseDto(account);
+  }
+
   /**
    * Update an MT5 account
    */
@@ -630,11 +733,17 @@ export class MT5AccountsService {
     if (updateMT5AccountDto.password) {
       updatedData.password = this.encrypt(updateMT5AccountDto.password);
     }
+
+    let nextLoginForFingerprint: string | null = null;
+    let nextServerForFingerprint: string | null = null;
+
     if (updateMT5AccountDto.login) {
       updatedData.login = this.encrypt(updateMT5AccountDto.login);
+      nextLoginForFingerprint = updateMT5AccountDto.login;
     }
     if (updateMT5AccountDto.server) {
       updatedData.server = this.encrypt(updateMT5AccountDto.server);
+      nextServerForFingerprint = updateMT5AccountDto.server;
     }
     if (updateMT5AccountDto.accountName) {
       updatedData.accountName = updateMT5AccountDto.accountName;
@@ -648,9 +757,79 @@ export class MT5AccountsService {
     if (updateMT5AccountDto.isActive !== undefined) {
       updatedData.isActive = updateMT5AccountDto.isActive;
     }
-    if (updateMT5AccountDto.target !== undefined) {
-      updatedData.target = updateMT5AccountDto.target;
+
+    const effectiveTarget =
+      updateMT5AccountDto.target ?? updateMT5AccountDto.propProfitTarget;
+    if (effectiveTarget !== undefined) {
+      updatedData.target = effectiveTarget;
     }
+
+    const existingMetadata = account.metadata || {};
+    const nextCategory = this.resolveAccountCategory(
+      updateMT5AccountDto.accountCategory ??
+        (existingMetadata.accountCategory as string),
+    );
+
+    const nextMetadata: Record<string, any> = {
+      ...existingMetadata,
+      accountCategory: nextCategory,
+    };
+
+    if (nextCategory === TradingAccountCategory.PROP_FIRM) {
+      if (updateMT5AccountDto.propFirmPhase !== undefined) {
+        nextMetadata.propFirmPhase = updateMT5AccountDto.propFirmPhase || null;
+      } else if (nextMetadata.propFirmPhase === undefined) {
+        nextMetadata.propFirmPhase = null;
+      }
+
+      if (updateMT5AccountDto.propMaxLoss !== undefined) {
+        nextMetadata.propMaxLoss = updateMT5AccountDto.propMaxLoss;
+      } else if (nextMetadata.propMaxLoss === undefined) {
+        nextMetadata.propMaxLoss = null;
+      }
+
+      if (updateMT5AccountDto.propDailyMaxLoss !== undefined) {
+        nextMetadata.propDailyMaxLoss = updateMT5AccountDto.propDailyMaxLoss;
+      } else if (nextMetadata.propDailyMaxLoss === undefined) {
+        nextMetadata.propDailyMaxLoss = null;
+      }
+
+      if (effectiveTarget !== undefined) {
+        nextMetadata.propProfitTarget = effectiveTarget;
+      } else if (nextMetadata.propProfitTarget === undefined) {
+        nextMetadata.propProfitTarget = null;
+      }
+    } else {
+      nextMetadata.propFirmPhase = null;
+      nextMetadata.propMaxLoss = null;
+      nextMetadata.propDailyMaxLoss = null;
+      nextMetadata.propProfitTarget = null;
+    }
+
+    const resolvedLogin =
+      nextLoginForFingerprint ??
+      (account.metadata?.isManual
+        ? account.login
+        : this.decrypt(account.login));
+    const resolvedServer =
+      nextServerForFingerprint ??
+      (account.metadata?.isManual
+        ? account.server
+        : this.decrypt(account.server));
+    const nextFingerprint = this.accountFingerprint(resolvedLogin, resolvedServer);
+    const existingByFingerprint = await this.findExistingAccountByFingerprint(
+      account.userId,
+      nextFingerprint,
+      id,
+    );
+    if (existingByFingerprint) {
+      throw new BadRequestException(
+        'MT5 account already linked. This login and server combination already exists.',
+      );
+    }
+    updatedData.loginServerFingerprint = nextFingerprint;
+    nextMetadata.loginServerFingerprint = nextFingerprint;
+    updatedData.metadata = nextMetadata;
 
     await this.mt5AccountRepository.update(id, updatedData as any);
 
@@ -668,12 +847,12 @@ export class MT5AccountsService {
     accountId: string,
     options: { fullHistory?: boolean; startStreaming?: boolean } = {},
   ): Promise<{ imported: number; skipped: number; failed: number }> {
-    const account = await this.mt5AccountRepository.findOne({
+    let account = await this.mt5AccountRepository.findOne({
       where: { id: accountId },
     });
 
-    if (!account || !account.metaApiAccountId) {
-      throw new BadRequestException('MetaApi account not configured');
+    if (!account) {
+      throw new BadRequestException('MT5 account not found');
     }
 
     if (!this.metaApiService.isEnabled()) {
@@ -681,6 +860,67 @@ export class MT5AccountsService {
     }
 
     await this.assertLocalTerminalIsNotActive(accountId);
+
+    if (account.metadata?.isManual || account.connectionStatus === 'manual') {
+      throw new BadRequestException(
+        'Manual upload accounts cannot be synced via MetaAPI',
+      );
+    }
+
+    if (!account.metaApiAccountId) {
+      try {
+        const login = this.decrypt(account.login);
+        const server = this.decrypt(account.server);
+        const password = this.decrypt(account.password);
+        const provision = await this.metaApiService.provisionAccount({
+          accountName: account.accountName,
+          server,
+          login,
+          password,
+          isRealAccount: account.isRealAccount ?? false,
+        });
+
+        const metadata = account.metadata || {};
+        await this.mt5AccountRepository.update(accountId, {
+          metaApiAccountId: provision.metaApiAccountId,
+          provisioningProfileId: provision.provisioningProfileId ?? null,
+          region: provision.region ?? 'new-york',
+          connectionStatus: 'CONNECTING',
+          deploymentState: 'DEPLOYING',
+          connectionState: 'CONNECTING',
+          lastSyncError: null,
+          lastSyncErrorAt: null,
+          metadata: {
+            ...metadata,
+            provider: 'metaapi',
+            metaApiEnabled: true,
+            metaApiProvisioningStatus: 'started',
+            metaApiProvisionedAt: new Date().toISOString(),
+            syncMode: 'metaapi',
+          } as Record<string, any>,
+        });
+
+        account = await this.mt5AccountRepository.findOne({
+          where: { id: accountId },
+        });
+        if (!account || !account.metaApiAccountId) {
+          throw new BadRequestException('MetaApi account not configured');
+        }
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : 'MetaApi provisioning failed';
+        await this.mt5AccountRepository.update(accountId, {
+          lastSyncError: message,
+          lastSyncErrorAt: new Date(),
+          connectionStatus: 'DISCONNECTED',
+          connectionState: 'DISCONNECTED',
+          isStreamingActive: false,
+        });
+        throw new InternalServerErrorException(
+          `Failed to provision MetaApi account: ${message}`,
+        );
+      }
+    }
 
     try {
       const connection = await this.metaApiService.getStreamingConnection(
@@ -731,9 +971,11 @@ export class MT5AccountsService {
         lastHeartbeatAt: new Date(),
         lastSyncError: null,
         lastSyncErrorAt: null,
+        autoSyncEnabled: true,
         isStreamingActive: options.startStreaming ?? true,
         metadata: {
           ...metadata,
+          syncMode: 'metaapi',
           metaApiLastHistoryTime: endTime.toISOString(),
         } as Record<string, any>,
       });
@@ -1420,8 +1662,38 @@ export class MT5AccountsService {
     const isManual =
       account.metadata?.isManual || account.connectionStatus === 'manual';
     const { password, login, server, ...rest } = account;
+    const profile = this.extractProfileMetadata(account.metadata);
     return {
       ...rest,
+      ...profile,
+      target:
+        account.target !== null && account.target !== undefined
+          ? Number(account.target)
+          : 0,
+      initialBalance:
+        account.initialBalance !== null && account.initialBalance !== undefined
+          ? Number(account.initialBalance)
+          : 0,
+      balance:
+        account.balance !== null && account.balance !== undefined
+          ? Number(account.balance)
+          : 0,
+      equity:
+        account.equity !== null && account.equity !== undefined
+          ? Number(account.equity)
+          : 0,
+      margin:
+        account.margin !== null && account.margin !== undefined
+          ? Number(account.margin)
+          : 0,
+      marginFree:
+        account.marginFree !== null && account.marginFree !== undefined
+          ? Number(account.marginFree)
+          : 0,
+      profit:
+        account.profit !== null && account.profit !== undefined
+          ? Number(account.profit)
+          : 0,
       login: isManual ? login : '[Protected]',
       server: isManual ? server : '[Protected]',
     } as MT5AccountResponseDto;
@@ -1434,9 +1706,39 @@ export class MT5AccountsService {
     const isManual =
       account.metadata?.isManual || account.connectionStatus === 'manual';
     const { password, login, server, ...rest } = account;
+    const profile = this.extractProfileMetadata(account.metadata);
 
     return {
       ...rest,
+      ...profile,
+      target:
+        account.target !== null && account.target !== undefined
+          ? Number(account.target)
+          : 0,
+      initialBalance:
+        account.initialBalance !== null && account.initialBalance !== undefined
+          ? Number(account.initialBalance)
+          : 0,
+      balance:
+        account.balance !== null && account.balance !== undefined
+          ? Number(account.balance)
+          : 0,
+      equity:
+        account.equity !== null && account.equity !== undefined
+          ? Number(account.equity)
+          : 0,
+      margin:
+        account.margin !== null && account.margin !== undefined
+          ? Number(account.margin)
+          : 0,
+      marginFree:
+        account.marginFree !== null && account.marginFree !== undefined
+          ? Number(account.marginFree)
+          : 0,
+      profit:
+        account.profit !== null && account.profit !== undefined
+          ? Number(account.profit)
+          : 0,
       login: isManual ? login : this.decrypt(login),
       server: isManual ? server : this.decrypt(server),
     } as MT5AccountResponseDto;

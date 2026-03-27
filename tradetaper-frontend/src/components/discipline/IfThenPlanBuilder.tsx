@@ -166,7 +166,7 @@ export default function IfThenPlanBuilder({ accountId }: IfThenPlanBuilderProps)
 
   return (
     <AnimatedCard animate={false} variant="default" className="space-y-4">
-      <div className="flex items-start justify-between">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
             If‑Then Plans
@@ -243,7 +243,7 @@ export default function IfThenPlanBuilder({ accountId }: IfThenPlanBuilderProps)
         <button
           onClick={handleAdd}
           disabled={saving || !ifCue.trim() || !thenAction.trim()}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg shadow"
+          className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-xs font-bold text-white shadow hover:bg-emerald-700 sm:w-auto"
         >
           <FaPlus className="w-3 h-3" />
           {saving ? 'Saving...' : 'Add Plan'}
@@ -264,7 +264,7 @@ export default function IfThenPlanBuilder({ accountId }: IfThenPlanBuilderProps)
         {plans.map((plan) => (
           <div
             key={plan.id}
-            className={`flex items-start justify-between gap-3 p-3 rounded-xl border ${
+            className={`flex flex-col gap-3 rounded-xl border p-3 sm:flex-row sm:items-start sm:justify-between ${
               plan.isActive
                 ? 'border-emerald-200 dark:border-emerald-900/40 bg-emerald-50/60 dark:bg-emerald-900/10'
                 : 'border-gray-200 dark:border-white/10 bg-white/50 dark:bg-black/30'
@@ -279,10 +279,10 @@ export default function IfThenPlanBuilder({ accountId }: IfThenPlanBuilderProps)
                   {plan.accountId ? 'Account scoped' : 'Global'}
                 </span>
               </div>
-              <div><span className="font-bold">If</span> {plan.ifCue}</div>
-              <div className="mt-1"><span className="font-bold">Then</span> {plan.thenAction}</div>
+              <div className="break-words"><span className="font-bold">If</span> {plan.ifCue}</div>
+              <div className="mt-1 break-words"><span className="font-bold">Then</span> {plan.thenAction}</div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center justify-end gap-2 sm:justify-start">
               <button
                 onClick={() => handleToggle(plan.id)}
                 className={`px-2 py-1 text-[10px] rounded-md font-bold ${

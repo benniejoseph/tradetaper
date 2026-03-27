@@ -405,7 +405,7 @@ export default function AnalyticsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white dark:bg-black p-4 sm:p-6 lg:p-4">
+    <div className="min-h-screen bg-white dark:bg-black p-3 sm:p-6 lg:p-4">
       <div className="max-w-[1600px] mx-auto space-y-6 relative z-10">
         <div className="flex items-center justify-between mb-2">
           <div>
@@ -415,10 +415,10 @@ export default function AnalyticsPage() {
         </div>
 
         {analyticsData?.radarMetrics && (
-          <div className="mb-6 p-6 rounded-3xl border border-emerald-500/30 bg-emerald-50/40 dark:bg-emerald-900/10 shadow-sm shadow-emerald-500/5">
+          <div className="mb-6 rounded-3xl border border-emerald-500/30 bg-emerald-50/40 p-4 shadow-sm shadow-emerald-500/5 dark:bg-emerald-900/10 sm:p-6">
             <div className="flex items-center gap-2 mb-6 pb-4 border-b border-emerald-500/20">
               <FaBrain className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white">Trader Rating & Health</h2>
+              <h2 className="text-lg font-bold text-gray-900 dark:text-white sm:text-xl">Trader Rating & Health</h2>
             </div>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <DashboardCard title="Trader Score Breakdown" icon={FaChartPie}>
@@ -439,10 +439,10 @@ export default function AnalyticsPage() {
         )}
 
         {/* Section 1: Overview */}
-        <div className="mb-6 p-6 rounded-3xl border border-emerald-500/30 bg-emerald-50/40 dark:bg-emerald-900/10 shadow-sm shadow-emerald-500/5">
+        <div className="mb-6 rounded-3xl border border-emerald-500/30 bg-emerald-50/40 p-4 shadow-sm shadow-emerald-500/5 dark:bg-emerald-900/10 sm:p-6">
           <div className="flex items-center gap-2 mb-6 pb-4 border-b border-emerald-500/20">
             <FaTachometerAlt className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white">Performance Overview</h2>
+            <h2 className="text-lg font-bold text-gray-900 dark:text-white sm:text-xl">Performance Overview</h2>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
             <PerformanceStatsCard trades={filteredTrades || []} currentBalance={dashboardStats?.currentBalance || 0} timeRange={timeRange} onTimeRangeChange={setTimeRange} />
@@ -454,11 +454,11 @@ export default function AnalyticsPage() {
 
         {/* Section 2: AI Market Intelligence (Moved here from bottom) */}
         {(analyticsLoading || analyticsError || analyticsData) && (
-          <div className="mb-6 p-6 rounded-3xl border border-emerald-500/30 bg-emerald-50/40 dark:bg-emerald-900/10 shadow-sm shadow-emerald-500/5">
+          <div className="mb-6 rounded-3xl border border-emerald-500/30 bg-emerald-50/40 p-4 shadow-sm shadow-emerald-500/5 dark:bg-emerald-900/10 sm:p-6">
             <FeatureGate feature="advancedAnalytics" blur={true}>
               <div className="flex items-center gap-2 mb-6 pb-4 border-b border-emerald-500/20">
                 <FaBrain className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
-                <h2 className="text-xl font-bold text-gray-900 dark:text-white">AI Market Intelligence</h2>
+                <h2 className="text-lg font-bold text-gray-900 dark:text-white sm:text-xl">AI Market Intelligence</h2>
               </div>
               {analyticsLoading && (
                 <div className="rounded-2xl border border-emerald-400/20 bg-white/60 dark:bg-black/20 p-4 text-sm text-gray-600 dark:text-gray-300">
@@ -490,10 +490,10 @@ export default function AnalyticsPage() {
         )}
 
         {/* Section 3: Consistency & Rolling Stats */}
-        <div className="mb-6 p-6 rounded-3xl border border-emerald-500/30 bg-emerald-50/40 dark:bg-emerald-900/10 shadow-sm shadow-emerald-500/5">
+        <div className="mb-6 rounded-3xl border border-emerald-500/30 bg-emerald-50/40 p-4 shadow-sm shadow-emerald-500/5 dark:bg-emerald-900/10 sm:p-6">
           <div className="flex items-center gap-2 mb-6 pb-4 border-b border-emerald-500/20">
             <FaChartLine className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white">Rolling Consistency (Last {rollingWindowSize} Trades)</h2>
+            <h2 className="text-lg font-bold text-gray-900 dark:text-white sm:text-xl">Rolling Consistency (Last {rollingWindowSize} Trades)</h2>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
             <RollingReturnCard data={rollingReturns} timeRange={timeRange} onTimeRangeChange={setTimeRange} windowSize={rollingWindowSize} onWindowSizeChange={setRollingWindowSize} gridSpan="sm:col-span-2 lg:col-span-2" />
@@ -503,10 +503,10 @@ export default function AnalyticsPage() {
         </div>
 
         {/* Section 4: Performance Analysis */}
-        <div className="mb-6 p-6 rounded-3xl border border-emerald-500/30 bg-emerald-50/40 dark:bg-emerald-900/10 shadow-sm shadow-emerald-500/5">
+        <div className="mb-6 rounded-3xl border border-emerald-500/30 bg-emerald-50/40 p-4 shadow-sm shadow-emerald-500/5 dark:bg-emerald-900/10 sm:p-6">
           <div className="flex items-center gap-2 mb-6 pb-4 border-b border-emerald-500/20">
             <FaListOl className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white">Detailed Analysis</h2>
+            <h2 className="text-lg font-bold text-gray-900 dark:text-white sm:text-xl">Detailed Analysis</h2>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
             <div className="lg:col-span-6">
@@ -517,10 +517,10 @@ export default function AnalyticsPage() {
         </div>
 
         {/* Section 5: Trading Activity (Top trades 2 cols, PnL 4 cols) */}
-        <div className="mb-6 p-6 rounded-3xl border border-emerald-500/30 bg-emerald-50/40 dark:bg-emerald-900/10 shadow-sm shadow-emerald-500/5">
+        <div className="mb-6 rounded-3xl border border-emerald-500/30 bg-emerald-50/40 p-4 shadow-sm shadow-emerald-500/5 dark:bg-emerald-900/10 sm:p-6">
           <div className="flex items-center gap-2 mb-6 pb-4 border-b border-emerald-500/20">
             <FaCalendarAlt className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white">Trading Activity</h2>
+            <h2 className="text-lg font-bold text-gray-900 dark:text-white sm:text-xl">Trading Activity</h2>
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-6 gap-4">
             <DashboardCard title="Top Performing Trades" icon={FaListOl} gridSpan="lg:col-span-2" showInfoIcon>
@@ -534,10 +534,10 @@ export default function AnalyticsPage() {
         </div>
 
         {/* Section 6: Equity & Drawdown (Moved to bottom) */}
-        <div className="mb-6 p-6 rounded-3xl border border-emerald-500/30 bg-emerald-50/40 dark:bg-emerald-900/10 shadow-sm shadow-emerald-500/5">
+        <div className="mb-6 rounded-3xl border border-emerald-500/30 bg-emerald-50/40 p-4 shadow-sm shadow-emerald-500/5 dark:bg-emerald-900/10 sm:p-6">
           <div className="flex items-center gap-2 mb-6 pb-4 border-b border-emerald-500/20">
             <FaChartLine className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white">Equity & Drawdown</h2>
+            <h2 className="text-lg font-bold text-gray-900 dark:text-white sm:text-xl">Equity & Drawdown</h2>
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-6 gap-4">
             <div className="lg:col-span-4">
@@ -550,10 +550,10 @@ export default function AnalyticsPage() {
         </div>
 
         {/* Section 7: Trading Activity Heatmap (Moved to bottom) */}
-        <div className="mb-6 p-6 rounded-3xl border border-emerald-500/30 bg-emerald-50/40 dark:bg-emerald-900/10 shadow-sm shadow-emerald-500/5">
+        <div className="mb-6 rounded-3xl border border-emerald-500/30 bg-emerald-50/40 p-4 shadow-sm shadow-emerald-500/5 dark:bg-emerald-900/10 sm:p-6">
           <div className="flex items-center gap-2 mb-6 pb-4 border-b border-emerald-500/20">
             <FaCalendarAlt className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white">Activity Heatmap</h2>
+            <h2 className="text-lg font-bold text-gray-900 dark:text-white sm:text-xl">Activity Heatmap</h2>
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-1 gap-4">
             <DashboardCard title="Trading Activity Heatmap" icon={FaCalendarAlt} gridSpan="lg:col-span-1">

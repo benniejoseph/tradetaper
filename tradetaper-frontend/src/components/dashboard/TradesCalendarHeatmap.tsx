@@ -1,18 +1,16 @@
 "use client";
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import CalendarHeatmap, { ReactCalendarHeatmapValue } from 'react-calendar-heatmap';
 import { Trade, TradeStatus } from '@/types/trade';
 import {
   parseISO,
   startOfDay,
   subYears,
-  formatISO,
-  format as formatDate
+  formatISO
 } from 'date-fns';
 import 'react-calendar-heatmap/dist/styles.css';
 import { CurrencyAmount } from '@/components/common/CurrencyAmount';
-import { FaCalendarAlt, FaChartLine, FaExchangeAlt, FaTimes } from 'react-icons/fa';
 
 // This interface now matches what we put into `values` for CalendarHeatmap
 interface CustomHeatmapValue {
@@ -29,7 +27,21 @@ interface TradesCalendarHeatmapProps {
 export default function TradesCalendarHeatmap({ trades, onDateClick }: TradesCalendarHeatmapProps) {
   const today = startOfDay(new Date());
   const oneYearAgo = subYears(today, 1);
-  // Remove internal modal state - modal will be handled at parent level
+  const [isMobileView, setIsMobileView] = useState(false);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(max-width: 640px)');
+    const updateIsMobile = () => setIsMobileView(mediaQuery.matches);
+    updateIsMobile();
+
+    if (typeof mediaQuery.addEventListener === 'function') {
+      mediaQuery.addEventListener('change', updateIsMobile);
+      return () => mediaQuery.removeEventListener('change', updateIsMobile);
+    }
+
+    mediaQuery.addListener(updateIsMobile);
+    return () => mediaQuery.removeListener(updateIsMobile);
+  }, []);
 
   const heatmapValues: CustomHeatmapValue[] = useMemo(() => {
     if (!trades || trades.length === 0) {
@@ -66,7 +78,7 @@ export default function TradesCalendarHeatmap({ trades, onDateClick }: TradesCal
       try {
         const tradeDate = formatISO(startOfDay(parseISO(tradeDateString)), { representation: 'date' });
         return tradeDate === date;
-      } catch (error) {
+      } catch {
         return false;
       }
     });
@@ -123,30 +135,32 @@ export default function TradesCalendarHeatmap({ trades, onDateClick }: TradesCal
       </div>
 
       {/* Calendar content */}
-      <div className="relative z-10 flex-1 flex justify-center">
-        <div className="w-full max-w-[1400px]">
-          <CalendarHeatmap
-            startDate={oneYearAgo}
-            endDate={today}
-            values={heatmapValues}
-            classForValue={classForValue}
-            showWeekdayLabels={true}
-            monthLabels={['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']}
-            titleForValue={(value: any) => value && value.date ? `${value.date}: ${value.count} trades, $${value.totalPnl?.toFixed(2)}` : ''}
-            onClick={(valueArg) => {
-              const value = valueArg as (CustomHeatmapValue & ReactCalendarHeatmapValue<string>) | undefined;
-              if (value && value.date && value.totalPnl !== undefined && value.count > 0 && onDateClick) {
-                const tradesForDate = getTradesForDate(value.date);
-                onDateClick(value, tradesForDate);
-              }
-            }}
-            gutterSize={4}
-          />
+      <div className="relative z-10 flex-1">
+        <div className="w-full overflow-x-auto pb-1">
+          <div className={`mx-auto w-full ${isMobileView ? 'min-w-[700px]' : 'max-w-[1400px]'}`}>
+            <CalendarHeatmap
+              startDate={oneYearAgo}
+              endDate={today}
+              values={heatmapValues}
+              classForValue={classForValue}
+              showWeekdayLabels={!isMobileView}
+              monthLabels={['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']}
+              titleForValue={(value: any) => value && value.date ? `${value.date}: ${value.count} trades, $${value.totalPnl?.toFixed(2)}` : ''}
+              onClick={(valueArg) => {
+                const value = valueArg as (CustomHeatmapValue & ReactCalendarHeatmapValue<string>) | undefined;
+                if (value && value.date && value.totalPnl !== undefined && value.count > 0 && onDateClick) {
+                  const tradesForDate = getTradesForDate(value.date);
+                  onDateClick(value, tradesForDate);
+                }
+              }}
+              gutterSize={isMobileView ? 2 : 4}
+            />
+          </div>
         </div>
       </div>
         
       {/* Legend */}
-      <div className="relative z-10 mt-4 flex flex-wrap items-center justify-between gap-3 text-xs text-gray-500 dark:text-gray-400">
+      <div className="relative z-10 mt-4 flex flex-col gap-3 text-xs text-gray-500 dark:text-gray-400 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
           <span className="inline-flex items-center gap-2 text-[11px] font-medium">
             <span className="h-2 w-2 rounded-full bg-emerald-500"></span>

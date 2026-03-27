@@ -324,7 +324,7 @@ const NewNotePage: React.FC = () => {
         setShowBlockMenu({
           blockId,
           x: rect.left,
-          y: rect.bottom + window.scrollY
+          y: rect.bottom
         });
       }
     }
@@ -351,19 +351,20 @@ const NewNotePage: React.FC = () => {
 
   return (
     <div className="min-h-screen pb-20">
-      <div className="max-w-4xl mx-auto space-y-6 p-6">
+      <div className="max-w-4xl mx-auto space-y-6 p-3 sm:p-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <AnimatedButton
             onClick={() => router.back()}
             variant="ghost"
             icon={<FaArrowLeft />}
             iconPosition="left"
+            className="self-start"
           >
             Back
           </AnimatedButton>
 
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setNote(prev => ({ 
@@ -373,7 +374,7 @@ const NewNotePage: React.FC = () => {
                 className="flex items-center gap-2 px-3 py-1 rounded-lg border border-emerald-300 dark:border-emerald-600/30 bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-950/20 dark:to-emerald-900/20 hover:from-emerald-100 hover:to-emerald-200 dark:hover:from-emerald-900/30 dark:hover:to-emerald-800/30 transition-all"
               >
                 {note.visibility === 'private' ? <FaEyeSlash /> : <FaEye />}
-                <span className="text-sm capitalize">{note.visibility}</span>
+                <span className="hidden sm:inline text-sm capitalize">{note.visibility}</span>
               </button>
             </div>
 
@@ -391,14 +392,14 @@ const NewNotePage: React.FC = () => {
         </div>
 
         {/* Main Editor */}
-        <AnimatedCard variant="glass" className="p-8">
+        <AnimatedCard variant="glass" className="p-4 sm:p-8">
           {/* Title */}
           <input
             type="text"
             placeholder="Untitled note"
             value={note.title}
             onChange={(e) => setNote(prev => ({ ...prev, title: e.target.value }))}
-            className="w-full text-4xl font-bold bg-transparent border-none outline-none placeholder-gray-400 dark:placeholder-gray-600 mb-8"
+            className="w-full text-3xl sm:text-4xl font-bold bg-transparent border-none outline-none placeholder-gray-400 dark:placeholder-gray-600 mb-8"
           />
 
           {/* Tags */}
@@ -470,17 +471,17 @@ const NewNotePage: React.FC = () => {
 
           {/* Add Block Button */}
           <div className="mt-8 pt-6 border-t border-emerald-200 dark:border-emerald-700/30">
-            <div className="flex items-center justify-center gap-4">
+            <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-center sm:gap-4">
               <button
                 onClick={() => addBlock('text')}
-                className="flex items-center gap-2 px-6 py-3 text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-lg transition-all border-2 border-dashed border-emerald-300 dark:border-emerald-600/30 hover:border-emerald-500"
+                className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-lg transition-all border-2 border-dashed border-emerald-300 dark:border-emerald-600/30 hover:border-emerald-500"
               >
                 <FaPlus />
                 <span className="font-medium">Add a block</span>
               </button>
               
               {/* Quick Block Buttons */}
-              <div className="flex items-center gap-2">
+              <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center sm:gap-2">
                 <button
                   onClick={() => addBlock('image')}
                   className="flex items-center gap-1 px-3 py-2 text-sm text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-md transition-colors"
@@ -1056,7 +1057,7 @@ const BlockControls: React.FC<{
   onAddBlock: (type: Block['type']) => void;
   onDelete: () => void;
 }> = ({ onAddBlock, onDelete }) => (
-  <div className="absolute right-0 top-0 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
+  <div className="absolute right-0 top-0 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity flex items-center gap-1">
     <button
       onClick={() => onAddBlock('text')}
       className="p-1 text-gray-400 hover:text-emerald-500 transition-colors"
@@ -1081,6 +1082,8 @@ const BlockMenu: React.FC<{
   onSelect: (type: Block['type']) => void;
   onClose: () => void;
 }> = ({ x, y, onSelect, onClose }) => {
+  const [isMobileViewport, setIsMobileViewport] = useState(false);
+
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as HTMLElement;
@@ -1092,6 +1095,13 @@ const BlockMenu: React.FC<{
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [onClose]);
+
+  useEffect(() => {
+    const syncViewport = () => setIsMobileViewport(window.innerWidth < 640);
+    syncViewport();
+    window.addEventListener('resize', syncViewport);
+    return () => window.removeEventListener('resize', syncViewport);
+  }, []);
 
   const menuItems = [
     { type: 'text' as const, icon: <span className="text-lg">📝</span>, label: 'Text', description: 'Simple text block' },
@@ -1112,7 +1122,7 @@ const BlockMenu: React.FC<{
   const [adjustedPosition, setAdjustedPosition] = useState({ x, y });
 
   useEffect(() => {
-    if (menuRef.current) {
+    if (!isMobileViewport && menuRef.current) {
       const menuRect = menuRef.current.getBoundingClientRect();
       const viewportWidth = window.innerWidth;
       const viewportHeight = window.innerHeight;
@@ -1132,15 +1142,19 @@ const BlockMenu: React.FC<{
       
       setAdjustedPosition({ x: adjustedX, y: adjustedY });
     }
-  }, [x, y]);
+  }, [x, y, isMobileViewport]);
 
   return (
     <div
       ref={menuRef}
-      className="block-menu fixed z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg min-w-[250px] max-w-[280px]"
-      style={{ left: adjustedPosition.x, top: adjustedPosition.y }}
+      className={`block-menu fixed z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg ${
+        isMobileViewport
+          ? 'left-4 right-4 bottom-4 max-h-[70vh]'
+          : 'min-w-[250px] max-w-[280px]'
+      }`}
+      style={isMobileViewport ? undefined : { left: adjustedPosition.x, top: adjustedPosition.y }}
     >
-      <div className="p-2 max-h-[400px] overflow-y-auto">
+      <div className="p-2 max-h-[70vh] sm:max-h-[400px] overflow-y-auto">
         {menuItems.map((item) => (
           <button
             key={item.type}

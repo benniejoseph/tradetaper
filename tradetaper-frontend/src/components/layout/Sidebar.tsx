@@ -9,7 +9,7 @@ import { usePathname } from 'next/navigation';
 import { mainNavItems, userNavItems, settingsNavItems } from '@/config/navigation';
 import { 
   FaSignOutAlt, FaUserCircle, FaTimes, FaChevronLeft, 
-  FaChevronRight, FaBars, FaCog, FaExpand, FaCompress, FaCrown
+  FaChevronRight, FaBars, FaCog, FaExpand, FaCompress, FaCrown, FaChevronDown
 } from 'react-icons/fa';
 import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '@/store/store';
@@ -37,6 +37,7 @@ export default function Sidebar({ isOpen, toggleSidebar, isMobile, onExpandChang
   
   // Expandable sidebar state - collapsed by default
   const [isExpanded, setIsExpanded] = useState(false);
+  const [settingsMenuOpen, setSettingsMenuOpen] = useState(false);
   const [hoverTimeout, setHoverTimeout] = useState<NodeJS.Timeout | null>(null);
 
   const handleLogout = async () => {
@@ -72,6 +73,13 @@ export default function Sidebar({ isOpen, toggleSidebar, isMobile, onExpandChang
     }
   }, [isMobile, onExpandChange]);
 
+  const handleSettingsToggle = () => {
+    setSettingsMenuOpen((prev) => !prev);
+    if (!pathname.startsWith('/settings')) {
+      router.push('/settings');
+    }
+  };
+
   return (
     <>
       {/* Mobile Overlay */}
@@ -85,7 +93,7 @@ export default function Sidebar({ isOpen, toggleSidebar, isMobile, onExpandChang
 
       {/* Sidebar */}
       <aside 
-        className={`${isExpanded ? 'w-72' : 'w-20'} flex flex-col h-screen 
+        className={`${isExpanded ? 'w-72' : 'w-20'} flex flex-col min-h-dvh h-dvh 
                         bg-white/90 dark:bg-black backdrop-blur-xls
                         border-r border-gray-200/50 dark:border-gray-700/50
                         fixed top-0 left-0 z-50 
@@ -211,10 +219,41 @@ export default function Sidebar({ isOpen, toggleSidebar, isMobile, onExpandChang
             <div className="space-y-1">
               {userNavItems.map((item) => {
                 const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
+                const isSettingsItem = item.href === '/settings';
                 return (
                   <div key={item.label}>
                     <div className="relative group/tooltip">
-                      <Link
+                      {isSettingsItem ? (
+                        <button
+                          type="button"
+                          onClick={handleSettingsToggle}
+                          className={`w-full group flex items-center ${isExpanded ? 'space-x-3 px-4' : 'justify-center px-2'} py-3 rounded-xl text-sm font-medium transition-all duration-200 relative overflow-hidden text-left
+                            ${isActive 
+                              ? 'bg-gradient-to-r from-emerald-500 to-emerald-600 text-white shadow-lg dark:shadow-emerald-md' 
+                              : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100/80 dark:hover:bg-[#0A0A0A]'
+                            }`}>
+                          
+                          {!isActive && (
+                            <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/10 to-emerald-600/10 opacity-0 group-hover:opacity-100 transition-opacity duration-200"></div>
+                          )}
+                          
+                          <div className={`relative z-10 flex items-center ${isExpanded ? 'space-x-3' : 'justify-center'}`}>
+                            {item.icon && (
+                              <item.icon className={`h-5 w-5 transition-transform duration-200 group-hover:scale-110
+                                ${isActive ? 'text-white' : 'text-gray-500 dark:text-gray-400 group-hover:text-emerald-500'}`} />
+                            )}
+                            <span className={`transition-all duration-500 overflow-hidden ${isExpanded ? 'opacity-100 w-auto' : 'opacity-0 w-0'} whitespace-nowrap`}>
+                              {item.label}
+                            </span>
+                            {isExpanded && (
+                              <FaChevronDown
+                                className={`h-3 w-3 ml-1 transition-transform duration-200 ${settingsMenuOpen ? 'rotate-180' : ''}`}
+                              />
+                            )}
+                          </div>
+                        </button>
+                      ) : (
+                        <Link
                         href={item.href}
                         onClick={handleLinkClick}
                         className={`group flex items-center ${isExpanded ? 'space-x-3 px-4' : 'justify-center px-2'} py-3 rounded-xl text-sm font-medium transition-all duration-200 relative overflow-hidden
@@ -237,6 +276,7 @@ export default function Sidebar({ isOpen, toggleSidebar, isMobile, onExpandChang
                           </span>
                         </div>
                       </Link>
+                      )}
                       
                     {/* Tooltip for collapsed state */}
                     {!isExpanded && (
@@ -247,9 +287,9 @@ export default function Sidebar({ isOpen, toggleSidebar, isMobile, onExpandChang
                     )}
                   </div>
                   
-                  {/* Settings Subnav - Show even when collapsed if active */}
-                  {item.href === '/settings' && pathname.startsWith('/settings') && (
-                    <div className={`${isExpanded ? 'mt-2 ml-4 space-y-1 border-l-2 border-gradient-to-b from-purple-500 to-pink-500 pl-4' : 'mt-2 space-y-2 flex flex-col items-center'}`}>
+                  {/* Settings Subnav - Visible only after clicking Settings */}
+                  {item.href === '/settings' && settingsMenuOpen && (
+                    <div className={`${isExpanded ? 'mt-2 ml-4 space-y-1 border-l-2 border-emerald-500/50 pl-4' : 'mt-2 space-y-2 flex flex-col items-center'}`}>
                       {settingsNavItems.map(subItem => {
                         const isSubActive = pathname === subItem.href || pathname.startsWith(subItem.href + '/');
                         return (
@@ -310,8 +350,8 @@ export default function Sidebar({ isOpen, toggleSidebar, isMobile, onExpandChang
                         <FaCrown className="w-2.5 h-2.5" /> PREMIUM
                       </span>
                     )}
-                     {user?.subscription?.plan === 'essential' && (
-                      <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-gradient-to-r from-blue-400 to-blue-600 text-white shadow-sm">
+                    {user?.subscription?.plan === 'essential' && (
+                      <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300 shadow-sm">
                         ESSENTIAL
                       </span>
                     )}

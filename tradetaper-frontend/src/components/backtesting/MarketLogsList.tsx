@@ -6,7 +6,7 @@ import { useState, useEffect } from 'react';
 import { MarketLog } from '@/types/backtesting';
 import { backtestingService } from '@/services/backtestingService';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
-import { FiClock, FiTag, FiTrash2, FiActivity, FiImage, FiFilter } from 'react-icons/fi';
+import { FiTag, FiTrash2, FiActivity, FiImage, FiFilter } from 'react-icons/fi';
 
 export function MarketLogsList() {
   const [logs, setLogs] = useState<MarketLog[]>([]);
@@ -43,8 +43,8 @@ export function MarketLogsList() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <div className="relative flex-1 max-w-sm">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+        <div className="relative w-full sm:max-w-sm">
           <FiFilter className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
             type="text"
@@ -71,8 +71,8 @@ export function MarketLogsList() {
               key={log.id}
               className="bg-white dark:bg-black border border-gray-200 dark:border-gray-800 rounded-xl p-4 hover:shadow-md transition-shadow"
             >
-              <div className="flex justify-between items-start mb-2">
-                <div className="flex items-center gap-3">
+              <div className="mb-2 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                   <span className="font-bold text-lg text-gray-900 dark:text-white">
                     {log.symbol}
                   </span>
@@ -96,7 +96,7 @@ export function MarketLogsList() {
                   )}
                 </div>
                 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center justify-between gap-2 sm:justify-end">
                   <span className="text-xs text-gray-500">
                     {new Date(log.tradeDate).toLocaleDateString()}
                   </span>
@@ -109,7 +109,7 @@ export function MarketLogsList() {
                 </div>
               </div>
 
-              <p className="text-gray-700 dark:text-gray-300 mb-3 whitespace-pre-wrap">
+              <p className="mb-3 whitespace-pre-wrap break-words text-gray-700 dark:text-gray-300">
                 {log.observation}
               </p>
 
@@ -126,7 +126,7 @@ export function MarketLogsList() {
                     href={log.screenshotUrl} 
                     target="_blank" 
                     rel="noopener noreferrer"
-                    className="ml-auto flex items-center gap-1 text-xs text-gray-500 hover:text-gray-900 dark:hover:text-white underline"
+                    className="inline-flex w-full items-center gap-1 text-xs text-gray-500 underline hover:text-gray-900 dark:hover:text-white sm:ml-auto sm:w-auto"
                   >
                     <FiImage /> View Screenshot
                   </a>

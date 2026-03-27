@@ -249,10 +249,10 @@ export default function LandingPage() {
           <div className="absolute left-1/2 top-[8.5rem] h-[12rem] w-[12rem] -translate-x-1/2 rounded-full border border-white/10" />
         </div>
 
-        <div className="absolute left-1/2 top-[11.6rem] h-36 w-[46rem] -translate-x-1/2 rounded-[999px] bg-gradient-to-b from-emerald-200/65 via-emerald-400/28 to-transparent blur-[22px] opacity-70" />
+        <div className="hidden md:block absolute left-1/2 top-[11.6rem] h-36 w-[46rem] -translate-x-1/2 rounded-[999px] bg-gradient-to-b from-emerald-200/65 via-emerald-400/28 to-transparent blur-[22px] opacity-70" />
         <div className="hidden lg:block absolute left-[10%] top-[48%] h-36 w-80 rotate-[12deg] rounded-[48%] bg-gradient-to-b from-emerald-100/75 via-emerald-400/35 to-transparent blur-[14px] opacity-75" />
-        <div className="absolute right-[-2rem] bottom-[-0.8rem] h-24 w-80 rounded-[999px] bg-gradient-to-r from-emerald-100/80 via-emerald-400/35 to-transparent blur-[12px] opacity-75" />
-        <div className="absolute left-[55%] top-[26%] h-44 w-44 rounded-full bg-emerald-300/12 blur-[90px]" />
+        <div className="hidden md:block absolute right-[-2rem] bottom-[-0.8rem] h-24 w-80 rounded-[999px] bg-gradient-to-r from-emerald-100/80 via-emerald-400/35 to-transparent blur-[12px] opacity-75" />
+        <div className="hidden md:block absolute left-[55%] top-[26%] h-44 w-44 rounded-full bg-emerald-300/12 blur-[90px]" />
       </div>
 
       <header className="sticky top-0 z-50 border-b border-emerald-100/10 bg-black/55 backdrop-blur-xl">
@@ -418,9 +418,9 @@ export default function LandingPage() {
               <div className="hidden xl:block absolute left-[50%] top-[11%] h-24 w-24 -translate-x-1/2 rounded-[1.3rem] border border-white/20 bg-black/45 shadow-[0_20px_55px_rgba(0,0,0,0.55)] transform-gpu animate-float delay-300 [transform:rotateX(58deg)_rotateZ(44deg)]" />
               <div className="absolute left-1/2 top-[34%] h-[clamp(8rem,14vw,13rem)] w-[clamp(20rem,40vw,42rem)] -translate-x-1/2 rounded-[999px] bg-gradient-to-b from-emerald-100/70 via-emerald-400/30 to-transparent blur-[18px] opacity-75" />
             </div>
-            <div className="absolute left-[16%] top-[35%] h-64 w-64 rounded-full bg-emerald-300/15 blur-[95px]" />
-            <div className="absolute right-[10%] top-[24%] h-72 w-72 rounded-full bg-cyan-300/10 blur-[105px]" />
-            <div className="absolute left-[45%] top-[52%] h-56 w-56 rounded-full bg-emerald-500/12 blur-[100px]" />
+            <div className="hidden md:block absolute left-[16%] top-[35%] h-64 w-64 rounded-full bg-emerald-300/15 blur-[95px]" />
+            <div className="hidden md:block absolute right-[10%] top-[24%] h-72 w-72 rounded-full bg-cyan-300/10 blur-[105px]" />
+            <div className="hidden md:block absolute left-[45%] top-[52%] h-56 w-56 rounded-full bg-emerald-500/12 blur-[100px]" />
           </div>
 
           <div className="relative z-10 grid gap-14 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
