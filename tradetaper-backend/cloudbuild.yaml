@@ -13,8 +13,9 @@ steps:
     id: 'Push'
 
   # Deploy to Cloud Run
-  # env-vars-cloudrun.yaml holds all env vars EXCEPT DB_PASSWORD and GEMINI_API_KEY,
-  # which are managed via Secret Manager (--update-secrets below).
+  # Important: do not pass env-vars-cloudrun.yaml in production deploys.
+  # It intentionally contains placeholder values and can overwrite live secrets.
+  # This deploy keeps existing service env and refreshes managed secrets only.
   - name: 'gcr.io/cloud-builders/gcloud'
     entrypoint: 'gcloud'
     args:
@@ -22,11 +23,10 @@ steps:
       - 'deploy'
       - 'tradetaper-backend'
       - '--image=gcr.io/$PROJECT_ID/tradetaper-backend:latest'
+      - '--project=$PROJECT_ID'
       - '--region=us-central1'
       - '--platform=managed'
       - '--allow-unauthenticated'
-      - '--port=3000'
-      - '--env-vars-file=env-vars-cloudrun.yaml'
       - '--update-secrets=DB_PASSWORD=TRADETAPER_DB_PASSWORD:latest,GEMINI_API_KEY=GEMINI_API_KEY:latest'
     id: 'Deploy'
     waitFor: ['Push']
