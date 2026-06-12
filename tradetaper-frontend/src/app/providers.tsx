@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { store } from '@/store/store';
 import { CurrencyProvider } from '@/context/CurrencyContext';
+import { PrivacyModeProvider } from '@/context/PrivacyModeContext';
 import { loadUserFromStorage } from '@/store/features/authSlice';
 import { setupAuthInterceptors, initializeApiSecurity } from '@/services/api';
 import { ThemeProvider } from '@/components/theme-provider';
@@ -51,14 +52,16 @@ export function Providers({ children }: { children: React.ReactNode }) {
     <QueryClientProvider client={queryClient}>
       <ReduxProviderWithInit>
         <CurrencyProvider>
-          <ThemeProvider
-            attribute="class"
-            defaultTheme="system"
-            enableSystem
-            disableTransitionOnChange
-          >
-            {children}
-          </ThemeProvider>
+          <PrivacyModeProvider>
+            <ThemeProvider
+              attribute="class"
+              defaultTheme="system"
+              enableSystem
+              disableTransitionOnChange
+            >
+              {children}
+            </ThemeProvider>
+          </PrivacyModeProvider>
         </CurrencyProvider>
       </ReduxProviderWithInit>
     </QueryClientProvider>

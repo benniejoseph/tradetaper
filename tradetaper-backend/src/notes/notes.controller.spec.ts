@@ -10,6 +10,7 @@ import { Note } from './entities/note.entity';
 import { Logger } from '@nestjs/common'; // New import
 import { PsychologicalInsight } from '../notes/entities/psychological-insight.entity';
 import { PsychologicalInsightsService } from '../notes/psychological-insights.service';
+import { UsageLimitGuard } from '../subscriptions/guards/usage-limit.guard';
 
 describe('NotesController', () => {
   let controller: NotesController;
@@ -107,7 +108,10 @@ describe('NotesController', () => {
           },
         },
       ],
-    }).compile();
+    })
+      .overrideGuard(UsageLimitGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
 
     controller = module.get<NotesController>(NotesController);
     service = module.get<NotesService>(NotesService);

@@ -10,12 +10,14 @@ import { TradeStatus, TradeDirection, AssetType } from '../types/enums';
 import { Express } from 'express'; // Import Express for Multer File type
 import { GeminiVisionService } from '../notes/gemini-vision.service'; // New import
 import { Logger } from '@nestjs/common'; // New import
+import { UsageLimitGuard } from '../subscriptions/guards/usage-limit.guard';
+import { PerformanceService } from './performance.service';
 
 describe('TradesController', () => {
   let controller: TradesController;
   let service: TradesService;
 
-  const mockTrade: Trade = {
+  const mockTrade = {
     id: 'uuid-1',
     symbol: 'EURUSD',
     side: TradeDirection.LONG,
@@ -31,7 +33,7 @@ describe('TradesController', () => {
     tags: [],
     calculatePnl: jest.fn(),
     user: {} as any, // Added user property
-  };
+  } as unknown as Trade;
 
   const mockUser: UserResponseDto = {
     id: 'user-uuid-1',
@@ -67,6 +69,13 @@ describe('TradesController', () => {
           },
         },
         {
+          provide: PerformanceService,
+          useValue: {
+            getPerformanceMetrics: jest.fn().mockResolvedValue({}),
+            getEquityCurve: jest.fn().mockResolvedValue([]),
+          },
+        },
+        {
           provide: GeminiVisionService,
           useValue: {
             analyzeChartImage: jest
@@ -83,7 +92,10 @@ describe('TradesController', () => {
           },
         },
       ],
-    }).compile();
+    })
+      .overrideGuard(UsageLimitGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
 
     controller = module.get<TradesController>(TradesController);
     service = module.get<TradesService>(TradesService);
@@ -114,7 +126,14 @@ describe('TradesController', () => {
     it('should return an array of trades', async () => {
       const req = { user: mockUser } as any;
       expect(await controller.findAll(req)).toEqual([mockTrade]);
-      expect(service.findAll).toHaveBeenCalledWith(mockUser, undefined);
+      // controller now forwards accountId/includeTags and pagination defaults
+      expect(service.findAll).toHaveBeenCalledWith(
+        mockUser,
+        undefined,
+        undefined,
+        1,
+        10,
+      );
     });
   });
 

@@ -43,7 +43,7 @@ export default function PortfolioBalanceCard({
       <div className="space-y-4">
         <div>
           <div className="flex items-baseline space-x-3">
-            <div className="text-2xl font-bold text-gray-900 dark:text-white">
+            <div className="text-2xl font-bold text-gray-900 dark:text-white" data-sensitive>
               <CurrencyAmount amount={currentBalance} />
             </div>
             <span className={`px-2 py-1 rounded-lg text-sm font-medium ${

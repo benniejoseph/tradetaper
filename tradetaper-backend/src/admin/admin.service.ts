@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import { User } from '../users/entities/user.entity';
@@ -170,13 +170,28 @@ export class AdminService {
     }
   }
 
+  /**
+   * Resolves a user-supplied table name against the actual tables in the
+   * public schema. Throws if it doesn't exist - this is the only safe way
+   * to use an identifier in SQL, since identifiers can't be parameterized.
+   */
+  private async assertValidTableName(tableName: string): Promise<string> {
+    const tables = await this.getDatabaseTables();
+    const match = tables.find((t) => t === tableName);
+    if (!match) {
+      throw new BadRequestException(`Unknown table: ${tableName}`);
+    }
+    return match;
+  }
+
   async getDatabaseTable(tableName: string) {
+    const safeTable = await this.assertValidTableName(tableName);
     try {
-      const query = `SELECT * FROM "${tableName}" LIMIT 100;`;
+      const query = `SELECT * FROM "${safeTable}" LIMIT 100;`;
       const result = await this.dataSource.query(query);
       return result;
     } catch (error) {
-      this.logger.error(`Error fetching table ${tableName}`, error);
+      this.logger.error(`Error fetching table ${safeTable}`, error);
       return [];
     }
   }
@@ -202,16 +217,17 @@ export class AdminService {
     page: number = 1,
     limit: number = 20,
   ) {
+    const safeTable = await this.assertValidTableName(tableName);
     try {
       const offset = (page - 1) * limit;
 
       // Get total count
-      const countQuery = `SELECT COUNT(*) as count FROM "${tableName}";`;
+      const countQuery = `SELECT COUNT(*) as count FROM "${safeTable}";`;
       const countResult = await this.dataSource.query(countQuery);
       const total = parseInt(countResult[0].count);
 
       // Get paginated data
-      const dataQuery = `SELECT * FROM "${tableName}" LIMIT $1 OFFSET $2;`;
+      const dataQuery = `SELECT * FROM "${safeTable}" LIMIT $1 OFFSET $2;`;
       const data = await this.dataSource.query(dataQuery, [limit, offset]);
 
       return {
@@ -431,85 +447,6 @@ export class AdminService {
     }
   }
 
-  async clearTable(tableName: string): Promise<{ deletedCount: number }> {
-    // Whitelist of tables that can be safely cleared
-    const allowedTables = [
-      'trades',
-      'tags',
-      'trade_tags',
-      'mt5_accounts',
-      'strategies',
-      'subscriptions',
-      'usage_tracking',
-    ];
-
-    if (!allowedTables.includes(tableName)) {
-      throw new Error(
-        `Table ${tableName} is not allowed to be cleared for safety reasons`,
-      );
-    }
-
-    try {
-      // Get count before deletion
-      const countQuery = `SELECT COUNT(*) as count FROM "${tableName}";`;
-      const countResult = await this.dataSource.query(countQuery);
-      const deletedCount = parseInt(countResult[0].count);
-
-      // Clear the table
-      const deleteQuery = `DELETE FROM "${tableName}";`;
-      await this.dataSource.query(deleteQuery);
-
-      return { deletedCount };
-    } catch (error) {
-      this.logger.error(`Error clearing table ${tableName}`, error);
-      throw new Error(`Failed to clear table ${tableName}: ${error.message}`);
-    }
-  }
-
-  async clearAllTables(): Promise<{
-    tablesCleared: string[];
-    totalDeleted: number;
-  }> {
-    const allowedTables = [
-      'trades',
-      'tags',
-      'trade_tags',
-      'mt5_accounts',
-      'strategies',
-      'subscriptions',
-      'usage_tracking',
-    ];
-
-    let totalDeleted = 0;
-    const tablesCleared: string[] = [];
-
-    try {
-      // Clear tables in order to avoid foreign key constraints
-      const clearOrder = [
-        'trade_tags', // Junction table first
-        'trades', // Then trades
-        'tags', // Then tags
-        'mt5_accounts', // MT5 accounts
-        'strategies', // Strategies
-        'usage_tracking', // Usage tracking
-        'subscriptions', // Finally subscriptions
-      ];
-
-      for (const tableName of clearOrder) {
-        if (allowedTables.includes(tableName)) {
-          const result = await this.clearTable(tableName);
-          totalDeleted += result.deletedCount;
-          tablesCleared.push(tableName);
-        }
-      }
-
-      return { tablesCleared, totalDeleted };
-    } catch (error) {
-      this.logger.error('Error clearing all tables', error);
-      throw new Error(`Failed to clear all tables: ${error.message}`);
-    }
-  }
-
   async getTableStats() {
     try {
       const tablesQuery = `
@@ -553,25 +490,6 @@ export class AdminService {
     } catch (error) {
       this.logger.error('Error fetching table stats', error);
       return [];
-    }
-  }
-
-  async runSql(
-    sql: string,
-  ): Promise<{ success: boolean; result?: unknown; error?: string }> {
-    try {
-      this.logger.log(`Executing SQL: ${sql}`);
-      const result = await this.dataSource.query(sql);
-      return {
-        success: true,
-        result,
-      };
-    } catch (error) {
-      this.logger.error('SQL execution error', error);
-      return {
-        success: false,
-        error: error.message,
-      };
     }
   }
 }

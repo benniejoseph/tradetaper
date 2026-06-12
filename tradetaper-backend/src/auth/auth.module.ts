@@ -20,18 +20,21 @@ import { JwtStrategy } from './strategies/jwt.strategy';
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: async (configService: ConfigService) => {
-        const jwtSecret =
-          configService.get<string>('JWT_SECRET') ||
-          'temporary-fallback-jwt-secret-for-debugging-please-set-proper-secret-in-production-environment-12345';
+        const jwtSecret = configService.get<string>('JWT_SECRET');
+        if (!jwtSecret || jwtSecret.length < 32) {
+          throw new Error(
+            'JWT_SECRET must be set to a strong value (>= 32 chars). Refusing to start.',
+          );
+        }
 
         const logger = new Logger('AuthModule');
-        logger.log(
-          `JWT Configuration - No Expiration: hasSecret=${!!jwtSecret}, secretLength=${jwtSecret.length}`,
-        );
+        logger.log(`JWT configured, secretLength=${jwtSecret.length}`);
 
-        // Remove signOptions entirely to avoid the expiresIn issue
         return {
           secret: jwtSecret,
+          signOptions: {
+            expiresIn: configService.get<string>('JWT_EXPIRES_IN') || '7d',
+          },
         };
       },
     }),

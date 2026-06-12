@@ -175,188 +175,45 @@ const TestUserManager = ({ onRefresh }: { onRefresh: () => void }) => {
   );
 };
 
-// Add Database Management Component
-const DatabaseManager = ({ tableStats, onRefresh }: { 
-  tableStats: TableStat[] | null; 
+// Read-only table statistics panel. Destructive operations (clear table /
+// clear all / raw SQL) were removed from both this UI and the backend API.
+const DatabaseManager = ({ tableStats }: {
+  tableStats: TableStat[] | null;
   onRefresh: () => void;
 }) => {
-  const [selectedTable, setSelectedTable] = useState<string>('');
-  const [confirmText, setConfirmText] = useState('');
-  const [doubleConfirmText, setDoubleConfirmText] = useState('');
-  const [isClearing, setIsClearing] = useState(false);
-  const [result, setResult] = useState<any>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  const clearTable = async () => {
-    if (!selectedTable || confirmText !== 'DELETE_ALL_DATA') {
-      setError('Please select a table and enter the confirmation text');
-      return;
-    }
-
-    try {
-      setIsClearing(true);
-      setError(null);
-      const result = await adminApi.clearTable(selectedTable, confirmText);
-      setResult(result);
-      onRefresh();
-      setConfirmText('');
-      setSelectedTable('');
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to clear table');
-    } finally {
-      setIsClearing(false);
-    }
-  };
-
-  const clearAllTables = async () => {
-    if (confirmText !== 'DELETE_ALL_DATA' || doubleConfirmText !== 'I_UNDERSTAND_THIS_WILL_DELETE_EVERYTHING') {
-      setError('Please enter both confirmation texts exactly as shown');
-      return;
-    }
-
-    try {
-      setIsClearing(true);
-      setError(null);
-      const result = await adminApi.clearAllTables(confirmText, doubleConfirmText);
-      setResult(result);
-      onRefresh();
-      setConfirmText('');
-      setDoubleConfirmText('');
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to clear all tables');
-    } finally {
-      setIsClearing(false);
-    }
-  };
-
   return (
     <div className="bg-gray-900/80 backdrop-blur-xl border border-gray-700/50 rounded-2xl p-6">
       <div className="flex items-center mb-4">
-        <Shield className="w-5 h-5 text-red-400 mr-2" />
-        <h3 className="text-lg font-semibold text-white">Database Management</h3>
-        <span className="ml-2 px-2 py-1 bg-red-900/30 border border-red-500/30 rounded text-xs text-red-300">
-          DANGER ZONE
+        <Shield className="w-5 h-5 text-emerald-400 mr-2" />
+        <h3 className="text-lg font-semibold text-white">Table Statistics</h3>
+        <span className="ml-2 px-2 py-1 bg-emerald-900/30 border border-emerald-500/30 rounded text-xs text-emerald-300">
+          READ-ONLY
         </span>
       </div>
 
-      {/* Table Stats */}
       {tableStats && (
-        <div className="mb-6">
-          <h4 className="text-sm font-medium text-gray-300 mb-3">Table Statistics</h4>
-          <div className="space-y-2 max-h-32 overflow-y-auto">
-            {tableStats.map((stat) => (
-              <div key={stat.tableName} className="flex items-center justify-between text-xs">
-                <span className="text-gray-400">{stat.tableName}</span>
-                <div className="flex items-center space-x-2">
-                  <span className="text-gray-500">{stat.rowCount} rows</span>
-                  <span className="text-gray-500">{stat.size}</span>
-                  {stat.canClear ? (
-                    <CheckCircle className="w-3 h-3 text-green-400" />
-                  ) : (
-                    <XCircle className="w-3 h-3 text-red-400" />
-                  )}
-                </div>
+        <div className="space-y-2 max-h-64 overflow-y-auto">
+          {tableStats.map((stat) => (
+            <div key={stat.tableName} className="flex items-center justify-between text-xs">
+              <span className="text-gray-400">{stat.tableName}</span>
+              <div className="flex items-center space-x-2">
+                <span className="text-gray-500">{stat.rowCount} rows</span>
+                <span className="text-gray-500">{stat.size}</span>
               </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Clear Single Table */}
-      <div className="space-y-4 mb-6">
-        <h4 className="text-sm font-medium text-gray-300">Clear Single Table</h4>
-        <select
-          value={selectedTable}
-          onChange={(e) => setSelectedTable(e.target.value)}
-          className="w-full bg-gray-800/50 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm"
-        >
-          <option value="">Select table to clear...</option>
-          {tableStats?.filter(stat => stat.canClear).map((stat) => (
-            <option key={stat.tableName} value={stat.tableName}>
-              {stat.tableName} ({stat.rowCount} rows)
-            </option>
+            </div>
           ))}
-        </select>
-        <input
-          type="text"
-          placeholder="Type: DELETE_ALL_DATA"
-          value={confirmText}
-          onChange={(e) => setConfirmText(e.target.value)}
-          className="w-full bg-gray-800/50 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm placeholder-gray-400"
-        />
-        <button
-          onClick={clearTable}
-          disabled={isClearing || !selectedTable || confirmText !== 'DELETE_ALL_DATA'}
-          className="w-full bg-orange-600/20 hover:bg-orange-600/30 border border-orange-500/30 rounded-lg px-4 py-2 text-orange-300 transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-        >
-          {isClearing ? 'Clearing...' : 'Clear Selected Table'}
-        </button>
-      </div>
-
-      {/* Clear All Tables */}
-      <div className="space-y-4 border-t border-gray-700 pt-4">
-        <h4 className="text-sm font-medium text-gray-300">Clear All Tables</h4>
-        <input
-          type="text"
-          placeholder="Type: DELETE_ALL_DATA"
-          value={confirmText}
-          onChange={(e) => setConfirmText(e.target.value)}
-          className="w-full bg-gray-800/50 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm placeholder-gray-400"
-        />
-        <input
-          type="text"
-          placeholder="Type: I_UNDERSTAND_THIS_WILL_DELETE_EVERYTHING"
-          value={doubleConfirmText}
-          onChange={(e) => setDoubleConfirmText(e.target.value)}
-          className="w-full bg-gray-800/50 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm placeholder-gray-400"
-        />
-        <button
-          onClick={clearAllTables}
-          disabled={isClearing || confirmText !== 'DELETE_ALL_DATA' || doubleConfirmText !== 'I_UNDERSTAND_THIS_WILL_DELETE_EVERYTHING'}
-          className="w-full bg-red-600/20 hover:bg-red-600/30 border border-red-500/30 rounded-lg px-4 py-2 text-red-300 transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-        >
-          {isClearing ? 'Clearing...' : 'CLEAR ALL TABLES'}
-        </button>
-      </div>
-
-      {result && (
-        <div className="mt-4 bg-green-900/30 border border-green-500/30 rounded-lg p-4">
-          <div className="flex items-center mb-2">
-            <CheckCircle className="w-4 h-4 text-green-400 mr-2" />
-            <span className="text-green-300 font-medium">Success</span>
-          </div>
-          <p className="text-green-200 text-sm">{result.message}</p>
-          {result.deletedCount !== undefined && (
-            <p className="text-xs text-gray-400 mt-1">Deleted {result.deletedCount} rows</p>
-          )}
-          {result.tablesCleared && (
-            <p className="text-xs text-gray-400 mt-1">
-              Cleared tables: {result.tablesCleared.join(', ')} ({result.totalDeleted} total rows)
-            </p>
-          )}
-        </div>
-      )}
-
-      {error && (
-        <div className="mt-4 bg-red-900/30 border border-red-500/30 rounded-lg p-4">
-          <div className="flex items-center">
-            <XCircle className="w-4 h-4 text-red-400 mr-2" />
-            <span className="text-red-300 text-sm">{error}</span>
-          </div>
         </div>
       )}
 
       <div className="mt-4 text-xs text-gray-500 border-t border-gray-700 pt-3">
         <div className="flex items-center mb-2">
           <AlertTriangle className="w-3 h-3 text-yellow-400 mr-1" />
-          <span className="text-yellow-400 font-medium">Safety Features:</span>
+          <span className="text-yellow-400 font-medium">Note:</span>
         </div>
-        <ul className="space-y-1 text-gray-500">
-          <li>• Users table is protected and cannot be cleared</li>
-          <li>• Double confirmation required for destructive operations</li>
-          <li>• Foreign key constraints handled automatically</li>
-          <li>• Operations are logged for audit trail</li>
-        </ul>
+        <p>
+          Destructive database operations are intentionally unavailable here.
+          Use migrations or audited direct database access instead.
+        </p>
       </div>
     </div>
   );

@@ -7,11 +7,12 @@ import { ThemeToggle } from '@/components/common/ThemeToggle';
 import Link from 'next/link';
 import { useSelector, useDispatch } from 'react-redux';
 import { AppDispatch, RootState } from '@/store/store';
-import { Bell, Search, ChevronDown, DollarSign } from 'lucide-react';
+import { Bell, Search, ChevronDown, DollarSign, Eye, EyeOff } from 'lucide-react';
 import NotificationBell from '@/components/notifications/NotificationBell';
 import { selectMT5Accounts, selectSelectedMT5AccountId, setSelectedMT5Account } from '@/store/features/mt5AccountsSlice';
 import { selectAvailableAccounts, selectSelectedAccountId, setSelectedAccount } from '@/store/features/accountSlice';
 import { useCurrency, CURRENCIES, CurrencyCode } from '@/context/CurrencyContext';
+import { usePrivacyMode } from '@/context/PrivacyModeContext';
 
 
 interface ContentHeaderProps {
@@ -25,6 +26,7 @@ function ContentHeader({ toggleSidebar, isMobile, isSidebarExpanded }: ContentHe
   const pathname = usePathname();
   const { user, isAuthenticated } = useSelector((state: RootState) => state.auth);
   const { selectedCurrency, setSelectedCurrency, isLoading } = useCurrency();
+  const { privacyMode, togglePrivacyMode } = usePrivacyMode();
   
   // Account selectors
   const mt5Accounts = useSelector(selectMT5Accounts);
@@ -146,6 +148,26 @@ function ContentHeader({ toggleSidebar, isMobile, isSidebarExpanded }: ContentHe
                 />
                 <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
               </div>
+            )}
+
+            {/* Privacy mode: hide P&L / balances (screen sharing, tilt control) */}
+            {isAuthenticated && (
+              <button
+                onClick={togglePrivacyMode}
+                className="flex-shrink-0 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-[#0A0A0A] text-gray-500 dark:text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors"
+                aria-pressed={privacyMode}
+                title={
+                  privacyMode
+                    ? 'Show money values'
+                    : 'Hide money values (focus on process)'
+                }
+              >
+                {privacyMode ? (
+                  <EyeOff className="w-4 h-4" />
+                ) : (
+                  <Eye className="w-4 h-4" />
+                )}
+              </button>
             )}
 
             {/* Notifications */}

@@ -32,6 +32,7 @@ import { EnhancedValidationPipe } from '../common/pipes/validation.pipe';
 import { JwtService } from '@nestjs/jwt';
 import { AuthGuard } from '@nestjs/passport';
 import { ConfigService } from '@nestjs/config';
+import { Throttle } from '@nestjs/throttler';
 
 @Controller('auth') // Route prefix /api/v1/auth
 export class AuthController {
@@ -44,6 +45,7 @@ export class AuthController {
   ) {}
 
   @Post('register')
+  @Throttle({ default: { ttl: 60_000, limit: 5 } })
   @HttpCode(HttpStatus.CREATED)
   async register(
     @Body() registerUserDto: RegisterUserDto,
@@ -52,6 +54,7 @@ export class AuthController {
   }
 
   @Post('login')
+  @Throttle({ default: { ttl: 60_000, limit: 10 } })
   @HttpCode(HttpStatus.OK)
   async login(
     @Body() loginUserDto: LoginUserDto,
@@ -236,46 +239,9 @@ export class AuthController {
     };
   }
 
-  @Post('admin/login')
-  @HttpCode(HttpStatus.OK)
-  async adminLogin(
-    @Body() loginDto: { email: string; password: string },
-  ): Promise<{ accessToken: string; user: Record<string, string> }> {
-    // Demo admin credentials
-    const adminCredentials = {
-      email: 'admin@tradetaper.com',
-      password: 'admin123',
-    };
-
-    if (
-      loginDto.email !== adminCredentials.email ||
-      loginDto.password !== adminCredentials.password
-    ) {
-      throw new UnauthorizedException('Invalid admin credentials');
-    }
-
-    // Create a JWT token for the admin user
-    const payload = {
-      email: adminCredentials.email,
-      sub: 'admin-user-id',
-      role: 'admin',
-    };
-
-    const accessToken = this.jwtService.sign(payload);
-
-    return {
-      accessToken,
-      user: {
-        id: 'admin-user-id',
-        email: adminCredentials.email,
-        firstName: 'Admin',
-        lastName: 'User',
-        role: 'admin',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      },
-    };
-  }
+  // The former 'admin/login' endpoint (hardcoded demo credentials) was
+  // removed. Admins authenticate via the regular login flow; admin access
+  // is enforced by AdminGuard against the ADMIN_EMAILS allowlist.
 
   @UseGuards(JwtAuthGuard)
   @Get('profile')

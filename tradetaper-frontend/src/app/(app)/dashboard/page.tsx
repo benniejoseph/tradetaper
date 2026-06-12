@@ -34,6 +34,9 @@ import PerformanceRadarCard from '@/components/dashboard/PerformanceRadarCard';
 import TradeWinExpectancyBlock from '@/components/dashboard/TradeWinExpectancyBlock';
 import { FeatureGate } from '@/components/common/FeatureGate';
 import AlertModal from '@/components/ui/AlertModal';
+import { CandleLoader, EmptyChartAnimation } from '@/components/lottie';
+import JournalStreakCard from '@/components/dashboard/JournalStreakCard';
+import TiltGuardBanner from '@/components/dashboard/TiltGuardBanner';
 
 const timeRangeDaysMapping: { [key: string]: number } = {
   '7d': 7, '1M': 30, '3M': 90, '1Y': 365, 'All': Infinity,
@@ -221,8 +224,8 @@ export default function DashboardPage() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-white dark:bg-black">
         <AnimatedCard variant="glass" hoverEffect="pulse" className="text-center backdrop-blur-xl">
-          <div className="animate-spin rounded-full h-16 w-16 border-4 border-emerald-500/30 border-t-emerald-500 mx-auto mb-4"></div>
-          <p className="text-gray-600 dark:text-gray-300">Loading your trading dashboard...</p>
+          <CandleLoader size={120} label="Loading your trading dashboard…" />
+          <p className="text-gray-600 dark:text-gray-300 mt-2">Loading your trading dashboard...</p>
         </AnimatedCard>
       </div>
     );
@@ -231,6 +234,7 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-white dark:bg-black">
       <div className="space-y-4 relative z-10">
+        <TiltGuardBanner trades={trades || []} />
         <QuickActionCards />
 
         <FeatureGate feature="aiAnalysis" blur={true} className="col-span-1 sm:col-span-2 lg:col-span-6">
@@ -238,6 +242,8 @@ export default function DashboardPage() {
         </FeatureGate>
 
         <SessionDetailsWidget />
+
+        <JournalStreakCard trades={trades || []} />
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
           <PortfolioBalanceCard
@@ -275,7 +281,7 @@ export default function DashboardPage() {
         {(!filteredTrades || filteredTrades.length === 0) && !tradesLoading && (
           <div className="text-center py-16 bg-gradient-to-br from-emerald-50/80 to-white/80 dark:from-emerald-950/20 dark:to-black/80 backdrop-blur-xl rounded-2xl border border-emerald-200/50 dark:border-emerald-700/50">
             <div className="max-w-md mx-auto space-y-4">
-              <FaChartLine className="w-10 h-10 text-emerald-500 mx-auto" />
+              <EmptyChartAnimation size={160} />
               <h3 className="text-xl font-bold text-gray-900 dark:text-white">No trades recorded yet</h3>
               <AnimatedButton
                 onClick={() => { window.location.href = '/journal/new'; }}

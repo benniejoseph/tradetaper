@@ -82,3 +82,9 @@ firebase*.json
 verify_notifications.js
 .env*.local
 *.zip
+
+# Log dumps and build artifacts - never commit
+logs*.json
+api_logs*.json
+*.tsbuildinfo
+*.bak

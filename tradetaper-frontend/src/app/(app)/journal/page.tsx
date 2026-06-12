@@ -17,6 +17,7 @@ import {
   FaChartLine, FaBookOpen, FaEye, FaEdit, FaTrash, FaInfoCircle
 } from 'react-icons/fa';
 import TradesTable from '@/components/journal/TradesTable';
+import { CandleLoader, EmptyChartAnimation } from '@/components/lottie';
 import { useRouter } from 'next/navigation';
 import { parseISO, isAfter, isBefore, subMonths, subWeeks, subDays, endOfDay, isValid, format, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
 import DatePicker from "react-datepicker";
@@ -452,9 +453,9 @@ export default function JournalPage() {
 
       {/* Loading State */}
       {isLoading && (
-        <div className="text-center py-16">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-500 mx-auto mb-4"></div>
-          <p className="text-gray-600 dark:text-gray-300">Loading trades...</p>
+        <div className="flex flex-col items-center text-center py-16">
+          <CandleLoader size={110} label="Loading trades…" />
+          <p className="text-gray-600 dark:text-gray-300 mt-2">Loading trades...</p>
         </div>
       )}
 
@@ -469,9 +470,7 @@ export default function JournalPage() {
       {!isLoading && !error && filteredTrades.length === 0 && (
         <div className="text-center py-16 bg-gradient-to-br from-white to-emerald-50 dark:from-black dark:to-emerald-950/20 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 shadow-lg">
           <div className="max-w-md mx-auto space-y-6">
-            <div className="w-20 h-20 bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-full flex items-center justify-center mx-auto">
-              <FaBookOpen className="w-10 h-10 text-white" />
-            </div>
+            <EmptyChartAnimation size={170} />
             <div>
               <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
                 {allTrades.length > 0 ? "No trades match your filters" : "No trades recorded yet"}

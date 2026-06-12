@@ -82,9 +82,14 @@ async function bootstrap() {
       process.env.ENABLE_CSRF === 'true' ||
       process.env.NODE_ENV === 'production';
     if (enableCsrf) {
+      const csrfSecret = process.env.CSRF_SECRET;
+      if (!csrfSecret || csrfSecret.length < 32) {
+        throw new Error(
+          'CSRF_SECRET must be set to a strong value (>= 32 chars) when CSRF protection is enabled.',
+        );
+      }
       const { doubleCsrfProtection } = doubleCsrf({
-        getSecret: () =>
-          process.env.CSRF_SECRET || 'default-csrf-secret-change-in-production',
+        getSecret: () => csrfSecret,
         cookieName: '__Host-csrf',
         cookieOptions: {
           httpOnly: true,
