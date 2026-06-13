@@ -13,9 +13,12 @@ export class AIService {
   private tempDir: string;
 
   constructor(private configService: ConfigService) {
-    this.geminiApiKey =
-      this.configService.get<string>('GEMINI_API_KEY') ||
-      'AIzaSyBe259Ouem6qcI6SYOAzAcFE-A4ollIRqc';
+    this.geminiApiKey = this.configService.get<string>('GEMINI_API_KEY') ?? '';
+    if (!this.geminiApiKey) {
+      this.logger.warn(
+        'GEMINI_API_KEY is not set - AI note features are disabled',
+      );
+    }
 
     // Use the OS-provided temp directory in production (serverless environment)
     // and a local 'temp' directory for development.

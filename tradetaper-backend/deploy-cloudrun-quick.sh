@@ -48,7 +48,7 @@ gcloud run deploy ${SERVICE_NAME} \
   --set-env-vars "DB_USERNAME=postgres" \
   --set-env-vars "DB_PASSWORD=temp123" \
   --set-env-vars "JWT_SECRET=$(openssl rand -hex 64)" \
-  --set-env-vars "GEMINI_API_KEY=${GEMINI_API_KEY:-AIzaSyAWQxWu9kFxhWZ7Kkj3bVvD2u1iQ9NxYrM}" \
+  --set-env-vars "GEMINI_API_KEY=${GEMINI_API_KEY:?GEMINI_API_KEY must be set in the environment}" \
   --set-env-vars "GLOBAL_PREFIX=api/v1" \
   --set-env-vars "FRONTEND_URL=https://tradetaper.vercel.app" \
   --port 8080

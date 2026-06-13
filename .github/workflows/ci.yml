@@ -7,6 +7,17 @@ on:
     branches: [ main ]
 
 jobs:
+  secret-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Scan for committed secrets
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   build-and-check:
     runs-on: ubuntu-latest
     steps:
@@ -15,16 +26,27 @@ jobs:
         with:
           node-version: 20
           cache: 'npm'
+          cache-dependency-path: |
+            tradetaper-backend/package-lock.json
+            tradetaper-frontend/package-lock.json
+            tradetaper-admin/package-lock.json
       - name: Install root (no-op) and subprojects
         run: |
           npm --version
           cd tradetaper-backend && npm ci
           cd ../tradetaper-frontend && npm ci
           cd ../tradetaper-admin && npm ci
+      - name: Audit production dependencies
+        run: |
+          cd tradetaper-backend && npm audit --omit=dev --audit-level=critical
+          cd ../tradetaper-frontend && npm audit --omit=dev --audit-level=critical
+          cd ../tradetaper-admin && npm audit --omit=dev --audit-level=critical
       - name: Lint backend
         run: cd tradetaper-backend && npm run lint
       - name: Typecheck backend
         run: cd tradetaper-backend && npm run build:simple
+      - name: Test backend
+        run: cd tradetaper-backend && npm test
       - name: Build backend
         run: cd tradetaper-backend && npm run build
       - name: Lint frontend
@@ -38,7 +60,7 @@ jobs:
 
   deploy-cloudrun:
     if: github.ref == 'refs/heads/main'
-    needs: build-and-check
+    needs: [build-and-check, secret-scan]
     runs-on: ubuntu-latest
     permissions:
       contents: 'read'
@@ -65,4 +87,4 @@ jobs:
             --image us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/tradetaper/backend:latest \
             --platform managed \
             --allow-unauthenticated \
-            --set-env-vars NODE_ENV=production,GLOBAL_PREFIX=api/v1,ALLOWED_ORIGINS=${{ secrets.ALLOWED_ORIGINS }},JWT_SECRET=${{ secrets.JWT_SECRET }},DB_HOST=${{ secrets.DB_HOST }},DB_NAME=${{ secrets.DB_NAME }},DB_USER=${{ secrets.DB_USER }},DB_PASSWORD=${{ secrets.DB_PASSWORD }}
+            --set-env-vars NODE_ENV=production,GLOBAL_PREFIX=api/v1,ALLOWED_ORIGINS=${{ secrets.ALLOWED_ORIGINS }},JWT_SECRET=${{ secrets.JWT_SECRET }},CSRF_SECRET=${{ secrets.CSRF_SECRET }},ADMIN_EMAILS=${{ secrets.ADMIN_EMAILS }},DB_HOST=${{ secrets.DB_HOST }},DB_NAME=${{ secrets.DB_NAME }},DB_USER=${{ secrets.DB_USER }},DB_PASSWORD=${{ secrets.DB_PASSWORD }}

@@ -11,9 +11,53 @@ const api = axios.create({
   },
 });
 
-// No authentication interceptors - open access
+// --- Authentication ---
+const TOKEN_KEY = 'admin_token';
 
-// Authentication functions removed - open access admin panel
+export function getAdminToken(): string | null {
+  if (typeof window === 'undefined') return null;
+  return localStorage.getItem(TOKEN_KEY);
+}
+
+export function setAdminToken(token: string) {
+  if (typeof window !== 'undefined') localStorage.setItem(TOKEN_KEY, token);
+}
+
+export function clearAdminToken() {
+  if (typeof window !== 'undefined') localStorage.removeItem(TOKEN_KEY);
+}
+
+/**
+ * Logs in via the regular auth endpoint. The backend AdminGuard then
+ * authorizes admin routes based on the ADMIN_EMAILS allowlist.
+ */
+export async function adminLogin(email: string, password: string) {
+  const response = await api.post('/auth/login', { email, password });
+  const { accessToken, user } = response.data;
+  setAdminToken(accessToken);
+  return user;
+}
+
+api.interceptors.request.use((config) => {
+  const token = getAdminToken();
+  if (token) config.headers['Authorization'] = `Bearer ${token}`;
+  return config;
+});
+
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (
+      typeof window !== 'undefined' &&
+      (error?.response?.status === 401 || error?.response?.status === 403) &&
+      window.location.pathname !== '/login'
+    ) {
+      clearAdminToken();
+      window.location.href = '/login';
+    }
+    return Promise.reject(error);
+  },
+);
 
 // Types
 export interface User {
@@ -230,20 +274,33 @@ class AdminApi {
         },
       });
 
-      // Add request interceptor to include mock admin token for demo purposes
       this.axiosInstance.interceptors.request.use((config: any) => {
-        // Use mock token that backend admin guard recognizes for bypass
-        config.headers['Authorization'] = 'Bearer mock-admin-token';
+        const token = getAdminToken();
+        if (token) config.headers['Authorization'] = `Bearer ${token}`;
         return config;
       });
+
+      this.axiosInstance.interceptors.response.use(
+        (response: any) => response,
+        (error: any) => {
+          if (
+            (error?.response?.status === 401 ||
+              error?.response?.status === 403) &&
+            window.location.pathname !== '/login'
+          ) {
+            clearAdminToken();
+            window.location.href = '/login';
+          }
+          return Promise.reject(error);
+        },
+      );
     } else {
-      // Server-side: create a minimal axios instance
+      // Server-side: create a minimal axios instance (no credentials)
       this.axiosInstance = axios.create({
         baseURL: this.baseUrl,
         timeout: 10000,
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer mock-admin-token',
         },
       });
     }
@@ -596,24 +653,8 @@ class AdminApi {
     return response.data;
   }
 
-  async clearTable(tableName: string, confirm: string): Promise<{
-    message: string;
-    deletedCount: number;
-  }> {
-    const axiosInstance = this.ensureAxiosInstance();
-    const response = await axiosInstance.delete(`/admin/database/clear-table/${tableName}?confirm=${confirm}`);
-    return response.data;
-  }
-
-  async clearAllTables(confirm: string, doubleConfirm: string): Promise<{
-    message: string;
-    tablesCleared: string[];
-    totalDeleted: number;
-  }> {
-    const axiosInstance = this.ensureAxiosInstance();
-    const response = await axiosInstance.delete(`/admin/database/clear-all-tables?confirm=${confirm}&doubleConfirm=${doubleConfirm}`);
-    return response.data;
-  }
+  // clearTable/clearAllTables removed: the backend no longer exposes
+  // destructive database endpoints over HTTP.
 }
 
 export const adminApi = new AdminApi();

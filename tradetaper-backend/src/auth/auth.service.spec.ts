@@ -4,6 +4,7 @@ import { AuthService } from './auth.service';
 import { UsersService } from '../users/users.service';
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
+import { SubscriptionService } from '../subscriptions/services/subscription.service';
 
 // A very light-weight mock of UsersService for unit testing only.
 const mockUsersService = {
@@ -15,6 +16,12 @@ const mockJwtService = {
   sign: jest.fn(),
 };
 
+// Mock SubscriptionService (consumed by registration/login flows)
+const mockSubscriptionService = {
+  createFreeSubscription: jest.fn(),
+  getUserSubscription: jest.fn(),
+};
+
 describe('AuthService', () => {
   let service: AuthService;
 
@@ -24,6 +31,7 @@ describe('AuthService', () => {
         AuthService,
         { provide: UsersService, useValue: mockUsersService },
         { provide: JwtService, useValue: mockJwtService },
+        { provide: SubscriptionService, useValue: mockSubscriptionService },
       ],
     }).compile();
 

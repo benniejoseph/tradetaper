@@ -137,6 +137,15 @@ export interface EconomicImpactAnalysis {
   };
 }
 
+export interface TopMover {
+  symbol: string;
+  price: number;
+  change: number;
+  changePercent: number;
+  direction: 'up' | 'down' | 'flat';
+  source: string;
+}
+
 @Injectable()
 export class EconomicCalendarService {
   private readonly logger = new Logger(EconomicCalendarService.name);
@@ -1141,7 +1150,8 @@ export class EconomicCalendarService {
           this.getHighImpactToday(),
           this.getTopMoversToday(),
           this.marketDataAggregator.getLiveQuotes(
-            event.impact?.affectedSymbols || this.mapCurrencyToSymbols(event.currency)
+            event.impact?.affectedSymbols ||
+              this.mapCurrencyToSymbols(event.currency),
           ),
         ]);
 
@@ -1153,7 +1163,7 @@ export class EconomicCalendarService {
         highImpactResult.status === 'fulfilled' ? highImpactResult.value : [];
       const topMovers =
         moversResult.status === 'fulfilled' ? moversResult.value : [];
-      const liveQuotes = 
+      const liveQuotes =
         liveQuotesResult.status === 'fulfilled' ? liveQuotesResult.value : [];
 
       const recentNews = news.news
@@ -1229,27 +1239,30 @@ ${JSON.stringify(context)}
       });
 
       const parsed = this.parseAiJson(response.content);
-      
-      let baseWatchlist = Array.isArray(parsed.watchlist) && parsed.watchlist.length > 0 
-          ? parsed.watchlist 
+
+      const baseWatchlist =
+        Array.isArray(parsed.watchlist) && parsed.watchlist.length > 0
+          ? parsed.watchlist
           : [
               { symbol: 'EURUSD', bias: 'Neutral', confidence: 50 },
               { symbol: 'GBPUSD', bias: 'Neutral', confidence: 50 },
-              { symbol: 'XAUUSD', bias: 'Neutral', confidence: 50 }
+              { symbol: 'XAUUSD', bias: 'Neutral', confidence: 50 },
             ];
 
       // Inject real live pricing data into watchlist
       const enrichedWatchlist = baseWatchlist.map((item: any) => {
-         const trueSymbol = item.symbol?.replace('/', ''); // e.g., EUR/USD -> EURUSD
-         const quote = liveQuotes.find(q => q.symbol === trueSymbol || q.symbol === item.symbol);
-         if (quote) {
-             return {
-                 ...item,
-                 price: `$${quote.bid.toFixed(quote.bid < 10 ? 4 : 2)}`,
-                 changePercent: quote.changePercent,
-             };
-         }
-         return item;
+        const trueSymbol = item.symbol?.replace('/', ''); // e.g., EUR/USD -> EURUSD
+        const quote = liveQuotes.find(
+          (q) => q.symbol === trueSymbol || q.symbol === item.symbol,
+        );
+        if (quote) {
+          return {
+            ...item,
+            price: `$${quote.bid.toFixed(quote.bid < 10 ? 4 : 2)}`,
+            changePercent: quote.changePercent,
+          };
+        }
+        return item;
       });
 
       return {
@@ -1300,33 +1313,27 @@ ${JSON.stringify(context)}
     return events.filter((event) => event.importance === 'high');
   }
 
-  private async getTopMoversToday(): Promise<
-    {
-      symbol: string;
-      price: number;
-      change: number;
-      changePercent: number;
-      direction: 'up' | 'down' | 'flat';
-      source: string;
-    }[]
-  > {
+  private async getTopMoversToday(): Promise<TopMover[]> {
     const symbols = ['EURUSD', 'GBPUSD', 'USDJPY', 'XAUUSD', 'SPY', 'QQQ'];
     const quotes = await this.marketDataService.getLiveQuotes(symbols);
     return quotes
       .filter((quote) => Number.isFinite(quote.changePercent))
-      .map((quote) => ({
-        symbol: quote.symbol,
-        price: quote.bid,
-        change: quote.change,
-        changePercent: quote.changePercent,
-        direction:
-          (quote.changePercent > 0
+      .map((quote): TopMover => {
+        const direction: TopMover['direction'] =
+          quote.changePercent > 0
             ? 'up'
             : quote.changePercent < 0
               ? 'down'
-              : 'flat') as 'up' | 'down' | 'flat',
-        source: quote.source,
-      }))
+              : 'flat';
+        return {
+          symbol: quote.symbol,
+          price: quote.bid,
+          change: quote.change,
+          changePercent: quote.changePercent,
+          direction,
+          source: quote.source,
+        };
+      })
       .sort((a, b) => Math.abs(b.changePercent) - Math.abs(a.changePercent))
       .slice(0, 6);
   }

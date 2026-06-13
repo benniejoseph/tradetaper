@@ -6,7 +6,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
-import { mainNavItems, userNavItems, settingsNavItems } from '@/config/navigation';
+import { mainNavItems, mentorNavItems, marketsNavItems, userNavItems, settingsNavItems } from '@/config/navigation';
 import { 
   FaSignOutAlt, FaUserCircle, FaTimes, FaChevronLeft, 
   FaChevronRight, FaBars, FaCog, FaExpand, FaCompress, FaCrown
@@ -141,12 +141,20 @@ export default function Sidebar({ isOpen, toggleSidebar, isMobile, onExpandChang
 
         {/* Main Navigation */}
         <nav className="flex-grow p-3 sm:p-4 space-y-2 overflow-y-auto">
-          <div className="mb-6">
+          {(isAuthenticated
+            ? [
+                { title: 'Main Menu', items: visibleMainNavItems },
+                { title: 'Mentor', items: mentorNavItems },
+                { title: 'Markets', items: marketsNavItems },
+              ]
+            : [{ title: 'Main Menu', items: visibleMainNavItems }]
+          ).map((section) => (
+          <div className="mb-6" key={section.title}>
             <h2 className={`text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-3 px-3 transition-all duration-500 overflow-hidden ${isExpanded ? 'opacity-100 h-auto' : 'opacity-0 h-0'}`}>
-              Main Menu
+              {section.title}
             </h2>
             <div className="space-y-1">
-              {visibleMainNavItems.map((item) => {
+              {section.items.map((item) => {
                 const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href));
                 return (
                   <div key={item.label} className="relative group/tooltip">
@@ -197,6 +205,7 @@ export default function Sidebar({ isOpen, toggleSidebar, isMobile, onExpandChang
               })}
             </div>
           </div>
+          ))}
         </nav>
 
         {/* User Navigation - Moved outside scrolling nav to allow tooltips to overflow */}

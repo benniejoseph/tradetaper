@@ -624,7 +624,7 @@ export default function TradesTable({
                 <td className={`${tdClasses} font-mono text-gray-900 dark:text-white`}>{formatPrice(trade.exitPrice)}</td>
                 
                 {/* Editable P&L */}
-                <td className={`${tdClasses} font-mono`} onClick={(e) => { if (isEditing) e.stopPropagation(); }}>
+                <td className={`${tdClasses} font-mono`} data-sensitive onClick={(e) => { if (isEditing) e.stopPropagation(); }}>
                   {isEditing ? (
                     <input
                       type="number"

@@ -100,7 +100,12 @@ import { TypeOrmModule } from '@nestjs/typeorm';
               configService.get<string>('DATABASE_NAME') ||
               'tradetaper',
             autoLoadEntities: true,
-            synchronize: true,
+            // Schema sync is opt-in even locally: a misconfigured NODE_ENV
+            // must never silently alter a real database's schema.
+            synchronize: configService.get<string>('DB_SYNCHRONIZE') === 'true',
+            migrationsRun:
+              configService.get<string>('DB_SYNCHRONIZE') !== 'true',
+            migrations: [__dirname + '/../migrations/*{.ts,.js}'],
             logging: true,
           };
         }

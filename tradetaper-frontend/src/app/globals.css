@@ -1,5 +1,5 @@
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@100;300;400;500;600;700&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+/* Fonts are self-hosted via next/font in src/app/layout.tsx
+   (CSS variables --font-poppins / --font-jetbrains-mono). */
 
 @tailwind base;
 @tailwind components;
@@ -45,8 +45,10 @@
   }
 
   .dark {
-    --background: 0 0 0; /* Black */
-    --foreground: 255 255 255; /* White */
+    /* neutral-950 instead of pure black: pure black + pure white text
+       causes halation/eye strain in long dark-mode sessions. */
+    --background: 10 10 10;
+    --foreground: 245 245 245;
 
     --card: 10 10 10; /* Neutral 950/900 hybrid */
     --card-foreground: 255 255 255;
@@ -69,14 +71,14 @@
     --destructive: 127 29 29;
     --destructive-foreground: 255 255 255;
 
-    --border: 23 23 23;
-    --input: 23 23 23;
+    --border: 38 38 38; /* neutral-800: visible card boundaries */
+    --input: 38 38 38;
     --ring: 16 185 129;
   }
 
   html {
     @apply bg-background text-foreground;
-    font-family: 'Poppins', sans-serif;
+    font-family: var(--font-poppins, 'Poppins'), sans-serif;
     scroll-behavior: smooth;
   }
 }
@@ -470,3 +472,10 @@
 .react-calendar-heatmap .color-scale-red-2 { fill: #be123c; }
 .react-calendar-heatmap .color-scale-red-3 { fill: #f43f5e; }
 .react-calendar-heatmap .color-scale-red-4 { fill: #fb7185; }
+
+/* Privacy mode: any element tagged data-sensitive has its content
+   blurred while html.privacy-mode is set (toggled in the header). */
+html.privacy-mode [data-sensitive] {
+  filter: blur(8px);
+  user-select: none;
+}

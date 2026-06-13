@@ -36,11 +36,20 @@ import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 import { UploadModule } from './upload/upload.module';
 import { CommunityModule } from './community/community.module';
 import { PropFirmModule } from './prop-firm/prop-firm.module';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { APP_GUARD } from '@nestjs/core';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
+    }),
+    // Global rate limiting. Sensitive endpoints (login/register/AI) apply
+    // stricter limits via @Throttle() on their controllers.
+    ThrottlerModule.forRoot({
+      throttlers: [
+        { name: 'default', ttl: 60_000, limit: 120 },
+      ],
     }),
     ScheduleModule.forRoot(),
     CacheModule.registerAsync({
@@ -85,7 +94,6 @@ import { PropFirmModule } from './prop-firm/prop-firm.module';
     NotesModule,
     PredictiveTradesModule,
     MarketIntelligenceModule,
-    MarketIntelligenceModule,
     AgentsImplementationModule, // AI Agents (Psychology, Market Analyst, Risk Manager)
     AgentsModule,
     AnalyticsModule,
@@ -100,6 +108,12 @@ import { PropFirmModule } from './prop-firm/prop-firm.module';
     PropFirmModule, // Prop firm challenge tracker
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
+  ],
 })
 export class AppModule {}

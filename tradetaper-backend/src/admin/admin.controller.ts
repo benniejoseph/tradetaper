@@ -5,12 +5,14 @@ import {
   Param,
   Post,
   Delete,
-  Body,
+  UseGuards,
 } from '@nestjs/common';
 import { AdminService } from './admin.service';
 import { TestUserSeedService } from '../seed/test-user-seed.service';
+import { AdminGuard } from '../auth/guards/admin.guard';
 
 @Controller('admin')
+@UseGuards(AdminGuard)
 export class AdminController {
   constructor(
     private readonly adminService: AdminService,
@@ -122,66 +124,12 @@ export class AdminController {
     };
   }
 
-  @Delete('database/clear-table/:tableName')
-  async clearTable(
-    @Param('tableName') tableName: string,
-    @Query('confirm') confirm: string,
-  ) {
-    if (confirm !== 'DELETE_ALL_DATA') {
-      return {
-        error: 'Safety confirmation required',
-        message: 'Add query parameter: ?confirm=DELETE_ALL_DATA',
-      };
-    }
-
-    const result = await this.adminService.clearTable(tableName);
-    return {
-      message: `Table ${tableName} cleared successfully`,
-      deletedCount: result.deletedCount,
-    };
-  }
-
-  @Delete('database/clear-all-tables')
-  async clearAllTables(
-    @Query('confirm') confirm: string,
-    @Query('doubleConfirm') doubleConfirm: string,
-  ) {
-    if (
-      confirm !== 'DELETE_ALL_DATA' ||
-      doubleConfirm !== 'I_UNDERSTAND_THIS_WILL_DELETE_EVERYTHING'
-    ) {
-      return {
-        error: 'Double safety confirmation required',
-        message:
-          'Add query parameters: ?confirm=DELETE_ALL_DATA&doubleConfirm=I_UNDERSTAND_THIS_WILL_DELETE_EVERYTHING',
-      };
-    }
-
-    const result = await this.adminService.clearAllTables();
-    return {
-      message: 'All tables cleared successfully',
-      tablesCleared: result.tablesCleared,
-      totalDeleted: result.totalDeleted,
-    };
-  }
+  // NOTE: The former clear-table, clear-all-tables and run-sql endpoints
+  // were removed deliberately. Destructive database operations must go
+  // through migrations or direct, audited DB access - never an HTTP API.
 
   @Get('database/table-stats')
   async getTableStats() {
     return this.adminService.getTableStats();
-  }
-
-  @Post('database/run-sql')
-  async runSql(
-    @Query('confirm') confirm: string,
-    @Body() body: { sql: string },
-  ) {
-    if (confirm !== 'ADMIN_SQL_EXECUTE') {
-      return {
-        error: 'Safety confirmation required',
-        message: 'Add query parameter: ?confirm=ADMIN_SQL_EXECUTE',
-      };
-    }
-
-    return this.adminService.runSql(body.sql);
   }
 }
