@@ -146,7 +146,7 @@ export default function SessionDetailsWidget() {
           // Find next opening session
           let minUntilOpen = Infinity;
           TRADING_SESSIONS.forEach(s => {
-             let startTime = s.startUTC;
+             const startTime = s.startUTC;
              let diff = startTime - currentUTCTime;
              if (diff < 0) diff += 24; // Opening tomorrow
              
