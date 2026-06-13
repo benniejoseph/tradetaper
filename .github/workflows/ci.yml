@@ -26,6 +26,10 @@ jobs:
         with:
           node-version: 20
           cache: 'npm'
+          cache-dependency-path: |
+            tradetaper-backend/package-lock.json
+            tradetaper-frontend/package-lock.json
+            tradetaper-admin/package-lock.json
       - name: Install root (no-op) and subprojects
         run: |
           npm --version
