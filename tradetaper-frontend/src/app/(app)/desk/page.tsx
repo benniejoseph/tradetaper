@@ -6,6 +6,7 @@ import toast from 'react-hot-toast';
 import { taperAiService } from '@/services/taperAiService';
 import { DeskRun, DeskPersona, PERSONA_LABELS } from '@/types/taperai';
 import ThesisCard from '@/components/desk/ThesisCard';
+import DeskAnalytics from '@/components/desk/DeskAnalytics';
 import DebateTranscript from '@/components/desk/DebateTranscript';
 
 const ALL_PERSONAS: DeskPersona[] = ['buffett', 'burry', 'wood'];
@@ -175,6 +176,7 @@ export default function DeskPage() {
             {selected.status === 'completed' && (
               <>
                 <ThesisCard run={selected} />
+                <DeskAnalytics run={selected} />
                 {selected.stages && <DebateTranscript stages={selected.stages} />}
               </>
             )}
