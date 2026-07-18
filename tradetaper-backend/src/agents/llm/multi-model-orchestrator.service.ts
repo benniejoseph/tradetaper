@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import Anthropic from '@anthropic-ai/sdk';
 import { SemanticCacheService } from './semantic-cache.service';
 import { LLMCostManagerService } from './llm-cost-manager.service';
 import { SecretsService } from '../../common/secrets/secrets.service';
@@ -63,27 +64,35 @@ interface ModelConfig {
 export class MultiModelOrchestratorService {
   private readonly logger = new Logger(MultiModelOrchestratorService.name);
   private geminiClient: GoogleGenerativeAI;
+  private anthropicClient: Anthropic | null = null;
 
   // Model configurations in priority order
   private readonly models: ModelConfig[] = [
     {
+      name: 'claude-opus-4-8',
+      provider: 'anthropic',
+      priority: 0, // Preferred for quality-critical work when key configured
+      enabled: false, // Enabled at init when ANTHROPIC_API_KEY is present
+      maxRetries: 2,
+    },
+    {
       name: 'gemini-3-pro-preview',
       provider: 'google',
-      priority: 0, // Highest priority, advanced reasoning
+      priority: 1, // Advanced reasoning fallback
       enabled: true,
       maxRetries: 3,
     },
     {
       name: 'gemini-1.5-pro',
       provider: 'google',
-      priority: 1,
+      priority: 2,
       enabled: true,
       maxRetries: 2,
     },
     {
       name: 'gemini-1.5-flash',
       provider: 'google',
-      priority: 2,
+      priority: 3,
       enabled: true,
       maxRetries: 2,
     },
@@ -123,6 +132,28 @@ export class MultiModelOrchestratorService {
       }
     } catch (error) {
       this.logger.error(`Failed to initialize LLM clients: ${error.message}`);
+    }
+
+    try {
+      const anthropicKey = this.secretsService.getSecret('ANTHROPIC_API_KEY', {
+        cache: true,
+        ttl: 3600,
+      });
+      if (anthropicKey) {
+        this.anthropicClient = new Anthropic({ apiKey: anthropicKey });
+        this.models.forEach((m) => {
+          if (m.provider === 'anthropic') m.enabled = true;
+        });
+        this.logger.log('✓ Anthropic client initialized');
+      } else {
+        this.logger.warn(
+          'Anthropic API key not found - Claude models disabled',
+        );
+      }
+    } catch (error) {
+      this.logger.error(
+        `Failed to initialize Anthropic client: ${error.message}`,
+      );
     }
   }
 
@@ -253,14 +284,18 @@ export class MultiModelOrchestratorService {
     const complexity = request.taskComplexity || 'medium';
     const optimizeFor = request.optimizeFor || 'cost';
 
+    const claudeEnabled = this.models.some(
+      (m) => m.provider === 'anthropic' && m.enabled,
+    );
+
     if (optimizeFor === 'cost') {
       // Use flash for simple/medium to save cost
       return complexity === 'complex'
         ? 'gemini-3-pro-preview'
         : 'gemini-1.5-flash';
     } else if (optimizeFor === 'quality') {
-      // Use best available model
-      return 'gemini-3-pro-preview';
+      // Best available model: Claude Opus when configured, else Gemini
+      return claudeEnabled ? 'claude-opus-4-8' : 'gemini-3-pro-preview';
     } else {
       // Speed
       return 'gemini-1.5-flash';
@@ -324,7 +359,11 @@ export class MultiModelOrchestratorService {
       return await this.executeGemini(request, modelConfig, startTime);
     }
 
-    // Add other providers here (OpenAI, Anthropic, etc.)
+    if (modelConfig.provider === 'anthropic') {
+      return await this.executeAnthropic(request, modelConfig, startTime);
+    }
+
+    // Add other providers here (OpenAI, etc.)
 
     throw new Error(`Provider ${modelConfig.provider} not implemented`);
   }
@@ -416,6 +455,66 @@ export class MultiModelOrchestratorService {
         promptTokens,
         completionTokens,
         totalTokens,
+        cost,
+        executionTime: Date.now() - startTime,
+        cacheHit: false,
+        fallbackUsed: false,
+      },
+    };
+  }
+
+  /**
+   * Execute Anthropic (Claude) request
+   */
+  private async executeAnthropic(
+    request: LLMRequest,
+    modelConfig: ModelConfig,
+    startTime: number,
+  ): Promise<LLMResponse> {
+    if (!this.anthropicClient) {
+      throw new Error('Anthropic client not initialized');
+    }
+
+    const jsonInstruction = request.requireJson
+      ? '\n\nRespond with ONLY a valid JSON object — no markdown fences, no prose outside JSON.'
+      : '';
+
+    // Claude Opus 4.8: adaptive thinking; sampling params (temperature/top_p)
+    // are not accepted and must not be forwarded. max_tokens covers thinking
+    // + response, so give headroom beyond the caller's response budget.
+    const response = await this.anthropicClient.messages.create({
+      model: modelConfig.name,
+      max_tokens: 16000,
+      thinking: { type: 'adaptive' },
+      system: request.system,
+      messages: [{ role: 'user', content: request.prompt + jsonInstruction }],
+    });
+
+    if (response.stop_reason === 'refusal') {
+      throw new Error('Claude declined the request (refusal stop reason)');
+    }
+
+    const text = response.content
+      .filter(
+        (block): block is Anthropic.TextBlock => block.type === 'text',
+      )
+      .map((block) => block.text)
+      .join('');
+
+    const promptTokens = response.usage.input_tokens;
+    const completionTokens = response.usage.output_tokens;
+    // Claude Opus 4.8 pricing: $5/M input, $25/M output
+    const cost = (promptTokens * 5 + completionTokens * 25) / 1_000_000;
+
+    return {
+      content: text,
+      model: modelConfig.name,
+      provider: 'anthropic',
+      cached: false,
+      metadata: {
+        promptTokens,
+        completionTokens,
+        totalTokens: promptTokens + completionTokens,
         cost,
         executionTime: Date.now() - startTime,
         cacheHit: false,

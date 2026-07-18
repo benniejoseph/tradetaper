@@ -29,6 +29,7 @@
     "db:seed": "ts-node --esm ./src/seed/index.ts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.112.3",
     "@google-cloud/cloud-sql-connector": "^1.2.1",
     "@google-cloud/storage": "^7.19.0",
     "@google/generative-ai": "^0.15.0",
