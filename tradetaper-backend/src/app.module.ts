@@ -36,6 +36,7 @@ import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 import { UploadModule } from './upload/upload.module';
 import { CommunityModule } from './community/community.module';
 import { PropFirmModule } from './prop-firm/prop-firm.module';
+import { TaperAiModule } from './taper-ai/taper-ai.module';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
 
@@ -106,6 +107,7 @@ import { APP_GUARD } from '@nestjs/core';
     SubscriptionsModule,
     UploadModule, // File upload (screenshots, documents)
     PropFirmModule, // Prop firm challenge tracker
+    TaperAiModule, // TaperAI research desk (multi-agent thesis pipeline)
   ],
   controllers: [AppController],
   providers: [
