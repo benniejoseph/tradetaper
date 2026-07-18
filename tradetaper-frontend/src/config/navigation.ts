@@ -30,6 +30,7 @@ export const mentorNavItems: NavItem[] = [
 
 /** Market research & practice tools, grouped under a "Markets" section. */
 export const marketsNavItems: NavItem[] = [
+  { label: 'The Desk', href: '/desk', icon: FaBalanceScale },
   { label: 'Market Intelligence', href: '/market-intelligence', icon: FaChartLine },
   { label: 'Backtesting', href: '/backtesting', icon: FaFlask },
   { label: 'Prop Firm Tracker', href: '/prop-firm', icon: FaTrophy },
