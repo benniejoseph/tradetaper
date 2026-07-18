@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import { Canvas } from "@react-three/fiber";
+import styles from "./HeroGlobe.module.css";
 
 const GlobeContent = dynamic(() => import("./GlobeContent"), { ssr: false });
 
@@ -33,16 +34,16 @@ export default function HeroGlobe() {
   };
 
   return (
-    <div className="hero-globe-scene" aria-hidden="true">
-      <div className="hero-starfield"></div>
-      <div className="hero-starfield-dense"></div>
-      <div className="hero-starfield-nebula"></div>
-      <div className="hero-comets">
-        <span className="hero-comet hero-comet-a"></span>
-        <span className="hero-comet hero-comet-b"></span>
-        <span className="hero-comet hero-comet-c"></span>
+    <div className={styles.scene} aria-hidden="true">
+      <div className={styles.starfield}></div>
+      <div className={styles.starfieldDense}></div>
+      <div className={styles.starfieldNebula}></div>
+      <div className={styles.comets}>
+        <span className={`${styles.comet} ${styles.cometA}`}></span>
+        <span className={`${styles.comet} ${styles.cometB}`}></span>
+        <span className={`${styles.comet} ${styles.cometC}`}></span>
       </div>
-      <div className="hero-globe-canvas">
+      <div className={styles.globeCanvas}>
         <Canvas
           camera={{ position: [0, 0, 250], fov: 40 }}
           dpr={[1, 1.5]}
@@ -66,9 +67,9 @@ export default function HeroGlobe() {
           )}
         </Canvas>
       </div>
-      <div className="hero-globe-overlay">
-        <div className="hero-globe-halo"></div>
-        <div className="hero-globe-rim"></div>
+      <div className={styles.globeOverlay}>
+        <div className={styles.globeHalo}></div>
+        <div className={styles.globeRim}></div>
       </div>
     </div>
   );

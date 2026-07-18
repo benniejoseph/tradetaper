@@ -1,6 +1,3 @@
-"use client";
-
-import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { FaRocket, FaCode, FaChartLine, FaGlobe } from 'react-icons/fa';
@@ -38,7 +35,7 @@ export default function AboutPage() {
            <span className="text-gradient-emerald">Data & Discipline</span>
         </h1>
         <p className="text-xl text-slate-400 max-w-3xl mx-auto leading-relaxed mb-12">
-            We are building the world's most advanced trading journal, powered by neural networks and designed for the modern trader who demands precision.
+            We are building the world&apos;s most advanced trading journal, powered by neural networks and designed for the modern trader who demands precision.
         </p> 
         <div className="h-1 w-24 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full mx-auto"></div>
       </div>

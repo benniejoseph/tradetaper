@@ -1,5 +1,7 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
+import { absoluteUrl, buildBreadcrumbJsonLd, buildWebPageJsonLd } from '@/lib/seo';
 import { 
   FaFileContract, 
   FaShieldAlt, 
@@ -14,10 +16,37 @@ import {
   FaCertificate
 } from 'react-icons/fa';
 
-export const metadata = {
-  title: 'Legal Documents | TradeTaper',
-  description: 'Legal documents and policies for TradeTaper trading journal platform',
+const LEGAL_DESCRIPTION =
+  'Legal documents and policies for TradeTaper trading journal platform.';
+
+export const metadata: Metadata = {
+  title: 'Legal Documents',
+  description: LEGAL_DESCRIPTION,
+  alternates: {
+    canonical: '/legal',
+  },
+  openGraph: {
+    title: 'Legal Documents',
+    description: LEGAL_DESCRIPTION,
+    url: absoluteUrl('/legal'),
+    images: [{ url: '/legal/opengraph-image' }],
+  },
+  twitter: {
+    title: 'Legal Documents',
+    description: LEGAL_DESCRIPTION,
+    images: ['/legal/opengraph-image'],
+  },
 };
+
+const legalBreadcrumbJsonLd = buildBreadcrumbJsonLd([
+  { name: 'Home', path: '/' },
+  { name: 'Legal', path: '/legal' },
+]);
+const legalWebPageJsonLd = buildWebPageJsonLd({
+  name: 'Legal Documents',
+  path: '/legal',
+  description: LEGAL_DESCRIPTION,
+});
 
 const LegalDocumentCard = ({ 
   title, 
@@ -128,7 +157,18 @@ export default function LegalIndexPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white dark:from-gray-950 dark:to-gray-900">
+    <>
+      <script
+        id="ld-breadcrumb-legal"
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(legalBreadcrumbJsonLd) }}
+      />
+      <script
+        id="ld-webpage-legal"
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(legalWebPageJsonLd) }}
+      />
+      <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white dark:from-gray-950 dark:to-gray-900">
       {/* Professional Header */}
       <div className="relative overflow-hidden bg-gradient-to-br from-gray-900 via-blue-900 to-gray-900 dark:from-black dark:via-emerald-950 dark:to-black">
         <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center opacity-10"></div>
@@ -291,6 +331,7 @@ export default function LegalIndexPage() {
           </div>
         </div>
       </div>
-    </div>
+      </div>
+    </>
   );
 } 

@@ -1,16 +1,64 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
 import MarkdownContent from '@/components/common/MarkdownContent';
+import { absoluteUrl, buildBreadcrumbJsonLd, buildWebPageJsonLd } from '@/lib/seo';
 import { FaMoneyBillWave, FaArrowLeft, FaCalendarAlt, FaCreditCard, FaUndo, FaHeadset, FaPercentage, FaPhoneAlt } from 'react-icons/fa';
 
-export const metadata = {
-  title: 'Cancellation & Refund Policy | TradeTaper',
-  description: 'Cancellation and Refund Policy for TradeTaper trading journal platform'
+const CANCELLATION_REFUND_DESCRIPTION =
+  'Cancellation and Refund Policy for TradeTaper trading journal platform.';
+
+export const metadata: Metadata = {
+  title: 'Cancellation & Refund Policy',
+  description: CANCELLATION_REFUND_DESCRIPTION,
+  alternates: {
+    canonical: '/legal/cancellation-refund',
+  },
+  openGraph: {
+    title: 'Cancellation & Refund Policy',
+    description: CANCELLATION_REFUND_DESCRIPTION,
+    url: absoluteUrl('/legal/cancellation-refund'),
+    images: [{ url: '/legal/cancellation-refund/opengraph-image' }],
+  },
+  twitter: {
+    title: 'Cancellation & Refund Policy',
+    description: CANCELLATION_REFUND_DESCRIPTION,
+    images: ['/legal/cancellation-refund/opengraph-image'],
+  },
 };
+
+const cancellationRefundBreadcrumbJsonLd = buildBreadcrumbJsonLd([
+  { name: 'Home', path: '/' },
+  { name: 'Legal', path: '/legal' },
+  {
+    name: 'Cancellation & Refund Policy',
+    path: '/legal/cancellation-refund',
+  },
+]);
+const cancellationRefundWebPageJsonLd = buildWebPageJsonLd({
+  name: 'Cancellation & Refund Policy',
+  path: '/legal/cancellation-refund',
+  description: CANCELLATION_REFUND_DESCRIPTION,
+});
 
 export default function CancellationRefundPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50/30 to-violet-50/50 dark:from-gray-900 dark:via-black dark:to-gray-900">
+    <>
+      <script
+        id="ld-breadcrumb-legal-cancellation-refund"
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(cancellationRefundBreadcrumbJsonLd),
+        }}
+      />
+      <script
+        id="ld-webpage-legal-cancellation-refund"
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(cancellationRefundWebPageJsonLd),
+        }}
+      />
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50/30 to-violet-50/50 dark:from-gray-900 dark:via-black dark:to-gray-900">
       {/* Professional Header with Navigation */}
       <div className="relative">
         <div className="absolute inset-0 bg-gradient-to-r from-purple-600/8 via-violet-600/8 to-indigo-600/8"></div>
@@ -269,6 +317,7 @@ export default function CancellationRefundPage() {
           </div>
         </div>
       </div>
-    </div>
+      </div>
+    </>
   );
-} 
+}

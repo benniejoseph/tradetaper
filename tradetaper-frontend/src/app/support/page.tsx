@@ -1,11 +1,23 @@
-"use client";
-
-import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { FaSearch, FaBook, FaYoutube, FaHeadset, FaTerminal } from 'react-icons/fa';
+import {
+  POPULAR_SUPPORT_ARTICLE_SLUGS,
+  SUPPORT_ARTICLES,
+  SUPPORT_CATEGORIES,
+} from '@/config/supportContent';
 
 export default function SupportPage() {
+  const categoryIconByKey = {
+    'getting-started': FaBook,
+    'api-reference': FaTerminal,
+    'video-tutorials': FaYoutube,
+  } as const;
+  const popularArticles = POPULAR_SUPPORT_ARTICLE_SLUGS.flatMap((slug) => {
+    const article = SUPPORT_ARTICLES.find((candidate) => candidate.slug === slug);
+    return article ? [article] : [];
+  });
+
   return (
     <div className="min-h-screen bg-slate-950 text-white selection:bg-emerald-500/30 font-sans relative">
       {/* Background */}
@@ -47,19 +59,22 @@ export default function SupportPage() {
 
          {/* Categories */}
          <div className="grid md:grid-cols-3 gap-6 mb-20">
-             {[
-                 { icon: FaBook, title: "Getting Started", desc: "Quick start guides and account setup" },
-                 { icon: FaTerminal, title: "API Reference", desc: "For developers and algo traders" },
-                 { icon: FaYoutube, title: "Video Tutorials", desc: "Watch walkthroughs and masterclasses" },
-             ].map((cat, i) => (
-                 <div key={i} className="glass-card p-6 rounded-xl hover:bg-slate-800/50 cursor-pointer group">
+             {SUPPORT_CATEGORIES.map((cat) => {
+               const Icon = categoryIconByKey[cat.key];
+               return (
+                 <Link
+                   key={cat.key}
+                   href={cat.href}
+                   className="glass-card block rounded-xl p-6 transition-all hover:bg-slate-800/50 group"
+                 >
                      <div className="w-12 h-12 rounded-lg bg-emerald-500/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                         <cat.icon className="text-emerald-400 text-xl" />
+                         <Icon className="text-emerald-400 text-xl" />
                      </div>
                      <h3 className="text-xl font-bold text-white mb-2">{cat.title}</h3>
-                     <p className="text-slate-400 text-sm">{cat.desc}</p>
-                 </div>
-             ))}
+                     <p className="text-slate-400 text-sm">{cat.description}</p>
+                 </Link>
+               );
+             })}
          </div>
 
          {/* Frequent Articles */}
@@ -67,10 +82,17 @@ export default function SupportPage() {
              <div>
                  <h2 className="text-2xl font-bold mb-6">Popular Articles</h2>
                  <ul className="space-y-4">
-                     {["Connecting your Broker Account", "Understanding the Risk Matrix", "Exporting Tax Reports", "Setting up 2FA Security"].map((item, i) => (
-                         <li key={i} className="flex items-center group cursor-pointer">
+                     {popularArticles.map((article) => (
+                         <li key={article.slug}>
+                           <Link
+                             href={`/support/${article.slug}`}
+                             className="group flex items-center"
+                           >
                              <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-4 group-hover:scale-150 transition-transform"></div>
-                             <span className="text-slate-300 group-hover:text-emerald-400 transition-colors">{item}</span>
+                             <span className="text-slate-300 group-hover:text-emerald-400 transition-colors">
+                               {article.title}
+                             </span>
+                           </Link>
                          </li>
                      ))}
                  </ul>

@@ -1,16 +1,56 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
 import MarkdownContent from '@/components/common/MarkdownContent';
+import { absoluteUrl, buildBreadcrumbJsonLd, buildWebPageJsonLd } from '@/lib/seo';
 import { FaFileContract, FaArrowLeft, FaCalendarAlt, FaShieldAlt, FaUsers, FaBook } from 'react-icons/fa';
 
-export const metadata = {
-  title: 'Terms of Service | TradeTaper',
-  description: 'Terms of Service for TradeTaper trading journal platform'
+const TERMS_DESCRIPTION = 'Terms of Service for TradeTaper trading journal platform.';
+
+export const metadata: Metadata = {
+  title: 'Terms of Service',
+  description: TERMS_DESCRIPTION,
+  alternates: {
+    canonical: '/legal/terms',
+  },
+  openGraph: {
+    title: 'Terms of Service',
+    description: TERMS_DESCRIPTION,
+    url: absoluteUrl('/legal/terms'),
+    images: [{ url: '/legal/terms/opengraph-image' }],
+  },
+  twitter: {
+    title: 'Terms of Service',
+    description: TERMS_DESCRIPTION,
+    images: ['/legal/terms/opengraph-image'],
+  },
 };
+
+const termsBreadcrumbJsonLd = buildBreadcrumbJsonLd([
+  { name: 'Home', path: '/' },
+  { name: 'Legal', path: '/legal' },
+  { name: 'Terms of Service', path: '/legal/terms' },
+]);
+const termsWebPageJsonLd = buildWebPageJsonLd({
+  name: 'Terms of Service',
+  path: '/legal/terms',
+  description: TERMS_DESCRIPTION,
+});
 
 export default function TermsOfServicePage() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/50 dark:from-gray-900 dark:via-black dark:to-gray-900">
+    <>
+      <script
+        id="ld-breadcrumb-legal-terms"
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(termsBreadcrumbJsonLd) }}
+      />
+      <script
+        id="ld-webpage-legal-terms"
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(termsWebPageJsonLd) }}
+      />
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/50 dark:from-gray-900 dark:via-black dark:to-gray-900">
       {/* Professional Header with Navigation */}
       <div className="relative">
         <div className="absolute inset-0 bg-gradient-to-r from-blue-600/8 via-indigo-600/8 to-purple-600/8"></div>
@@ -222,6 +262,7 @@ export default function TermsOfServicePage() {
           </div>
         </div>
       </div>
-    </div>
+      </div>
+    </>
   );
 } 

@@ -1,16 +1,56 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
 import MarkdownContent from '@/components/common/MarkdownContent';
+import { absoluteUrl, buildBreadcrumbJsonLd, buildWebPageJsonLd } from '@/lib/seo';
 import { FaShieldAlt, FaArrowLeft, FaCalendarAlt, FaLock, FaDatabase, FaUserShield, FaEye } from 'react-icons/fa';
 
-export const metadata = {
-  title: 'Privacy Policy | TradeTaper',
-  description: 'Privacy Policy for TradeTaper trading journal platform'
+const PRIVACY_DESCRIPTION = 'Privacy Policy for TradeTaper trading journal platform.';
+
+export const metadata: Metadata = {
+  title: 'Privacy Policy',
+  description: PRIVACY_DESCRIPTION,
+  alternates: {
+    canonical: '/legal/privacy',
+  },
+  openGraph: {
+    title: 'Privacy Policy',
+    description: PRIVACY_DESCRIPTION,
+    url: absoluteUrl('/legal/privacy'),
+    images: [{ url: '/legal/privacy/opengraph-image' }],
+  },
+  twitter: {
+    title: 'Privacy Policy',
+    description: PRIVACY_DESCRIPTION,
+    images: ['/legal/privacy/opengraph-image'],
+  },
 };
+
+const privacyBreadcrumbJsonLd = buildBreadcrumbJsonLd([
+  { name: 'Home', path: '/' },
+  { name: 'Legal', path: '/legal' },
+  { name: 'Privacy Policy', path: '/legal/privacy' },
+]);
+const privacyWebPageJsonLd = buildWebPageJsonLd({
+  name: 'Privacy Policy',
+  path: '/legal/privacy',
+  description: PRIVACY_DESCRIPTION,
+});
 
 export default function PrivacyPolicyPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-emerald-50/30 to-teal-50/50 dark:from-gray-900 dark:via-black dark:to-gray-900">
+    <>
+      <script
+        id="ld-breadcrumb-legal-privacy"
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(privacyBreadcrumbJsonLd) }}
+      />
+      <script
+        id="ld-webpage-legal-privacy"
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(privacyWebPageJsonLd) }}
+      />
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-emerald-50/30 to-teal-50/50 dark:from-gray-900 dark:via-black dark:to-gray-900">
       {/* Professional Header with Navigation */}
       <div className="relative">
         <div className="absolute inset-0 bg-gradient-to-r from-green-600/8 via-emerald-600/8 to-teal-600/8"></div>
@@ -254,6 +294,7 @@ export default function PrivacyPolicyPage() {
           </div>
         </div>
       </div>
-    </div>
+      </div>
+    </>
   );
 } 
