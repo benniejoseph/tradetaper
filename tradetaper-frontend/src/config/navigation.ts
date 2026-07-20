@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 // src/config/navigation.ts
 import { IconType } from 'react-icons';
-import { FaTachometerAlt, FaListAlt, FaChartBar, FaPenSquare, FaCog, FaBook, FaCalendarAlt, FaChartPie, FaBalanceScale, FaUsers, FaCreditCard, FaDollarSign, FaBullseye, FaStickyNote, FaChartLine, FaFlask, FaBell, FaBolt, FaUserCircle, FaComments, FaLayerGroup, FaFileAlt } from 'react-icons/fa';
+import { FaTachometerAlt, FaListAlt, FaChartBar, FaPenSquare, FaCog, FaBook, FaCalendarAlt, FaChartPie, FaBalanceScale, FaUsers, FaCreditCard, FaDollarSign, FaBullseye, FaStickyNote, FaChartLine, FaFlask, FaBell, FaBolt, FaUserCircle, FaComments, FaLayerGroup, FaFileAlt, FaLandmark } from 'react-icons/fa';
 
 export interface NavItem {
   label: string;
@@ -17,6 +17,7 @@ export const mainNavItems: NavItem[] = [
   { label: 'Strategies', href: '/strategies', icon: FaBullseye }, 
   { label: 'Backtesting', href: '/backtesting', icon: FaFlask }, // Backtesting visible in main nav
   { label: 'Market Intelligence', href: '/market-intelligence', icon: FaChartLine },
+  { label: 'The Desk', href: '/desk', icon: FaLandmark },
   { label: 'AI Coach', href: '/ai-coach', icon: FaComments },
   { label: 'Trader Mind', href: '/trader-mind', icon: FaBolt },
   { label: 'Notes', href: '/notes', icon: FaStickyNote }, 
