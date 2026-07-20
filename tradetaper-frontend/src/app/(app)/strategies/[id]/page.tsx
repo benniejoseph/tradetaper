@@ -8,16 +8,15 @@ import { strategiesService } from '@/services/strategiesService';
 function ContentHeader({ title, description }: { title: string; description?: string }) {
   return (
     <div className="mb-6">
-      <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{title}</h1>
+      <h1 className="text-xl font-bold text-gray-900 dark:text-white sm:text-2xl">{title}</h1>
       {description && (
-        <p className="text-gray-600 dark:text-gray-400 mt-1">{description}</p>
+        <p className="mt-1 text-sm text-gray-600 dark:text-gray-400 sm:text-base">{description}</p>
       )}
     </div>
   );
 }
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
-import { FiEdit2, FiTrash2, FiTrendingUp, FiTrendingDown, FiActivity, FiCalendar, FiTag } from 'react-icons/fi';
-import { FaBullseye } from 'react-icons/fa';
+import { FiEdit2, FiTrash2, FiCalendar, FiTag } from 'react-icons/fi';
 import Link from 'next/link';
 
 export default function StrategyDetailsPage() {
@@ -104,8 +103,8 @@ export default function StrategyDetailsPage() {
       />
 
       {/* Header Actions */}
-      <div className="flex justify-between items-center">
-        <div className="flex items-center gap-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           <span 
             className={`px-3 py-1 text-sm rounded-full ${
               strategy.isActive 
@@ -122,17 +121,17 @@ export default function StrategyDetailsPage() {
           )}
         </div>
         
-        <div className="flex gap-2">
+        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
           <Link
             href={`/strategies/${strategy.id}/edit`}
-            className="px-4 py-2 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center"
+            className="inline-flex w-full items-center justify-center rounded-lg border border-gray-300 px-4 py-2 text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700 sm:w-auto"
           >
             <FiEdit2 className="mr-2 w-4 h-4" />
             Edit
           </Link>
           <button
             onClick={handleToggleActive}
-            className={`px-4 py-2 rounded-lg transition-colors ${
+            className={`w-full rounded-lg px-4 py-2 transition-colors sm:w-auto ${
               strategy.isActive
                 ? 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/30'
                 : 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400 hover:bg-green-200 dark:hover:bg-green-900/30'
@@ -142,7 +141,7 @@ export default function StrategyDetailsPage() {
           </button>
           <button
             onClick={handleDelete}
-            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center"
+            className="inline-flex w-full items-center justify-center rounded-lg bg-red-600 px-4 py-2 text-white transition-colors hover:bg-red-700 sm:w-auto"
           >
             <FiTrash2 className="mr-2 w-4 h-4" />
             Delete
@@ -156,19 +155,19 @@ export default function StrategyDetailsPage() {
           {stats && (
             <>
               {/* Key Metrics */}
-              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+              <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800 sm:p-6">
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Performance Overview</h3>
                 
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-4">
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-gray-900 dark:text-white">
+                    <div className="text-xl font-bold text-gray-900 dark:text-white sm:text-2xl">
                       {stats.totalTrades}
                     </div>
                     <div className="text-sm text-gray-500 dark:text-gray-400">Total Trades</div>
                   </div>
                   
                   <div className="text-center">
-                    <div className={`text-2xl font-bold ${
+                    <div className={`text-xl font-bold sm:text-2xl ${
                       isProfit ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
                     }`}>
                       ${stats.totalPnl.toFixed(2)}
@@ -177,14 +176,14 @@ export default function StrategyDetailsPage() {
                   </div>
                   
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-gray-900 dark:text-white">
+                    <div className="text-xl font-bold text-gray-900 dark:text-white sm:text-2xl">
                       {stats.winRate.toFixed(1)}%
                     </div>
                     <div className="text-sm text-gray-500 dark:text-gray-400">Win Rate</div>
                   </div>
                   
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-gray-900 dark:text-white">
+                    <div className="text-xl font-bold text-gray-900 dark:text-white sm:text-2xl">
                       {stats.profitFactor.toFixed(2)}
                     </div>
                     <div className="text-sm text-gray-500 dark:text-gray-400">Profit Factor</div>
@@ -193,41 +192,41 @@ export default function StrategyDetailsPage() {
               </div>
 
               {/* Detailed Stats */}
-              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+              <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800 sm:p-6">
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Detailed Statistics</h3>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-3">
-                    <div className="flex justify-between">
+                    <div className="flex items-start justify-between gap-3">
                       <span className="text-gray-600 dark:text-gray-400">Closed Trades:</span>
-                      <span className="font-medium text-gray-900 dark:text-white">{stats.closedTrades}</span>
+                      <span className="text-right font-medium text-gray-900 dark:text-white">{stats.closedTrades}</span>
                     </div>
-                    <div className="flex justify-between">
+                    <div className="flex items-start justify-between gap-3">
                       <span className="text-gray-600 dark:text-gray-400">Winning Trades:</span>
-                      <span className="font-medium text-green-600 dark:text-green-400">{stats.winningTrades}</span>
+                      <span className="text-right font-medium text-green-600 dark:text-green-400">{stats.winningTrades}</span>
                     </div>
-                    <div className="flex justify-between">
+                    <div className="flex items-start justify-between gap-3">
                       <span className="text-gray-600 dark:text-gray-400">Losing Trades:</span>
-                      <span className="font-medium text-red-600 dark:text-red-400">{stats.losingTrades}</span>
+                      <span className="text-right font-medium text-red-600 dark:text-red-400">{stats.losingTrades}</span>
                     </div>
                   </div>
                   
                   <div className="space-y-3">
-                    <div className="flex justify-between">
+                    <div className="flex items-start justify-between gap-3">
                       <span className="text-gray-600 dark:text-gray-400">Average P&L:</span>
-                      <span className={`font-medium ${
+                      <span className={`text-right font-medium ${
                         stats.averagePnl >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
                       }`}>
                         ${stats.averagePnl.toFixed(2)}
                       </span>
                     </div>
-                    <div className="flex justify-between">
+                    <div className="flex items-start justify-between gap-3">
                       <span className="text-gray-600 dark:text-gray-400">Average Win:</span>
-                      <span className="font-medium text-green-600 dark:text-green-400">${stats.averageWin.toFixed(2)}</span>
+                      <span className="text-right font-medium text-green-600 dark:text-green-400">${stats.averageWin.toFixed(2)}</span>
                     </div>
-                    <div className="flex justify-between">
+                    <div className="flex items-start justify-between gap-3">
                       <span className="text-gray-600 dark:text-gray-400">Average Loss:</span>
-                      <span className="font-medium text-red-600 dark:text-red-400">${stats.averageLoss.toFixed(2)}</span>
+                      <span className="text-right font-medium text-red-600 dark:text-red-400">${stats.averageLoss.toFixed(2)}</span>
                     </div>
                   </div>
                 </div>
@@ -239,7 +238,7 @@ export default function StrategyDetailsPage() {
         {/* Strategy Details */}
         <div className="space-y-6">
           {/* Basic Info */}
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+          <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800 sm:p-6">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Strategy Details</h3>
             
             <div className="space-y-4">
@@ -289,14 +288,14 @@ export default function StrategyDetailsPage() {
 
           {/* Checklist */}
           {strategy.checklist && strategy.checklist.length > 0 && (
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+            <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800 sm:p-6">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Trading Checklist</h3>
               
               <div className="space-y-2">
                 {strategy.checklist.map((item) => (
-                  <div key={item.id} className="flex items-start gap-3 p-2 rounded">
+                  <div key={item.id} className="flex items-start gap-3 rounded p-2">
                     <div className="w-2 h-2 bg-gray-400 rounded-full mt-2 flex-shrink-0" />
-                    <span className="text-sm text-gray-700 dark:text-gray-300">{item.text}</span>
+                    <span className="break-words text-sm text-gray-700 dark:text-gray-300">{item.text}</span>
                   </div>
                 ))}
               </div>

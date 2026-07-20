@@ -32,6 +32,10 @@ export interface MT5Account {
   createdAt?: string;
   updatedAt?: string;
   target?: number;
+  accountCategory?: 'personal' | 'prop_firm';
+  propFirmPhase?: string | null;
+  propMaxLoss?: number | null;
+  propDailyMaxLoss?: number | null;
 }
 
 export interface CreateMT5AccountPayload {
@@ -42,6 +46,14 @@ export interface CreateMT5AccountPayload {
   isRealAccount?: boolean;
   isActive?: boolean;
   target?: number;
+  initialBalance?: number;
+  leverage?: number;
+  currency?: string;
+  accountCategory?: 'personal' | 'prop_firm';
+  propFirmPhase?: string;
+  propMaxLoss?: number;
+  propDailyMaxLoss?: number;
+  propProfitTarget?: number;
 }
 
 export interface UpdateMT5AccountPayload {
@@ -51,6 +63,11 @@ export interface UpdateMT5AccountPayload {
   password?: string;
   isActive?: boolean;
   target?: number;
+  accountCategory?: 'personal' | 'prop_firm';
+  propFirmPhase?: string;
+  propMaxLoss?: number;
+  propDailyMaxLoss?: number;
+  propProfitTarget?: number;
 }
 
 interface MT5AccountsState {
@@ -129,7 +146,7 @@ export const deleteMT5Account = createAsyncThunk(
   }
 );
 
-// Sync MT5 account (Terminal Farm)
+// Sync MT5 account (MetaAPI)
 export const syncMT5Account = createAsyncThunk(
   'mt5Accounts/syncAccount',
   async (id: string, { rejectWithValue, dispatch }) => {

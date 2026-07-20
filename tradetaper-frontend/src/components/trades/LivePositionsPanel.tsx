@@ -208,8 +208,8 @@ export default function LivePositionsPanel({ accountId, accountName, isMT5 }: Li
           <FaBolt className="text-emerald-500" />
           <div>
             <p className="text-sm font-semibold text-gray-900 dark:text-white">Live MT5 Positions</p>
-            <p className="text-xs text-gray-500 dark:text-gray-400">
-              Select an MT5 account to view open positions in real time.
+            <p className="text-zinc-500 dark:text-zinc-400 mt-2">
+              Waiting for live MT5 trades or you haven&apos;t connected your account yet.
             </p>
           </div>
         </div>

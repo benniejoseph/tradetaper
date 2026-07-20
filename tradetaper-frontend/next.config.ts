@@ -1,12 +1,8 @@
 import type { NextConfig } from "next";
+import path from "node:path";
 
 const nextConfig: NextConfig = {
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
-  typescript: {
-    ignoreBuildErrors: true,
-  },
+  outputFileTracingRoot: path.join(__dirname, ".."),
   images: {
     remotePatterns: [
       {
@@ -28,6 +24,21 @@ const nextConfig: NextConfig = {
       {
         source: '/psychology',
         destination: '/trader-mind',
+        permanent: true,
+      },
+      {
+        source: '/privacy',
+        destination: '/legal/privacy',
+        permanent: true,
+      },
+      {
+        source: '/terms',
+        destination: '/legal/terms',
+        permanent: true,
+      },
+      {
+        source: '/refund',
+        destination: '/legal/cancellation-refund',
         permanent: true,
       },
     ];

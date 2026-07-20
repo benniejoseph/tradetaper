@@ -12,14 +12,6 @@ interface TagAutocompleteProps {
   maxTags?: number;
 }
 
-const getAuthHeaders = () => {
-  const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
-  return {
-    'Content-Type': 'application/json',
-    Authorization: token ? `Bearer ${token}` : '',
-  };
-};
-
 export default function TagAutocomplete({
   tags,
   onTagsChange,
@@ -45,7 +37,9 @@ export default function TagAutocomplete({
     try {
       const response = await fetch(
         `${API_URL}/backtesting/tags/suggestions?prefix=${encodeURIComponent(prefix)}`,
-        { headers: getAuthHeaders() }
+        {
+          credentials: 'include',
+        },
       );
       if (response.ok) {
         const data = await response.json();

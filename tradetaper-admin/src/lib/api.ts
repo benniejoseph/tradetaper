@@ -1,19 +1,14 @@
-import axios from 'axios';
+import axios, {
+  AxiosError,
+  AxiosHeaders,
+  AxiosInstance,
+  AxiosResponse,
+  InternalAxiosRequestConfig,
+} from 'axios';
+import { API_BASE_URL } from './api-base-url';
+import type { components } from './generated/admin-contracts';
 
-// API Base URL - configured via environment variables
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api/v1';
-
-// Create axios instance
-const api = axios.create({
-  baseURL: API_BASE_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
-
-// No authentication interceptors - open access
-
-// Authentication functions removed - open access admin panel
+type AdminContractSchemas = components['schemas'];
 
 // Types
 export interface User {
@@ -48,43 +43,17 @@ export interface ActivityEvent {
   location?: string;
 }
 
-export interface AnalyticsData {
-  labels: string[];
-  values: number[];
-  data: Array<{
-    date: string;
-    users?: number;
-    revenue?: number;
-    trades?: number;
-  }>;
-}
+export type AnalyticsData = AdminContractSchemas['AnalyticsData'];
+export type AdminRole = AdminContractSchemas['AdminRole'];
+export type AdminSession = AdminContractSchemas['AdminSession'];
 
-export interface TradeAnalyticsData extends AnalyticsData {
+export type TradeAnalyticsData = AnalyticsData & {
   topTradingPairs: TradingPair[];
-}
+};
 
-export interface SubscriptionAnalytics {
-  subscriptionDistribution: Array<{
-    plan: string;
-    count: number;
-    revenue: number;
-    color?: string;
-    price?: number;
-  }>;
-}
+export type SubscriptionAnalytics = AdminContractSchemas['SubscriptionAnalytics'];
 
-export interface SystemHealth {
-  status: 'healthy' | 'warning' | 'critical';
-  uptime: number;
-  responseTime: number;
-  memoryUsage: number;
-  cpuUsage: number;
-  diskUsage: number;
-  databaseConnections: number;
-  errors24h: number;
-  apiCalls24h: number;
-  cacheHitRate: number;
-}
+export type SystemHealth = AdminContractSchemas['SystemHealth'];
 
 export interface GeographicData {
   country: string;
@@ -94,13 +63,19 @@ export interface GeographicData {
   coordinates: [number, number];
 }
 
-export interface UsersResponse {
-  data: User[];
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
-}
+export type AdminUserReference = AdminContractSchemas['AdminUserReference'];
+
+export type AdminUserSubscription = AdminContractSchemas['AdminUserSubscription'];
+
+export type AdminUserRecord = AdminContractSchemas['AdminUserRecord'];
+
+export type AdminTradeRecord = AdminContractSchemas['AdminTradeRecord'];
+
+export type AdminAccountRecord = AdminContractSchemas['AdminAccountRecord'];
+
+export type AdminSubscriptionRecord = AdminContractSchemas['AdminSubscriptionRecord'];
+
+export type UsersResponse = AdminContractSchemas['UsersResponse'];
 
 export interface DailyStats {
   date: string;
@@ -122,39 +97,12 @@ export interface SubscriptionData {
   revenue: number;
 }
 
-export interface DashboardStats {
-  totalUsers: number;
-  userGrowth: number;
-  activeUsers: number;
-  activeGrowth: number;
-  totalRevenue: number;
-  revenueGrowth: number;
-  totalTrades: number;
-  tradeGrowth: number;
-}
+export type DashboardStats = AdminContractSchemas['DashboardStats'];
 
-export interface Activity {
-  id: string;
-  type: string;
-  description: string;
-  timestamp: string;
-  user?: {
-    id: string;
-    name: string;
-  };
-}
+export type Activity = AdminContractSchemas['ActivityItem'];
 
-export interface LogEntry {
-  id: string;
-  level: 'error' | 'warn' | 'info' | 'debug';
-  message: string;
-  context?: string;
-  details?: Record<string, any>;
-  timestamp: string;
-  userId?: string;
-  endpoint?: string;
-  method?: string;
-}
+export type LogEntry = AdminContractSchemas['AdminSystemLogEntry'];
+export type LogsResponse = AdminContractSchemas['AdminSystemLogsResponse'];
 
 export interface SystemDiagnostics {
   database: {
@@ -182,16 +130,7 @@ export interface SystemDiagnostics {
   };
 }
 
-export interface PerformanceMetrics {
-  data: Array<{
-    timestamp: string;
-    responseTime: number;
-    throughput: number;
-    errorRate: number;
-    cpuUsage: number;
-    memoryUsage: number;
-  }>;
-}
+export type PerformanceMetrics = AdminContractSchemas['PerformanceMetricsResponse'];
 
 export interface ErrorAnalytics {
   totalErrors: number;
@@ -200,58 +139,398 @@ export interface ErrorAnalytics {
   timeRange: string;
 }
 
-export interface ApiUsageStats {
-  totalRequests: number;
-  requestsByEndpoint: Array<{ endpoint: string; count: number; avgResponseTime: number }>;
-  requestsByMethod: Array<{ method: string; count: number; percentage: number }>;
-  timeRange: string;
+export type ApiUsageStats = AdminContractSchemas['ApiUsageStats'];
+
+export interface AdminPaginatedResponse<TItem, TSummary = Record<string, unknown>> {
+  data: TItem[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  summary?: TSummary;
+}
+
+export type AdminTradesSummary = AdminContractSchemas['AdminTradesSummary'];
+
+export type AdminAccountsSummary = AdminContractSchemas['AdminAccountsSummary'];
+
+export type AdminSubscriptionsSummary = AdminContractSchemas['AdminSubscriptionsSummary'];
+
+export type AdminUserDetailResponse = AdminContractSchemas['AdminUserDetailResponse'];
+
+export type AdminAuthAuditLogEntry = AdminContractSchemas['AdminAuthAuditLogEntry'];
+
+export type AdminAuthAuditLogsResponse = AdminContractSchemas['AdminAuthAuditLogsResponse'];
+
+export type AdminTradesResponse = AdminContractSchemas['AdminTradesResponse'];
+
+export type AdminAccountsResponse = AdminContractSchemas['AdminAccountsResponse'];
+
+export type AdminSubscriptionsResponse = AdminContractSchemas['AdminSubscriptionsResponse'];
+
+export type DatabaseColumn = AdminContractSchemas['DatabaseColumn'];
+
+export type DatabaseRow = AdminContractSchemas['DatabaseRow'];
+
+export type DatabaseRowsResponse = AdminContractSchemas['DatabaseRowsResponse'];
+
+export type SqlQueryRequest = AdminContractSchemas['SqlQueryRequest'];
+
+export type SqlQueryResponse = AdminContractSchemas['SqlQueryResponse'];
+
+export interface AdminTestEndpointRequest {
+  endpoint: string;
+  method: string;
+  headers?: Record<string, string>;
+  body?: unknown;
+  queryParams?: Record<string, string>;
+}
+
+export interface AdminTestEndpointResponse {
+  success?: boolean;
+  statusCode?: number;
+  message?: string;
+  data?: unknown;
+}
+
+export interface AdminDebugSession {
+  id?: string;
+  description?: string;
+  userId?: string;
+  status?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  [key: string]: unknown;
+}
+
+export interface AdminBackupStatus {
+  status?: string;
+  backupId?: string;
+  startedAt?: string;
+  completedAt?: string;
+  message?: string;
+  [key: string]: unknown;
+}
+
+export const ADMIN_API_CAPABILITY_MAP = {
+  dashboardStats: '/admin/dashboard/stats',
+  userAnalytics: '/admin/user-analytics/:timeRange',
+  revenueAnalytics: '/admin/revenue-analytics/:timeRange',
+  systemHealth: '/admin/system-health',
+  activityFeed: '/admin/activity-feed',
+  subscriptionAnalytics: '/admin/subscription/analytics',
+  users: '/admin/users',
+  userDetail: '/admin/users/:id',
+  trades: '/admin/trades',
+  accounts: '/admin/accounts',
+  subscriptions: '/admin/subscriptions',
+  authAuditLogs: '/admin/auth/audit-logs',
+  adminSession: '/admin/auth/me',
+  mfaStatus: '/admin/auth/mfa/status',
+  systemLogs: '/admin/logs',
+  logStream: '/admin/logs/stream',
+  performanceMetrics: '/admin/analytics/performance',
+  apiUsageStats: '/admin/api/usage',
+  databaseTables: '/admin/database/tables',
+  databaseColumns: '/admin/database/columns/:table',
+  databaseRows: '/admin/database/rows/:table',
+  databaseTableStats: '/admin/database/table-stats',
+  databaseRunSql: '/admin/database/run-sql',
+} as const;
+
+interface CsrfAwareRequestConfig extends InternalAxiosRequestConfig {
+  _csrfRetry?: boolean;
 }
 
 class AdminApi {
   private baseUrl: string;
-  private axiosInstance: any;
-  private adminToken: string | null = null;
+  private axiosInstance!: AxiosInstance;
+  private csrfToken: string | null = null;
+  private csrfBootstrapPromise: Promise<string | null> | null = null;
 
   constructor() {
-    // Ensure we always have a valid API URL, prioritizing environment variable
-    this.baseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.tradetaper.com/api/v1';
-    console.log('AdminApi initialized with baseUrl:', this.baseUrl);
+    this.baseUrl = API_BASE_URL;
     this.initializeAxios();
-  }
-
-  private initializeAxios() {
     if (typeof window !== 'undefined') {
-      // Client-side initialization
-      this.axiosInstance = axios.create({
-        baseURL: this.baseUrl,
-        timeout: 10000,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      // Add request interceptor to include mock admin token for demo purposes
-      this.axiosInstance.interceptors.request.use((config: any) => {
-        // Use mock token that backend admin guard recognizes for bypass
-        config.headers['Authorization'] = 'Bearer mock-admin-token';
-        return config;
-      });
-    } else {
-      // Server-side: create a minimal axios instance
-      this.axiosInstance = axios.create({
-        baseURL: this.baseUrl,
-        timeout: 10000,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer mock-admin-token',
-        },
-      });
+      void this.bootstrapCsrfToken();
     }
   }
 
+  private initializeAxios() {
+    this.axiosInstance = axios.create({
+      baseURL: this.baseUrl,
+      timeout: 10000,
+      withCredentials: true,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    this.axiosInstance.interceptors.request.use(
+      async (config: CsrfAwareRequestConfig) => {
+        if (!this.shouldAttachCsrfToken(config)) {
+          return config;
+        }
+
+        const token = await this.bootstrapCsrfToken();
+        if (!token) {
+          return config;
+        }
+
+        this.setCsrfHeader(config, token);
+        return config;
+      },
+    );
+
+    this.axiosInstance.interceptors.response.use(
+      (response: AxiosResponse) => response,
+      async (error: AxiosError) => {
+        const request = error?.config as CsrfAwareRequestConfig | undefined;
+        const status = error?.response?.status;
+
+        if (
+          status === 403 &&
+          request &&
+          this.shouldAttachCsrfToken(request) &&
+          !request._csrfRetry
+        ) {
+          const token = await this.bootstrapCsrfToken(true);
+          if (token) {
+            request._csrfRetry = true;
+            this.setCsrfHeader(request, token);
+            return this.ensureAxiosInstance().request(request);
+          }
+        }
+
+        if (typeof window !== 'undefined' && error?.response?.status === 401) {
+          const isLoginRoute = window.location.pathname.startsWith('/login');
+          if (!isLoginRoute) {
+            const from = `${window.location.pathname}${window.location.search}`;
+            window.location.assign(`/login?from=${encodeURIComponent(from)}`);
+          }
+        }
+        return Promise.reject(error);
+      },
+    );
+  }
+
+  private getRequestPath(url?: string): string {
+    if (!url) {
+      return '';
+    }
+    const [withoutQuery] = url.split('?');
+    if (!withoutQuery.startsWith('http://') && !withoutQuery.startsWith('https://')) {
+      return withoutQuery;
+    }
+    try {
+      return new URL(withoutQuery).pathname;
+    } catch {
+      return withoutQuery;
+    }
+  }
+
+  private isMutatingMethod(method?: string): boolean {
+    const normalized = method?.toUpperCase() || 'GET';
+    return ['POST', 'PUT', 'PATCH', 'DELETE'].includes(normalized);
+  }
+
+  private isCsrfExemptPath(path: string): boolean {
+    return path.startsWith('/admin/auth/') || path === '/csrf-token';
+  }
+
+  private shouldAttachCsrfToken(config: { method?: string; url?: string }): boolean {
+    if (!this.isMutatingMethod(config.method)) {
+      return false;
+    }
+    const path = this.getRequestPath(config.url);
+    return !this.isCsrfExemptPath(path);
+  }
+
+  private setCsrfHeader(config: CsrfAwareRequestConfig, token: string): void {
+    const headers = AxiosHeaders.from(config.headers);
+    headers.set('X-CSRF-Token', token);
+    config.headers = headers;
+  }
+
+  private async bootstrapCsrfToken(forceRefresh: boolean = false): Promise<string | null> {
+    if (!forceRefresh && this.csrfToken) {
+      return this.csrfToken;
+    }
+    if (!forceRefresh && this.csrfBootstrapPromise) {
+      return this.csrfBootstrapPromise;
+    }
+
+    const axiosInstance = this.ensureAxiosInstance();
+    this.csrfBootstrapPromise = axiosInstance
+      .get<{ csrfToken?: string }>('/csrf-token', {
+        headers: {
+          'Cache-Control': 'no-cache',
+        },
+      })
+      .then((response) => {
+        const token = response.data?.csrfToken;
+        this.csrfToken = typeof token === 'string' && token.length > 0 ? token : null;
+        return this.csrfToken;
+      })
+      .catch((error: AxiosError) => {
+        this.csrfToken = null;
+        if (error?.response?.status !== 401 && error?.response?.status !== 404) {
+          console.error('Failed to bootstrap CSRF token:', error);
+        }
+        return null;
+      })
+      .finally(() => {
+        this.csrfBootstrapPromise = null;
+      });
+
+    return this.csrfBootstrapPromise;
+  }
+
+  private throwFeatureUnavailable(feature: string, endpoint: string): never {
+    throw new Error(
+      `Admin API capability "${feature}" is not available in this environment (missing backend route: ${endpoint}).`,
+    );
+  }
+
+  async login(
+    email: string,
+    password: string,
+  ): Promise<{
+    access_token?: string;
+    role?: 'admin';
+    adminRole?: AdminRole;
+    mfaRequired?: boolean;
+    mfaEnrollmentRequired?: boolean;
+    challengeMethod?: 'totp' | 'totp_or_recovery';
+    challengeToken?: string;
+    mfaVerified?: boolean;
+    mfaEnrolled?: boolean;
+    bootstrapToken?: string;
+    otpauthUrl?: string;
+    manualEntryKey?: string;
+    qrCodeDataUrl?: string;
+    recoveryCodes?: string[];
+    recoveryCodesRemaining?: number;
+    mfaMethod?: 'otp' | 'recovery';
+  }> {
+    const res = await this.axiosInstance.post(
+      '/admin/auth/login',
+      { email, password },
+    );
+    return res.data;
+  }
+
+  async verifyMfa(payload: {
+    challengeToken: string;
+    otpCode?: string;
+    recoveryCode?: string;
+  }): Promise<{
+    access_token: string;
+    role: 'admin';
+    adminRole?: AdminRole;
+    mfaVerified: true;
+    mfaMethod: 'otp' | 'recovery';
+    recoveryCodesRemaining?: number;
+  }> {
+    const res = await this.axiosInstance.post(
+      '/admin/auth/verify-mfa',
+      payload,
+    );
+    return res.data;
+  }
+
+  async startMfaBootstrap(email: string, password: string): Promise<{
+    mfaEnrollmentRequired: true;
+    bootstrapToken: string;
+    otpauthUrl: string;
+    manualEntryKey: string;
+    qrCodeDataUrl: string;
+    recoveryCodesCount: number;
+  }> {
+    const res = await this.axiosInstance.post(
+      '/admin/auth/mfa/bootstrap/start',
+      { email, password },
+    );
+    return res.data;
+  }
+
+  async completeMfaBootstrap(
+    bootstrapToken: string,
+    otpCode: string,
+  ): Promise<{
+    access_token: string;
+    role: 'admin';
+    adminRole?: AdminRole;
+    mfaVerified: true;
+    mfaEnrolled: true;
+    recoveryCodes: string[];
+    recoveryCodesRemaining: number;
+  }> {
+    const res = await this.axiosInstance.post(
+      '/admin/auth/mfa/bootstrap/complete',
+      { bootstrapToken, otpCode },
+    );
+    return res.data;
+  }
+
+  async getMfaStatus(): Promise<{
+    mfaRequired: boolean;
+    enrolled: boolean;
+    source: 'credential' | 'legacy-env' | null;
+    recoveryCodesRemaining: number;
+    lastVerifiedAt: string | null;
+    recoveryCodesGeneratedAt: string | null;
+  }> {
+    const res = await this.ensureAxiosInstance().get('/admin/auth/mfa/status');
+    return res.data;
+  }
+
+  async getAdminSession(): Promise<AdminSession> {
+    const res = await this.ensureAxiosInstance().get('/admin/auth/me');
+    return res.data;
+  }
+
+  async regenerateRecoveryCodes(payload: {
+    otpCode?: string;
+    recoveryCode?: string;
+  }): Promise<{
+    recoveryCodes: string[];
+    recoveryCodesRemaining: number;
+  }> {
+    const res = await this.ensureAxiosInstance().post(
+      '/admin/auth/mfa/recovery-codes/regenerate',
+      payload,
+    );
+    return res.data;
+  }
+
+  async getAuthAuditLogs(params?: {
+    limit?: number;
+    offset?: number;
+    eventType?: string;
+    outcome?: 'success' | 'failure';
+  }): Promise<AdminAuthAuditLogsResponse> {
+    const searchParams = new URLSearchParams();
+    if (params?.limit) searchParams.set('limit', String(params.limit));
+    if (params?.offset) searchParams.set('offset', String(params.offset));
+    if (params?.eventType) searchParams.set('eventType', params.eventType);
+    if (params?.outcome) searchParams.set('outcome', params.outcome);
+
+    const query = searchParams.toString();
+    const res = await this
+      .ensureAxiosInstance()
+      .get(`/admin/auth/audit-logs${query ? `?${query}` : ''}`);
+    return res.data;
+  }
+
+  async logout() {
+    const axiosInstance = this.ensureAxiosInstance();
+    await axiosInstance.post('/admin/auth/logout', {});
+  }
+
+
   private ensureAxiosInstance() {
     if (!this.axiosInstance) {
-      console.log('Re-initializing axios instance');
       this.initializeAxios();
     }
     return this.axiosInstance;
@@ -265,7 +544,7 @@ class AdminApi {
   }
 
   async getDatabaseColumns(table: string): Promise<
-    Array<{ column_name: string; data_type: string; is_nullable: string; column_default: string | null }>
+    DatabaseColumn[]
   > {
     const axiosInstance = this.ensureAxiosInstance();
     const response = await axiosInstance.get(`/admin/database/columns/${table}`);
@@ -276,9 +555,18 @@ class AdminApi {
     table: string,
     page: number = 1,
     limit: number = 20
-  ): Promise<{ data: Record<string, unknown>[]; total: number; page: number; limit: number; totalPages: number }> {
+  ): Promise<DatabaseRowsResponse> {
     const axiosInstance = this.ensureAxiosInstance();
     const response = await axiosInstance.get(`/admin/database/rows/${table}?page=${page}&limit=${limit}`);
+    return response.data;
+  }
+
+  async runSqlQuery(sql: string): Promise<SqlQueryResponse> {
+    const axiosInstance = this.ensureAxiosInstance();
+    const response = await axiosInstance.post(
+      '/admin/database/run-sql?confirm=ADMIN_SQL_EXECUTE',
+      { sql },
+    );
     return response.data;
   }
 
@@ -316,16 +604,8 @@ class AdminApi {
   }
 
   async getTradeAnalytics(timeRange: string): Promise<TradeAnalyticsData> {
-    try {
-      const axiosInstance = this.ensureAxiosInstance();
-      const response = await axiosInstance.get(`/admin/trades/analytics?timeRange=${timeRange}`);
-      return response.data;
-    } catch (error: any) {
-      if (error?.response?.status !== 404) {
-        console.error('Failed to fetch trade analytics:', error);
-      }
-      throw error;
-    }
+    void timeRange;
+    return this.throwFeatureUnavailable('tradeAnalytics', '/admin/trades/analytics');
   }
 
   async getSystemHealth(): Promise<SystemHealth> {
@@ -362,16 +642,7 @@ class AdminApi {
   }
 
   async getGeographicData(): Promise<GeographicData[]> {
-    try {
-      const axiosInstance = this.ensureAxiosInstance();
-      const response = await axiosInstance.get('/admin/analytics/geographic');
-      return response.data;
-    } catch (error: any) {
-      if (error?.response?.status !== 404) {
-        console.error('Failed to fetch geographic data:', error);
-      }
-      throw error;
-    }
+    return this.throwFeatureUnavailable('geographicAnalytics', '/admin/analytics/geographic');
   }
 
   async getUsers(page: number, limit: number, search?: string): Promise<UsersResponse> {
@@ -394,6 +665,64 @@ class AdminApi {
     }
   }
 
+  async getUserDetail(userId: string): Promise<AdminUserDetailResponse> {
+    const axiosInstance = this.ensureAxiosInstance();
+    const response = await axiosInstance.get(`/admin/users/${userId}`);
+    return response.data;
+  }
+
+  async getTrades(
+    page: number,
+    limit: number,
+    status?: string,
+    userId?: string,
+  ): Promise<AdminTradesResponse> {
+    const params = new URLSearchParams({
+      page: String(page),
+      limit: String(limit),
+    });
+    if (status) params.set('status', status);
+    if (userId) params.set('userId', userId);
+
+    const axiosInstance = this.ensureAxiosInstance();
+    const response = await axiosInstance.get(`/admin/trades?${params.toString()}`);
+    return response.data;
+  }
+
+  async getAccounts(
+    page: number,
+    limit: number,
+    userId?: string,
+  ): Promise<AdminAccountsResponse> {
+    const params = new URLSearchParams({
+      page: String(page),
+      limit: String(limit),
+    });
+    if (userId) params.set('userId', userId);
+
+    const axiosInstance = this.ensureAxiosInstance();
+    const response = await axiosInstance.get(`/admin/accounts?${params.toString()}`);
+    return response.data;
+  }
+
+  async getSubscriptions(
+    page: number,
+    limit: number,
+    status?: string,
+    plan?: string,
+  ): Promise<AdminSubscriptionsResponse> {
+    const params = new URLSearchParams({
+      page: String(page),
+      limit: String(limit),
+    });
+    if (status) params.set('status', status);
+    if (plan) params.set('plan', plan);
+
+    const axiosInstance = this.ensureAxiosInstance();
+    const response = await axiosInstance.get(`/admin/subscriptions?${params.toString()}`);
+    return response.data;
+  }
+
   // --- New Enhanced Admin Methods ---
 
   async getLogs(
@@ -402,153 +731,76 @@ class AdminApi {
     level?: string,
     startDate?: string,
     endDate?: string
-  ): Promise<{ data: LogEntry[]; total: number; limit: number; offset: number }> {
-    try {
-      const params = new URLSearchParams({
-        limit: limit.toString(),
-        offset: offset.toString(),
-      });
-      
-      if (level) params.append('level', level);
-      if (startDate) params.append('startDate', startDate);
-      if (endDate) params.append('endDate', endDate);
-      
-      const axiosInstance = this.ensureAxiosInstance();
-      const response = await axiosInstance.get(`/admin/logs?${params}`);
-      return response.data;
-    } catch (error: any) {
-      if (error?.response?.status !== 404) {
-        console.error('Failed to fetch logs:', error);
-      }
-      throw error;
-    }
+  ): Promise<LogsResponse> {
+    const params = new URLSearchParams({
+      limit: String(limit),
+      offset: String(offset),
+    });
+    if (level) params.set('level', level);
+    if (startDate) params.set('startDate', startDate);
+    if (endDate) params.set('endDate', endDate);
+
+    const axiosInstance = this.ensureAxiosInstance();
+    const response = await axiosInstance.get(`/admin/logs?${params.toString()}`);
+    return response.data;
   }
 
   async getLogsStream(): Promise<{ message: string; latestLogs: LogEntry[] }> {
-    try {
-      const axiosInstance = this.ensureAxiosInstance();
-      const response = await axiosInstance.get('/admin/logs/stream');
-      return response.data;
-    } catch (error) {
-      console.error('Failed to fetch logs stream:', error);
-      throw error;
-    }
+    const axiosInstance = this.ensureAxiosInstance();
+    const response = await axiosInstance.get('/admin/logs/stream');
+    return response.data;
   }
 
-  async testEndpoint(testData: {
-    endpoint: string;
-    method: string;
-    headers?: Record<string, string>;
-    body?: any;
-    queryParams?: Record<string, string>;
-  }): Promise<any> {
-    try {
-      const axiosInstance = this.ensureAxiosInstance();
-      const response = await axiosInstance.post('/admin/test-endpoint', testData);
-      return response.data;
-    } catch (error) {
-      console.error('Failed to test endpoint:', error);
-      throw error;
-    }
+  async testEndpoint(testData: AdminTestEndpointRequest): Promise<AdminTestEndpointResponse> {
+    void testData;
+    return this.throwFeatureUnavailable('apiTestEndpoint', '/admin/test-endpoint');
   }
 
   async getSystemDiagnostics(): Promise<SystemDiagnostics> {
-    try {
-      const axiosInstance = this.ensureAxiosInstance();
-      const response = await axiosInstance.get('/admin/system-diagnostics');
-      return response.data;
-    } catch (error) {
-      console.error('Failed to fetch system diagnostics:', error);
-      throw error;
-    }
+    return this.throwFeatureUnavailable('systemDiagnostics', '/admin/system-diagnostics');
   }
 
   async clearCache(keys?: string[]): Promise<{ success: boolean; message: string; clearedKeys: string[]; timestamp: string }> {
-    try {
-      const axiosInstance = this.ensureAxiosInstance();
-      const response = await axiosInstance.post('/admin/clear-cache', { keys });
-      return response.data;
-    } catch (error) {
-      console.error('Failed to clear cache:', error);
-      throw error;
-    }
+    void keys;
+    return this.throwFeatureUnavailable('clearCache', '/admin/clear-cache');
   }
 
   async getPerformanceMetrics(timeRange: string = '1h'): Promise<PerformanceMetrics> {
-    try {
-      const axiosInstance = this.ensureAxiosInstance();
-      const response = await axiosInstance.get(`/admin/analytics/performance?timeRange=${timeRange}`);
-      return response.data;
-    } catch (error) {
-      console.error('Failed to fetch performance metrics:', error);
-      throw error;
-    }
+    const axiosInstance = this.ensureAxiosInstance();
+    const response = await axiosInstance.get(
+      `/admin/analytics/performance?timeRange=${encodeURIComponent(timeRange)}`,
+    );
+    return response.data;
   }
 
   async getErrorAnalytics(timeRange: string = '24h'): Promise<ErrorAnalytics> {
-    try {
-      const axiosInstance = this.ensureAxiosInstance();
-      const response = await axiosInstance.get(`/admin/error-analytics?timeRange=${timeRange}`);
-      return response.data;
-    } catch (error) {
-      console.error('Failed to fetch error analytics:', error);
-      throw error;
-    }
+    void timeRange;
+    return this.throwFeatureUnavailable('errorAnalytics', '/admin/error-analytics');
   }
 
-  async createDebugSession(sessionData: { description: string; userId?: string }): Promise<any> {
-    try {
-      const axiosInstance = this.ensureAxiosInstance();
-      const response = await axiosInstance.post('/admin/debug-session', sessionData);
-      return response.data;
-    } catch (error) {
-      console.error('Failed to create debug session:', error);
-      throw error;
-    }
+  async createDebugSession(sessionData: { description: string; userId?: string }): Promise<AdminDebugSession> {
+    void sessionData;
+    return this.throwFeatureUnavailable('debugSessionCreate', '/admin/debug-session');
   }
 
-  async getDebugSessions(): Promise<{ data: any[]; total: number }> {
-    try {
-      const axiosInstance = this.ensureAxiosInstance();
-      const response = await axiosInstance.get('/admin/debug-sessions');
-      return response.data;
-    } catch (error) {
-      console.error('Failed to fetch debug sessions:', error);
-      throw error;
-    }
+  async getDebugSessions(): Promise<{ data: AdminDebugSession[]; total: number }> {
+    return this.throwFeatureUnavailable('debugSessions', '/admin/debug-sessions');
   }
 
   async getApiUsageStats(timeRange: string = '24h'): Promise<ApiUsageStats> {
-    try {
-      const axiosInstance = this.ensureAxiosInstance();
-      const response = await axiosInstance.get(`/admin/api/usage?timeRange=${timeRange}`);
-      return response.data;
-    } catch (error) {
-      console.error('Failed to fetch API usage stats:', error);
-      throw error;
-    }
+    const axiosInstance = this.ensureAxiosInstance();
+    const response = await axiosInstance.get(
+      `/admin/api/usage?timeRange=${encodeURIComponent(timeRange)}`,
+    );
+    return response.data;
   }
 
   async backupDatabase(): Promise<{ success: boolean; message: string; backupId: string; estimatedDuration: string; timestamp: string }> {
-    try {
-      const axiosInstance = this.ensureAxiosInstance();
-      const response = await axiosInstance.post('/admin/backup-database');
-      return response.data;
-    } catch (error) {
-      console.error('Failed to backup database:', error);
-      throw error;
-    }
+    return this.throwFeatureUnavailable('backupDatabase', '/admin/backup-database');
   }
 
-  async getBackupStatus(): Promise<any> {
-    try {
-      const axiosInstance = this.ensureAxiosInstance();
-      const response = await axiosInstance.get('/admin/backup-status');
-      return response.data;
-    } catch (error) {
-      console.error('Failed to fetch backup status:', error);
-      throw error;
-    }
+  async getBackupStatus(): Promise<AdminBackupStatus> {
+    return this.throwFeatureUnavailable('backupStatus', '/admin/backup-status');
   }
 
   // --- Test User Methods ---

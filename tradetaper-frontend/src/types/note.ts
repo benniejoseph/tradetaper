@@ -76,6 +76,33 @@ export interface CalendarNote {
   notes: Note[];
 }
 
+export interface CalendarDay {
+  date: string;
+  dayOfMonth: number;
+  isCurrentMonth: boolean;
+  isToday: boolean;
+  noteCount: number;
+  notes: Note[];
+  hasEvents: boolean;
+}
+
+export interface CalendarMonth {
+  year: number;
+  month: number;
+  monthName: string;
+  days: CalendarDay[];
+  totalNotes: number;
+  weekdays: string[];
+}
+
+export interface CalendarStats {
+  totalNotes: number;
+  totalWords: number;
+  averageNotesPerDay: number;
+  mostActiveDay: { date: string; noteCount: number } | null;
+  notesByWeek: { week: number; noteCount: number }[];
+}
+
 export interface NoteMedia {
   id: string;
   noteId: string;

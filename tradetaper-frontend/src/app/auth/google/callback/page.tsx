@@ -20,36 +20,34 @@ function GoogleCallbackContent() {
         const token = searchParams.get('token');
         const user = searchParams.get('user');
         const error = searchParams.get('error');
+        const hashParams = new URLSearchParams(
+          typeof window !== 'undefined' && window.location.hash.startsWith('#')
+            ? window.location.hash.slice(1)
+            : '',
+        );
+        const tokenFromHash = hashParams.get('token');
+        const userFromHash = hashParams.get('user');
+        const errorFromHash = hashParams.get('error');
         
-        // If no relevant params, wait - they might still be loading
-        if (!token && !user && !error) {
-          console.log('No auth params yet, waiting...');
+        // If no relevant params, wait briefly for router params/hash hydration.
+        if (
+          !token &&
+          !user &&
+          !error &&
+          !tokenFromHash &&
+          !userFromHash &&
+          !errorFromHash
+        ) {
           // Give it a moment for params to populate
           await new Promise(resolve => setTimeout(resolve, 300));
-          
-          // Re-check after waiting
-          const tokenRetry = searchParams.get('token');
-          const userRetry = searchParams.get('user');
-          const errorRetry = searchParams.get('error');
-          
-          if (!tokenRetry && !userRetry && !errorRetry) {
-            // Still no params - check localStorage as fallback (might already be authenticated)
-            const storedToken = localStorage.getItem('token');
-            if (storedToken) {
-              console.log('Found existing token in localStorage, redirecting to dashboard');
-              router.push('/dashboard');
-              return;
-            }
-            // Truly no params - redirect to login
-            console.log('No auth params found after waiting');
-            setErrorMessage('No authentication data received');
-            setStatus('error');
-            setTimeout(() => router.push('/login'), 2000);
-            return;
-          }
+
+          // Continue; GoogleAuthService will attempt cookie-based /auth/me if token params are absent.
         }
         
-        const success = await GoogleAuthService.handleGoogleCallback(searchParams);
+        const success = await GoogleAuthService.handleGoogleCallback(
+          searchParams,
+          typeof window !== 'undefined' ? window.location.hash : '',
+        );
         
         if (success) {
           setStatus('success');
@@ -59,7 +57,15 @@ function GoogleCallbackContent() {
           }, 1000);
         } else {
           // Check if there's an error parameter
-          const errorParam = searchParams.get('error');
+          const errorParam =
+            searchParams.get('error') ??
+            (typeof window !== 'undefined'
+              ? new URLSearchParams(
+                  window.location.hash.startsWith('#')
+                    ? window.location.hash.slice(1)
+                    : '',
+                ).get('error')
+              : null);
           
           let errorMsg = 'Authentication failed';
           if (errorParam) {

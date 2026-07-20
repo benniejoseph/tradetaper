@@ -9,19 +9,12 @@ import {
   markNotificationAsRead,
   markAllNotificationsAsRead,
 } from '@/store/features/notificationsSlice';
-import { Notification, NotificationType } from '@/services/notificationService';
+import { Notification } from '@/services/notificationService';
 import { useRouter } from 'next/navigation';
 import {
   FaBell,
   FaCheckDouble,
   FaTimes,
-  FaChartLine,
-  FaCalendarAlt,
-  FaBrain,
-  FaCog,
-  FaExclamationTriangle,
-  FaLink,
-  FaSync,
 } from 'react-icons/fa';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -42,10 +35,10 @@ export default function NotificationBell() {
   // Fetch notifications on mount with error handling
   useEffect(() => {
     try {
-      dispatch(fetchUnreadCount()).catch((err: any) =>
+      dispatch(fetchUnreadCount()).catch((err: unknown) =>
         console.error('Failed to fetch unread count:', err)
       );
-      dispatch(fetchNotifications({ limit: 10 })).catch((err: any) =>
+      dispatch(fetchNotifications({ limit: 10 })).catch((err: unknown) =>
         console.error('Failed to fetch notifications:', err)
       );
     } catch (error) {
@@ -66,8 +59,10 @@ export default function NotificationBell() {
   }, []);
 
   const handleNotificationClick = async (notification: Notification) => {
+    const isUnread = notification.status === 'delivered' && !notification.readAt;
+
     // Mark as read
-    if (notification.status !== 'read') {
+    if (isUnread) {
       dispatch(markNotificationAsRead(notification.id));
     }
 
@@ -84,10 +79,11 @@ export default function NotificationBell() {
 
   const recentNotifications = notifications.slice(0, 5);
 
-  // Debug log when isOpen changes
   useEffect(() => {
-    console.log('NotificationBell isOpen state changed to:', isOpen);
-  }, [isOpen]);
+    if (!isOpen) return;
+    dispatch(fetchNotifications({ limit: 10 }));
+    dispatch(fetchUnreadCount());
+  }, [dispatch, isOpen]);
 
   return (
     <div className="relative" ref={dropdownRef}>
@@ -96,7 +92,7 @@ export default function NotificationBell() {
         onClick={() => {
           setIsOpen(!isOpen);
         }}
-        className="relative p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+        className="relative p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-black dark:hover:ring-1 dark:hover:ring-white/10 transition-colors"
         aria-label="Notifications"
         type="button"
       >
@@ -112,7 +108,7 @@ export default function NotificationBell() {
 
       {/* Dropdown Panel */}
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden z-50">
+        <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white dark:bg-black rounded-xl shadow-2xl border border-gray-200 dark:border-white/10 overflow-hidden z-50">
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white">
             <h3 className="font-semibold">Notifications</h3>
@@ -150,7 +146,8 @@ export default function NotificationBell() {
             ) : (
               recentNotifications.map((notification: Notification) => {
                 const style = getNotificationStyle(notification);
-                const isUnread = notification.status !== 'read';
+                const isUnread =
+                  notification.status === 'delivered' && !notification.readAt;
 
                 return (
                   <div
@@ -158,8 +155,8 @@ export default function NotificationBell() {
                   onClick={() => handleNotificationClick(notification)}
                   className={`
                     group relative flex items-start gap-3 p-3 rounded-lg cursor-pointer transition-all duration-200
-                    bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700
-                    hover:shadow-md hover:border-gray-300 dark:hover:border-gray-600
+                    bg-white dark:bg-black border border-gray-200 dark:border-white/10
+                    hover:shadow-md hover:border-gray-300 dark:hover:border-emerald-500/30
                     ${isUnread ? 'shadow-sm ring-1 ring-emerald-500/20' : 'shadow-sm'}
                   `}
                 >
@@ -212,7 +209,7 @@ export default function NotificationBell() {
 
           {/* Footer */}
           {notifications.length > 0 && (
-            <div className="p-3 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
+            <div className="p-3 border-t border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-black">
               <button
                 onClick={() => {
                   router.push('/notifications');

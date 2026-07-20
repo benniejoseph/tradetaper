@@ -35,7 +35,7 @@ const TRADING_SESSIONS: TradingSession[] = [
     markets: ['Tokyo', 'Sydney', 'Singapore', 'Hong Kong'],
     startUTC: 23,
     endUTC: 8,
-    color: 'bg-blue-500',
+    color: 'bg-emerald-500',
     volatility: 'Low',
     liquidity: 6,
     bestForex: ['AUD/JPY', 'NZD/JPY', 'EUR/JPY', 'AUD/USD'],
@@ -146,7 +146,7 @@ export default function SessionDetailsWidget() {
           // Find next opening session
           let minUntilOpen = Infinity;
           TRADING_SESSIONS.forEach(s => {
-             let startTime = s.startUTC;
+             const startTime = s.startUTC;
              let diff = startTime - currentUTCTime;
              if (diff < 0) diff += 24; // Opening tomorrow
              
@@ -158,8 +158,6 @@ export default function SessionDetailsWidget() {
       
       const hours = Math.floor(targetTime);
       const minutes = Math.floor((targetTime - hours) * 60);
-      const seconds = Math.floor(((targetTime - hours) * 60 - minutes) * 60);
-      
       setTimeRemaining(`${label} ${hours}h ${minutes}m`);
   };
 
@@ -198,13 +196,11 @@ export default function SessionDetailsWidget() {
       case 'Medium':
         return <FaChartLine className="text-yellow-500" />;
       case 'Low':
-        return <FaWater className="text-blue-500" />;
+        return <FaWater className="text-emerald-300" />;
       default:
         return null;
     }
   };
-
-  const selectedTZLabel = TIMEZONES.find(tz => tz.value === selectedTimezone)?.abbr || 'UTC';
 
   return (
     <div className="col-span-1 sm:col-span-2 lg:col-span-6 bg-white dark:bg-[#022c22] border border-slate-200 dark:border-emerald-900 rounded-xl shadow-sm p-0 overflow-hidden transition-all duration-300">
@@ -213,22 +209,22 @@ export default function SessionDetailsWidget() {
         onClick={() => setIsExpanded(!isExpanded)}
         className="bg-gradient-to-r from-emerald-900 to-emerald-600 p-4 text-white cursor-pointer hover:brightness-110 transition-all"
       >
-        <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-3 w-full md:w-auto">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div className="flex w-full items-start gap-3 sm:items-center md:w-auto">
                 <div className="p-2 bg-white/10 rounded-full backdrop-blur-sm">
                     <FaGlobe className="w-6 h-6 text-emerald-50" />
                 </div>
-                <div>
-                    <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                <div className="min-w-0">
+                    <h3 className="flex flex-wrap items-center gap-2 text-lg font-bold text-white sm:text-xl">
                         Market Sessions
-                        <span className="text-xs font-normal bg-white/20 px-2 py-0.5 rounded-full flex items-center gap-1">
+                        <span className="inline-flex items-center gap-1 rounded-full bg-white/20 px-2 py-0.5 text-xs font-normal">
                             {overlappingSessions.length > 1 && <FaBell className="w-3 h-3 text-amber-300 animate-pulse" />}
                             {overlappingSessions.length > 1 ? 'Overlap Priority' : activeSession ? 'Market Open' : 'Markets Closed'}
                         </span>
                     </h3>
                     
                     {/* Compact Summary Line */}
-                    <div className="flex flex-wrap items-center gap-3 mt-1 text-sm text-emerald-50/90">
+                    <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-emerald-50/90 sm:gap-3">
                         <span className="font-semibold text-white">
                             {overlappingSessions.length > 1 
                                 ? overlappingSessions.map(s => s.name.split(' ')[0]).join(' + ') 
@@ -253,13 +249,13 @@ export default function SessionDetailsWidget() {
             </div>
 
             {/* Right Side: Clock & Controls */}
-            <div className="flex items-center gap-6 w-full md:w-auto justify-between md:justify-end">
+            <div className="flex w-full items-center justify-between gap-4 md:w-auto md:justify-end md:gap-6">
                 {/* Time Display */}
-                <div className="text-right">
-                    <div className="text-2xl md:text-3xl font-black font-mono tracking-tight leading-none">
+                <div className="text-left md:text-right">
+                    <div className="text-2xl font-black font-mono tracking-tight leading-none md:text-3xl">
                         {getCurrentTimeInTZ()}
                     </div>
-                    <div className="text-[10px] uppercase tracking-widest opacity-60 mt-1 flex justify-end gap-2 items-center">
+                    <div className="mt-1 flex items-center gap-2 text-[10px] uppercase tracking-widest opacity-60 md:justify-end">
                         <select
                             onClick={(e) => e.stopPropagation()}
                             value={selectedTimezone}
@@ -274,7 +270,7 @@ export default function SessionDetailsWidget() {
                 </div>
 
                 {/* Expand Toggle */}
-                <div className="bg-white/10 p-2 rounded-full hover:bg-white/20 transition-colors">
+                <div className="rounded-full bg-white/10 p-2 transition-colors hover:bg-white/20">
                     {isExpanded ? <FaChevronUp /> : <FaChevronDown />}
                 </div>
             </div>
@@ -289,10 +285,10 @@ export default function SessionDetailsWidget() {
       </div>
 
       {/* Collapsible Content */}
-      <div className={`transition-all duration-500 ease-in-out overflow-hidden ${isExpanded ? 'max-h-[800px] opacity-100' : 'max-h-0 opacity-0'}`}>
-        <div className="flex flex-col md:flex-row gap-6 p-6 border-t border-slate-100 dark:border-emerald-900/30">
+      <div className={`transition-all duration-500 ease-in-out overflow-hidden ${isExpanded ? 'max-h-[3600px] opacity-100' : 'max-h-0 opacity-0'}`}>
+        <div className="flex flex-col gap-4 border-t border-slate-100 p-4 dark:border-emerald-900/30 sm:p-6 md:flex-row md:gap-6">
             {/* Current Status Detail */}
-            <div className="md:w-1/3 border-b md:border-b-0 md:border-r border-slate-200 dark:border-emerald-900/50 pb-4 md:pb-0 md:pr-6">
+            <div className="border-b border-slate-200 pb-4 dark:border-emerald-900/50 md:flex-[0_1_32%] md:min-w-0 md:border-b-0 md:border-r md:pb-0 md:pr-6">
             <h4 className="text-sm font-semibold text-slate-500 dark:text-emerald-400 uppercase tracking-wider mb-3">Current Status</h4>
             
             {overlappingSessions.length > 1 ? (
@@ -343,7 +339,7 @@ export default function SessionDetailsWidget() {
             </div>
 
             {/* All Sessions Grid */}
-            <div className="md:w-2/3 grid gap-3 grid-cols-1 md:grid-cols-3">
+            <div className="min-w-0 grid grid-cols-1 gap-3 md:flex-1 md:grid-cols-3">
             {TRADING_SESSIONS.map((session) => {
                 const isActive = activeSession?.name === session.name;
                 const isOverlapping = overlappingSessions.some(s => s.name === session.name);
@@ -351,7 +347,7 @@ export default function SessionDetailsWidget() {
                 return (
                 <div 
                     key={session.name} 
-                    className={`rounded-lg p-3 border transition-all ${
+                    className={`min-w-0 rounded-lg p-3 border transition-all ${
                     isActive || isOverlapping
                         ? 'bg-emerald-50 dark:bg-emerald-900/30 border-emerald-500 dark:border-emerald-600 shadow-md'
                         : 'bg-slate-50 dark:bg-emerald-900/20 border-slate-200 dark:border-emerald-800/50'
@@ -423,13 +419,13 @@ export default function SessionDetailsWidget() {
                         </div>
                     </div>
 
-                    <div className="bg-white dark:bg-emerald-950/30 rounded p-2 border border-blue-100 dark:border-emerald-900/30">
-                        <p className="text-[9px] font-bold text-blue-700 dark:text-emerald-300 mb-1.5 flex items-center gap-1">
+                    <div className="bg-white dark:bg-emerald-950/30 rounded p-2 border border-emerald-100 dark:border-emerald-900/30">
+                        <p className="text-[9px] font-bold text-emerald-700 dark:text-emerald-300 mb-1.5 flex items-center gap-1">
                             📈 INDICES
                         </p>
                         <div className="flex flex-wrap gap-1">
                         {session.bestIndices.map((index) => (
-                            <span key={index} className="text-[10px] px-1.5 py-0.5 bg-blue-50 dark:bg-emerald-900/40 text-blue-700 dark:text-emerald-300 rounded border border-blue-100 dark:border-emerald-800/30">
+                            <span key={index} className="text-[10px] px-1.5 py-0.5 bg-emerald-50 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 rounded border border-emerald-100 dark:border-emerald-800/30">
                             {index}
                             </span>
                         ))}

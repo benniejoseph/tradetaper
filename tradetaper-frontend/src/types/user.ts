@@ -12,6 +12,9 @@ export interface UserResponseDto {
     subscription?: {
         plan: string;
         status: string;
+        currentPeriodStart?: string | Date | null;
+        currentPeriodEnd?: string | Date | null;
+        cancelAtPeriodEnd?: boolean;
         planDetails?: PlanDetails;
     };
 }

@@ -376,21 +376,21 @@ const NoteViewPage: React.FC = () => {
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6 p-6">
+    <div className="max-w-4xl mx-auto space-y-6 p-3 sm:p-6">
       {/* Header */}
-      <div className="flex items-center justify-between bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm">
         <button
           onClick={() => router.back()}
-          className="flex items-center gap-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 px-3 py-2 rounded-md transition-colors"
+          className="self-start flex items-center gap-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 px-3 py-2 rounded-md transition-colors"
         >
           <FaArrowLeft />
           <span>Back</span>
         </button>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={handleTogglePin}
-            className={`flex items-center gap-2 px-3 py-2 rounded-md transition-colors ${
+            className={`flex items-center gap-2 px-2 sm:px-3 py-2 rounded-md transition-colors ${
               note.isPinned 
                 ? 'text-yellow-500 bg-yellow-50 dark:bg-yellow-900/20' 
                 : 'text-gray-500 hover:text-yellow-500 hover:bg-yellow-50 dark:hover:bg-yellow-900/20'
@@ -402,7 +402,7 @@ const NoteViewPage: React.FC = () => {
 
           <button
             onClick={handleShare}
-            className="flex items-center gap-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 px-3 py-2 rounded-md transition-colors hover:bg-gray-50 dark:hover:bg-gray-700"
+            className="flex items-center gap-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 px-2 sm:px-3 py-2 rounded-md transition-colors hover:bg-gray-50 dark:hover:bg-gray-700"
           >
             <FaShare />
             <span className="hidden sm:inline">Share</span>
@@ -410,34 +410,34 @@ const NoteViewPage: React.FC = () => {
 
           <button
             onClick={handleCopyContent}
-            className="flex items-center gap-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 px-3 py-2 rounded-md transition-colors hover:bg-gray-50 dark:hover:bg-gray-700"
+            className="flex items-center gap-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 px-2 sm:px-3 py-2 rounded-md transition-colors hover:bg-gray-50 dark:hover:bg-gray-700"
           >
             <FaCopy />
             <span className="hidden sm:inline">Copy</span>
           </button>
 
           {isEditing ? (
-            <button
-              onClick={handleSave}
-              className="flex items-center gap-2 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white px-4 py-2 rounded-md hover:from-emerald-600 hover:to-emerald-700 transition-all"
-              disabled={saving}
-            >
-              {saving ? <FaSpinner className="animate-spin" /> : <FaSave />}
-              <span>{saving ? 'Saving...' : 'Save'}</span>
-            </button>
-          ) : (
-            <button
-              onClick={() => setIsEditing(true)}
-              className="flex items-center gap-2 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white px-4 py-2 rounded-md hover:from-emerald-600 hover:to-emerald-700 transition-all"
-            >
-              <FaEdit />
-              <span>Edit</span>
-            </button>
-          )}
+              <button
+                onClick={handleSave}
+                className="flex items-center gap-2 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white px-3 sm:px-4 py-2 rounded-md hover:from-emerald-600 hover:to-emerald-700 transition-all"
+                disabled={saving}
+              >
+                {saving ? <FaSpinner className="animate-spin" /> : <FaSave />}
+                <span className="hidden sm:inline">{saving ? 'Saving...' : 'Save'}</span>
+              </button>
+            ) : (
+              <button
+                onClick={() => setIsEditing(true)}
+                className="flex items-center gap-2 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white px-3 sm:px-4 py-2 rounded-md hover:from-emerald-600 hover:to-emerald-700 transition-all"
+              >
+                <FaEdit />
+                <span className="hidden sm:inline">Edit</span>
+              </button>
+            )}
 
           <button
             onClick={handleDelete}
-            className="flex items-center gap-2 text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 px-3 py-2 rounded-md transition-colors"
+            className="flex items-center gap-2 text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 px-2 sm:px-3 py-2 rounded-md transition-colors"
           >
             <FaTrash />
             <span className="hidden sm:inline">Delete</span>
@@ -448,24 +448,24 @@ const NoteViewPage: React.FC = () => {
       {/* Note Content */}
       <article className="bg-white dark:bg-gray-800 rounded-lg shadow-sm">
         {/* Title Section */}
-        <div className="p-8 pb-6 border-b border-emerald-200 dark:border-emerald-700/30">
+        <div className="p-4 sm:p-8 sm:pb-6 border-b border-emerald-200 dark:border-emerald-700/30">
           {isEditing ? (
             <input
               type="text"
               value={editedNote.title || ''}
               onChange={(e) => setEditedNote(prev => ({ ...prev, title: e.target.value }))}
-              className="w-full text-3xl md:text-4xl font-bold bg-transparent border-none outline-none placeholder-gray-400 dark:placeholder-gray-600 text-gray-900 dark:text-white"
+              className="w-full text-2xl sm:text-3xl md:text-4xl font-bold bg-transparent border-none outline-none placeholder-gray-400 dark:placeholder-gray-600 text-gray-900 dark:text-white"
               placeholder="Note title..."
               autoFocus
             />
           ) : (
-            <h1 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white leading-tight">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 dark:text-white leading-tight">
               {note.title}
             </h1>
           )}
 
           {/* Metadata */}
-          <div className="flex flex-wrap items-center gap-6 mt-4 text-sm text-gray-600 dark:text-gray-400">
+          <div className="flex flex-wrap items-center gap-3 sm:gap-6 mt-4 text-sm text-gray-600 dark:text-gray-400">
             <div className="flex items-center gap-2">
               <FaCalendarAlt className="text-gray-400" />
               <span>Created {format(parseISO(note.createdAt), 'MMM d, yyyy')}</span>
@@ -513,10 +513,10 @@ const NoteViewPage: React.FC = () => {
         </div>
 
         {/* Content */}
-        <div className="p-8">
+        <div className="p-4 sm:p-8">
           {isEditing ? (
             <div className="space-y-6">
-              <div className="p-6 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg border border-emerald-200 dark:border-emerald-800/30">
+              <div className="p-4 sm:p-6 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg border border-emerald-200 dark:border-emerald-800/30">
                 <div className="flex items-start gap-3">
                   <div className="text-emerald-500">
                     <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
@@ -572,8 +572,8 @@ const NoteViewPage: React.FC = () => {
         </div>
 
         {/* Footer */}
-        <div className="px-8 py-4 bg-gray-50 dark:bg-gray-900/50 rounded-b-lg border-t border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between text-sm text-gray-500 dark:text-gray-400">
+        <div className="px-4 sm:px-8 py-4 bg-gray-50 dark:bg-gray-900/50 rounded-b-lg border-t border-gray-200 dark:border-gray-700">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between text-sm text-gray-500 dark:text-gray-400">
             <span>
               Last modified {format(parseISO(note.updatedAt), 'MMMM d, yyyy \'at\' h:mm a')}
             </span>

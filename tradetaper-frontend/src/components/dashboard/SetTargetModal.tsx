@@ -9,7 +9,7 @@ interface SetTargetModalProps {
   onClose: () => void;
   currentGoal: number;
   // currentActual: number; // If we want to display the current actual value from P&L
-  onSave: (newGoal: number) => void;
+  onSave: (newGoal: number) => Promise<void>;
   title?: string;
 }
 
@@ -37,8 +37,13 @@ export default function SetTargetModal({
   const handleSave = () => {
     const newGoal = parseFloat(goalAmount);
     if (!isNaN(newGoal) && newGoal > 0) {
-      onSave(newGoal);
-      onClose(); // Close modal on successful save
+      onSave(newGoal)
+        .then(() => {
+          onClose();
+        })
+        .catch(() => {
+          // Parent handles user-facing error messaging via AlertModal.
+        });
     } else {
       showAlert("Please enter a valid positive number for the goal.", "Invalid Goal");
     }

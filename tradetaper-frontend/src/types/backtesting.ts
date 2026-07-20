@@ -13,7 +13,7 @@ export interface BacktestTrade {
   id: string;
   strategyId: string;
   userId: string;
-  
+
   // Trade Details
   symbol: string;
   direction: TradeDirection;
@@ -22,7 +22,7 @@ export interface BacktestTrade {
   stopLoss?: number;
   takeProfit?: number;
   lotSize: number;
-  
+
   // Timing Dimensions
   timeframe: Timeframe;
   session?: TradingSession;
@@ -32,31 +32,31 @@ export interface BacktestTrade {
   tradeDate: string;
   entryTime?: string;
   exitTime?: string;
-  
+
   // Setup Details
   setupType?: string;
   ictConcept?: string;
   marketStructure?: MarketStructure;
   htfBias?: HTFBias;
-  
+
   // Results
   outcome: TradeOutcome;
   pnlPips?: number;
   pnlDollars?: number;
   rMultiple?: number;
   holdingTimeMinutes?: number;
-  
+
   // Quality Metrics
   entryQuality?: number;
   executionQuality?: number;
   followedRules: boolean;
   checklistScore?: number;
-  
+
   // Notes
   notes?: string;
   screenshotUrl?: string;
   lessonLearned?: string;
-  
+
   // Metadata
   createdAt: string;
   updatedAt: string;
@@ -117,6 +117,15 @@ export interface BacktestStats {
   averageEntryQuality: number;
   ruleFollowingRate: number;
   averageChecklistScore: number;
+  // Advanced risk metrics
+  sharpeRatio: number;           // Risk-adjusted return
+  sortinoRatio: number;          // Downside deviation risk
+  calmarRatio: number;           // Return over max drawdown
+  maxDrawdownPct: number;        // Max drawdown as % of peak equity
+  maxDrawdownDollars: number;    // Max drawdown in dollars
+  maxDrawdownDuration: number;   // Max consecutive losing bars
+  recoveryFactor: number;        // Net profit / Max drawdown
+  equityCurve: number[];         // Running equity values (starting from 100000)
 }
 
 export interface DimensionStats {
@@ -154,6 +163,62 @@ export interface AnalysisData {
   worstConditions: Record<string, DimensionStats | undefined>;
   tradeCount: number;
   dateRange: { start: string; end: string } | null;
+}
+
+export interface ReplaySessionSourceSummary {
+  source: string;
+  trades: number;
+  winRate: number;
+  pnl: number;
+}
+
+export interface ReplaySessionTradeAnalytics {
+  totalTrades: number;
+  wins: number;
+  losses: number;
+  breakevens: number;
+  winRate: number;
+  netPnl: number;
+  grossProfit: number;
+  grossLoss: number;
+  profitFactor: number;
+  expectancy: number;
+  averageWin: number;
+  averageLoss: number;
+  averagePnl: number;
+  largestWin: number;
+  largestLoss: number;
+  maxConsecutiveWins: number;
+  maxConsecutiveLosses: number;
+  averageHoldingMinutes: number;
+  startingBalance: number;
+  endingBalance: number;
+  maxDrawdown: number;
+  maxDrawdownPct: number;
+  sourceBreakdown: ReplaySessionSourceSummary[];
+}
+
+export interface ReplaySessionReviewReport {
+  sessionId: string;
+  symbol: string;
+  timeframe: string;
+  status: 'in_progress' | 'completed' | 'abandoned' | string;
+  generatedAt: string;
+  period: {
+    startDate: string;
+    endDate: string;
+  };
+  inputs: {
+    closedTrades: number;
+    openPositions: number;
+    pendingOrders: number;
+    journalEntries: number;
+  };
+  tradeAnalytics: ReplaySessionTradeAnalytics;
+  executionFindings: string[];
+  behavioralInsights: string[];
+  journalHighlights: string[];
+  nextSessionChecklist: string[];
 }
 
 // Constants for dropdowns
@@ -316,4 +381,3 @@ export interface MarketPatternDiscovery {
   movementDistribution: Record<string, number>;
   sentimentDistribution: Record<string, number>;
 }
-

@@ -52,7 +52,8 @@ const NoteEditPage: React.FC = () => {
   const [visibility, setVisibility] = useState<'private' | 'shared'>('private');
   const [isPinned, setIsPinned] = useState(false);
   const [showBlockMenu, setShowBlockMenu] = useState(false);
-  const [blockMenuPosition, setBlockMenuPosition] = useState<{ top: number; left: number } | null>(null);
+  const [blockMenuPosition, setBlockMenuPosition] = useState<{ top: number; left: number; width: number } | null>(null);
+  const [isMobileBlockMenu, setIsMobileBlockMenu] = useState(false);
 
   const fetchNote = async () => {
     if (!noteId) return;
@@ -80,6 +81,13 @@ const NoteEditPage: React.FC = () => {
       fetchNote();
     }
   }, [noteId]);
+
+  useEffect(() => {
+    const syncViewport = () => setIsMobileBlockMenu(window.innerWidth < 640);
+    syncViewport();
+    window.addEventListener('resize', syncViewport);
+    return () => window.removeEventListener('resize', syncViewport);
+  }, []);
 
   const handleSave = async () => {
     if (!title.trim()) {
@@ -226,16 +234,26 @@ const NoteEditPage: React.FC = () => {
   const handleBlockMenuClick = (event: React.MouseEvent<HTMLButtonElement>) => {
     const rect = event.currentTarget.getBoundingClientRect();
     const viewportHeight = window.innerHeight;
+    const viewportWidth = window.innerWidth;
     const menuHeight = 400; // Approximate menu height
+    const menuWidth = Math.min(280, viewportWidth - 16);
+
+    if (viewportWidth < 640) {
+      setBlockMenuPosition({ top: 0, left: 0, width: menuWidth });
+      setShowBlockMenu(true);
+      return;
+    }
     
     // Calculate position to prevent overflow
-    const top = rect.bottom + menuHeight > viewportHeight 
-      ? rect.top - menuHeight 
+    const top = rect.bottom + menuHeight > viewportHeight
+      ? Math.max(8, rect.top - menuHeight)
       : rect.bottom;
+    const left = Math.min(Math.max(8, rect.left), viewportWidth - menuWidth - 8);
     
     setBlockMenuPosition({
-      top: top + window.scrollY,
-      left: rect.left
+      top,
+      left,
+      width: menuWidth,
     });
     setShowBlockMenu(true);
   };
@@ -270,20 +288,20 @@ const NoteEditPage: React.FC = () => {
     <div className="min-h-screen bg-white dark:bg-black p-4">
       <div className="max-w-4xl mx-auto">
         <AnimatedCard className="backdrop-blur-sm bg-white/70 dark:bg-gray-800/70 border border-white/20 shadow-xl">
-          <div className="p-8">
+          <div className="p-4 sm:p-8">
             {/* Header */}
-            <div className="flex items-center justify-between mb-8">
-              <div className="flex items-center gap-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-8">
+              <div className="flex items-center gap-3 sm:gap-4">
                 <AnimatedButton 
                   onClick={() => router.push(`/notes/${noteId}`)}
                   className="bg-gray-100/50 hover:bg-gray-200/50 text-gray-600 dark:bg-gray-700/50 dark:hover:bg-gray-600/50 dark:text-gray-300"
                 >
                   <FaArrowLeft />
                 </AnimatedButton>
-                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Edit Note</h1>
+                <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">Edit Note</h1>
               </div>
               
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                 <AnimatedButton
                   onClick={() => setIsPinned(!isPinned)}
                   className={`${
@@ -319,7 +337,7 @@ const NoteEditPage: React.FC = () => {
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Note title..."
-              className="w-full text-4xl font-bold bg-transparent border-none outline-none text-gray-900 dark:text-white placeholder-gray-400 mb-6"
+              className="w-full text-3xl sm:text-4xl font-bold bg-transparent border-none outline-none text-gray-900 dark:text-white placeholder-gray-400 mb-6"
               autoFocus
             />
 
@@ -374,7 +392,7 @@ const NoteEditPage: React.FC = () => {
             </div>
 
             {/* Quick Action Buttons */}
-            <div className="flex flex-wrap gap-2 mb-6 p-4 bg-gray-50/50 dark:bg-gray-800/50 rounded-lg">
+            <div className="grid grid-cols-2 gap-2 mb-6 p-4 bg-gray-50/50 dark:bg-gray-800/50 rounded-lg sm:flex sm:flex-wrap">
               <button
                 onClick={() => addBlock('image')}
                 className="flex items-center gap-2 px-3 py-2 text-sm bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 rounded-lg hover:bg-emerald-200 dark:hover:bg-emerald-900/50 transition-colors"
@@ -426,7 +444,7 @@ const NoteEditPage: React.FC = () => {
             <div className="mt-8">
               <button
                 onClick={handleBlockMenuClick}
-                className="w-full border-2 border-dashed border-emerald-300 dark:border-emerald-600/30 rounded-lg p-6 text-emerald-600 dark:text-emerald-400 hover:border-emerald-500 hover:text-emerald-700 dark:hover:text-emerald-300 transition-all duration-200 flex items-center justify-center gap-2 group bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-950/10 dark:to-emerald-900/10"
+                className="w-full border-2 border-dashed border-emerald-300 dark:border-emerald-600/30 rounded-lg p-4 sm:p-6 text-emerald-600 dark:text-emerald-400 hover:border-emerald-500 hover:text-emerald-700 dark:hover:text-emerald-300 transition-all duration-200 flex items-center justify-center gap-2 group bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-950/10 dark:to-emerald-900/10"
               >
                 <FaPlus className="w-4 h-4 group-hover:scale-110 transition-transform" />
                 Add a block
@@ -449,14 +467,20 @@ const NoteEditPage: React.FC = () => {
             onClick={() => setShowBlockMenu(false)}
           />
           <div 
-            className="fixed z-50 bg-gradient-to-br from-white to-emerald-50 dark:from-black dark:to-emerald-950/20 rounded-lg shadow-2xl border border-emerald-200 dark:border-emerald-700/30 max-h-96 overflow-y-auto backdrop-blur-xl"
-            style={{
-              top: blockMenuPosition.top,
-              left: blockMenuPosition.left,
-              width: '280px'
-            }}
+            className={`fixed z-50 bg-gradient-to-br from-white to-emerald-50 dark:from-black dark:to-emerald-950/20 rounded-lg shadow-2xl border border-emerald-200 dark:border-emerald-700/30 backdrop-blur-xl ${
+              isMobileBlockMenu ? 'left-4 right-4 bottom-4 max-h-[70vh]' : 'max-h-96'
+            }`}
+            style={
+              isMobileBlockMenu
+                ? undefined
+                : {
+                    top: blockMenuPosition.top,
+                    left: blockMenuPosition.left,
+                    width: `${blockMenuPosition.width}px`,
+                  }
+            }
           >
-            <div className="p-2">
+            <div className="p-2 max-h-[70vh] overflow-y-auto">
               <BlockMenuItem
                 icon={<FaHeading className="text-emerald-500" />}
                 label="Heading"
@@ -1062,7 +1086,7 @@ const BlockControls: React.FC<{
   onAddBlock: (type: 'text' | 'heading' | 'quote' | 'list' | 'code' | 'image' | 'video' | 'embed' | 'divider' | 'callout' | 'table') => void;
   onDelete: () => void;
 }> = ({ onAddBlock, onDelete }) => (
-  <div className="absolute right-0 top-0 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
+  <div className="absolute right-0 top-0 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity flex items-center gap-1">
     <button
       onClick={() => onAddBlock('text')}
       className="p-1 text-gray-400 hover:text-emerald-500 transition-colors"

@@ -1,0 +1,205 @@
+.scene {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 0;
+}
+
+.globeCanvas {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+
+.globeCanvas canvas {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+@keyframes starTwinkle {
+  0% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 0.85;
+  }
+  100% {
+    opacity: 0.55;
+  }
+}
+
+.starfield {
+  position: absolute;
+  inset: -10%;
+  background-image:
+    radial-gradient(1px 1px at 15% 20%, rgba(255, 255, 255, 0.7), transparent 60%),
+    radial-gradient(1.5px 1.5px at 75% 15%, rgba(255, 255, 255, 0.6), transparent 60%),
+    radial-gradient(1px 1px at 85% 45%, rgba(255, 255, 255, 0.5), transparent 60%),
+    radial-gradient(2px 2px at 20% 70%, rgba(255, 255, 255, 0.6), transparent 60%),
+    radial-gradient(1px 1px at 55% 65%, rgba(255, 255, 255, 0.4), transparent 60%),
+    radial-gradient(1px 1px at 35% 85%, rgba(255, 255, 255, 0.5), transparent 60%),
+    radial-gradient(1.5px 1.5px at 45% 30%, rgba(96, 165, 250, 0.7), transparent 70%),
+    radial-gradient(1.5px 1.5px at 65% 78%, rgba(167, 139, 250, 0.6), transparent 70%);
+  opacity: 0.85;
+  animation: starTwinkle 10s ease-in-out infinite;
+}
+
+.starfieldDense {
+  position: absolute;
+  inset: -15%;
+  background-image:
+    radial-gradient(1px 1px at 10% 30%, rgba(255, 255, 255, 0.45), transparent 60%),
+    radial-gradient(1px 1px at 30% 12%, rgba(255, 255, 255, 0.5), transparent 60%),
+    radial-gradient(1px 1px at 60% 22%, rgba(255, 255, 255, 0.35), transparent 60%),
+    radial-gradient(1px 1px at 80% 35%, rgba(255, 255, 255, 0.4), transparent 60%),
+    radial-gradient(1px 1px at 25% 55%, rgba(255, 255, 255, 0.4), transparent 60%),
+    radial-gradient(1px 1px at 55% 70%, rgba(255, 255, 255, 0.3), transparent 60%),
+    radial-gradient(1px 1px at 70% 85%, rgba(255, 255, 255, 0.45), transparent 60%),
+    radial-gradient(1px 1px at 85% 75%, rgba(255, 255, 255, 0.35), transparent 60%),
+    radial-gradient(1px 1px at 45% 40%, rgba(255, 255, 255, 0.4), transparent 60%);
+  opacity: 0.6;
+  animation: starTwinkle 14s ease-in-out infinite;
+}
+
+.starfieldNebula {
+  position: absolute;
+  inset: -20%;
+  background:
+    radial-gradient(40% 40% at 20% 20%, rgba(99, 102, 241, 0.25), transparent 60%),
+    radial-gradient(35% 35% at 70% 25%, rgba(16, 185, 129, 0.2), transparent 60%),
+    radial-gradient(45% 45% at 65% 70%, rgba(168, 85, 247, 0.25), transparent 60%),
+    radial-gradient(30% 30% at 35% 80%, rgba(56, 189, 248, 0.2), transparent 60%);
+  filter: blur(10px);
+  opacity: 0.85;
+  mix-blend-mode: screen;
+}
+
+.comets {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+@keyframes cometFly {
+  0% {
+    transform: translate(-20%, -20%) rotate(-20deg);
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.7;
+  }
+  70% {
+    opacity: 0.7;
+  }
+  100% {
+    transform: translate(120%, 120%) rotate(-20deg);
+    opacity: 0;
+  }
+}
+
+.comet {
+  position: absolute;
+  width: 260px;
+  height: 3px;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0),
+    rgba(147, 197, 253, 0.9),
+    rgba(167, 139, 250, 0.9),
+    rgba(255, 255, 255, 0)
+  );
+  filter: drop-shadow(0 0 8px rgba(99, 102, 241, 0.8));
+  opacity: 0;
+  animation: cometFly 16s linear infinite;
+}
+
+.comet::after {
+  content: "";
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  width: 6px;
+  height: 6px;
+  background: #ffffff;
+  border-radius: 9999px;
+  transform: translateY(-50%);
+  box-shadow: 0 0 14px rgba(99, 102, 241, 0.95);
+}
+
+.cometA {
+  top: 12%;
+  left: -25%;
+  animation-delay: 0s;
+}
+
+.cometB {
+  top: 32%;
+  left: -35%;
+  animation-delay: 5s;
+}
+
+.cometC {
+  top: 52%;
+  left: -30%;
+  animation-delay: 10s;
+}
+
+.globeOverlay {
+  position: absolute;
+  left: 50%;
+  top: 101.5%;
+  transform: translate(-50%, -50%);
+  width: clamp(900px, 120vw, 1870px);
+  aspect-ratio: 1 / 1;
+  z-index: 2;
+}
+
+.globeHalo {
+  position: absolute;
+  inset: -12%;
+  border-radius: 9999px;
+  background: radial-gradient(
+    circle at 50% 50%,
+    rgba(16, 185, 129, 0.6),
+    rgba(20, 184, 166, 0.35) 38%,
+    rgba(14, 116, 144, 0.2) 58%,
+    transparent 80%
+  );
+  filter: blur(36px);
+  opacity: 1;
+}
+
+.globeRim {
+  position: absolute;
+  inset: -2%;
+  border-radius: 9999px;
+  border: 2px solid rgba(52, 211, 153, 0.7);
+  box-shadow:
+    0 0 30px rgba(16, 185, 129, 0.55),
+    0 0 80px rgba(20, 184, 166, 0.3);
+  opacity: 0.9;
+}
+
+@media (max-width: 1024px) {
+  .globeOverlay {
+    top: 89%;
+    width: clamp(900px, 250vw, 1900px);
+  }
+}
+
+@media (max-width: 768px) {
+  .globeOverlay {
+    top: 89%;
+    width: clamp(900px, 250vw, 1900px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .starfield,
+  .starfieldDense,
+  .starfieldNebula,
+  .comet {
+    animation: none;
+  }
+}

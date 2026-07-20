@@ -85,9 +85,21 @@ const notificationsSlice = createSlice({
   reducers: {
     // Real-time notification from WebSocket
     addNotification: (state, action: PayloadAction<Notification>) => {
-      // Add to the beginning of the list
+      const existingIndex = state.notifications.findIndex(
+        (n) => n.id === action.payload.id,
+      );
+
+      if (existingIndex >= 0) {
+        state.notifications[existingIndex] = action.payload;
+        return;
+      }
+
       state.notifications.unshift(action.payload);
-      state.unreadCount += 1;
+      const isUnreadDelivered =
+        action.payload.status === 'delivered' && !action.payload.readAt;
+      if (isUnreadDelivered) {
+        state.unreadCount += 1;
+      }
       state.total += 1;
     },
     
@@ -102,7 +114,11 @@ const notificationsSlice = createSlice({
     // Handle read event from WebSocket
     notificationRead: (state, action: PayloadAction<{ id: string }>) => {
       const notification = state.notifications.find(n => n.id === action.payload.id);
-      if (notification && notification.status !== 'read') {
+      if (
+        notification &&
+        notification.status === 'delivered' &&
+        !notification.readAt
+      ) {
         notification.status = 'read';
         notification.readAt = new Date().toISOString();
         state.unreadCount = Math.max(0, state.unreadCount - 1);
@@ -112,7 +128,7 @@ const notificationsSlice = createSlice({
     // Handle all read event from WebSocket
     allNotificationsRead: (state) => {
       state.notifications.forEach(n => {
-        if (n.status !== 'read') {
+        if (n.status === 'delivered' && !n.readAt) {
           n.status = 'read';
           n.readAt = new Date().toISOString();
         }
@@ -147,7 +163,11 @@ const notificationsSlice = createSlice({
         if (isFirstPage) {
           state.notifications = action.payload.notifications;
         } else {
-          state.notifications = [...state.notifications, ...action.payload.notifications];
+          const existingIds = new Set(state.notifications.map((n) => n.id));
+          const nextPage = action.payload.notifications.filter(
+            (n) => !existingIds.has(n.id),
+          );
+          state.notifications = [...state.notifications, ...nextPage];
         }
         state.total = action.payload.total;
         state.unreadCount = action.payload.unreadCount;
@@ -169,16 +189,21 @@ const notificationsSlice = createSlice({
       .addCase(markNotificationAsRead.fulfilled, (state, action) => {
         const index = state.notifications.findIndex(n => n.id === action.payload.id);
         if (index !== -1) {
+          const previous = state.notifications[index];
+          const wasUnread =
+            previous.status === 'delivered' && !previous.readAt;
           state.notifications[index] = action.payload;
-          state.unreadCount = Math.max(0, state.unreadCount - 1);
+          if (wasUnread) {
+            state.unreadCount = Math.max(0, state.unreadCount - 1);
+          }
         }
       });
 
     // Mark all as read
     builder
-      .addCase(markAllNotificationsAsRead.fulfilled, (state, action) => {
+      .addCase(markAllNotificationsAsRead.fulfilled, (state) => {
         state.notifications.forEach(n => {
-          if (n.status !== 'read') {
+          if (n.status === 'delivered' && !n.readAt) {
             n.status = 'read';
             n.readAt = new Date().toISOString();
           }
@@ -190,7 +215,11 @@ const notificationsSlice = createSlice({
     builder
       .addCase(deleteNotification.fulfilled, (state, action) => {
         const notification = state.notifications.find(n => n.id === action.payload);
-        if (notification && notification.status !== 'read') {
+        if (
+          notification &&
+          notification.status === 'delivered' &&
+          !notification.readAt
+        ) {
           state.unreadCount = Math.max(0, state.unreadCount - 1);
         }
         state.notifications = state.notifications.filter(n => n.id !== action.payload);

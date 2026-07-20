@@ -28,6 +28,12 @@ interface EconomicEvent {
   ticker?: string;
   symbol?: string;
   lastUpdate?: string;
+  releaseStatus?: 'upcoming' | 'live' | 'released';
+  surprise?: {
+    direction?: 'better' | 'worse' | 'in-line' | 'unknown';
+    value?: number;
+    percent?: number;
+  };
   description?: string;
   impact?: {
     explanation?: string;
@@ -35,9 +41,72 @@ interface EconomicEvent {
   };
 }
 
+interface EconomicImpactDetails {
+  event?: EconomicEvent;
+  history?: Array<{
+    date: string;
+    actual?: string | number;
+    forecast?: string | number;
+    previous?: string | number;
+    source?: string;
+    surpriseDirection?: 'better' | 'worse' | 'in-line' | 'unknown';
+    surprisePercent?: number;
+  }>;
+  cachedAt?: string;
+  confidence?: number;
+  aiSummary?: {
+    confidence?: number;
+    sourceQuality?: {
+      consensus?: string;
+    };
+    watchlist?: Array<{
+      symbol?: string;
+      bias?: string;
+      price?: string;
+      changePercent?: number;
+    }>;
+    marketPulse?: string;
+  };
+  sourceQuality?: {
+    consensus?: string;
+  };
+  impact?: {
+    affectedSymbols?: string[];
+  };
+  detailedAnalysis?: {
+    whyTradersCare?: string;
+    usualEffect?: string;
+    sourceQuality?: {
+      consensus?: string;
+    };
+  };
+  preEventAnalysis?: {
+    marketExpectations?: string;
+  };
+  eventMetrics?: {
+    releaseStatus?: 'upcoming' | 'live' | 'released';
+    surpriseDirection?: 'better' | 'worse' | 'in-line' | 'unknown';
+    surprisePercent?: number;
+  };
+  impactPlaybook?: {
+    fx?: string;
+    indices?: string;
+    metals?: string;
+    rates?: string;
+    crypto?: string;
+  };
+}
+
+type VolatilityBar = {
+  height: number;
+  highlight: boolean;
+};
+
 export default function EconomicCalendar() {
   const [events, setEvents] = useState<EconomicEvent[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [lastSyncedAt, setLastSyncedAt] = useState<Date | null>(null);
   const [error, setError] = useState<string | null>(null);
   
   // Filters
@@ -50,7 +119,7 @@ export default function EconomicCalendar() {
   
   // Selection
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
-  const [eventDetails, setEventDetails] = useState<Record<string, any>>({});
+  const [eventDetails, setEventDetails] = useState<Record<string, EconomicImpactDetails>>({});
   const [loadingDetails, setLoadingDetails] = useState<string | null>(null);
   const [detailTab, setDetailTab] = useState<'summary' | 'ai' | 'history'>('summary');
 
@@ -67,23 +136,49 @@ export default function EconomicCalendar() {
     }
   }, [activeFilters]);
 
-  const fetchEvents = async (importance?: string) => {
+  useEffect(() => {
+    const interval = window.setInterval(() => {
+      if (document.visibilityState !== 'visible') return;
+      const onlyHigh = activeFilters.length === 1 && activeFilters.includes('high');
+      void fetchEvents(onlyHigh ? 'high' : undefined, true, true);
+    }, 60_000);
+
+    return () => window.clearInterval(interval);
+  }, [activeFilters]);
+
+  const fetchEvents = async (
+    importance?: string,
+    forceRefresh = false,
+    silent = false,
+  ) => {
     try {
-      setLoading(true);
+      if (!silent) {
+        setLoading(true);
+      } else {
+        setRefreshing(true);
+      }
       setError(null);
       const response = await authApiClient.get('/market-intelligence/economic-calendar', {
-        params: importance ? { importance } : undefined,
+        params: {
+          ...(importance ? { importance } : {}),
+          ...(forceRefresh ? { refresh: 'true', _ts: Date.now() } : {}),
+        },
       });
       if (response.data && response.data.events) {
         setEvents(response.data.events);
       } else if (Array.isArray(response.data)) {
          setEvents(response.data);
       }
+      setLastSyncedAt(new Date());
     } catch (err) {
       console.error('Failed to fetch calendar', err);
       setError('Failed to load economic calendar data.');
     } finally {
-      setLoading(false);
+      if (!silent) {
+        setLoading(false);
+      } else {
+        setRefreshing(false);
+      }
     }
   };
 
@@ -106,14 +201,14 @@ export default function EconomicCalendar() {
       const response = await authApiClient.get(`/market-intelligence/economic-impact/${encodeURIComponent(eventId)}`);
       setEventDetails(prev => ({
         ...prev,
-        [eventId]: response.data
+        [eventId]: response.data as EconomicImpactDetails
       }));
     } catch (err) {
       console.error('Failed to fetch details', err);
       // Fallback: Just show generic info if fetch fails
       setEventDetails(prev => ({
         ...prev,
-        [eventId]: { explanation: 'Detailed AI analysis unavailable for this event.' }
+        [eventId]: {} as EconomicImpactDetails
       }));
     } finally {
       setLoadingDetails(null);
@@ -121,11 +216,13 @@ export default function EconomicCalendar() {
   };
 
   const toggleFilter = (impact: string) => {
-    setActiveFilters(prev => 
-      prev.includes(impact) 
-        ? prev.filter(f => f !== impact)
-        : [...prev, impact]
-    );
+    setActiveFilters((prev) => {
+      if (prev.includes(impact)) {
+        const next = prev.filter((f) => f !== impact);
+        return next.length > 0 ? next : prev;
+      }
+      return [...prev, impact];
+    });
   };
 
   const resolvedTimeZone = useMemo(() => {
@@ -149,20 +246,6 @@ export default function EconomicCalendar() {
     }
   };
   
-  const formatDateGroup = (dateStr: string) => {
-     try {
-      const date = new Date(dateStr);
-      return date.toLocaleDateString('en-US', {
-        timeZone: resolvedTimeZone,
-        weekday: 'long',
-        month: 'short',
-        day: 'numeric'
-      });
-    } catch (e) {
-      return dateStr;
-    }
-  };
-
   const getImpactColor = (impact: string) => {
     switch (impact.toLowerCase()) {
       case 'high': return 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300 border-red-200 dark:border-red-800';
@@ -230,21 +313,12 @@ export default function EconomicCalendar() {
     });
   }, [events, activeFilters, activeCurrencies, searchQuery, dateRange]);
 
-  const getSurprise = (event: EconomicEvent) => {
-    const actual = Number(event.actual);
-    const forecast = Number(event.forecast);
-    if (Number.isFinite(actual) && Number.isFinite(forecast)) {
-      const diff = actual - forecast;
-      if (diff === 0) return { label: '0', tone: 'text-gray-500' };
-      return {
-        label: diff > 0 ? `+${diff.toFixed(2)}` : diff.toFixed(2),
-        tone: diff > 0 ? 'text-emerald-600' : 'text-red-500',
-      };
-    }
-    return { label: '—', tone: 'text-gray-400' };
-  };
-
   const getSurpriseDirection = (event: EconomicEvent) => {
+    if (event.surprise?.direction && event.surprise.direction !== 'unknown') {
+      return event.surprise.direction === 'in-line'
+        ? 'neutral'
+        : event.surprise.direction;
+    }
     const actual = Number(event.actual);
     const forecast = Number(event.forecast);
     if (!Number.isFinite(actual) || !Number.isFinite(forecast)) return 'neutral';
@@ -255,22 +329,56 @@ export default function EconomicCalendar() {
   };
 
   const formatValue = (value: string | number | undefined | null, fallback = '—') => {
-    if (value === undefined || value === null || value === '') return fallback;
-    return String(value);
+    if (value === undefined || value === null) return fallback;
+    const normalized = String(value).replace(/\u00a0/g, ' ').trim();
+    if (!normalized || ['n/a', '--', 'pending', 'null'].includes(normalized.toLowerCase())) {
+      return fallback;
+    }
+    return normalized;
   };
 
-  // 2. Group by Day (IST)
+  const resolveReleaseStatus = (event: EconomicEvent) => {
+    if (event.releaseStatus) return event.releaseStatus;
+    const hasActual = formatValue(event.actual, '') !== '';
+    const eventTs = new Date(event.date).getTime();
+    if (hasActual) return 'released';
+    if (eventTs > Date.now()) return 'upcoming';
+    return 'live';
+  };
+
+  const getStatusBadge = (status: 'upcoming' | 'live' | 'released') => {
+    if (status === 'released') {
+      return 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-300 border-emerald-300/60 dark:border-emerald-600/50';
+    }
+    if (status === 'live') {
+      return 'bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-300/60 dark:border-amber-600/60';
+    }
+    return 'bg-slate-500/10 text-slate-600 dark:text-slate-300 border-slate-300/60 dark:border-slate-600/60';
+  };
+
+  const surprisePill = (direction: string) => {
+    if (direction === 'better') return 'text-emerald-600 dark:text-emerald-400';
+    if (direction === 'worse') return 'text-red-600 dark:text-red-400';
+    return 'text-gray-500 dark:text-gray-400';
+  };
+
+  // Group filtered events by local day key
   const groupedEvents = useMemo(() => {
     const groups: Record<string, EconomicEvent[]> = {};
-    filteredEvents.forEach(event => {
-      const dayKey = formatDateGroup(event.date);
+    filteredEvents.forEach((event) => {
+      const dayKey = new Date(event.date).toLocaleDateString('en-US', {
+        timeZone: resolvedTimeZone,
+        weekday: 'long',
+        month: 'short',
+        day: 'numeric',
+      });
       if (!groups[dayKey]) {
         groups[dayKey] = [];
       }
       groups[dayKey].push(event);
     });
     return groups;
-  }, [filteredEvents]);
+  }, [filteredEvents, resolvedTimeZone]);
   
   const groupKeys = Object.keys(groupedEvents);
 
@@ -308,9 +416,10 @@ export default function EconomicCalendar() {
   const selectedDetails = selectedEventId ? eventDetails[selectedEventId] : null;
   const eventData: EconomicEvent | null =
     (selectedDetails?.event as EconomicEvent) || selectedEvent;
-  const eventHistory = Array.isArray(selectedDetails?.history)
-    ? selectedDetails.history
-    : [];
+  const eventHistory = useMemo(
+    () => (Array.isArray(selectedDetails?.history) ? selectedDetails.history : []),
+    [selectedDetails],
+  );
   const aiSummary = selectedDetails?.aiSummary;
   const cachedAt = selectedDetails?.cachedAt;
   const confidence = Number(selectedDetails?.aiSummary?.confidence ?? selectedDetails?.confidence ?? 0);
@@ -319,6 +428,38 @@ export default function EconomicCalendar() {
     selectedDetails?.aiSummary?.sourceQuality ||
     selectedDetails?.sourceQuality;
   const affectedSymbols = selectedDetails?.impact?.affectedSymbols || eventData?.impact?.affectedSymbols || [];
+  const eventMetrics = selectedDetails?.eventMetrics;
+  const impactPlaybook = selectedDetails?.impactPlaybook;
+
+  const historicalVolatilityBars = useMemo<VolatilityBar[]>(() => {
+    const toNumeric = (value: unknown): number | null => {
+      if (value === null || value === undefined || value === '') return null;
+      const parsed = parseFloat(String(value).replace(/[^0-9.-]/g, ''));
+      return Number.isFinite(parsed) ? parsed : null;
+    };
+
+    const source = eventHistory.slice(0, 24);
+    if (source.length === 0) return [];
+
+    return source.map((item: any, idx: number) => {
+      const actual = toNumeric(item.actual);
+      const forecast = toNumeric(item.forecast);
+      const previous = toNumeric(item.previous);
+
+      let delta = 0;
+      if (actual !== null && forecast !== null) {
+        delta = Math.abs(actual - forecast);
+      } else if (actual !== null && previous !== null) {
+        delta = Math.abs(actual - previous);
+      }
+
+      const scaledHeight = Math.min(100, Math.max(12, delta * 12 || 14));
+      return {
+        height: scaledHeight,
+        highlight: idx === source.length - 1,
+      };
+    });
+  }, [eventHistory]);
 
   const timezoneOptions = [
     { value: 'local', label: `Local (${resolvedTimeZone})` },
@@ -356,6 +497,59 @@ export default function EconomicCalendar() {
             AI Economic Calendar
           </h3>
 
+          <div className="flex flex-col lg:flex-row lg:items-center gap-3">
+            <div className="relative w-full lg:max-w-md">
+              <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search event, country, or currency"
+                className="w-full rounded-full border border-gray-200 dark:border-gray-800 bg-white dark:bg-[#111] pl-9 pr-4 py-2 text-sm text-gray-700 dark:text-gray-200 focus:outline-none focus:border-emerald-500"
+              />
+            </div>
+            <div className="inline-flex items-center rounded-full border border-gray-200 dark:border-gray-800 bg-white dark:bg-[#111] p-1">
+              <span className="inline-flex items-center px-2 text-xs text-gray-500 dark:text-gray-400">
+                <FaClock className="mr-1" />
+                Range
+              </span>
+              {[
+                { id: 'today', label: 'Today' },
+                { id: 'week', label: '7D' },
+                { id: 'month', label: '30D' },
+              ].map((range) => (
+                <button
+                  key={range.id}
+                  type="button"
+                  onClick={() => setDateRange(range.id as 'today' | 'week' | 'month')}
+                  className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                    dateRange === range.id
+                      ? 'bg-emerald-500 text-white'
+                      : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200'
+                  }`}
+                >
+                  {range.label}
+                </button>
+              ))}
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  const onlyHigh = activeFilters.length === 1 && activeFilters.includes('high');
+                  void fetchEvents(onlyHigh ? 'high' : undefined, true, true);
+                }}
+                className="inline-flex items-center gap-2 rounded-full border border-emerald-500/40 px-3 py-2 text-xs font-semibold text-emerald-600 dark:text-emerald-300 hover:bg-emerald-500/10 transition-colors"
+              >
+                {refreshing ? <FaSpinner className="animate-spin" /> : <FaClock />}
+                {refreshing ? 'Refreshing...' : 'Refresh Live'}
+              </button>
+              <span className="text-[11px] text-gray-500 dark:text-gray-400">
+                {lastSyncedAt ? `Last sync ${lastSyncedAt.toLocaleTimeString()}` : 'Waiting for first sync'}
+              </span>
+            </div>
+          </div>
+
           <div className="flex flex-wrap items-center gap-6 text-sm mt-2">
             
             {/* Timezone */}
@@ -376,7 +570,10 @@ export default function EconomicCalendar() {
 
             {/* Impact Filters */}
             <div className="flex items-center gap-2">
-              <span className="text-gray-500 dark:text-gray-400">Impact:</span>
+              <span className="text-gray-500 dark:text-gray-400 inline-flex items-center gap-1">
+                <FaFilter className="text-[10px]" />
+                Impact:
+              </span>
               <div className="flex items-center bg-white dark:bg-[#111] border border-gray-200 dark:border-gray-800 rounded-full overflow-hidden p-0.5">
                 {['High', 'Medium', 'Low'].map(impact => {
                   const isActive = activeFilters.includes(impact.toLowerCase());
@@ -431,6 +628,17 @@ export default function EconomicCalendar() {
             </div>
             
           </div>
+
+          {nextHighImpact && (
+            <div className="flex flex-wrap items-center gap-2 rounded-xl border border-amber-200/80 dark:border-amber-900/50 bg-amber-50/80 dark:bg-amber-900/20 px-3 py-2 text-xs text-amber-800 dark:text-amber-200">
+              <FaExclamationTriangle className="text-amber-500" />
+              <span className="font-semibold">Next high-impact:</span>
+              <span>{nextHighImpact.title}</span>
+              <span className="opacity-70">
+                ({nextHighImpact.currency}, {formatTime(nextHighImpact.date)})
+              </span>
+            </div>
+          )}
         </div>
 
         <div className="grid lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] gap-0">
@@ -448,7 +656,7 @@ export default function EconomicCalendar() {
                     <div className="px-2 py-2 text-sm font-semibold text-gray-600 dark:text-gray-400 capitalize bg-transparent sticky top-0">
                       {group}
                     </div>
-                    <div className="px-4 py-2 text-xs text-gray-400 dark:text-gray-500 flex items-center justify-between">
+                    <div className="hidden sm:flex px-4 py-2 text-xs text-gray-400 dark:text-gray-500 items-center justify-between">
                       <span className="flex items-center gap-1">Event <span className="text-[10px]">▼</span></span>
                       <span className="flex gap-4 w-[200px] justify-end pr-2 text-right">
                         <span className="w-14">Actual</span>
@@ -459,6 +667,8 @@ export default function EconomicCalendar() {
                     <div className="flex flex-col gap-1 px-2">
                       {groupedEvents[group].map((event) => {
                         const isSelected = selectedEventId === event.id;
+                        const status = resolveReleaseStatus(event);
+                        const surpriseDirection = getSurpriseDirection(event);
                         return (
                           <button
                             key={event.id}
@@ -467,30 +677,49 @@ export default function EconomicCalendar() {
                               setDetailTab('summary');
                               fetchEventDetails(event.id);
                             }}
-                            className={`w-full text-left px-4 py-4 transition-all relative rounded-lg border flex items-center justify-between gap-4 ${
+                            className={`w-full text-left px-4 py-4 transition-all relative rounded-lg border flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between ${
                               isSelected
                                 ? 'bg-[#0A1A14] border-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.2)] inset-0 z-10'
                                 : 'bg-transparent border-[#1A1A1A] hover:bg-[#111]'
                             }`}
                           >
-                            <div className="flex items-center gap-3 w-1/2 min-w-[300px]">
+                            <div className="flex flex-wrap items-center gap-2 min-w-0">
                               {/* Glowing Dot */}
                               <div className={`w-2 h-2 rounded-full flex-shrink-0 ${isSelected ? 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]' : 'bg-gray-400 dark:bg-gray-600'}`} />
-                              <span className="text-xs font-medium text-gray-500 dark:text-gray-400 whitespace-nowrap">{formatTime(event.date)}</span>
+                              <span className="text-[11px] font-medium text-gray-500 dark:text-gray-400">{formatTime(event.date)}</span>
                               <span className="text-gray-400 dark:text-gray-600">|</span>
                               <span className="text-sm">{getCountryFlag(event.country)}</span>
                               <span className="text-xs font-medium text-gray-900 dark:text-gray-300">{event.currency}</span>
                               <span className="text-gray-400 dark:text-gray-600">|</span>
-                              <span className="text-xs font-medium text-gray-900 dark:text-gray-200 truncate">
+                              <span className="text-xs font-medium text-gray-900 dark:text-gray-200 break-words">
                                 {event.title}
                               </span>
                               {getImpactBadge(event.importance)}
+                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold border ${getStatusBadge(status)}`}>
+                                {status.toUpperCase()}
+                              </span>
+                              <span className={`text-[10px] font-semibold ${surprisePill(surpriseDirection)}`}>
+                                {surpriseDirection === 'better'
+                                  ? 'Beat'
+                                  : surpriseDirection === 'worse'
+                                    ? 'Miss'
+                                    : 'Inline'}
+                              </span>
                             </div>
                             
-                            <div className="flex items-center gap-4 w-[200px] justify-end pr-2 font-mono text-xs text-right">
-                              <span className="w-14 font-semibold text-gray-700 dark:text-gray-300">{event.actual || '--'}</span>
-                              <span className="w-14 text-gray-500 dark:text-gray-500">{event.forecast || '--'}</span>
-                              <span className="w-14 text-gray-500 dark:text-gray-500">{event.previous || '--'}</span>
+                            <div className="grid grid-cols-3 gap-2 w-full sm:w-auto sm:min-w-[210px] font-mono text-xs text-right">
+                              <div>
+                                <span className="sm:hidden block text-[10px] text-gray-500 dark:text-gray-400 mb-0.5">Actual</span>
+                                <span className="font-semibold text-gray-700 dark:text-gray-300">{formatValue(event.actual)}</span>
+                              </div>
+                              <div>
+                                <span className="sm:hidden block text-[10px] text-gray-500 dark:text-gray-400 mb-0.5">Forecast</span>
+                                <span className="text-gray-500 dark:text-gray-500">{formatValue(event.forecast)}</span>
+                              </div>
+                              <div>
+                                <span className="sm:hidden block text-[10px] text-gray-500 dark:text-gray-400 mb-0.5">Previous</span>
+                                <span className="text-gray-500 dark:text-gray-500">{formatValue(event.previous)}</span>
+                              </div>
                             </div>
                           </button>
                         );
@@ -503,8 +732,8 @@ export default function EconomicCalendar() {
             </div>
           </div>
 
-          <div className="p-6 bg-white dark:bg-[#050505] border-l border-gray-200 dark:border-[#1A1A1A]">
-            <h4 className="text-xl font-bold text-gray-900 dark:text-white mb-6">AI Analysis & Market Impact</h4>
+          <div className="p-4 sm:p-6 bg-white dark:bg-[#050505] border-t lg:border-t-0 lg:border-l border-gray-200 dark:border-[#1A1A1A]">
+            <h4 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white mb-6">AI Analysis & Market Impact</h4>
             
             {!selectedEvent && (
               <div className="h-full flex flex-col items-center justify-center text-center text-gray-500 dark:text-gray-400 space-y-3 pb-20">
@@ -519,7 +748,7 @@ export default function EconomicCalendar() {
                 <p>Generating Deep AI Analysis...</p>
               </div>
             ) : selectedEvent && eventData && (
-              <div className="space-y-6 flex flex-col h-[calc(100%-40px)]">
+              <div className="space-y-6 flex flex-col">
                 
                 {/* 1. Outcome Meter Section */}
                 <div className="bg-white dark:bg-[#111] border border-gray-200 dark:border-[#222] rounded-xl p-5 shadow-sm dark:shadow-none">
@@ -577,13 +806,41 @@ export default function EconomicCalendar() {
                   <div className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed px-2">
                     {selectedDetails?.preEventAnalysis?.marketExpectations || aiSummary?.marketPulse || 'Based on recent data, TradeTaper AI predicts a potential for better-than-expected numbers, suggesting a bullish outlook for the affected currencies. The AI indicates confidence in current market conditions aligning with these projections.'}
                   </div>
+                  <div className="mt-3 flex flex-wrap gap-2 px-2 text-[11px] text-gray-500 dark:text-gray-400">
+                    {cachedAt && (
+                      <span className="rounded-full border border-gray-200 dark:border-gray-700 px-2 py-0.5">
+                        Cached: {new Date(cachedAt).toLocaleTimeString()}
+                      </span>
+                    )}
+                    {eventMetrics?.releaseStatus && (
+                      <span className="rounded-full border border-gray-200 dark:border-gray-700 px-2 py-0.5">
+                        Status: {eventMetrics.releaseStatus}
+                      </span>
+                    )}
+                    {eventMetrics?.surpriseDirection && eventMetrics.surpriseDirection !== 'unknown' && (
+                      <span className="rounded-full border border-gray-200 dark:border-gray-700 px-2 py-0.5">
+                        Surprise: {eventMetrics.surpriseDirection}
+                        {typeof eventMetrics.surprisePercent === 'number' ? ` (${eventMetrics.surprisePercent.toFixed(2)}%)` : ''}
+                      </span>
+                    )}
+                    {sourceQuality?.consensus && (
+                      <span className="rounded-full border border-gray-200 dark:border-gray-700 px-2 py-0.5">
+                        Source quality: {sourceQuality.consensus}
+                      </span>
+                    )}
+                    {affectedSymbols.length > 0 && (
+                      <span className="rounded-full border border-gray-200 dark:border-gray-700 px-2 py-0.5">
+                        Affected: {affectedSymbols.join(', ')}
+                      </span>
+                    )}
+                  </div>
                   
                   {/* Detailed Analysis Context UI */}
                   {(selectedDetails?.detailedAnalysis?.whyTradersCare || selectedDetails?.detailedAnalysis?.usualEffect) && (
                     <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
                       {selectedDetails.detailedAnalysis.whyTradersCare && (
-                        <div className="p-3 bg-blue-50/50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/30 rounded-lg">
-                          <p className="text-xs font-bold text-blue-800 dark:text-blue-400 mb-1 flex items-center gap-1">
+                        <div className="p-3 bg-emerald-50/50 dark:bg-emerald-900/10 border border-emerald-100 dark:border-emerald-900/30 rounded-lg">
+                          <p className="text-xs font-bold text-emerald-800 dark:text-emerald-400 mb-1 flex items-center gap-1">
                             <FaExclamationTriangle className="w-3 h-3" /> Why Traders Care
                           </p>
                           <p className="text-xs text-gray-600 dark:text-gray-400">
@@ -593,8 +850,8 @@ export default function EconomicCalendar() {
                       )}
                       
                       {selectedDetails.detailedAnalysis.usualEffect && (
-                        <div className="p-3 bg-purple-50/50 dark:bg-purple-900/10 border border-purple-100 dark:border-purple-900/30 rounded-lg">
-                          <p className="text-xs font-bold text-purple-800 dark:text-purple-400 mb-1 flex items-center gap-1">
+                        <div className="p-3 bg-amber-50/50 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-900/30 rounded-lg">
+                          <p className="text-xs font-bold text-amber-800 dark:text-amber-400 mb-1 flex items-center gap-1">
                             <span>📖</span> How to Trade It
                           </p>
                           <p className="text-xs text-gray-600 dark:text-gray-400">
@@ -641,31 +898,71 @@ export default function EconomicCalendar() {
                   </div>
                 </div>
 
+                {impactPlaybook && (
+                  <div className="bg-white dark:bg-[#111] border border-gray-200 dark:border-[#222] rounded-xl p-4 shadow-sm">
+                    <h5 className="text-sm font-bold text-gray-900 dark:text-white mb-3">
+                      Cross-Market Playbook
+                    </h5>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                      {[
+                        { label: 'FX', value: impactPlaybook.fx },
+                        { label: 'Indices', value: impactPlaybook.indices },
+                        { label: 'Metals', value: impactPlaybook.metals },
+                        { label: 'Rates', value: impactPlaybook.rates },
+                        { label: 'Crypto', value: impactPlaybook.crypto },
+                      ]
+                        .filter((item) => Boolean(item.value))
+                        .map((item) => (
+                          <div
+                            key={item.label}
+                            className="rounded-lg border border-gray-200 dark:border-gray-700 p-3 text-gray-700 dark:text-gray-300"
+                          >
+                            <p className="text-[11px] uppercase tracking-wide text-emerald-600 dark:text-emerald-400 font-semibold mb-1">
+                              {item.label}
+                            </p>
+                            <p>{item.value}</p>
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                )}
+
                 {/* 3. Historical Volatility Mini Chart */}
                 <div className="bg-white dark:bg-[#111] border border-gray-200 dark:border-[#222] rounded-xl p-4 shadow-sm flex-1 min-h-[120px]">
                   <h5 className="text-xs text-gray-500 dark:text-gray-400 mb-4">Historical Volatility for Selected Event</h5>
-                  <div className="h-16 flex items-end gap-[2px] w-full opacity-80">
-                    {Array.from({length: 40}).map((_, i) => (
-                      <div 
-                        key={i} 
-                        className={`w-full rounded-t-sm ${i > 25 && i < 32 ? 'bg-emerald-500 dark:bg-emerald-400 shadow-[0_0_5px_rgba(52,211,153,0.8)]' : 'bg-emerald-200 dark:bg-emerald-900/50'}`}
-                        style={{ height: `${Math.max(10, Math.random() * (i > 25 && i < 32 ? 100 : 40))}%` }}
-                      ></div>
-                    ))}
-                  </div>
+                  {historicalVolatilityBars.length > 0 ? (
+                    <div className="h-16 flex items-end gap-[2px] w-full opacity-80">
+                      {historicalVolatilityBars.map((bar, i) => (
+                        <div
+                          key={i}
+                          className={`w-full rounded-t-sm ${
+                            bar.highlight
+                              ? 'bg-emerald-500 dark:bg-emerald-400 shadow-[0_0_5px_rgba(52,211,153,0.8)]'
+                              : 'bg-emerald-200 dark:bg-emerald-900/50'
+                          }`}
+                          style={{ height: `${bar.height}%` }}
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="h-16 flex items-center justify-center text-xs text-gray-500 dark:text-gray-400">
+                      No release history yet for this event.
+                    </div>
+                  )}
                 </div>
 
                 {/* 4. Tabs at bottom */}
-                <div className="mt-auto pt-4 flex gap-2 border-b border-gray-200 dark:border-[#222]">
+                <div className="mt-auto pt-4 flex flex-wrap sm:flex-nowrap gap-2 overflow-x-auto border-b border-gray-200 dark:border-[#222]">
                   <button 
                     onClick={() => setDetailTab('ai')}
-                    className={`pb-3 px-4 text-sm font-medium transition-colors ${detailTab === 'ai' || detailTab === 'summary' ? 'text-emerald-600 dark:text-emerald-400 border-b-2 border-emerald-600 dark:border-emerald-400' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
+                    className={`shrink-0 whitespace-nowrap pb-3 px-4 text-xs sm:text-sm font-medium transition-colors ${detailTab === 'ai' || detailTab === 'summary' ? 'text-emerald-600 dark:text-emerald-400 border-b-2 border-emerald-600 dark:border-emerald-400' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
                   >
-                    AI Market Analysis
+                    <span className="sm:hidden">AI Analysis</span>
+                    <span className="hidden sm:inline">AI Market Analysis</span>
                   </button>
                   <button 
                     onClick={() => setDetailTab('history')}
-                    className={`pb-3 px-4 text-sm font-medium transition-colors ${detailTab === 'history' ? 'text-emerald-600 dark:text-emerald-400 border-b-2 border-emerald-600 dark:border-emerald-400' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
+                    className={`shrink-0 whitespace-nowrap pb-3 px-4 text-xs sm:text-sm font-medium transition-colors ${detailTab === 'history' ? 'text-emerald-600 dark:text-emerald-400 border-b-2 border-emerald-600 dark:border-emerald-400' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
                   >
                     History
                   </button>
@@ -676,15 +973,20 @@ export default function EconomicCalendar() {
                   <div className="bg-white dark:bg-[#111] border border-gray-200 dark:border-[#222] rounded-xl p-4 mt-4 shadow-sm">
                     <div className="text-sm font-bold text-gray-900 dark:text-white mb-3 flex justify-between">
                        <span>Recent Releases</span>
-                       <span className="text-xs text-gray-500 font-normal">Actual / Forecast / Previous</span>
+                       <span className="text-xs text-gray-500 font-normal">Actual / Forecast / Previous / Surprise</span>
                      </div>
                     <div className="divide-y divide-gray-100 dark:divide-[#222]">
                       {eventHistory.slice(0, 5).map((item: any, idx: number) => (
-                        <div key={idx} className="grid grid-cols-4 gap-2 py-2 text-xs text-gray-600 dark:text-gray-300">
+                        <div key={idx} className="grid grid-cols-2 md:grid-cols-6 gap-2 py-2 text-xs text-gray-600 dark:text-gray-300">
                           <span>{item.date ? new Date(item.date).toLocaleDateString() : '—'}</span>
                           <span><strong className="text-gray-900 dark:text-white">{formatValue(item.actual)}</strong></span>
                           <span><strong className="text-gray-900 dark:text-white">{formatValue(item.forecast)}</strong></span>
                           <span><strong className="text-gray-900 dark:text-white">{formatValue(item.previous)}</strong></span>
+                          <span className={surprisePill(item.surpriseDirection || 'unknown')}>
+                            {item.surpriseDirection || 'unknown'}
+                            {typeof item.surprisePercent === 'number' ? ` (${item.surprisePercent.toFixed(2)}%)` : ''}
+                          </span>
+                          <span className="truncate">{item.source || '—'}</span>
                         </div>
                       ))}
                     </div>

@@ -4,532 +4,743 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import Sidebar from '@/components/Sidebar';
-import { 
-  LineChart, 
-  Line, 
-  AreaChart, 
-  Area, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  ResponsiveContainer,
-  RadarChart,
-  PolarGrid,
-  PolarAngleAxis,
-  PolarRadiusAxis,
-  Radar
-} from 'recharts';
-import { 
-  Download,
+import {
   Users,
-  Activity as ActivityIcon,
-  Eye,
+  TrendingUp,
+  BarChart3,
+  DollarSign,
+  Activity,
   RefreshCw,
   ArrowUpRight,
   ArrowDownRight,
-  DollarSign,
-  ShoppingCart
+  Download,
+  CreditCard,
+  Globe,
+  LucideIcon,
 } from 'lucide-react';
-import { formatNumber, timeAgo } from '@/lib/utils';
-import { adminApi } from '@/lib/api';
-import ClientTimeDisplay from '@/components/ClientTimeDisplay';
+import {
+  LineChart,
+  Line,
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+} from 'recharts';
+import { formatNumber } from '@/lib/utils';
+import { Activity as AdminActivity, adminApi } from '@/lib/api';
+import { downloadCsv } from '@/lib/csv';
+import toast from 'react-hot-toast';
 
-export default function Dashboard() {
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [timeRange, setTimeRange] = useState<'7d' | '30d' | '90d' | '1y'>('30d');
+const PLAN_COLORS = [
+  'var(--accent-neutral)',
+  'var(--chart-1)',
+  'var(--chart-2)',
+  'var(--chart-3)',
+  'var(--chart-4)',
+  'var(--chart-5)',
+];
 
-  // Fetch real data from API
-  const { data: analytics, isLoading: analyticsLoading, error: analyticsError } = useQuery({
-    queryKey: ['dashboard-stats'],
-    queryFn: () => adminApi.getDashboardStats(),
-    refetchInterval: 30000, // Refetch every 30 seconds
-    retry: (failureCount, error: any) => {
-      // Don't retry if it's a 404 error
-      if (error?.response?.status === 404) return false;
-      return failureCount < 3;
-    },
-  });
+const ACTIVITY_COLORS: Record<string, string> = {
+  trade_closed: 'var(--accent-success)',
+  trade_created: 'var(--chart-4)',
+  user_created: 'var(--chart-2)',
+  subscription_changed: 'var(--accent-warning)',
+};
 
-  const { data: userAnalytics, isLoading: userAnalyticsLoading, error: userAnalyticsError } = useQuery({
-    queryKey: ['user-analytics', timeRange],
-    queryFn: () => adminApi.getUserAnalytics(timeRange),
-    refetchInterval: 30000,
-    retry: (failureCount, error: any) => {
-      if (error?.response?.status === 404) return false;
-      return failureCount < 3;
-    },
-  });
-
-  const { data: revenueAnalytics, isLoading: revenueAnalyticsLoading, error: revenueAnalyticsError } = useQuery({
-    queryKey: ['revenue-analytics', timeRange],
-    queryFn: () => adminApi.getRevenueAnalytics(timeRange),
-    refetchInterval: 30000,
-    retry: (failureCount, error: any) => {
-      if (error?.response?.status === 404) return false;
-      return failureCount < 3;
-    },
-  });
-
-  const { data: systemHealth, isLoading: systemHealthLoading, error: systemHealthError } = useQuery({
-    queryKey: ['system-health'],
-    queryFn: () => adminApi.getSystemHealth(),
-    refetchInterval: 10000, // Refetch every 10 seconds
-    retry: (failureCount, error: any) => {
-      if (error?.response?.status === 404) return false;
-      return failureCount < 3;
-    },
-  });
-
-  const { data: activityFeed, isLoading: activityFeedLoading, error: activityFeedError } = useQuery({
-    queryKey: ['activity-feed'],
-    queryFn: () => adminApi.getActivityFeed(5), // Get 5 recent activities
-    refetchInterval: 5000, // Refetch every 5 seconds
-    retry: (failureCount, error: any) => {
-      if (error?.response?.status === 404) return false;
-      return failureCount < 3;
-    },
-  });
-
-  // Performance metrics for radar chart
-  const performanceData = [
-    { metric: 'Uptime', value: systemHealth?.uptime || 0, fullMark: 100 },
-    { metric: 'Cache Hit', value: systemHealth?.cacheHitRate || 0, fullMark: 100 },
-    { metric: 'Response', value: 100 - (systemHealth?.responseTime || 0) / 10, fullMark: 100 },
-    { metric: 'CPU Usage', value: 100 - (systemHealth?.cpuUsage || 0), fullMark: 100 },
-    { metric: 'Memory', value: 100 - (systemHealth?.memoryUsage || 0), fullMark: 100 },
-  ];
-
-  // Skeleton Card
-  const SkeletonCard = () => (
-    <div className="bg-gradient-to-br from-gray-900/90 to-gray-800/90 backdrop-blur-xl border border-gray-700/50 rounded-2xl p-6 shadow-xl animate-pulse">
-      <div className="flex items-center justify-between mb-4">
-        <div className="p-3 bg-gray-700/10 rounded-xl w-10 h-10" />
-        <div className="w-12 h-4 bg-gray-700 rounded" />
-      </div>
-      <div className="h-8 w-24 bg-gray-700 rounded mb-1" />
-      <div className="h-4 w-16 bg-gray-800 rounded mb-2" />
-      <div className="mt-4 h-1 bg-gray-700 rounded-full overflow-hidden">
-        <div className="h-full bg-gradient-to-r from-blue-500 to-blue-400 w-1/2"></div>
-      </div>
-    </div>
-  );
-
-  // Skeleton Chart
-  const SkeletonChart = () => (
-    <div className="bg-gray-900/90 backdrop-blur-xl border border-gray-700/50 rounded-2xl p-4 sm:p-6 animate-pulse">
-      <div className="h-[300px] sm:h-[400px] w-full bg-gray-800 rounded" />
-    </div>
-  );
-
-  // Error Message
-  const ErrorMessage = ({ message }: { message: string }) => (
-    <div className="bg-red-900/80 border border-red-700 text-red-200 rounded-lg p-4 my-2">
-      <span className="font-bold">Error:</span> {message}
-    </div>
-  );
+/* ─── KPI Card ─────────────────────────────────────────── */
+function KpiCard({
+  label,
+  value,
+  icon: Icon,
+  color,
+  growth,
+  delay = 0,
+}: {
+  label: string;
+  value: string;
+  icon: LucideIcon;
+  color: string;
+  growth?: number;
+  delay?: number;
+}) {
+  const isPositive = growth == null || growth >= 0;
+  const trendText = growth == null
+    ? 'No trend data for selected range'
+    : `${isPositive ? 'Up' : 'Down'} vs previous period`;
 
   return (
-    <div className="flex h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-black">
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3, delay, ease: [0.23, 1, 0.32, 1] }}
+      className="admin-card dashboard-kpi-card"
+    >
+      <div className="dashboard-kpi-head items-start">
+        <div className="dashboard-kpi-label-wrap">
+          <div
+            className="dashboard-kpi-icon"
+            style={{ background: `color-mix(in srgb, ${color} 16%, transparent)` }}
+          >
+            <Icon className="w-4 h-4 sm:w-[18px] sm:h-[18px]" style={{ color }} />
+          </div>
+          <p className="dashboard-kpi-label" style={{ color: 'var(--text-muted)' }}>
+            {label}
+          </p>
+        </div>
+
+        {growth != null && (
+          <div
+            className={`dashboard-kpi-trend flex items-center gap-0.5 flex-shrink-0 ${
+              isPositive ? 'badge-success' : 'badge-danger'
+            }`}
+          >
+            {isPositive ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
+            {Math.abs(growth)}%
+          </div>
+        )}
+      </div>
+      <p className="dashboard-kpi-value" style={{ color: 'var(--text-primary)' }}>
+        {value}
+      </p>
+      <div className="dashboard-kpi-foot mt-auto border-t" style={{ borderColor: 'var(--border-subtle)' }}>
+        <p className="dashboard-kpi-meta text-sm leading-snug">{trendText}</p>
+      </div>
+    </motion.div>
+  );
+}
+
+/* ─── Section wrapper ──────────────────────────────────── */
+function Card({ title, children, className = '', delay = 0, action }: {
+  title: string;
+  children: React.ReactNode;
+  className?: string;
+  delay?: number;
+  action?: React.ReactNode;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, delay, ease: 'easeOut' }}
+      className={`admin-card dashboard-panel flex flex-col ${className}`}
+    >
+      <div className="dashboard-panel-head flex items-center justify-between flex-shrink-0 mb-4 sm:mb-5">
+        <h3 className="admin-section-title">{title}</h3>
+        {action}
+      </div>
+      <div className="flex-1 min-h-0">{children}</div>
+    </motion.div>
+  );
+}
+
+/* ─── System Health progress bar ──────────────────────── */
+function ProgressBar({ label, value, color, unit = '%' }: { label: string; value: number | undefined; color: string; unit?: string }) {
+  const pct = Math.min(100, Math.max(0, value ?? 0));
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-1.5">
+        <span className="text-sm" style={{ color: 'var(--text-muted)' }}>{label}</span>
+        <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+          {value != null ? `${value}${unit}` : '—'}
+        </span>
+      </div>
+      <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--bg-muted)' }}>
+        <motion.div
+          className="h-full rounded-full"
+          style={{ background: color }}
+          initial={{ width: 0 }}
+          animate={{ width: `${pct}%` }}
+          transition={{ duration: 0.7, ease: 'easeOut' }}
+        />
+      </div>
+    </div>
+  );
+}
+
+/* ─── Dashboard ────────────────────────────────────────── */
+export default function Dashboard() {
+  type TimeRange = '7d' | '30d' | '90d' | '1y';
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [timeRange, setTimeRange] = useState<TimeRange>('30d');
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+
+  const {
+    data: stats,
+    isLoading: statsLoading,
+    isError: statsError,
+    refetch: refetchStats,
+  } = useQuery({
+    queryKey: ['dashboard-stats'],
+    queryFn: () => adminApi.getDashboardStats(),
+    refetchInterval: 60000,
+    retry: 1,
+    retryDelay: 750,
+  });
+
+  const {
+    data: userAnalytics,
+    isLoading: userLoading,
+    isError: userError,
+    refetch: refetchUserAnalytics,
+  } = useQuery({
+    queryKey: ['user-analytics', timeRange],
+    queryFn: () => adminApi.getUserAnalytics(timeRange),
+    refetchInterval: 60000,
+    retry: 1,
+    retryDelay: 750,
+  });
+
+  const {
+    data: revenueAnalytics,
+    isLoading: revenueLoading,
+    isError: revenueError,
+    refetch: refetchRevenueAnalytics,
+  } = useQuery({
+    queryKey: ['revenue-analytics', timeRange],
+    queryFn: () => adminApi.getRevenueAnalytics(timeRange),
+    refetchInterval: 60000,
+    retry: 1,
+    retryDelay: 750,
+  });
+
+  const {
+    data: subscriptionAnalytics,
+    isLoading: subLoading,
+    isError: subError,
+    refetch: refetchSubscriptionAnalytics,
+  } = useQuery({
+    queryKey: ['subscription-analytics', timeRange],
+    queryFn: () => adminApi.getSubscriptionAnalytics(timeRange),
+    refetchInterval: 60000,
+    retry: 1,
+    retryDelay: 750,
+  });
+
+  const {
+    data: systemHealth,
+    refetch: refetchSystemHealth,
+  } = useQuery({
+    queryKey: ['system-health'],
+    queryFn: () => adminApi.getSystemHealth(),
+    refetchInterval: 30000,
+  });
+
+  const {
+    data: activityFeed,
+    isLoading: activityLoading,
+    isError: activityError,
+    refetch: refetchActivityFeed,
+  } = useQuery({
+    queryKey: ['activity-feed'],
+    queryFn: () => adminApi.getActivityFeed(20),
+    refetchInterval: 15000,
+    retry: 1,
+    retryDelay: 750,
+  });
+
+  const {
+    data: recentUsers,
+    refetch: refetchRecentUsers,
+  } = useQuery({
+    queryKey: ['recent-users'],
+    queryFn: () => adminApi.getUsers(1, 5),
+    refetchInterval: 60000,
+  });
+
+  const plans = subscriptionAnalytics?.subscriptionDistribution || [];
+  const totalPlanUsers = plans.reduce((s: number, p) => s + p.count, 0);
+  const paidUsers = plans
+    .filter((p) => (p.planKey || p.plan)?.toLowerCase() !== 'free')
+    .reduce((s: number, p) => s + p.count, 0);
+  const showKpiSkeleton = statsLoading && !stats;
+
+  const tooltipStyle: React.CSSProperties = {
+    backgroundColor: 'var(--bg-surface)',
+    border: '1px solid var(--border-default)',
+    borderRadius: 8,
+    color: 'var(--text-primary)',
+    fontSize: 12,
+  };
+
+  const axisDate = (value: string) => {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+      return value;
+    }
+    return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  };
+
+  const isTimeRange = (value: string): value is TimeRange =>
+    value === '7d' || value === '30d' || value === '90d' || value === '1y';
+
+  const kpiCards = [
+    {
+      label: 'Total Users',
+      value: stats?.totalUsers != null ? formatNumber(stats.totalUsers) : '—',
+      icon: Users,
+      color: 'var(--chart-1)',
+      growth: stats?.userGrowth,
+    },
+    {
+      label: 'Active Users',
+      value: stats?.activeUsers != null ? formatNumber(stats.activeUsers) : '—',
+      icon: Activity,
+      color: 'var(--chart-4)',
+      growth: stats?.activeGrowth,
+    },
+    {
+      label: 'Total Trades',
+      value: stats?.totalTrades != null ? formatNumber(stats.totalTrades) : '—',
+      icon: BarChart3,
+      color: 'var(--chart-3)',
+      growth: stats?.tradeGrowth,
+    },
+    {
+      label: 'Paid Subscribers',
+      value: subscriptionAnalytics ? formatNumber(paidUsers) : '—',
+      icon: CreditCard,
+      color: 'var(--chart-2)',
+    },
+    {
+      label: 'Total Revenue',
+      value: stats?.totalRevenue != null ? `$${formatNumber(stats.totalRevenue)}` : '—',
+      icon: DollarSign,
+      color: 'var(--chart-4)',
+      growth: stats?.revenueGrowth,
+    },
+    {
+      label: 'Avg Trades/User',
+      value: stats?.avgTradesPerUser != null ? stats.avgTradesPerUser.toFixed(2) : '—',
+      icon: TrendingUp,
+      color: 'var(--chart-5)',
+    },
+  ];
+
+  const hasUserTrendData = (userAnalytics?.data?.length ?? 0) > 0;
+  const hasRevenueTrendData = (revenueAnalytics?.data ?? []).some(
+    (entry) => Number(entry.revenue ?? 0) > 0,
+  );
+
+  const refreshDashboard = async () => {
+    if (isRefreshing) {
+      return;
+    }
+
+    setIsRefreshing(true);
+    try {
+      const results = await Promise.allSettled([
+        refetchStats(),
+        refetchUserAnalytics(),
+        refetchRevenueAnalytics(),
+        refetchSubscriptionAnalytics(),
+        refetchSystemHealth(),
+        refetchActivityFeed(),
+        refetchRecentUsers(),
+      ]);
+
+      const failed = results.filter((result) => {
+        if (result.status === 'rejected') {
+          return true;
+        }
+        return Boolean(result.value.error);
+      }).length;
+
+      if (failed === 0) {
+        toast.success('Dashboard refreshed');
+      } else {
+        toast.error(`Refreshed with ${failed} data source issue${failed > 1 ? 's' : ''}`);
+      }
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
+  const exportDashboard = () => {
+    if (isExporting) {
+      return;
+    }
+
+    setIsExporting(true);
+    try {
+      const headers = ['section', 'metric', 'value', 'context'];
+      const rows: Array<Array<unknown>> = [];
+      const exportDate = new Date().toISOString();
+
+      rows.push(['meta', 'generated_at', exportDate, '']);
+      rows.push(['meta', 'time_range', timeRange, '']);
+
+      kpiCards.forEach((card) => {
+        rows.push(['kpi', card.label, card.value, card.growth != null ? `${card.growth}%` : '']);
+      });
+
+      (userAnalytics?.data ?? []).forEach((entry) => {
+        rows.push(['trend_users', entry.date, entry.users ?? 0, 'daily']);
+      });
+
+      (revenueAnalytics?.data ?? []).forEach((entry) => {
+        rows.push(['trend_revenue', entry.date, entry.revenue ?? 0, 'daily']);
+      });
+
+      plans.forEach((plan) => {
+        rows.push(['plans', plan.plan, plan.count, plan.revenue]);
+      });
+
+      if (systemHealth) {
+        rows.push(['system', 'status', systemHealth.status, '']);
+        rows.push(['system', 'response_time_ms', systemHealth.responseTime, '']);
+        rows.push(['system', 'cpu_usage_pct', systemHealth.cpuUsage, '']);
+        rows.push(['system', 'memory_usage_pct', systemHealth.memoryUsage, '']);
+        rows.push(['system', 'cache_hit_pct', systemHealth.cacheHitRate, '']);
+        rows.push(['system', 'uptime_pct', systemHealth.uptime, '']);
+      }
+
+      (activityFeed ?? []).forEach((item) => {
+        rows.push(['activity', item.type, item.description, item.timestamp]);
+      });
+
+      const datePart = exportDate.slice(0, 10);
+      downloadCsv(`dashboard-${timeRange}-${datePart}.csv`, headers, rows);
+      toast.success('Dashboard CSV exported');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  return (
+    <div className="flex h-dvh overflow-hidden" style={{ background: 'var(--bg-base)' }}>
       <Sidebar isCollapsed={sidebarCollapsed} onToggle={() => setSidebarCollapsed(!sidebarCollapsed)} />
-      
-      <div className="flex-1 overflow-hidden">
-        {/* Header with Glassmorphism */}
-        <header className="bg-gray-900/50 backdrop-blur-xl border-b border-gray-800/50 px-4 sm:px-6 py-4 sticky top-0 z-10">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div>
-              <h1 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-blue-400 to-green-400 bg-clip-text text-transparent">
-                Dashboard Overview
-              </h1>
-              <p className="text-gray-400 text-sm mt-1">
-                Real-time analytics and insights • Last updated <ClientTimeDisplay />
+
+      <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
+        {/* ── Header ── */}
+        <header className="admin-page-header dashboard-header">
+          <div className="dashboard-shell dashboard-header-shell flex flex-wrap items-start justify-between gap-4 sm:gap-5">
+            <div className="dashboard-title-wrap max-w-2xl">
+              <h1 className="admin-page-title">Dashboard</h1>
+              <p className="admin-page-subtitle">
+                Platform overview and operations health
               </p>
             </div>
-            
-            <div className="flex items-center space-x-2 sm:space-x-4 w-full sm:w-auto">
-              <button className="p-2 rounded-lg bg-gray-800/50 hover:bg-gray-700/50 text-gray-400 hover:text-white transition-all">
-                <RefreshCw className="w-4 h-4" />
-              </button>
-              
+
+            <div className="dashboard-header-actions w-full sm:w-auto">
               <select
                 value={timeRange}
-                onChange={(e) => setTimeRange(e.target.value as '7d' | '30d' | '90d' | '1y')}
-                className="bg-gray-800/50 backdrop-blur-xl border border-gray-700 rounded-lg px-3 sm:px-4 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent flex-1 sm:flex-none"
+                onChange={(e) => {
+                  const next = e.target.value;
+                  if (isTimeRange(next)) {
+                    setTimeRange(next);
+                  }
+                }}
+                className="admin-select dashboard-range-select min-w-[160px] flex-1 sm:flex-none"
               >
                 <option value="7d">Last 7 days</option>
                 <option value="30d">Last 30 days</option>
                 <option value="90d">Last 90 days</option>
                 <option value="1y">Last year</option>
               </select>
-              
-              <button className="bg-gradient-to-r from-blue-600 to-green-600 hover:from-blue-700 hover:to-green-700 text-white px-3 sm:px-4 py-2 rounded-lg text-sm flex items-center space-x-2 transition-all shadow-lg hover:shadow-blue-500/25">
-                <Download className="w-4 h-4" />
-                <span className="hidden sm:inline">Export</span>
+              <button
+                className="admin-btn-secondary"
+                onClick={refreshDashboard}
+                title="Refresh"
+                aria-label="Refresh dashboard"
+                type="button"
+                disabled={isRefreshing}
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+              </button>
+              <button
+                className="admin-btn-primary"
+                type="button"
+                onClick={exportDashboard}
+                disabled={isExporting}
+              >
+                <Download className={`w-3.5 h-3.5 ${isExporting ? 'animate-pulse' : ''}`} />
+                <span>{isExporting ? 'Exporting...' : 'Export'}</span>
               </button>
             </div>
           </div>
         </header>
 
-        {/* Main Content */}
-        <main className="flex-1 scrollable-content p-4 sm:p-6 space-y-4 sm:space-y-6">
-          {/* Enhanced Stats Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-            {analyticsLoading
-              ? Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />)
-              : analyticsError
-                ? <ErrorMessage message="Failed to load dashboard stats." />
-                : (
-                  <>
-                    {/* Total Users Card */}
-                    <motion.div
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.1 }}
-                      className="bg-gradient-to-br from-gray-900/90 to-gray-800/90 backdrop-blur-xl border border-gray-700/50 rounded-2xl p-6 shadow-xl"
-                    >
-                      <div className="flex items-center justify-between mb-4">
-                        <div className="p-3 bg-blue-500/10 rounded-xl">
-                          <Users className="w-6 h-6 text-blue-400" />
-                        </div>
-                        <div className={`flex items-center space-x-1 text-sm ${(analytics?.userGrowth ?? 0) > 0 ? 'text-green-400' : 'text-red-400'}`}>
-                          {(analytics?.userGrowth ?? 0) > 0 ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
-                          <span>{analytics?.userGrowth || 0}%</span>
-                        </div>
-                      </div>
-                      <h3 className="text-3xl font-bold text-white mb-1">{formatNumber(analytics?.totalUsers || 0)}</h3>
-                      <p className="text-gray-400 text-sm">Total Users</p>
-                      <div className="mt-4 h-1 bg-gray-700 rounded-full overflow-hidden">
-                        <div className="h-full bg-gradient-to-r from-blue-500 to-blue-400" style={{ width: '75%' }}></div>
-                      </div>
-                    </motion.div>
+        {/* ── Main ── */}
+        <main className="flex-1 overflow-y-auto overflow-x-hidden admin-page-main dashboard-main">
+          <div className="dashboard-shell admin-page-stack dashboard-main-stack">
 
-                    {/* Active Users Card */}
-                    <motion.div
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.2 }}
-                      className="bg-gradient-to-br from-gray-900/90 to-gray-800/90 backdrop-blur-xl border border-gray-700/50 rounded-2xl p-6 shadow-xl"
-                    >
-                      <div className="flex items-center justify-between mb-4">
-                        <div className="p-3 bg-green-500/10 rounded-xl">
-                          <Eye className="w-6 h-6 text-green-400" />
-                        </div>
-                        <div className={`flex items-center space-x-1 text-sm ${(analytics?.activeGrowth ?? 0) > 0 ? 'text-green-400' : 'text-red-400'}`}>
-                          {(analytics?.activeGrowth ?? 0) > 0 ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
-                          <span>{analytics?.activeGrowth || 0}%</span>
-                        </div>
-                      </div>
-                      <h3 className="text-3xl font-bold text-white mb-1">{formatNumber(analytics?.activeUsers || 0)}</h3>
-                      <p className="text-gray-400 text-sm">Active Users</p>
-                      <div className="mt-4 h-1 bg-gray-700 rounded-full overflow-hidden">
-                        <div className="h-full bg-gradient-to-r from-green-500 to-green-400" style={{ width: '65%' }}></div>
-                      </div>
-                    </motion.div>
+            {/* Error banner */}
+            {(statsError || userError || revenueError || subError || activityError) && (
+              <div
+                className="rounded-lg border px-4 py-3 text-sm sm:text-[15px]"
+                style={{
+                  background: 'var(--accent-warning-subtle)',
+                  borderColor: 'var(--accent-warning-muted)',
+                  color: 'var(--accent-warning)',
+                }}
+              >
+                Some dashboard data could not be loaded. Retrying automatically.
+              </div>
+            )}
 
-                    {/* Revenue Card */}
-                    <motion.div
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.3 }}
-                      className="bg-gradient-to-br from-gray-900/90 to-gray-800/90 backdrop-blur-xl border border-gray-700/50 rounded-2xl p-6 shadow-xl"
-                    >
-                      <div className="flex items-center justify-between mb-4">
-                        <div className="p-3 bg-purple-500/10 rounded-xl">
-                          <DollarSign className="w-6 h-6 text-purple-400" />
-                        </div>
-                        <div className={`flex items-center space-x-1 text-sm ${(analytics?.revenueGrowth ?? 0) > 0 ? 'text-green-400' : 'text-red-400'}`}>
-                          {(analytics?.revenueGrowth ?? 0) > 0 ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
-                          <span>{analytics?.revenueGrowth ?? 0}%</span>
-                        </div>
-                      </div>
-                      <h3 className="text-3xl font-bold text-white mb-1">${formatNumber(analytics?.totalRevenue || 0)}</h3>
-                      <p className="text-gray-400 text-sm">Total Revenue</p>
-                      <div className="mt-4 h-1 bg-gray-700 rounded-full overflow-hidden">
-                        <div className="h-full bg-gradient-to-r from-purple-500 to-purple-400" style={{ width: '85%' }}></div>
-                      </div>
-                    </motion.div>
-
-                    {/* Total Trades Card */}
-                    <motion.div
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.4 }}
-                      className="bg-gradient-to-br from-gray-900/90 to-gray-800/90 backdrop-blur-xl border border-gray-700/50 rounded-2xl p-6 shadow-xl"
-                    >
-                      <div className="flex items-center justify-between mb-4">
-                        <div className="p-3 bg-orange-500/10 rounded-xl">
-                          <ShoppingCart className="w-6 h-6 text-orange-400" />
-                        </div>
-                        <div className={`flex items-center space-x-1 text-sm ${(analytics?.tradeGrowth ?? 0) > 0 ? 'text-green-400' : 'text-red-400'}`}>
-                          {(analytics?.tradeGrowth ?? 0) > 0 ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
-                          <span>{analytics?.tradeGrowth ?? 0}%</span>
-                        </div>
-                      </div>
-                      <h3 className="text-3xl font-bold text-white mb-1">{formatNumber(analytics?.totalTrades || 0)}</h3>
-                      <p className="text-gray-400 text-sm">Total Trades</p>
-                      <div className="mt-4 h-1 bg-gray-700 rounded-full overflow-hidden">
-                        <div className="h-full bg-gradient-to-r from-orange-500 to-orange-400" style={{ width: '70%' }}></div>
-                      </div>
-                    </motion.div>
-                  </>
-                )
-            }
-          </div>
-
-          {/* Charts Section */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-            {/* User Growth Chart */}
-            {userAnalyticsLoading
-              ? <SkeletonChart />
-              : userAnalyticsError
-                ? <ErrorMessage message="Failed to load user analytics." />
-                : (
-                  <div className="bg-gray-900/90 backdrop-blur-xl border border-gray-700/50 rounded-2xl p-4 sm:p-6">
-                    <h3 className="text-lg font-semibold text-white mb-4">User Growth</h3>
-                    <div className="h-[300px] sm:h-[400px]">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <LineChart data={userAnalytics?.data || []}>
-                          <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                          <XAxis dataKey="date" stroke="#9CA3AF" />
-                          <YAxis stroke="#9CA3AF" />
-                          <Tooltip
-                            contentStyle={{
-                              backgroundColor: 'rgba(17, 24, 39, 0.9)',
-                              border: '1px solid rgba(75, 85, 99, 0.5)',
-                              borderRadius: '0.5rem',
-                            }}
-                          />
-                          <Line
-                            type="monotone"
-                            dataKey="users"
-                            stroke="#3B82F6"
-                            strokeWidth={2}
-                            dot={false}
-                          />
-                        </LineChart>
-                      </ResponsiveContainer>
+            {/* ── KPI cards ── */}
+            <div className="dashboard-kpi-grid">
+              {showKpiSkeleton
+                ? Array.from({ length: 6 }).map((_, i) => (
+                    <div key={i} className="admin-card dashboard-kpi-card animate-pulse">
+                      <div className="h-3 w-20 rounded mb-3" style={{ background: 'var(--bg-muted)' }} />
+                      <div className="h-8 w-24 rounded" style={{ background: 'var(--bg-muted)' }} />
                     </div>
-                  </div>
-                )
-            }
+                  ))
+                : kpiCards.map((card, i) => (
+                    <KpiCard key={card.label} {...card} delay={i * 0.04} />
+                  ))}
+            </div>
 
-            {/* Revenue Chart */}
-            {revenueAnalyticsLoading
-              ? <SkeletonChart />
-              : revenueAnalyticsError
-                ? <ErrorMessage message="Failed to load revenue analytics." />
-                : (
-                  <div className="bg-gray-900/90 backdrop-blur-xl border border-gray-700/50 rounded-2xl p-4 sm:p-6">
-                    <h3 className="text-lg font-semibold text-white mb-4">Revenue</h3>
-                    <div className="h-[300px] sm:h-[400px]">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <AreaChart data={revenueAnalytics?.data || []}>
-                          <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                          <XAxis dataKey="date" stroke="#9CA3AF" />
-                          <YAxis stroke="#9CA3AF" />
-                          <Tooltip
-                            contentStyle={{
-                              backgroundColor: 'rgba(17, 24, 39, 0.9)',
-                              border: '1px solid rgba(75, 85, 99, 0.5)',
-                              borderRadius: '0.5rem',
-                            }}
-                          />
-                          <Area
-                            type="monotone"
-                            dataKey="revenue"
-                            stroke="#10B981"
-                            fill="#10B981"
-                            fillOpacity={0.2}
-                          />
-                        </AreaChart>
-                      </ResponsiveContainer>
-                    </div>
-                  </div>
-                )
-            }
-          </div>
-              
-          {/* Activity Feed and System Health */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-            {/* Activity Feed */}
-            {activityFeedLoading
-              ? <SkeletonChart />
-              : activityFeedError
-                ? <ErrorMessage message="Failed to load activity feed." />
-                : (
-                  <div className="bg-gray-900/90 backdrop-blur-xl border border-gray-700/50 rounded-2xl p-4 sm:p-6">
-                    <h3 className="text-lg font-semibold text-white mb-4">Recent Activity</h3>
-                    <div className="space-y-4">
-                      {activityFeed?.map((activity) => (
-                        <div
-                          key={activity.id}
-                          className="flex items-start space-x-3 p-3 rounded-lg bg-gray-800/50"
-                        >
-                          <div className="flex-shrink-0">
-                            <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center">
-                              <ActivityIcon className="w-4 h-4 text-blue-400" />
+            {/* ── Row 3: User Growth (full width) ── */}
+            <Card title="User Growth" delay={0.12}>
+              {userLoading ? (
+                <div className="dashboard-chart-lg mt-1 rounded-lg animate-pulse" style={{ background: 'var(--bg-muted)' }} />
+              ) : !hasUserTrendData ? (
+                <div
+                  className="dashboard-empty-state dashboard-chart-md mt-1 rounded-lg border border-dashed flex items-center justify-center text-sm"
+                  style={{ borderColor: 'var(--border-default)', color: 'var(--text-muted)' }}
+                >
+                  No user growth events for this range
+                </div>
+              ) : (
+                <div className="dashboard-chart-lg mt-1">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={userAnalytics?.data || []}>
+                      <defs>
+                        <linearGradient id="ug" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%"  stopColor="var(--chart-1)" stopOpacity={0.3} />
+                          <stop offset="95%" stopColor="var(--chart-1)" stopOpacity={0} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" vertical={false} />
+                      <XAxis
+                        dataKey="date"
+                        stroke="var(--text-muted)"
+                        tick={{ fontSize: 12 }}
+                        tickLine={false}
+                        axisLine={false}
+                        tickFormatter={axisDate}
+                        minTickGap={28}
+                        tickMargin={8}
+                      />
+                      <YAxis stroke="var(--text-muted)" tick={{ fontSize: 12 }} tickLine={false} axisLine={false} width={32} />
+                      <Tooltip contentStyle={tooltipStyle} cursor={{ stroke: 'var(--border-default)', strokeWidth: 1 }} />
+                      <Area type="monotone" dataKey="users" stroke="var(--chart-1)" fill="url(#ug)" strokeWidth={2} dot={false} />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+            </Card>
+
+            {/* ── Row 4: Revenue (full width) ── */}
+            <Card title="Revenue" delay={0.16}>
+              {revenueLoading ? (
+                <div className="dashboard-chart-md mt-1 rounded-lg animate-pulse" style={{ background: 'var(--bg-muted)' }} />
+              ) : !hasRevenueTrendData ? (
+                <div
+                  className="dashboard-empty-state dashboard-chart-sm mt-1 rounded-lg border border-dashed flex items-center justify-center text-sm"
+                  style={{ borderColor: 'var(--border-default)', color: 'var(--text-muted)' }}
+                >
+                  No revenue captured in this period
+                </div>
+              ) : (
+                <div className="dashboard-chart-md mt-1">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={revenueAnalytics?.data || []}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" vertical={false} />
+                      <XAxis
+                        dataKey="date"
+                        stroke="var(--text-muted)"
+                        tick={{ fontSize: 12 }}
+                        tickLine={false}
+                        axisLine={false}
+                        tickFormatter={axisDate}
+                        minTickGap={28}
+                        tickMargin={8}
+                      />
+                      <YAxis stroke="var(--text-muted)" tick={{ fontSize: 12 }} tickLine={false} axisLine={false} width={32} />
+                      <Tooltip contentStyle={tooltipStyle} cursor={{ stroke: 'var(--border-default)', strokeWidth: 1 }} />
+                      <Line type="monotone" dataKey="revenue" stroke="var(--chart-4)" strokeWidth={2} dot={false} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+            </Card>
+
+            {/* ── Row 5: Bottom 4-col grid ── */}
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 sm:gap-7">
+
+              {/* Live Activity */}
+              <Card title="Live Activity" delay={0.2}>
+                <div className="overflow-y-auto pr-1" style={{ maxHeight: 380 }}>
+                  {activityLoading
+                    ? Array.from({ length: 5 }).map((_, i) => (
+                        <div key={i} className="flex items-center gap-2.5 py-3 animate-pulse">
+                          <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: 'var(--bg-subtle)' }} />
+                          <div className="flex-1 space-y-1">
+                            <div className="h-2.5 rounded w-full" style={{ background: 'var(--bg-muted)' }} />
+                            <div className="h-2 rounded w-16" style={{ background: 'var(--bg-subtle)' }} />
+                          </div>
+                        </div>
+                      ))
+                    : activityFeed?.length
+                      ? activityFeed.map((a: AdminActivity) => (
+                          <div
+                            key={a.id}
+                            className="flex items-start gap-2.5 py-4 border-b last:border-b-0"
+                            style={{ borderColor: 'var(--border-subtle)' }}
+                          >
+                            <div
+                              className="w-1.5 h-1.5 rounded-full flex-shrink-0 mt-1.5"
+                              style={{ background: ACTIVITY_COLORS[a.type] || 'var(--accent-neutral)' }}
+                            />
+                            <div className="min-w-0 flex-1">
+                              <p className="text-sm sm:text-[15px] leading-snug" style={{ color: 'var(--text-primary)' }}>
+                                {a.description}
+                              </p>
+                              <p className="text-xs sm:text-sm mt-1.5 font-mono" style={{ color: 'var(--text-muted)' }}>
+                                {new Date(a.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                              </p>
                             </div>
                           </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm text-white">{activity.description}</p>
-                            <p className="text-xs text-gray-400 mt-1">
-                              {timeAgo(new Date(activity.timestamp))}
-                            </p>
+                        ))
+                      : (
+                          <p className="text-sm py-4" style={{ color: 'var(--text-muted)' }}>No recent activity</p>
+                        )}
+                </div>
+              </Card>
+
+              {/* Subscription Plans */}
+              <Card title="Subscription Plans" delay={0.24}>
+                {subLoading ? (
+                  <div className="h-[280px] rounded-lg animate-pulse" style={{ background: 'var(--bg-muted)' }} />
+                ) : plans.length ? (
+                  <>
+                    <div className="h-[200px]">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={plans}
+                            dataKey="count"
+                            cx="50%"
+                            cy="50%"
+                            innerRadius={46}
+                            outerRadius={70}
+                            paddingAngle={3}
+                            strokeWidth={0}
+                          >
+                            {plans.map((_, i: number) => (
+                              <Cell key={i} fill={PLAN_COLORS[i % PLAN_COLORS.length]} />
+                            ))}
+                          </Pie>
+                          <Tooltip
+                            contentStyle={tooltipStyle}
+                            formatter={(value: unknown, _name: unknown, payload: { payload?: { plan?: string } }) => [
+                              `${payload.payload?.plan || 'Plan'}: ${String(value ?? '0')}`,
+                              '',
+                            ]}
+                          />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </div>
+                    <div className="admin-list-stack-tight mt-3">
+                      {plans.map((p, i: number) => (
+                        <div key={p.plan} className="flex items-center justify-between text-sm">
+                          <div className="flex items-center gap-1.5">
+                            <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: PLAN_COLORS[i % PLAN_COLORS.length] }} />
+                            <span className="capitalize" style={{ color: 'var(--text-secondary)' }}>{p.plan}</span>
                           </div>
+                          <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>
+                            {formatNumber(p.count)}{totalPlanUsers > 0 ? ` (${Math.round((p.count / totalPlanUsers) * 100)}%)` : ''}
+                          </span>
                         </div>
                       ))}
                     </div>
-                  </div>
-                )
-            }
+                  </>
+                ) : (
+                  <p className="text-sm py-4" style={{ color: 'var(--text-muted)' }}>No subscription data</p>
+                )}
+              </Card>
 
-            {/* System Health */}
-            {systemHealthLoading
-              ? <SkeletonChart />
-              : systemHealthError
-                ? <ErrorMessage message="Failed to load system health." />
-                : (
-                  <div className="bg-gray-900/90 backdrop-blur-xl border border-gray-700/50 rounded-2xl p-4 sm:p-6">
-                    <h3 className="text-lg font-semibold text-white mb-4">System Health</h3>
-                    <div className="h-[300px] sm:h-[400px]">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <RadarChart data={performanceData}>
-                          <PolarGrid stroke="#374151" />
-                          <PolarAngleAxis dataKey="metric" stroke="#9CA3AF" />
-                          <PolarRadiusAxis stroke="#9CA3AF" />
-                          <Radar
-                            name="Performance"
-                            dataKey="value"
-                            stroke="#3B82F6"
-                            fill="#3B82F6"
-                            fillOpacity={0.2}
-                          />
-                        </RadarChart>
-                      </ResponsiveContainer>
-                    </div>
-                  </div>
-                )
-            }
-          </div>
-
-          {/* Additional Dashboard Content for Scrolling */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 1.0 }}
-              className="bg-gray-900/90 backdrop-blur-xl border border-gray-700/50 rounded-2xl p-6"
-            >
-              <h3 className="text-lg font-semibold text-white mb-4">Recent Activity</h3>
-              <div className="space-y-3">
-                {Array.from({ length: 10 }, (_, i) => (
-                  <div key={i} className="flex items-center space-x-3 p-3 bg-gray-800/50 rounded-lg">
-                    <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
-                      <span className="text-white text-xs font-bold">{i + 1}</span>
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-white text-sm">User activity #{i + 1}</p>
-                      <p className="text-gray-400 text-xs">{timeAgo(new Date(Date.now() - i * 300000))}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 1.1 }}
-              className="bg-gray-900/90 backdrop-blur-xl border border-gray-700/50 rounded-2xl p-6"
-            >
-              <h3 className="text-lg font-semibold text-white mb-4">System Alerts</h3>
-              <div className="space-y-3">
-                {Array.from({ length: 8 }, (_, i) => (
-                  <div key={i} className="flex items-center space-x-3 p-3 bg-gray-800/50 rounded-lg">
-                    <div className={`w-3 h-3 rounded-full ${
-                      i % 3 === 0 ? 'bg-green-400' : i % 3 === 1 ? 'bg-yellow-400' : 'bg-red-400'
-                    }`}></div>
-                    <div className="flex-1">
-                      <p className="text-white text-sm">System alert #{i + 1}</p>
-                      <p className="text-gray-400 text-xs">
-                        {i % 3 === 0 ? 'Info' : i % 3 === 1 ? 'Warning' : 'Error'} • {timeAgo(new Date(Date.now() - i * 600000))}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </motion.div>
-          </div>
-
-          {/* More Content */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 1.2 }}
-            className="bg-gray-900/90 backdrop-blur-xl border border-gray-700/50 rounded-2xl p-6"
-          >
-            <h3 className="text-lg font-semibold text-white mb-4">Performance Metrics</h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {Array.from({ length: 12 }, (_, i) => (
-                <div key={i} className="bg-gray-800/50 rounded-lg p-4">
-                  <p className="text-gray-400 text-sm">Metric #{i + 1}</p>
-                  <p className="text-white text-xl font-bold">{Math.floor(Math.random() * 100)}%</p>
-                  <div className="mt-2 h-2 bg-gray-700 rounded-full overflow-hidden">
-                    <div 
-                      className="h-full bg-blue-500 rounded-full" 
-                      style={{ width: `${Math.floor(Math.random() * 100)}%` }}
-                    ></div>
-                  </div>
+              {/* System Health */}
+              <Card title="System Health" delay={0.28}>
+                <div className="admin-list-stack">
+                  <ProgressBar label="Response Time" value={systemHealth?.responseTime} unit="ms" color="var(--chart-1)" />
+                  <ProgressBar label="CPU Usage"     value={systemHealth?.cpuUsage}     unit="%" color="var(--chart-4)" />
+                  <ProgressBar label="Memory"        value={systemHealth?.memoryUsage}   unit="%" color="var(--chart-3)" />
+                  <ProgressBar label="Cache Hit"     value={systemHealth?.cacheHitRate}  unit="%" color="var(--chart-2)" />
                 </div>
-              ))}
-            </div>
-                     </motion.div>
 
-          {/* Extra Content to Force Scrolling */}
-          <div className="space-y-6">
-            {Array.from({ length: 5 }, (_, sectionIndex) => (
-              <motion.div
-                key={sectionIndex}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 1.3 + sectionIndex * 0.1 }}
-                className="bg-gray-900/90 backdrop-blur-xl border border-gray-700/50 rounded-2xl p-6"
+                <div className="mt-4 pt-3 border-t flex items-center gap-2" style={{ borderColor: 'var(--border-subtle)' }}>
+                  <span
+                    className="w-2 h-2 rounded-full animate-pulse"
+                    style={{ background: 'var(--accent-success)' }}
+                  />
+                  <span className="text-sm font-medium" style={{ color: 'var(--accent-success)' }}>All systems operational</span>
+                </div>
+
+                {systemHealth?.uptime != null && (
+                  <div className="mt-2 flex items-center justify-between text-sm" style={{ color: 'var(--text-muted)' }}>
+                    <span>Uptime</span>
+                    <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>{systemHealth.uptime}%</span>
+                  </div>
+                )}
+              </Card>
+
+              {/* Recent Signups */}
+              <Card title="Recent Signups" delay={0.32}
+                action={
+                  <span className="text-sm font-semibold px-2 py-1 rounded badge-primary">
+                    {recentUsers?.data?.length ?? 0} new
+                  </span>
+                }
               >
-                <h3 className="text-lg font-semibold text-white mb-4">Additional Section {sectionIndex + 1}</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {Array.from({ length: 9 }, (_, i) => (
-                    <div key={i} className="bg-gray-800/50 rounded-lg p-4">
-                      <p className="text-gray-400 text-sm">Item {i + 1}</p>
-                      <p className="text-white text-xl font-bold">{222 + i * 100}</p>
-                      <div className="mt-2 h-2 bg-gray-700 rounded-full overflow-hidden">
-                        <div 
-                          className="h-full bg-gradient-to-r from-blue-500 to-green-500 rounded-full" 
-                          style={{ width: `${(i * 15 + 25) % 100}%` }}
-                        ></div>
+                <div className="space-y-0 overflow-y-auto pr-1" style={{ maxHeight: 380 }}>
+                  {recentUsers?.data?.length ? (
+                    recentUsers.data.slice(0, 5).map((u) => (
+                      <div
+                        key={u.id}
+                        className="flex items-center gap-3 py-3 border-b last:border-b-0"
+                        style={{ borderColor: 'var(--border-subtle)' }}
+                      >
+                        {/* Avatar initial */}
+                        <div
+                          className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold text-white flex-shrink-0"
+                          style={{
+                            background: 'var(--gradient-brand)',
+                          }}
+                        >
+                          {(u.firstName?.[0] || u.email[0]).toUpperCase()}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>
+                            {u.firstName
+                              ? `${u.firstName} ${u.lastName || ''}`.trim()
+                              : u.email.split('@')[0]}
+                          </p>
+                          <p className="text-sm truncate" style={{ color: 'var(--text-muted)' }}>
+                            {u.email}
+                          </p>
+                        </div>
+                        <Globe className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--text-muted)' }} />
                       </div>
-                                              <p className="text-gray-500 text-xs mt-2">
-                          Updated {(i * 7 + 5) % 60} minutes ago
-                        </p>
-                    </div>
-                  ))}
+                    ))
+                  ) : (
+                    <p className="text-sm py-4" style={{ color: 'var(--text-muted)' }}>No users yet</p>
+                  )}
                 </div>
-              </motion.div>
-            ))}
-          </div>
+              </Card>
 
-          {/* Final Section to Ensure Scrolling */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 1.8 }}
-            className="bg-gradient-to-r from-blue-900/50 to-green-900/50 backdrop-blur-xl border border-blue-700/50 rounded-2xl p-8 text-center"
-          >
-            <h3 className="text-2xl font-bold text-white mb-4">🎉 You've reached the bottom!</h3>
-            <p className="text-gray-300">This confirms that scrolling is working properly on the dashboard.</p>
-            <div className="mt-4 text-sm text-gray-400">
-              Dashboard loaded at <ClientTimeDisplay prefix="" />
             </div>
-          </motion.div>
+          </div>
         </main>
       </div>
     </div>

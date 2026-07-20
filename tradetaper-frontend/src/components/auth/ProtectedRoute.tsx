@@ -5,6 +5,7 @@ import { RootState } from '@/store/store';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, ReactNode } from 'react'; // Added useState
 import { usePathname } from 'next/navigation';
+import TradingJournalLoader from '@/components/common/TradingJournalLoader';
 
 interface ProtectedRouteProps {
   children: ReactNode;
@@ -42,7 +43,7 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
   // This helps match the server output if the server also determined a loading state.
   if (!isClient || isLoading) {
     // If isClient is false, OR if auth is still loading on the client
-    return <div className="min-h-screen flex items-center justify-center bg-gray-900 text-white">Loading...</div>;
+    return <TradingJournalLoader />;
   }
 
   // After client has mounted and auth is not loading:
@@ -51,7 +52,7 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
   // We can still show "Loading..." or null here to prevent flashing content before redirect.
   if (!user && !isPublicRoute) {
     // This state should be brief as useEffect will redirect.
-    return <div className="min-h-screen flex items-center justify-center bg-gray-900 text-white">Loading...</div>;
+    return <TradingJournalLoader />;
     // Or return null; to render nothing until redirect.
   }
 

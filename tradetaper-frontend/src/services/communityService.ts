@@ -1,4 +1,4 @@
-import { apiClient, authApiClient } from './api';
+import { authApiClient } from './api';
 import {
   CommunityPost,
   CommunitySettings,
@@ -40,17 +40,17 @@ export interface CommunityUserSearchResponse {
 
 export const communityService = {
   getFeed: async (params: Record<string, any> = {}) => {
-    const response = await apiClient.get<CommunityFeedResponse>('/community/feed', { params });
+    const response = await authApiClient.get<CommunityFeedResponse>('/community/feed', { params });
     return response.data;
   },
 
   getLeaderboard: async (params: Record<string, any> = {}) => {
-    const response = await apiClient.get<CommunityLeaderboardResponse>('/community/leaderboard', { params });
+    const response = await authApiClient.get<CommunityLeaderboardResponse>('/community/leaderboard', { params });
     return response.data;
   },
 
   getPeople: async (params: Record<string, any> = {}) => {
-    const response = await apiClient.get<CommunityPeopleResponse>('/community/people', { params });
+    const response = await authApiClient.get<CommunityPeopleResponse>('/community/people', { params });
     return response.data;
   },
 
@@ -85,7 +85,7 @@ export const communityService = {
   },
 
   getReplies: async (postId: string, params: Record<string, any> = {}) => {
-    const response = await apiClient.get<CommunityRepliesResponse>(`/community/posts/${postId}/replies`, { params });
+    const response = await authApiClient.get<CommunityRepliesResponse>(`/community/posts/${postId}/replies`, { params });
     return response.data;
   },
 

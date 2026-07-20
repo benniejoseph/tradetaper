@@ -94,6 +94,34 @@ function calculateMaxDrawdownFromPnlSeries(pnlSeries: number[]): number {
     // return maxDrawdown; // If returning absolute drawdown
 }
 
+function resolveTradeRMultiple(trade: Trade): number | null {
+  if (trade.rMultiple !== undefined && trade.rMultiple !== null && Number.isFinite(Number(trade.rMultiple))) {
+    return Number(trade.rMultiple);
+  }
+
+  const openPrice = Number(trade.entryPrice);
+  const closePrice = Number(trade.exitPrice);
+  const stopLoss = Number(trade.stopLoss);
+  if (!Number.isFinite(openPrice) || !Number.isFinite(closePrice) || !Number.isFinite(stopLoss)) {
+    return null;
+  }
+
+  const riskPerUnit = Math.abs(openPrice - stopLoss);
+  if (riskPerUnit <= 0) return null;
+
+  const direction = String(trade.direction || '').toLowerCase();
+  const rewardPerUnit =
+    direction === 'long'
+      ? closePrice - openPrice
+      : direction === 'short'
+        ? openPrice - closePrice
+        : NaN;
+
+  if (!Number.isFinite(rewardPerUnit)) return null;
+  const derived = rewardPerUnit / riskPerUnit;
+  return Number.isFinite(derived) ? derived : null;
+}
+
 // Main stats calculator - REMAINS UNCHANGED from previous version that included Expectancy
 export function calculateDashboardStats(trades: Trade[]): DashboardStats {
   const closedTrades = trades
@@ -132,8 +160,9 @@ export function calculateDashboardStats(trades: Trade[]): DashboardStats {
       breakevenTrades++; 
     }
 
-    if (trade.rMultiple !== undefined && trade.rMultiple !== null) {
-      sumOfRMultiples += trade.rMultiple;
+    const resolvedRMultiple = resolveTradeRMultiple(trade);
+    if (resolvedRMultiple !== null) {
+      sumOfRMultiples += resolvedRMultiple;
       countOfRMultiples++;
     }
   });

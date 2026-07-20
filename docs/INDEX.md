@@ -1,6 +1,6 @@
 # TradeTaper Documentation Index
 
-**Last Updated:** February 10, 2026
+**Last Updated:** March 28, 2026
 
 This directory contains all project documentation organized by category.
 
@@ -81,6 +81,12 @@ Database architecture, migrations, and optimizations.
 
 ### ✨ [Features](./features/)
 Feature implementations, integrations, and guides.
+
+#### Subscription & Entitlements
+- **[FEATURE-GATING-ENTITLEMENT-AUDIT-2026-03-28.md](./features/FEATURE-GATING-ENTITLEMENT-AUDIT-2026-03-28.md)** - Full feature-gating and entitlement audit
+  - Plan matrix (Free/Essential/Premium)
+  - Backend + frontend gate coverage
+  - Fixed gaps, remaining risks, and priority actions
 
 #### MT5 Integration
 - **[MT5-TERMINAL-INTEGRATION-ANALYSIS.md](./features/MT5-TERMINAL-INTEGRATION-ANALYSIS.md)** - Complete MT5 analysis
@@ -199,4 +205,4 @@ This index should be updated whenever:
 - Major features are implemented
 - Critical issues are resolved
 
-**Last Reviewed:** February 10, 2026
+**Last Reviewed:** March 28, 2026

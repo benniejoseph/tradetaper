@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, Suspense, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Strategy } from '@/types/strategy';
@@ -49,7 +49,6 @@ function BacktestTradesContent() {
   const {
     data: tradesResult,
     isLoading: tradesLoading,
-    error: tradesError,
   } = useBacktestTrades(
     {
       strategyId: selectedStrategyId,
@@ -70,11 +69,7 @@ function BacktestTradesContent() {
 
   const deleteTradeMutation = useDeleteBacktestTrade();
 
-  useEffect(() => {
-    loadStrategies();
-  }, []);
-
-  const loadStrategies = async () => {
+  const loadStrategies = useCallback(async () => {
     try {
       setLoading(true);
       const data = await strategiesService.getStrategies();
@@ -89,7 +84,11 @@ function BacktestTradesContent() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [strategyIdFromUrl]);
+
+  useEffect(() => {
+    void loadStrategies();
+  }, [loadStrategies]);
 
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this backtest trade?')) return;
@@ -100,8 +99,6 @@ function BacktestTradesContent() {
       },
     });
   };
-
-  const selectedStrategy = strategies.find(s => s.id === selectedStrategyId);
 
   // Get unique symbols from trades
   const symbols = [...new Set(trades.map(t => t.symbol))];

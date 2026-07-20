@@ -7,7 +7,7 @@ export default function SettingsPage() {
   const router = useRouter();
 
   useEffect(() => {
-    router.replace('/settings/accounts');
+    router.replace('/settings/accounts-hub');
   }, [router]);
 
   // Return null or a loading spinner while redirecting

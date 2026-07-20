@@ -2,10 +2,11 @@
 
 import { Trade, AssetType, TradeDirection, TradeStatus } from '@/types/trade';
 import { Account } from '@/store/features/accountSlice'; // Assuming Account type is exported or define here
-import { format, parseISO, differenceInMinutes, differenceInHours, differenceInDays } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { TradingSession } from '@/types/enums';
 import React, { useState, useMemo, useCallback } from 'react'; // Added useCallback
 import { useDispatch } from 'react-redux';
+import { useRouter } from 'next/navigation';
 import { updateTrade, deleteTrades, bulkUpdateTrades, groupTrades } from '@/store/features/tradesSlice';
 import { FaChevronLeft, FaChevronRight, FaEdit, FaCheck, FaTimes, FaTrash, FaPen, FaExternalLinkAlt, FaEye, FaLink } from 'react-icons/fa'; // Import icons for pagination
 import { CurrencyAmount } from '@/components/common/CurrencyAmount';
@@ -75,6 +76,7 @@ export default function TradesTable({
   onPageSizeChange,
 }: TradesTableProps) {
   const dispatch = useDispatch<AppDispatch>();
+  const router = useRouter();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<Partial<Trade>>({});
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -96,6 +98,24 @@ export default function TradesTable({
   const closeConfirm = () => setConfirmState((prev) => ({ ...prev, isOpen: false }));
   const showConfirm = (message: string, onConfirm: () => void, title = 'Confirm Action') =>
     setConfirmState({ isOpen: true, title, message, onConfirm });
+
+  const toOptionalNumber = (value: string): number | undefined => {
+    if (value.trim() === '') return undefined;
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : undefined;
+  };
+
+  const getErrorMessage = (error: unknown, fallback: string) => {
+    if (typeof error !== 'object' || error === null) return fallback;
+    const withResponse = error as { response?: { data?: { message?: string } }; message?: string };
+    if (typeof withResponse.response?.data?.message === 'string') {
+      return withResponse.response.data.message;
+    }
+    if (typeof withResponse.message === 'string') {
+      return withResponse.message;
+    }
+    return fallback;
+  };
 
   const accountMap = useMemo(() => {
     const map = new Map<string, string>();
@@ -198,8 +218,8 @@ export default function TradesTable({
       await authApiClient.post(`/trades/${syncModalState.tradeId}/copy-journal`, { mode: syncMode });
       showAlert('Journal synced successfully across the group! The new links will manifest upon your next table refresh.', 'Sync Complete');
       setSyncModalState({ isOpen: false, tradeId: null, groupId: null });
-    } catch (err: any) {
-      showAlert(err.response?.data?.message || 'Failed to sync journal', 'Sync Failed');
+    } catch (error: unknown) {
+      showAlert(getErrorMessage(error, 'Failed to sync journal'), 'Sync Failed');
     } finally {
       setIsSyncing(false);
     }
@@ -304,17 +324,25 @@ export default function TradesTable({
 
   const thClasses = "px-3 py-2 text-left text-[10px] font-bold text-zinc-400 uppercase tracking-wider whitespace-nowrap";
   const tdClasses = "px-3 py-2 whitespace-nowrap text-xs";
+  const formatTradeDate = (value?: string | null) => {
+    if (!value) return '-';
+    try {
+      return format(parseISO(value), 'dd MMM, HH:mm');
+    } catch {
+      return '-';
+    }
+  };
 
   return (
     <>
       <div className="bg-gradient-to-br from-white to-emerald-50 dark:from-black dark:to-emerald-950/20 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 shadow-lg overflow-hidden">
       {/* Pagination Controls - Top */}
       {pagination.totalPages > 1 && (
-        <div className="px-4 py-2 border-b border-gray-200/30 dark:border-gray-700/30 flex justify-between items-center bg-zinc-50 dark:bg-white/[0.02]">
+        <div className="px-4 py-2 border-b border-gray-200/30 dark:border-gray-700/30 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between bg-zinc-50 dark:bg-white/[0.02]">
           <div className="text-xs text-zinc-500 font-medium">
             Showing <span className="font-bold text-zinc-700 dark:text-zinc-300">{pagination.startIndex}-{pagination.endIndex}</span> of {pagination.totalItems}
           </div>
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center justify-center space-x-2">
             <button
               onClick={pagination.prevPage}
               disabled={!pagination.canGoPrev}
@@ -356,7 +384,7 @@ export default function TradesTable({
                     <button
                       onClick={handleGroupTrades}
                       disabled={selectedIds.size < 2}
-                      className="flex items-center gap-2 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg text-sm font-medium transition-colors"
+                      className="flex items-center gap-2 px-3 py-1.5 bg-amber-600 hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg text-sm font-medium transition-colors"
                     >
                       <FaLink className="w-3.5 h-3.5" />
                       Group
@@ -451,7 +479,7 @@ export default function TradesTable({
                       type="number"
                       step="0.01"
                       value={bulkUpdates.commission ?? ''}
-                      onChange={(e) => setBulkUpdates({ ...bulkUpdates, commission: e.target.value ? parseFloat(e.target.value) : undefined })}
+                      onChange={(e) => setBulkUpdates({ ...bulkUpdates, commission: toOptionalNumber(e.target.value) })}
                       className="rounded border-emerald-300 dark:border-emerald-700 dark:bg-gray-800 text-xs py-1.5 focus:ring-emerald-500"
                       placeholder="(No Change)"
                     />
@@ -461,8 +489,114 @@ export default function TradesTable({
         </div>
       )}
 
+      {/* Mobile Cards */}
+      <div className="md:hidden divide-y divide-gray-200/50 dark:divide-gray-700/40">
+        {pagination.currentData.map((trade) => (
+          <div
+            key={trade.id}
+            className={`p-4 space-y-3 ${
+              selectedIds.has(trade.id) ? 'bg-emerald-50/50 dark:bg-emerald-900/20' : ''
+            }`}
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-start gap-2 min-w-0">
+                <input
+                  type="checkbox"
+                  checked={selectedIds.has(trade.id)}
+                  onChange={() => handleSelectRow(trade.id)}
+                  className="mt-1 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+                />
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">{trade.symbol}</p>
+                    {trade.groupId && (
+                      <span
+                        title="Part of a grouped trade position"
+                        className={`inline-flex items-center p-1 rounded-full ${
+                          trade.isGroupLeader
+                            ? 'bg-amber-100 text-amber-600 dark:bg-amber-900/40 dark:text-amber-400'
+                            : 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-300'
+                        }`}
+                      >
+                        <FaLink className="w-2.5 h-2.5" />
+                      </span>
+                    )}
+                  </div>
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    {getAccountName(trade, accountMap)}
+                  </p>
+                </div>
+              </div>
+              <span
+                className={`shrink-0 px-2 py-1 rounded-lg text-[10px] font-medium ${
+                  trade.status === TradeStatus.OPEN
+                    ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300'
+                    : trade.status === TradeStatus.PENDING
+                      ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300'
+                      : trade.status === TradeStatus.CANCELLED
+                        ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
+                        : 'bg-gray-100 text-gray-800 dark:bg-gray-700/50 dark:text-gray-300'
+                }`}
+              >
+                {trade.status}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
+              <span className="text-gray-500 dark:text-gray-400">Open</span>
+              <span className="text-right text-gray-700 dark:text-gray-300">{formatTradeDate(trade.entryDate)}</span>
+              <span className="text-gray-500 dark:text-gray-400">Direction</span>
+              <span
+                className={`text-right font-semibold ${
+                  trade.direction === TradeDirection.LONG
+                    ? 'text-green-600 dark:text-green-400'
+                    : 'text-red-600 dark:text-red-400'
+                }`}
+              >
+                {trade.direction || '-'}
+              </span>
+              <span className="text-gray-500 dark:text-gray-400">Entry / Exit</span>
+              <span className="text-right font-mono text-gray-700 dark:text-gray-300">
+                {formatPrice(trade.entryPrice)} / {formatPrice(trade.exitPrice)}
+              </span>
+              <span className="text-gray-500 dark:text-gray-400">P&L</span>
+              <span className="text-right">{formatPnl(trade.profitOrLoss)}</span>
+              <span className="text-gray-500 dark:text-gray-400">R-Multiple</span>
+              <span className="text-right text-gray-700 dark:text-gray-300">
+                {trade.rMultiple !== undefined && trade.rMultiple !== null
+                  ? `${trade.rMultiple.toFixed(2)}R`
+                  : '-'}
+              </span>
+            </div>
+
+            <div className="pt-2 border-t border-gray-200/60 dark:border-gray-700/60 flex flex-wrap gap-2">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  router.push(`/journal/view/${trade.id}`);
+                }}
+                className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800/60"
+              >
+                <FaExternalLinkAlt className="w-3 h-3" />
+                View
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onRowClick(trade);
+                }}
+                className="inline-flex items-center gap-1 rounded-lg border border-emerald-200 px-3 py-1.5 text-xs font-medium text-emerald-700 hover:bg-emerald-50 dark:border-emerald-700 dark:text-emerald-300 dark:hover:bg-emerald-900/20"
+              >
+                <FaEye className="w-3 h-3" />
+                Quick View
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+
       {/* Table */}
-      <div className="overflow-x-auto">
+      <div className="hidden md:block overflow-x-auto">
         <table className="min-w-full">
           <thead className="bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-950/20 dark:to-emerald-900/20 backdrop-blur-sm">
             <tr className="border-b border-gray-200/30 dark:border-gray-700/30">
@@ -517,14 +651,14 @@ export default function TradesTable({
                     <div className="flex items-center gap-2">
                       <span>{trade.symbol}</span>
                       {trade.groupId && (
-                        <div title="Part of a trade position group" className={`p-1 rounded-full ${trade.isGroupLeader ? 'bg-amber-100 text-amber-600 dark:bg-amber-900/40 dark:text-amber-400' : 'bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400'}`}>
+                        <div title="Part of a trade position group" className={`p-1 rounded-full ${trade.isGroupLeader ? 'bg-amber-100 text-amber-600 dark:bg-amber-900/40 dark:text-amber-400' : 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-300'}`}>
                           <FaLink className="w-2.5 h-2.5" />
                         </div>
                       )}
                     </div>
                   </td>
                 <td className={`${tdClasses} text-gray-700 dark:text-gray-300`}>
-                  {trade.entryDate ? format(parseISO(trade.entryDate), 'dd MMM, HH:mm') : '-'}
+                  {formatTradeDate(trade.entryDate)}
                 </td>
                 <td className={`${tdClasses} text-gray-700 dark:text-gray-300`}>
                   <span className="px-2 py-1 bg-gradient-to-r from-emerald-100 to-emerald-200 dark:from-emerald-900/30 dark:to-emerald-800/30 text-emerald-700 dark:text-emerald-300 rounded-lg text-xs font-medium">
@@ -630,7 +764,7 @@ export default function TradesTable({
                       type="number"
                       step="0.01"
                       value={editForm.profitOrLoss ?? ''}
-                      onChange={(e) => setEditForm({ ...editForm, profitOrLoss: parseFloat(e.target.value) })}
+                      onChange={(e) => setEditForm({ ...editForm, profitOrLoss: toOptionalNumber(e.target.value) })}
                       className="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded px-2 py-1.5 text-xs w-24 focus:ring-2 focus:ring-emerald-500 text-right"
                       placeholder="0.00"
                     />
@@ -646,7 +780,7 @@ export default function TradesTable({
                       type="number"
                       step="0.01"
                       value={editForm.commission ?? ''}
-                      onChange={(e) => setEditForm({ ...editForm, commission: parseFloat(e.target.value) })}
+                      onChange={(e) => setEditForm({ ...editForm, commission: toOptionalNumber(e.target.value) })}
                       className="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded px-2 py-1.5 text-xs w-20 focus:ring-2 focus:ring-emerald-500 text-right"
                       placeholder="0.00"
                     />
@@ -662,7 +796,7 @@ export default function TradesTable({
                       type="number"
                       step="0.1"
                       value={editForm.rMultiple ?? ''}
-                      onChange={(e) => setEditForm({ ...editForm, rMultiple: parseFloat(e.target.value) })}
+                      onChange={(e) => setEditForm({ ...editForm, rMultiple: toOptionalNumber(e.target.value) })}
                       className="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded px-2 py-1.5 text-xs w-16 focus:ring-2 focus:ring-emerald-500 text-right"
                       placeholder="0.0R"
                     />
@@ -704,9 +838,9 @@ export default function TradesTable({
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          window.location.href = `/journal/view/${trade.id}`;
+                          router.push(`/journal/view/${trade.id}`);
                         }}
-                        className="p-1.5 text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-emerald-900/20 rounded-lg transition-all"
+                        className="p-1.5 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-lg transition-all"
                         title="View Details"
                       >
                         <FaExternalLinkAlt className="w-3.5 h-3.5" />
@@ -718,7 +852,7 @@ export default function TradesTable({
                           e.stopPropagation();
                           onRowClick(trade);
                         }}
-                        className="p-1.5 text-gray-400 hover:text-purple-500 hover:bg-purple-50 dark:hover:bg-emerald-900/20 rounded-lg transition-all"
+                        className="p-1.5 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-lg transition-all"
                         title="Quick View"
                       >
                         <FaEye className="w-3.5 h-3.5" />
@@ -744,8 +878,8 @@ export default function TradesTable({
 
       {/* Pagination Controls - Bottom */}
       {pagination.totalPages > 1 && (
-        <div className="px-6 py-4 border-t border-gray-200/30 dark:border-gray-700/30 flex justify-between items-center bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-950/20 dark:to-emerald-900/20">
-          <div className="flex items-center bg-gray-100/50 dark:bg-gray-800/50 p-1 rounded-xl border border-gray-200/50 dark:border-gray-700/50 backdrop-blur-md">
+        <div className="px-4 py-4 border-t border-gray-200/30 dark:border-gray-700/30 flex flex-col gap-3 md:flex-row md:justify-between md:items-center bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-950/20 dark:to-emerald-900/20">
+          <div className="flex items-center w-full md:w-auto bg-gray-100/50 dark:bg-gray-800/50 p-1 rounded-xl border border-gray-200/50 dark:border-gray-700/50 backdrop-blur-md overflow-x-auto">
             <span className="text-[10px] items-center uppercase font-bold text-gray-400 dark:text-gray-500 px-2 tracking-wider">Show</span>
             {[10, 25, 50, 100].map((size) => (
               <button
@@ -761,7 +895,7 @@ export default function TradesTable({
               </button>
             ))}
           </div>
-          <div className="flex items-center space-x-1">
+          <div className="flex items-center space-x-1 w-full md:w-auto overflow-x-auto">
             {/* Page numbers - simplified for this example */}
             {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
               const pageNumber = i + 1;
@@ -836,7 +970,7 @@ export default function TradesTable({
             <button 
               onClick={handleSyncJournalToGroup}
               disabled={isSyncing}
-              className="px-5 py-2 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-all shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 disabled:opacity-50 flex items-center gap-2"
+              className="px-5 py-2 text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-all shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 disabled:opacity-50 flex items-center gap-2"
             >
               {isSyncing ? (
                 <>
@@ -850,11 +984,11 @@ export default function TradesTable({
       >
         <div className="flex flex-col gap-3">
           <label 
-            className={`flex items-start gap-3 p-4 rounded-xl border cursor-pointer transition-all ${syncMode === 'PARTIAL' ? 'border-blue-500 bg-blue-50/50 dark:bg-blue-500/10' : 'border-zinc-200 dark:border-white/10 hover:bg-zinc-50 dark:hover:bg-white/5'}`}
+            className={`flex items-start gap-3 p-4 rounded-xl border cursor-pointer transition-all ${syncMode === 'PARTIAL' ? 'border-emerald-500 bg-emerald-50/50 dark:bg-emerald-500/10' : 'border-zinc-200 dark:border-white/10 hover:bg-zinc-50 dark:hover:bg-white/5'}`}
             onClick={() => setSyncMode('PARTIAL')}
           >
-            <div className={`w-5 h-5 rounded-full border flex items-center justify-center flex-shrink-0 mt-0.5 ${syncMode === 'PARTIAL' ? 'border-blue-500' : 'border-zinc-300 dark:border-zinc-600'}`}>
-              {syncMode === 'PARTIAL' && <div className="w-2.5 h-2.5 rounded-full bg-blue-500" />}
+            <div className={`w-5 h-5 rounded-full border flex items-center justify-center flex-shrink-0 mt-0.5 ${syncMode === 'PARTIAL' ? 'border-emerald-500' : 'border-zinc-300 dark:border-zinc-600'}`}>
+              {syncMode === 'PARTIAL' && <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />}
             </div>
             <div>
               <div className="text-sm font-semibold text-zinc-900 dark:text-white mb-1">Fill Empty Only (Recommended)</div>
@@ -863,11 +997,11 @@ export default function TradesTable({
           </label>
 
           <label 
-            className={`flex items-start gap-3 p-4 rounded-xl border cursor-pointer transition-all ${syncMode === 'OVERRIDE' ? 'border-blue-500 bg-blue-50/50 dark:bg-blue-500/10' : 'border-zinc-200 dark:border-white/10 hover:bg-zinc-50 dark:hover:bg-white/5'}`}
+            className={`flex items-start gap-3 p-4 rounded-xl border cursor-pointer transition-all ${syncMode === 'OVERRIDE' ? 'border-emerald-500 bg-emerald-50/50 dark:bg-emerald-500/10' : 'border-zinc-200 dark:border-white/10 hover:bg-zinc-50 dark:hover:bg-white/5'}`}
             onClick={() => setSyncMode('OVERRIDE')}
           >
-            <div className={`w-5 h-5 rounded-full border flex items-center justify-center flex-shrink-0 mt-0.5 ${syncMode === 'OVERRIDE' ? 'border-blue-500' : 'border-zinc-300 dark:border-zinc-600'}`}>
-              {syncMode === 'OVERRIDE' && <div className="w-2.5 h-2.5 rounded-full bg-blue-500" />}
+            <div className={`w-5 h-5 rounded-full border flex items-center justify-center flex-shrink-0 mt-0.5 ${syncMode === 'OVERRIDE' ? 'border-emerald-500' : 'border-zinc-300 dark:border-zinc-600'}`}>
+              {syncMode === 'OVERRIDE' && <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />}
             </div>
             <div>
               <div className="text-sm font-semibold text-zinc-900 dark:text-white mb-1">Override All</div>

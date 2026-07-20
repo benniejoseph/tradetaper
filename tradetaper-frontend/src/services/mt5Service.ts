@@ -20,7 +20,7 @@ export const mt5Service = {
   },
 
   /**
-   * Trigger sync (Terminal Farm)
+   * Trigger MetaAPI sync
    */
   async syncAccount(accountId: string): Promise<void> {
     await authApiClient.post(`/mt5-accounts/${accountId}/sync`);

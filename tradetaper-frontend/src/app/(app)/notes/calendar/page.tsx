@@ -14,37 +14,10 @@ import {
 import { AnimatedCard } from '@/components/ui/AnimatedCard';
 import { AnimatedButton } from '@/components/ui/AnimatedButton';
 import { NotesService } from '@/services/notesService';
-import { Note } from '@/types/note';
+import { Note, CalendarDay, CalendarMonth, CalendarStats } from '@/types/note';
 import { useRouter } from 'next/navigation';
-import { format, parseISO, addMonths, subMonths, startOfMonth, isToday, isSameMonth } from 'date-fns';
+import { format, parseISO, addMonths, subMonths } from 'date-fns';
 import toast from 'react-hot-toast';
-
-interface CalendarDay {
-  date: string;
-  dayOfMonth: number;
-  isCurrentMonth: boolean;
-  isToday: boolean;
-  noteCount: number;
-  notes: Note[];
-  hasEvents: boolean;
-}
-
-interface CalendarMonth {
-  year: number;
-  month: number;
-  monthName: string;
-  days: CalendarDay[];
-  totalNotes: number;
-  weekdays: string[];
-}
-
-interface CalendarStats {
-  totalNotes: number;
-  totalWords: number;
-  averageNotesPerDay: number;
-  mostActiveDay: { date: string; noteCount: number } | null;
-  notesByWeek: { week: number; noteCount: number }[];
-}
 
 const NotesCalendarPage: React.FC = () => {
   const router = useRouter();
@@ -63,48 +36,13 @@ const NotesCalendarPage: React.FC = () => {
       const year = date.getFullYear();
       const month = date.getMonth() + 1;
 
-      const [notesData, statsData] = await Promise.all([
+      const [monthData, statsData] = await Promise.all([
         NotesService.getCalendarNotes(year, month),
-        NotesService.getStats()
+        NotesService.getCalendarStats(year, month),
       ]);
 
-      // Transform the calendar data to match our interface
-      const transformedCalendar: CalendarMonth = {
-        year,
-        month,
-        monthName: format(date, 'MMMM'),
-        days: [], // Will be populated from the calendar response
-        totalNotes: notesData.reduce((sum: number, day: any) => sum + day.count, 0),
-        weekdays: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
-      };
-
-      // Create calendar grid
-      const firstDayOfMonth = startOfMonth(date);
-      const firstCalendarDay = new Date(firstDayOfMonth);
-      firstCalendarDay.setDate(firstCalendarDay.getDate() - firstCalendarDay.getDay());
-
-      const days: CalendarDay[] = [];
-      for (let i = 0; i < 42; i++) { // 6 weeks * 7 days
-        const currentDay = new Date(firstCalendarDay);
-        currentDay.setDate(currentDay.getDate() + i);
-        
-        const dateStr = format(currentDay, 'yyyy-MM-dd');
-        const dayData = notesData.find((d: any) => d.date === dateStr);
-        
-        days.push({
-          date: dateStr,
-          dayOfMonth: currentDay.getDate(),
-          isCurrentMonth: isSameMonth(currentDay, date),
-          isToday: isToday(currentDay),
-          noteCount: dayData?.count || 0,
-          notes: dayData?.notes || [],
-          hasEvents: (dayData?.count || 0) > 0,
-        });
-      }
-
-      transformedCalendar.days = days;
-      setCalendarData(transformedCalendar);
-      setCalendarStats(statsData as unknown as CalendarStats);
+      setCalendarData(monthData);
+      setCalendarStats(statsData);
     } catch (error) {
       console.error('Error fetching calendar data:', error);
       toast.error('Failed to load calendar data');
@@ -152,7 +90,7 @@ const NotesCalendarPage: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+          <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-emerald-500 to-emerald-700 bg-clip-text text-transparent">
             Notes Calendar
           </h1>
           <p className="text-gray-600 dark:text-gray-400 mt-1">
@@ -168,7 +106,7 @@ const NotesCalendarPage: React.FC = () => {
           <AnimatedButton
             onClick={() => router.push('/notes/new')}
             variant="gradient"
-            className="bg-gradient-to-r from-blue-500 to-purple-500"
+            className="w-full sm:w-auto bg-gradient-to-r from-emerald-500 to-emerald-600"
             icon={<FaPlus />}
             iconPosition="left"
           >
@@ -178,10 +116,10 @@ const NotesCalendarPage: React.FC = () => {
       </div>
 
       {/* Calendar Navigation */}
-      <AnimatedCard variant="glass" className="p-6">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-4">
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+      <AnimatedCard variant="glass" className="p-4 sm:p-6">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-6">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-4">
+            <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
               {calendarData?.monthName} {calendarData?.year}
             </h2>
             <AnimatedButton
@@ -211,71 +149,73 @@ const NotesCalendarPage: React.FC = () => {
         </div>
 
         {/* Calendar Grid */}
-        <div className="grid grid-cols-7 gap-1">
-          {/* Weekday Headers */}
-          {calendarData?.weekdays.map(weekday => (
-            <div
-              key={weekday}
-              className="p-3 text-center text-sm font-medium text-gray-500 dark:text-gray-400"
-            >
-              {weekday}
-            </div>
-          ))}
-
-          {/* Calendar Days */}
-          {calendarData?.days.map((day, index) => (
-            <motion.div
-              key={day.date}
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: index * 0.01 }}
-              onClick={() => handleDayClick(day)}
-              className={`
-                relative p-3 min-h-[80px] cursor-pointer transition-all duration-200 rounded-lg
-                ${day.isCurrentMonth 
-                  ? 'hover:bg-emerald-50 dark:hover:bg-emerald-900/20' 
-                  : 'text-gray-400 dark:text-gray-600'
-                }
-                ${day.isToday 
-                  ? 'bg-emerald-100 dark:bg-emerald-900/30 ring-2 ring-blue-500' 
-                  : ''
-                }
-                ${day.hasEvents 
-                  ? 'bg-gradient-to-br from-purple-50 to-blue-50 dark:from-emerald-900/20 dark:to-emerald-900/20' 
-                  : ''
-                }
-              `}
-            >
-              <div className="flex flex-col h-full">
-                <span className={`text-sm font-medium ${
-                  day.isToday ? 'text-emerald-600 dark:text-emerald-400' : ''
-                }`}>
-                  {day.dayOfMonth}
-                </span>
-                
-                {day.hasEvents && (
-                  <div className="flex-1 mt-1">
-                    <div className={`
-                      inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium
-                      ${day.noteCount === 1 
-                        ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300'
-                        : day.noteCount <= 3
-                          ? 'bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300'
-                          : 'bg-purple-100 text-purple-700 dark:bg-emerald-900/50 dark:text-emerald-300'
-                      }
-                    `}>
-                      <FaStickyNote className="w-2.5 h-2.5" />
-                      {day.noteCount}
-                    </div>
-                  </div>
-                )}
+        <div className="overflow-x-auto">
+          <div className="grid grid-cols-7 gap-1 min-w-[640px]">
+            {/* Weekday Headers */}
+            {calendarData?.weekdays.map(weekday => (
+              <div
+                key={weekday}
+                className="p-2 sm:p-3 text-center text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400"
+              >
+                {weekday}
               </div>
+            ))}
 
-              {day.isToday && (
-                <div className="absolute inset-0 rounded-lg bg-emerald-500/10 pointer-events-none" />
-              )}
-            </motion.div>
-          ))}
+            {/* Calendar Days */}
+            {calendarData?.days.map((day, index) => (
+              <motion.div
+                key={day.date}
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: index * 0.01 }}
+                onClick={() => handleDayClick(day)}
+                className={`
+                  relative p-2 sm:p-3 min-h-[68px] sm:min-h-[80px] cursor-pointer transition-all duration-200 rounded-lg
+                  ${day.isCurrentMonth 
+                    ? 'hover:bg-emerald-50 dark:hover:bg-emerald-900/20' 
+                    : 'text-gray-400 dark:text-gray-600'
+                  }
+                  ${day.isToday 
+                    ? 'bg-emerald-100 dark:bg-emerald-900/30 ring-2 ring-emerald-500' 
+                    : ''
+                  }
+                  ${day.hasEvents 
+                    ? 'bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-900/20 dark:to-emerald-900/20' 
+                    : ''
+                  }
+                `}
+              >
+                <div className="flex flex-col h-full">
+                  <span className={`text-sm font-medium ${
+                    day.isToday ? 'text-emerald-600 dark:text-emerald-400' : ''
+                  }`}>
+                    {day.dayOfMonth}
+                  </span>
+                  
+                  {day.hasEvents && (
+                    <div className="flex-1 mt-1">
+                      <div className={`
+                        inline-flex items-center gap-1 px-1.5 sm:px-2 py-1 rounded-full text-xs font-medium
+                        ${day.noteCount === 1 
+                          ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300'
+                          : day.noteCount <= 3
+                            ? 'bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300'
+                            : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300'
+                        }
+                      `}>
+                        <FaStickyNote className="w-2.5 h-2.5" />
+                        {day.noteCount}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {day.isToday && (
+                  <div className="absolute inset-0 rounded-lg bg-emerald-500/10 pointer-events-none" />
+                )}
+              </motion.div>
+            ))}
+          </div>
         </div>
       </AnimatedCard>
 
@@ -356,11 +296,11 @@ const NotesCalendarPage: React.FC = () => {
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-white dark:bg-gray-800 rounded-2xl p-6 max-w-2xl w-full max-h-[80vh] overflow-y-auto"
+              className="bg-white dark:bg-gray-800 rounded-2xl p-4 sm:p-6 max-w-2xl w-full max-h-[80vh] overflow-y-auto"
               onClick={e => e.stopPropagation()}
             >
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-xl font-bold text-gray-900 dark:text-white">
+                <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white pr-4">
                   Notes for {format(parseISO(selectedDate), 'MMMM d, yyyy')}
                 </h3>
                 <button
@@ -384,7 +324,7 @@ const NotesCalendarPage: React.FC = () => {
                     <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2">
                       {note.preview}
                     </p>
-                    <div className="flex items-center gap-2 mt-2 text-xs text-gray-500">
+                    <div className="flex flex-wrap items-center gap-2 mt-2 text-xs text-gray-500">
                       <span>{note.wordCount} words</span>
                       <span>•</span>
                       <span>{format(parseISO(note.createdAt), 'h:mm a')}</span>
@@ -400,7 +340,7 @@ const NotesCalendarPage: React.FC = () => {
                     router.push(`/notes/new?date=${selectedDate}`);
                   }}
                   variant="gradient"
-                  className="bg-gradient-to-r from-blue-500 to-purple-500 w-full"
+                  className="bg-gradient-to-r from-emerald-500 to-emerald-600 w-full"
                   icon={<FaPlus />}
                   iconPosition="left"
                 >

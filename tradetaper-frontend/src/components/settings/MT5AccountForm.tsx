@@ -13,13 +13,46 @@ export interface MT5Server {
   type?: string;
 }
 
+interface MT5AccountFormAccount {
+  accountName?: string;
+  server?: string;
+  login?: string;
+  isActive?: boolean;
+  initialBalance?: number;
+  leverage?: number;
+  currency?: string;
+  accountCategory?: 'personal' | 'prop_firm';
+  propFirmPhase?: string | null;
+  propMaxLoss?: number | null;
+  propDailyMaxLoss?: number | null;
+  target?: number | null;
+}
+
+interface MT5AccountFormSubmitData {
+  accountName: string;
+  server: string;
+  login: string;
+  password: string;
+  isActive: boolean;
+  initialBalance?: number;
+  leverage: number;
+  currency: string;
+  accountCategory: 'personal' | 'prop_firm';
+  propFirmPhase?: string;
+  propMaxLoss?: number;
+  propDailyMaxLoss?: number;
+  propProfitTarget?: number;
+  target?: number;
+}
+
 interface MT5AccountFormProps {
-  account?: any;
+  account?: MT5AccountFormAccount | null;
   servers?: MT5Server[];
   loadingServers?: boolean;
-  onSubmit: (data: any) => void;
+  onSubmit: (data: MT5AccountFormSubmitData) => void | Promise<void>;
   onCancel: () => void;
   isSubmitting?: boolean;
+  submitLabel?: string;
 }
 
 // Server list loaded lazily via import('@/data/mt5Servers')
@@ -30,7 +63,8 @@ export default function MT5AccountForm({
   loadingServers = false,
   onSubmit, 
   onCancel, 
-  isSubmitting = false 
+  isSubmitting = false,
+  submitLabel
 }: MT5AccountFormProps) {
   const [formData, setFormData] = useState({
     name: '',
@@ -41,6 +75,11 @@ export default function MT5AccountForm({
     initialBalance: '',
     leverage: '100', // Default leverage
     currency: 'USD',
+    accountCategory: 'personal' as 'personal' | 'prop_firm',
+    propFirmPhase: '',
+    propMaxLoss: '',
+    propDailyMaxLoss: '',
+    propProfitTarget: '',
   });
   const [alertState, setAlertState] = useState({ isOpen: false, title: 'Notice', message: '' });
   const closeAlert = () => setAlertState((prev) => ({ ...prev, isOpen: false }));
@@ -76,6 +115,22 @@ export default function MT5AccountForm({
         initialBalance: account.initialBalance?.toString() || '',
         leverage: account.leverage?.toString() || '100',
         currency: account.currency || 'USD',
+        accountCategory:
+          account.accountCategory === 'prop_firm' ? 'prop_firm' : 'personal',
+        propFirmPhase: account.propFirmPhase || '',
+        propMaxLoss:
+          account.propMaxLoss !== null && account.propMaxLoss !== undefined
+            ? account.propMaxLoss.toString()
+            : '',
+        propDailyMaxLoss:
+          account.propDailyMaxLoss !== null &&
+          account.propDailyMaxLoss !== undefined
+            ? account.propDailyMaxLoss.toString()
+            : '',
+        propProfitTarget:
+          account.target !== null && account.target !== undefined
+            ? account.target.toString()
+            : '',
       });
       setServerSearch(account.server || '');
     }
@@ -114,7 +169,7 @@ export default function MT5AccountForm({
           setFilteredServers(filtered);
           setServerSource('local');
         }
-      } catch (error) {
+      } catch (_error) {
         if (!isActive) return;
         const filtered = fallbackServers
           .filter((s) => s.name.toLowerCase().includes(query.toLowerCase()))
@@ -157,7 +212,21 @@ export default function MT5AccountForm({
     setShowServerDropdown(true);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const getErrorMessage = (error: unknown): string => {
+    if (typeof error === 'string' && error.trim()) return error;
+    if (
+      error &&
+      typeof error === 'object' &&
+      'message' in error &&
+      typeof (error as { message?: unknown }).message === 'string'
+    ) {
+      const message = (error as { message: string }).message.trim();
+      if (message) return message;
+    }
+    return 'Failed to save account. Please try again.';
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!formData.name || !formData.server || !formData.login) {
@@ -170,7 +239,18 @@ export default function MT5AccountForm({
       return;
     }
 
-    const submissionData = {
+    if (
+      formData.accountCategory === 'prop_firm' &&
+      (!formData.propProfitTarget || Number(formData.propProfitTarget) <= 0)
+    ) {
+      showAlert(
+        'Profit target is required for Prop Firm accounts.',
+        'Missing Profit Target',
+      );
+      return;
+    }
+
+    const submissionData: MT5AccountFormSubmitData = {
       accountName: formData.name,
       server: formData.server,
       login: formData.login,
@@ -178,10 +258,36 @@ export default function MT5AccountForm({
       isActive: formData.isActive,
       initialBalance: formData.initialBalance ? parseFloat(formData.initialBalance) : undefined,
       leverage: formData.leverage ? parseInt(formData.leverage) : 100,
-      currency: formData.currency
+      currency: formData.currency,
+      accountCategory: formData.accountCategory,
+      propFirmPhase:
+        formData.accountCategory === 'prop_firm'
+          ? formData.propFirmPhase || undefined
+          : undefined,
+      propMaxLoss:
+        formData.accountCategory === 'prop_firm' && formData.propMaxLoss
+          ? parseFloat(formData.propMaxLoss)
+          : undefined,
+      propDailyMaxLoss:
+        formData.accountCategory === 'prop_firm' &&
+        formData.propDailyMaxLoss
+          ? parseFloat(formData.propDailyMaxLoss)
+          : undefined,
+      propProfitTarget:
+        formData.accountCategory === 'prop_firm' && formData.propProfitTarget
+          ? parseFloat(formData.propProfitTarget)
+          : undefined,
+      target:
+        formData.accountCategory === 'prop_firm' && formData.propProfitTarget
+          ? parseFloat(formData.propProfitTarget)
+          : undefined,
     };
 
-    onSubmit(submissionData);
+    try {
+      await onSubmit(submissionData);
+    } catch (error) {
+      showAlert(getErrorMessage(error), 'Save Failed');
+    }
   };
 
   return (
@@ -287,7 +393,7 @@ export default function MT5AccountForm({
                   onClick={() => handleServerSelect({ name: serverSearch })}
                   className="w-full text-left px-4 py-3 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 font-medium hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition-colors flex items-center justify-between"
                 >
-                  <span>Use custom server: <strong>"{serverSearch}"</strong></span>
+                  <span>Use custom server: <strong>&quot;{serverSearch}&quot;</strong></span>
                   <span className="text-xs bg-emerald-200 dark:bg-emerald-800 px-2 py-1 rounded">Manual Entry</span>
                 </button>
               </div>
@@ -296,7 +402,7 @@ export default function MT5AccountForm({
             )}
         </>
         <p className="mt-2 text-xs text-gray-500 flex items-start gap-1">
-          <span className="text-emerald-500 font-bold">Tip:</span> <span>If your server isn't listed, simply type the exact name from your MT5 login screen and click "Use custom server".</span>
+          <span className="text-emerald-500 font-bold">Tip:</span> <span>If your server isn&apos;t listed, simply type the exact name from your MT5 login screen and click &quot;Use custom server&quot;.</span>
         </p>
       </div>
 
@@ -331,7 +437,7 @@ export default function MT5AccountForm({
       </div>
 
       {/* Account Size & Leverage */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         {/* Account Size */}
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -377,6 +483,113 @@ export default function MT5AccountForm({
         </div>
       </div>
 
+      {/* Account Category & Prop settings */}
+      <div className="space-y-4 rounded-xl border border-emerald-200/60 dark:border-emerald-800/50 bg-emerald-50/50 dark:bg-emerald-900/10 p-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Account Category
+          </label>
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              type="button"
+              onClick={() =>
+                setFormData((prev) => ({ ...prev, accountCategory: 'personal' }))
+              }
+              className={`rounded-lg border px-3 py-2 text-sm font-medium transition ${
+                formData.accountCategory === 'personal'
+                  ? 'border-emerald-400 bg-emerald-100/70 text-emerald-700 dark:border-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-300'
+                  : 'border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-300'
+              }`}
+            >
+              Personal
+            </button>
+            <button
+              type="button"
+              onClick={() =>
+                setFormData((prev) => ({ ...prev, accountCategory: 'prop_firm' }))
+              }
+              className={`rounded-lg border px-3 py-2 text-sm font-medium transition ${
+                formData.accountCategory === 'prop_firm'
+                  ? 'border-emerald-400 bg-emerald-100/70 text-emerald-700 dark:border-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-300'
+                  : 'border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-300'
+              }`}
+            >
+              Prop Firm
+            </button>
+          </div>
+        </div>
+
+        {formData.accountCategory === 'prop_firm' && (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Phase
+              </label>
+              <input
+                type="text"
+                value={formData.propFirmPhase}
+                onChange={(e) =>
+                  setFormData({ ...formData, propFirmPhase: e.target.value })
+                }
+                className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                placeholder="Challenge / Verification / Funded"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Profit Target
+              </label>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={formData.propProfitTarget}
+                onChange={(e) =>
+                  setFormData({ ...formData, propProfitTarget: e.target.value })
+                }
+                className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                placeholder="e.g., 12000"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Max Loss
+              </label>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={formData.propMaxLoss}
+                onChange={(e) =>
+                  setFormData({ ...formData, propMaxLoss: e.target.value })
+                }
+                className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                placeholder="e.g., 12000"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Daily Max Loss
+              </label>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={formData.propDailyMaxLoss}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    propDailyMaxLoss: e.target.value,
+                  })
+                }
+                className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                placeholder="e.g., 5000"
+              />
+            </div>
+          </div>
+        )}
+      </div>
+
       {/* Active toggle */}
       <div className="flex items-center gap-3 py-2">
         <input
@@ -392,23 +605,27 @@ export default function MT5AccountForm({
       </div>
 
       {/* Buttons */}
-      <div className="flex gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+      <div className="flex flex-col-reverse gap-3 border-t border-gray-200 pt-4 dark:border-gray-700 sm:flex-row">
         <button
           type="button"
           onClick={onCancel}
           disabled={isSubmitting}
-          className="flex-1 px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 font-medium flex items-center justify-center gap-2 disabled:opacity-50"
+          className="flex-1 rounded-lg border border-gray-300 px-4 py-3 font-medium text-gray-700 transition hover:bg-gray-50 disabled:opacity-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800"
         >
-          <FaTimes className="w-4 h-4" />
-          Cancel
+          <span className="flex items-center justify-center gap-2">
+            <FaTimes className="w-4 h-4" />
+            Cancel
+          </span>
         </button>
         <button
           type="submit"
           disabled={isSubmitting}
-          className="flex-1 px-4 py-3 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white font-medium flex items-center justify-center gap-2 disabled:opacity-50"
+          className="flex-1 rounded-lg bg-emerald-500 px-4 py-3 font-medium text-white transition hover:bg-emerald-600 disabled:opacity-50"
         >
-          <FaSave className="w-4 h-4" />
-          {isSubmitting ? 'Saving...' : (account ? 'Update Account' : 'Add Account')}
+          <span className="flex items-center justify-center gap-2">
+            <FaSave className="w-4 h-4" />
+            {isSubmitting ? 'Saving...' : (account ? 'Update Account' : (submitLabel || 'Add Account'))}
+          </span>
         </button>
       </div>
       </form>

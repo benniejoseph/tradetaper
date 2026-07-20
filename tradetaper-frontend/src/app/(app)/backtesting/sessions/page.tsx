@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { FaChevronLeft, FaPlay, FaTrash, FaDownload } from 'react-icons/fa';
+import { FaChevronLeft, FaPlay, FaTrash } from 'react-icons/fa';
 import AlertModal from '@/components/ui/AlertModal';
 
 interface ReplaySession {
@@ -39,7 +39,7 @@ export default function ReplaySessionsPage() {
     try {
       setLoading(true);
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || '/api/v1';
-      const response = await fetch(`${apiUrl}/backtesting/sessions`, {
+      const response = await fetch(`${apiUrl}/replay/sessions`, {
         credentials: 'include',
       });
 
@@ -49,8 +49,8 @@ export default function ReplaySessionsPage() {
 
       const data = await response.json();
       setSessions(data);
-    } catch (err: any) {
-      setError(err.message || 'Failed to load sessions');
+    } catch (err: unknown) {
+      setError(err instanceof Error && err.message ? err.message : 'Failed to load sessions');
       console.error('Error fetching sessions:', err);
     } finally {
       setLoading(false);
@@ -70,7 +70,7 @@ export default function ReplaySessionsPage() {
       const { csrfToken } = await csrfResponse.json();
 
       // Delete session with CSRF token
-      const response = await fetch(`${apiUrl}/backtesting/sessions/${sessionId}`, {
+      const response = await fetch(`${apiUrl}/replay/sessions/${sessionId}`, {
         method: 'DELETE',
         headers: {
           'X-CSRF-Token': csrfToken,
@@ -83,7 +83,7 @@ export default function ReplaySessionsPage() {
       }
 
       setSessions(sessions.filter((s) => s.id !== sessionId));
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error deleting session:', err);
       showAlert('Failed to delete session', 'Delete Failed');
     }
@@ -116,19 +116,19 @@ export default function ReplaySessionsPage() {
       <header className="h-16 border-b border-white/5 flex items-center justify-between px-6 bg-slate-900/50 backdrop-blur-sm relative z-10">
         <div className="flex items-center gap-4">
           <Link
-            href="/backtesting"
+            href="/replay/sessions"
             className="p-2 hover:bg-white/5 rounded-lg text-slate-400 hover:text-white transition-colors"
           >
             <FaChevronLeft />
           </Link>
           <div>
             <h1 className="font-bold text-lg text-white">Replay Sessions</h1>
-            <p className="text-xs text-slate-500">View and manage your backtesting replays</p>
+            <p className="text-xs text-slate-500">View and manage your replay sessions</p>
           </div>
         </div>
 
         <Link
-          href="/backtesting"
+          href="/replay/sessions/new"
           className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 rounded-lg text-white transition-colors flex items-center gap-2"
         >
           <FaPlay />
@@ -165,9 +165,11 @@ export default function ReplaySessionsPage() {
               <FaPlay className="mx-auto text-6xl opacity-20" />
             </div>
             <h2 className="text-xl font-bold text-white mb-2">No replay sessions yet</h2>
-            <p className="text-slate-400 mb-6">Start a new replay session to practice your trading skills</p>
+            <p className="text-slate-400 mb-6">
+              Start a new replay session to practice your trading skills
+            </p>
             <Link
-              href="/backtesting"
+              href="/replay/sessions/new"
               className="inline-flex items-center gap-2 px-6 py-3 bg-emerald-600 hover:bg-emerald-700 rounded-lg text-white transition-colors"
             >
               <FaPlay />
@@ -258,7 +260,7 @@ export default function ReplaySessionsPage() {
 
                   <div className="flex items-center gap-2 ml-6">
                     <Link
-                      href={`/backtesting/session/${session.id}?symbol=${session.symbol}&timeframe=${session.timeframe}&startDate=${session.startDate}&endDate=${session.endDate}&balance=${session.startingBalance}`}
+                      href={`/replay/session/${session.id}?symbol=${session.symbol}&timeframe=${session.timeframe}&startDate=${session.startDate}&endDate=${session.endDate}&balance=${session.startingBalance}`}
                       className="p-2 hover:bg-white/5 rounded-lg text-emerald-400 hover:text-emerald-300 transition-colors"
                       title="Resume session"
                     >

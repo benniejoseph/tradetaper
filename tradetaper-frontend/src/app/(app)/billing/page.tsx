@@ -1,28 +1,25 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { AppDispatch } from '@/store/store';
+import { AppDispatch, RootState } from '@/store/store';
 import { 
   selectCurrentSubscription, 
-  selectBillingInfo, 
   selectUsage,
-  selectSubscriptionLoading,
   fetchBillingInfo,
   fetchUsage,
   cancelSubscription,
   reactivateSubscription 
 } from '@/store/features/subscriptionSlice';
 import { pricingApi } from '@/services/pricingApi';
-import { PRICING_TIERS } from '@/config/pricing';
+import { PRICING_TIERS, getPlanPrice, formatPlanPrice, getUpgradePreviewForPlan } from '@/config/pricing';
+import { useCurrency } from '@/hooks/useCurrency';
 import { 
   FaCreditCard, 
   FaHistory, 
   FaChartBar, 
-  FaExclamationTriangle, 
   FaCheckCircle,
   FaSpinner,
-  FaEdit,
   FaTimes,
   FaDownload,
   FaCrown,
@@ -33,6 +30,14 @@ import { format } from 'date-fns';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import AlertModal from '@/components/ui/AlertModal';
+import { trackDatafastPayment } from '@/utils/datafast';
+import { loadRazorpayScript } from '@/lib/razorpay';
+
+declare global {
+  interface Window {
+    Razorpay: any;
+  }
+}
 
 const formatDate = (date: string | Date | undefined | null) => {
   if (!date) return 'N/A';
@@ -40,9 +45,47 @@ const formatDate = (date: string | Date | undefined | null) => {
     const d = new Date(date);
     if (isNaN(d.getTime())) return 'Invalid Date';
     return format(d, 'MMM dd, yyyy');
-  } catch (e) {
+  } catch {
     return 'Invalid Date';
   }
+};
+
+type BillingPeriod = 'monthly' | 'yearly';
+type CheckoutPlanId = 'essential' | 'premium';
+
+interface DiscountPreview {
+  valid: boolean;
+  code: string;
+  codeType: 'coupon' | 'referral';
+  discountType: 'percentage' | 'flat';
+  discountValue: number;
+  baseAmountMinor: number;
+  discountAmountMinor: number;
+  payableAmountMinor: number;
+  currency: 'INR' | 'USD';
+  planId: string;
+  period: BillingPeriod;
+  message: string;
+}
+
+const normalizeDiscountCode = (value: string | null | undefined): string => {
+  return String(value || '').trim().toUpperCase();
+};
+
+const emitBillingEvent = (
+  event: string,
+  properties?: Record<string, string | number | boolean | null | undefined>,
+) => {
+  if (typeof window === 'undefined') {
+    return;
+  }
+  void import('@/lib/observability/client').then(({ captureClientEvent }) => {
+    captureClientEvent(event, properties);
+  });
+};
+
+const isCheckoutPlanId = (value: string | null): value is CheckoutPlanId => {
+  return value === 'essential' || value === 'premium';
 };
 
 export default function BillingPage() {
@@ -50,39 +93,20 @@ export default function BillingPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const currentSubscription = useSelector(selectCurrentSubscription);
-  const billingInfo = useSelector(selectBillingInfo);
+  const authUser = useSelector((state: RootState) => state.auth.user);
   const usage = useSelector(selectUsage);
-  const isLoading = useSelector(selectSubscriptionLoading);
+  const { currency, loading: currencyLoading } = useCurrency();
   const [actionLoading, setActionLoading] = useState<string | null>(null);
-  // Load Razorpay Script
-  const [isRazorpayLoaded, setIsRazorpayLoaded] = useState(false);
   const [initUpgrade, setInitUpgrade] = useState(false);
   const [alertState, setAlertState] = useState({ isOpen: false, title: 'Notice', message: '' });
+  const [discountCode, setDiscountCode] = useState('');
+  const [discountPreview, setDiscountPreview] = useState<DiscountPreview | null>(null);
+  const [discountError, setDiscountError] = useState<string | null>(null);
+  const [discountLoading, setDiscountLoading] = useState(false);
+  const unlockViewedKeyRef = useRef<string | null>(null);
   const closeAlert = () => setAlertState((prev) => ({ ...prev, isOpen: false }));
   const showAlert = (message: string, title = 'Notice') =>
     setAlertState({ isOpen: true, title, message });
-
-  useEffect(() => {
-    const loadRazorpayScript = () => {
-        const script = document.createElement('script');
-        script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-        script.onload = () => {
-            setIsRazorpayLoaded(true);
-            console.log("Razorpay SDK loaded.");
-        };
-        script.onerror = () => {
-            console.error("Failed to load Razorpay SDK.");
-            setIsRazorpayLoaded(false);
-        };
-        document.body.appendChild(script);
-    };
-
-    if (!window.Razorpay) {
-        loadRazorpayScript();
-    } else {
-        setIsRazorpayLoaded(true);
-    }
-  }, []);
 
   useEffect(() => {
     dispatch(fetchBillingInfo());
@@ -92,9 +116,18 @@ export default function BillingPage() {
   // Handle URL Query Params for Upgrade
   useEffect(() => {
     const planId = searchParams.get('plan');
-    const interval = searchParams.get('interval') as 'monthly' | 'yearly' || 'monthly';
+    const interval = (searchParams.get('interval') as BillingPeriod) || 'monthly';
+    const codeFromQuery = normalizeDiscountCode(
+      searchParams.get('code') ||
+      searchParams.get('coupon') ||
+      searchParams.get('ref'),
+    );
 
-    if (!planId) return;
+    if (!isCheckoutPlanId(planId)) return;
+
+    if (codeFromQuery) {
+      setDiscountCode(codeFromQuery);
+    }
 
     // Set initializing state
     setInitUpgrade(true);
@@ -102,13 +135,15 @@ export default function BillingPage() {
     const tryUpgrade = () => {
         console.log("Attempting upgrade...", {
             planId,
-            isRazorpayLoaded,
+            interval,
+            codeFromQuery,
+            currencyLoading,
             actionLoading,
             currentSubscriptionLoaded: !!currentSubscription,
             currentPlan: currentSubscription?.planId
         });
 
-        if (isRazorpayLoaded && !actionLoading) {
+        if (!actionLoading && !currencyLoading) {
             // Check if already on plan (only if we have subscription data)
             if (currentSubscription && currentSubscription.planId === planId) {
                 console.log("Already on this plan.");
@@ -120,16 +155,14 @@ export default function BillingPage() {
             }
             
             console.log("Triggering upgrade flow...");
-            handleUpgrade(planId, interval);
-        } else {
-             console.log("Waiting for dependencies...");
+            handleUpgrade(planId, interval, codeFromQuery || undefined);
         }
     }
 
     tryUpgrade();
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams, isRazorpayLoaded, currentSubscription]); // Monitor these changes
+  }, [searchParams, currentSubscription, currencyLoading]); // Monitor these changes
 
 
   const handleCancelSubscription = async () => {
@@ -172,19 +205,103 @@ export default function BillingPage() {
     }
   };
 
-  const handleUpgrade = async (planId: string, period: 'monthly' | 'yearly') => {
+  const resolveCheckoutTarget = (): { planId: CheckoutPlanId; period: BillingPeriod } => {
+    const queryPlan = searchParams.get('plan');
+    const queryPeriod = searchParams.get('interval');
+    const period: BillingPeriod = queryPeriod === 'yearly' ? 'yearly' : 'monthly';
+
+    if (isCheckoutPlanId(queryPlan)) {
+      return { planId: queryPlan, period };
+    }
+
+    if ((effectivePlanId || 'free') === 'free') {
+      return { planId: 'essential', period: 'monthly' };
+    }
+
+    return { planId: 'premium', period: 'monthly' };
+  };
+
+  const handleValidateDiscount = async () => {
+    const normalizedCode = normalizeDiscountCode(discountCode);
+    if (!normalizedCode) {
+      setDiscountPreview(null);
+      setDiscountError(null);
+      return;
+    }
+
+    setDiscountLoading(true);
+    setDiscountError(null);
+    try {
+      const target = resolveCheckoutTarget();
+      const preview = await pricingApi.previewDiscount(
+        target.planId,
+        target.period,
+        normalizedCode,
+        currency.code,
+      );
+      setDiscountCode(preview.code);
+      setDiscountPreview(preview);
+      showAlert(preview.message, 'Discount Applied');
+    } catch (error: any) {
+      const message =
+        error?.response?.data?.message ||
+        error?.message ||
+        'Failed to validate discount code.';
+      setDiscountPreview(null);
+      setDiscountError(message);
+    } finally {
+      setDiscountLoading(false);
+    }
+  };
+
+  const handleUpgrade = async (
+    planId: CheckoutPlanId,
+    period: BillingPeriod,
+    overrideDiscountCode?: string,
+  ) => {
       setActionLoading('upgrade');
       setInitUpgrade(false); // Stop init loading, switch to action loading
+      setDiscountError(null);
 
       try {
-          console.log("Calling API createRazorpaySubscription...");
-          const data = await pricingApi.createRazorpaySubscription(planId, period);
-          console.log("Subscription created, opening Razorpay...", data);
-
-          if (!window.Razorpay) {
+          const razorpayLoaded = window.Razorpay
+            ? true
+            : await loadRazorpayScript();
+          if (!razorpayLoaded || !window.Razorpay) {
               showAlert("Razorpay SDK failed to load. Please refresh.", "Payment Error");
               setActionLoading(null);
               return;
+          }
+
+          const normalizedCode = normalizeDiscountCode(
+            overrideDiscountCode || discountCode,
+          );
+          console.log("Calling API createRazorpaySubscription...");
+          const data = await pricingApi.createRazorpaySubscription(
+            planId,
+            period,
+            currency.code,
+            normalizedCode || undefined,
+          );
+          console.log("Subscription created, opening Razorpay...", data);
+
+          if (data.appliedDiscount) {
+            const normalizedPreview: DiscountPreview = {
+              valid: true,
+              code: data.appliedDiscount.code,
+              codeType: data.appliedDiscount.codeType,
+              discountType: 'flat',
+              discountValue: data.appliedDiscount.discountAmountMinor,
+              baseAmountMinor: data.baseAmountMinor,
+              discountAmountMinor: data.appliedDiscount.discountAmountMinor,
+              payableAmountMinor: data.appliedDiscount.payableAmountMinor,
+              currency: (data.currency as 'INR' | 'USD') || currency.code,
+              planId,
+              period,
+              message: `${data.appliedDiscount.code} applied.`,
+            };
+            setDiscountPreview(normalizedPreview);
+            setDiscountCode(data.appliedDiscount.code);
           }
 
           const options = {
@@ -196,6 +313,15 @@ export default function BillingPage() {
               subscription_id: data.subscriptionId,
               handler: async function (response: any) {
                   console.log("Payment successful", response);
+                  // Track revenue conversion in DataFast — currency-aware
+                  if (response.razorpay_payment_id) {
+                    const trackAmount = data.amount ?? getPlanPrice(planId, period, currency.code);
+                    trackDatafastPayment({
+                      amount: trackAmount,
+                      currency: data.currency || currency.code,
+                      transactionId: response.razorpay_payment_id,
+                    });
+                  }
                   setActionLoading(null);
                   router.push('/dashboard?payment_success=true');
                   // dispatch(fetchCurrentSubscription()); // Refresh state
@@ -221,19 +347,63 @@ export default function BillingPage() {
       }
   };
 
-  // Helper to determine plan name safely
-  const planName = currentSubscription?.planId
-    ? (PRICING_TIERS.find(t => t.id === currentSubscription.planId)?.name || currentSubscription.planId)
-    : 'Free';
+  const effectivePlanId = currentSubscription?.planId || authUser?.subscription?.plan || 'free';
+  const effectiveStatus = currentSubscription?.status || authUser?.subscription?.status || 'active';
+  const billingPeriod: 'monthly' | 'yearly' =
+    currentSubscription?.interval === 'year' ? 'yearly' : 'monthly';
+  const planName =
+    PRICING_TIERS.find((t) => t.id === effectivePlanId)?.name ||
+    effectivePlanId ||
+    'Free';
+  const nextPaymentAmount = formatPlanPrice(effectivePlanId, billingPeriod, currency.code);
 
-  const isPremium = planName.toLowerCase() === 'premium';
+  const isPremium = effectivePlanId === 'premium';
+  const currentTier = PRICING_TIERS.find((tier) => tier.id === effectivePlanId) ?? PRICING_TIERS[0];
+  const upgradePreview = getUpgradePreviewForPlan(effectivePlanId, 5);
+
+  const getUsagePercent = (used: number, limit: number) =>
+    Math.min(limit > 0 ? (used / limit) * 100 : 0, 100);
+
+  const tradeUsagePercent = usage ? getUsagePercent(usage.currentPeriodTrades, usage.tradeLimit) : 0;
+  const syncUsagePercent = usage ? getUsagePercent(usage.accountsUsed, usage.accountLimit) : 0;
+  const tradeLimitLabel = usage ? (usage.tradeLimit === 0 ? 'Unlimited' : `${usage.tradeLimit}`) : '...';
+  const syncLimitLabel = usage ? `${usage.accountLimit}` : '...';
+
+  useEffect(() => {
+    if (!upgradePreview) {
+      return;
+    }
+    const key = `${effectivePlanId}->${upgradePreview.toPlanId}`;
+    if (unlockViewedKeyRef.current === key) {
+      return;
+    }
+    emitBillingEvent('upgrade_unlocks_viewed', {
+      surface: 'billing',
+      from_plan: effectivePlanId,
+      to_plan: upgradePreview.toPlanId,
+      unlock_count: upgradePreview.highlights.length,
+    });
+    unlockViewedKeyRef.current = key;
+  }, [effectivePlanId, upgradePreview]);
+
+  const handleUpgradeUnlockCtaClick = () => {
+    if (!upgradePreview) {
+      return;
+    }
+    emitBillingEvent('upgrade_unlocks_cta_clicked', {
+      surface: 'billing',
+      from_plan: effectivePlanId,
+      to_plan: upgradePreview.toPlanId,
+      billing_period: billingPeriod,
+    });
+  };
 
   return (
     <div className="min-h-screen bg-background text-foreground selection:bg-primary/30 p-4 md:p-8 font-sans">
         {/* Background Gradients */}
         <div className="fixed inset-0 pointer-events-none">
             <div className="absolute top-0 left-1/4 w-96 h-96 bg-primary/5 rounded-full blur-[100px]"></div>
-            <div className="absolute bottom-0 right-1/4 w-[30rem] h-[30rem] bg-indigo-500/5 rounded-full blur-[100px]"></div>
+            <div className="absolute bottom-0 right-1/4 w-[30rem] h-[30rem] bg-emerald-500/5 rounded-full blur-[100px]"></div>
         </div>
 
         {/* Loading Overlay */}
@@ -275,7 +445,7 @@ export default function BillingPage() {
                                     <span className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-500 to-teal-500 capitalize">
                                         {planName}
                                     </span>
-                                    {currentSubscription?.status === 'active' && (
+                                    {effectiveStatus === 'active' && (
                                         <span className="px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs font-bold border border-emerald-500/30 flex items-center gap-1">
                                             <FaCheckCircle /> ACTIVE
                                         </span>
@@ -286,10 +456,15 @@ export default function BillingPage() {
                             <div className="text-right">
                                 <p className="text-muted-foreground text-sm mb-1">Next Payment</p>
                                 <p className="text-xl font-bold text-foreground">
-                                    {(billingInfo as any)?.upcomingInvoice ? `$${(billingInfo as any).upcomingInvoice.amount/100}` : '$0.00'}
+                                    {nextPaymentAmount}
+                                    {effectivePlanId !== 'free' && (
+                                      <span className="ml-1 text-sm text-muted-foreground">
+                                        /{billingPeriod === 'yearly' ? 'yr' : 'mo'}
+                                      </span>
+                                    )}
                                 </p>
                                 <p className="text-xs text-muted-foreground">
-                                    on {(billingInfo as any)?.upcomingInvoice ? formatDate((billingInfo as any).upcomingInvoice.date) : 'N/A'}
+                                    on {currentSubscription ? formatDate(currentSubscription.currentPeriodEnd) : 'N/A'}
                                 </p>
                             </div>
                          </div>
@@ -349,6 +524,44 @@ export default function BillingPage() {
                                 </button>
                              )}
                          </div>
+
+                         <div className="mt-6 rounded-2xl border border-border bg-secondary/40 p-4 relative z-10">
+                            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mb-3">
+                              <p className="text-sm font-semibold text-foreground">Discount / Referral Code</p>
+                              <p className="text-xs text-muted-foreground">
+                                Billing currency: {currency.code}
+                              </p>
+                            </div>
+                            <div className="flex flex-col sm:flex-row gap-3">
+                              <input
+                                value={discountCode}
+                                onChange={(e) => {
+                                  setDiscountCode(normalizeDiscountCode(e.target.value));
+                                  setDiscountPreview(null);
+                                  setDiscountError(null);
+                                }}
+                                placeholder="Enter coupon or referral code"
+                                className="flex-1 rounded-xl border border-border bg-background px-4 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
+                              />
+                              <button
+                                type="button"
+                                onClick={handleValidateDiscount}
+                                disabled={discountLoading || actionLoading === 'upgrade'}
+                                className="rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-4 py-2 text-sm font-semibold text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 disabled:opacity-60"
+                              >
+                                {discountLoading ? 'Checking...' : 'Apply Code'}
+                              </button>
+                            </div>
+
+                            {discountPreview && (
+                              <p className="mt-3 text-xs text-emerald-600 dark:text-emerald-400">
+                                {discountPreview.codeType === 'referral' ? 'Referral' : 'Coupon'} {discountPreview.code} applied. You save {(discountPreview.discountAmountMinor / 100).toFixed(2)} {discountPreview.currency}.
+                              </p>
+                            )}
+                            {discountError && (
+                              <p className="mt-3 text-xs text-red-500">{discountError}</p>
+                            )}
+                         </div>
                     </div>
 
                     {/* Billing History */}
@@ -374,7 +587,7 @@ export default function BillingPage() {
                 <div className="space-y-8">
                     <div className="rounded-3xl border border-border bg-card/50 backdrop-blur-xl p-6 pt-8 shadow-sm">
                         <div className="flex items-center gap-3 mb-6">
-                             <div className="p-3 bg-indigo-500/10 rounded-xl text-indigo-500">
+                             <div className="p-3 bg-emerald-500/10 rounded-xl text-emerald-500">
                                 <FaChartBar className="text-xl" />
                              </div>
                              <h3 className="text-xl font-bold text-foreground">Monthly Usage</h3>
@@ -386,28 +599,38 @@ export default function BillingPage() {
                                 <div>
                                     <div className="flex justify-between text-sm mb-2">
                                         <span className="text-muted-foreground">Trades</span>
-                                        <span className="text-foreground font-medium">{usage.currentPeriodTrades} / {usage.tradeLimit === 0 ? '∞' : usage.tradeLimit}</span>
+                                        <span className="text-foreground font-medium">{usage.currentPeriodTrades} / {tradeLimitLabel}</span>
                                     </div>
                                     <div className="h-2 bg-secondary rounded-full overflow-hidden">
                                         <div 
                                             className="h-full bg-primary rounded-full transition-all duration-500"
-                                            style={{ width: `${Math.min((usage.tradeLimit > 0 ? (usage.currentPeriodTrades / usage.tradeLimit) * 100 : 0), 100)}%` }}
+                                            style={{ width: `${tradeUsagePercent}%` }}
                                         ></div>
                                     </div>
+                                    <p className="mt-1 text-xs text-muted-foreground">
+                                      {usage.tradeLimit === 0
+                                        ? 'Unlimited trade logging on this plan.'
+                                        : `${Math.round(tradeUsagePercent)}% of monthly trade limit used.`}
+                                    </p>
                                 </div>
 
-                                {/* Accounts */}
+                                {/* MT5 Sync Slots */}
                                 <div>
                                     <div className="flex justify-between text-sm mb-2">
-                                        <span className="text-muted-foreground">Accounts</span>
-                                        <span className="text-foreground font-medium">{usage.accountsUsed} / {usage.accountLimit === 0 ? '∞' : usage.accountLimit}</span>
+                                        <span className="text-muted-foreground">MT5 Auto-sync Slots</span>
+                                        <span className="text-foreground font-medium">{usage.accountsUsed} / {syncLimitLabel}</span>
                                     </div>
                                     <div className="h-2 bg-secondary rounded-full overflow-hidden">
                                         <div 
-                                            className="h-full bg-blue-500 rounded-full transition-all duration-500"
-                                            style={{ width: `${Math.min((usage.accountLimit > 0 ? (usage.accountsUsed / usage.accountLimit) * 100 : 0), 100)}%` }}
+                                            className="h-full bg-emerald-500/80 rounded-full transition-all duration-500"
+                                            style={{ width: `${syncUsagePercent}%` }}
                                         ></div>
                                     </div>
+                                    <p className="mt-1 text-xs text-muted-foreground">
+                                      {usage.accountLimit === 0
+                                        ? 'Auto-sync is disabled on Free. Manual/import accounts remain available.'
+                                        : `${Math.round(syncUsagePercent)}% of MT5 sync slots used.`}
+                                    </p>
                                 </div>
                             </div>
                         ) : (
@@ -417,15 +640,48 @@ export default function BillingPage() {
                             </div>
                         )}
 
-                        {!isPremium && (
+                        <div className="mt-6 rounded-xl border border-border bg-secondary/40 p-4">
+                          <p className="text-xs uppercase tracking-[0.12em] text-muted-foreground mb-3">Plan Entitlements</p>
+                          <ul className="space-y-2">
+                            {currentTier.features.slice(0, 4).map((feature) => (
+                              <li key={feature} className="text-xs text-foreground/90">
+                                - {feature}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+
+                        {!isPremium && upgradePreview && (
+                            <div className="mt-6 rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-4">
+                              <p className="text-xs uppercase tracking-[0.12em] text-emerald-500 mb-2">What unlocks on upgrade</p>
+                              <p className="text-sm font-semibold text-foreground mb-3">
+                                Upgrade to {upgradePreview.toPlanName}
+                              </p>
+                              <ul className="space-y-2">
+                                {upgradePreview.highlights.map((item) => (
+                                  <li key={item} className="text-xs text-foreground/90">
+                                    - {item}
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                        )}
+
+                        {!isPremium && upgradePreview && (
                             <div className="mt-8 pt-6 border-t border-border">
-                                <div className="bg-gradient-to-br from-indigo-600 to-violet-600 rounded-xl p-5 text-white relative overflow-hidden">
+                                <div className="bg-gradient-to-br from-emerald-600 to-teal-600 rounded-xl p-5 text-white relative overflow-hidden">
                                     <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full blur-2xl -mr-8 -mt-8 pointer-events-none"></div>
                                     <h4 className="font-bold mb-1 relative z-10 flex items-center gap-2">
-                                        <FaShieldAlt /> Go Premium
+                                        <FaShieldAlt /> Unlock {upgradePreview.toPlanName}
                                     </h4>
-                                    <p className="text-indigo-100 text-xs mb-3 relative z-10">Get unlimited trades, AI analysis, and priority support.</p>
-                                    <Link href="/pricing" className="block w-full py-2 bg-white text-indigo-700 font-bold text-xs text-center rounded-lg hover:bg-indigo-50 transition-colors relative z-10">
+                                    <p className="text-emerald-100 text-xs mb-3 relative z-10">
+                                      Move from {planName} to {upgradePreview.toPlanName} and activate the listed features instantly.
+                                    </p>
+                                    <Link
+                                      href="/pricing"
+                                      onClick={handleUpgradeUnlockCtaClick}
+                                      className="block w-full py-2 bg-white text-emerald-700 font-bold text-xs text-center rounded-lg hover:bg-emerald-50 transition-colors relative z-10"
+                                    >
                                         Upgrade Now
                                     </Link>
                                 </div>

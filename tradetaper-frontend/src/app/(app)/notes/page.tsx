@@ -4,27 +4,21 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { 
   FaPlus, 
   FaSearch, 
-  FaFilter, 
   FaTh, 
   FaList, 
-  FaCalendarAlt,
-  FaTags,
-  FaSort,
   FaStar,
   FaImage,
   FaMicrophone,
   FaSpinner,
   FaClock,
-  FaTrash,
-  FaInfoCircle
+  FaTrash
 } from 'react-icons/fa';
 import { useRouter } from 'next/navigation';
 import { useDebounce } from '@/hooks/useDebounce';
-import { format, parseISO, startOfMonth, endOfMonth } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { NotesService } from '@/services/notesService';
 import VoiceRecorder from '@/components/notes/VoiceRecorder';
 import toast from 'react-hot-toast';
-import AlertModal from '@/components/ui/AlertModal';
 
 interface Note {
   id: string;
@@ -74,10 +68,6 @@ const NotesPage: React.FC = () => {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [sortBy, setSortBy] = useState<'updatedAt' | 'createdAt' | 'title' | 'wordCount'>('updatedAt');
   const [sortOrder, setSortOrder] = useState<'ASC' | 'DESC'>('DESC');
-  const [alertState, setAlertState] = useState({ isOpen: false, title: 'Notice', message: '' });
-  const closeAlert = () => setAlertState((prev) => ({ ...prev, isOpen: false }));
-  const showAlert = (message: string, title = 'Notice') =>
-    setAlertState({ isOpen: true, title, message });
   const [showFilters, setShowFilters] = useState(false);
   const [dateFilter, setDateFilter] = useState<{ from?: string; to?: string }>({});
   const [pinnedOnly, setPinnedOnly] = useState(false);
@@ -106,24 +96,9 @@ const NotesPage: React.FC = () => {
         ...(hasMediaOnly && { hasMedia: true }),
       };
 
-      console.log('🔍 Notes Page fetchNotes Debug:', {
-        searchTerm,
-        debouncedSearch,
-        selectedTags,
-        params,
-        timestamp: new Date().toISOString()
-      });
-
       const data = await NotesService.getNotes(params);
       setNotes(data.notes);
       setTotal(data.total);
-      
-      console.log('📊 Notes fetched successfully:', {
-        notesCount: data.notes.length,
-        total: data.total,
-        hasSearch: !!debouncedSearch,
-        searchTerm: debouncedSearch
-      });
     } catch (error) {
       console.error('Error fetching notes:', error);
     } finally {
@@ -206,7 +181,7 @@ const NotesPage: React.FC = () => {
           {
             id: '1',
             type: 'text' as const,
-            content: transcript,
+            content: { text: transcript },
             position: 0
           }
         ],
@@ -244,7 +219,7 @@ const NotesPage: React.FC = () => {
       {/* Header Section */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+          <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-emerald-500 to-emerald-700 bg-clip-text text-transparent">
             My Notes
           </h1>
           {stats && (
@@ -257,61 +232,17 @@ const NotesPage: React.FC = () => {
         <div className="flex flex-wrap gap-3">
           <button
             onClick={() => router.push('/notes/new')}
-            className="bg-gradient-to-r from-emerald-500 to-emerald-600 text-white px-4 py-2 rounded-lg hover:from-emerald-600 hover:to-emerald-700 transition-all"
+            className="w-full sm:w-auto bg-gradient-to-r from-emerald-500 to-emerald-600 text-white px-4 py-2 rounded-lg hover:from-emerald-600 hover:to-emerald-700 transition-all"
           >
             New Note
           </button>
           
           <button
-            onClick={() => {
-              console.log('🎤 Voice Note button clicked!');
-              console.log('🔧 Current showVoiceRecorder state:', showVoiceRecorder);
-              setShowVoiceRecorder(true);
-              console.log('✅ setShowVoiceRecorder(true) called');
-            }}
-            className="bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-950/20 dark:to-emerald-900/20 text-emerald-700 dark:text-emerald-300 px-4 py-2 rounded-lg hover:from-emerald-100 hover:to-emerald-200 dark:hover:from-emerald-900/30 dark:hover:to-emerald-800/30 transition-all flex items-center gap-2 border border-emerald-200 dark:border-emerald-700/30"
+            onClick={() => setShowVoiceRecorder(true)}
+            className="w-full sm:w-auto bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-950/20 dark:to-emerald-900/20 text-emerald-700 dark:text-emerald-300 px-4 py-2 rounded-lg hover:from-emerald-100 hover:to-emerald-200 dark:hover:from-emerald-900/30 dark:hover:to-emerald-800/30 transition-all flex items-center justify-center gap-2 border border-emerald-200 dark:border-emerald-700/30"
           >
             <FaMicrophone />
             Voice Note
-          </button>
-          
-          {/* Debug Search Test Button */}
-          <button
-            onClick={async () => {
-              console.log('🧪 Testing direct search...');
-              try {
-                const testResult = await NotesService.getNotes({ search: 'test', limit: 5 });
-                console.log('🔍 Direct search test result:', testResult);
-                showAlert(`Found ${testResult.notes.length} notes with search "test"`, 'Search Test');
-              } catch (error) {
-                console.error('❌ Direct search test failed:', error);
-                showAlert('Search test failed - check console', 'Search Test Failed');
-              }
-            }}
-            className="bg-red-500 text-white px-4 py-2 rounded-lg"
-          >
-            🧪 Test Search
-          </button>
-          
-          {/* Show All Notes Test Button */}
-          <button
-            onClick={async () => {
-              console.log('📋 Getting all notes...');
-              try {
-                const allNotes = await NotesService.getNotes({ limit: 100 });
-                console.log('📝 All notes:', allNotes.notes.map(n => ({ id: n.id, title: n.title })));
-                showAlert(
-                  `Total notes: ${allNotes.total}\nTitles: ${allNotes.notes.map(n => n.title).join(', ')}`,
-                  'Notes Summary'
-                );
-              } catch (error) {
-                console.error('❌ Failed to get all notes:', error);
-                showAlert('Failed to get notes - check console', 'Notes Error');
-              }
-            }}
-            className="bg-emerald-500 text-white px-4 py-2 rounded-lg text-sm"
-          >
-            📋 Show All
           </button>
         </div>
       </div>
@@ -328,17 +259,11 @@ const NotesPage: React.FC = () => {
               className="w-full pl-10 pr-4 py-2 border border-emerald-300 dark:border-emerald-600/30 rounded-lg bg-white dark:bg-black/50 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
               value={searchTerm}
               onChange={(e) => {
-                const newValue = e.target.value;
-                console.log('🔍 Search input changed:', {
-                  oldValue: searchTerm,
-                  newValue,
-                  timestamp: new Date().toISOString()
-                });
-                setSearchTerm(newValue);
+                setSearchTerm(e.target.value);
+                setCurrentPage(1);
               }}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
-                  console.log('🚀 Manual search triggered for:', searchTerm);
                   fetchNotes();
                 }
               }}
@@ -346,16 +271,16 @@ const NotesPage: React.FC = () => {
           </div>
 
           {/* View Toggle */}
-          <div className="flex rounded-lg border border-emerald-300 dark:border-emerald-600/30 overflow-hidden">
+          <div className="flex w-full sm:w-auto rounded-lg border border-emerald-300 dark:border-emerald-600/30 overflow-hidden">
             <button
               onClick={() => setViewMode('grid')}
-              className={`px-3 py-2 transition-all ${viewMode === 'grid' ? 'bg-gradient-to-r from-emerald-500 to-emerald-600 text-white' : 'bg-white dark:bg-black/50 text-gray-700 dark:text-gray-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/20'}`}
+              className={`flex-1 sm:flex-none px-3 py-2 transition-all ${viewMode === 'grid' ? 'bg-gradient-to-r from-emerald-500 to-emerald-600 text-white' : 'bg-white dark:bg-black/50 text-gray-700 dark:text-gray-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/20'}`}
             >
               <FaTh />
             </button>
             <button
               onClick={() => setViewMode('list')}
-              className={`px-3 py-2 transition-all ${viewMode === 'list' ? 'bg-gradient-to-r from-emerald-500 to-emerald-600 text-white' : 'bg-white dark:bg-black/50 text-gray-700 dark:text-gray-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/20'}`}
+              className={`flex-1 sm:flex-none px-3 py-2 transition-all ${viewMode === 'list' ? 'bg-gradient-to-r from-emerald-500 to-emerald-600 text-white' : 'bg-white dark:bg-black/50 text-gray-700 dark:text-gray-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/20'}`}
             >
               <FaList />
             </button>
@@ -364,7 +289,7 @@ const NotesPage: React.FC = () => {
           {/* Filter Toggle */}
           <button
             onClick={() => setShowFilters(!showFilters)}
-            className={`px-4 py-2 rounded-lg transition-all ${showFilters ? 'bg-gradient-to-r from-emerald-500 to-emerald-600 text-white' : 'bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-950/20 dark:to-emerald-900/20 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-700/30'} ${hasActiveFilters ? 'ring-2 ring-emerald-500' : ''}`}
+            className={`w-full sm:w-auto px-4 py-2 rounded-lg transition-all text-center ${showFilters ? 'bg-gradient-to-r from-emerald-500 to-emerald-600 text-white' : 'bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-950/20 dark:to-emerald-900/20 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-700/30'} ${hasActiveFilters ? 'ring-2 ring-emerald-500' : ''}`}
           >
             Filters {hasActiveFilters && `(${selectedTags.length + (pinnedOnly ? 1 : 0) + (hasMediaOnly ? 1 : 0)})`}
           </button>
@@ -402,7 +327,10 @@ const NotesPage: React.FC = () => {
                     <input
                       type="checkbox"
                       checked={pinnedOnly}
-                      onChange={(e) => setPinnedOnly(e.target.checked)}
+                      onChange={(e) => {
+                        setPinnedOnly(e.target.checked);
+                        setCurrentPage(1);
+                      }}
                       className="mr-2"
                     />
                     <FaStar className="mr-1" />
@@ -412,7 +340,10 @@ const NotesPage: React.FC = () => {
                     <input
                       type="checkbox"
                       checked={hasMediaOnly}
-                      onChange={(e) => setHasMediaOnly(e.target.checked)}
+                      onChange={(e) => {
+                        setHasMediaOnly(e.target.checked);
+                        setCurrentPage(1);
+                      }}
                       className="mr-2"
                     />
                     <FaImage className="mr-1" />
@@ -489,7 +420,7 @@ const NotesPage: React.FC = () => {
             ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6' 
             : 'space-y-4'
         }`}>
-          {notes.map((note, index) => (
+          {notes.map((note) => (
             <div key={note.id}>
               {viewMode === 'grid' ? (
                 <NoteCard note={note} onClick={() => router.push(`/notes/${note.id}`)} onDelete={handleDelete} />
@@ -503,8 +434,9 @@ const NotesPage: React.FC = () => {
 
       {/* Pagination */}
       {total > limit && (
-        <div className="flex justify-center mt-8">
-          <div className="flex gap-2">
+        <div className="mt-8">
+          <div className="w-full overflow-x-auto pb-1">
+            <div className="mx-auto flex w-max gap-2">
             {Array.from({ length: Math.ceil(total / limit) }, (_, i) => i + 1).map(page => (
               <button
                 key={page}
@@ -518,6 +450,7 @@ const NotesPage: React.FC = () => {
                 {page}
               </button>
             ))}
+            </div>
           </div>
         </div>
       )}
@@ -527,12 +460,6 @@ const NotesPage: React.FC = () => {
         isOpen={showVoiceRecorder}
         onClose={() => setShowVoiceRecorder(false)}
         onTranscriptionComplete={handleVoiceTranscription}
-      />
-      <AlertModal
-        isOpen={alertState.isOpen}
-        onClose={closeAlert}
-        title={alertState.title}
-        message={alertState.message}
       />
     </div>
   );
@@ -549,6 +476,11 @@ const NoteCard: React.FC<{ note: Note; onClick: () => void; onDelete: (id: strin
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2 line-clamp-2">
             {note.title || 'Untitled'}
           </h3>
+          {note.tradeId && (
+            <span className="inline-flex items-center px-2 py-0.5 mb-2 rounded-full text-[10px] font-semibold bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300">
+              Linked Trade Note
+            </span>
+          )}
           <p className="text-gray-600 dark:text-gray-400 text-sm line-clamp-3">
             {note.preview}
           </p>
@@ -558,8 +490,8 @@ const NoteCard: React.FC<{ note: Note; onClick: () => void; onDelete: (id: strin
         )}
       </div>
 
-      <div className="flex items-center justify-between text-sm text-gray-500 dark:text-gray-400">
-        <div className="flex items-center gap-4">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between text-sm text-gray-500 dark:text-gray-400">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-4">
           <span className="flex items-center gap-1">
             <FaClock />
             {format(parseISO(note.updatedAt), 'MMM dd, yyyy')}
@@ -571,7 +503,7 @@ const NoteCard: React.FC<{ note: Note; onClick: () => void; onDelete: (id: strin
             <FaImage className="text-emerald-500" />
           )}
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 self-start sm:self-auto">
           {note.tags.slice(0, 2).map(tag => (
             <span
               key={tag}
@@ -593,7 +525,7 @@ const NoteCard: React.FC<{ note: Note; onClick: () => void; onDelete: (id: strin
         e.stopPropagation();
         onDelete(note.id);
       }}
-      className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-red-500 text-white p-1 rounded-full hover:bg-red-600"
+      className="absolute top-2 right-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity bg-red-500 text-white p-1 rounded-full hover:bg-red-600"
       title="Delete note"
     >
       <FaTrash className="w-3 h-3" />
@@ -604,12 +536,17 @@ const NoteCard: React.FC<{ note: Note; onClick: () => void; onDelete: (id: strin
 // Note List Item Component for List View
 const NoteListItem: React.FC<{ note: Note; onClick: () => void; onDelete: (id: string) => void }> = ({ note, onClick, onDelete }) => (
   <div className="bg-gradient-to-r from-white to-emerald-50 dark:from-black dark:to-emerald-950/20 rounded-lg p-4 border border-emerald-200/50 dark:border-emerald-700/30 hover:shadow-lg hover:shadow-emerald-500/10 transition-all cursor-pointer relative group backdrop-blur-xl">
-    <div onClick={onClick} className="flex items-start gap-4">
+    <div onClick={onClick} className="flex flex-col gap-3 sm:flex-row sm:items-start sm:gap-4">
       <div className="flex-1">
         <div className="flex items-center gap-2 mb-2">
           <h3 className="font-semibold text-lg">{note.title}</h3>
           {note.isPinned && <FaStar className="text-yellow-500" />}
           {note.hasMedia && <FaImage className="text-gray-500" />}
+          {note.tradeId && (
+            <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300">
+              Linked Trade
+            </span>
+          )}
         </div>
         
         <p className="text-gray-600 dark:text-gray-400 text-sm mb-2 line-clamp-2">
@@ -630,7 +567,7 @@ const NoteListItem: React.FC<{ note: Note; onClick: () => void; onDelete: (id: s
         )}
       </div>
       
-      <div className="text-right text-xs text-gray-500 dark:text-gray-400 min-w-[120px]">
+      <div className="text-xs text-gray-500 dark:text-gray-400 sm:text-right sm:min-w-[120px]">
         <div>{format(parseISO(note.updatedAt), 'MMM d, yyyy')}</div>
         <div className="mt-1">{note.wordCount} words • {note.readingTime} min</div>
       </div>
@@ -642,7 +579,7 @@ const NoteListItem: React.FC<{ note: Note; onClick: () => void; onDelete: (id: s
         e.stopPropagation();
         onDelete(note.id);
       }}
-      className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-red-500 text-white p-1 rounded-full hover:bg-red-600"
+      className="absolute top-2 right-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity bg-red-500 text-white p-1 rounded-full hover:bg-red-600"
       title="Delete note"
     >
       <FaTrash className="w-3 h-3" />

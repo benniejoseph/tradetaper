@@ -1,409 +1,396 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import Sidebar from '@/components/Sidebar';
-import LiveActivityFeed from '@/components/LiveActivityFeed';
-import { 
-  Activity, 
-  Users, 
-  Clock, 
-  MapPin,
-  Download,
-  RefreshCw,
-  Zap
-} from 'lucide-react';
-import { formatNumber } from '@/lib/utils';
-import { adminApi } from '@/lib/api';
+import { Activity, Zap, RefreshCw } from 'lucide-react';
+import { Activity as ActivityItem, adminApi } from '@/lib/api';
+import toast from 'react-hot-toast';
+
+const ACTIVITY_COLORS: Record<string, string> = {
+  login: 'var(--chart-2)',
+  logout: 'var(--chart-2)',
+  trade_created: 'var(--chart-1)',
+  trade_closed: 'var(--chart-5)',
+  subscription_changed: 'var(--chart-4)',
+  billing_updated: 'var(--chart-4)',
+  user_created: 'var(--chart-3)',
+  image_uploaded: 'var(--accent-neutral)',
+};
+
+type ActivityFilter = 'all' | 'trade' | 'auth' | 'billing';
+type ActivityCategory = Exclude<ActivityFilter, 'all'> | 'other';
+const EMPTY_ACTIVITIES: ActivityItem[] = [];
+
+function normalizeType(type: string | undefined): string {
+  return (type || '').trim().toLowerCase();
+}
+
+function toReadableType(type: string | undefined): string {
+  const normalized = normalizeType(type);
+  if (!normalized) {
+    return 'unknown';
+  }
+
+  return normalized.replace(/[_-]+/g, ' ');
+}
+
+function classifyActivityType(type: string | undefined): ActivityCategory {
+  const normalized = normalizeType(type);
+
+  if (
+    normalized.includes('trade') ||
+    normalized.includes('position') ||
+    normalized.includes('order')
+  ) {
+    return 'trade';
+  }
+
+  if (
+    normalized.includes('subscription') ||
+    normalized.includes('billing') ||
+    normalized.includes('invoice') ||
+    normalized.includes('payment') ||
+    normalized.includes('refund') ||
+    normalized.includes('coupon') ||
+    normalized.includes('plan')
+  ) {
+    return 'billing';
+  }
+
+  if (
+    normalized.includes('login') ||
+    normalized.includes('logout') ||
+    normalized.includes('auth') ||
+    normalized.includes('mfa') ||
+    normalized.includes('session') ||
+    normalized.includes('password') ||
+    normalized.includes('user')
+  ) {
+    return 'auth';
+  }
+
+  return 'other';
+}
+
+function formatFeedTimestamp(timestamp: string): string {
+  const date = new Date(timestamp);
+  if (Number.isNaN(date.getTime())) {
+    return 'Unknown time';
+  }
+
+  return date.toLocaleString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  });
+}
+
+function formatLastUpdated(dataUpdatedAt: number): string {
+  if (!dataUpdatedAt) {
+    return '—';
+  }
+  return new Date(dataUpdatedAt).toLocaleTimeString([], {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  });
+}
+
+function filterLabel(filter: ActivityFilter): string {
+  if (filter === 'all') {
+    return 'All';
+  }
+  return filter.charAt(0).toUpperCase() + filter.slice(1);
+}
 
 export default function ActivityPage() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
+  const [filter, setFilter] = useState<ActivityFilter>('all');
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const { data: activityFeed, isLoading, refetch } = useQuery({
-    queryKey: ['activity-feed-detailed'],
-    queryFn: () => adminApi.getActivityFeed(50), // Get 50 activities
-    refetchInterval: 5000, // Refetch every 5 seconds
+  const {
+    data: feed,
+    isLoading,
+    isError,
+    isFetching,
+    refetch,
+    dataUpdatedAt,
+  } = useQuery({
+    queryKey: ['activity-feed-full'],
+    queryFn: () => adminApi.getActivityFeed(50),
+    refetchInterval: 5000,
+    retry: 1,
+    retryDelay: 750,
   });
 
-  const { data: systemHealth } = useQuery({
-    queryKey: ['system-health'],
-    queryFn: () => adminApi.getSystemHealth(),
-    refetchInterval: 30000,
-  });
+  const activities = feed ?? EMPTY_ACTIVITIES;
 
-  const { data: dashboardStats } = useQuery({
-    queryKey: ['dashboard-stats'],
-    queryFn: () => adminApi.getDashboardStats(),
-    refetchInterval: 30000,
-  });
+  const filteredActivities = useMemo(
+    () =>
+      activities.filter((activity) => {
+        if (filter === 'all') {
+          return true;
+        }
+        return classifyActivityType(activity.type) === filter;
+      }),
+    [activities, filter],
+  );
 
-  const handleRefresh = async () => {
-    setRefreshing(true);
-    await refetch();
-    setTimeout(() => setRefreshing(false), 1000);
-  };
+  const eventBreakdown = useMemo(
+    () =>
+      filteredActivities.reduce<Record<string, number>>((acc, activity) => {
+        const key = normalizeType(activity.type) || 'unknown';
+        acc[key] = (acc[key] || 0) + 1;
+        return acc;
+      }, {}),
+    [filteredActivities],
+  );
 
-  // Calculate activity stats from real data
-  const activityStats = {
-    totalEvents24h: activityFeed?.length || 0,
-    activeUsers24h: dashboardStats?.activeUsers || 0,
-    topLocations: [
-      { location: 'United States', count: Math.floor((activityFeed?.length || 0) * 0.35) },
-      { location: 'United Kingdom', count: Math.floor((activityFeed?.length || 0) * 0.25) },
-      { location: 'Germany', count: Math.floor((activityFeed?.length || 0) * 0.15) },
-      { location: 'Canada', count: Math.floor((activityFeed?.length || 0) * 0.12) },
-      { location: 'Australia', count: Math.floor((activityFeed?.length || 0) * 0.08) },
-    ],
-    eventTypes: [
-      { type: 'login', count: Math.floor((activityFeed?.length || 0) * 0.8), percentage: 80.0 },
-      { type: 'trade_created', count: Math.floor((activityFeed?.length || 0) * 0.1), percentage: 10.0 },
-      { type: 'trade_closed', count: Math.floor((activityFeed?.length || 0) * 0.05), percentage: 5.0 },
-      { type: 'subscription_changed', count: Math.floor((activityFeed?.length || 0) * 0.03), percentage: 3.0 },
-      { type: 'image_uploaded', count: Math.floor((activityFeed?.length || 0) * 0.02), percentage: 2.0 },
-    ],
+  const categoryCounts = useMemo(() => {
+    return filteredActivities.reduce<Record<ActivityCategory, number>>(
+      (acc, activity) => {
+        const category = classifyActivityType(activity.type);
+        acc[category] += 1;
+        return acc;
+      },
+      { trade: 0, auth: 0, billing: 0, other: 0 },
+    );
+  }, [filteredActivities]);
+
+  const maxBreakdownCount = useMemo(() => {
+    const counts = Object.values(eventBreakdown);
+    return counts.length > 0 ? Math.max(...counts) : 1;
+  }, [eventBreakdown]);
+
+  const breakdownRows = useMemo(
+    () => Object.entries(eventBreakdown).sort((a, b) => b[1] - a[1]),
+    [eventBreakdown],
+  );
+
+  const summaryCards = useMemo(() => {
+    const cards = [
+      { key: 'trade', label: 'Trade', value: categoryCounts.trade },
+      { key: 'auth', label: 'Auth', value: categoryCounts.auth },
+      { key: 'billing', label: 'Billing', value: categoryCounts.billing },
+      { key: 'other', label: 'Other', value: categoryCounts.other },
+    ];
+
+    if (filter === 'all') {
+      return cards;
+    }
+
+    return cards.filter((card) => card.key === filter);
+  }, [categoryCounts.auth, categoryCounts.billing, categoryCounts.other, categoryCounts.trade, filter]);
+
+  const constrainBreakdown = breakdownRows.length > 5;
+  const constrainStream = filteredActivities.length > 10;
+
+  const onRefresh = async () => {
+    if (isRefreshing) {
+      return;
+    }
+
+    setIsRefreshing(true);
+    try {
+      const result = await refetch();
+      if (result.error) {
+        toast.error('Failed to refresh activity feed');
+      } else {
+        toast.success('Activity feed refreshed');
+      }
+    } finally {
+      setIsRefreshing(false);
+    }
   };
 
   return (
-    <div className="flex h-screen bg-gray-950">
+    <div className="flex h-dvh overflow-hidden" style={{ background: 'var(--bg-base)' }}>
       <Sidebar isCollapsed={sidebarCollapsed} onToggle={() => setSidebarCollapsed(!sidebarCollapsed)} />
-      
-      <div className="flex-1 overflow-hidden">
-        {/* Header */}
-        <header className="bg-gray-900 border-b border-gray-800 px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <Activity className="w-6 h-6 text-blue-400" />
+      <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
+        <header className="admin-page-header">
+          <div className="admin-shell flex flex-wrap items-start justify-between gap-4 sm:gap-5">
+            <div className="flex items-start gap-3">
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full animate-pulse-dot" style={{ background: 'var(--accent-primary)' }} />
+                <Activity className="w-5 h-5" style={{ color: 'var(--accent-primary)' }} />
+              </div>
               <div>
-                <h1 className="text-2xl font-bold text-white">Live Activity Monitor</h1>
-                <p className="text-gray-400">Real-time user activities and system events</p>
+                <h1 className="admin-page-title">Live Activity</h1>
+                <p className="admin-page-subtitle mt-1">Auto-refreshes every 5s • Operations event stream</p>
+                <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>
+                  Showing {filteredActivities.length} of {activities.length} events • Updated {formatLastUpdated(dataUpdatedAt)}
+                </p>
               </div>
             </div>
-            
-            <div className="flex items-center space-x-4">
-              <button 
-                onClick={handleRefresh}
-                disabled={refreshing}
-                className="bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 rounded-lg text-sm flex items-center space-x-2 transition-colors disabled:opacity-50"
+            <div className="flex w-full lg:w-auto flex-wrap items-center gap-2.5 sm:justify-end">
+              <div className="admin-inline-filters w-full sm:w-auto">
+                {(['all', 'trade', 'auth', 'billing'] as const).map((t) => (
+                  <button
+                    key={t}
+                    onClick={() => setFilter(t)}
+                    className="px-4 py-2.5 rounded-lg text-sm font-medium capitalize transition-colors min-h-[44px] min-w-[84px]"
+                    style={{
+                      background: filter === t ? 'var(--accent-primary)' : 'transparent',
+                      color: filter === t ? '#ffffff' : 'var(--text-secondary)',
+                    }}
+                  >
+                    {t}
+                  </button>
+                ))}
+              </div>
+              <button
+                type="button"
+                className="admin-btn-secondary"
+                onClick={onRefresh}
+                aria-label="Refresh activity feed"
+                title="Refresh activity feed"
+                disabled={isRefreshing || isFetching}
+                aria-busy={isRefreshing || isFetching}
               >
-                <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
-                <span>Refresh</span>
-              </button>
-              
-              <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm flex items-center space-x-2 transition-colors">
-                <Download className="w-4 h-4" />
-                <span>Export</span>
+                <RefreshCw className={`w-4 h-4 ${isRefreshing || isFetching ? 'animate-spin' : ''}`} />
               </button>
             </div>
           </div>
         </header>
 
-        <main className="flex-1 scrollable-content p-6 space-y-6">
-          {/* Activity Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-              className="bg-gray-800 border border-gray-700 rounded-xl p-6"
-            >
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-400">Events (24h)</p>
-                  <p className="text-2xl font-bold text-white mt-1">
-                    {formatNumber(activityStats.totalEvents24h)}
-                  </p>
-                </div>
-                <div className="p-3 bg-blue-500/10 rounded-lg">
-                  <Zap className="w-6 h-6 text-blue-400" />
-                </div>
-              </div>
-              <div className="mt-4 pt-4 border-t border-gray-700">
-                <div className="text-xs text-green-400">
-                  ↗ Live data from backend
-                </div>
-              </div>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-              className="bg-gray-800 border border-gray-700 rounded-xl p-6"
-            >
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-400">Active Users</p>
-                  <p className="text-2xl font-bold text-white mt-1">
-                    {formatNumber(activityStats.activeUsers24h)}
-                  </p>
-                </div>
-                <div className="p-3 bg-green-500/10 rounded-lg">
-                  <Users className="w-6 h-6 text-green-400" />
-                </div>
-              </div>
-              <div className="mt-4 pt-4 border-t border-gray-700">
-                <div className="text-xs text-green-400">
-                  ↗ Real user count
-                </div>
-              </div>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
-              className="bg-gray-800 border border-gray-700 rounded-xl p-6"
-            >
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-400">Avg Response</p>
-                  <p className="text-2xl font-bold text-white mt-1">{systemHealth?.responseTime || 0}ms</p>
-                </div>
-                <div className="p-3 bg-yellow-500/10 rounded-lg">
-                  <Clock className="w-6 h-6 text-yellow-400" />
-                </div>
-              </div>
-              <div className="mt-4 pt-4 border-t border-gray-700">
-                <div className="text-xs text-green-400">
-                  ↗ System health data
-                </div>
-              </div>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4 }}
-              className="bg-gray-800 border border-gray-700 rounded-xl p-6"
-            >
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-400">Locations</p>
-                  <p className="text-2xl font-bold text-white mt-1">
-                    {activityStats.topLocations.length}
-                  </p>
-                </div>
-                <div className="p-3 bg-purple-500/10 rounded-lg">
-                  <MapPin className="w-6 h-6 text-purple-400" />
-                </div>
-              </div>
-              <div className="mt-4 pt-4 border-t border-gray-700">
-                <div className="text-xs text-blue-400">
-                  ↗ Geographic distribution
-                </div>
-              </div>
-            </motion.div>
-          </div>
-
-          {/* Main Content Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Live Activity Feed */}
-            <div className="lg:col-span-2">
-              <LiveActivityFeed 
-                activities={(activityFeed || []).map(activity => ({
-                  ...activity,
-                  userId: activity.user?.id || 'unknown',
-                  userName: activity.user?.name || 'Unknown User',
-                  type: activity.type as 'login' | 'trade_created' | 'trade_closed' | 'subscription_changed' | 'image_uploaded'
-                }))} 
-                loading={isLoading}
-                onRefresh={handleRefresh}
-              />
-            </div>
-
-            {/* Activity Breakdown */}
-            <div className="space-y-6">
-              {/* Event Types */}
-              <motion.div
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.5 }}
-                className="bg-gray-800 border border-gray-700 rounded-xl p-6"
+        <div className="flex-1 overflow-auto admin-page-main">
+          <div className="admin-shell flex flex-col gap-6 sm:gap-7 pb-7 sm:pb-9">
+            {isError && (
+              <div
+                className="rounded-lg border px-4 py-3 text-sm sm:text-[15px]"
+                style={{
+                  background: 'var(--accent-warning-subtle)',
+                  borderColor: 'var(--accent-warning-muted)',
+                  color: 'var(--accent-warning)',
+                }}
               >
-                <h3 className="text-lg font-semibold text-white mb-6">Event Types</h3>
-                
-                <div className="space-y-4">
-                  {activityStats.eventTypes.map((eventType, index) => (
-                    <div key={eventType.type} className="flex items-center justify-between">
-                      <div className="flex items-center space-x-3">
-                        <div className="w-3 h-3 rounded-full bg-blue-500" 
-                             style={{ backgroundColor: ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6'][index] }}></div>
-                        <span className="text-white font-medium capitalize">{eventType.type.replace('_', ' ')}</span>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-white font-medium">{formatNumber(eventType.count)}</div>
-                        <div className="text-xs text-gray-400">{eventType.percentage}%</div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </motion.div>
-
-              {/* Top Locations */}
-              <motion.div
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.6 }}
-                className="bg-gray-800 border border-gray-700 rounded-xl p-6"
-              >
-                <h3 className="text-lg font-semibold text-white mb-6">Top Locations</h3>
-                
-                <div className="space-y-4">
-                  {activityStats.topLocations.map((location, index) => (
-                    <div key={location.location} className="flex items-center justify-between">
-                      <div className="flex items-center space-x-3">
-                        <div className="flex items-center justify-center w-6 h-6 bg-blue-600 text-white text-xs font-bold rounded">
-                          {index + 1}
-                        </div>
-                        <span className="text-white font-medium">{location.location}</span>
-                      </div>
-                      <div className="text-white font-medium">{formatNumber(location.count)}</div>
-                    </div>
-                  ))}
-                </div>
-              </motion.div>
-            </div>
-          </div>
-
-          {/* Additional Activity Content for Scrolling */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.7 }}
-              className="bg-gray-800 border border-gray-700 rounded-xl p-6"
-            >
-              <h3 className="text-lg font-semibold text-white mb-4">Recent Activity Timeline</h3>
-              <div className="space-y-4 max-h-96 overflow-y-auto">
-                {Array.from({ length: 15 }, (_, i) => (
-                  <div key={i} className="flex items-center space-x-3 p-3 bg-gray-700/50 rounded-lg">
-                    <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
-                    <div className="flex-1">
-                      <p className="text-white text-sm">Activity event #{i + 1}</p>
-                      <p className="text-gray-400 text-xs">{new Date(Date.now() - i * 120000).toLocaleString()}</p>
-                    </div>
-                    <span className="text-xs text-gray-500">#{i + 1}</span>
-                  </div>
-                ))}
+                Some activity data could not be loaded. Auto-refresh will continue retrying.
               </div>
-            </motion.div>
+            )}
 
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.8 }}
-              className="bg-gray-800 border border-gray-700 rounded-xl p-6"
-            >
-              <h3 className="text-lg font-semibold text-white mb-4">Activity Metrics</h3>
-              <div className="grid grid-cols-2 gap-4">
-                {Array.from({ length: 8 }, (_, i) => (
-                  <div key={i} className="bg-gray-700/50 rounded-lg p-3">
-                    <p className="text-gray-400 text-sm">Metric {i + 1}</p>
-                    <p className="text-white text-xl font-bold">{Math.floor(Math.random() * 1000)}</p>
-                    <div className="mt-2 h-1 bg-gray-600 rounded-full overflow-hidden">
-                      <div 
-                        className="h-full bg-blue-500 rounded-full" 
-                        style={{ width: `${Math.floor(Math.random() * 100)}%` }}
-                      ></div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </motion.div>
-          </div>
-
-          {/* More Activity Data */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.9 }}
-            className="bg-gray-800 border border-gray-700 rounded-xl p-6"
-          >
-            <h3 className="text-lg font-semibold text-white mb-4">Activity Heatmap</h3>
-            <div className="grid grid-cols-7 gap-2">
-              {Array.from({ length: 168 }, (_, i) => (
-                <div 
-                  key={i} 
-                  className={`h-4 rounded ${
-                    Math.random() > 0.7 ? 'bg-green-500' :
-                    Math.random() > 0.4 ? 'bg-yellow-500' :
-                    Math.random() > 0.2 ? 'bg-blue-500' :
-                    'bg-gray-700'
-                  }`}
-                  title={`Hour ${i}: ${Math.floor(Math.random() * 100)} activities`}
-                ></div>
-              ))}
-            </div>
-            <div className="flex justify-between text-xs text-gray-400 mt-2">
-              <span>Less</span>
-              <span>More</span>
-            </div>
-                     </motion.div>
-
-          {/* Extra Activity Content to Force Scrolling */}
-          <div className="space-y-6">
-            {Array.from({ length: 3 }, (_, sectionIndex) => (
+            <div className="activity-grid">
               <motion.div
-                key={sectionIndex}
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 1.0 + sectionIndex * 0.1 }}
-                className="bg-gray-800 border border-gray-700 rounded-xl p-6"
+                className="activity-panel activity-breakdown-panel xl:sticky xl:top-4"
               >
-                <h3 className="text-lg font-semibold text-white mb-4">Activity Section {sectionIndex + 1}</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {Array.from({ length: 9 }, (_, i) => (
-                    <div key={i} className="bg-gray-700/50 rounded-lg p-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <p className="text-white font-medium">Event #{i + 1}</p>
-                        <div className={`w-3 h-3 rounded-full ${
-                          i % 4 === 0 ? 'bg-green-400' :
-                          i % 4 === 1 ? 'bg-blue-400' :
-                          i % 4 === 2 ? 'bg-yellow-400' :
-                          'bg-purple-400'
-                        }`}></div>
-                      </div>
-                      <p className="text-gray-400 text-sm mb-2">
-                        User: User{(i * 123 + 100) % 1000}
-                      </p>
-                      <p className="text-gray-400 text-sm mb-2">
-                        Time: {new Date(Date.now() - (i * 3600000 + 1800000)).toLocaleTimeString()}
-                      </p>
-                      <div className="h-1 bg-gray-600 rounded-full overflow-hidden">
-                        <div 
-                          className={`h-full rounded-full ${
-                            i % 4 === 0 ? 'bg-green-500' :
-                            i % 4 === 1 ? 'bg-blue-500' :
-                            i % 4 === 2 ? 'bg-yellow-500' :
-                            'bg-purple-500'
-                          }`}
-                          style={{ width: `${(i * 11 + 20) % 100}%` }}
-                        ></div>
-                      </div>
+                <div className="activity-panel-head">
+                  <div className="flex items-center gap-2">
+                    <Zap className="w-4 h-4" style={{ color: 'var(--accent-primary)' }} />
+                    <h3 className="admin-section-title">Event Breakdown</h3>
+                  </div>
+                  <span className="badge badge-muted">{filteredActivities.length}</span>
+                </div>
+                <p className="activity-panel-kicker">{filterLabel(filter)} tab distribution</p>
+
+                <div className={`activity-summary-grid ${summaryCards.length === 1 ? 'activity-summary-grid-single' : ''}`}>
+                  {summaryCards.map((item) => (
+                    <div key={item.label} className="activity-summary-card">
+                      <p className="activity-summary-label">{item.label}</p>
+                      <p className="activity-summary-value">{item.value}</p>
                     </div>
                   ))}
                 </div>
-              </motion.div>
-            ))}
-          </div>
 
-          {/* Final Activity Section */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 1.3 }}
-            className="bg-gradient-to-r from-purple-900/50 to-blue-900/50 backdrop-blur-xl border border-purple-700/50 rounded-2xl p-8 text-center"
-          >
-            <h3 className="text-2xl font-bold text-white mb-4">🎯 Activity Page Scroll Complete!</h3>
-            <p className="text-gray-300">All activity data has been loaded and scrolling is working properly.</p>
-            <div className="mt-4 text-sm text-gray-400">
-              Total Events: {formatNumber(activityStats.totalEvents24h)} | Active Users: {formatNumber(activityStats.activeUsers24h)}
+                {breakdownRows.length > 0 ? (
+                  <div className={`activity-breakdown-list ${constrainBreakdown ? 'activity-breakdown-list-scroll' : ''}`}>
+                    {breakdownRows.map(([type, count]) => (
+                      <div key={type} className="activity-breakdown-item">
+                        <div className="activity-breakdown-row">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: ACTIVITY_COLORS[type] || 'var(--accent-neutral)' }} />
+                            <span className="activity-breakdown-type">{toReadableType(type)}</span>
+                          </div>
+                          <span className="activity-breakdown-count">{count}</span>
+                        </div>
+                        <div className="activity-progress-track">
+                          <div
+                            className="activity-progress-fill"
+                            style={{
+                              background: ACTIVITY_COLORS[type] || 'var(--accent-neutral)',
+                              width: `${Math.max(8, (count / maxBreakdownCount) * 100)}%`,
+                            }}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-12">
+                    <p className="text-sm" style={{ color: 'var(--text-muted)' }}>No events tracked yet</p>
+                  </div>
+                )}
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 }}
+                className={`activity-panel activity-stream-panel ${constrainStream ? 'activity-stream-panel-scroll' : ''}`}
+              >
+                <div className="activity-stream-head">
+                  <span className="w-2 h-2 rounded-full animate-pulse-dot" style={{ background: 'var(--accent-success)' }} />
+                  <h3 className="admin-section-title">Event Stream</h3>
+                  <span className="badge badge-muted activity-stream-head-count">{filteredActivities.length} shown</span>
+                  <span className="activity-stream-filter">{filterLabel(filter)}</span>
+                </div>
+                <div className={`activity-stream-body ${constrainStream ? 'activity-stream-body-scroll' : ''}`}>
+                  {isLoading ? (
+                    Array.from({ length: 8 }).map((_, i) => (
+                      <div key={i} className="flex gap-3 p-4 sm:p-5 mb-3 rounded-xl animate-pulse border" style={{ background: 'var(--bg-muted)', borderColor: 'var(--border-subtle)' }}>
+                        <div className="w-8 h-8 rounded-full flex-shrink-0" style={{ background: 'var(--bg-subtle)' }} />
+                        <div className="flex-1 space-y-1.5">
+                          <div className="h-3 rounded w-3/4" style={{ background: 'var(--bg-subtle)' }} />
+                          <div className="h-2.5 rounded w-1/3" style={{ background: 'var(--bg-subtle)' }} />
+                        </div>
+                      </div>
+                    ))
+                  ) : filteredActivities.length === 0 ? (
+                    <div className="text-center py-24">
+                      <Activity className="w-12 h-12 mx-auto mb-3 opacity-20" style={{ color: 'var(--text-muted)' }} />
+                      <p className="font-medium" style={{ color: 'var(--text-secondary)' }}>No Activity Yet</p>
+                      <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Events will appear here as users interact with the platform</p>
+                    </div>
+                  ) : (
+                    <div className="activity-stream-list">
+                      {filteredActivities.map((a: ActivityItem, i: number) => (
+                        <motion.div
+                          key={a.id}
+                          initial={{ opacity: 0, x: -8 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: i * 0.02 }}
+                          className="activity-event-item"
+                        >
+                          <div
+                            className="w-2.5 h-2.5 rounded-full mt-2 flex-shrink-0"
+                            style={{ background: ACTIVITY_COLORS[normalizeType(a.type)] || 'var(--accent-neutral)' }}
+                          />
+                          <div className="activity-event-content">
+                            <p className="activity-event-title">
+                              {a.user?.name && !a.description.toLowerCase().startsWith(a.user.name.toLowerCase()) && (
+                                <span className="font-semibold">{a.user.name} </span>
+                              )}
+                              {a.description}
+                            </p>
+                            <div className="activity-event-meta">
+                              <span className="badge badge-muted text-xs">{toReadableType(a.type)}</span>
+                              <span className="activity-event-time" title={a.timestamp}>{formatFeedTimestamp(a.timestamp)}</span>
+                            </div>
+                          </div>
+                        </motion.div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </motion.div>
             </div>
-          </motion.div>
-        </main>
+          </div>
+        </div>
       </div>
     </div>
   );
-} 
+}

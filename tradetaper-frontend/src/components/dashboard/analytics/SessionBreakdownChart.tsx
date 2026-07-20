@@ -1,5 +1,5 @@
 "use client";
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   BarChart,
   Bar,
@@ -33,7 +33,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
         <p className="text-emerald-400 text-sm">
           PnL: ${Number(data.pnl).toFixed(2)}
         </p>
-        <p className="text-blue-400 text-sm">
+        <p className="text-amber-400 text-sm">
           Win Rate: {Number(data.winRate).toFixed(1)}%
         </p>
         <p className="text-gray-400 text-xs mt-1">
@@ -46,22 +46,56 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 };
 
 export default function SessionBreakdownChart({ data }: Props) {
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(max-width: 640px)');
+    const updateIsMobile = () => setIsMobile(mediaQuery.matches);
+    updateIsMobile();
+
+    if (typeof mediaQuery.addEventListener === 'function') {
+      mediaQuery.addEventListener('change', updateIsMobile);
+      return () => mediaQuery.removeEventListener('change', updateIsMobile);
+    }
+
+    mediaQuery.addListener(updateIsMobile);
+    return () => mediaQuery.removeListener(updateIsMobile);
+  }, []);
+
   // Filter out unknown if empty to clean up chart
   const cleanData = data.filter(d => d.count > 0);
+  const chartMargins = isMobile
+    ? { top: 12, right: 8, left: -8, bottom: 0 }
+    : { top: 20, right: 30, left: 20, bottom: 5 };
 
   return (
     <div className="h-[300px] w-full">
       <ResponsiveContainer width="100%" height="100%">
         <BarChart
           data={cleanData}
-          margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+          margin={chartMargins}
           layout="vertical"
         >
           <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.5} />
-          <XAxis type="number" stroke="#94a3b8" tickFormatter={(val) => `$${val}`} />
-          <YAxis dataKey="session" type="category" stroke="#94a3b8" width={80} />
+          <XAxis
+            type="number"
+            stroke="#94a3b8"
+            tick={{ fontSize: isMobile ? 10 : 11 }}
+            tickFormatter={(val) => {
+              const abs = Math.abs(Number(val));
+              if (abs >= 1000) return `$${(Number(val) / 1000).toFixed(1)}k`;
+              return `$${val}`;
+            }}
+          />
+          <YAxis
+            dataKey="session"
+            type="category"
+            stroke="#94a3b8"
+            width={isMobile ? 64 : 80}
+            tick={{ fontSize: isMobile ? 10 : 11 }}
+          />
           <Tooltip content={<CustomTooltip />} />
-          <Legend />
+          {!isMobile && <Legend />}
           <ReferenceLine x={0} stroke="#475569" />
           <Bar dataKey="pnl" name="Session PnL" radius={[0, 4, 4, 0]}>
             {cleanData.map((entry, index) => (

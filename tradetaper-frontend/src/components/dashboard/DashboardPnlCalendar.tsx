@@ -152,11 +152,11 @@ export default function DashboardPnlCalendar({ trades: allTrades }: DashboardPnl
   // Basic classes for the new structure
   const calendarContainerClasses = "p-2.5 rounded-lg bg-[var(--color-light-secondary)] dark:bg-dark-primary"; // Slightly reduced padding
   const statsContainerClasses = "p-3 rounded-lg bg-[var(--color-light-secondary)] dark:bg-dark-primary md:ml-4 mt-4 md:mt-0";
-  const monthNavButtonClasses = "px-3 py-1.5 text-xs font-semibold rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 text-[var(--color-text-dark-primary)] dark:text-text-light-primary flex items-center focus:outline-none focus:ring-1 focus:ring-blue-500";
-  const iconButtonClasses = "p-1.5 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-md text-[var(--color-text-dark-secondary)] dark:text-text-light-secondary focus:outline-none focus:ring-1 focus:ring-blue-500";
+  const monthNavButtonClasses = "px-3 py-1.5 text-xs font-semibold rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 text-[var(--color-text-dark-primary)] dark:text-text-light-primary flex items-center focus:outline-none focus:ring-1 focus:ring-emerald-500";
+  const iconButtonClasses = "p-1.5 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-md text-[var(--color-text-dark-secondary)] dark:text-text-light-secondary focus:outline-none focus:ring-1 focus:ring-emerald-500";
   
   return (
-    <div className="flex flex-col md:flex-row text-[var(--color-text-dark-primary)] dark:text-text-light-primary min-h-[300px] max-h-[320px] md:max-h-[300px]">
+    <div className="flex flex-col md:flex-row text-[var(--color-text-dark-primary)] dark:text-text-light-primary min-h-[300px] md:max-h-[300px]">
       {/* Left Column: Calendar */}
       <div className={`flex-grow md:w-2/3 ${calendarContainerClasses} flex flex-col`}>
         <div className="flex justify-between items-center mb-2.5 px-0.5">
@@ -196,7 +196,7 @@ export default function DashboardPnlCalendar({ trades: allTrades }: DashboardPnl
                   // Optionally, if day is not in current month, switch month
                   // if (!isSameMonth(day, currentMonth)) setCurrentMonth(startOfMonth(day)); 
                 }}
-                className={`h-7 w-full rounded-sm flex items-center justify-center text-xs font-medium transition-colors duration-150 focus:outline-none focus:ring-1 focus:ring-blue-500 p-0.5
+                className={`h-7 w-full rounded-sm flex items-center justify-center text-xs font-medium transition-colors duration-150 focus:outline-none focus:ring-1 focus:ring-emerald-500 p-0.5
                             ${dayClass}
                             ${!isCurrentCalendarMonth && !isSameDay(day, selectedDate) ? 'opacity-50 text-gray-400 dark:text-gray-600' : ''}`}
               >

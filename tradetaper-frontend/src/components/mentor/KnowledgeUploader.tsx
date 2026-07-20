@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Upload, FileText, CircleCheck, CircleAlert, LoaderCircle } from 'lucide-react';
+import { authApiClient } from '@/services/api';
 
 export default function KnowledgeUploader() {
   const [title, setTitle] = useState('');
@@ -20,21 +21,11 @@ export default function KnowledgeUploader() {
     setMessage('');
 
     try {
-      const token = localStorage.getItem('token'); // Assuming JWT auth
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api/v1'}/agents/mentor/ingest`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          title,
-          content,
-          type: 'transcript',
-        }),
+      await authApiClient.post('/agents/mentor/ingest', {
+        title,
+        content,
+        type: 'transcript',
       });
-
-      if (!res.ok) throw new Error('Ingestion failed');
 
       setStatus('success');
       setTitle('');
@@ -47,10 +38,12 @@ export default function KnowledgeUploader() {
         setMessage('');
       }, 3000);
 
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
       setStatus('error');
-      setMessage(err.message || 'Failed to upload knowledge.');
+      setMessage(
+        err instanceof Error ? err.message : 'Failed to upload knowledge.',
+      );
     }
   };
 

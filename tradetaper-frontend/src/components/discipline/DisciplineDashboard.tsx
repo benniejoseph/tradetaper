@@ -71,18 +71,18 @@ export const DisciplineDashboard: React.FC<DisciplineDashboardProps> = ({
   return (
     <div className="space-y-6">
       {/* Focus Row: Discipline Score + Streaks */}
-      <div className="grid md:grid-cols-2 gap-4">
-        <AnimatedCard animate={false} variant="default" className="p-6">
-          <div className="flex items-start justify-between">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <AnimatedCard animate={false} variant="default" className="p-4 sm:p-6">
+          <div className="flex items-start justify-between gap-3">
             <div>
               <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Discipline Score</p>
-              <div className={`text-4xl font-black mt-2 ${getScoreColor(discipline.disciplineScore)}`}>
+              <div className={`mt-2 text-3xl font-black sm:text-4xl ${getScoreColor(discipline.disciplineScore)}`}>
                 {discipline.disciplineScore}%
               </div>
               <p className="text-xs text-gray-500 mt-1">Consistency of rule-following</p>
             </div>
-            <div className="w-16 h-16 rounded-2xl bg-emerald-500/10 flex items-center justify-center">
-              <div className={`w-10 h-10 rounded-full border-4 ${discipline.disciplineScore >= 80 ? 'border-emerald-500' : discipline.disciplineScore >= 60 ? 'border-yellow-500' : 'border-red-500'}`} />
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-500/10 sm:h-16 sm:w-16 sm:rounded-2xl">
+              <div className={`h-8 w-8 rounded-full border-4 sm:h-10 sm:w-10 ${discipline.disciplineScore >= 80 ? 'border-emerald-500' : discipline.disciplineScore >= 60 ? 'border-yellow-500' : 'border-red-500'}`} />
             </div>
           </div>
           <div className="mt-4 w-full h-2 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
@@ -93,12 +93,12 @@ export const DisciplineDashboard: React.FC<DisciplineDashboardProps> = ({
           </div>
         </AnimatedCard>
 
-        <AnimatedCard animate={false} variant="default" className="p-6">
-          <div className="flex items-start justify-between">
+        <AnimatedCard animate={false} variant="default" className="p-4 sm:p-6">
+          <div className="flex items-start justify-between gap-3">
             <div>
               <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Streaks</p>
-              <div className="flex items-baseline gap-3 mt-2">
-                <div className="text-4xl font-black text-gray-900 dark:text-white">
+              <div className="mt-2 flex items-baseline gap-2 sm:gap-3">
+                <div className="text-3xl font-black text-gray-900 dark:text-white sm:text-4xl">
                   {discipline.currentStreak}
                 </div>
                 <span className="text-xs text-gray-500">current days</span>
@@ -107,8 +107,8 @@ export const DisciplineDashboard: React.FC<DisciplineDashboardProps> = ({
                 Best streak: <span className="font-bold text-gray-900 dark:text-white">{discipline.longestStreak}</span> days
               </div>
             </div>
-            <div className="w-16 h-16 rounded-2xl bg-orange-500/10 flex items-center justify-center">
-              <FaFire className="text-orange-500 text-2xl" />
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-orange-500/10 sm:h-16 sm:w-16 sm:rounded-2xl">
+              <FaFire className="text-xl text-orange-500 sm:text-2xl" />
             </div>
           </div>
           <div className="mt-4 text-[11px] text-gray-500">
@@ -120,12 +120,12 @@ export const DisciplineDashboard: React.FC<DisciplineDashboardProps> = ({
       {/* Hero Card: Level & XP */}
       <AnimatedCard animate={false} variant="gradient" className="relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent" />
-        <div className="relative flex flex-col md:flex-row items-center gap-6">
+        <div className="relative flex flex-col items-center gap-4 md:flex-row md:gap-6">
           {/* Level Circle */}
           <div
             className="relative"
           >
-            <svg className="w-32 h-32" viewBox="0 0 100 100">
+            <svg className="h-28 w-28 sm:h-32 sm:w-32" viewBox="0 0 100 100">
               <circle
                 cx="50"
                 cy="50"
@@ -149,7 +149,7 @@ export const DisciplineDashboard: React.FC<DisciplineDashboardProps> = ({
             </svg>
             <div className="absolute inset-0 flex flex-col items-center justify-center text-white">
               <span
-                className="text-3xl font-bold"
+                className="text-2xl font-bold sm:text-3xl"
               >
                 {discipline.level}
               </span>
@@ -159,7 +159,7 @@ export const DisciplineDashboard: React.FC<DisciplineDashboardProps> = ({
 
           <div className="flex-1 text-center md:text-left">
             <h2
-              className="text-2xl font-bold mb-1"
+              className="mb-1 break-words text-xl font-bold sm:text-2xl"
             >
               {title}
             </h2>
@@ -183,8 +183,8 @@ export const DisciplineDashboard: React.FC<DisciplineDashboardProps> = ({
       </AnimatedCard>
 
       {/* Streak Ladder */}
-      <AnimatedCard animate={false} variant="default" className="p-6">
-        <div className="flex items-start justify-between gap-4">
+      <AnimatedCard animate={false} variant="default" className="p-4 sm:p-6">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
           <div>
             <h3 className="text-sm font-black text-gray-900 dark:text-white uppercase tracking-wider">
               Streak Ladder
@@ -248,11 +248,11 @@ export const DisciplineDashboard: React.FC<DisciplineDashboardProps> = ({
       </div>
 
       {/* Discipline Signals */}
-      <AnimatedCard animate={false} variant="default" className="p-6">
+      <AnimatedCard animate={false} variant="default" className="p-4 sm:p-6">
         <h3 className="text-sm font-black text-gray-900 dark:text-white uppercase tracking-wider">
           Discipline Signals
         </h3>
-        <div className="grid md:grid-cols-3 gap-4 mt-4">
+        <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
           <div>
             <div className="flex items-center justify-between text-xs text-gray-500">
               <span>Rule‑Following Rate</span>
@@ -285,7 +285,7 @@ export const DisciplineDashboard: React.FC<DisciplineDashboardProps> = ({
 
       {/* Badges */}
       <AnimatedCard animate={false} variant="default" className="space-y-4">
-        <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+        <h3 className="flex flex-wrap items-center gap-2 text-lg font-bold text-gray-900 dark:text-white">
           Badges Earned
           <span className="text-sm font-normal text-gray-500">
             ({discipline.badges?.length || 0})

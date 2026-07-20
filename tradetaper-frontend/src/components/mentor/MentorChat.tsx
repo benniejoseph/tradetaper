@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Send, Image as ImageIcon, LoaderCircle, Bot, User, Trash2, Maximize2 } from 'lucide-react';
+import { Send, Image as ImageIcon, LoaderCircle, Bot, Trash2 } from 'lucide-react';
+import { authApiClient } from '@/services/api';
 
 interface Message {
   id: string;
@@ -58,37 +59,24 @@ export default function MentorChat() {
     setLoading(true);
 
     try {
-      const token = localStorage.getItem('token');
-      const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api/v1';
-      
       let endpoint = '';
-      let body = {};
+      let body: Record<string, string> = {};
 
       if (userMsg.image) {
-        endpoint = `${apiBase}/agents/mentor/audit`;
+        endpoint = '/agents/mentor/audit';
         body = {
           imageUrl: userMsg.image,
           description: userMsg.content || 'Please audit this chart.',
         };
       } else {
-        endpoint = `${apiBase}/agents/mentor/chat`;
+        endpoint = '/agents/mentor/chat';
         body = {
           question: userMsg.content,
         };
       }
 
-      const res = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify(body),
-      });
-
-      if (!res.ok) throw new Error('Failed to get response');
-
-      const data = await res.json();
+      const res = await authApiClient.post(endpoint, body);
+      const data = res.data;
       
       // Parse response based on agent
       let replyContent = '';
@@ -112,7 +100,7 @@ export default function MentorChat() {
 
       setMessages(prev => [...prev, botMsg]);
 
-    } catch (error) {
+    } catch (_error) {
       setMessages(prev => [...prev, {
         id: Date.now().toString(),
         role: 'assistant',

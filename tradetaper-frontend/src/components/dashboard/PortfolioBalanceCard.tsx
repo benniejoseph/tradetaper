@@ -35,6 +35,7 @@ export default function PortfolioBalanceCard({
     <DashboardCard 
       title="Portfolio Balance" 
       icon={FaWallet}
+      infoContent="Tracks account equity progression, balance drift, and net P&L context for the selected period."
       showTimeRangeSelector 
       selectedTimeRange={timeRange} 
       onTimeRangeChange={onTimeRangeChange} 

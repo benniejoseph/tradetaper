@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Strategy } from '@/types/strategy';
 import { strategiesService } from '@/services/strategiesService';
-import { FiPlus, FiEye, FiEdit2, FiTrash2, FiTrendingUp, FiTrendingDown, FiSearch, FiFilter } from 'react-icons/fi';
+import { FiPlus, FiEye, FiEdit2, FiTrash2, FiTrendingUp, FiTrendingDown, FiSearch } from 'react-icons/fi';
 import { FaBullseye } from 'react-icons/fa';
 import Link from 'next/link';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
@@ -12,9 +12,9 @@ import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 function ContentHeader({ title, description }: { title: string; description?: string }) {
   return (
     <div className="mb-6">
-      <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{title}</h1>
+      <h1 className="text-xl font-bold text-gray-900 dark:text-white sm:text-2xl">{title}</h1>
       {description && (
-        <p className="text-gray-600 dark:text-gray-400 mt-1">{description}</p>
+        <p className="mt-1 text-sm text-gray-600 dark:text-gray-400 sm:text-base">{description}</p>
       )}
     </div>
   );
@@ -28,7 +28,7 @@ function Toast({ message, type, onClose }: { message: string; type: 'success' | 
   }, [onClose]);
 
   return (
-    <div className={`fixed bottom-4 right-4 px-4 py-3 rounded-lg shadow-lg z-50 ${
+    <div className={`fixed bottom-4 left-3 right-3 z-50 rounded-lg px-4 py-3 shadow-lg sm:left-auto sm:right-4 sm:max-w-sm ${
       type === 'success' 
         ? 'bg-green-500 text-white' 
         : 'bg-red-500 text-white'
@@ -149,11 +149,11 @@ export default function StrategiesPage() {
       />
 
       {/* Actions Bar */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         {/* Search and Filters */}
-        <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+        <div className="flex w-full flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center md:w-auto">
           {/* Search */}
-          <div className="relative flex-1 md:flex-none md:w-64">
+          <div className="relative w-full sm:flex-1 md:flex-none md:w-64">
             <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
               type="text"
@@ -168,7 +168,7 @@ export default function StrategiesPage() {
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value as FilterOption)}
-            className="px-3 py-2 border border-emerald-300 dark:border-emerald-600/30 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent bg-white dark:bg-black text-gray-900 dark:text-white"
+            className="w-full rounded-lg border border-emerald-300 bg-white px-3 py-2 text-gray-900 focus:border-transparent focus:ring-2 focus:ring-emerald-500 dark:border-emerald-600/30 dark:bg-black dark:text-white sm:w-auto"
           >
             <option value="all">All Status</option>
             <option value="active">Active Only</option>
@@ -179,7 +179,7 @@ export default function StrategiesPage() {
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value as SortOption)}
-            className="px-3 py-2 border border-emerald-300 dark:border-emerald-600/30 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent bg-white dark:bg-black text-gray-900 dark:text-white"
+            className="w-full rounded-lg border border-emerald-300 bg-white px-3 py-2 text-gray-900 focus:border-transparent focus:ring-2 focus:ring-emerald-500 dark:border-emerald-600/30 dark:bg-black dark:text-white sm:w-auto"
           >
             <option value="newest">Newest First</option>
             <option value="oldest">Oldest First</option>
@@ -189,13 +189,13 @@ export default function StrategiesPage() {
         </div>
         
         {/* Count and Add Button */}
-        <div className="flex items-center gap-4">
-          <div className="text-sm text-gray-600 dark:text-gray-400">
+        <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-between md:w-auto md:justify-end">
+          <div className="text-center text-xs text-gray-600 dark:text-gray-400 sm:text-left sm:text-sm">
             {filteredStrategies.length} of {strategies.length} {strategies.length === 1 ? 'strategy' : 'strategies'}
           </div>
           <Link 
             href="/strategies/new"
-            className="inline-flex items-center px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
+            className="inline-flex w-full items-center justify-center whitespace-nowrap rounded-lg bg-emerald-600 px-4 py-2 text-white transition-colors hover:bg-emerald-700 sm:w-auto"
           >
             <FiPlus className="mr-2" />
             New Strategy
@@ -276,19 +276,19 @@ function StrategyCard({ strategy, onToggleActive, onDelete }: StrategyCardProps)
       {/* Header with color indicator */}
       <div 
         className="h-2"
-        style={{ backgroundColor: strategy.color || '#3B82F6' }}
+        style={{ backgroundColor: strategy.color || '#059669' }}
       />
       
-      <div className="p-6">
+      <div className="p-4 sm:p-6">
         {/* Strategy Header */}
-        <div className="flex items-start justify-between mb-4">
+        <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
           <div className="flex-1">
-            <div className="flex items-center gap-2 mb-1">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+            <div className="mb-1 flex flex-wrap items-center gap-2">
+              <h3 className="break-words text-lg font-semibold text-gray-900 dark:text-white">
                 {strategy.name}
               </h3>
               <span 
-                className={`px-2 py-1 text-xs rounded-full ${
+                className={`shrink-0 rounded-full px-2 py-1 text-xs ${
                   strategy.isActive 
                     ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400' 
                     : 'bg-gradient-to-r from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600 text-gray-800 dark:text-gray-400'
@@ -388,8 +388,8 @@ function StrategyCard({ strategy, onToggleActive, onDelete }: StrategyCardProps)
         )}
 
         {/* Actions */}
-        <div className="flex items-center justify-between pt-4 border-t border-emerald-200 dark:border-emerald-700/30">
-          <div className="flex space-x-2">
+        <div className="flex flex-col gap-3 border-t border-emerald-200 pt-4 dark:border-emerald-700/30 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-wrap items-center gap-2">
             <Link
               href={`/strategies/${strategy.id}`}
               className="p-2 text-gray-600 dark:text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-gradient-to-r hover:from-emerald-50 hover:to-emerald-100 dark:hover:from-emerald-950/20 dark:hover:to-emerald-900/20 rounded-lg transition-all"
@@ -415,7 +415,7 @@ function StrategyCard({ strategy, onToggleActive, onDelete }: StrategyCardProps)
           
           <button
             onClick={() => onToggleActive(strategy.id)}
-            className={`px-3 py-1 text-xs rounded-full transition-colors ${
+            className={`w-full rounded-full px-3 py-1.5 text-center text-xs transition-colors sm:w-auto ${
               strategy.isActive
                 ? 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/30'
                 : 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400 hover:bg-green-200 dark:hover:bg-green-900/30'

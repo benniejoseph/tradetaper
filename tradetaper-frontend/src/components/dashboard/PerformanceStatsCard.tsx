@@ -18,6 +18,19 @@ export default function PerformanceStatsCard({
   onTimeRangeChange,
   currentBalance = 0,
 }: PerformanceStatsCardProps) {
+  const formatPercentForCard = (value: number): string => {
+    if (!Number.isFinite(value)) return '0.00%';
+    const abs = Math.abs(value);
+    if (abs >= 10000) {
+      const compact = new Intl.NumberFormat('en-US', {
+        notation: 'compact',
+        maximumFractionDigits: 2,
+      }).format(value);
+      return `${compact}%`;
+    }
+    return `${value.toFixed(2)}%`;
+  };
+
   const stats = useMemo(() => {
     if (!trades || trades.length === 0) return null;
 
@@ -135,8 +148,8 @@ export default function PerformanceStatsCard({
       showInfoIcon
       infoContent="Streaks, rolling returns, and return volatility. Improve by stabilizing setups and reducing large loss swings."
     >
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 h-full min-h-[200px]">
-        <div className="col-span-2 lg:col-span-1 p-4 bg-gradient-to-br from-emerald-50 to-emerald-100/60 dark:from-emerald-950/20 dark:to-emerald-900/20 rounded-xl border border-emerald-100 dark:border-emerald-900/30 flex flex-col justify-between">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 h-full min-h-[340px]">
+        <div className="min-w-0 min-h-[160px] p-4 bg-gradient-to-br from-emerald-50 to-emerald-100/60 dark:from-emerald-950/20 dark:to-emerald-900/20 rounded-xl border border-emerald-100 dark:border-emerald-900/30 flex flex-col justify-between">
           <div className="text-xs text-emerald-700/70 dark:text-emerald-400/70 font-medium uppercase tracking-wider">Max Win Streak</div>
           <div className="text-3xl font-bold text-emerald-600 dark:text-emerald-400 mt-2">
             {stats.maxWinStreak}
@@ -144,7 +157,7 @@ export default function PerformanceStatsCard({
           <div className="text-[11px] text-emerald-700/60 dark:text-emerald-300/60 mt-2">Longest consecutive wins</div>
         </div>
 
-        <div className="col-span-2 lg:col-span-1 p-4 bg-red-50/70 dark:bg-red-900/10 rounded-xl border border-red-100 dark:border-red-900/20 flex flex-col justify-between">
+        <div className="min-w-0 min-h-[160px] p-4 bg-red-50/70 dark:bg-red-900/10 rounded-xl border border-red-100 dark:border-red-900/20 flex flex-col justify-between">
           <div className="text-xs text-red-600/70 dark:text-red-400/70 font-medium uppercase tracking-wider">Max Loss Streak</div>
           <div className="text-3xl font-bold text-red-600 dark:text-red-400 mt-2">
             {stats.maxLossStreak}
@@ -152,18 +165,31 @@ export default function PerformanceStatsCard({
           <div className="text-[11px] text-red-400/60 mt-2">Longest consecutive losses</div>
         </div>
 
-        <div className="col-span-2 lg:col-span-1 p-4 bg-white/70 dark:bg-white/5 rounded-xl border border-gray-100 dark:border-white/10 flex flex-col justify-between">
+        <div className="min-w-0 min-h-[160px] p-4 bg-white/70 dark:bg-white/5 rounded-xl border border-gray-100 dark:border-white/10 flex flex-col justify-between">
           <div className="text-xs text-gray-500 font-medium uppercase tracking-wider">Rolling Return ({stats.windowSize})</div>
-          <div className={`text-3xl font-bold mt-2 ${stats.latestRollingReturn >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
-            {stats.latestRollingReturn.toFixed(2)}%
+          <div
+            className={`mt-2 max-w-full overflow-hidden text-[clamp(1.5rem,2.4vw,2.4rem)] font-bold leading-tight ${
+              stats.latestRollingReturn >= 0 ? 'text-emerald-500' : 'text-red-500'
+            }`}
+            title={stats.latestRollingReturn.toFixed(2)}
+          >
+            {formatPercentForCard(stats.latestRollingReturn)}
           </div>
-          <div className="text-[11px] text-gray-400 mt-2">Avg: {stats.avgRollingReturn.toFixed(2)}%</div>
+          <div
+            className="mt-2 max-w-full overflow-hidden text-[11px] text-gray-400 text-ellipsis whitespace-nowrap"
+            title={stats.avgRollingReturn.toFixed(2)}
+          >
+            Avg: {formatPercentForCard(stats.avgRollingReturn)}
+          </div>
         </div>
 
-        <div className="col-span-2 lg:col-span-1 p-4 bg-white/70 dark:bg-white/5 rounded-xl border border-gray-100 dark:border-white/10 flex flex-col justify-between">
+        <div className="min-w-0 min-h-[160px] p-4 bg-white/70 dark:bg-white/5 rounded-xl border border-gray-100 dark:border-white/10 flex flex-col justify-between">
           <div className="text-xs text-gray-500 font-medium uppercase tracking-wider">Return Std Dev</div>
-          <div className="text-3xl font-bold text-gray-900 dark:text-gray-100 mt-2">
-            {stats.stdDev.toFixed(2)}%
+          <div
+            className="mt-2 max-w-full overflow-hidden text-[clamp(1.5rem,2.4vw,2.4rem)] font-bold leading-tight text-gray-900 dark:text-gray-100"
+            title={stats.stdDev.toFixed(2)}
+          >
+            {formatPercentForCard(stats.stdDev)}
           </div>
           <div className="text-[11px] text-gray-400 mt-2">Lower = more consistent</div>
         </div>

@@ -1,11 +1,19 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
 import React, { useEffect, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '@/store/store';
 import { fetchTrades } from '@/store/features/tradesSlice';
-import { selectSelectedAccountId } from '@/store/features/accountSlice';
-import { selectSelectedMT5AccountId } from '@/store/features/mt5AccountsSlice';
+import {
+  selectAvailableAccounts,
+  selectSelectedAccount,
+  selectSelectedAccountId,
+} from '@/store/features/accountSlice';
+import {
+  selectMT5Accounts,
+  selectSelectedMT5Account,
+  selectSelectedMT5AccountId,
+} from '@/store/features/mt5AccountsSlice';
+import { useRouter } from 'next/navigation';
 import {
   calculateDashboardStats,
   calculateEquityCurveData,
@@ -43,7 +51,7 @@ import DrawdownCurveCard from '@/components/dashboard/DrawdownCurveCard';
 import RollingReturnCard from '@/components/dashboard/RollingReturnCard';
 import RollingProfitFactorCard from '@/components/dashboard/RollingProfitFactorCard';
 import RollingExpectancyCard from '@/components/dashboard/RollingExpectancyCard';
-import MaeMfeScatterCard from '@/components/dashboard/MaeMfeScatterCard';
+import { authApiClient } from '@/services/api';
 
 const timeRangeDaysMapping: { [key: string]: number } = {
   '7d': 7, '1M': 30, '3M': 90, '1Y': 365, 'All': Infinity,
@@ -66,47 +74,111 @@ interface PairStats {
   tradesCount: number;
 }
 
+interface HourlyPerformancePoint {
+  hour: number;
+  pnl: number;
+  count: number;
+  wins: number;
+  winRate: number;
+}
+
+interface SessionPerformancePoint {
+  session: string;
+  pnl: number;
+  count: number;
+  winRate: number;
+}
+
+interface HoldingTimePoint {
+  id: string;
+  durationMinutes: number;
+  pnl: number;
+  isWin: boolean;
+}
+
+interface RadarMetricPoint {
+  subject: string;
+  A: number;
+  fullMark: number;
+}
+
+interface AdvancedAnalyticsData {
+  hourlyPerformance: HourlyPerformancePoint[];
+  sessionPerformance: SessionPerformancePoint[];
+  holdingTimeAnalysis: HoldingTimePoint[];
+  radarMetrics: RadarMetricPoint[];
+}
+
 export default function AnalyticsPage() {
+  const router = useRouter();
   const dispatch = useDispatch<AppDispatch>();
-  const { trades, isLoading: tradesLoading, lastFetchKey, lastFetchAt, lastFetchIncludeTags } = useSelector((state: RootState) => state.trades);
-  const { isAuthenticated } = useSelector((state: RootState) => state.auth);
+  const { trades, isLoading: tradesLoading } = useSelector((state: RootState) => state.trades);
+  const { isAuthenticated, user } = useSelector((state: RootState) => state.auth);
 
   const selectedAccountId = useSelector(selectSelectedAccountId);
   const selectedMT5AccountId = useSelector(selectSelectedMT5AccountId);
+  const selectedRegularAccount = useSelector(selectSelectedAccount);
+  const selectedMt5Account = useSelector(selectSelectedMT5Account);
+  const allRegularAccounts = useSelector(selectAvailableAccounts);
+  const allMT5Accounts = useSelector(selectMT5Accounts);
 
   const [timeRange, setTimeRange] = useState('All');
   const [rollingWindowSize, setRollingWindowSize] = useState(20);
   const [isTradingActivityModalOpen, setIsTradingActivityModalOpen] = useState(false);
   const [selectedDateData, setSelectedDateData] = useState<{ date: string; count: number; totalPnl: number } | null>(null);
   const [selectedDateTrades, setSelectedDateTrades] = useState<Trade[]>([]);
-  const [analyticsData, setAnalyticsData] = useState<any>(null);
-  const { token } = useSelector((state: RootState) => state.auth);
+  const [analyticsData, setAnalyticsData] = useState<AdvancedAnalyticsData | null>(null);
+  const [analyticsLoading, setAnalyticsLoading] = useState(false);
+  const [analyticsError, setAnalyticsError] = useState<string | null>(null);
+  const hasAdvancedAnalyticsAccess = user?.subscription?.plan === 'premium';
+  const currentAccountId = selectedAccountId || selectedMT5AccountId;
 
   useEffect(() => {
-    if (isAuthenticated && token) {
-      fetch(`${process.env.NEXT_PUBLIC_API_URL}/analytics/advanced${selectedAccountId ? `?accountId=${selectedAccountId}` : ''}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-        .then(res => {
-          if (!res.ok) {
-            console.warn('Analytics endpoint returned error:', res.status);
-            return null;
-          }
-          return res.json();
-        })
-        .then(data => {
-          if (data) setAnalyticsData(data);
-        })
-        .catch(err => console.error('Failed to fetch analytics', err));
+    if (!isAuthenticated || !hasAdvancedAnalyticsAccess) {
+      setAnalyticsData(null);
+      setAnalyticsError(null);
+      setAnalyticsLoading(false);
+      return;
     }
-  }, [isAuthenticated, token, selectedAccountId]);
+
+    const controller = new AbortController();
+    setAnalyticsLoading(true);
+    setAnalyticsError(null);
+    setAnalyticsData(null);
+
+    authApiClient
+      .get<AdvancedAnalyticsData | null>('/analytics/advanced', {
+        params: {
+          ...(currentAccountId ? { accountId: currentAccountId } : {}),
+          _ts: Date.now(),
+        },
+        signal: controller.signal,
+      })
+      .then((res) => {
+        setAnalyticsData(res.data);
+      })
+      .catch((err) => {
+        if (err?.code === 'ERR_CANCELED') return;
+        console.warn(
+          'Analytics endpoint returned error:',
+          err?.response?.status || err?.message || err,
+        );
+        setAnalyticsError('Unable to load advanced analytics for the selected account.');
+      })
+      .finally(() => {
+        setAnalyticsLoading(false);
+      });
+
+    return () => {
+      controller.abort();
+    };
+  }, [isAuthenticated, hasAdvancedAnalyticsAccess, currentAccountId]);
 
   useEffect(() => {
     if (isAuthenticated) {
-      const currentAccountId = selectedAccountId || selectedMT5AccountId;
-      dispatch(fetchTrades({ accountId: currentAccountId || undefined, limit: 500, includeTags: false }));
+      dispatch(fetchTrades({ accountId: currentAccountId || undefined, limit: 5000, includeTags: false }));
     }
-  }, [dispatch, isAuthenticated, selectedAccountId, selectedMT5AccountId, lastFetchKey, lastFetchAt, lastFetchIncludeTags, trades?.length]);
+  }, [dispatch, isAuthenticated, currentAccountId]);
 
   const filteredTrades = useMemo(() => {
     const days = timeRangeDaysMapping[timeRange];
@@ -266,37 +338,6 @@ export default function AnalyticsPage() {
       }));
   }, [closedTradesSorted, rollingWindowSize]);
 
-  const maeMfePipsData = useMemo(() => {
-    return closedTradesSorted
-      .map(trade => {
-        if (typeof trade.maePips !== 'number' || typeof trade.mfePips !== 'number') return null;
-        const mae = trade.maePips > 0 ? -trade.maePips : trade.maePips;
-        const mfe = Math.abs(trade.mfePips);
-        return {
-          id: trade.id,
-          mae,
-          mfe,
-          pnl: trade.profitOrLoss || 0,
-        };
-      })
-      .filter((point): point is { id: string; mae: number; mfe: number; pnl: number } => Boolean(point));
-  }, [closedTradesSorted]);
-
-  const maeMfePriceData = useMemo(() => {
-    return closedTradesSorted
-      .map(trade => {
-        if (typeof trade.maePrice !== 'number' || typeof trade.mfePrice !== 'number') return null;
-        const mae = trade.maePrice > 0 ? -trade.maePrice : trade.maePrice;
-        const mfe = Math.abs(trade.mfePrice);
-        return {
-          id: trade.id,
-          mae,
-          mfe,
-          pnl: trade.profitOrLoss || 0,
-        };
-      })
-      .filter((point): point is { id: string; mae: number; mfe: number; pnl: number } => Boolean(point));
-  }, [closedTradesSorted]);
 
   const numberOfTradingDays = useMemo(() => {
     if (!dashboardStats || dashboardStats.closedTrades === 0 || !filteredTrades) return 1;
@@ -314,9 +355,35 @@ export default function AnalyticsPage() {
     return { minEquity: Math.min(...values), maxEquity: Math.max(...values) };
   }, [equityCurve]);
 
-  const minBalance = minEquity;
-  const maxBalance = maxEquity;
-  const currentBalance = dashboardStats?.currentBalance || 0;
+  const startingBalance = useMemo(() => {
+    if (selectedAccountId && selectedRegularAccount) {
+      return Number(selectedRegularAccount.balance || 0);
+    }
+    if (selectedMT5AccountId && selectedMt5Account) {
+      return Number(selectedMt5Account.balance || 0);
+    }
+
+    const regularTotal = allRegularAccounts.reduce(
+      (sum, account) => sum + Number(account.balance || 0),
+      0,
+    );
+    const mt5Total = allMT5Accounts.reduce(
+      (sum, account) => sum + Number(account.balance || 0),
+      0,
+    );
+    return regularTotal + mt5Total;
+  }, [
+    selectedAccountId,
+    selectedRegularAccount,
+    selectedMT5AccountId,
+    selectedMt5Account,
+    allRegularAccounts,
+    allMT5Accounts,
+  ]);
+
+  const minBalance = startingBalance + minEquity;
+  const maxBalance = startingBalance + maxEquity;
+  const currentBalance = startingBalance + (dashboardStats?.totalNetPnl || 0);
   const gaugeMax = Math.max(maxBalance, currentBalance);
   const gaugeMin = Math.min(minBalance, currentBalance);
 
@@ -338,7 +405,7 @@ export default function AnalyticsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white dark:bg-black p-4 sm:p-6 lg:p-4">
+    <div className="min-h-screen bg-white dark:bg-black p-3 sm:p-6 lg:p-4">
       <div className="max-w-[1600px] mx-auto space-y-6 relative z-10">
         <div className="flex items-center justify-between mb-2">
           <div>
@@ -348,16 +415,24 @@ export default function AnalyticsPage() {
         </div>
 
         {analyticsData?.radarMetrics && (
-          <div className="mb-6 p-6 rounded-3xl border border-emerald-500/30 bg-emerald-50/40 dark:bg-emerald-900/10 shadow-sm shadow-emerald-500/5">
+          <div className="mb-6 rounded-3xl border border-emerald-500/30 bg-emerald-50/40 p-4 shadow-sm shadow-emerald-500/5 dark:bg-emerald-900/10 sm:p-6">
             <div className="flex items-center gap-2 mb-6 pb-4 border-b border-emerald-500/20">
               <FaBrain className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white">Trader Rating & Health</h2>
+              <h2 className="text-lg font-bold text-gray-900 dark:text-white sm:text-xl">Trader Rating & Health</h2>
             </div>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <DashboardCard title="Trader Score Breakdown" icon={FaChartPie}>
+              <DashboardCard
+                title="Trader Score Breakdown"
+                icon={FaChartPie}
+                infoContent="Breaks your trader score into weighted pillars so you can target the weakest area first."
+              >
                 <TraderScoreRadar data={analyticsData.radarMetrics} />
               </DashboardCard>
-              <DashboardCard title="Account Health" icon={FaTachometerAlt}>
+              <DashboardCard
+                title="Account Health"
+                icon={FaTachometerAlt}
+                infoContent="Visual account-health gauge using current balance/equity versus recent extremes."
+              >
                 <AccountHealthGauge
                   balance={currentBalance}
                   equity={equityCurve[equityCurve.length - 1]?.value || currentBalance}
@@ -372,10 +447,10 @@ export default function AnalyticsPage() {
         )}
 
         {/* Section 1: Overview */}
-        <div className="mb-6 p-6 rounded-3xl border border-emerald-500/30 bg-emerald-50/40 dark:bg-emerald-900/10 shadow-sm shadow-emerald-500/5">
+        <div className="mb-6 rounded-3xl border border-emerald-500/30 bg-emerald-50/40 p-4 shadow-sm shadow-emerald-500/5 dark:bg-emerald-900/10 sm:p-6">
           <div className="flex items-center gap-2 mb-6 pb-4 border-b border-emerald-500/20">
             <FaTachometerAlt className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white">Performance Overview</h2>
+            <h2 className="text-lg font-bold text-gray-900 dark:text-white sm:text-xl">Performance Overview</h2>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
             <PerformanceStatsCard trades={filteredTrades || []} currentBalance={dashboardStats?.currentBalance || 0} timeRange={timeRange} onTimeRangeChange={setTimeRange} />
@@ -386,35 +461,62 @@ export default function AnalyticsPage() {
         </div>
 
         {/* Section 2: AI Market Intelligence (Moved here from bottom) */}
-        {analyticsData && (
-          <div className="mb-6 p-6 rounded-3xl border border-emerald-500/30 bg-emerald-50/40 dark:bg-emerald-900/10 shadow-sm shadow-emerald-500/5">
+        {(analyticsLoading || analyticsError || analyticsData) && (
+          <div className="mb-6 rounded-3xl border border-emerald-500/30 bg-emerald-50/40 p-4 shadow-sm shadow-emerald-500/5 dark:bg-emerald-900/10 sm:p-6">
             <FeatureGate feature="advancedAnalytics" blur={true}>
               <div className="flex items-center gap-2 mb-6 pb-4 border-b border-emerald-500/20">
                 <FaBrain className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
-                <h2 className="text-xl font-bold text-gray-900 dark:text-white">AI Market Intelligence</h2>
+                <h2 className="text-lg font-bold text-gray-900 dark:text-white sm:text-xl">AI Market Intelligence</h2>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
-                <DashboardCard title="Performance by Hour" icon={FaClock} gridSpan="lg:col-span-6">
-                  <HourlyPerformanceChart data={analyticsData.hourlyPerformance} />
-                </DashboardCard>
+              {analyticsLoading && (
+                <div className="rounded-2xl border border-emerald-400/20 bg-white/60 dark:bg-black/20 p-4 text-sm text-gray-600 dark:text-gray-300">
+                  Loading advanced analytics...
+                </div>
+              )}
+              {analyticsError && !analyticsLoading && (
+                <div className="rounded-2xl border border-red-300/40 bg-red-50/50 dark:bg-red-900/15 p-4 text-sm text-red-700 dark:text-red-300">
+                  {analyticsError}
+                </div>
+              )}
+              {analyticsData && !analyticsLoading && !analyticsError && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
+                  <DashboardCard
+                    title="Performance by Hour"
+                    icon={FaClock}
+                    infoContent="Shows which hours consistently produce stronger or weaker trading outcomes."
+                    gridSpan="lg:col-span-6"
+                  >
+                    <HourlyPerformanceChart data={analyticsData.hourlyPerformance} />
+                  </DashboardCard>
 
-                <DashboardCard title="Session Performance" icon={FaGlobeAmericas} gridSpan="lg:col-span-3">
-                  <SessionBreakdownChart data={analyticsData.sessionPerformance} />
-                </DashboardCard>
+                  <DashboardCard
+                    title="Session Performance"
+                    icon={FaGlobeAmericas}
+                    infoContent="Compares session-level P&L, trade counts, and win profile."
+                    gridSpan="lg:col-span-3"
+                  >
+                    <SessionBreakdownChart data={analyticsData.sessionPerformance} />
+                  </DashboardCard>
 
-                <DashboardCard title="Holding Time vs PnL" icon={FaHourglassHalf} gridSpan="lg:col-span-3">
-                  <HoldingTimeScatter data={analyticsData.holdingTimeAnalysis} />
-                </DashboardCard>
-              </div>
+                  <DashboardCard
+                    title="Holding Time vs PnL"
+                    icon={FaHourglassHalf}
+                    infoContent="Plots hold duration against P&L to expose overholding or premature exits."
+                    gridSpan="lg:col-span-3"
+                  >
+                    <HoldingTimeScatter data={analyticsData.holdingTimeAnalysis} />
+                  </DashboardCard>
+                </div>
+              )}
             </FeatureGate>
           </div>
         )}
 
         {/* Section 3: Consistency & Rolling Stats */}
-        <div className="mb-6 p-6 rounded-3xl border border-emerald-500/30 bg-emerald-50/40 dark:bg-emerald-900/10 shadow-sm shadow-emerald-500/5">
+        <div className="mb-6 rounded-3xl border border-emerald-500/30 bg-emerald-50/40 p-4 shadow-sm shadow-emerald-500/5 dark:bg-emerald-900/10 sm:p-6">
           <div className="flex items-center gap-2 mb-6 pb-4 border-b border-emerald-500/20">
             <FaChartLine className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white">Rolling Consistency (Last {rollingWindowSize} Trades)</h2>
+            <h2 className="text-lg font-bold text-gray-900 dark:text-white sm:text-xl">Rolling Consistency (Last {rollingWindowSize} Trades)</h2>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
             <RollingReturnCard data={rollingReturns} timeRange={timeRange} onTimeRangeChange={setTimeRange} windowSize={rollingWindowSize} onWindowSizeChange={setRollingWindowSize} gridSpan="sm:col-span-2 lg:col-span-2" />
@@ -424,42 +526,53 @@ export default function AnalyticsPage() {
         </div>
 
         {/* Section 4: Performance Analysis */}
-        <div className="mb-6 p-6 rounded-3xl border border-emerald-500/30 bg-emerald-50/40 dark:bg-emerald-900/10 shadow-sm shadow-emerald-500/5">
+        <div className="mb-6 rounded-3xl border border-emerald-500/30 bg-emerald-50/40 p-4 shadow-sm shadow-emerald-500/5 dark:bg-emerald-900/10 sm:p-6">
           <div className="flex items-center gap-2 mb-6 pb-4 border-b border-emerald-500/20">
             <FaListOl className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white">Detailed Analysis</h2>
+            <h2 className="text-lg font-bold text-gray-900 dark:text-white sm:text-xl">Detailed Analysis</h2>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
             <div className="lg:col-span-6">
               <PairsPerformanceTable data={pairsPerformance} />
             </div>
             <LongShortAnalysisCard trades={filteredTrades || []} gridSpan="lg:col-span-6" />
-            <MaeMfeScatterCard pipsData={maeMfePipsData} priceData={maeMfePriceData} timeRange={timeRange} onTimeRangeChange={setTimeRange} />
           </div>
         </div>
 
         {/* Section 5: Trading Activity (Top trades 2 cols, PnL 4 cols) */}
-        <div className="mb-6 p-6 rounded-3xl border border-emerald-500/30 bg-emerald-50/40 dark:bg-emerald-900/10 shadow-sm shadow-emerald-500/5">
+        <div className="mb-6 rounded-3xl border border-emerald-500/30 bg-emerald-50/40 p-4 shadow-sm shadow-emerald-500/5 dark:bg-emerald-900/10 sm:p-6">
           <div className="flex items-center gap-2 mb-6 pb-4 border-b border-emerald-500/20">
             <FaCalendarAlt className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white">Trading Activity</h2>
+            <h2 className="text-lg font-bold text-gray-900 dark:text-white sm:text-xl">Trading Activity</h2>
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-6 gap-4">
-            <DashboardCard title="Top Performing Trades" icon={FaListOl} gridSpan="lg:col-span-2" showInfoIcon>
+            <DashboardCard
+              title="Top Performing Trades"
+              icon={FaListOl}
+              infoContent="Ranks best trades by return contribution so you can review repeatable setups."
+              gridSpan="lg:col-span-2"
+              showInfoIcon
+            >
               <TopTradesByReturn trades={filteredTrades || []} topN={4} />
             </DashboardCard>
             
-            <DashboardCard title="P&L Calendar" icon={FaCalendarDay} gridSpan="lg:col-span-4" showInfoIcon>
+            <DashboardCard
+              title="P&L Calendar"
+              icon={FaCalendarDay}
+              infoContent="Daily calendar of trade outcomes to spot streaks, clustering, and timing bias."
+              gridSpan="lg:col-span-4"
+              showInfoIcon
+            >
               <DashboardPnlCalendar trades={filteredTrades || []} />
             </DashboardCard>
           </div>
         </div>
 
         {/* Section 6: Equity & Drawdown (Moved to bottom) */}
-        <div className="mb-6 p-6 rounded-3xl border border-emerald-500/30 bg-emerald-50/40 dark:bg-emerald-900/10 shadow-sm shadow-emerald-500/5">
+        <div className="mb-6 rounded-3xl border border-emerald-500/30 bg-emerald-50/40 p-4 shadow-sm shadow-emerald-500/5 dark:bg-emerald-900/10 sm:p-6">
           <div className="flex items-center gap-2 mb-6 pb-4 border-b border-emerald-500/20">
             <FaChartLine className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white">Equity & Drawdown</h2>
+            <h2 className="text-lg font-bold text-gray-900 dark:text-white sm:text-xl">Equity & Drawdown</h2>
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-6 gap-4">
             <div className="lg:col-span-4">
@@ -472,13 +585,18 @@ export default function AnalyticsPage() {
         </div>
 
         {/* Section 7: Trading Activity Heatmap (Moved to bottom) */}
-        <div className="mb-6 p-6 rounded-3xl border border-emerald-500/30 bg-emerald-50/40 dark:bg-emerald-900/10 shadow-sm shadow-emerald-500/5">
+        <div className="mb-6 rounded-3xl border border-emerald-500/30 bg-emerald-50/40 p-4 shadow-sm shadow-emerald-500/5 dark:bg-emerald-900/10 sm:p-6">
           <div className="flex items-center gap-2 mb-6 pb-4 border-b border-emerald-500/20">
             <FaCalendarAlt className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white">Activity Heatmap</h2>
+            <h2 className="text-lg font-bold text-gray-900 dark:text-white sm:text-xl">Activity Heatmap</h2>
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-1 gap-4">
-            <DashboardCard title="Trading Activity Heatmap" icon={FaCalendarAlt} gridSpan="lg:col-span-1">
+            <DashboardCard
+              title="Trading Activity Heatmap"
+              icon={FaCalendarAlt}
+              infoContent="Heatmap view of trade frequency and outcome intensity across the month."
+              gridSpan="lg:col-span-1"
+            >
               <TradesCalendarHeatmap trades={filteredTrades || []} onDateClick={handleHeatmapDateClick} />
             </DashboardCard>
           </div>
@@ -490,7 +608,7 @@ export default function AnalyticsPage() {
               <FaChartLine className="w-10 h-10 text-emerald-500 mx-auto" />
               <h3 className="text-xl font-bold text-gray-900 dark:text-white">No trades recorded yet</h3>
               <AnimatedButton
-                onClick={() => { window.location.href = '/journal/new'; }}
+                onClick={() => { router.push('/journal/new'); }}
                 variant="gradient"
                 size="lg"
                 icon={<FaPlus className="w-4 h-4" />}

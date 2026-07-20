@@ -1,9 +1,6 @@
-"use client";
-
-import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { FaEnvelope, FaMapMarkerAlt, FaPaperPlane } from 'react-icons/fa';
+import { FaEnvelope, FaMapMarkerAlt } from 'react-icons/fa';
 
 export default function ContactPage() {
   return (
@@ -36,7 +33,7 @@ export default function ContactPage() {
             {/* Contact Info */}
             <div className="space-y-8">
                 <div>
-                   <h1 className="text-5xl font-bold mb-6">Let's <span className="text-gradient-emerald">Connect</span></h1>
+                   <h1 className="text-5xl font-bold mb-6">Let&apos;s <span className="text-gradient-emerald">Connect</span></h1>
                    <p className="text-slate-400 text-lg leading-relaxed">
                        Have a question about our enterprise solutions or need support? Our team is ready to help you optimize your trading infrastructure.
                    </p>
@@ -66,55 +63,33 @@ export default function ContactPage() {
                 </div>
             </div>
 
-            {/* Contact Form */}
+            {/* Contact Channels */}
             <div className="glass-card p-8 rounded-2xl relative">
                 {/* Glow effect specific to form */}
                 <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/5 to-teal-500/5 rounded-2xl"></div>
                 
-                <h3 className="text-2xl font-bold text-white mb-6 relative z-10">Send us a message</h3>
-                
-                <form className="space-y-6 relative z-10">
-                    <div className="grid grid-cols-2 gap-6">
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium text-slate-300">Default First Name</label>
-                            <input 
-                                type="text" 
-                                placeholder="John"
-                                className="w-full bg-slate-900/50 border border-white/10 rounded-lg px-4 py-3 text-white focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all outline-none"
-                            />
-                        </div>
-                        <div className="space-y-2">
-                             <label className="text-sm font-medium text-slate-300">Last Name</label>
-                            <input 
-                                type="text" 
-                                placeholder="Doe"
-                                className="w-full bg-slate-900/50 border border-white/10 rounded-lg px-4 py-3 text-white focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all outline-none"
-                            />
-                        </div>
-                    </div>
+                <h3 className="text-2xl font-bold text-white mb-4 relative z-10">Send us a message</h3>
+                <p className="relative z-10 text-slate-300 mb-6 leading-relaxed">
+                  For the fastest response, email us directly with your account email, plan tier, and issue details.
+                </p>
 
-                    <div className="space-y-2">
-                        <label className="text-sm font-medium text-slate-300">Email Address</label>
-                        <input 
-                            type="email" 
-                            placeholder="john@example.com"
-                            className="w-full bg-slate-900/50 border border-white/10 rounded-lg px-4 py-3 text-white focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all outline-none"
-                        />
-                    </div>
-
-                    <div className="space-y-2">
-                        <label className="text-sm font-medium text-slate-300">Message</label>
-                        <textarea 
-                            rows={4}
-                            placeholder="How can we help you?"
-                            className="w-full bg-slate-900/50 border border-white/10 rounded-lg px-4 py-3 text-white focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all outline-none resize-none"
-                        />
-                    </div>
-
-                    <button className="w-full btn-3d btn-primary-3d flex items-center justify-center gap-2 group">
-                        Send Message <FaPaperPlane className="group-hover:translate-x-1 transition-transform" />
-                    </button>
-                </form>
+                <div className="relative z-10 space-y-4">
+                  <a
+                    href="mailto:support@tradetaper.com?subject=TradeTaper%20Support%20Request"
+                    className="btn-3d btn-primary-3d block w-full text-center"
+                  >
+                    Email Support
+                  </a>
+                  <a
+                    href="mailto:sales@tradetaper.com?subject=TradeTaper%20Sales%20Inquiry"
+                    className="btn-3d btn-secondary-3d block w-full text-center"
+                  >
+                    Contact Sales
+                  </a>
+                  <p className="text-xs text-slate-400">
+                    Support requests are prioritized by impact and account risk level.
+                  </p>
+                </div>
             </div>
         </div>
       </div>

@@ -2,8 +2,10 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useSelector } from 'react-redux';
-import { RootState } from '@/store/store';
+import {
+  buildReplaySessionUrl,
+  createReplaySession,
+} from '@/services/replaySessionClient';
 
 interface SessionConfigModalProps {
   isOpen: boolean;
@@ -34,15 +36,18 @@ export default function SessionConfigModal({ isOpen, onClose }: SessionConfigMod
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Get auth token from Redux store
-  const token = useSelector((state: RootState) => state.auth.token);
-
   // Form state
   const [symbol, setSymbol] = useState('XAUUSD');
   const [timeframe, setTimeframe] = useState('1m');
   const [startDate, setStartDate] = useState('2024-01-01');
   const [endDate, setEndDate] = useState('2024-01-31');
   const [startingBalance, setStartingBalance] = useState('100000');
+
+  // Simulation settings
+  const [showSimSettings, setShowSimSettings] = useState(false);
+  const [spreadPips, setSpreadPips] = useState('1.5');
+  const [slippagePips, setSlippagePips] = useState('0');
+  const [commission, setCommission] = useState('0');
 
   if (!isOpen) return null;
 
@@ -53,42 +58,42 @@ export default function SessionConfigModal({ isOpen, onClose }: SessionConfigMod
 
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || '/api/v1';
+      const normalizedBalance = Number(startingBalance);
+      const safeStartingBalance = Number.isFinite(normalizedBalance)
+        ? normalizedBalance
+        : 100000;
 
-      // Step 1: Get CSRF token
-      const csrfResponse = await fetch(`${apiUrl}/csrf-token`, {
-        credentials: 'include',
-      });
-      const { csrfToken } = await csrfResponse.json();
-
-      // Step 2: Create a new replay session with CSRF token and Bearer token
-      const response = await fetch(`${apiUrl}/backtesting/sessions`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CSRF-Token': csrfToken,
-          ...(token && { 'Authorization': `Bearer ${token}` }),
-        },
-        credentials: 'include',
-        body: JSON.stringify({
+      const session = await createReplaySession(
+        {
           symbol,
           timeframe,
-          startDate: new Date(startDate).toISOString(),
-          endDate: new Date(endDate).toISOString(),
-          startingBalance: parseFloat(startingBalance),
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to create session');
-      }
-
-      const session = await response.json();
+          startDate,
+          endDate,
+          startingBalance: safeStartingBalance,
+        },
+        apiUrl,
+      );
 
       // Navigate to the replay session page
-      router.push(`/backtesting/session/${session.id}?symbol=${symbol}&timeframe=${timeframe}&startDate=${startDate}&endDate=${endDate}&balance=${startingBalance}`);
-    } catch (err: any) {
+      router.push(
+        buildReplaySessionUrl(session.id, {
+          symbol: symbol.toUpperCase(),
+          timeframe,
+          startDate,
+          endDate,
+          balance: safeStartingBalance,
+          spread: spreadPips,
+          slippage: slippagePips,
+          commission,
+        }),
+      );
+    } catch (err: unknown) {
       console.error('Failed to create session:', err);
-      setError(err.message || 'Failed to create replay session');
+      setError(
+        err instanceof Error && err.message
+          ? err.message
+          : 'Failed to create replay session',
+      );
     } finally {
       setLoading(false);
     }
@@ -197,6 +202,74 @@ export default function SessionConfigModal({ isOpen, onClose }: SessionConfigMod
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
               required
             />
+          </div>
+
+          {/* Simulation Settings (collapsible) */}
+          <div className="border border-gray-200 dark:border-gray-600 rounded-md overflow-hidden">
+            <button
+              type="button"
+              onClick={() => setShowSimSettings(!showSimSettings)}
+              className="w-full flex items-center justify-between px-4 py-3 bg-gray-50 dark:bg-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
+            >
+              <span className="flex items-center gap-2">
+                <span>⚙️</span> Simulation Settings
+              </span>
+              <span className="text-gray-400">{showSimSettings ? '▲' : '▼'}</span>
+            </button>
+            {showSimSettings && (
+              <div className="px-4 py-3 space-y-3 bg-white dark:bg-gray-800">
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                      Spread (pips)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      min="0"
+                      value={spreadPips}
+                      onChange={(e) => setSpreadPips(e.target.value)}
+                      placeholder="1.5"
+                      className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    />
+                    <p className="text-xs text-gray-400 mt-0.5">e.g. 1.5 EUR</p>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                      Slippage (pips)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      min="0"
+                      value={slippagePips}
+                      onChange={(e) => setSlippagePips(e.target.value)}
+                      placeholder="0"
+                      className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    />
+                    <p className="text-xs text-gray-400 mt-0.5">Market impact</p>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                      Commission ($/side)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.5"
+                      min="0"
+                      value={commission}
+                      onChange={(e) => setCommission(e.target.value)}
+                      placeholder="0"
+                      className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    />
+                    <p className="text-xs text-gray-400 mt-0.5">Doubled/trade</p>
+                  </div>
+                </div>
+                <p className="text-xs text-amber-500 dark:text-amber-400">
+                  Note: Realistic spreads make backtests more accurate. Zero = perfect fills (optimistic).
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Error Message */}

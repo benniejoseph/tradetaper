@@ -62,6 +62,18 @@ const initialState: TradesState = {
   lastSummaryAt: null,
 };
 
+const invalidateTradesListCache = (state: TradesState) => {
+  state.lastFetchKey = null;
+  state.lastFetchAt = null;
+  state.lastFetchIncludeTags = false;
+};
+
+const invalidateTradesSummaryCache = (state: TradesState) => {
+  state.summary = null;
+  state.lastSummaryKey = null;
+  state.lastSummaryAt = null;
+};
+
 // Helper function to transform API response to frontend Trade interface
 function transformApiTradeToFrontend(apiTrade: any): Trade {
   if (!apiTrade) {
@@ -70,6 +82,12 @@ function transformApiTradeToFrontend(apiTrade: any): Trade {
   }
 
   try {
+    const parseOptionalNumber = (value: any): number | undefined => {
+      if (value === null || value === undefined || value === '') return undefined;
+      const parsed = Number(value);
+      return Number.isFinite(parsed) ? parsed : undefined;
+    };
+
     return {
       id: apiTrade.id,
       userId: apiTrade.userId,
@@ -78,16 +96,17 @@ function transformApiTradeToFrontend(apiTrade: any): Trade {
       direction: apiTrade.side, // API: side → Frontend: direction
       status: apiTrade.status,
       entryDate: apiTrade.openTime, // API: openTime → Frontend: entryDate
-      entryPrice: parseFloat(apiTrade.openPrice), // API: openPrice → Frontend: entryPrice (ensure number)
+      entryPrice: Number(apiTrade.openPrice), // API: openPrice → Frontend: entryPrice (ensure number)
       exitDate: apiTrade.closeTime, // API: closeTime → Frontend: exitDate
-      exitPrice: apiTrade.closePrice ? parseFloat(apiTrade.closePrice) : undefined, // API: closePrice → Frontend: exitPrice
-      quantity: parseFloat(apiTrade.quantity), // Ensure number
-      stopLoss: apiTrade.stopLoss ? parseFloat(apiTrade.stopLoss) : undefined,
-      takeProfit: apiTrade.takeProfit ? parseFloat(apiTrade.takeProfit) : undefined,
-      commission: apiTrade.commission ? parseFloat(apiTrade.commission) : undefined,
+      exitPrice: parseOptionalNumber(apiTrade.closePrice), // API: closePrice → Frontend: exitPrice
+      quantity: Number(apiTrade.quantity), // Ensure number
+      stopLoss: parseOptionalNumber(apiTrade.stopLoss),
+      takeProfit: parseOptionalNumber(apiTrade.takeProfit),
+      commission: parseOptionalNumber(apiTrade.commission),
+      swap: parseOptionalNumber(apiTrade.swap),
       notes: apiTrade.notes,
-      profitOrLoss: apiTrade.profitOrLoss ? parseFloat(apiTrade.profitOrLoss) : undefined,
-      rMultiple: apiTrade.rMultiple ? parseFloat(apiTrade.rMultiple) : undefined,
+      profitOrLoss: parseOptionalNumber(apiTrade.profitOrLoss),
+      rMultiple: parseOptionalNumber(apiTrade.rMultiple),
       ictConcept: apiTrade.ictConcept,
       session: apiTrade.session,
       setupDetails: apiTrade.setupDetails,
@@ -100,7 +119,7 @@ function transformApiTradeToFrontend(apiTrade: any): Trade {
       accountId: apiTrade.accountId,
       isStarred: apiTrade.isStarred || false,
       account: apiTrade.account,
-      marginUsed: apiTrade.marginUsed ? parseFloat(apiTrade.marginUsed) : undefined,
+      marginUsed: parseOptionalNumber(apiTrade.marginUsed),
       // Psychology & Emotion fields
       emotionBefore: apiTrade.emotionBefore,
       emotionDuring: apiTrade.emotionDuring,
@@ -109,7 +128,11 @@ function transformApiTradeToFrontend(apiTrade: any): Trade {
       followedPlan: apiTrade.followedPlan,
       ruleViolations: apiTrade.ruleViolations,
       // Performance Metrics
-      plannedRR: apiTrade.plannedRR ? parseFloat(apiTrade.plannedRR) : undefined,
+      plannedRR: parseOptionalNumber(apiTrade.plannedRR),
+      maePrice: parseOptionalNumber(apiTrade.maePrice),
+      mfePrice: parseOptionalNumber(apiTrade.mfePrice),
+      maePips: parseOptionalNumber(apiTrade.maePips),
+      mfePips: parseOptionalNumber(apiTrade.mfePips),
       executionGrade: apiTrade.executionGrade,
       // Market Context
       marketCondition: apiTrade.marketCondition,
@@ -142,12 +165,15 @@ function transformFrontendToApiPayload(frontendPayload: CreateTradePayload | Upd
   const formatDateTimeForAPI = (dateTimeString?: string): string | undefined => {
     if (!dateTimeString) return undefined;
     try {
-      // If the string is already in ISO format, return as is
-      if (dateTimeString.includes('T') && (dateTimeString.includes('Z') || dateTimeString.includes('+') || dateTimeString.includes('-'))) {
+      // Keep only timezone-qualified ISO timestamps as-is.
+      const isoWithTimezone =
+        /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d{1,3})?)?(?:Z|[+-]\d{2}:\d{2})$/;
+      if (isoWithTimezone.test(dateTimeString)) {
         return dateTimeString;
       }
-      // If it's datetime-local format (YYYY-MM-DDTHH:mm), convert to ISO 8601
+      // datetime-local (no timezone) must be normalized to UTC ISO.
       const date = new Date(dateTimeString);
+      if (Number.isNaN(date.getTime())) return undefined;
       return date.toISOString();
     } catch (error) {
       console.error('Error formatting date for API:', dateTimeString, error);
@@ -334,6 +360,8 @@ export const fetchTrades = createAsyncThunk<
       if (sortDir) {
         url += `&sortDir=${encodeURIComponent(sortDir)}`;
       }
+      // Prevent stale/conditional-cache responses on authenticated trade data.
+      url += `&_ts=${Date.now()}`;
       const response = await authApiClient.get<any>(url);
       const transformedTrades = response.data.data.map(transformApiTradeToFrontend);
 
@@ -576,6 +604,7 @@ export const fetchTradesSummary = createAsyncThunk<
       if (Number.isFinite(maxPnl)) params.push(`maxPnl=${maxPnl}`);
       if (Number.isFinite(minDuration)) params.push(`minDuration=${minDuration}`);
       if (Number.isFinite(maxDuration)) params.push(`maxDuration=${maxDuration}`);
+      params.push(`_ts=${Date.now()}`);
       url += params.join('&');
 
       const response = await authApiClient.get<any>(url);
@@ -641,6 +670,9 @@ const tradesSlice = createSlice({
       const existingIndex = state.trades.findIndex(trade => trade.id === action.payload.id);
       if (existingIndex === -1) {
         state.trades.unshift(action.payload);
+        state.total = Math.max(state.total + 1, state.trades.length);
+        invalidateTradesListCache(state);
+        invalidateTradesSummaryCache(state);
       }
     },
     updateTradeRealtime(state, action: PayloadAction<Trade>) {
@@ -652,13 +684,17 @@ const tradesSlice = createSlice({
       if (state.currentTrade?.id === action.payload.id) {
         state.currentTrade = action.payload;
       }
+      invalidateTradesSummaryCache(state);
     },
     removeTrade(state, action: PayloadAction<string>) {
       // Remove trade by ID
       state.trades = state.trades.filter(trade => trade.id !== action.payload);
+      state.total = Math.max(0, state.total - 1);
       if (state.currentTrade?.id === action.payload) {
         state.currentTrade = null;
       }
+      invalidateTradesListCache(state);
+      invalidateTradesSummaryCache(state);
     },
     setTrades(state, action: PayloadAction<Trade[]>) {
       // Replace all trades (useful for initial load or refresh)
@@ -730,6 +766,9 @@ const tradesSlice = createSlice({
       .addCase(createTrade.fulfilled, (state, action: PayloadAction<Trade>) => {
         state.isLoading = false;
         state.trades.unshift(action.payload); // Add to the beginning of the list
+        state.total = Math.max(state.total + 1, state.trades.length);
+        invalidateTradesListCache(state);
+        invalidateTradesSummaryCache(state);
       })
       .addCase(createTrade.rejected, (state, action) => {
         state.isLoading = false;
@@ -749,6 +788,7 @@ const tradesSlice = createSlice({
         if (state.currentTrade?.id === action.payload.id) {
             state.currentTrade = action.payload;
         }
+        invalidateTradesSummaryCache(state);
       })
       .addCase(updateTrade.rejected, (state, action) => {
         state.isLoading = false;
@@ -762,9 +802,12 @@ const tradesSlice = createSlice({
       .addCase(deleteTrade.fulfilled, (state, action: PayloadAction<string>) => {
         state.isLoading = false;
         state.trades = state.trades.filter(trade => trade.id !== action.payload);
+        state.total = Math.max(0, state.total - 1);
         if (state.currentTrade?.id === action.payload) {
             state.currentTrade = null;
         }
+        invalidateTradesListCache(state);
+        invalidateTradesSummaryCache(state);
       })
       .addCase(deleteTrade.rejected, (state, action) => {
         state.isLoading = false;
@@ -778,9 +821,12 @@ const tradesSlice = createSlice({
       .addCase(deleteTrades.fulfilled, (state, action: PayloadAction<string[]>) => {
         state.isLoading = false;
         state.trades = state.trades.filter(trade => !action.payload.includes(trade.id));
+        state.total = Math.max(0, state.total - action.payload.length);
         if (state.currentTrade && action.payload.includes(state.currentTrade.id)) {
             state.currentTrade = null;
         }
+        invalidateTradesListCache(state);
+        invalidateTradesSummaryCache(state);
       })
       .addCase(deleteTrades.rejected, (state, action) => {
         state.isLoading = false;
@@ -791,7 +837,7 @@ const tradesSlice = createSlice({
         state.isLoading = true;
         state.error = null;
       })
-      .addCase(analyzeChart.fulfilled, (state, action: PayloadAction<any>) => {
+      .addCase(analyzeChart.fulfilled, (state, _action: PayloadAction<any>) => {
         state.isLoading = false;
         // Chart analysis data handled by caller if needed
       })
@@ -847,6 +893,7 @@ const tradesSlice = createSlice({
             state.currentTrade = updatedTrade;
           }
         });
+        invalidateTradesSummaryCache(state);
       })
       .addCase(bulkUpdateTrades.rejected, (state, action) => {
         state.isLoading = false;

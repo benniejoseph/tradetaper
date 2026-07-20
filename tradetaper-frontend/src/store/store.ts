@@ -6,7 +6,6 @@ import accountReducer from './features/accountSlice';
 import subscriptionReducer from './features/subscriptionSlice';
 import mt5AccountsReducer from './features/mt5AccountsSlice';
 import notificationsReducer from './features/notificationsSlice';
-import { setupAuthInterceptors } from '@/services/api';
 
 export const store = configureStore({
   reducer: {
@@ -18,8 +17,6 @@ export const store = configureStore({
     notifications: notificationsReducer,
   },
 });
-
-setupAuthInterceptors(store.getState);
 
 export type RootState = ReturnType<typeof store.getState>;
 export type AppDispatch = typeof store.dispatch;

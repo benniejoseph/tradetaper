@@ -60,23 +60,23 @@ export default function LongShortAnalysisCard({ trades, gridSpan = "lg:col-span-
           </div>
           <div className="h-2 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden flex">
             <div 
-              className="h-full bg-blue-500 transition-all duration-500" 
+              className="h-full bg-emerald-500 transition-all duration-500" 
               style={{ width: `${longPercent}%` }} 
             />
             <div 
-              className="h-full bg-orange-500 transition-all duration-500" 
+              className="h-full bg-amber-500 transition-all duration-500" 
               style={{ width: `${shortPercent}%` }} 
             />
           </div>
         </div>
 
         {/* Comparison Grid */}
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           
           {/* Long Stats */}
-          <div className="space-y-3 p-3 bg-blue-50/50 dark:bg-emerald-900/10 rounded-xl border border-blue-100 dark:border-emerald-800/20">
+          <div className="space-y-3 rounded-xl border border-emerald-100 bg-emerald-50/50 p-3 dark:border-emerald-800/20 dark:bg-emerald-900/10">
             <div className="flex items-center gap-2 mb-2">
-              <div className="w-2 h-2 rounded-full bg-blue-500" />
+              <div className="h-2 w-2 rounded-full bg-emerald-500" />
               <h4 className="text-sm font-semibold text-gray-900 dark:text-white">Long</h4>
             </div>
             
@@ -96,9 +96,9 @@ export default function LongShortAnalysisCard({ trades, gridSpan = "lg:col-span-
           </div>
 
           {/* Short Stats */}
-          <div className="space-y-3 p-3 bg-orange-50/50 dark:bg-orange-900/10 rounded-xl border border-orange-100 dark:border-orange-800/20">
+          <div className="space-y-3 rounded-xl border border-amber-100 bg-amber-50/50 p-3 dark:border-amber-800/20 dark:bg-amber-900/10">
             <div className="flex items-center gap-2 mb-2">
-              <div className="w-2 h-2 rounded-full bg-orange-500" />
+              <div className="h-2 w-2 rounded-full bg-amber-500" />
               <h4 className="text-sm font-semibold text-gray-900 dark:text-white">Short</h4>
             </div>
 

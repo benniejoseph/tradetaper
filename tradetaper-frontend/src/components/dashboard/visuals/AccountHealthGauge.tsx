@@ -9,15 +9,15 @@ interface GaugeProps {
   colorClass?: string;
 }
 
-const LinearGauge = ({ label, value, min, max, colorClass = "bg-indigo-500" }: GaugeProps) => {
+const LinearGauge = ({ label, value, min, max, colorClass = "bg-emerald-500" }: GaugeProps) => {
   const range = max - min;
   const percentage = range === 0 ? 100 : Math.min(100, Math.max(0, ((value - min) / range) * 100));
 
   return (
     <div className="mb-6">
-      <div className="flex justify-between items-end mb-2">
+      <div className="mb-2 flex items-start justify-between gap-2 sm:items-end">
         <span className="text-sm font-medium text-slate-500 dark:text-slate-400">{label}</span>
-        <span className="text-lg font-bold text-slate-900 dark:text-white">
+        <span className="text-right text-base font-bold text-slate-900 dark:text-white sm:text-lg">
             ${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
         </span>
       </div>

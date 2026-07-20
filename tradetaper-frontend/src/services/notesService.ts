@@ -6,7 +6,8 @@ import {
   NotesResponse, 
   SearchNotesParams, 
   NotesStats, 
-  CalendarNote,
+  CalendarMonth,
+  CalendarStats,
   SpeechToTextResponse 
 } from '@/types/note';
 
@@ -36,23 +37,8 @@ export class NotesService {
     });
 
     const fullUrl = `/notes?${searchParams.toString()}`;
-    console.log('🔍 NotesService.getNotes Debug:', {
-      params,
-      searchParams: searchParams.toString(),
-      fullUrl,
-      timestamp: new Date().toISOString()
-    });
-
     const response = await authApiClient.get(fullUrl);
-    
-    console.log('📥 NotesService.getNotes Response:', {
-      status: response.status,
-      dataType: typeof response.data,
-      notesCount: response.data?.notes?.length || 0,
-      total: response.data?.total || 0,
-      url: fullUrl
-    });
-    
+
     return response.data;
   }
 
@@ -106,7 +92,7 @@ export class NotesService {
   /**
    * Get notes for a specific calendar month
    */
-  static async getCalendarNotes(year: number, month: number): Promise<CalendarNote[]> {
+  static async getCalendarNotes(year: number, month: number): Promise<CalendarMonth> {
     const response = await authApiClient.get(`/notes/calendar/${year}/${month}`);
     return response.data;
   }
@@ -136,7 +122,7 @@ export class NotesService {
     const formData = new FormData();
     formData.append('audio', audioBlob, 'recording.webm');
 
-    const response = await authApiClient.post('/notes/speech-to-text', formData, {
+    const response = await authApiClient.post('/notes/ai/speech-to-text', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
@@ -224,64 +210,13 @@ export class NotesService {
     });
   }
 
-  /**
-   * Export notes to various formats
-   */
-  static async exportNotes(format: 'json' | 'csv' | 'markdown', params: SearchNotesParams = {}): Promise<Blob> {
-    const searchParams = new URLSearchParams();
-    
-    Object.entries(params).forEach(([key, value]) => {
-      if (value !== undefined && value !== null) {
-        if (Array.isArray(value)) {
-          value.forEach(item => searchParams.append(key, item.toString()));
-        } else {
-          searchParams.append(key, value.toString());
-        }
-      }
-    });
-
-    searchParams.append('format', format);
-
-    const response = await authApiClient.get(`/notes/export?${searchParams.toString()}`, {
-      responseType: 'blob',
-    });
-    
-    return response.data;
-  }
-
-  /**
-   * Duplicate a note
-   */
-  static async duplicateNote(id: string): Promise<Note> {
-    const response = await authApiClient.post(`/notes/${id}/duplicate`);
-    return response.data;
-  }
-
-  /**
-   * Get note templates
-   */
-  static async getTemplates(): Promise<Note[]> {
-    const response = await authApiClient.get('/notes/templates');
-    return response.data;
-  }
-
-  /**
-   * Create note from template
-   */
-  static async createFromTemplate(templateId: string, title: string): Promise<Note> {
-    const response = await authApiClient.post(`/notes/templates/${templateId}/create`, {
-      title,
-    });
-    return response.data;
-  }
-
   // Calendar methods
   static async getNotesForDate(date: string): Promise<Note[]> {
     const response = await authApiClient.get(`/notes/calendar/date/${date}`);
     return response.data;
   }
 
-  static async getCalendarStats(year: number, month: number): Promise<any> {
+  static async getCalendarStats(year: number, month: number): Promise<CalendarStats> {
     const response = await authApiClient.get(`/notes/calendar/${year}/${month}/stats`);
     return response.data;
   }
@@ -319,26 +254,6 @@ export class NotesService {
     return response.data;
   }
 
-  // Additional utility methods
-  static async exportNote(noteId: string, format: 'pdf' | 'markdown' | 'json'): Promise<Blob> {
-    const response = await authApiClient.get(`/notes/${noteId}/export/${format}`, {
-      responseType: 'blob',
-    });
-    return response.data;
-  }
-
-  // Bulk operations
-  static async bulkDelete(noteIds: string[]): Promise<void> {
-    await authApiClient.post('/notes/bulk/delete', { noteIds });
-  }
-
-  static async bulkUpdateTags(noteIds: string[], tags: string[]): Promise<void> {
-    await authApiClient.post('/notes/bulk/tags', { noteIds, tags });
-  }
-
-  static async bulkUpdateVisibility(noteIds: string[], visibility: 'private' | 'shared'): Promise<void> {
-    await authApiClient.post('/notes/bulk/visibility', { noteIds, visibility });
-  }
 }
 
 // Export an instance for easy use

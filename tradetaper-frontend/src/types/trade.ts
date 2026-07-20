@@ -56,6 +56,7 @@ export interface Trade {
   stopLoss?: number;
   takeProfit?: number;
   commission?: number;
+  swap?: number;
   notes?: string;
   profitOrLoss?: number;
   rMultiple?: number;
@@ -65,7 +66,7 @@ export interface Trade {
   mistakesMade?: string;
   lessonsLearned?: string;
   imageUrl?: string;
-  chartAnalysisData?: any;
+  chartAnalysisData?: unknown;
   tags?: Tag[];
   createdAt: string;
   updatedAt: string;
@@ -111,7 +112,7 @@ export interface Trade {
   
   // ========== Strategy ==========
   strategyId?: string;
-  strategy?: any;
+  strategy?: { name?: string } | null;
   
   // ========== Grouping ==========
   groupId?: string;

@@ -72,10 +72,10 @@ export default function RollingProfitFactorCard({
                   borderRadius: '12px'
                 }}
                 labelStyle={{ color: rechartsTextFill, fontWeight: 'bold' }}
-                itemStyle={{ color: '#3B82F6' }}
+                itemStyle={{ color: '#D97706' }}
                 formatter={(value: number) => [value.toFixed(2), 'Profit Factor']}
               />
-              <Line type="monotone" dataKey="value" stroke="#3B82F6" strokeWidth={2.5} dot={false} />
+              <Line type="monotone" dataKey="value" stroke="#D97706" strokeWidth={2.5} dot={false} />
             </LineChart>
           </ResponsiveContainer>
         ) : (

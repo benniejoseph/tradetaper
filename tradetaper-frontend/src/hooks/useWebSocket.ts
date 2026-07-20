@@ -66,15 +66,14 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
 
     const socket = io(socketUrl, {
       transports: ['websocket', 'polling'],
+      withCredentials: true,
       reconnection: true,
       reconnectionAttempts: 5,
       reconnectionDelay: 1000,
       reconnectionDelayMax: 5000,
       timeout: 10000,
-      // ✅ Send JWT token for authentication
+      // Send JWT token via auth payload when available.
       auth: token ? { token } : undefined,
-      // Also send in query as fallback
-      query: token ? { token } : undefined,
     });
 
     socketRef.current = socket;

@@ -39,8 +39,6 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
   onClose,
   isOpen,
 }) => {
-  console.log('🎤 VoiceRecorder rendered with props:', { isOpen, onTranscriptionComplete: !!onTranscriptionComplete, onClose: !!onClose });
-
   const [isRecording, setIsRecording] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [recordings, setRecordings] = useState<VoiceRecording[]>([]);
@@ -54,8 +52,16 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
   const streamRef = useRef<MediaStream | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
+  const playbackAudioRef = useRef<HTMLAudioElement | null>(null);
+  const recordingsRef = useRef<VoiceRecording[]>([]);
+  const microphonePermissionRef = useRef<PermissionStatus | null>(null);
+  const permissionChangeHandlerRef = useRef<(() => void) | null>(null);
   const animationRef = useRef<number | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    recordingsRef.current = recordings;
+  }, [recordings]);
 
   useEffect(() => {
     checkMicrophonePermission();
@@ -63,6 +69,33 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
       cleanup();
     };
   }, []);
+
+  useEffect(() => {
+    if (isOpen) {
+      return;
+    }
+
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.stop();
+    }
+
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
+
+    if (playbackAudioRef.current) {
+      playbackAudioRef.current.pause();
+      playbackAudioRef.current.currentTime = 0;
+      playbackAudioRef.current = null;
+    }
+
+    setIsRecording(false);
+    setIsPaused(false);
+    setPlayingId(null);
+    setRecordingTime(0);
+    setAudioLevel(0);
+  }, [isOpen]);
 
   useEffect(() => {
     if (isRecording && !isPaused) {
@@ -85,15 +118,35 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
   const cleanup = () => {
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
     }
     if (audioContextRef.current) {
       audioContextRef.current.close();
+      audioContextRef.current = null;
     }
     if (animationRef.current) {
       cancelAnimationFrame(animationRef.current);
+      animationRef.current = null;
     }
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+    if (playbackAudioRef.current) {
+      playbackAudioRef.current.pause();
+      playbackAudioRef.current.currentTime = 0;
+      playbackAudioRef.current = null;
+    }
+    if (microphonePermissionRef.current && permissionChangeHandlerRef.current) {
+      microphonePermissionRef.current.removeEventListener(
+        'change',
+        permissionChangeHandlerRef.current,
+      );
+      microphonePermissionRef.current = null;
+      permissionChangeHandlerRef.current = null;
+    }
+    for (const recording of recordingsRef.current) {
+      URL.revokeObjectURL(recording.url);
     }
   };
 
@@ -101,10 +154,21 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
     try {
       const permission = await navigator.permissions.query({ name: 'microphone' as PermissionName });
       setHasPermission(permission.state === 'granted');
-      
-      permission.addEventListener('change', () => {
+
+      if (microphonePermissionRef.current && permissionChangeHandlerRef.current) {
+        microphonePermissionRef.current.removeEventListener(
+          'change',
+          permissionChangeHandlerRef.current,
+        );
+      }
+
+      const handlePermissionChange = () => {
         setHasPermission(permission.state === 'granted');
-      });
+      };
+
+      microphonePermissionRef.current = permission;
+      permissionChangeHandlerRef.current = handlePermissionChange;
+      permission.addEventListener('change', handlePermissionChange);
     } catch (error) {
       console.error('Error checking microphone permission:', error);
       setHasPermission(false);
@@ -113,8 +177,6 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
 
   const requestMicrophonePermission = async () => {
     try {
-      console.log('🎤 Requesting microphone permission...');
-      
       // Actually request microphone access
       const stream = await navigator.mediaDevices.getUserMedia({ 
         audio: {
@@ -123,8 +185,7 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
           autoGainControl: true,
         } 
       });
-      
-      console.log('✅ Microphone permission granted!');
+
       setHasPermission(true);
       
       // Stop the stream immediately as we just needed permission
@@ -133,7 +194,7 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
       toast.success('Microphone access granted! You can now start recording.');
       
     } catch (error: any) {
-      console.error('❌ Error requesting microphone permission:', error);
+      console.error('Error requesting microphone permission:', error);
       setHasPermission(false);
       
       if (error?.name === 'NotAllowedError') {
@@ -264,18 +325,52 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
   };
 
   const playRecording = (recording: VoiceRecording) => {
-    if (playingId === recording.id) {
+    if (playingId === recording.id && playbackAudioRef.current) {
+      playbackAudioRef.current.pause();
+      playbackAudioRef.current.currentTime = 0;
+      playbackAudioRef.current = null;
       setPlayingId(null);
       return;
     }
 
+    if (playbackAudioRef.current) {
+      playbackAudioRef.current.pause();
+      playbackAudioRef.current.currentTime = 0;
+      playbackAudioRef.current = null;
+    }
+
     const audio = new Audio(recording.url);
-    audio.onended = () => setPlayingId(null);
-    audio.play();
+    playbackAudioRef.current = audio;
+    audio.onended = () => {
+      if (playbackAudioRef.current === audio) {
+        playbackAudioRef.current = null;
+      }
+      setPlayingId(null);
+    };
+    audio.play().catch((error) => {
+      console.error('Error playing recording:', error);
+      if (playbackAudioRef.current === audio) {
+        playbackAudioRef.current = null;
+      }
+      setPlayingId(null);
+      toast.error('Failed to play recording');
+    });
     setPlayingId(recording.id);
   };
 
   const deleteRecording = (recordingId: string) => {
+    const recordingToDelete = recordingsRef.current.find((recording) => recording.id === recordingId);
+    if (recordingToDelete) {
+      URL.revokeObjectURL(recordingToDelete.url);
+    }
+
+    if (playingId === recordingId && playbackAudioRef.current) {
+      playbackAudioRef.current.pause();
+      playbackAudioRef.current.currentTime = 0;
+      playbackAudioRef.current = null;
+      setPlayingId(null);
+    }
+
     setRecordings(prev => prev.filter(r => r.id !== recordingId));
     if (currentRecording?.id === recordingId) {
       setCurrentRecording(null);
@@ -343,10 +438,10 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.9, opacity: 0 }}
-          className="bg-white dark:bg-gray-800 rounded-2xl p-6 max-w-md w-full"
+          className="bg-white dark:bg-gray-800 rounded-2xl p-4 sm:p-6 max-w-md w-full max-h-[90vh] flex flex-col"
           onClick={e => e.stopPropagation()}
         >
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center justify-between mb-4 sm:mb-6">
             <h3 className="text-xl font-bold text-gray-900 dark:text-white">
               Voice Recorder
             </h3>
@@ -358,165 +453,167 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
             </button>
           </div>
 
-          {hasPermission === false && (
-            <div className="text-center py-8">
-              <FaMicrophone className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-600 dark:text-gray-400 mb-4">
-                Microphone access is required for voice recording.
-              </p>
-              <AnimatedButton
-                onClick={requestMicrophonePermission}
-                variant="gradient"
-                className="bg-gradient-to-r from-emerald-500 to-emerald-600"
-              >
-                Grant Permission
-              </AnimatedButton>
-            </div>
-          )}
-
-          {hasPermission !== false && (
-            <>
-              {/* Recording Controls */}
-              <div className="text-center mb-6">
-                {!isRecording ? (
-                  <AnimatedButton
-                    onClick={startRecording}
-                    variant="gradient"
-                    className="bg-gradient-to-r from-red-500 to-red-600 w-20 h-20 rounded-full"
-                    icon={<FaMicrophone className="w-8 h-8" />}
-                  >
-                    Record
-                  </AnimatedButton>
-                ) : (
-                  <div className="space-y-4">
-                    {/* Waveform Visualization */}
-                    <div className="flex items-center justify-center gap-1 h-12">
-                      {[...Array(20)].map((_, i) => (
-                        <motion.div
-                          key={i}
-                          className="w-1 bg-red-500 rounded-full"
-                          animate={{
-                            height: isPaused ? 4 : 4 + (audioLevel * 40) * (Math.random() * 0.5 + 0.5),
-                          }}
-                          transition={{
-                            duration: 0.1,
-                            repeat: isPaused ? 0 : Infinity,
-                            repeatType: 'reverse',
-                          }}
-                        />
-                      ))}
-                    </div>
-
-                    {/* Timer */}
-                    <div className="text-2xl font-mono text-gray-900 dark:text-white">
-                      {formatTime(recordingTime)}
-                    </div>
-
-                    {/* Control Buttons */}
-                    <div className="flex items-center justify-center gap-4">
-                      <AnimatedButton
-                        onClick={pauseRecording}
-                        variant="ghost"
-                        icon={isPaused ? <FaPlay /> : <FaPause />}
-                      >
-                        {isPaused ? 'Resume' : 'Pause'}
-                      </AnimatedButton>
-                      
-                      <AnimatedButton
-                        onClick={stopRecording}
-                        variant="danger"
-                        className="bg-red-500 hover:bg-red-600 text-white"
-                        icon={<FaStop />}
-                      >
-                        Stop
-                      </AnimatedButton>
-                    </div>
-                  </div>
-                )}
+          <div className="overflow-y-auto pr-1">
+            {hasPermission === false && (
+              <div className="text-center py-8">
+                <FaMicrophone className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-600 dark:text-gray-400 mb-4">
+                  Microphone access is required for voice recording.
+                </p>
+                <AnimatedButton
+                  onClick={requestMicrophonePermission}
+                  variant="gradient"
+                  className="bg-gradient-to-r from-emerald-500 to-emerald-600"
+                >
+                  Grant Permission
+                </AnimatedButton>
               </div>
+            )}
 
-              {/* Recordings List */}
-              {recordings.length > 0 && (
-                <div className="space-y-3">
-                  <h4 className="font-medium text-gray-900 dark:text-white">
-                    Recordings
-                  </h4>
-                  
-                  {recordings.map(recording => (
-                    <AnimatedCard key={recording.id} variant="glass" className="p-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <button
-                            onClick={() => playRecording(recording)}
-                            className="p-2 bg-gradient-to-r from-emerald-100 to-emerald-200 dark:from-emerald-900/30 dark:to-emerald-800/30 rounded-lg hover:from-emerald-200 hover:to-emerald-300 dark:hover:from-emerald-800/40 dark:hover:to-emerald-700/40 transition-all"
-                          >
-                            {playingId === recording.id ? (
-                              <FaPause className="w-4 h-4 text-emerald-600" />
-                            ) : (
-                              <FaPlay className="w-4 h-4 text-emerald-600" />
-                            )}
-                          </button>
-                          
-                          <div>
-                            <div className="text-sm font-medium text-gray-900 dark:text-white">
-                              {formatTime(recording.duration)}
-                            </div>
-                            {recording.transcript && (
-                              <div className="text-xs text-gray-600 dark:text-gray-400 max-w-xs truncate">
-                                {recording.transcript}
+            {hasPermission !== false && (
+              <>
+                {/* Recording Controls */}
+                <div className="text-center mb-6">
+                  {!isRecording ? (
+                    <AnimatedButton
+                      onClick={startRecording}
+                      variant="gradient"
+                      className="bg-gradient-to-r from-red-500 to-red-600 w-20 h-20 rounded-full"
+                      icon={<FaMicrophone className="w-8 h-8" />}
+                    >
+                      Record
+                    </AnimatedButton>
+                  ) : (
+                    <div className="space-y-4">
+                      {/* Waveform Visualization */}
+                      <div className="flex items-center justify-center gap-1 h-12">
+                        {[...Array(20)].map((_, i) => (
+                          <motion.div
+                            key={i}
+                            className="w-1 bg-red-500 rounded-full"
+                            animate={{
+                              height: isPaused ? 4 : 4 + (audioLevel * 40) * (Math.random() * 0.5 + 0.5),
+                            }}
+                            transition={{
+                              duration: 0.1,
+                              repeat: isPaused ? 0 : Infinity,
+                              repeatType: 'reverse',
+                            }}
+                          />
+                        ))}
+                      </div>
+
+                      {/* Timer */}
+                      <div className="text-2xl font-mono text-gray-900 dark:text-white">
+                        {formatTime(recordingTime)}
+                      </div>
+
+                      {/* Control Buttons */}
+                      <div className="flex flex-wrap items-center justify-center gap-3">
+                        <AnimatedButton
+                          onClick={pauseRecording}
+                          variant="ghost"
+                          icon={isPaused ? <FaPlay /> : <FaPause />}
+                        >
+                          {isPaused ? 'Resume' : 'Pause'}
+                        </AnimatedButton>
+                        
+                        <AnimatedButton
+                          onClick={stopRecording}
+                          variant="danger"
+                          className="bg-red-500 hover:bg-red-600 text-white"
+                          icon={<FaStop />}
+                        >
+                          Stop
+                        </AnimatedButton>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Recordings List */}
+                {recordings.length > 0 && (
+                  <div className="space-y-3">
+                    <h4 className="font-medium text-gray-900 dark:text-white">
+                      Recordings
+                    </h4>
+                    
+                    {recordings.map(recording => (
+                      <AnimatedCard key={recording.id} variant="glass" className="p-4">
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <button
+                              onClick={() => playRecording(recording)}
+                              className="p-2 bg-gradient-to-r from-emerald-100 to-emerald-200 dark:from-emerald-900/30 dark:to-emerald-800/30 rounded-lg hover:from-emerald-200 hover:to-emerald-300 dark:hover:from-emerald-800/40 dark:hover:to-emerald-700/40 transition-all"
+                            >
+                              {playingId === recording.id ? (
+                                <FaPause className="w-4 h-4 text-emerald-600" />
+                              ) : (
+                                <FaPlay className="w-4 h-4 text-emerald-600" />
+                              )}
+                            </button>
+                            
+                            <div className="min-w-0">
+                              <div className="text-sm font-medium text-gray-900 dark:text-white">
+                                {formatTime(recording.duration)}
                               </div>
+                              {recording.transcript && (
+                                <div className="text-xs text-gray-600 dark:text-gray-400 truncate">
+                                  {recording.transcript}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2 flex-wrap justify-end">
+                            {!recording.transcript && !recording.isTranscribing && !recording.error && (
+                              <AnimatedButton
+                                onClick={() => transcribeRecording(recording)}
+                                variant="ghost"
+                                size="sm"
+                                icon={<FaWaveSquare />}
+                              >
+                                Transcribe
+                              </AnimatedButton>
                             )}
+
+                            {recording.isTranscribing && (
+                              <FaSpinner className="animate-spin text-emerald-500" />
+                            )}
+
+                            {recording.transcript && (
+                              <AnimatedButton
+                                onClick={() => handleUseTranscription(recording.transcript!)}
+                                variant="gradient"
+                                size="sm"
+                                className="bg-gradient-to-r from-green-500 to-green-600"
+                                icon={<FaCheck />}
+                              >
+                                Use
+                              </AnimatedButton>
+                            )}
+
+                            <button
+                              onClick={() => deleteRecording(recording.id)}
+                              className="p-1 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded"
+                            >
+                              <FaTrash className="w-3 h-3" />
+                            </button>
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-2">
-                          {!recording.transcript && !recording.isTranscribing && !recording.error && (
-                            <AnimatedButton
-                              onClick={() => transcribeRecording(recording)}
-                              variant="ghost"
-                              size="sm"
-                              icon={<FaWaveSquare />}
-                            >
-                              Transcribe
-                            </AnimatedButton>
-                          )}
-
-                          {recording.isTranscribing && (
-                            <FaSpinner className="animate-spin text-emerald-500" />
-                          )}
-
-                          {recording.transcript && (
-                            <AnimatedButton
-                              onClick={() => handleUseTranscription(recording.transcript!)}
-                              variant="gradient"
-                              size="sm"
-                              className="bg-gradient-to-r from-green-500 to-green-600"
-                              icon={<FaCheck />}
-                            >
-                              Use
-                            </AnimatedButton>
-                          )}
-
-                          <button
-                            onClick={() => deleteRecording(recording.id)}
-                            className="p-1 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded"
-                          >
-                            <FaTrash className="w-3 h-3" />
-                          </button>
-                        </div>
-                      </div>
-
-                      {recording.error && (
-                        <div className="mt-2 text-xs text-red-500">
-                          {recording.error}
-                        </div>
-                      )}
-                    </AnimatedCard>
-                  ))}
-                </div>
-              )}
-            </>
-          )}
+                        {recording.error && (
+                          <div className="mt-2 text-xs text-red-500">
+                            {recording.error}
+                          </div>
+                        )}
+                      </AnimatedCard>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+          </div>
         </motion.div>
       </motion.div>
     </AnimatePresence>

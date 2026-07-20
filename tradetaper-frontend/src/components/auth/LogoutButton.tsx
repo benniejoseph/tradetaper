@@ -4,12 +4,14 @@ import { useDispatch } from 'react-redux';
 import { AppDispatch } from '@/store/store';
 import { logout } from '@/store/features/authSlice';
 import { useRouter } from 'next/navigation';
+import { logoutUser } from '@/services/authService';
 
 export default function LogoutButton() {
   const dispatch = useDispatch<AppDispatch>();
   const router = useRouter();
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await logoutUser();
     dispatch(logout());
     router.push('/login');
   };

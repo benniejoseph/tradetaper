@@ -16,7 +16,6 @@ import { Timeframe } from '@/types/enums';
 import { strategiesService } from '@/services/strategiesService';
 import { Strategy } from '@/types/strategy';
 import ReactMarkdown from 'react-markdown';
-import { AnimatedCard } from '@/components/ui/AnimatedCard';
 import Modal from '@/components/ui/Modal';
 import { useDebounce } from '@/hooks/useDebounce';
 import { FeatureGate } from '@/components/common/FeatureGate';
@@ -105,7 +104,7 @@ const formatDate = (value: string) =>
 
 const markdownComponents = {
   p: ({ children }: { children?: React.ReactNode }) => (
-    <p className="text-sm text-gray-700 dark:text-gray-200 leading-relaxed">{children}</p>
+    <p className="break-words text-sm leading-relaxed text-gray-700 dark:text-gray-200">{children}</p>
   ),
   strong: ({ children }: { children?: React.ReactNode }) => (
     <strong className="font-semibold text-gray-900 dark:text-white">{children}</strong>
@@ -115,19 +114,19 @@ const markdownComponents = {
       href={href}
       target="_blank"
       rel="noopener noreferrer"
-      className="text-emerald-600 hover:text-emerald-500 underline"
+      className="break-all text-emerald-600 underline hover:text-emerald-500"
     >
       {children}
     </a>
   ),
   ul: ({ children }: { children?: React.ReactNode }) => (
-    <ul className="list-disc ml-5 space-y-1 text-sm text-gray-700 dark:text-gray-200">{children}</ul>
+    <ul className="ml-5 list-disc space-y-1 break-words text-sm text-gray-700 dark:text-gray-200">{children}</ul>
   ),
   ol: ({ children }: { children?: React.ReactNode }) => (
-    <ol className="list-decimal ml-5 space-y-1 text-sm text-gray-700 dark:text-gray-200">{children}</ol>
+    <ol className="ml-5 list-decimal space-y-1 break-words text-sm text-gray-700 dark:text-gray-200">{children}</ol>
   ),
   blockquote: ({ children }: { children?: React.ReactNode }) => (
-    <blockquote className="border-l-2 border-emerald-400 pl-3 italic text-sm text-gray-600 dark:text-gray-300">
+    <blockquote className="break-words border-l-2 border-emerald-400 pl-3 text-sm italic text-gray-600 dark:text-gray-300">
       {children}
     </blockquote>
   ),
@@ -153,6 +152,8 @@ const markdownComponents = {
 
 export default function CommunityPage() {
   const { isAuthenticated, user } = useSelector((state: RootState) => state.auth);
+  const hasCommunityAccess =
+    user?.subscription?.plan === 'essential' || user?.subscription?.plan === 'premium';
   const [activeTab, setActiveTab] = useState<TabKey>('feed');
 
   const [feed, setFeed] = useState<CommunityPost[]>([]);
@@ -203,13 +204,13 @@ export default function CommunityPage() {
     imageUrl: '',
   });
 
-  const canPost = isAuthenticated && settings?.publicProfile;
+  const canPost = isAuthenticated && hasCommunityAccess && settings?.publicProfile;
 
   const assetTypeOptions = useMemo(() => Object.values(AssetType), []);
   const timeframeOptions = useMemo(() => Object.values(Timeframe), []);
 
   useEffect(() => {
-    if (!isAuthenticated) return;
+    if (!isAuthenticated || !hasCommunityAccess) return;
     communityService
       .getSettings()
       .then(setSettings)
@@ -230,9 +231,10 @@ export default function CommunityPage() {
       .getStrategies()
       .then(setStrategies)
       .catch(() => setStrategies([]));
-  }, [isAuthenticated]);
+  }, [hasCommunityAccess, isAuthenticated]);
 
   const loadFeed = async () => {
+    if (!isAuthenticated || !hasCommunityAccess) return;
     setLoading(true);
     try {
       const response = await communityService.getFeed();
@@ -243,6 +245,7 @@ export default function CommunityPage() {
   };
 
   const loadLeaderboard = async () => {
+    if (!isAuthenticated || !hasCommunityAccess) return;
     setLoading(true);
     try {
       const response = await communityService.getLeaderboard({
@@ -259,6 +262,7 @@ export default function CommunityPage() {
   };
 
   const loadPeople = async () => {
+    if (!isAuthenticated || !hasCommunityAccess) return;
     setLoading(true);
     try {
       const response = await communityService.getPeople({
@@ -274,17 +278,19 @@ export default function CommunityPage() {
   };
 
   useEffect(() => {
+    if (!isAuthenticated || !hasCommunityAccess) return;
     if (activeTab === 'feed') loadFeed();
     if (activeTab === 'leaderboard') loadLeaderboard();
     if (activeTab === 'people') loadPeople();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab]);
+  }, [activeTab, hasCommunityAccess, isAuthenticated]);
 
   useEffect(() => {
+    if (!isAuthenticated || !hasCommunityAccess) return;
     if (activeTab === 'leaderboard') loadLeaderboard();
     if (activeTab === 'people') loadPeople();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters.accountSize, filters.assetType, filters.timeframe, filters.strategyId, filters.period]);
+  }, [filters.accountSize, filters.assetType, filters.timeframe, filters.strategyId, filters.period, hasCommunityAccess, isAuthenticated]);
 
   useEffect(() => {
     if (!canPost) return;
@@ -516,23 +522,25 @@ export default function CommunityPage() {
   const inputClass =
     'w-full rounded-xl border border-gray-200/70 dark:border-zinc-800 bg-white/80 dark:bg-zinc-900/70 px-3 py-2.5 text-sm text-gray-700 dark:text-gray-200 shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/40';
   const selectClass = inputClass;
+  const toolbarButtonClass =
+    'inline-flex h-10 w-10 items-center justify-center rounded-lg border border-gray-200/70 px-2.5 py-1 text-xs font-semibold text-gray-600 hover:text-emerald-600 disabled:opacity-50';
 
   return (
     <FeatureGate feature="community" className="min-h-screen">
     <div className="relative">
       <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top,_rgba(16,185,129,0.15),_transparent_55%)]" />
-      <div className="w-full max-w-none mx-auto space-y-6 px-4 pb-16">
-        <div className="relative overflow-hidden rounded-3xl border border-emerald-100/60 dark:border-emerald-900/30 bg-gradient-to-br from-emerald-50 via-white to-teal-50 dark:from-emerald-950/40 dark:via-zinc-950 dark:to-emerald-900/20 p-6 md:p-10">
+      <div className="mx-auto w-full max-w-none space-y-6 px-4 pb-16">
+        <div className="relative overflow-hidden rounded-3xl border border-emerald-100/60 bg-gradient-to-br from-emerald-50 via-white to-teal-50 p-4 dark:border-emerald-900/30 dark:from-emerald-950/40 dark:via-zinc-950 dark:to-emerald-900/20 sm:p-6 md:p-10">
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(16,185,129,0.18),_transparent_55%)]" />
           <div className="pointer-events-none absolute -bottom-24 right-0 h-64 w-64 rounded-full bg-emerald-500/10 blur-3xl" />
-          <div className="relative grid gap-8 lg:grid-cols-[1.15fr,0.85fr] items-center">
+          <div className="relative grid items-center gap-6 lg:grid-cols-[1.15fr,0.85fr] lg:gap-8">
             <div className="space-y-6">
               <div className="flex flex-wrap items-center gap-3">
                 <span className="inline-flex items-center gap-2 rounded-full border border-emerald-200/70 bg-white/80 dark:bg-zinc-900/60 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-emerald-700 dark:text-emerald-300">
                   <Sparkles className="h-3.5 w-3.5" />
                   Discipline-first network
                 </span>
-                <span className="text-xs text-gray-500 dark:text-gray-400">Public read-only • Members-only actions</span>
+                <span className="text-xs text-gray-500 dark:text-gray-400">Premium members only</span>
               </div>
 
               <div className="space-y-3">
@@ -575,9 +583,9 @@ export default function CommunityPage() {
               </div>
             </div>
 
-            <div className="rounded-3xl border border-emerald-200/60 dark:border-emerald-900/40 bg-white/80 dark:bg-zinc-950/60 p-6 shadow-lg">
+            <div className="rounded-3xl border border-emerald-200/60 bg-white/80 p-5 shadow-lg dark:border-emerald-900/40 dark:bg-zinc-950/60 sm:p-6">
               <div className="space-y-4">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-wrap items-center justify-between gap-2">
                   <span className="text-xs uppercase tracking-[0.2em] text-emerald-600 dark:text-emerald-300 font-semibold">Community pulse</span>
                   <span className="text-[11px] text-gray-500 dark:text-gray-400">Today</span>
                 </div>
@@ -591,7 +599,7 @@ export default function CommunityPage() {
                     <p className="text-sm font-semibold text-gray-900 dark:text-white">Constructive, data-backed, calm</p>
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-3 text-xs text-gray-500 dark:text-gray-400">
+                <div className="grid gap-3 text-xs text-gray-500 dark:text-gray-400 sm:grid-cols-2">
                   <div className="rounded-2xl border border-gray-200/60 dark:border-zinc-800 bg-white/80 dark:bg-zinc-900/60 px-3 py-2">
                     <p className="text-[11px] uppercase text-gray-400">Visibility</p>
                     <p className="font-semibold text-gray-900 dark:text-white">Public</p>
@@ -606,15 +614,7 @@ export default function CommunityPage() {
           </div>
         </div>
 
-        {!isAuthenticated && (
-          <AnimatedCard animate={false} variant="default" className="border-emerald-100/50 bg-white/80 p-4">
-            <p className="text-sm text-gray-600 dark:text-gray-300">
-              Community is public read-only. Sign in to post, follow, or appear on leaderboards.
-            </p>
-          </AnimatedCard>
-        )}
-
-        <div className="flex flex-wrap gap-2">
+        <div className="grid grid-cols-3 gap-2 sm:flex sm:flex-wrap">
           {([
             { key: 'feed', label: 'Feed', icon: Send },
             { key: 'leaderboard', label: 'Leaderboards', icon: Trophy },
@@ -623,7 +623,7 @@ export default function CommunityPage() {
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key as any)}
-              className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
+              className={`inline-flex items-center justify-center gap-2 rounded-full px-3 py-2 text-xs font-semibold transition-colors sm:px-4 sm:text-sm ${
                 activeTab === tab.key
                   ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30'
                   : 'bg-white/80 dark:bg-zinc-900/70 text-gray-600 dark:text-gray-300 border border-gray-200/70 dark:border-zinc-800'
@@ -652,19 +652,23 @@ export default function CommunityPage() {
               return (
                 <div
                   key={post.id}
-                  className="rounded-3xl border border-gray-200/70 dark:border-zinc-800 bg-white/90 dark:bg-zinc-900/70 p-5 shadow-sm space-y-4"
+                  className="space-y-4 rounded-3xl border border-gray-200/70 bg-white/90 p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/70 sm:p-5"
                 >
                   <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div className="flex items-center gap-3">
+                    <div className="flex min-w-0 flex-1 items-center gap-3">
                       <div className="h-10 w-10 rounded-2xl bg-emerald-500/15 text-emerald-700 flex items-center justify-center font-bold">
                         {initials}
                       </div>
-                      <div>
-                        <div className="font-semibold text-gray-900 dark:text-white">
+                      <div className="min-w-0">
+                        <div className="break-words font-semibold text-gray-900 dark:text-white">
                           {post.user.displayName}
                         </div>
-                        <div className="text-xs text-gray-500">
-                          {post.user.username ? `@${post.user.username}` : 'Trader'} | {formatDate(post.createdAt)}
+                        <div className="mt-0.5 flex flex-wrap items-center gap-x-1 gap-y-0.5 text-xs text-gray-500">
+                          <span className="break-all">
+                            {post.user.username ? `@${post.user.username}` : 'Trader'}
+                          </span>
+                          <span className="text-gray-400">•</span>
+                          <span>{formatDate(post.createdAt)}</span>
                         </div>
                       </div>
                     </div>
@@ -674,7 +678,7 @@ export default function CommunityPage() {
                   </div>
 
                   {post.title && (
-                    <div className="text-base font-semibold text-gray-900 dark:text-white">{post.title}</div>
+                    <div className="break-words text-base font-semibold text-gray-900 dark:text-white">{post.title}</div>
                   )}
 
                   <ReactMarkdown components={markdownComponents}>{post.content}</ReactMarkdown>
@@ -690,18 +694,18 @@ export default function CommunityPage() {
 
                   <div className="flex flex-wrap gap-2 text-xs text-gray-500">
                     {post.symbol && (
-                      <span className="px-2 py-1 rounded-full bg-emerald-500/10 text-emerald-700">#{post.symbol}</span>
+                      <span className="rounded-full bg-emerald-500/10 px-2 py-1 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300">#{post.symbol}</span>
                     )}
                     {post.tags?.map((tag) => (
-                      <span key={tag} className="px-2 py-1 rounded-full bg-gray-100 text-gray-600 dark:bg-zinc-800 dark:text-gray-300">
+                      <span key={tag} className="max-w-full break-all rounded-full bg-gray-100 px-2 py-1 text-gray-600 dark:bg-zinc-800 dark:text-gray-300">
                         #{tag}
                       </span>
                     ))}
                     {post.assetType && (
-                      <span className="px-2 py-1 rounded-full bg-blue-500/10 text-blue-600">{post.assetType}</span>
+                      <span className="rounded-full bg-emerald-500/10 px-2 py-1 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300">{post.assetType}</span>
                     )}
                     {post.timeframe && (
-                      <span className="px-2 py-1 rounded-full bg-teal-500/10 text-teal-600">{post.timeframe}</span>
+                      <span className="rounded-full bg-teal-500/10 px-2 py-1 text-teal-600 dark:bg-teal-500/20 dark:text-teal-300">{post.timeframe}</span>
                     )}
                   </div>
 
@@ -727,11 +731,13 @@ export default function CommunityPage() {
                       <div className="space-y-3">
                         {replies.map((reply) => (
                           <div key={reply.id} className="rounded-2xl bg-gray-50 dark:bg-zinc-900/70 p-3">
-                            <div className="text-xs text-gray-500 mb-2">
+                            <div className="mb-2 flex flex-wrap items-center gap-x-1 gap-y-0.5 text-xs text-gray-500">
                               <span className="font-semibold text-gray-900 dark:text-white">
                                 {reply.user?.displayName || 'Trader'}
                               </span>{' '}
-                              <span>{reply.user?.username ? `@${reply.user.username}` : ''}</span> | {formatDate(reply.createdAt)}
+                              <span className="break-all">{reply.user?.username ? `@${reply.user.username}` : ''}</span>
+                              <span className="text-gray-400">•</span>
+                              <span>{formatDate(reply.createdAt)}</span>
                             </div>
                             <ReactMarkdown components={markdownComponents}>{reply.content}</ReactMarkdown>
                           </div>
@@ -748,11 +754,11 @@ export default function CommunityPage() {
                             placeholder="Write a reply and tag others with @username..."
                             className="min-h-[80px] w-full rounded-2xl border border-gray-200/70 dark:border-zinc-800 bg-white/80 dark:bg-zinc-900/70 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
                           />
-                          <div className="flex justify-end">
+                          <div className="flex justify-stretch sm:justify-end">
                             <button
                               onClick={() => handleReplySubmit(post.id)}
                               disabled={!replyDrafts[post.id]?.trim() || replyPosting[post.id]}
-                              className="inline-flex items-center gap-2 rounded-full bg-emerald-500 px-4 py-2 text-xs font-semibold text-white disabled:opacity-50"
+                              className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-emerald-500 px-4 py-2 text-xs font-semibold text-white disabled:opacity-50 sm:w-auto"
                             >
                               <Send className="h-3.5 w-3.5" />
                               Reply
@@ -769,7 +775,7 @@ export default function CommunityPage() {
         )}
 
         {(activeTab === 'leaderboard' || activeTab === 'people') && (
-          <div className="rounded-3xl border border-gray-200/70 dark:border-zinc-800 bg-white/90 dark:bg-zinc-900/80 p-5 shadow-sm space-y-4">
+          <div className="space-y-4 rounded-3xl border border-gray-200/70 bg-white/90 p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/80 sm:p-5">
             <div className="grid md:grid-cols-4 gap-3">
               <select
                 value={filters.accountSize}
@@ -847,26 +853,28 @@ export default function CommunityPage() {
               {leaderboard.map((entry) => (
                 <div
                   key={entry.userId}
-                  className="rounded-3xl border border-gray-200/70 dark:border-zinc-800 bg-white/90 dark:bg-zinc-900/70 p-5 shadow-sm space-y-4"
+                  className="space-y-4 rounded-3xl border border-gray-200/70 bg-white/90 p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/70 sm:p-5"
                 >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="flex min-w-0 flex-1 items-center gap-3">
                       <div className="h-12 w-12 rounded-2xl bg-emerald-500/15 text-emerald-700 flex items-center justify-center font-bold">
                         #{entry.rank}
                       </div>
-                      <div>
-                        <div className="font-semibold text-gray-900 dark:text-white">{entry.displayName}</div>
-                        <div className="text-xs text-gray-500">
-                          {entry.username ? `@${entry.username}` : 'Trader'} | {entry.accountSizeBand?.label || '-'}
+                      <div className="min-w-0">
+                        <div className="break-words font-semibold text-gray-900 dark:text-white">{entry.displayName}</div>
+                        <div className="mt-0.5 flex flex-wrap items-center gap-x-1 gap-y-0.5 text-xs text-gray-500">
+                          <span className="break-all">{entry.username ? `@${entry.username}` : 'Trader'}</span>
+                          <span className="text-gray-400">•</span>
+                          <span>{entry.accountSizeBand?.label || '-'}</span>
                         </div>
                       </div>
                     </div>
-                    <div className="text-right">
+                    <div className="text-right sm:min-w-[84px]">
                       <div className="text-[11px] uppercase text-gray-400">Score</div>
                       <div className="text-2xl font-black text-emerald-600">{entry.score.toFixed(0)}</div>
                     </div>
                   </div>
-                  <div className="grid grid-cols-3 gap-3 text-xs text-gray-500">
+                  <div className="grid grid-cols-2 gap-3 text-xs text-gray-500 sm:grid-cols-3">
                     <div>
                       <div className="text-gray-400">Return</div>
                       <div className="font-semibold text-gray-900 dark:text-white">{entry.returnPct.toFixed(1)}%</div>
@@ -900,19 +908,21 @@ export default function CommunityPage() {
             {people.map((person) => (
               <div
                 key={person.userId}
-                className="rounded-3xl border border-gray-200/70 dark:border-zinc-800 bg-white/90 dark:bg-zinc-900/70 p-5 shadow-sm space-y-3"
+                className="space-y-3 rounded-3xl border border-gray-200/70 bg-white/90 p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/70 sm:p-5"
               >
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <div className="font-semibold text-gray-900 dark:text-white">{person.displayName}</div>
-                    <div className="text-xs text-gray-500">
-                      {person.username ? `@${person.username}` : 'Trader'} | {person.accountSizeBand?.label || '-'}
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <div className="break-words font-semibold text-gray-900 dark:text-white">{person.displayName}</div>
+                    <div className="mt-0.5 flex flex-wrap items-center gap-x-1 gap-y-0.5 text-xs text-gray-500">
+                      <span className="break-all">{person.username ? `@${person.username}` : 'Trader'}</span>
+                      <span className="text-gray-400">•</span>
+                      <span>{person.accountSizeBand?.label || '-'}</span>
                     </div>
                   </div>
                   {isAuthenticated && user?.id !== person.userId && (
                     <button
                       onClick={() => toggleFollow(person.userId)}
-                      className={`text-xs font-semibold px-3 py-1 rounded-full ${
+                      className={`shrink-0 rounded-full px-3 py-1 text-xs font-semibold ${
                         following[person.userId]
                           ? 'bg-emerald-100 text-emerald-700'
                           : 'bg-gray-100 text-gray-600'
@@ -922,7 +932,7 @@ export default function CommunityPage() {
                     </button>
                   )}
                 </div>
-                <div className="grid grid-cols-3 gap-3 text-xs text-gray-500">
+                <div className="grid grid-cols-2 gap-3 text-xs text-gray-500 sm:grid-cols-3">
                   <div>
                     <div className="text-gray-400">Return</div>
                     <div className="font-semibold text-gray-900 dark:text-white">
@@ -987,49 +997,49 @@ export default function CommunityPage() {
               <button
                 onClick={() => wrapSelection('**')}
                 disabled={!canPost}
-                className="rounded-lg border border-gray-200/70 px-2.5 py-1 text-xs font-semibold text-gray-600 hover:text-emerald-600 disabled:opacity-50"
+                className={toolbarButtonClass}
               >
                 <Bold className="h-3.5 w-3.5" />
               </button>
               <button
                 onClick={() => wrapSelection('*')}
                 disabled={!canPost}
-                className="rounded-lg border border-gray-200/70 px-2.5 py-1 text-xs font-semibold text-gray-600 hover:text-emerald-600 disabled:opacity-50"
+                className={toolbarButtonClass}
               >
                 <Italic className="h-3.5 w-3.5" />
               </button>
               <button
                 onClick={() => insertAtCursor('\n- List item')}
                 disabled={!canPost}
-                className="rounded-lg border border-gray-200/70 px-2.5 py-1 text-xs font-semibold text-gray-600 hover:text-emerald-600 disabled:opacity-50"
+                className={toolbarButtonClass}
               >
                 <List className="h-3.5 w-3.5" />
               </button>
               <button
                 onClick={() => insertAtCursor('\n1. List item')}
                 disabled={!canPost}
-                className="rounded-lg border border-gray-200/70 px-2.5 py-1 text-xs font-semibold text-gray-600 hover:text-emerald-600 disabled:opacity-50"
+                className={toolbarButtonClass}
               >
                 <ListOrdered className="h-3.5 w-3.5" />
               </button>
               <button
                 onClick={() => insertAtCursor('\n> ')}
                 disabled={!canPost}
-                className="rounded-lg border border-gray-200/70 px-2.5 py-1 text-xs font-semibold text-gray-600 hover:text-emerald-600 disabled:opacity-50"
+                className={toolbarButtonClass}
               >
                 <Quote className="h-3.5 w-3.5" />
               </button>
               <button
                 onClick={() => wrapSelection('`')}
                 disabled={!canPost}
-                className="rounded-lg border border-gray-200/70 px-2.5 py-1 text-xs font-semibold text-gray-600 hover:text-emerald-600 disabled:opacity-50"
+                className={toolbarButtonClass}
               >
                 <Code className="h-3.5 w-3.5" />
               </button>
               <button
                 onClick={() => insertAtCursor('[text](https://)')}
                 disabled={!canPost}
-                className="rounded-lg border border-gray-200/70 px-2.5 py-1 text-xs font-semibold text-gray-600 hover:text-emerald-600 disabled:opacity-50"
+                className={toolbarButtonClass}
               >
                 <LinkIcon className="h-3.5 w-3.5" />
               </button>
@@ -1037,14 +1047,14 @@ export default function CommunityPage() {
               <button
                 onClick={() => setEmojiOpen((prev) => !prev)}
                 disabled={!canPost}
-                className="rounded-lg border border-gray-200/70 px-2.5 py-1 text-xs font-semibold text-gray-600 hover:text-emerald-600 disabled:opacity-50"
+                className={toolbarButtonClass}
               >
                 <Smile className="h-3.5 w-3.5" />
               </button>
               <button
                 onClick={() => fileInputRef.current?.click()}
                 disabled={!canPost || imageUploading}
-                className="rounded-lg border border-gray-200/70 px-2.5 py-1 text-xs font-semibold text-gray-600 hover:text-emerald-600 disabled:opacity-50"
+                className={toolbarButtonClass}
               >
                 <ImageIcon className="h-3.5 w-3.5" />
               </button>
@@ -1058,7 +1068,7 @@ export default function CommunityPage() {
             </div>
 
             {emojiOpen && (
-              <div className="flex flex-wrap gap-2 rounded-2xl border border-gray-200/70 bg-white/90 p-3">
+              <div className="flex max-h-44 flex-wrap gap-2 overflow-y-auto rounded-2xl border border-gray-200/70 bg-white/90 p-3">
                 {EMOJI_OPTIONS.map((emoji) => (
                   <button
                     key={emoji}
@@ -1066,7 +1076,7 @@ export default function CommunityPage() {
                       insertAtCursor(emoji);
                       setEmojiOpen(false);
                     }}
-                    className="text-lg"
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-lg transition hover:bg-emerald-50"
                   >
                     {emoji}
                   </button>
@@ -1085,7 +1095,7 @@ export default function CommunityPage() {
                   disabled={!canPost}
                 />
                 {mentionQuery && (
-                  <div className="rounded-2xl border border-gray-200/70 bg-white p-3 text-xs text-gray-600 shadow-sm">
+                  <div className="max-h-48 overflow-y-auto rounded-2xl border border-gray-200/70 bg-white p-3 text-xs text-gray-600 shadow-sm">
                     {mentionLoading && <p>Searching...</p>}
                     {!mentionLoading && mentionResults.length === 0 && (
                       <p>No matching usernames.</p>
@@ -1176,7 +1186,7 @@ export default function CommunityPage() {
 
             {newPost.imageUrl && (
               <div className="rounded-2xl border border-emerald-100/70 bg-emerald-50/40 p-3 space-y-2">
-                <div className="flex items-center justify-between text-xs text-emerald-700">
+                <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-emerald-700">
                   <span>Image attached</span>
                   <button
                     type="button"

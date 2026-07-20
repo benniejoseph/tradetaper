@@ -16,6 +16,7 @@ export default function EditTradePage() {
   const tradeId = params.tradeId as string;
 
   const { currentTrade, isLoading, error } = useSelector((state: RootState) => state.trades);
+  const isTradeMismatch = Boolean(currentTrade && tradeId && currentTrade.id !== tradeId);
 
   useEffect(() => {
     if (tradeId && !isLoading && (!currentTrade || currentTrade.id !== tradeId)) {
@@ -23,16 +24,19 @@ export default function EditTradePage() {
     } else if (!tradeId && !isLoading) {
       router.push('/journal');
     }
-  }, [dispatch, tradeId, isLoading, currentTrade]);
+  }, [dispatch, tradeId, isLoading, currentTrade, router]);
 
   useEffect(() => {
     return () => { dispatch(setCurrentTrade(null)); };
   }, [dispatch, tradeId]);
 
-  const handleFormSubmitSuccess = () => router.push('/journal');
+  const handleFormSubmitSuccess = (savedTradeId?: string) => {
+    const targetTradeId = savedTradeId || tradeId;
+    router.push(`/journal/view/${targetTradeId}`);
+  };
   const handleCancel = () => router.back();
 
-  if (isLoading) {
+  if (isLoading || isTradeMismatch) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
         <div className="text-center">

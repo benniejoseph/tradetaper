@@ -66,7 +66,7 @@ export function TrialBanner() {
 
       <div className="flex items-center gap-3 shrink-0">
         <button
-          onClick={() => router.push('/plans')}
+          onClick={() => router.push('/pricing')}
           className="rounded-lg bg-white/20 hover:bg-white/30 px-3 py-1 text-xs font-semibold transition-colors"
         >
           Upgrade Now

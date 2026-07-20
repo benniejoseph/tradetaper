@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 // src/config/navigation.ts
 import { IconType } from 'react-icons';
-import { FaTachometerAlt, FaListAlt, FaChartBar, FaPenSquare, FaCog, FaBook, FaCalendarAlt, FaChartPie, FaBalanceScale, FaUsers, FaCreditCard, FaDollarSign, FaBullseye, FaStickyNote, FaChartLine, FaFlask, FaBell, FaBolt, FaServer, FaUserCircle, FaDesktop } from 'react-icons/fa';
+import { FaTachometerAlt, FaListAlt, FaChartBar, FaPenSquare, FaCog, FaBook, FaCalendarAlt, FaChartPie, FaBalanceScale, FaUsers, FaCreditCard, FaDollarSign, FaBullseye, FaStickyNote, FaChartLine, FaFlask, FaBell, FaBolt, FaUserCircle, FaComments, FaLayerGroup, FaFileAlt } from 'react-icons/fa';
 
 export interface NavItem {
   label: string;
@@ -11,14 +11,16 @@ export interface NavItem {
 
 export const mainNavItems: NavItem[] = [
   { label: 'Dashboard', href: '/dashboard', icon: FaTachometerAlt },
-  { label: 'Analytics', href: '/analytics', icon: FaChartBar },
   { label: 'Journal', href: '/journal', icon: FaBook }, 
+  { label: 'Analytics', href: '/analytics', icon: FaChartBar },
+  { label: 'Reports', href: '/reports', icon: FaFileAlt },
   { label: 'Strategies', href: '/strategies', icon: FaBullseye }, 
-  { label: 'Trader Mind', href: '/trader-mind', icon: FaBolt },
-  { label: 'Community', href: '/community', icon: FaUsers },
   { label: 'Backtesting', href: '/backtesting', icon: FaFlask }, // Backtesting visible in main nav
-  { label: 'Notes', href: '/notes', icon: FaStickyNote }, 
   { label: 'Market Intelligence', href: '/market-intelligence', icon: FaChartLine },
+  { label: 'AI Coach', href: '/ai-coach', icon: FaComments },
+  { label: 'Trader Mind', href: '/trader-mind', icon: FaBolt },
+  { label: 'Notes', href: '/notes', icon: FaStickyNote }, 
+  { label: 'Community', href: '/community', icon: FaUsers },
 ];
 
 export const userNavItems: NavItem[] = [
@@ -28,9 +30,7 @@ export const userNavItems: NavItem[] = [
 ];
 
 export const settingsNavItems: NavItem[] = [
-  { label: 'Manual Account / Import', href: '/settings/accounts', icon: FaUsers },
-  { label: 'Cloud MT5 (MetaApi)', href: '/settings/mt5-accounts', icon: FaServer }, 
-  { label: 'Local MT5 Sync', href: '/settings/local-mt5', icon: FaDesktop },
+  { label: 'Accounts Hub', href: '/settings/accounts-hub', icon: FaLayerGroup },
   { label: 'Billing', href: '/billing', icon: FaCreditCard }, // Moved Billing here
 ];
 

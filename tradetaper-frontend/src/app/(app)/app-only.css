@@ -1,0 +1,91 @@
+/* React Calendar Heatmap Theme Overrides for Emerald */
+.react-calendar-heatmap text {
+  font-size: 0.6rem;
+  fill: var(--text-secondary);
+}
+
+.react-calendar-heatmap .color-empty {
+  fill: #1e293b; /* Slate 800 */
+}
+
+/* Green scale for positive P&L - Emeralds */
+.react-calendar-heatmap .color-scale-green-1 {
+  fill: #064e3b;
+}
+.react-calendar-heatmap .color-scale-green-2 {
+  fill: #047857;
+}
+.react-calendar-heatmap .color-scale-green-3 {
+  fill: #10b981;
+}
+.react-calendar-heatmap .color-scale-green-4 {
+  fill: #34d399;
+}
+
+/* Red scale for negative P&L - Rose/Red muted */
+.react-calendar-heatmap .color-scale-red-1 {
+  fill: #881337;
+}
+.react-calendar-heatmap .color-scale-red-2 {
+  fill: #be123c;
+}
+.react-calendar-heatmap .color-scale-red-3 {
+  fill: #f43f5e;
+}
+.react-calendar-heatmap .color-scale-red-4 {
+  fill: #fb7185;
+}
+
+@keyframes tt-loader-candle {
+  0% {
+    transform: scaleY(0.55);
+    opacity: 0.45;
+  }
+  45% {
+    transform: scaleY(1);
+    opacity: 1;
+  }
+  100% {
+    transform: scaleY(0.62);
+    opacity: 0.6;
+  }
+}
+
+@keyframes tt-loader-write {
+  0% {
+    transform: translateX(-130%);
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(360%);
+    opacity: 0.92;
+  }
+}
+
+@keyframes tt-loader-blink {
+  0%,
+  100% {
+    transform: scale(0.85);
+    opacity: 0.25;
+  }
+  45% {
+    transform: scale(1.1);
+    opacity: 1;
+  }
+}
+
+.animate-tt-loader-candle {
+  transform-origin: center bottom;
+  animation: tt-loader-candle 1.55s ease-in-out infinite;
+}
+
+.animate-tt-loader-write {
+  animation: tt-loader-write 2.1s linear infinite;
+}
+
+.animate-tt-loader-blink {
+  animation: tt-loader-blink 1.25s ease-in-out infinite;
+}

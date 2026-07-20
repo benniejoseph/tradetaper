@@ -3,7 +3,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 // src/components/trades/TradeForm.tsx - Single Page Scrolling Redesign
 "use client";
-import React, { useState, useEffect, FormEvent, ChangeEvent, useMemo } from 'react';
+import React, { useState, useEffect, FormEvent, ChangeEvent, useMemo, useCallback } from 'react';
 import { Trade, CreateTradePayload, UpdateTradePayload, AssetType, TradeDirection, TradeStatus, Tag as TradeTagType } from '@/types/trade';
 import { Strategy } from '@/types/strategy';
 import { strategiesService } from '@/services/strategiesService';
@@ -15,6 +15,7 @@ import { createTrade, updateTrade } from '@/store/features/tradesSlice';
 import { selectSelectedAccountId, selectAvailableAccounts } from '@/store/features/accountSlice';
 import { selectMT5Accounts, fetchMT5Accounts, MT5Account } from '@/store/features/mt5AccountsSlice';
 import { authApiClient } from '@/services/api';
+import { NotesService } from '@/services/notesService';
 import { useTheme } from '@/context/ThemeContext';
 import CreatableSelect from 'react-select/creatable';
 import { MultiValue, StylesConfig } from 'react-select';
@@ -51,12 +52,24 @@ import toast from 'react-hot-toast';
 // Types
 type ValidationError = { field: string; message: string };
 interface TagOption { readonly label: string; readonly value: string; readonly color?: string; readonly isNew?: boolean; }
+interface ParsedVoiceJournal {
+  updates?: Record<string, unknown>;
+  transcript?: string;
+  transcriptSummary?: string;
+}
+interface PendingVoiceJournal {
+  transcript: string;
+  summary?: string;
+  capturedAt: string;
+}
 interface TradeFormProps { 
-  initialData?: Trade; 
+  initialData?: Partial<Trade>; 
   isEditMode?: boolean; 
   onFormSubmitSuccess?: (tradeId?: string) => void; 
   onCancel?: () => void; 
 }
+
+type SectionTone = 'emerald' | 'zinc' | 'blue' | 'purple';
 
 // Helper functions
 const getFieldError = (errors: ValidationError[], fieldName: string): string | null => {
@@ -87,10 +100,100 @@ const getEnumValue = <T extends object>(enumObj: T, value: any, defaultValue: T[
   return defaultValue;
 };
 
+const normalizeEmotionState = (value: unknown): string | undefined => {
+  if (typeof value !== 'string') return undefined;
+
+  const normalize = (input: string) =>
+    input
+      .trim()
+      .toLowerCase()
+      .replace(/[_-]+/g, ' ')
+      .replace(/\s+/g, ' ');
+
+  const raw = value.trim();
+  if (!raw) return undefined;
+
+  const lookup = new Map<string, string>();
+  Object.values(EmotionalState).forEach((emotion) => {
+    const key = normalize(emotion);
+    lookup.set(key, emotion);
+    lookup.set(key.replace(/\s+/g, ''), emotion);
+  });
+
+  const normalized = normalize(raw);
+  return (
+    lookup.get(normalized) ??
+    lookup.get(normalized.replace(/\s+/g, '')) ??
+    raw
+  );
+};
+
+const toVoiceNarrative = (
+  parsedData: ParsedVoiceJournal,
+  normalizedUpdates: Record<string, unknown>,
+): PendingVoiceJournal | null => {
+  const transcript = parsedData?.transcript?.trim();
+  const summary = parsedData?.transcriptSummary?.trim();
+
+  if (transcript) {
+    return {
+      transcript,
+      summary,
+      capturedAt: new Date().toISOString(),
+    };
+  }
+
+  const updateLines = Object.entries(normalizedUpdates)
+    .filter(([, value]) => {
+      if (value === null || value === undefined) return false;
+      if (typeof value === 'string') return value.trim().length > 0;
+      if (Array.isArray(value)) return value.length > 0;
+      return true;
+    })
+    .map(([key, value]) => {
+      if (Array.isArray(value)) {
+        return `- ${key}: ${value.join(', ')}`;
+      }
+      if (typeof value === 'boolean') {
+        return `- ${key}: ${value ? 'Yes' : 'No'}`;
+      }
+      return `- ${key}: ${String(value)}`;
+    });
+
+  const structuredFallback =
+    updateLines.length > 0
+      ? `AI structured voice extraction:\n${updateLines.join('\n')}`
+      : '';
+
+  const fallbackTranscript = [summary, structuredFallback]
+    .filter((part) => Boolean(part && part.trim().length > 0))
+    .join('\n\n')
+    .trim();
+
+  if (!fallbackTranscript) return null;
+
+  return {
+    transcript: fallbackTranscript,
+    summary,
+    capturedAt: new Date().toISOString(),
+  };
+};
+
 // Section Header Component
-const FormSectionHeader: React.FC<{ title: string; icon: React.ReactNode; color?: string }> = ({ title, icon, color = "emerald" }) => (
+const sectionToneClasses: Record<SectionTone, string> = {
+  emerald: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
+  zinc: 'bg-zinc-100 dark:bg-zinc-500/10 text-zinc-600 dark:text-zinc-300',
+  blue: 'bg-cyan-50 dark:bg-cyan-500/10 text-cyan-600 dark:text-cyan-400',
+  purple: 'bg-fuchsia-50 dark:bg-fuchsia-500/10 text-fuchsia-600 dark:text-fuchsia-400',
+};
+
+const FormSectionHeader: React.FC<{ title: string; icon: React.ReactNode; color?: SectionTone }> = ({
+  title,
+  icon,
+  color = "emerald",
+}) => (
   <div className="flex items-center gap-2 mb-6 pb-4 border-b border-zinc-100 dark:border-white/5">
-    <div className={`p-2 rounded-xl bg-${color}-50 dark:bg-${color}-500/10 text-${color}-600 dark:text-${color}-400 shadow-sm`}>
+    <div className={`p-2 rounded-xl shadow-sm ${sectionToneClasses[color]}`}>
       {icon}
     </div>
     <h3 className="text-lg font-bold text-zinc-900 dark:text-white tracking-tight">{title}</h3>
@@ -114,11 +217,21 @@ export default function TradeForm({ initialData, isEditMode = false, onFormSubmi
   const [isUploading, setIsUploading] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [strategies, setStrategies] = useState<Strategy[]>([]);
+  const [pendingVoiceJournal, setPendingVoiceJournal] = useState<PendingVoiceJournal | null>(null);
   
   // Sync Modal State
   const [isSyncModalOpen, setIsSyncModalOpen] = useState(false);
   const [syncMode, setSyncMode] = useState<'OVERRIDE' | 'PARTIAL'>('PARTIAL');
   const [isSyncing, setIsSyncing] = useState(false);
+
+  const setImagePreview = useCallback((nextUrl: string | null) => {
+    setImagePreviewUrl((prevUrl) => {
+      if (prevUrl?.startsWith('blob:')) {
+        URL.revokeObjectURL(prevUrl);
+      }
+      return nextUrl;
+    });
+  }, []);
 
   const displayError = useMemo(() => {
     const raw = formError || tradeSubmitError;
@@ -216,33 +329,165 @@ export default function TradeForm({ initialData, isEditMode = false, onFormSubmi
         exitDate: formatDateForInput(initialData.exitDate),
         session: getEnumValue(TradingSession, initialData.session, TradingSession.NEW_YORK),
       }));
-      setImagePreviewUrl(initialData.imageUrl || null);
+      setImagePreview(initialData.imageUrl || null);
       if (initialData.tags?.length) {
-        setSelectedTags(initialData.tags.map((tag: any) => ({ label: tag.name, value: tag.name, color: tag.color })));
+        setSelectedTags(
+          initialData.tags
+            .map((tag: any) => {
+              if (!tag) return null;
+              if (typeof tag === 'string') {
+                return { label: tag, value: tag };
+              }
+              if (typeof tag.name === 'string' && tag.name.trim()) {
+                return { label: tag.name, value: tag.name, color: tag.color };
+              }
+              return null;
+            })
+            .filter((tag): tag is TagOption => tag !== null),
+        );
       }
     }
-  }, [initialData]);
+  }, [initialData, setImagePreview]);
+
+  useEffect(() => {
+    return () => {
+      if (imagePreviewUrl?.startsWith('blob:')) {
+        URL.revokeObjectURL(imagePreviewUrl);
+      }
+    };
+  }, [imagePreviewUrl]);
+
+  const entryPriceValue = formData.entryPrice;
+  const stopLossValue = formData.stopLoss;
+  const takeProfitValue = formData.takeProfit;
+  const directionValue = formData.direction;
 
   // Calculate R:R
   useEffect(() => {
-    const { entryPrice, stopLoss, takeProfit, direction } = formData;
-    if (direction && entryPrice > 0 && stopLoss > 0 && takeProfit > 0 && stopLoss !== entryPrice) {
-      const risk = direction === TradeDirection.LONG ? entryPrice - stopLoss : stopLoss - entryPrice;
-      const reward = direction === TradeDirection.LONG ? takeProfit - entryPrice : entryPrice - takeProfit;
+    if (
+      directionValue &&
+      entryPriceValue > 0 &&
+      stopLossValue > 0 &&
+      takeProfitValue > 0 &&
+      stopLossValue !== entryPriceValue
+    ) {
+      const risk =
+        directionValue === TradeDirection.LONG
+          ? entryPriceValue - stopLossValue
+          : stopLossValue - entryPriceValue;
+      const reward =
+        directionValue === TradeDirection.LONG
+          ? takeProfitValue - entryPriceValue
+          : entryPriceValue - takeProfitValue;
       if (risk > 0 && reward > 0) {
-        setFormData((prev: any) => ({ ...prev, rMultiple: parseFloat((reward / risk).toFixed(2)) }));
+        setFormData((prev: unknown) => ({ ...(prev as object), rMultiple: parseFloat((reward / risk).toFixed(2)) }));
       }
     }
-  }, [formData.entryPrice, formData.stopLoss, formData.takeProfit, formData.direction]);
+  }, [directionValue, entryPriceValue, stopLossValue, takeProfitValue]);
 
   // Handlers
-  const handleVoiceDataParsed = (parsedData: any) => {
-    if (parsedData?.updates) {
+  const createLinkedVoiceNoteForTrade = async (
+    tradeId: string,
+    voiceJournal: PendingVoiceJournal,
+  ) => {
+    if (!voiceJournal?.transcript?.trim()) return;
+
+    const capturedDate = new Date(voiceJournal.capturedAt);
+    const readableDate = capturedDate.toLocaleString('en-IN', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+
+    const baseSymbol = (formData.symbol || 'Trade').toString().trim().toUpperCase();
+    const noteTitle = `${baseSymbol} Voice Journal - ${readableDate}`;
+
+    const noteBlocks: any[] = [
+      {
+        id: `voice-heading-${Date.now()}`,
+        type: 'heading',
+        content: { text: 'Voice Journal Transcript', level: 2 },
+        position: 0,
+      },
+      {
+        id: `voice-transcript-${Date.now() + 1}`,
+        type: 'text',
+        content: { text: voiceJournal.transcript },
+        position: 1,
+      },
+    ];
+
+    if (
+      voiceJournal.summary &&
+      voiceJournal.summary !== voiceJournal.transcript
+    ) {
+      noteBlocks.push({
+        id: `voice-summary-${Date.now() + 2}`,
+        type: 'callout',
+        content: {
+          type: 'info',
+          text: voiceJournal.summary,
+        },
+        position: noteBlocks.length,
+      });
+    }
+
+    const autoTags = Array.from(
+      new Set(
+        ['voice-journal', formData.symbol?.toString().toLowerCase()]
+          .filter((tag): tag is string => Boolean(tag && tag.trim()))
+          .map((tag) => tag.trim()),
+      ),
+    );
+
+    await NotesService.createNote({
+      title: noteTitle,
+      content: noteBlocks,
+      tags: autoTags,
+      visibility: 'private',
+      tradeId,
+    });
+  };
+
+  const handleVoiceDataParsed = async (parsedData: ParsedVoiceJournal) => {
+    const normalizedUpdates: Record<string, unknown> = {
+      ...(parsedData?.updates || {}),
+    };
+
+    ['emotionBefore', 'emotionDuring', 'emotionAfter'].forEach((field) => {
+      const normalized = normalizeEmotionState(normalizedUpdates[field]);
+      if (normalized) {
+        normalizedUpdates[field] = normalized;
+      }
+    });
+
+    if (Object.keys(normalizedUpdates).length > 0) {
       setFormData((prev: any) => ({
         ...prev,
-        ...parsedData.updates,
+        ...normalizedUpdates,
       }));
     }
+
+    const voiceJournal = toVoiceNarrative(parsedData, normalizedUpdates);
+    if (!voiceJournal) {
+      return;
+    }
+
+    if (isEditMode && initialData?.id) {
+      try {
+        await createLinkedVoiceNoteForTrade(initialData.id, voiceJournal);
+        toast.success('Voice journal note linked to this trade.');
+        setPendingVoiceJournal(null);
+        return;
+      } catch (error: any) {
+        console.error('Failed to auto-create linked voice note:', error);
+        toast.error('Voice captured. Save the trade to retry linked note creation.');
+      }
+    }
+
+    setPendingVoiceJournal(voiceJournal);
   };
 
   const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
@@ -263,7 +508,7 @@ export default function TradeForm({ initialData, isEditMode = false, onFormSubmi
       const allowed = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp'];
       if (!allowed.includes(file.type)) { setFormError("Invalid file type"); return; }
       setSelectedFile(file);
-      setImagePreviewUrl(URL.createObjectURL(file));
+      setImagePreview(URL.createObjectURL(file));
       setFormData((prev: any) => ({ ...prev, imageUrl: '' }));
       setFormError(null);
     }
@@ -325,19 +570,40 @@ export default function TradeForm({ initialData, isEditMode = false, onFormSubmi
       delete payload.rMultiple;
 
       let result;
+      let resolvedTradeId: string | undefined;
+      let tradeSaved = false;
       if (isEditMode && initialData?.id) {
         result = await dispatch(updateTrade({ id: initialData.id, payload }));
         if (updateTrade.fulfilled.match(result)) {
-          onFormSubmitSuccess?.(result.payload.id) || router.push('/journal');
+          resolvedTradeId = result.payload.id;
+          tradeSaved = true;
         }
       } else {
         result = await dispatch(createTrade(payload));
         if (createTrade.fulfilled.match(result)) {
-          onFormSubmitSuccess?.(result.payload.id) || router.push('/journal');
+          resolvedTradeId = result.payload.id;
+          tradeSaved = true;
         }
       }
       if (result.meta.requestStatus === 'rejected') {
         setFormError((result as any).payload || 'Submission failed');
+        return;
+      }
+
+      if (tradeSaved && resolvedTradeId && pendingVoiceJournal?.transcript?.trim()) {
+        try {
+          await createLinkedVoiceNoteForTrade(resolvedTradeId, pendingVoiceJournal);
+          toast.success('Voice journal was saved as a linked note.');
+          setPendingVoiceJournal(null);
+        } catch (noteError: any) {
+          console.error('Failed to create linked voice note:', noteError);
+          toast.error('Trade saved, but linked voice note creation failed.');
+        }
+      }
+
+      if (tradeSaved) {
+        if (onFormSubmitSuccess) onFormSubmitSuccess(resolvedTradeId);
+        else router.push('/journal');
       }
     } catch (err: any) {
       setFormError(err.message || 'Unexpected error');
@@ -387,6 +653,11 @@ export default function TradeForm({ initialData, isEditMode = false, onFormSubmi
         </div>
         <VoiceJournalButton onParsedData={handleVoiceDataParsed} />
       </div>
+      {pendingVoiceJournal?.transcript && (
+        <div className="mb-6 p-3 rounded-xl border border-emerald-500/20 bg-emerald-500/5 text-sm text-emerald-700 dark:text-emerald-300">
+          Voice transcript captured. It will be saved as a linked note when you save this trade.
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} className="space-y-8">
         
@@ -608,7 +879,7 @@ export default function TradeForm({ initialData, isEditMode = false, onFormSubmi
                     {imagePreviewUrl && (
                       <div className="relative w-32 h-32 shrink-0">
                         <img src={imagePreviewUrl} alt="Preview" className="w-full h-full object-cover rounded-xl border border-zinc-200 dark:border-white/10 shadow-sm" />
-                        <button type="button" onClick={() => { setSelectedFile(null); setImagePreviewUrl(null); }}
+                        <button type="button" onClick={() => { setSelectedFile(null); setImagePreview(null); }}
                           className="absolute -top-2 -right-2 p-1.5 bg-red-500 rounded-full text-white shadow-md hover:bg-red-600 transition-colors">
                           <X className="w-3.5 h-3.5" />
                         </button>

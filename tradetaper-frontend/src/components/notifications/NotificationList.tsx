@@ -9,28 +9,17 @@ import {
   markAllNotificationsAsRead,
   deleteNotification,
 } from '@/store/features/notificationsSlice';
-import { Notification, NotificationType } from '@/services/notificationService';
+import { Notification } from '@/services/notificationService';
 import { useRouter } from 'next/navigation';
 import {
-  FaBell,
   FaCheck,
   FaCheckDouble,
   FaTrash,
-  FaChartLine,
-  FaCalendarAlt,
-  FaBrain,
-  FaCog,
-  FaExclamationTriangle,
-  FaLink,
-  FaSync,
   FaInbox,
-  FaCircle,
-  FaUsers,
-  FaCommentDots,
-  FaAt,
 } from 'react-icons/fa';
 import { format, isToday, isYesterday } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
+import { getNotificationStyle } from '@/utils/notificationUtils';
 
 interface NotificationListProps {
   showFilters?: boolean;
@@ -45,6 +34,7 @@ export default function NotificationList({ showFilters = true }: NotificationLis
 
   const [filter, setFilter] = useState<'all' | 'unread'>('all');
   const [typeFilter, setTypeFilter] = useState<string>('all');
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     dispatch(fetchNotifications({
@@ -55,7 +45,8 @@ export default function NotificationList({ showFilters = true }: NotificationLis
   }, [dispatch, filter, typeFilter]);
 
   const handleNotificationClick = async (notification: Notification) => {
-    if (notification.status !== 'read') {
+    const isUnread = notification.status === 'delivered' && !notification.readAt;
+    if (isUnread) {
       dispatch(markNotificationAsRead(notification.id));
     }
     if (notification.actionUrl) {
@@ -86,71 +77,17 @@ export default function NotificationList({ showFilters = true }: NotificationLis
     }));
   };
 
-  // Helper: Clean title and get severity
-  const getEconomicInfo = (notification: Notification) => {
-    let title = notification.title;
-    let severity: 'High' | 'Medium' | 'Low' = 'Medium';
-
-    // Infer severity from emoji or priority
-    if (title.includes('🔴') || notification.priority === 'urgent' || notification.priority === 'high') {
-      severity = 'High';
-    } else if (title.includes('🟠') || title.includes('🟧')) {
-      severity = 'Medium';
-    } else if (title.includes('🟡') || title.includes('🟨') || notification.priority === 'low') {
-      severity = 'Low';
-    }
-
-    // Clean title - Remove emoji warnings and other indicators
-    title = title.replace(/^[🔴🟠🟡🟧🟨⚠️\s]+|[🔴🟠🟡🟧🟨⚠️\s]+$/g, '').trim();
-
-    return { title, severity };
-  };
-
-  // Helper: Icon & Color logic
-  const getNotificationStyle = (notification: Notification) => {
-    const isEconomic = notification.type.startsWith('economic_event');
-    
-    if (isEconomic) {
-      const { severity, title } = getEconomicInfo(notification);
-      switch (severity) {
-        case 'High':
-          return { icon: <FaCalendarAlt />, color: 'text-red-700 dark:text-red-400', bg: 'bg-red-50 dark:bg-red-900/10', badge: 'High', title };
-        case 'Medium':
-          return { icon: <FaCalendarAlt />, color: 'text-orange-700 dark:text-orange-400', bg: 'bg-orange-50 dark:bg-orange-900/10', badge: 'Medium', title };
-        case 'Low':
-          return { icon: <FaCalendarAlt />, color: 'text-yellow-700 dark:text-yellow-400', bg: 'bg-yellow-50 dark:bg-yellow-900/10', badge: 'Low', title };
-      }
-    }
-
-    switch (notification.type) {
-      case NotificationType.TRADE_CREATED:
-      case NotificationType.TRADE_UPDATED:
-      case NotificationType.TRADE_CLOSED:
-        return { icon: <FaChartLine />, color: 'text-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-900/20' };
-      case NotificationType.MT5_SYNC_COMPLETE:
-        return { icon: <FaSync />, color: 'text-blue-500', bg: 'bg-blue-50 dark:bg-emerald-900/20' };
-      case NotificationType.MT5_SYNC_ERROR:
-        return { icon: <FaExclamationTriangle />, color: 'text-red-500', bg: 'bg-red-50 dark:bg-red-900/20' };
-      case NotificationType.AI_INSIGHT:
-        return { icon: <FaBrain />, color: 'text-purple-500', bg: 'bg-purple-50 dark:bg-emerald-900/20' };
-      case NotificationType.STRATEGY_ALERT:
-        return { icon: <FaExclamationTriangle />, color: 'text-yellow-500', bg: 'bg-yellow-50 dark:bg-yellow-900/20' };
-      case NotificationType.ACCOUNT_LINKED:
-      case NotificationType.ACCOUNT_UNLINKED:
-        return { icon: <FaLink />, color: 'text-blue-500', bg: 'bg-blue-50 dark:bg-emerald-900/20' };
-      case NotificationType.COMMUNITY_POST:
-        return { icon: <FaUsers />, color: 'text-emerald-600', bg: 'bg-emerald-50 dark:bg-emerald-900/20' };
-      case NotificationType.COMMUNITY_REPLY:
-        return { icon: <FaCommentDots />, color: 'text-teal-600', bg: 'bg-teal-50 dark:bg-emerald-900/20' };
-      case NotificationType.COMMUNITY_MENTION:
-        return { icon: <FaAt />, color: 'text-amber-600', bg: 'bg-amber-50 dark:bg-amber-900/20' };
-      default:
-        return { icon: <FaBell />, color: 'text-gray-500', bg: 'bg-gray-50 dark:bg-gray-800' };
-    }
-  };
+  const visibleNotifications = notifications.filter((notification) => {
+    const query = searchQuery.trim().toLowerCase();
+    if (!query) return true;
+    return (
+      notification.title.toLowerCase().includes(query) ||
+      notification.message.toLowerCase().includes(query)
+    );
+  });
 
   // Group notifications by date
-  const groupedNotifications = notifications.reduce((groups, notification) => {
+  const groupedNotifications = visibleNotifications.reduce((groups, notification) => {
     const date = new Date(notification.createdAt);
     let key: string;
     if (isToday(date)) key = 'Today';
@@ -165,8 +102,10 @@ export default function NotificationList({ showFilters = true }: NotificationLis
   const notificationTypes = [
     { value: 'all', label: 'All Types' },
     { value: 'trade_created', label: 'Trade Activity' },
+    { value: 'mt5_sync_error', label: 'MT5 Sync' },
     { value: 'economic_event_1h', label: 'Economic Cal' },
     { value: 'ai_insight', label: 'AI Insights' },
+    { value: 'subscription_reminder', label: 'Billing' },
     { value: 'system_update', label: 'System' },
     { value: 'community_post', label: 'Community' },
   ];
@@ -199,14 +138,14 @@ export default function NotificationList({ showFilters = true }: NotificationLis
       {showFilters && (
         <div className="flex flex-wrap items-center justify-between gap-3 p-1">
             {/* Filter Tabs */}
-            <div className="flex bg-gray-100 dark:bg-gray-800 rounded-xl p-1">
+            <div className="flex bg-gray-100 dark:bg-black dark:ring-1 dark:ring-white/10 rounded-xl p-1">
               {['all', 'unread'].map((f) => (
                 <button
                   key={f}
                   onClick={() => setFilter(f as 'all' | 'unread')}
                   className={`px-4 py-1.5 text-sm font-medium rounded-lg transition-all duration-200 ${
                     filter === f
-                      ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
+                      ? 'bg-white dark:bg-zinc-900 text-gray-900 dark:text-white shadow-sm'
                       : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
                   }`}
                 >
@@ -215,22 +154,29 @@ export default function NotificationList({ showFilters = true }: NotificationLis
               ))}
             </div>
 
-            {/* Type Select */}
-            <div className="relative">
-               <select
-                value={typeFilter}
-                onChange={(e) => setTypeFilter(e.target.value)}
-                className="appearance-none pl-3 pr-8 py-1.5 bg-transparent text-sm font-medium text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500/50 hover:border-gray-300 dark:hover:border-gray-600 transition-colors cursor-pointer"
-              >
-                {notificationTypes.map((type) => (
-                  <option key={type.value} value={type.value} className="bg-white dark:bg-gray-800">
-                    {type.label}
-                  </option>
-                ))}
-              </select>
-               <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none text-gray-400">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
-               </div>
+            <div className="flex items-center gap-2">
+              <input
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search notifications"
+                className="px-3 py-1.5 bg-transparent text-sm font-medium text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500/50 hover:border-gray-300 dark:hover:border-gray-600 transition-colors"
+              />
+              <div className="relative">
+                 <select
+                  value={typeFilter}
+                  onChange={(e) => setTypeFilter(e.target.value)}
+                  className="appearance-none pl-3 pr-8 py-1.5 bg-transparent text-sm font-medium text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500/50 hover:border-gray-300 dark:hover:border-gray-600 transition-colors cursor-pointer"
+                >
+                  {notificationTypes.map((type) => (
+                    <option key={type.value} value={type.value} className="bg-white dark:bg-black">
+                      {type.label}
+                    </option>
+                  ))}
+                </select>
+                 <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none text-gray-400">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                 </div>
+              </div>
             </div>
         </div>
       )}
@@ -242,9 +188,9 @@ export default function NotificationList({ showFilters = true }: NotificationLis
              <div className="w-10 h-10 border-4 border-emerald-500/30 border-t-emerald-500 rounded-full animate-spin mb-4" />
              <p className="text-gray-400 text-sm">Loading feed...</p>
           </div>
-        ) : notifications.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-24 text-center bg-gray-50 dark:bg-gray-800/30 rounded-2xl border border-dashed border-gray-200 dark:border-gray-700/50">
-            <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mb-4 text-gray-300 dark:text-gray-500">
+        ) : visibleNotifications.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-24 text-center bg-gray-50 dark:bg-black rounded-2xl border border-dashed border-gray-200 dark:border-white/10">
+            <div className="w-16 h-16 bg-gray-100 dark:bg-zinc-900 rounded-full flex items-center justify-center mb-4 text-gray-300 dark:text-gray-500">
               <FaInbox className="w-8 h-8" />
             </div>
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">
@@ -259,7 +205,7 @@ export default function NotificationList({ showFilters = true }: NotificationLis
         ) : (
           Object.entries(groupedNotifications).map(([date, items]) => (
             <div key={date} className="relative">
-              <div className="sticky top-[72px] z-10 py-2 bg-gray-50/95 dark:bg-gray-900/95 backdrop-blur-sm mb-4">
+              <div className="sticky top-[72px] z-10 py-2 bg-gray-50/95 dark:bg-black/95 backdrop-blur-sm mb-4">
                 <h3 className="text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 pl-1">
                   {date}
                 </h3>
@@ -269,7 +215,8 @@ export default function NotificationList({ showFilters = true }: NotificationLis
                 <AnimatePresence>
                   {items.map((notification) => {
                     const style = getNotificationStyle(notification);
-                    const isUnread = notification.status !== 'read';
+                    const isUnread =
+                      notification.status === 'delivered' && !notification.readAt;
 
                     return (
                       <motion.div
@@ -281,8 +228,8 @@ export default function NotificationList({ showFilters = true }: NotificationLis
                         onClick={() => handleNotificationClick(notification)}
                         className={`
                           group relative flex items-start gap-4 p-5 rounded-xl cursor-pointer transition-all duration-200
-                          bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700
-                          hover:shadow-md hover:border-gray-300 dark:hover:border-gray-600
+                          bg-white dark:bg-black border border-gray-200 dark:border-white/10
+                          hover:shadow-md hover:border-gray-300 dark:hover:border-emerald-500/30
                           ${isUnread ? 'shadow-sm ring-1 ring-emerald-500/20' : 'shadow-sm'}
                         `}
                       >
@@ -326,7 +273,7 @@ export default function NotificationList({ showFilters = true }: NotificationLis
                                   {isUnread && (
                                     <button
                                       onClick={(e) => handleMarkAsRead(e, notification.id)}
-                                      className="p-1.5 text-gray-400 hover:text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 rounded-md transition-colors"
+                                      className="p-1.5 text-gray-400 hover:text-emerald-500 hover:bg-emerald-50 dark:hover:bg-black rounded-md transition-colors"
                                       title="Mark as read"
                                     >
                                       <FaCheck className="w-3.5 h-3.5" />
@@ -334,7 +281,7 @@ export default function NotificationList({ showFilters = true }: NotificationLis
                                   )}
                                   <button
                                     onClick={(e) => handleDelete(e, notification.id)}
-                                    className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-md transition-colors"
+                                    className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-black rounded-md transition-colors"
                                     title="Delete"
                                   >
                                     <FaTrash className="w-3.5 h-3.5" />
@@ -347,7 +294,7 @@ export default function NotificationList({ showFilters = true }: NotificationLis
                         {/* Unread Indicator Dot */}
                         {isUnread && (
                           <div className="absolute top-5 right-4 sm:static sm:top-auto sm:right-auto sm:mt-2">
-                             <div className="w-2.5 h-2.5 bg-emerald-500 rounded-full ring-2 ring-white dark:ring-gray-800" />
+                             <div className="w-2.5 h-2.5 bg-emerald-500 rounded-full ring-2 ring-white dark:ring-black" />
                           </div>
                         )}
                       </motion.div>
@@ -365,7 +312,7 @@ export default function NotificationList({ showFilters = true }: NotificationLis
             <button
                onClick={loadMore}
                disabled={isLoading}
-               className="px-6 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-full text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm"
+               className="px-6 py-2 bg-white dark:bg-black border border-gray-200 dark:border-white/10 rounded-full text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-zinc-950 transition-colors shadow-sm"
              >
                {isLoading ? 'Loading...' : 'Load Older Notifications'}
              </button>

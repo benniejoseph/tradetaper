@@ -8,9 +8,9 @@ import { strategiesService } from '@/services/strategiesService';
 function ContentHeader({ title, description }: { title: string; description?: string }) {
   return (
     <div className="mb-6">
-      <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{title}</h1>
+      <h1 className="text-xl font-bold text-gray-900 dark:text-white sm:text-2xl">{title}</h1>
       {description && (
-        <p className="text-gray-600 dark:text-gray-400 mt-1">{description}</p>
+        <p className="mt-1 text-sm text-gray-600 dark:text-gray-400 sm:text-base">{description}</p>
       )}
     </div>
   );
@@ -27,7 +27,7 @@ export default function NewStrategyPage() {
     checklist: [],
     tradingSession: undefined,
     isActive: true,
-    color: '#3B82F6',
+    color: '#059669',
     tags: '',
   });
 
@@ -89,7 +89,7 @@ export default function NewStrategyPage() {
       />
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="bg-gradient-to-br from-white to-emerald-50 dark:from-black dark:to-emerald-950/20 rounded-xl shadow-sm border border-emerald-200/50 dark:border-emerald-700/30 p-6 backdrop-blur-xl">
+        <div className="bg-gradient-to-br from-white to-emerald-50 dark:from-black dark:to-emerald-950/20 rounded-xl shadow-sm border border-emerald-200/50 dark:border-emerald-700/30 p-4 sm:p-6 backdrop-blur-xl">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Basic Information</h3>
           
           <div className="space-y-4">
@@ -129,7 +129,7 @@ export default function NewStrategyPage() {
                   value={formData.tradingSession || ''}
                   onChange={(e) => setFormData(prev => ({ 
                     ...prev, 
-                    tradingSession: e.target.value as any || undefined 
+                    tradingSession: (e.target.value || undefined) as CreateStrategyDto['tradingSession']
                   }))}
                   className="w-full px-3 py-2 border border-emerald-300 dark:border-emerald-600/30 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent bg-white dark:bg-black text-gray-900 dark:text-white"
                 >
@@ -183,43 +183,43 @@ export default function NewStrategyPage() {
         </div>
 
         {/* Checklist Section */}
-        <div className="bg-gradient-to-br from-white to-emerald-50 dark:from-black dark:to-emerald-950/20 rounded-xl shadow-sm border border-emerald-200/50 dark:border-emerald-700/30 p-6 backdrop-blur-xl">
+        <div className="bg-gradient-to-br from-white to-emerald-50 dark:from-black dark:to-emerald-950/20 rounded-xl shadow-sm border border-emerald-200/50 dark:border-emerald-700/30 p-4 sm:p-6 backdrop-blur-xl">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Trading Checklist</h3>
           
           <div className="space-y-3">
-            {formData.checklist?.map((item, index) => (
-              <div key={item.id} className="flex items-center gap-3 p-3 bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-950/20 dark:to-emerald-900/20 rounded-lg border border-emerald-200 dark:border-emerald-700/30">
+            {formData.checklist?.map((item) => (
+              <div key={item.id} className="flex items-start gap-3 rounded-lg border border-emerald-200 bg-gradient-to-r from-emerald-50 to-emerald-100 p-3 dark:border-emerald-700/30 dark:from-emerald-950/20 dark:to-emerald-900/20">
                 <MdDragIndicator className="text-gray-400 flex-shrink-0" />
                 <input
                   type="text"
                   value={item.text}
                   onChange={(e) => updateChecklistItem(item.id, e.target.value)}
-                  className="flex-1 px-3 py-2 border border-emerald-300 dark:border-emerald-600/30 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent bg-white dark:bg-black text-gray-900 dark:text-white"
+                  className="min-w-0 flex-1 rounded-lg border border-emerald-300 bg-white px-3 py-2 text-gray-900 focus:border-transparent focus:ring-2 focus:ring-emerald-500 dark:border-emerald-600/30 dark:bg-black dark:text-white"
                   placeholder="Checklist item..."
                 />
                 <button
                   type="button"
                   onClick={() => removeChecklistItem(item.id)}
-                  className="p-2 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                  className="shrink-0 rounded-lg p-2 text-red-600 transition-colors hover:bg-red-100 dark:text-red-400 dark:hover:bg-red-900/20"
                 >
                   <FiTrash2 className="w-4 h-4" />
                 </button>
               </div>
             ))}
             
-            <div className="flex gap-3">
+            <div className="flex flex-col gap-3 sm:flex-row">
               <input
                 type="text"
                 value={newChecklistItem}
                 onChange={(e) => setNewChecklistItem(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addChecklistItem())}
+                onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addChecklistItem())}
                 className="flex-1 px-3 py-2 border border-emerald-300 dark:border-emerald-600/30 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent bg-white dark:bg-black text-gray-900 dark:text-white"
                 placeholder="Add checklist item..."
               />
               <button
                 type="button"
                 onClick={addChecklistItem}
-                className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors flex items-center"
+                className="inline-flex w-full items-center justify-center rounded-lg bg-emerald-600 px-4 py-2 text-white transition-colors hover:bg-emerald-700 sm:w-auto"
               >
                 <FiPlus className="w-4 h-4" />
               </button>
@@ -227,18 +227,18 @@ export default function NewStrategyPage() {
           </div>
         </div>
 
-        <div className="flex justify-end gap-3">
+        <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
           <button
             type="button"
             onClick={() => router.back()}
-            className="px-4 py-2 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-600/30 rounded-lg hover:bg-gradient-to-r hover:from-emerald-50 hover:to-emerald-100 dark:hover:from-emerald-950/20 dark:hover:to-emerald-900/20 transition-all"
+            className="w-full rounded-lg border border-emerald-300 px-4 py-2 text-emerald-700 transition-all hover:bg-gradient-to-r hover:from-emerald-50 hover:to-emerald-100 dark:border-emerald-600/30 dark:text-emerald-300 dark:hover:from-emerald-950/20 dark:hover:to-emerald-900/20 sm:w-auto"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={loading || !formData.name.trim()}
-            className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="w-full rounded-lg bg-emerald-600 px-4 py-2 text-white transition-colors hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
           >
             {loading ? 'Creating...' : 'Create Strategy'}
           </button>

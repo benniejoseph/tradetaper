@@ -9,12 +9,16 @@ import { usePathname } from 'next/navigation';
 import { mainNavItems, userNavItems, settingsNavItems } from '@/config/navigation';
 import { 
   FaSignOutAlt, FaUserCircle, FaTimes, FaChevronLeft, 
-  FaChevronRight, FaBars, FaCog, FaExpand, FaCompress, FaCrown
+  FaChevronRight, FaBars, FaCog, FaExpand, FaCompress, FaCrown, FaChevronDown
 } from 'react-icons/fa';
 import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '@/store/store';
 import { logout } from '@/store/features/authSlice';
 import { useRouter } from 'next/navigation';
+import { logoutUser } from '@/services/authService';
+import {
+  resolveEntitlementPlan,
+} from '@/lib/subscriptionEntitlements';
 
 
 // Define props for Sidebar
@@ -30,15 +34,18 @@ export default function Sidebar({ isOpen, toggleSidebar, isMobile, onExpandChang
   const dispatch = useDispatch<AppDispatch>();
   const router = useRouter();
   const { user, isAuthenticated } = useSelector((state: RootState) => state.auth);
+  const effectivePlan = resolveEntitlementPlan(user?.subscription);
   const visibleMainNavItems = isAuthenticated
     ? mainNavItems
     : mainNavItems.filter((item) => item.href === '/community');
   
   // Expandable sidebar state - collapsed by default
   const [isExpanded, setIsExpanded] = useState(false);
+  const [settingsMenuOpen, setSettingsMenuOpen] = useState(false);
   const [hoverTimeout, setHoverTimeout] = useState<NodeJS.Timeout | null>(null);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await logoutUser();
     dispatch(logout());
     router.push('/login');
   };
@@ -70,6 +77,13 @@ export default function Sidebar({ isOpen, toggleSidebar, isMobile, onExpandChang
     }
   }, [isMobile, onExpandChange]);
 
+  const handleSettingsToggle = () => {
+    setSettingsMenuOpen((prev) => !prev);
+    if (!pathname.startsWith('/settings')) {
+      router.push('/settings');
+    }
+  };
+
   return (
     <>
       {/* Mobile Overlay */}
@@ -83,7 +97,7 @@ export default function Sidebar({ isOpen, toggleSidebar, isMobile, onExpandChang
 
       {/* Sidebar */}
       <aside 
-        className={`${isExpanded ? 'w-72' : 'w-20'} flex flex-col h-screen 
+        className={`${isExpanded ? 'w-72' : 'w-20'} flex flex-col min-h-dvh h-dvh 
                         bg-white/90 dark:bg-black backdrop-blur-xls
                         border-r border-gray-200/50 dark:border-gray-700/50
                         fixed top-0 left-0 z-50 
@@ -93,19 +107,19 @@ export default function Sidebar({ isOpen, toggleSidebar, isMobile, onExpandChang
                         ${isMobile ? 'w-72' : ''}`}>
         
         {/* Header with Logo */}
-        <div className="p-4 sm:p-6">
-          <div className="flex items-center justify-between">
+        <div className={`${isExpanded || isMobile ? 'p-4 sm:p-6' : 'px-2 py-4'}`}>
+          <div className={`relative flex items-center ${isExpanded || isMobile ? 'justify-between' : 'flex-col justify-center gap-2'}`}>
             <Link href="/dashboard" 
-                  className="flex items-center space-x-3 group focus:outline-none"
+                  className={`flex items-center group focus:outline-none transition-all duration-300 ${isExpanded || isMobile ? 'space-x-3 justify-start' : 'justify-center w-full'}`}
                   onClick={handleLinkClick}>
-              <div className="relative -ml-2">
-                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center group-hover:scale-105 transition-all duration-300">
+              <div className={`relative ${isExpanded || isMobile ? '-ml-2' : 'mx-auto'}`}>
+                <div className={`${isExpanded || isMobile ? 'w-14 h-14 sm:w-16 sm:h-16' : 'w-11 h-11'} rounded-xl flex items-center justify-center group-hover:scale-105 transition-all duration-300`}>
                   <Image
                     src="/tradetaperLogo.png"
                     alt="TradeTaper"
-                    width={24}
-                    height={24}
-                    className="h-5 w-5 sm:h-6 sm:w-6 object-contain"
+                    width={48}
+                    height={48}
+                    className={`${isExpanded || isMobile ? 'h-10 w-10 sm:h-12 sm:w-12' : 'h-9 w-9'} object-contain`}
                   />
                 </div>
               </div>
@@ -117,11 +131,11 @@ export default function Sidebar({ isOpen, toggleSidebar, isMobile, onExpandChang
               </div>
             </Link>
             
-            <div className="flex items-center space-x-2 mt-5">
+            <div className={`flex items-center space-x-2 ${isMobile ? 'mt-5' : isExpanded ? 'absolute right-0 top-1/2 -translate-y-1/2' : 'justify-center w-full'}`}>
               {!isMobile && (
                 <button 
                   onClick={toggleExpanded}
-                  className="p-2 ml-2 rounded-lg bg-gray-100/80 dark:bg-[#141414] hover:bg-emerald-500 dark:hover:bg-emerald-600 text-gray-600 dark:text-gray-400 hover:text-white transition-all duration-200 hover:scale-105"
+                  className={`p-2 rounded-lg bg-gray-100/80 dark:bg-[#141414] hover:bg-emerald-500 dark:hover:bg-emerald-600 text-gray-600 dark:text-gray-400 hover:text-white transition-all duration-200 hover:scale-105 ${isExpanded ? 'ml-2' : ''}`}
                   aria-label={isExpanded ? "Collapse sidebar" : "Expand sidebar"}>
                   {isExpanded ? <FaChevronLeft className="h-4 w-4" /> : <FaChevronRight className="h-4 w-4" />}
                 </button>
@@ -209,10 +223,41 @@ export default function Sidebar({ isOpen, toggleSidebar, isMobile, onExpandChang
             <div className="space-y-1">
               {userNavItems.map((item) => {
                 const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
+                const isSettingsItem = item.href === '/settings';
                 return (
                   <div key={item.label}>
                     <div className="relative group/tooltip">
-                      <Link
+                      {isSettingsItem ? (
+                        <button
+                          type="button"
+                          onClick={handleSettingsToggle}
+                          className={`w-full group flex items-center ${isExpanded ? 'space-x-3 px-4' : 'justify-center px-2'} py-3 rounded-xl text-sm font-medium transition-all duration-200 relative overflow-hidden text-left
+                            ${isActive 
+                              ? 'bg-gradient-to-r from-emerald-500 to-emerald-600 text-white shadow-lg dark:shadow-emerald-md' 
+                              : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100/80 dark:hover:bg-[#0A0A0A]'
+                            }`}>
+                          
+                          {!isActive && (
+                            <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/10 to-emerald-600/10 opacity-0 group-hover:opacity-100 transition-opacity duration-200"></div>
+                          )}
+                          
+                          <div className={`relative z-10 flex items-center ${isExpanded ? 'space-x-3' : 'justify-center'}`}>
+                            {item.icon && (
+                              <item.icon className={`h-5 w-5 transition-transform duration-200 group-hover:scale-110
+                                ${isActive ? 'text-white' : 'text-gray-500 dark:text-gray-400 group-hover:text-emerald-500'}`} />
+                            )}
+                            <span className={`transition-all duration-500 overflow-hidden ${isExpanded ? 'opacity-100 w-auto' : 'opacity-0 w-0'} whitespace-nowrap`}>
+                              {item.label}
+                            </span>
+                            {isExpanded && (
+                              <FaChevronDown
+                                className={`h-3 w-3 ml-1 transition-transform duration-200 ${settingsMenuOpen ? 'rotate-180' : ''}`}
+                              />
+                            )}
+                          </div>
+                        </button>
+                      ) : (
+                        <Link
                         href={item.href}
                         onClick={handleLinkClick}
                         className={`group flex items-center ${isExpanded ? 'space-x-3 px-4' : 'justify-center px-2'} py-3 rounded-xl text-sm font-medium transition-all duration-200 relative overflow-hidden
@@ -235,6 +280,7 @@ export default function Sidebar({ isOpen, toggleSidebar, isMobile, onExpandChang
                           </span>
                         </div>
                       </Link>
+                      )}
                       
                     {/* Tooltip for collapsed state */}
                     {!isExpanded && (
@@ -245,9 +291,9 @@ export default function Sidebar({ isOpen, toggleSidebar, isMobile, onExpandChang
                     )}
                   </div>
                   
-                  {/* Settings Subnav - Show even when collapsed if active */}
-                  {item.href === '/settings' && pathname.startsWith('/settings') && (
-                    <div className={`${isExpanded ? 'mt-2 ml-4 space-y-1 border-l-2 border-gradient-to-b from-purple-500 to-pink-500 pl-4' : 'mt-2 space-y-2 flex flex-col items-center'}`}>
+                  {/* Settings Subnav - Visible only after clicking Settings */}
+                  {item.href === '/settings' && settingsMenuOpen && (
+                    <div className={`${isExpanded ? 'mt-2 ml-4 space-y-1 border-l-2 border-emerald-500/50 pl-4' : 'mt-2 space-y-2 flex flex-col items-center'}`}>
                       {settingsNavItems.map(subItem => {
                         const isSubActive = pathname === subItem.href || pathname.startsWith(subItem.href + '/');
                         return (
@@ -303,14 +349,19 @@ export default function Sidebar({ isOpen, toggleSidebar, isMobile, onExpandChang
                     <p className="text-sm font-medium text-gray-900 dark:text-white whitespace-nowrap">
                       {user?.firstName || user?.email?.split('@')[0] || 'User'}
                     </p>
-                    {user?.subscription?.plan === 'premium' && (
+                    {effectivePlan === 'premium' && (
                       <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-gradient-to-r from-amber-400 to-amber-600 text-white shadow-sm flex items-center gap-1">
-                        <FaCrown className="w-2.5 h-2.5" /> PRO
+                        <FaCrown className="w-2.5 h-2.5" /> PREMIUM
                       </span>
                     )}
-                     {user?.subscription?.plan === 'essential' && (
-                      <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-gradient-to-r from-blue-400 to-blue-600 text-white shadow-sm">
-                        PLUS
+                    {effectivePlan === 'essential' && (
+                      <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300 shadow-sm">
+                        ESSENTIAL
+                      </span>
+                    )}
+                    {effectivePlan === 'free' && (
+                      <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-gray-200 dark:bg-zinc-800 text-gray-700 dark:text-gray-300 shadow-sm border border-gray-300 dark:border-zinc-700">
+                        FREE
                       </span>
                     )}
                   </div>

@@ -4,8 +4,6 @@ import React, { useEffect, useState } from 'react';
 import { FeatureGate } from '@/components/common/FeatureGate';
 import {
   Trophy,
-  TrendingUp,
-  TrendingDown,
   AlertTriangle,
   CheckCircle,
   XCircle,
@@ -16,8 +14,8 @@ import {
   RefreshCw,
   ChevronDown,
 } from 'lucide-react';
-import { useAiError } from '@/hooks/useAiError';
 import { toast } from 'react-hot-toast';
+import { authApiClient } from '@/services/api';
 
 /* ────────────────────────────────────────────────────── */
 /* Types                                                  */
@@ -120,7 +118,7 @@ function ProgressBar({ value, max, color }: { value: number; max: number; color:
 /* ────────────────────────────────────────────────────── */
 export default function PropFirmPage() {
   return (
-    <FeatureGate feature="mentor" className="min-h-screen">
+    <FeatureGate feature="propFirm" className="min-h-screen">
       <PropFirmDashboard />
     </FeatureGate>
   );
@@ -132,19 +130,15 @@ function PropFirmDashboard() {
   const [showModal, setShowModal]     = useState(false);
   const [editing, setEditing]         = useState<PropFirmChallenge | null>(null);
   const [deleting, setDeleting]       = useState<string | null>(null);
-  const handleAiError = useAiError();
-
-  const apiBase = process.env.NEXT_PUBLIC_API_URL + '/api/v1';
 
   const load = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${apiBase}/prop-firm-challenges`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-      });
-      if (!res.ok) throw new Error(await res.text());
-      setChallenges(await res.json());
-    } catch (e) { handleAiError(e); }
+      const res = await authApiClient.get<PropFirmChallenge[]>(
+        '/prop-firm-challenges',
+      );
+      setChallenges(res.data);
+    } catch (e: any) { toast.error(e.message ?? 'Failed to load challenges'); }
     finally { setLoading(false); }
   };
 
@@ -153,10 +147,7 @@ function PropFirmDashboard() {
   const handleDelete = async (id: string) => {
     setDeleting(id);
     try {
-      await fetch(`${apiBase}/prop-firm-challenges/${id}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-      });
+      await authApiClient.delete(`/prop-firm-challenges/${id}`);
       setChallenges((prev) => prev.filter((c) => c.id !== id));
       toast.success('Challenge deleted');
     } catch (e) { toast.error('Failed to delete'); }
@@ -264,7 +255,6 @@ function PropFirmDashboard() {
       {showModal && (
         <ChallengeModal
           challenge={editing}
-          apiBase={apiBase}
           onClose={() => { setShowModal(false); setEditing(null); }}
           onSave={(updated) => {
             if (editing) {
@@ -324,7 +314,7 @@ function ChallengeCard({
 
         <div className="flex items-center gap-2">
           <span className={`flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-bold ${badge.bg} ${badge.color}`}>
-            <BadgeIcon className="h-3.5 w-3.5" />
+            {React.createElement(BadgeIcon as any, { className: 'h-3.5 w-3.5' })}
             {badge.label}
           </span>
           <button onClick={onEdit} className="rounded-lg border border-gray-200/70 dark:border-zinc-700 p-1.5 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors">
@@ -415,12 +405,10 @@ function ChallengeCard({
 /* ────────────────────────────────────────────────────── */
 function ChallengeModal({
   challenge,
-  apiBase,
   onClose,
   onSave,
 }: {
   challenge: PropFirmChallenge | null;
-  apiBase: string;
   onClose: () => void;
   onSave: (c: PropFirmChallenge) => void;
 }) {
@@ -467,21 +455,19 @@ function ChallengeModal({
         notes: form.notes || undefined,
       };
 
-      const url = challenge
-        ? `${apiBase}/prop-firm-challenges/${challenge.id}`
-        : `${apiBase}/prop-firm-challenges`;
-
-      const res = await fetch(url, {
-        method: challenge ? 'PATCH' : 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
-        body: JSON.stringify(body),
-      });
-
-      if (!res.ok) throw new Error(await res.text());
-      onSave(await res.json());
+      if (challenge) {
+        const res = await authApiClient.patch<PropFirmChallenge>(
+          `/prop-firm-challenges/${challenge.id}`,
+          body,
+        );
+        onSave(res.data);
+      } else {
+        const res = await authApiClient.post<PropFirmChallenge>(
+          '/prop-firm-challenges',
+          body,
+        );
+        onSave(res.data);
+      }
     } catch (e: any) {
       toast.error(e.message ?? 'Failed to save');
     } finally {

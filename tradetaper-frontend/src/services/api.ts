@@ -1,18 +1,11 @@
 // src/services/api.ts
-import axios from 'axios';
+import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { RootState } from '@/store/store';
 import { csrfService } from './csrf';
 
 // Use environment variable with fallback to GCP backend
 const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL ||
   'https://api.tradetaper.com/api/v1').trim();
-
-console.log('🔧 API Configuration:', {
-  env: process.env.NODE_ENV,
-  apiUrl: API_BASE_URL,
-  envVar: process.env.NEXT_PUBLIC_API_URL,
-  timestamp: new Date().toISOString()
-});
 
 // Default instance for public routes
 export const apiClient = axios.create({
@@ -38,46 +31,87 @@ csrfService.setupInterceptors(authApiClient);
 
 export default authApiClient;
 
-export function setupAuthInterceptors(getState: () => RootState) { // removed unused dispatch parameter
-    authApiClient.interceptors.request.use(
-        (config: any) => {
-            const state = getState();
-            const token = state.auth.token;
-            console.log('🔐 Auth State:', {
-                hasToken: !!token,
-                isAuthenticated: state.auth.isAuthenticated,
-                hasUser: !!state.auth.user,
-                url: config.url
-            });
-            if (token) {
-                config.headers.Authorization = `Bearer ${token}`;
-                console.log('✅ Added Bearer token to request');
-            } else {
-                console.warn('⚠️ No token found in Redux store!');
-            }
-            console.log('🚀 Making authenticated API request to:', config.baseURL + config.url);
-            return config;
-        },
-        (error: any) => Promise.reject(error)
-    );
+let authInterceptorsConfigured = false;
+let refreshPromise: Promise<void> | null = null;
+let onAuthFailureHandler: (() => void) | undefined;
 
-    authApiClient.interceptors.response.use(
-        (response: any) => response,
-        (error: any) => {
-            console.error('❌ API Request failed:', {
-                url: error.config?.url,
-                baseURL: error.config?.baseURL,
-                status: error.response?.status,
-                message: error.message
-            });
-            if (error.response && error.response.status === 401) {
-                console.log('Unauthorized from interceptor...');
-                // Handle token refresh failure (e.g., redirect to login)
-            }
-            return Promise.reject(error);
-        }
-    );
-    console.log('[API.TS] Auth interceptors configured.');
+interface RetryableAxiosRequestConfig extends InternalAxiosRequestConfig {
+  _retry?: boolean;
+  skipAuthRefresh?: boolean;
+}
+
+function shouldSkipRefresh(url?: string): boolean {
+  if (!url) return false;
+  return (
+    url.includes('/auth/login') ||
+    url.includes('/auth/register') ||
+    url.includes('/auth/refresh') ||
+    url.includes('/admin/auth/login') ||
+    url.includes('/admin/auth/logout')
+  );
+}
+
+async function refreshAuthSession(): Promise<void> {
+  if (!refreshPromise) {
+    refreshPromise = apiClient
+      .post(
+        '/auth/refresh',
+        {},
+        {
+          skipAuthRefresh: true,
+        } as RetryableAxiosRequestConfig,
+      )
+      .then(() => undefined)
+      .finally(() => {
+        refreshPromise = null;
+      });
+  }
+  return refreshPromise;
+}
+
+export function setupAuthInterceptors(
+  getState: () => RootState,
+  onAuthFailure?: () => void,
+) {
+  void getState;
+  if (onAuthFailure) {
+    onAuthFailureHandler = onAuthFailure;
+  }
+  if (authInterceptorsConfigured) {
+    return;
+  }
+  authInterceptorsConfigured = true;
+
+  authApiClient.interceptors.request.use(
+    (config: any) => config,
+    (error: any) => Promise.reject(error),
+  );
+
+  authApiClient.interceptors.response.use((response: any) => response, async (error: AxiosError) => {
+    const originalRequest = error.config as RetryableAxiosRequestConfig | undefined;
+    const status = error.response?.status;
+
+    if (
+      status !== 401 ||
+      !originalRequest ||
+      originalRequest._retry ||
+      originalRequest.skipAuthRefresh ||
+      shouldSkipRefresh(originalRequest.url)
+    ) {
+      return Promise.reject(error);
+    }
+
+    originalRequest._retry = true;
+    try {
+      await refreshAuthSession();
+      return authApiClient.request(originalRequest);
+    } catch (refreshError) {
+      if (onAuthFailureHandler) {
+        onAuthFailureHandler();
+      }
+      return Promise.reject(refreshError);
+    }
+  });
 }
 
 /**
@@ -85,14 +119,13 @@ export function setupAuthInterceptors(getState: () => RootState) { // removed un
  * Should be called on app startup
  */
 export async function initializeApiSecurity(): Promise<void> {
-    try {
-        await csrfService.initialize();
-        console.log('✅ API security initialized (CSRF protection ready)');
-    } catch (error) {
-        console.error('❌ Failed to initialize API security:', error);
-        // Don't throw in development mode to allow local testing
-        if (process.env.NODE_ENV === 'production') {
-            throw error;
-        }
+  try {
+    await csrfService.initialize();
+  } catch (error) {
+    if (process.env.NODE_ENV === 'production') {
+      throw error;
     }
+    // Keep local development usable if CSRF endpoint is unavailable.
+    console.error('Failed to initialize API security:', error);
+  }
 }

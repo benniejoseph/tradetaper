@@ -6,7 +6,12 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "set:seo:verification-env": "bash scripts/set-search-verification-env.sh production",
+    "verify:seo:search-console": "bash scripts/verify-search-console.sh",
+    "test:unit": "vitest run",
+    "test:e2e": "playwright test",
+    "test:backtesting-session-review-e2e": "playwright test e2e/backtesting-session-review.spec.ts"
   },
   "dependencies": {
     "@radix-ui/react-label": "^2.1.7",
@@ -14,6 +19,7 @@
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.5.0",
     "@reduxjs/toolkit": "^2.8.2",
+    "@sentry/nextjs": "^10.20.0",
     "@tailwindcss/forms": "^0.5.10",
     "@tanstack/react-query": "^5.90.20",
     "@types/react-calendar-heatmap": "^1.9.0",
@@ -32,6 +38,7 @@
     "maath": "^0.10.8",
     "next": "^15.3.6",
     "next-themes": "^0.4.6",
+    "posthog-js": "^1.257.0",
     "react": "^19.0.0",
     "react-calendar-heatmap": "^1.10.0",
     "react-datepicker": "^8.4.0",
@@ -51,6 +58,7 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
+    "@playwright/test": "^1.58.2",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
@@ -61,6 +69,7 @@
     "eslint-config-next": "15.3.2",
     "postcss": "^8.4.38",
     "tailwindcss": "^3.4.4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^3.2.4"
   }
 }

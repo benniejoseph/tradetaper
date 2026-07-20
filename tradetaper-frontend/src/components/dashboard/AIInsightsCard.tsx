@@ -3,9 +3,10 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { useSelector } from 'react-redux';
 import { RootState } from '@/store/store';
 import { FaRobot, FaCheckCircle, FaExclamationTriangle, FaLightbulb, FaSpinner, FaRedo } from 'react-icons/fa';
-import { AnimatedCard } from '@/components/ui/AnimatedCard';
 import { formatDistanceToNow } from 'date-fns';
-import { Trade } from '@/types/trade';
+import { authApiClient } from '@/services/api';
+import { selectSelectedAccountId } from '@/store/features/accountSlice';
+import { selectSelectedMT5AccountId } from '@/store/features/mt5AccountsSlice';
 
 interface Insight {
   type: 'STRENGTH' | 'WEAKNESS' | 'FOCUS_AREA';
@@ -26,8 +27,15 @@ interface CachedReport {
 }
 
 export default function AIInsightsCard() {
-  const { token, user } = useSelector((state: RootState) => state.auth);
+  const { user } = useSelector((state: RootState) => state.auth);
   const { trades } = useSelector((state: RootState) => state.trades);
+  const selectedAccountId = useSelector(selectSelectedAccountId);
+  const selectedMT5AccountId = useSelector(selectSelectedMT5AccountId);
+  const activeAccountId = selectedAccountId || selectedMT5AccountId || null;
+  const scopedTrades = useMemo(
+    () => (activeAccountId ? (trades || []).filter((trade) => trade.accountId === activeAccountId) : (trades || [])),
+    [trades, activeAccountId],
+  );
   
   const [report, setReport] = useState<AIReport | null>(null);
   const [loading, setLoading] = useState(false);
@@ -35,10 +43,10 @@ export default function AIInsightsCard() {
 
   // robustly determine the latest trade date
   const latestTradeDate = useMemo(() => {
-    if (!trades || trades.length === 0) return null;
+    if (!scopedTrades || scopedTrades.length === 0) return null;
     
     // Sort trades by exit date or entry date to find the latest
-    const sorted = [...trades].sort((a, b) => {
+    const sorted = [...scopedTrades].sort((a, b) => {
         const dateA = new Date(a.exitDate || a.entryDate || 0).getTime();
         const dateB = new Date(b.exitDate || b.entryDate || 0).getTime();
         return dateB - dateA; // Descending
@@ -46,12 +54,18 @@ export default function AIInsightsCard() {
     
     const latest = sorted[0];
     return latest ? new Date(latest.exitDate || latest.entryDate || 0).getTime() : null;
-  }, [trades]);
+  }, [scopedTrades]);
 
-  const cacheKey = useMemo(() => user ? `trading_coach_report_${user.id}` : null, [user]);
+  const cacheKey = useMemo(
+    () => (user ? `trading_coach_report_${user.id}_${activeAccountId || 'all'}` : null),
+    [user, activeAccountId],
+  );
 
   // Load from cache on mount
   useEffect(() => {
+    setReport(null);
+    setLastUpdated(null);
+
     if (cacheKey) {
         const cachedStr = localStorage.getItem(cacheKey);
         if (cachedStr) {
@@ -69,7 +83,7 @@ export default function AIInsightsCard() {
 
   // Fetch logic (Initial or Auto-Refresh)
   useEffect(() => {
-    if (!token || !cacheKey) return;
+    if (!cacheKey) return;
 
     const checkAndFetch = async () => {
         const cachedStr = localStorage.getItem(cacheKey);
@@ -104,26 +118,27 @@ export default function AIInsightsCard() {
 
     checkAndFetch();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token, cacheKey, latestTradeDate]); // Intentionally not including 'loading' to avoid loops
+  }, [cacheKey, latestTradeDate, activeAccountId]); // Intentionally not including 'loading' to avoid loops
 
   const fetchInsights = async () => {
     if (loading) return;
     setLoading(true);
     try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/analytics/insights`, {
-            headers: { 'Authorization': `Bearer ${token}` }
+        const res = await authApiClient.get<AIReport>('/analytics/insights', {
+          params: {
+            ...(activeAccountId ? { accountId: activeAccountId } : {}),
+            _ts: Date.now(),
+          },
         });
-        if (res.ok) {
-            const data = await res.json();
-            setReport(data);
-            
-            const now = Date.now();
-            setLastUpdated(now);
-            
-            if (cacheKey) {
-                const cacheData: CachedReport = { data, timestamp: now };
-                localStorage.setItem(cacheKey, JSON.stringify(cacheData));
-            }
+        const data = res.data;
+        setReport(data);
+        
+        const now = Date.now();
+        setLastUpdated(now);
+        
+        if (cacheKey) {
+            const cacheData: CachedReport = { data, timestamp: now };
+            localStorage.setItem(cacheKey, JSON.stringify(cacheData));
         }
     } catch (e) {
         console.error("Failed to fetch AI insights", e);
@@ -142,27 +157,28 @@ export default function AIInsightsCard() {
   return (
     <div className="col-span-1 sm:col-span-2 lg:col-span-6 bg-white dark:bg-[#022c22] border border-slate-200 dark:border-emerald-900 rounded-xl shadow-sm p-0 overflow-hidden">
       {/* Header / Main Score Area - Emerald Gradient matching request */}
-      <div className="bg-gradient-to-r from-emerald-900 to-emerald-600 p-4 text-white flex flex-col md:flex-row items-center justify-between">
-          <div className="flex items-center gap-3">
+      <div className="bg-gradient-to-r from-emerald-900 to-emerald-600 p-4 text-white">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex w-full items-start gap-3 sm:w-auto sm:items-center">
                <div className="p-2 bg-white/10 rounded-full backdrop-blur-sm">
                   <FaRobot className="w-6 h-6 text-emerald-50" />
                </div>
-               <div>
-                   <h3 className="text-xl font-bold text-white">Trading Coach Insight</h3>
-                   <div className="flex items-center gap-2 mt-1">
+               <div className="min-w-0">
+                   <h3 className="text-lg sm:text-xl font-bold text-white leading-tight">Trading Coach Insight</h3>
+                   <div className="mt-1 flex flex-wrap items-center gap-2">
                       <span className="text-emerald-50 text-sm opacity-80">AI-Powered Analysis</span>
                       {loading && <FaSpinner className="animate-spin text-white" />}
                       {!loading && lastUpdated && (
-                          <span className="text-emerald-100/60 text-xs border-l border-emerald-500/50 pl-2 ml-1">
+                          <span className="hidden sm:inline text-emerald-100/60 text-xs border-l border-emerald-500/50 pl-2 ml-1">
                               Updated {formatDistanceToNow(lastUpdated, { addSuffix: true })}
                           </span>
                       )}
                    </div>
                </div>
           </div>
-          <div className="flex items-center gap-4 mt-3 md:mt-0">
-             <div className="text-right">
-                <div className="text-3xl font-black">{report?.traderScore || 0}</div>
+          <div className="flex w-full items-center justify-between gap-3 sm:w-auto sm:justify-end">
+             <div className="text-center sm:text-right">
+                <div className="text-3xl font-black leading-none">{report?.traderScore || 0}</div>
                 <div className="text-[10px] uppercase tracking-widest opacity-60">Trader Score</div>
              </div>
              
@@ -175,6 +191,7 @@ export default function AIInsightsCard() {
              >
                 <FaRedo className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
              </button>
+          </div>
           </div>
       </div>
 
@@ -208,6 +225,14 @@ export default function AIInsightsCard() {
                 )}
              </div>
            ))}
+
+           {report && !loading && (!report.insights || report.insights.length === 0) && (
+             <div className="md:col-span-3 rounded-lg border border-amber-200/60 dark:border-amber-700/50 bg-amber-50/70 dark:bg-amber-900/20 p-3">
+               <p className="text-xs text-amber-700 dark:text-amber-300">
+                 AI returned no structured insights. Refresh to retry.
+               </p>
+             </div>
+           )}
            
            {!report && loading && (
                [1,2,3].map(i => (

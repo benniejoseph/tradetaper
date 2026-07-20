@@ -14,7 +14,7 @@ interface TradeStatisticsCardProps {
   onTimeRangeChange: (range: string) => void;
 }
 
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 
 export default function TradeStatisticsCard({
   closedTrades,
@@ -99,9 +99,9 @@ export default function TradeStatisticsCard({
                 <span className="text-xs text-gray-500 dark:text-gray-400">Breakeven</span>
                 <span className="text-lg font-bold text-gray-700 dark:text-gray-300">{breakevenTrades}</span>
             </div>
-            <div className="bg-blue-50 dark:bg-emerald-900/10 p-2 rounded-lg flex flex-col items-center justify-center">
+            <div className="bg-emerald-50 dark:bg-emerald-900/10 p-2 rounded-lg flex flex-col items-center justify-center">
                 <span className="text-xs text-gray-500 dark:text-gray-400">Avg / Day</span>
-                <span className="text-lg font-bold text-blue-600 dark:text-emerald-400">{avgTradesPerDay.toFixed(1)}</span>
+                <span className="text-lg font-bold text-emerald-600 dark:text-emerald-400">{avgTradesPerDay.toFixed(1)}</span>
             </div>
         </div>
       </div>

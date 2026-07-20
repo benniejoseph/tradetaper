@@ -1,78 +1,241 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { AlertCircle, Loader2, Sparkles, Upload, X } from 'lucide-react';
+import { authApiClient } from '@/services/api';
+import {
+  buildJournalChartDraft,
+  writeStoredJournalChartDraft,
+} from '@/lib/journalChartDraft';
+
+const MAX_FILE_SIZE = 5 * 1024 * 1024;
+const ALLOWED_TYPES = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
+
+const getErrorMessage = (error: unknown): string => {
+  if (typeof error !== 'object' || error === null) {
+    return 'Chart analysis failed. Please try again.';
+  }
+
+  const withResponse = error as {
+    response?: { data?: { message?: string } };
+    message?: string;
+  };
+
+  if (typeof withResponse.response?.data?.message === 'string') {
+    return withResponse.response.data.message;
+  }
+  if (typeof withResponse.message === 'string') {
+    return withResponse.message;
+  }
+
+  return 'Chart analysis failed. Please try again.';
+};
 
 const ChartUploadComponent: React.FC = () => {
+  const router = useRouter();
+  const inputRef = useRef<HTMLInputElement | null>(null);
+
   const [isDragging, setIsDragging] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
 
-  const handleDragEnter = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(true);
+  const setPreview = useCallback((nextUrl: string | null) => {
+    setPreviewUrl((prevUrl) => {
+      if (prevUrl?.startsWith('blob:')) {
+        URL.revokeObjectURL(prevUrl);
+      }
+      return nextUrl;
+    });
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (previewUrl?.startsWith('blob:')) {
+        URL.revokeObjectURL(previewUrl);
+      }
+    };
+  }, [previewUrl]);
+
+  const validateFile = (file: File): string | null => {
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      return 'Only PNG, JPG, and WEBP files are supported.';
+    }
+    if (file.size > MAX_FILE_SIZE) {
+      return 'File is too large. Maximum supported size is 5MB.';
+    }
+    return null;
   };
 
-  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
+  const setFile = (file: File | null) => {
+    if (!file) {
+      setSelectedFile(null);
+      setPreview(null);
+      setErrorMessage(null);
+      return;
+    }
+
+    const validationError = validateFile(file);
+    if (validationError) {
+      setErrorMessage(validationError);
+      return;
+    }
+
+    setSelectedFile(file);
+    setPreview(URL.createObjectURL(file));
+    setErrorMessage(null);
+  };
+
+  const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0] || null;
+    setFile(file);
+  };
+
+  const handleDrop = (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
     setIsDragging(false);
+    const file = event.dataTransfer.files?.[0] || null;
+    setFile(file);
   };
 
-  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-  };
+  const handleAnalyze = async () => {
+    if (!selectedFile || isAnalyzing) return;
+    setIsAnalyzing(true);
+    setErrorMessage(null);
 
-  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(false);
+    try {
+      const formData = new FormData();
+      formData.append('chartImage', selectedFile);
 
-    const files = e.dataTransfer.files;
-    if (files && files.length > 0) {
-      // Handle file upload logic here
-      console.log(files[0]);
+      const response = await authApiClient.post('/notes/ai/chart-to-journal', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+
+      const chartDraft = buildJournalChartDraft(response.data);
+      if (!chartDraft) {
+        throw new Error('AI response did not contain enough trade details to prefill.');
+      }
+
+      writeStoredJournalChartDraft(chartDraft);
+      router.push('/journal/new?source=chart');
+    } catch (error: unknown) {
+      setErrorMessage(getErrorMessage(error));
+    } finally {
+      setIsAnalyzing(false);
     }
   };
 
   return (
-    <div className="flex items-center justify-center w-full">
+    <div className="space-y-4">
       <div
-        className={`flex flex-col items-center justify-center w-full h-64 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${
+        className={`relative rounded-2xl border-2 border-dashed p-6 text-center transition-colors ${
           isDragging
-            ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-950/20'
-            : 'border-gray-300 hover:bg-gray-50'
+            ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-500/10'
+            : 'border-zinc-300 bg-white dark:border-white/10 dark:bg-[#0A0A0A]'
         }`}
-        onDragEnter={handleDragEnter}
-        onDragLeave={handleDragLeave}
-        onDragOver={handleDragOver}
+        onDragEnter={(event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          setIsDragging(true);
+        }}
+        onDragLeave={(event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          setIsDragging(false);
+        }}
+        onDragOver={(event) => {
+          event.preventDefault();
+          event.stopPropagation();
+        }}
         onDrop={handleDrop}
       >
-        <div className="flex flex-col items-center justify-center pt-5 pb-6">
-          <svg
-            className="w-8 h-8 mb-4 text-gray-500"
-            aria-hidden="true"
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 20 16"
-          >
-            <path
-              stroke="currentColor"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2 2 2"
+        <input
+          ref={inputRef}
+          type="file"
+          className="hidden"
+          accept={ALLOWED_TYPES.join(',')}
+          onChange={handleInputChange}
+        />
+
+        {!previewUrl ? (
+          <div className="space-y-3">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-300">
+              <Upload className="h-6 w-6" />
+            </div>
+            <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+              Upload your chart screenshot
+            </p>
+            <p className="text-xs text-zinc-500 dark:text-zinc-400">
+              PNG, JPG, WEBP up to 5MB. AI will extract trade details and prefill your journal form.
+            </p>
+            <button
+              type="button"
+              onClick={() => inputRef.current?.click()}
+              className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700"
+            >
+              <Upload className="h-4 w-4" />
+              Choose Image
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={previewUrl}
+              alt="Chart preview"
+              className="mx-auto max-h-72 w-full max-w-xl rounded-xl border border-zinc-200 object-contain dark:border-white/10"
             />
-          </svg>
-          <p className="mb-2 text-sm text-gray-500">
-            <span className="font-semibold">Click to upload</span> or drag and
-            drop
-          </p>
-          <p className="text-xs text-gray-500">PNG, JPG (MAX. 5MB)</p>
-        </div>
-        <input id="dropzone-file" type="file" className="hidden" />
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              <button
+                type="button"
+                onClick={() => inputRef.current?.click()}
+                className="rounded-xl border border-zinc-300 px-3 py-1.5 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-100 dark:border-white/10 dark:text-zinc-300 dark:hover:bg-white/5"
+              >
+                Replace Image
+              </button>
+              <button
+                type="button"
+                onClick={() => setFile(null)}
+                className="inline-flex items-center gap-1 rounded-xl border border-red-200 px-3 py-1.5 text-xs font-semibold text-red-600 transition hover:bg-red-50 dark:border-red-500/25 dark:text-red-300 dark:hover:bg-red-500/10"
+              >
+                <X className="h-3.5 w-3.5" />
+                Remove
+              </button>
+            </div>
+          </div>
+        )}
       </div>
+
+      {errorMessage && (
+        <div className="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-300">
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+          <span>{errorMessage}</span>
+        </div>
+      )}
+
+      <button
+        type="button"
+        onClick={handleAnalyze}
+        disabled={!selectedFile || isAnalyzing}
+        className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+      >
+        {isAnalyzing ? (
+          <>
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Analyzing Chart...
+          </>
+        ) : (
+          <>
+            <Sparkles className="h-4 w-4" />
+            Analyze & Prefill Trade Form
+          </>
+        )}
+      </button>
     </div>
   );
 };
 
-export default ChartUploadComponent; 
+export default ChartUploadComponent;

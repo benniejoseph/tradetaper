@@ -192,11 +192,11 @@ const MT5AccountsTab = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white">MetaTrader 5 Accounts</h2>
         <button 
           onClick={handleAddAccount}
-          className="px-4 py-2 bg-emerald-600 text-white rounded-md hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-opacity-50 flex items-center transition-colors"
+          className="inline-flex w-full items-center justify-center rounded-md bg-emerald-600 px-4 py-2 text-white transition-colors hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-opacity-50 sm:w-auto"
         >
           <FaPlus className="mr-2" />
           Add MT5 Account
@@ -209,7 +209,76 @@ const MT5AccountsTab = () => {
         </div>
       )}
       
-      <div className="overflow-x-auto">
+      <div className="md:hidden space-y-3">
+        {loading ? (
+          <div className="rounded-xl border border-gray-200 bg-white p-4 text-center dark:border-gray-700 dark:bg-[#0A0A0A]">
+            <div className="inline-flex items-center text-sm text-gray-500 dark:text-gray-400">
+              <svg className="animate-spin mr-2 h-4 w-4 text-emerald-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+              </svg>
+              Loading accounts...
+            </div>
+          </div>
+        ) : accounts.length === 0 ? (
+          <div className="rounded-xl border border-gray-200 bg-white p-4 text-sm text-gray-500 dark:border-gray-700 dark:bg-[#0A0A0A] dark:text-gray-400">
+            No MetaTrader 5 accounts found. Add an account to get started.
+          </div>
+        ) : (
+          accounts.map((account) => (
+            <div key={account.id} className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-[#0A0A0A]">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-sm font-semibold text-gray-900 dark:text-white">{account.accountName}</p>
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{account.server} • {account.login}</p>
+                </div>
+                <span className={`px-2 py-1 text-[10px] font-semibold rounded-full ${account.isActive ? 'bg-emerald-100 dark:bg-emerald-950/30 text-emerald-800 dark:text-emerald-300' : 'bg-red-100 dark:bg-red-900/20 text-red-800 dark:text-red-300'}`}>
+                  {account.isActive ? 'Active' : 'Inactive'}
+                </span>
+              </div>
+              <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                <div className="text-gray-500 dark:text-gray-400">Balance</div>
+                <div className="text-right text-gray-800 dark:text-gray-200">{formatBalance(account.balance)}</div>
+                <div className="text-gray-500 dark:text-gray-400">Last Synced</div>
+                <div className="text-right text-gray-800 dark:text-gray-200">{account.lastSyncAt ? formatDate(account.lastSyncAt) : 'Never'}</div>
+              </div>
+              <div className="mt-3 flex flex-wrap gap-2 border-t border-gray-200 pt-3 dark:border-gray-700">
+                <button
+                  onClick={() => handleEditAccount(account)}
+                  className="inline-flex items-center gap-1 rounded-md border border-emerald-200 px-2.5 py-1.5 text-xs font-medium text-emerald-700 transition hover:bg-emerald-50 dark:border-emerald-700 dark:text-emerald-300 dark:hover:bg-emerald-900/20"
+                >
+                  <FaEdit className="h-3.5 w-3.5" />
+                  Edit
+                </button>
+                <button
+                  onClick={() => {
+                    showToast('Syncing... This may take a minute if the account needs to wake up.', 'success');
+                    handleSyncAccount(account.id);
+                  }}
+                  disabled={syncingAccount === account.id}
+                  className="inline-flex items-center gap-1 rounded-md border border-emerald-200 px-2.5 py-1.5 text-xs font-medium text-emerald-700 transition hover:bg-emerald-50 disabled:opacity-60 dark:border-emerald-700 dark:text-emerald-300 dark:hover:bg-emerald-900/20"
+                >
+                  <FaSync className={`h-3.5 w-3.5 ${syncingAccount === account.id ? 'animate-spin' : ''}`} />
+                  Sync
+                </button>
+                <button
+                  onClick={() => handleDeleteAccount(account.id)}
+                  className={`inline-flex items-center gap-1 rounded-md border px-2.5 py-1.5 text-xs font-medium transition ${
+                    confirmDelete === account.id
+                      ? 'border-red-200 text-red-700 hover:bg-red-50 dark:border-red-700 dark:text-red-300 dark:hover:bg-red-900/20'
+                      : 'border-gray-200 text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-900/40'
+                  }`}
+                >
+                  <FaTrash className="h-3.5 w-3.5" />
+                  {confirmDelete === account.id ? 'Confirm Delete' : 'Delete'}
+                </button>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      <div className="hidden md:block overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
           <thead className="bg-gray-50 dark:bg-white/5">
             <tr>
@@ -273,7 +342,7 @@ const MT5AccountsTab = () => {
                     <div className="flex space-x-2">
                       <button 
                         onClick={() => handleEditAccount(account)}
-                        className="text-indigo-600 hover:text-indigo-900" title="Edit"
+                        className="text-emerald-600 hover:text-emerald-700" title="Edit"
                       >
                         <FaEdit className="h-4 w-4" />
                       </button>

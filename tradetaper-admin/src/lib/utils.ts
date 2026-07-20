@@ -27,9 +27,9 @@ export function formatPercentage(value: number): string {
 }
 
 export function getGrowthColor(value: number): string {
-  if (value > 0) return 'text-green-500';
-  if (value < 0) return 'text-red-500';
-  return 'text-gray-500';
+  if (value > 0) return 'text-[var(--accent-success)]';
+  if (value < 0) return 'text-[var(--accent-danger)]';
+  return 'text-[var(--text-muted)]';
 }
 
 export function getGrowthIcon(value: number): string {

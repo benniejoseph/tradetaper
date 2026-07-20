@@ -3,15 +3,22 @@ import { useSelector } from 'react-redux';
 import { RootState } from '@/store/store';
 import { FaLock } from 'react-icons/fa';
 import { useRouter } from 'next/navigation';
+import { PlanLimits } from '@/types/pricing';
+import {
+  hasPaidSubscriptionEntitlement,
+  resolveEntitlementPlan,
+} from '@/lib/subscriptionEntitlements';
 
 export type GateFeature =
   | 'discipline'
   | 'aiAnalysis'
+  | 'aiCoach'
   | 'chartAnalysis'
   | 'backtesting'
   | 'advancedAnalytics'
   | 'psychology'
   | 'mentor'
+  | 'propFirm'
   | 'reports'
   | 'community';
 
@@ -33,6 +40,11 @@ const GATE_COPY: Record<GateFeature, { title: string; description: string; requi
     description: 'Get Gemini-powered trade analysis and chart insights. Upgrade to Premium.',
     requiredPlan: 'Premium',
   },
+  aiCoach: {
+    title: 'AI Trader Coach Locked',
+    description: 'Chat with your AI trader + psychology coach. Available on Essential (limited) and Premium (full).',
+    requiredPlan: 'Essential',
+  },
   chartAnalysis: {
     title: 'Live Chart Analysis Locked',
     description: 'Analyze live charts with AI-powered pattern recognition. Upgrade to Premium.',
@@ -45,8 +57,8 @@ const GATE_COPY: Record<GateFeature, { title: string; description: string; requi
   },
   advancedAnalytics: {
     title: 'Advanced Analytics Locked',
-    description: 'Access deep performance, session, and risk analytics. Upgrade to Essential or Premium.',
-    requiredPlan: 'Essential',
+    description: 'Access deep performance, session, and risk analytics. Upgrade to Premium.',
+    requiredPlan: 'Premium',
   },
   psychology: {
     title: 'Psychology Insights Locked',
@@ -56,6 +68,11 @@ const GATE_COPY: Record<GateFeature, { title: string; description: string; requi
   mentor: {
     title: 'ICT Mentor AI Locked',
     description: 'Your personal AI trading mentor powered by your own knowledge base. Upgrade to Premium.',
+    requiredPlan: 'Premium',
+  },
+  propFirm: {
+    title: 'Prop Firm Tracker Locked',
+    description: 'Track prop firm challenges and drawdown rules with premium analytics. Upgrade to Premium.',
     requiredPlan: 'Premium',
   },
   reports: {
@@ -74,9 +91,11 @@ export const FeatureGate: React.FC<FeatureGateProps> = ({ feature, children, blu
   const user = useSelector((state: RootState) => state.auth.user);
   const router = useRouter();
 
+  const subscription = user?.subscription;
+  const hasPaidEntitlement = hasPaidSubscriptionEntitlement(subscription);
+  const planId = resolveEntitlementPlan(subscription);
   const planDetails = user?.subscription?.planDetails || null;
-  const limits: Record<string, any> = planDetails?.limits || {};
-  const planId = user?.subscription?.plan || 'free';
+  const limits: Partial<PlanLimits> = hasPaidEntitlement ? (planDetails?.limits || {}) : {};
 
   let hasAccess = false;
 
@@ -89,17 +108,23 @@ export const FeatureGate: React.FC<FeatureGateProps> = ({ feature, children, blu
     case 'mentor':
       hasAccess = !!limits.aiAnalysis;
       break;
+    case 'aiCoach':
+      hasAccess = planId === 'essential' || planId === 'premium';
+      break;
     case 'backtesting':
       hasAccess = limits.backtesting === 'full';
       break;
     case 'advancedAnalytics':
-      hasAccess = planId === 'essential' || planId === 'premium' || !!limits.reports;
+      hasAccess = planId === 'premium';
       break;
     case 'psychology':
       hasAccess = !!limits.psychology;
       break;
     case 'reports':
       hasAccess = !!limits.reports;
+      break;
+    case 'propFirm':
+      hasAccess = planId === 'premium';
       break;
     case 'community':
       // Essential and Premium can participate; Free can read-only (we still allow rendering but gate actions outside)
@@ -117,9 +142,9 @@ export const FeatureGate: React.FC<FeatureGateProps> = ({ feature, children, blu
 
   return (
     <div className={`relative w-full h-full min-h-[200px] flex items-center justify-center ${className}`}>
-      <div className={blur ? "absolute inset-0 filter blur-md pointer-events-none select-none bg-white/50 dark:bg-black/50 transition-all duration-300 z-0" : "absolute inset-0 z-0"}>
-        {children}
-      </div>
+      {blur && (
+        <div className="absolute inset-0 pointer-events-none select-none bg-gradient-to-br from-emerald-100/40 to-slate-100/40 dark:from-emerald-950/20 dark:to-black/40 transition-all duration-300 z-0" />
+      )}
       
       <div className="relative z-10 p-6 w-full max-w-lg mx-auto text-center">
         <div className="bg-white/90 dark:bg-zinc-900/90 backdrop-blur-2xl border border-white/20 dark:border-zinc-700/50 rounded-3xl p-8 shadow-2xl shadow-black/20 transform hover:scale-[1.02] transition-all duration-300">
@@ -140,7 +165,7 @@ export const FeatureGate: React.FC<FeatureGateProps> = ({ feature, children, blu
           </p>
           
           <button
-            onClick={() => router.push('/plans')}
+            onClick={() => router.push('/pricing')}
             className="w-full py-3.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-bold rounded-xl transition-all shadow-lg shadow-emerald-500/25"
           >
             Upgrade to {copy.requiredPlan}
@@ -150,4 +175,3 @@ export const FeatureGate: React.FC<FeatureGateProps> = ({ feature, children, blu
     </div>
   );
 };
-

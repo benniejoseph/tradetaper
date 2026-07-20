@@ -1,12 +1,23 @@
 // src/app/(app)/layout.tsx
 import AppLayout from '@/components/layout/AppLayout'; // Path to your AppLayout component
 import ErrorBoundary from '@/components/common/ErrorBoundary'; // Import ErrorBoundary
+import { AppProviders } from '@/app/providers';
+import type { Metadata } from 'next';
 import React from 'react';
+import './app-only.css';
 
-// Optional: If you want specific metadata for all pages within this (app) group
-// export const metadata: Metadata = {
-//   title: 'Tradetaper App', // Example, will be appended to root metadata title
-// };
+export const metadata: Metadata = {
+  robots: {
+    index: false,
+    follow: false,
+    nocache: true,
+    googleBot: {
+      index: false,
+      follow: false,
+      noimageindex: true,
+    },
+  },
+};
 
 export default function AuthenticatedAppLayout({
   children,
@@ -16,8 +27,10 @@ export default function AuthenticatedAppLayout({
   // This layout wraps children with ErrorBoundary and AppLayout
   // AppLayout itself contains ProtectedRoute and the Sidebar + main content structure
   return (
-    <ErrorBoundary>
-      <AppLayout>{children}</AppLayout>
-    </ErrorBoundary>
+    <AppProviders>
+      <ErrorBoundary>
+        <AppLayout>{children}</AppLayout>
+      </ErrorBoundary>
+    </AppProviders>
   );
 }
