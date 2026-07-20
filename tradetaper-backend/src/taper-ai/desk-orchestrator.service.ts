@@ -7,7 +7,7 @@ import {
   MultiModelOrchestratorService,
   LLMResponse,
 } from '../agents/llm/multi-model-orchestrator.service';
-import { MarketIntelligenceService } from '../market-intelligence/market-intelligence.service';
+import { TaperAiMarketDataService } from './market-data.service';
 import {
   ANALYST_PROMPTS,
   BULL_PROMPT,
@@ -37,7 +37,7 @@ export class DeskOrchestratorService {
     @InjectRepository(DeskRun)
     private readonly deskRunRepo: Repository<DeskRun>,
     private readonly llm: MultiModelOrchestratorService,
-    private readonly marketIntelligence: MarketIntelligenceService,
+    private readonly marketData: TaperAiMarketDataService,
   ) {}
 
   /** Kick off a run without blocking the request. */
@@ -256,28 +256,11 @@ export class DeskOrchestratorService {
   }
 
   /**
-   * Assemble market context from existing TradeTaper services. All numeric
-   * data comes from real services — the LLM never computes, only interprets.
+   * Assemble market context. Real quotes, history, and programmatically
+   * computed indicators — the LLM never computes, only interprets.
    */
   private async gatherContext(symbol: string): Promise<string> {
-    const parts: string[] = [];
-    try {
-      const quotes = await this.marketIntelligence.getLiveQuotes([symbol]);
-      if (quotes?.length) parts.push(`QUOTES: ${JSON.stringify(quotes)}`);
-    } catch (e: any) {
-      this.logger.warn(`getLiveQuotes(${symbol}) failed: ${e.message}`);
-    }
-    try {
-      const sentiment = await this.marketIntelligence.getMarketSentiment([
-        symbol,
-      ]);
-      if (sentiment) parts.push(`SENTIMENT: ${JSON.stringify(sentiment)}`);
-    } catch (e: any) {
-      this.logger.warn(`getMarketSentiment(${symbol}) failed: ${e.message}`);
-    }
-    return parts.length
-      ? parts.join('\n')
-      : 'No live market data available for this run. State data gaps explicitly in your analysis.';
+    return this.marketData.buildContext(symbol);
   }
 
   /** Strip accidental markdown fences and parse agent JSON defensively. */
