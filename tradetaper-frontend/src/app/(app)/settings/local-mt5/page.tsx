@@ -113,6 +113,23 @@ const normalizeTerminalStatus = (payload: unknown): TerminalStatus | null => {
   return value as TerminalStatus;
 };
 
+/**
+ * Read a JWT's `exp` (ms since epoch) without verifying the signature.
+ * Used only to show the user when the terminal auth token expires.
+ */
+function getJwtExpMs(token?: string | null): number | null {
+  if (!token) return null;
+  const parts = token.split('.');
+  if (parts.length !== 3) return null;
+  try {
+    const b64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+    const payload = JSON.parse(atob(b64)) as { exp?: number };
+    return typeof payload.exp === 'number' ? payload.exp * 1000 : null;
+  } catch {
+    return null;
+  }
+}
+
 /** Derive the current active sync mode from account + terminal status */
 function getActiveSyncMode(account: MT5Account | undefined, terminal: TerminalStatus | null): SyncMode {
   if (!account) return 'none';
@@ -139,6 +156,21 @@ export default function LocalMT5SyncPage() {
   const [connectorError, setConnectorError] = useState<string | null>(null);
   const [disconnectingMetaApi, setDisconnectingMetaApi] = useState(false);
   const [disclaimerAccepted, setDisclaimerAccepted] = useState(false);
+  // Freshly-minted token (overrides the polled config token so the 30s poll
+  // can't replace it with a stale one right after the user refreshes).
+  const [freshToken, setFreshToken] = useState<string | null>(null);
+  const [refreshingToken, setRefreshingToken] = useState(false);
+
+  const displayedAuthToken = freshToken ?? connectorConfig?.authToken ?? '';
+  const tokenExpMs = getJwtExpMs(displayedAuthToken);
+  const tokenMsLeft = tokenExpMs != null ? tokenExpMs - Date.now() : null;
+  const tokenDaysLeft =
+    tokenMsLeft != null ? Math.floor(tokenMsLeft / 86_400_000) : null;
+  const tokenExpired = tokenMsLeft != null && tokenMsLeft <= 0;
+  const tokenExpiringSoon =
+    tokenMsLeft != null && tokenMsLeft > 0 && tokenMsLeft < 2 * 86_400_000;
+  const tokenExpiryLabel =
+    tokenExpMs != null ? new Date(tokenExpMs).toLocaleString() : null;
 
   const disclaimerStorageKey = selectedAccountId
     ? `tt_local_sync_disclaimer_${DISCLAIMER_VERSION}_${selectedAccountId}`
@@ -232,6 +264,7 @@ export default function LocalMT5SyncPage() {
     setAuthTokenCopied(false);
     setPairingCodeCopied(false);
     setConnectorError(null);
+    setFreshToken(null);
   }, [selectedAccountId]);
 
   useEffect(() => {
@@ -341,11 +374,39 @@ export default function LocalMT5SyncPage() {
   };
 
   const copyAuthToken = () => {
-    if (!connectorConfig?.authToken) return;
-    navigator.clipboard.writeText(connectorConfig.authToken);
+    if (!displayedAuthToken) return;
+    navigator.clipboard.writeText(displayedAuthToken);
     setAuthTokenCopied(true);
     toast.success('Auth token copied');
     setTimeout(() => setAuthTokenCopied(false), 2000);
+  };
+
+  /**
+   * Mint a fresh 7-day terminal auth token. Terminal tokens expire after 7
+   * days; the EA keeps its old snapshot and silently stops syncing on expiry,
+   * so users must refresh and re-paste periodically.
+   */
+  const refreshAuthToken = async () => {
+    if (!selectedAccountId) return;
+    setRefreshingToken(true);
+    try {
+      const res = await api.get(`/mt5-accounts/${selectedAccountId}/terminal-token`);
+      const token = (res.data as { token?: string })?.token;
+      if (!token) throw new Error('No token returned');
+      setFreshToken(token);
+      try {
+        await navigator.clipboard.writeText(token);
+        setAuthTokenCopied(true);
+        setTimeout(() => setAuthTokenCopied(false), 2000);
+      } catch {
+        /* clipboard may be blocked; token is still shown for manual copy */
+      }
+      toast.success('New auth token generated & copied. Paste it into the EA’s authToken input and restart the EA.');
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, 'Failed to refresh auth token'));
+    } finally {
+      setRefreshingToken(false);
+    }
   };
 
   const copyPairingCode = () => {
@@ -580,18 +641,50 @@ export default function LocalMT5SyncPage() {
                           <FaFingerprint className="w-3.5 h-3.5 text-emerald-400" />
                           <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Auth Token</span>
                         </div>
-                        <button
-                          onClick={copyAuthToken}
-                          disabled={!connectorConfig?.authToken}
-                          className="p-1.5 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-40 rounded-lg transition-colors"
-                        >
-                          {authTokenCopied ? <FaCheck className="w-3 h-3 text-emerald-400" /> : <FaCopy className="w-3 h-3 text-gray-500 dark:text-gray-400" />}
-                        </button>
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            onClick={refreshAuthToken}
+                            disabled={refreshingToken}
+                            title="Generate a fresh 7-day auth token"
+                            className="flex items-center gap-1 px-2 py-1 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-lg text-[11px] font-semibold transition-colors"
+                          >
+                            <FaSync className={`w-2.5 h-2.5 ${refreshingToken ? 'animate-spin' : ''}`} />
+                            Refresh
+                          </button>
+                          <button
+                            onClick={copyAuthToken}
+                            disabled={!displayedAuthToken}
+                            className="p-1.5 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-40 rounded-lg transition-colors"
+                          >
+                            {authTokenCopied ? <FaCheck className="w-3 h-3 text-emerald-400" /> : <FaCopy className="w-3 h-3 text-gray-500 dark:text-gray-400" />}
+                          </button>
+                        </div>
                       </div>
                       <p className="mt-1 text-xs font-mono text-gray-700 dark:text-gray-300 truncate">
-                        {connectorConfig?.authToken || (connectorLoading ? 'Loading connector token…' : 'Connector token unavailable')}
+                        {displayedAuthToken || (connectorLoading ? 'Loading connector token…' : 'Connector token unavailable')}
                       </p>
-                      {!connectorConfig?.authToken && connectorError && (
+
+                      {/* Expiry notice — tokens are 7-day JWTs; the EA holds a
+                          snapshot and stops syncing once it expires. */}
+                      {tokenExpMs != null && (
+                        tokenExpired ? (
+                          <div className="mt-2 flex items-start gap-2 rounded-lg bg-red-500/10 border border-red-500/30 px-2.5 py-1.5">
+                            <FaExclamationTriangle className="w-3 h-3 mt-0.5 text-red-500 shrink-0" />
+                            <p className="text-[11px] text-red-600 dark:text-red-300 leading-snug">
+                              This token <strong>expired</strong> on {tokenExpiryLabel}, so sync has stopped. Click <strong>Refresh</strong>, then paste the new token into your EA’s <span className="font-mono">authToken</span> input and restart the EA.
+                            </p>
+                          </div>
+                        ) : (
+                          <div className={`mt-2 flex items-start gap-2 rounded-lg px-2.5 py-1.5 border ${tokenExpiringSoon ? 'bg-amber-500/10 border-amber-500/30' : 'bg-gray-100 dark:bg-gray-800/80 border-gray-200 dark:border-gray-700/60'}`}>
+                            <FaInfoCircle className={`w-3 h-3 mt-0.5 shrink-0 ${tokenExpiringSoon ? 'text-amber-500' : 'text-gray-400'}`} />
+                            <p className={`text-[11px] leading-snug ${tokenExpiringSoon ? 'text-amber-700 dark:text-amber-300' : 'text-gray-500 dark:text-gray-400'}`}>
+                              Valid until <strong>{tokenExpiryLabel}</strong>{tokenDaysLeft != null ? ` (${tokenDaysLeft} day${tokenDaysLeft === 1 ? '' : 's'} left)` : ''}. Auth tokens expire every 7 days — when it does, sync stops. Click <strong>Refresh</strong> and update your EA’s <span className="font-mono">authToken</span> before then.
+                            </p>
+                          </div>
+                        )
+                      )}
+
+                      {!displayedAuthToken && connectorError && (
                         <p className="mt-1 text-[11px] text-red-300/90 truncate">
                           {connectorError}
                         </p>
