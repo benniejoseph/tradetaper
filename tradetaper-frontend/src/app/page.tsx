@@ -30,7 +30,7 @@ export const metadata: Metadata = {
     images: [{ url: "/opengraph-image" }],
   },
   twitter: {
-    card: "summary",
+    card: "summary_large_image",
     title: HOME_TITLE,
     description: HOME_DESCRIPTION,
     images: ["/opengraph-image"],
