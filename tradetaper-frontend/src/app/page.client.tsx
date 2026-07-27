@@ -326,6 +326,15 @@ const FOOTER_COLUMNS: FooterColumn[] = [
     ],
   },
   {
+    title: 'Resources',
+    links: [
+      { label: 'Blog', href: '/blog' },
+      { label: 'Trading Journal Guide', href: '/blog/how-to-keep-a-trading-journal' },
+      { label: 'MT5 Trading Journal', href: '/features/mt5-trading-journal' },
+      { label: 'Compare', href: '/compare' },
+    ],
+  },
+  {
     title: 'Company',
     links: [
       { label: 'About', href: '/about' },
