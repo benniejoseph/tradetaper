@@ -163,6 +163,49 @@ export const COMPARISONS: Comparison[] = [
       },
     ],
   },
+  {
+    slug: "tradervue-alternative",
+    competitor: "Tradervue",
+    title: "A TradeTaper vs Tradervue Comparison (2026)",
+    description:
+      "Looking for a Tradervue alternative? Compare TradeTaper vs Tradervue on MT5 sync, prop-firm tracking, AI review, and pricing.",
+    excerpt:
+      "How TradeTaper compares to Tradervue — modern MT5-first journaling versus a long-established incumbent.",
+    updated: "July 2026",
+    readTime: "6 min",
+    intro:
+      "Tradervue is one of the longest-running trading journals, with a large user base and deep history among US equities and futures traders. TradeTaper is a newer, MT5-first alternative built around automatic local-terminal sync, prop-firm challenge tracking, and AI-assisted review. Here's how they compare.",
+    rows: [
+      { feature: "MT5 terminal sync", tradetaper: "Direct local-terminal sync, any broker", competitor: "Broker integrations; MT5 varies" },
+      { feature: "Prop-firm tracking", tradetaper: "Built-in challenge tracker", competitor: "General journaling" },
+      { feature: "AI-backed review", tradetaper: "AI mentor reads your trade history", competitor: "Manual analytics" },
+      { feature: "Interface", tradetaper: "Modern, low-friction UI", competitor: "Established, utilitarian" },
+      { feature: "Pricing / currency", tradetaper: "Free tier; INR & USD", competitor: "USD tiers" },
+    ],
+    sections: [
+      {
+        heading: "Maturity versus modern workflow",
+        body: [
+          "Tradervue's biggest strength is longevity: it's proven, stable, and widely used, with years of refinement behind its analytics and broad support for US brokers. If you trade US equities or futures through a natively supported broker, that track record counts for a lot.",
+          "TradeTaper's advantage is workflow. Local MT5 terminal sync means trades import automatically no matter which broker you use — important for forex, metals, and prop-firm traders whose brokers rarely appear on US-centric integration lists. Add the prop-firm challenge tracker and AI review over your own trade history, and it fits a different kind of trader.",
+        ],
+      },
+      {
+        heading: "Bottom line",
+        body: [
+          "Pick by platform and market. US equities/futures on a supported broker: Tradervue is a dependable, battle-tested choice. MetaTrader 5, forex/metals, prop-firm challenges, or you want AI-assisted review and INR pricing: TradeTaper is the closer fit.",
+          "Details about other products are based on their publicly documented features and can change — always check the vendor's site for the latest. TradeTaper is a research and journaling tool, not financial advice.",
+        ],
+      },
+    ],
+    faqs: [
+      {
+        question: "Is there a good Tradervue alternative for MetaTrader 5?",
+        answer:
+          "TradeTaper syncs directly from your local MT5 terminal, so trades import automatically regardless of broker — a common gap for traders whose broker isn't natively integrated elsewhere.",
+      },
+    ],
+  },
 ];
 
 export function getComparisonBySlug(slug: string): Comparison | undefined {

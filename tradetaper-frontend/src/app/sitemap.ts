@@ -3,6 +3,7 @@ import { SUPPORT_ARTICLES } from "@/config/supportContent";
 import { BLOG_POSTS } from "@/config/blogContent";
 import { COMPARISONS } from "@/config/comparisonContent";
 import { FEATURE_PAGES } from "@/config/featureContent";
+import { LANDING_PAGES } from "@/config/landingContent";
 
 const SITE_URL = "https://tradetaper.com";
 const FALLBACK_LAST_MODIFIED_ISO = "2026-04-21T00:00:00.000Z";
@@ -55,12 +56,21 @@ const FEATURE_ROUTES = FEATURE_PAGES.map((f) => ({
   priority: 0.7,
 }));
 
+// Commercial landing pages targeting validated head/mid-tail keywords —
+// higher priority than supporting content.
+const LANDING_ROUTES = LANDING_PAGES.map((p) => ({
+  path: `/${p.slug}`,
+  changeFrequency: "monthly" as const,
+  priority: 0.9,
+}));
+
 const ROUTES = [
   ...BASE_ROUTES,
   ...SUPPORT_ARTICLE_ROUTES,
   ...BLOG_ROUTES,
   ...COMPARISON_ROUTES,
   ...FEATURE_ROUTES,
+  ...LANDING_ROUTES,
 ];
 
 export default function sitemap(): MetadataRoute.Sitemap {

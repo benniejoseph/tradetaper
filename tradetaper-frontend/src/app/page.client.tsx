@@ -328,9 +328,10 @@ const FOOTER_COLUMNS: FooterColumn[] = [
   {
     title: 'Resources',
     links: [
+      { label: 'Best Trading Journals', href: '/best-trading-journal' },
+      { label: 'Trading Journal App', href: '/trading-journal-app' },
+      { label: 'Journal Template', href: '/trading-journal-template' },
       { label: 'Blog', href: '/blog' },
-      { label: 'Trading Journal Guide', href: '/blog/how-to-keep-a-trading-journal' },
-      { label: 'MT5 Trading Journal', href: '/features/mt5-trading-journal' },
       { label: 'Compare', href: '/compare' },
     ],
   },

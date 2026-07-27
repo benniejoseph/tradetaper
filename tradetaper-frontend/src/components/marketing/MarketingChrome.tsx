@@ -2,24 +2,28 @@
 import Link from "next/link";
 
 const NAV = [
+  { label: "Best Journals", href: "/best-trading-journal" },
   { label: "Blog", href: "/blog" },
   { label: "Compare", href: "/compare" },
   { label: "Pricing", href: "/pricing" },
-  { label: "Support", href: "/support" },
 ];
 
 const FOOTER_RESOURCES = [
-  { label: "Trading Journal Guide", href: "/blog/how-to-keep-a-trading-journal" },
+  { label: "Best Trading Journals", href: "/best-trading-journal" },
+  { label: "Trading Journal App", href: "/trading-journal-app" },
+  { label: "Trading Journal Template", href: "/trading-journal-template" },
+  { label: "AI Trading Journal", href: "/features/ai-trade-review" },
   { label: "MT5 Trading Journal", href: "/features/mt5-trading-journal" },
   { label: "Prop Firm Journal", href: "/features/prop-firm-trading-journal" },
-  { label: "AI Trade Review", href: "/features/ai-trade-review" },
-  { label: "Trading Journal (India)", href: "/trading-journal-india" },
 ];
 
 const FOOTER_COMPARE = [
+  { label: "Tradervue Alternative", href: "/compare/tradervue-alternative" },
   { label: "Tradezella Alternative", href: "/compare/tradezella-alternative" },
-  { label: "Edgewonk Alternative", href: "/compare/edgewonk-alternative" },
   { label: "TraderSync Alternative", href: "/compare/tradersync-alternative" },
+  { label: "Edgewonk Alternative", href: "/compare/edgewonk-alternative" },
+  { label: "Options Journal", href: "/options-trading-journal" },
+  { label: "Forex Journal", href: "/forex-trading-journal" },
 ];
 
 /**

@@ -101,11 +101,12 @@ export const FEATURE_PAGES: FeaturePage[] = [
   },
   {
     slug: "ai-trade-review",
-    title: "AI Trade Review & Trading Mentor",
+    // Target: "ai trading journal" (US 70/mo, KD 18 — volume grew 3.5x in 9 months)
+    title: "AI Trading Journal — Automated Trade Review & Mentor",
     description:
-      "AI-backed trade review that surfaces patterns, mistakes, and high-probability setups in your journal — like a mentor for your trading.",
+      "An AI trading journal that reviews your logged trades, surfaces recurring mistakes and behavioural patterns, and shows which setups actually carry an edge.",
     excerpt: "Let AI surface the patterns and mistakes hiding in your journal.",
-    h1: "AI-Backed Trade Review for Faster Improvement",
+    h1: "An AI Trading Journal That Reviews Your Own Trades",
     intro:
       "A journal captures the data; the hard part is reading it. TradeTaper's AI review works over your logged trades to surface recurring mistakes, behavioural patterns, and the setups that actually pay — turning weeks of trades into a short list of things to fix.",
     sections: [
