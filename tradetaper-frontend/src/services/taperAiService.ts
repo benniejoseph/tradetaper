@@ -1,42 +1,27 @@
 // src/services/taperAiService.ts
 import axios from 'axios';
-import { store } from '@/store/store';
-import { getStoredAccessToken } from '@/store/features/authSlice';
 import { DeskRun, DeskPersona } from '@/types/taperai';
 
 /**
  * TaperAI Desk API client.
  *
- * The Desk runs as its own Cloud Run service (taperai-desk), separate from
- * the main TradeTaper backend, so this client has its own base URL. Auth is
- * Bearer-token only (same JWT the main backend issues); no CSRF cookie flow.
+ * Calls go to a same-origin Next.js route (/api/desk/*) which attaches the
+ * bearer token server-side from the httpOnly auth_token cookie and forwards to
+ * the standalone Desk service. The browser never handles the JWT, and the Desk
+ * keeps working across reloads and tabs — unlike a token held only in Redux,
+ * which is empty after every page load.
  */
-const TAPERAI_API_URL = (
-  process.env.NEXT_PUBLIC_TAPERAI_API_URL ||
-  'https://taperai-desk-326520250422.us-central1.run.app/api/v1'
-).trim();
-
 const client = axios.create({
-  baseURL: TAPERAI_API_URL,
+  baseURL: '/api/desk',
   headers: { 'Content-Type': 'application/json' },
-});
-
-client.interceptors.request.use((config) => {
-  // Redux holds the token after login; sessionStorage covers reloads, where the
-  // cookie restores the session but not the bearer token this service needs.
-  const token = store.getState().auth.token || getStoredAccessToken();
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
+  withCredentials: true,
 });
 
 client.interceptors.response.use(
   (res) => res,
   (error) => {
     if (error.response?.status === 401) {
-      error.message =
-        'Your session expired for the Desk. Please sign in again to run analysis.';
+      error.message = 'Your session has expired. Please sign in again.';
     }
     return Promise.reject(error);
   },
@@ -44,7 +29,7 @@ client.interceptors.response.use(
 
 export const taperAiService = {
   async createRun(symbol: string, personas: DeskPersona[]): Promise<DeskRun> {
-    const { data } = await client.post<DeskRun>('/taper-ai/desk/runs', {
+    const { data } = await client.post<DeskRun>('/runs', {
       symbol,
       personas,
     });
@@ -52,14 +37,14 @@ export const taperAiService = {
   },
 
   async listRuns(symbol?: string): Promise<DeskRun[]> {
-    const { data } = await client.get<DeskRun[]>('/taper-ai/desk/runs', {
+    const { data } = await client.get<DeskRun[]>('/runs', {
       params: symbol ? { symbol } : undefined,
     });
     return data;
   },
 
   async getRun(id: string): Promise<DeskRun> {
-    const { data } = await client.get<DeskRun>(`/taper-ai/desk/runs/${id}`);
+    const { data } = await client.get<DeskRun>(`/runs/${id}`);
     return data;
   },
 };
