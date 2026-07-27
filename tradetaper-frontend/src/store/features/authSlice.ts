@@ -10,6 +10,37 @@ interface AuthState {
   error: string | null;
 }
 
+/**
+ * The main backend authenticates with an httpOnly cookie, but the TaperAI Desk
+ * runs as a separate Cloud Run service that only accepts `Authorization: Bearer`.
+ * Redux is not persisted, so without this the access token is lost on every
+ * reload — the user stays logged in via the cookie while every Desk call 401s.
+ * Kept in sessionStorage (tab-scoped, cleared on tab close) rather than
+ * localStorage to limit the exposure window.
+ */
+const TOKEN_KEY = 'tt_access_token';
+
+const readStoredToken = (): string | null => {
+  if (typeof window === 'undefined') return null;
+  try {
+    return window.sessionStorage.getItem(TOKEN_KEY);
+  } catch {
+    return null;
+  }
+};
+
+const writeStoredToken = (token: string | null) => {
+  if (typeof window === 'undefined') return;
+  try {
+    if (token) window.sessionStorage.setItem(TOKEN_KEY, token);
+    else window.sessionStorage.removeItem(TOKEN_KEY);
+  } catch {
+    /* private mode / storage disabled — Desk auth degrades, app still works */
+  }
+};
+
+export const getStoredAccessToken = readStoredToken;
+
 const initialState: AuthState = {
   user: null,
   token: null,
@@ -44,6 +75,7 @@ const authSlice = createSlice({
       state.token = action.payload.token ?? null;
       state.user = action.payload.user;
       state.error = null;
+      writeStoredToken(state.token);
     },
     authFailure(state, action: PayloadAction<string>) {
       state.isLoading = false;
@@ -51,6 +83,7 @@ const authSlice = createSlice({
       state.token = null;
       state.user = null;
       state.error = action.payload;
+      writeStoredToken(null);
     },
     logout(state) {
       state.user = null;
@@ -58,6 +91,7 @@ const authSlice = createSlice({
       state.isAuthenticated = false;
       state.isLoading = false;
       state.error = null;
+      writeStoredToken(null);
     },
     loadUserFromStorage(state) {
       // Cookie-based auth bootstrap happens via fetchCurrentUser in providers.
@@ -78,12 +112,16 @@ const authSlice = createSlice({
         state.isAuthenticated = true;
         state.user = action.payload;
         state.error = null;
+        // The cookie re-authenticated us but carries no bearer token; restore
+        // the one saved at login so Bearer-only services (TaperAI Desk) work.
+        state.token = action.payload?.accessToken ?? readStoredToken();
       })
       .addCase(fetchCurrentUser.rejected, (state, action) => {
         state.isLoading = false;
         state.isAuthenticated = false;
         state.user = null;
         state.token = null;
+        writeStoredToken(null);
         state.error = (action.payload as string) || 'Failed to fetch current user profile';
       });
   },

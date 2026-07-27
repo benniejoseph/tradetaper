@@ -1,6 +1,7 @@
 // src/services/taperAiService.ts
 import axios from 'axios';
 import { store } from '@/store/store';
+import { getStoredAccessToken } from '@/store/features/authSlice';
 import { DeskRun, DeskPersona } from '@/types/taperai';
 
 /**
@@ -21,12 +22,25 @@ const client = axios.create({
 });
 
 client.interceptors.request.use((config) => {
-  const token = store.getState().auth.token;
+  // Redux holds the token after login; sessionStorage covers reloads, where the
+  // cookie restores the session but not the bearer token this service needs.
+  const token = store.getState().auth.token || getStoredAccessToken();
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
 });
+
+client.interceptors.response.use(
+  (res) => res,
+  (error) => {
+    if (error.response?.status === 401) {
+      error.message =
+        'Your session expired for the Desk. Please sign in again to run analysis.';
+    }
+    return Promise.reject(error);
+  },
+);
 
 export const taperAiService = {
   async createRun(symbol: string, personas: DeskPersona[]): Promise<DeskRun> {
