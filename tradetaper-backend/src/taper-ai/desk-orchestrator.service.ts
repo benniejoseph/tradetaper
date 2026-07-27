@@ -7,7 +7,10 @@ import {
   MultiModelOrchestratorService,
   LLMResponse,
 } from '../agents/llm/multi-model-orchestrator.service';
-import { TaperAiMarketDataService } from './market-data.service';
+import {
+  TaperAiMarketDataService,
+  MarketSnapshot,
+} from './market-data.service';
 import {
   ANALYST_PROMPTS,
   BULL_PROMPT,
@@ -65,7 +68,12 @@ export class DeskOrchestratorService {
       await this.deskRunRepo.save(run);
 
       // ---- Context ------------------------------------------------------
-      const context = await this.gatherContext(run.symbol);
+      // One fetch, then ROLE-SPECIFIC views: previously every analyst got the
+      // same price blob, so news/sentiment/fundamentals had nothing to analyze.
+      const snapshot: MarketSnapshot = await this.marketData.buildSnapshot(
+        run.symbol,
+      );
+      const context = this.marketData.renderFull(snapshot);
       const contextBlock = `INSTRUMENT: ${run.symbol}\nDATE: ${new Date().toISOString().slice(0, 10)}\n\nMARKET CONTEXT:\n${context}`;
 
       // ---- Stage 1: analysts in parallel --------------------------------
@@ -74,11 +82,11 @@ export class DeskOrchestratorService {
           const res = track(
             await this.llm.complete({
               system,
-              prompt: contextBlock,
+              prompt: `INSTRUMENT: ${run.symbol}\n\n${this.marketData.renderForRole(snapshot, role)}`,
               taskComplexity: 'medium',
               optimizeFor: 'quality',
               requireJson: true,
-              maxTokens: 1024,
+              maxTokens: 1400,
               userId: run.userId,
             }),
           );
@@ -172,7 +180,7 @@ export class DeskOrchestratorService {
             taskComplexity: 'complex',
             optimizeFor: 'quality',
             requireJson: true,
-            maxTokens: 1024,
+            maxTokens: 2200,
             userId: run.userId,
           }),
         ).content,
@@ -212,6 +220,7 @@ export class DeskOrchestratorService {
       // ---- Persist ------------------------------------------------------
       run.stages = {
         context,
+        snapshot,
         analysts,
         debate,
         personaOpinions,
@@ -253,14 +262,6 @@ export class DeskOrchestratorService {
       await this.deskRunRepo.save(run);
       this.logger.error(`Desk run ${run.id} failed: ${run.error}`);
     }
-  }
-
-  /**
-   * Assemble market context. Real quotes, history, and programmatically
-   * computed indicators — the LLM never computes, only interprets.
-   */
-  private async gatherContext(symbol: string): Promise<string> {
-    return this.marketData.buildContext(symbol);
   }
 
   /** Strip accidental markdown fences and parse agent JSON defensively. */
