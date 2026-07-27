@@ -80,8 +80,10 @@ export const metadata: Metadata = {
     images: ["/tradetaperLogo.png"],
   },
   icons: {
-    icon: "/tradetaperLogo.png",
-    apple: "/tradetaperLogo.png",
+    // Purpose-sized icons — the full-size logo (250KB) is far too heavy for a
+    // favicon, and favicons are not optimized by next/image.
+    icon: "/icon.png",
+    apple: "/apple-icon.png",
   },
   verification: hasVerificationMetadata ? verificationMetadata : undefined,
 };

@@ -4,6 +4,62 @@ export type DeskRunStatus = 'pending' | 'running' | 'completed' | 'failed';
 export type DeskDirection = 'long' | 'short' | 'neutral';
 export type DeskPersona = 'buffett' | 'burry' | 'wood';
 
+export type HorizonKey = 'today' | 'week' | 'shortTerm' | 'longTerm';
+
+export interface HorizonRead {
+  bias: 'bullish' | 'bearish' | 'neutral';
+  confidence: number;
+  driver: string;
+  flipLevel: string;
+}
+
+export interface NewsItem {
+  title: string;
+  publisher: string;
+  publishedUtc: string;
+  description?: string;
+  sentiment?: string;
+  sentimentReasoning?: string;
+}
+
+export interface TimeframeStats {
+  label: string;
+  bars: number;
+  last: number;
+  sma20: number | null;
+  sma50: number | null;
+  rsi14: number | null;
+  changePct1: number | null;
+  changePct5: number | null;
+  changePct20: number | null;
+  atrPct: number | null;
+  rangeHigh: number;
+  rangeLow: number;
+}
+
+export interface MarketSnapshot {
+  symbol: string;
+  resolvedSymbol: string;
+  assetClass: 'equity' | 'forex' | 'crypto';
+  sources: string[];
+  asOf: string;
+  quote: {
+    price: number | null;
+    previousClose: number | null;
+    changePct: number | null;
+    dayHigh: number | null;
+    dayLow: number | null;
+    fiftyTwoWeekHigh: number | null;
+    fiftyTwoWeekLow: number | null;
+    currency?: string;
+    volume?: number | null;
+  };
+  timeframes: Partial<Record<'intraday' | 'daily' | 'weekly', TimeframeStats>>;
+  news: NewsItem[];
+  newsWindowDays: number;
+  errors: string[];
+}
+
 export interface DeskVerdict {
   direction: DeskDirection;
   conviction: number; // 0-100
@@ -56,10 +112,14 @@ export interface PersonaOpinion {
 
 export interface DeskStages {
   context?: string;
+  snapshot?: MarketSnapshot;
   analysts?: Record<string, AnalystReport>;
   debate?: DebateEntry[];
   personaOpinions?: Record<string, PersonaOpinion>;
-  trader?: Record<string, unknown>;
+  trader?: Record<string, unknown> & {
+    horizons?: Partial<Record<HorizonKey, HorizonRead>>;
+    timeframeConflict?: string;
+  };
   risk?: {
     adjustedConviction?: number;
     whatKillsThis?: string[];

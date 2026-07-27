@@ -7,6 +7,8 @@ import { taperAiService } from '@/services/taperAiService';
 import { DeskRun, DeskPersona, PERSONA_LABELS } from '@/types/taperai';
 import ThesisCard from '@/components/desk/ThesisCard';
 import DeskAnalytics from '@/components/desk/DeskAnalytics';
+import HorizonPanel from '@/components/desk/HorizonPanel';
+import NewsPanel from '@/components/desk/NewsPanel';
 import DebateTranscript from '@/components/desk/DebateTranscript';
 
 const ALL_PERSONAS: DeskPersona[] = ['buffett', 'burry', 'wood'];
@@ -176,7 +178,9 @@ export default function DeskPage() {
             {selected.status === 'completed' && (
               <>
                 <ThesisCard run={selected} />
+                <HorizonPanel run={selected} />
                 <DeskAnalytics run={selected} />
+                <NewsPanel run={selected} />
                 {selected.stages && <DebateTranscript stages={selected.stages} />}
               </>
             )}

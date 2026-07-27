@@ -1,5 +1,6 @@
 // src/components/marketing/MarketingChrome.tsx
 import Link from "next/link";
+import Image from "next/image";
 
 const NAV = [
   { label: "Best Journals", href: "/best-trading-journal" },
@@ -40,8 +41,18 @@ export default function MarketingChrome({
     <div className="min-h-screen bg-slate-950 text-white selection:bg-emerald-500/30">
       <header className="sticky top-0 z-30 border-b border-white/10 bg-slate-950/80 backdrop-blur">
         <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-4">
-          <Link href="/" className="text-lg font-semibold tracking-tight">
-            Trade<span className="text-emerald-400">Taper</span>
+          <Link href="/" className="flex items-center gap-2.5">
+            <Image
+              src="/tradetaperLogo.png"
+              alt="TradeTaper"
+              width={36}
+              height={36}
+              className="h-9 w-9 object-contain"
+              priority
+            />
+            <span className="text-lg font-semibold tracking-tight">
+              Trade<span className="text-emerald-400">Taper</span>
+            </span>
           </Link>
           <nav className="hidden items-center gap-6 md:flex">
             {NAV.map((item) => (
@@ -76,8 +87,17 @@ export default function MarketingChrome({
       <footer className="border-t border-white/10 bg-black/40">
         <div className="mx-auto grid w-full max-w-6xl gap-8 px-6 py-12 sm:grid-cols-2 lg:grid-cols-4">
           <div>
-            <Link href="/" className="text-lg font-semibold tracking-tight">
-              Trade<span className="text-emerald-400">Taper</span>
+            <Link href="/" className="inline-flex items-center gap-2.5">
+              <Image
+                src="/tradetaperLogo.png"
+                alt="TradeTaper"
+                width={32}
+                height={32}
+                className="h-8 w-8 object-contain"
+              />
+              <span className="text-lg font-semibold tracking-tight">
+                Trade<span className="text-emerald-400">Taper</span>
+              </span>
             </Link>
             <p className="mt-3 max-w-xs text-sm leading-relaxed text-slate-400">
               An execution-grade trading journal with automatic MT5 sync,
