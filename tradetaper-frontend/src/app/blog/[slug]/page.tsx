@@ -49,7 +49,13 @@ export default async function BlogPostPage({ params }: Props) {
   const post = getBlogPostBySlug(slug);
   if (!post) notFound();
 
-  const related = BLOG_POSTS.filter((p) => p.slug !== post.slug).slice(0, 3);
+  // Rotate through the list rather than always taking the first three, which
+  // structurally excluded the newest post from every related block and left it
+  // with a single internal link. Cycling gives every post an equal share.
+  const idx = BLOG_POSTS.findIndex((p) => p.slug === post.slug);
+  const related = Array.from({ length: Math.min(3, BLOG_POSTS.length - 1) }, (_, i) =>
+    BLOG_POSTS[(idx + 1 + i) % BLOG_POSTS.length],
+  );
 
   const breadcrumb = buildBreadcrumbJsonLd([
     { name: "Home", path: "/" },

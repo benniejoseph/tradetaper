@@ -16,6 +16,8 @@ const FOOTER_RESOURCES = [
   { label: "AI Trading Journal", href: "/features/ai-trade-review" },
   { label: "MT5 Trading Journal", href: "/features/mt5-trading-journal" },
   { label: "Prop Firm Journal", href: "/features/prop-firm-trading-journal" },
+  // Was orphaned: in the sitemap but with no internal links pointing at it.
+  { label: "Trading Journal India", href: "/trading-journal-india" },
 ];
 
 const FOOTER_COMPARE = [
@@ -25,6 +27,7 @@ const FOOTER_COMPARE = [
   { label: "Edgewonk Alternative", href: "/compare/edgewonk-alternative" },
   { label: "Options Journal", href: "/options-trading-journal" },
   { label: "Forex Journal", href: "/forex-trading-journal" },
+  { label: "Trading Journal Examples", href: "/blog/trading-journal-examples" },
 ];
 
 /**
