@@ -94,7 +94,7 @@ export default function TradingJournalIndiaPage() {
         <h1 className="mb-4 text-3xl font-semibold tracking-tight md:text-4xl">
           A Trading Journal Built for Indian Traders
         </h1>
-        <p className="mb-10 text-lg leading-relaxed text-slate-300">{INTRO}</p>
+        <p className="mb-10 text-lg leading-relaxed text-gray-600 dark:text-gray-300">{INTRO}</p>
         <ContentSections sections={SECTIONS} faqs={FAQS} />
         <ContentCta heading="Start journaling — free, in INR" />
       </main>
