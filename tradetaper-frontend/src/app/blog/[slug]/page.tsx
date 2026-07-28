@@ -75,14 +75,14 @@ export default async function BlogPostPage({ params }: Props) {
         <script id={`ld-faq-${post.slug}`} type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faq) }} />
       )}
       <main className="mx-auto w-full max-w-3xl px-6 pb-20 pt-12">
-        <Link href="/blog" className="mb-8 inline-flex items-center gap-2 text-sm text-slate-300 hover:text-white">
+        <Link href="/blog" className="mb-8 inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">
           <FaArrowLeft className="text-xs" />
           Back to Blog
         </Link>
 
         <article>
-          <div className="mb-4 flex flex-wrap items-center gap-2 text-xs text-slate-400">
-            <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 uppercase tracking-[0.08em]">
+          <div className="mb-4 flex flex-wrap items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+            <span className="rounded-full border border-gray-200 bg-gray-100 px-2.5 py-1 uppercase tracking-[0.08em] dark:border-zinc-800 dark:bg-white/5">
               {post.category}
             </span>
             <span>Updated {post.updated}</span>
@@ -92,7 +92,7 @@ export default async function BlogPostPage({ params }: Props) {
           <h1 className="mb-4 text-3xl font-semibold tracking-tight md:text-4xl">
             {post.title}
           </h1>
-          <p className="mb-10 text-lg leading-relaxed text-slate-300">
+          <p className="mb-10 text-lg leading-relaxed text-gray-600 dark:text-gray-300">
             {post.intro}
           </p>
 
@@ -108,7 +108,7 @@ export default async function BlogPostPage({ params }: Props) {
               <Link
                 key={r.slug}
                 href={`/blog/${r.slug}`}
-                className="rounded-2xl border border-white/10 bg-black/35 p-4 text-sm text-slate-200 transition-colors hover:border-emerald-400/40"
+                className="rounded-2xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 transition-colors hover:border-emerald-600/40 dark:border-zinc-800 dark:bg-zinc-900/50 dark:text-gray-200 dark:hover:border-emerald-400/40"
               >
                 {r.title}
               </Link>

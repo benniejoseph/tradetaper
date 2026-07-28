@@ -14,13 +14,13 @@ export default function ContentSections({
     <div className="space-y-10">
       {sections.map((section) => (
         <section key={section.heading}>
-          <h2 className="mb-3 text-2xl font-semibold tracking-tight text-white">
+          <h2 className="mb-3 text-2xl font-semibold tracking-tight text-gray-900 dark:text-white">
             {section.heading}
           </h2>
           {section.body?.map((para, i) => (
             <p
               key={i}
-              className="mb-3 text-base leading-relaxed text-slate-300"
+              className="mb-3 text-base leading-relaxed text-gray-600 dark:text-gray-300"
             >
               {para}
             </p>
@@ -28,8 +28,8 @@ export default function ContentSections({
           {section.bullets && section.bullets.length > 0 && (
             <ul className="mt-2 space-y-2">
               {section.bullets.map((b) => (
-                <li key={b} className="flex items-start gap-2 text-slate-300">
-                  <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-400" />
+                <li key={b} className="flex items-start gap-2 text-gray-600 dark:text-gray-300">
+                  <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-600 dark:bg-emerald-400" />
                   <span className="text-base leading-relaxed">{b}</span>
                 </li>
               ))}
@@ -40,19 +40,19 @@ export default function ContentSections({
 
       {faqs && faqs.length > 0 && (
         <section>
-          <h2 className="mb-4 text-2xl font-semibold tracking-tight text-white">
+          <h2 className="mb-4 text-2xl font-semibold tracking-tight text-gray-900 dark:text-white">
             Frequently asked questions
           </h2>
           <div className="space-y-4">
             {faqs.map((faq) => (
               <div
                 key={faq.question}
-                className="rounded-2xl border border-white/10 bg-black/35 p-5"
+                className="rounded-2xl border border-gray-200 bg-gray-50 p-5 dark:border-zinc-800 dark:bg-zinc-900/50"
               >
-                <h3 className="mb-2 text-base font-semibold text-white">
+                <h3 className="mb-2 text-base font-semibold text-gray-900 dark:text-white">
                   {faq.question}
                 </h3>
-                <p className="text-sm leading-relaxed text-slate-300">
+                <p className="text-sm leading-relaxed text-gray-600 dark:text-gray-300">
                   {faq.answer}
                 </p>
               </div>
@@ -73,11 +73,11 @@ export function ContentCta({
   sub?: string;
 }) {
   return (
-    <section className="mt-12 rounded-3xl border border-emerald-300/20 bg-emerald-500/10 p-7 text-center md:p-10">
-      <h2 className="text-2xl font-semibold tracking-tight text-white md:text-3xl">
+    <section className="mt-12 rounded-3xl border border-emerald-600/20 bg-emerald-50 p-7 text-center dark:border-emerald-600/30 dark:bg-emerald-500/10 md:p-10">
+      <h2 className="text-2xl font-semibold tracking-tight text-gray-900 dark:text-white md:text-3xl">
         {heading}
       </h2>
-      <p className="mx-auto mt-2 max-w-xl text-sm text-slate-300 md:text-base">
+      <p className="mx-auto mt-2 max-w-xl text-sm text-gray-600 dark:text-gray-300 md:text-base">
         {sub}
       </p>
       <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
@@ -89,7 +89,7 @@ export function ContentCta({
         </Link>
         <Link
           href="/pricing"
-          className="rounded-lg border border-white/15 px-5 py-2.5 text-sm font-semibold text-slate-200 transition-colors hover:bg-white/5"
+          className="rounded-lg border border-gray-300 px-5 py-2.5 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-100 dark:border-zinc-700 dark:text-gray-200 dark:hover:bg-white/5"
         >
           See pricing
         </Link>

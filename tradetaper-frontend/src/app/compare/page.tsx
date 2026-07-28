@@ -43,7 +43,7 @@ export default function CompareIndexPage() {
           <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">
             Compare TradeTaper
           </h1>
-          <p className="mt-3 max-w-2xl text-base text-slate-300">
+          <p className="mt-3 max-w-2xl text-base text-gray-600 dark:text-gray-300">
             Honest side-by-side comparisons with other popular trading journals,
             so you can pick the tool that matches your market, platform, and
             budget.
@@ -55,12 +55,12 @@ export default function CompareIndexPage() {
             <Link
               key={c.slug}
               href={`/compare/${c.slug}`}
-              className="group rounded-3xl border border-white/10 bg-black/35 p-6 transition-colors hover:border-emerald-400/40"
+              className="group rounded-3xl border border-gray-200 bg-gray-50 p-6 transition-colors hover:border-emerald-600/40 dark:border-zinc-800 dark:bg-zinc-900/50 dark:hover:border-emerald-400/40"
             >
-              <h2 className="text-lg font-semibold tracking-tight text-white group-hover:text-emerald-300">
+              <h2 className="text-lg font-semibold tracking-tight text-gray-900 group-hover:text-emerald-600 dark:text-white dark:group-hover:text-emerald-300">
                 TradeTaper vs {c.competitor}
               </h2>
-              <p className="mt-2 text-sm leading-relaxed text-slate-300">
+              <p className="mt-2 text-sm leading-relaxed text-gray-600 dark:text-gray-300">
                 {c.excerpt}
               </p>
             </Link>

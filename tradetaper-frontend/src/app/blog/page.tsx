@@ -47,7 +47,7 @@ export default function BlogIndexPage() {
           <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">
             Trading Journal Blog
           </h1>
-          <p className="mt-3 max-w-2xl text-base text-slate-300">
+          <p className="mt-3 max-w-2xl text-base text-gray-600 dark:text-gray-300">
             Practical, no-fluff guides on keeping a trading journal, mastering
             trading psychology, and managing risk — so your journaling turns
             into a measurable edge.
@@ -59,18 +59,18 @@ export default function BlogIndexPage() {
             <Link
               key={post.slug}
               href={`/blog/${post.slug}`}
-              className="group rounded-3xl border border-white/10 bg-black/35 p-6 transition-colors hover:border-emerald-400/40"
+              className="group rounded-3xl border border-gray-200 bg-gray-50 p-6 transition-colors hover:border-emerald-600/40 dark:border-zinc-800 dark:bg-zinc-900/50 dark:hover:border-emerald-400/40"
             >
-              <div className="mb-3 flex items-center gap-2 text-xs text-slate-400">
-                <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 uppercase tracking-[0.08em]">
+              <div className="mb-3 flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                <span className="rounded-full border border-gray-200 bg-gray-100 px-2.5 py-1 uppercase tracking-[0.08em] dark:border-zinc-800 dark:bg-white/5">
                   {post.category}
                 </span>
                 <span>{post.readTime} read</span>
               </div>
-              <h2 className="text-lg font-semibold tracking-tight text-white group-hover:text-emerald-300">
+              <h2 className="text-lg font-semibold tracking-tight text-gray-900 group-hover:text-emerald-600 dark:text-white dark:group-hover:text-emerald-300">
                 {post.title}
               </h2>
-              <p className="mt-2 text-sm leading-relaxed text-slate-300">
+              <p className="mt-2 text-sm leading-relaxed text-gray-600 dark:text-gray-300">
                 {post.excerpt}
               </p>
             </Link>

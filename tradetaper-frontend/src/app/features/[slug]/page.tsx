@@ -62,7 +62,7 @@ export default async function FeaturePageView({ params }: Props) {
       <script id={`ld-webpage-${f.slug}`} type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(webpage) }} />
       {faq && <script id={`ld-faq-${f.slug}`} type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faq) }} />}
       <main className="mx-auto w-full max-w-3xl px-6 pb-20 pt-12">
-        <Link href="/blog" className="mb-8 inline-flex items-center gap-2 text-sm text-slate-300 hover:text-white">
+        <Link href="/blog" className="mb-8 inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">
           <FaArrowLeft className="text-xs" />
           Explore guides
         </Link>
@@ -70,7 +70,7 @@ export default async function FeaturePageView({ params }: Props) {
         <h1 className="mb-4 text-3xl font-semibold tracking-tight md:text-4xl">
           {f.h1}
         </h1>
-        <p className="mb-10 text-lg leading-relaxed text-slate-300">{f.intro}</p>
+        <p className="mb-10 text-lg leading-relaxed text-gray-600 dark:text-gray-300">{f.intro}</p>
 
         <ContentSections sections={f.sections} faqs={f.faqs} />
 
@@ -83,7 +83,7 @@ export default async function FeaturePageView({ params }: Props) {
               <Link
                 key={o.slug}
                 href={`/features/${o.slug}`}
-                className="rounded-2xl border border-white/10 bg-black/35 p-4 text-sm text-slate-200 transition-colors hover:border-emerald-400/40"
+                className="rounded-2xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 transition-colors hover:border-emerald-600/40 dark:border-zinc-800 dark:bg-zinc-900/50 dark:text-gray-200 dark:hover:border-emerald-400/40"
               >
                 {o.title}
               </Link>

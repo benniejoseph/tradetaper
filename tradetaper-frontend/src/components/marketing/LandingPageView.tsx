@@ -63,7 +63,7 @@ export default function LandingPageView({ slug }: { slug: string }) {
         <h1 className="mb-4 text-3xl font-semibold tracking-tight md:text-4xl">
           {page.h1}
         </h1>
-        <p className="mb-10 text-lg leading-relaxed text-slate-300">{page.intro}</p>
+        <p className="mb-10 text-lg leading-relaxed text-gray-600 dark:text-gray-300">{page.intro}</p>
 
         <ContentSections sections={page.sections} faqs={page.faqs} />
 
@@ -76,7 +76,7 @@ export default function LandingPageView({ slug }: { slug: string }) {
               <Link
                 key={o.slug}
                 href={`/${o.slug}`}
-                className="rounded-2xl border border-white/10 bg-black/35 p-4 text-sm text-slate-200 transition-colors hover:border-emerald-400/40"
+                className="rounded-2xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 transition-colors hover:border-emerald-600/40 dark:border-zinc-800 dark:bg-zinc-900/50 dark:text-gray-200 dark:hover:border-emerald-400/40"
               >
                 {o.h1}
               </Link>
