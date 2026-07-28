@@ -302,6 +302,75 @@ export const LANDING_PAGES: LandingPage[] = [
       },
     ],
   },
+  {
+    // Target: "trade journal free" (US 480/mo, KD 21, relevance 32 — highest
+    // relevance in the SE Ranking set) + "best free trading journal" (170, KD 29)
+    slug: "free-trading-journal",
+    title: "Free Trading Journal — Log and Review Trades at No Cost (2026)",
+    description:
+      "A genuinely free trading journal: automatic MT5 sync, unlimited manual trades, and real analytics. What the free tier includes and where its limits are.",
+    h1: "A Free Trading Journal That Isn't Crippled",
+    intro:
+      "Most \"free\" trading journals are trial windows or demos with the useful parts locked behind a paywall. That is a reasonable business model, but it makes it hard to judge whether journaling will actually help you before you commit money. This page sets out exactly what TradeTaper's free tier includes, exactly where the limits are, and how it compares to the free alternatives — so you can decide without signing up first.",
+    sections: [
+      {
+        heading: "What you get without paying",
+        body: [
+          "The free tier is meant to be enough to build the habit and prove the value to yourself. That means the core loop — record a trade, add your reasoning, review the aggregate — works without a card.",
+        ],
+        bullets: [
+          "Unlimited manually logged trades — no cap on how much history you keep",
+          "Automatic import from your local MetaTrader 5 terminal",
+          "Core analytics: win rate, average R, expectancy, and per-setup breakdowns",
+          "Notes, screenshots and emotional tagging on every entry",
+          "Export your data at any time — it is your record, not ours",
+        ],
+      },
+      {
+        heading: "Where the free tier actually stops",
+        body: [
+          "Being straight about limits is more useful than a feature grid. The free tier is capped on the expensive parts — the AI review passes that call a language model on your trade history, and the number of broker accounts you can sync at once. Everything that costs us little to run stays open.",
+          "If you are a single-account discretionary trader who wants an honest record and weekly review, the free tier is likely all you need indefinitely. If you run several prop-firm accounts, or you want AI-written reviews of every trade, that is where paying starts to make sense.",
+        ],
+      },
+      {
+        heading: "Free journal vs. a spreadsheet",
+        body: [
+          "A spreadsheet is free too, and for the first few weeks it is genuinely competitive — you control the columns and there is nothing to learn. The problem shows up around trade fifty, when entry becomes a chore you skip on bad days, and again when you want to group by setup and compute expectancy without writing formulas.",
+          "The specific thing a journal buys you over a spreadsheet is that the objective half is captured for you. Automatic sync means the numbers are complete and correct even on the days you would rather not look, which are exactly the days worth reviewing. If you would rather start in Excel, that is a perfectly sound way to begin — our template is free too.",
+        ],
+      },
+      {
+        heading: "Free alternatives worth knowing about",
+        body: [
+          "TradeZella, Tradervue, TraderSync and Edgewonk all have free or trial tiers with different shapes. Tradervue's free plan is long-standing and generous on trade count but limited on analytics. TraderSync and TradeZella lean on time-limited trials. Edgewonk is paid-only with a one-off licence rather than a subscription.",
+          "The honest summary: if you trade US equities through a supported broker, several of these will import your trades as easily as we do. Our advantage is narrower and specific — direct sync from a local MT5 terminal regardless of broker, which matters mostly to forex, metals and prop-firm traders.",
+        ],
+      },
+    ],
+    faqs: [
+      {
+        question: "Is TradeTaper's free trading journal actually free?",
+        answer:
+          "Yes — no card required and no time limit. Unlimited manual trades, MT5 sync and core analytics stay free. The paid tiers add AI trade reviews and multiple simultaneous broker accounts.",
+      },
+      {
+        question: "Is there a trade limit on the free plan?",
+        answer:
+          "No. You can log and keep unlimited trades on the free tier. The limits are on AI review volume and how many broker accounts sync at once, not on your history.",
+      },
+      {
+        question: "Can I export my data if I stop using it?",
+        answer:
+          "Yes, at any time and on any tier. Your trade history is exportable, so you are never locked in by your own record.",
+      },
+      {
+        question: "What is the best free trading journal?",
+        answer:
+          "It depends on what you trade. For US equities through a mainstream broker, Tradervue's free tier is a strong option. For forex, metals or prop-firm accounts on MetaTrader 5, direct terminal sync matters more than anything else, which is where TradeTaper is built to fit.",
+      },
+    ],
+  },
 ];
 
 export function getLandingPageBySlug(slug: string): LandingPage | undefined {

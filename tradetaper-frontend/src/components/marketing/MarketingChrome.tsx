@@ -11,6 +11,7 @@ const NAV = [
 
 const FOOTER_RESOURCES = [
   { label: "Best Trading Journals", href: "/best-trading-journal" },
+  { label: "Free Trading Journal", href: "/free-trading-journal" },
   { label: "Trading Journal App", href: "/trading-journal-app" },
   { label: "Trading Journal Template", href: "/trading-journal-template" },
   { label: "AI Trading Journal", href: "/features/ai-trade-review" },
