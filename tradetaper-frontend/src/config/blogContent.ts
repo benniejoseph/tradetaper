@@ -252,6 +252,92 @@ export const BLOG_POSTS: BlogPost[] = [
       },
     ],
   },
+  {
+    slug: "trading-journal-examples",
+    title: "Trading Journal Examples: 4 Real Entries Broken Down (2026)",
+    description:
+      "Four worked trading journal examples — a winner, a loser, a broken-rule trade and a no-trade — showing exactly what to write in each field and why.",
+    excerpt:
+      "Four complete sample entries, field by field, showing what a useful journal entry actually looks like.",
+    category: "Fundamentals",
+    updated: "July 2026",
+    readTime: "8 min",
+    intro:
+      "Most advice about journaling stops at “write down your trades.” That leaves the hard part unanswered: what do you actually put in each field, and how much detail is enough? Below are four complete example entries — a winner, a loser, a trade that broke the rules, and a trade not taken — with commentary on what makes each one useful in review. Copy the shape, not the specifics.",
+    sections: [
+      {
+        heading: "What every entry needs",
+        body: [
+          "A journal entry has two halves. The objective half — instrument, direction, entry, exit, size, timestamps, fees, resulting R — should be captured automatically if at all possible, because it is the half you are most likely to get wrong or skip when you are tired or tilted. The subjective half — why you took it, what you felt, what you would repeat — only you can write, and it is where the learning lives.",
+          "The test of a good entry is simple: if you read it in three months with no memory of the trade, could you tell whether the decision was sound? If the entry only records what happened and not why you did it, the answer is no, and the entry will not help you.",
+        ],
+        bullets: [
+          "Setup name — so you can group trades and measure each setup's expectancy",
+          "Reason for entry — the specific trigger, not “looked good”",
+          "Planned invalidation — where you were wrong, decided before entry",
+          "Emotional state — one honest word is more useful than a paragraph",
+          "Rule compliance — did you follow your plan, yes or no, independent of outcome",
+        ],
+      },
+      {
+        heading: "Example 1 — A winning trade that was still a good decision",
+        body: [
+          "EURUSD long, 1.0842 entry, 1.0879 exit, 0.5% risked, +1.8R, held 3h20m. Setup: London open pullback to prior day's value area high. Trigger: rejection wick on the 15m plus a higher low holding above 1.0838. Invalidation: 1.0831, below the structural low. Emotion at entry: calm. Rules followed: yes.",
+          "Why this entry is useful: it names a repeatable setup, states a trigger precise enough that someone else could have taken the same trade, and fixes invalidation before entry. In review you can ask whether the London pullback setup is genuinely profitable across 40 instances — not whether this one trade felt good.",
+        ],
+      },
+      {
+        heading: "Example 2 — A losing trade that was still executed correctly",
+        body: [
+          "XAUUSD short, 4062.40 entry, 4071.10 stop hit, 0.5% risked, −1.0R, held 47m. Setup: failed breakout at prior day high. Trigger: breakout above 4060 with no follow-through and immediate close back inside range. Invalidation: 4071, above the breakout high. Emotion: slightly impatient, entered on the first candle rather than waiting for the close. Rules followed: mostly — entry was one candle early.",
+          "This is the most valuable kind of entry and the one most traders never write. The trade lost, but the process was sound and the note captures the one real flaw — early entry — which is a fixable, recurring behaviour. Without the honest emotional note, this would read as a clean loss and you would learn nothing from it.",
+        ],
+      },
+      {
+        heading: "Example 3 — A rule break you must log anyway",
+        body: [
+          "NAS100 long, 20140 entry, 20016 exit, 2.1% risked, −2.4R, held 4h. Setup: none — this was a revenge trade twenty minutes after the XAUUSD stop-out. Trigger: none. Invalidation: not defined before entry, which is the whole problem. Emotion: frustrated, wanted the loss back. Rules followed: no — size was four times normal and there was no setup.",
+          "Every instinct will tell you to leave this one out. Log it anyway, and tag it. Rule-break trades are usually a small share of total trades and an outsized share of total losses, and you can only prove that — and see the pattern in what triggers them — if they are in the dataset. One trader's journal showing that 6% of trades caused 40% of drawdown is a far stronger argument for discipline than any amount of self-criticism.",
+        ],
+      },
+      {
+        heading: "Example 4 — The trade you did not take",
+        body: [
+          "GBPUSD, no position. Setup was present — London pullback, same as Example 1 — but spread was elevated ahead of a scheduled release and the pullback was already 70% retraced, giving a poor entry relative to invalidation. Decision: skip. Emotion: mild regret when it ran 40 pips without me.",
+          "No-trade entries feel pointless because nothing happened, but they are how you find out whether your filters are actually helping. If skipped setups would have been consistently profitable, your filter is too tight and it is costing you real money. If they mostly would have lost, the filter is earning its keep and you should trust it more easily next time.",
+        ],
+      },
+      {
+        heading: "Turning example entries into a review habit",
+        body: [
+          "Individual entries are only raw material. The return comes at the weekly and monthly review, when you group entries by setup, by rule compliance and by time of day, and look at aggregate R rather than individual outcomes. Four entries teach you nothing; sixty entries grouped by setup will usually show one clear thing to stop doing.",
+          "This is also the point where manual journaling tends to collapse. Grouping and averaging by hand is tedious enough that most people quit before the sample is large enough to be meaningful. TradeTaper imports fills automatically from your MT5 terminal so the objective half is always complete, leaving you to write only the reasoning — and it does the grouping for you.",
+        ],
+      },
+    ],
+    faqs: [
+      {
+        question: "What should a trading journal entry look like?",
+        answer:
+          "At minimum: instrument, direction, entry and exit, position size, risk in percent or R, the setup name, your specific trigger, your predefined invalidation, your emotional state, and whether you followed your rules. The objective fields are best captured automatically; the reasoning and emotion you write yourself.",
+      },
+      {
+        question: "Should I log trades I did not take?",
+        answer:
+          "Yes. No-trade entries are the only way to test whether your filters help or hurt. If setups you skip would have been profitable on average, your filter is too tight and is costing you money — and you cannot know that without recording the skips.",
+      },
+      {
+        question: "How detailed should each entry be?",
+        answer:
+          "Detailed enough that you could judge the quality of the decision three months later with no memory of the trade. In practice that is usually two or three sentences of reasoning on top of the automatically captured numbers. Longer entries are not better if they stop you journaling consistently.",
+      },
+      {
+        question: "Do I need to journal losing trades?",
+        answer:
+          "Especially losing trades, and above all the ones where you broke your own rules. Rule-break trades are typically a small fraction of trades but a large fraction of total drawdown, and that pattern is only provable if they are in the record.",
+      },
+    ],
+  },
 ];
 
 export function getBlogPostBySlug(slug: string): BlogPost | undefined {
