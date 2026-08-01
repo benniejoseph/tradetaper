@@ -37,6 +37,53 @@ export interface TimeframeStats {
   rangeLow: number;
 }
 
+export interface SwingPoint {
+  date: string;
+  price: number;
+  type: 'high' | 'low';
+}
+
+export interface FairValueGap {
+  date: string;
+  type: 'bullish' | 'bearish';
+  top: number;
+  bottom: number;
+  mitigated: boolean;
+}
+
+export interface EqualLevel {
+  price: number;
+  count: number;
+}
+
+export interface KillZoneStatus {
+  nowNy: string;
+  activeZone: string | null;
+  activeZoneIsNoTrade: boolean;
+  nextZone: string;
+  minutesToNextZone: number;
+}
+
+export interface ICTContext {
+  pdh: number | null;
+  pdl: number | null;
+  pwh: number | null;
+  pwl: number | null;
+  ipda20Eq: number | null;
+  ipda20High: number | null;
+  ipda20Low: number | null;
+  premiumDiscount: 'premium' | 'discount' | 'equilibrium' | null;
+  adr14: number | null;
+  dailyStructure: 'bullish' | 'bearish' | 'choppy' | null;
+  dailySwings: SwingPoint[];
+  intradaySwings: SwingPoint[];
+  dailyFvgs: FairValueGap[];
+  intradayFvgs: FairValueGap[];
+  equalHighs: EqualLevel[];
+  equalLows: EqualLevel[];
+  killZone: KillZoneStatus;
+}
+
 export interface MarketSnapshot {
   symbol: string;
   resolvedSymbol: string;
@@ -55,6 +102,7 @@ export interface MarketSnapshot {
     volume?: number | null;
   };
   timeframes: Partial<Record<'intraday' | 'daily' | 'weekly', TimeframeStats>>;
+  ict?: ICTContext | null;
   news: NewsItem[];
   newsWindowDays: number;
   errors: string[];
@@ -81,6 +129,15 @@ export interface AnalystReport {
   keyLevels?: { support: string[]; resistance: string[] };
   upcomingCatalysts?: string[];
   crowdedness?: string;
+  // ICT analyst fields
+  bias?: { daily?: string; weekly?: string };
+  premiumDiscount?: 'premium' | 'discount' | 'equilibrium' | 'unknown';
+  dol?: { target?: string; priority?: string; rationale?: string };
+  pdArray?: { type?: string; zone?: string; rationale?: string };
+  liquidity?: { swept?: string; resting?: string };
+  killZoneNote?: string;
+  model?: string;
+  invalidation?: string;
   parseError?: boolean;
   raw?: string;
 }

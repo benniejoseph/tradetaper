@@ -8,6 +8,7 @@ import { DeskRun, DeskPersona, PERSONA_LABELS } from '@/types/taperai';
 import ThesisCard from '@/components/desk/ThesisCard';
 import DeskAnalytics from '@/components/desk/DeskAnalytics';
 import HorizonPanel from '@/components/desk/HorizonPanel';
+import ICTPanel from '@/components/desk/ICTPanel';
 import NewsPanel from '@/components/desk/NewsPanel';
 import DebateTranscript from '@/components/desk/DebateTranscript';
 
@@ -179,6 +180,7 @@ export default function DeskPage() {
               <>
                 <ThesisCard run={selected} />
                 <HorizonPanel run={selected} />
+                <ICTPanel run={selected} />
                 <DeskAnalytics run={selected} />
                 <NewsPanel run={selected} />
                 {selected.stages && <DebateTranscript stages={selected.stages} />}
