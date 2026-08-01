@@ -192,14 +192,19 @@ export class TaperAiMarketDataService {
   }
 
   private async getJson(url: string, timeoutMs = 12000): Promise<any | null> {
+    const safeUrl = url.replace(/apikey=[^&]+/, 'apikey=***');
     try {
       const res = await fetch(url, {
         headers: { 'User-Agent': 'TradeTaper-Desk/1.0' },
         signal: AbortSignal.timeout(timeoutMs),
       });
-      if (!res.ok) return null;
+      if (!res.ok) {
+        this.logger.warn(`getJson non-OK ${res.status} for ${safeUrl}`);
+        return null;
+      }
       return await res.json();
-    } catch {
+    } catch (err: any) {
+      this.logger.warn(`getJson failed for ${safeUrl}: ${err?.name ?? ''} ${err?.message ?? err}`);
       return null;
     }
   }
@@ -218,7 +223,13 @@ export class TaperAiMarketDataService {
       `https://api.twelvedata.com/time_series?symbol=${encodeURIComponent(this.tdSymbol(symbol))}` +
       `&interval=${interval}&outputsize=${size}&apikey=${apikey}`;
     const d = await this.getJson(url);
-    if (!d || d.status !== 'ok' || !Array.isArray(d.values)) return null;
+    if (!d) return null;
+    if (d.status !== 'ok' || !Array.isArray(d.values)) {
+      // Twelve Data returns logical errors (rate limit, bad symbol, plan
+      // limit) as HTTP 200 with status:"error" — getJson can't see these.
+      this.logger.warn(`Twelve Data time_series error for ${symbol}/${interval}: ${JSON.stringify(d).slice(0, 300)}`);
+      return null;
+    }
     // Twelve Data returns newest-first; indicators expect oldest-first.
     return d.values
       .map((v: any) => ({
@@ -238,7 +249,11 @@ export class TaperAiMarketDataService {
     if (!apikey) return null;
     const url = `https://api.twelvedata.com/quote?symbol=${encodeURIComponent(this.tdSymbol(symbol))}&apikey=${apikey}`;
     const d = await this.getJson(url);
-    return d && !d.code && d.close ? d : null;
+    if (d?.code || !d?.close) {
+      if (d) this.logger.warn(`Twelve Data quote error for ${symbol}: ${JSON.stringify(d).slice(0, 300)}`);
+      return null;
+    }
+    return d;
   }
 
   /** Yahoo chart — fallback only (unofficial, rate-limits aggressively). */
