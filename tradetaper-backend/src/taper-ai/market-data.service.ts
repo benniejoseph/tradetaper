@@ -145,8 +145,25 @@ const CURRENCY_CODES = new Set([
   'SEK', 'NOK', 'MXN', 'ZAR', 'TRY', 'CNH', 'INR', 'PLN',
 ]);
 
+/**
+ * Precious metals quote like currency pairs (XAU/USD) at every provider we
+ * use. Without these, XAUUSD fell through to 'equity' and was sent to the
+ * providers verbatim — no provider recognises "XAUUSD", so gold runs came
+ * back with no price, no timeframes and no news at all.
+ */
+const METAL_CODES = new Set(['XAU', 'XAG', 'XPT', 'XPD']);
+
+/** Common spellings users type for metals, mapped to their pair form. */
+const SYMBOL_ALIASES: Record<string, string> = {
+  GOLD: 'XAUUSD',
+  SILVER: 'XAGUSD',
+  PLATINUM: 'XPTUSD',
+  PALLADIUM: 'XPDUSD',
+};
+
 /** Full names give far better news-search recall than bare tickers. */
 const ASSET_NAMES: Record<string, string> = {
+  XAU: 'Gold', XAG: 'Silver', XPT: 'Platinum', XPD: 'Palladium',
   BTC: 'Bitcoin', ETH: 'Ethereum', SOL: 'Solana', XRP: 'XRP', ADA: 'Cardano',
   DOGE: 'Dogecoin', DOT: 'Polkadot', AVAX: 'Avalanche', LINK: 'Chainlink',
   LTC: 'Litecoin', BNB: 'BNB', MATIC: 'Polygon crypto', SHIB: 'Shiba Inu',
@@ -172,8 +189,13 @@ export class TaperAiMarketDataService {
   // ---- symbol classification -------------------------------------------
 
   classify(symbol: string): { assetClass: AssetClass; base: string; quote?: string } {
-    const s = symbol.toUpperCase().replace('/', '').replace('-', '');
-    if (s.length === 6 && CURRENCY_CODES.has(s.slice(0, 3)) && CURRENCY_CODES.has(s.slice(3))) {
+    const raw = symbol.toUpperCase().replace('/', '').replace('-', '');
+    const s = SYMBOL_ALIASES[raw] ?? raw;
+    if (
+      s.length === 6 &&
+      (CURRENCY_CODES.has(s.slice(0, 3)) || METAL_CODES.has(s.slice(0, 3))) &&
+      CURRENCY_CODES.has(s.slice(3))
+    ) {
       return { assetClass: 'forex', base: s.slice(0, 3), quote: s.slice(3) };
     }
     if (s.endsWith('USDT') && CRYPTO_BASES.has(s.slice(0, -4))) {
@@ -259,8 +281,13 @@ export class TaperAiMarketDataService {
   /** Yahoo chart — fallback only (unofficial, rate-limits aggressively). */
   private async yahoo(symbol: string, range: string, interval: string): Promise<Candle[] | null> {
     const c = this.classify(symbol);
+    // Yahoo has no spot-metal pairs (XAUUSD=X 404s); use the futures contract.
+    const YAHOO_METALS: Record<string, string> = {
+      XAU: 'GC=F', XAG: 'SI=F', XPT: 'PL=F', XPD: 'PA=F',
+    };
     const y =
-      c.assetClass === 'forex' ? `${c.base}${c.quote}=X`
+      YAHOO_METALS[c.base] ? YAHOO_METALS[c.base]
+      : c.assetClass === 'forex' ? `${c.base}${c.quote}=X`
       : c.assetClass === 'crypto' ? `${c.base}-USD`
       : c.base;
     const d = await this.getJson(
@@ -315,7 +342,18 @@ export class TaperAiMarketDataService {
     if (!apiKey) return [];
     const c = this.classify(symbol);
     const query =
-      c.assetClass === 'forex'
+      // Metals get almost no coverage under their pair code, so search the
+      // name — but a bare "gold" query returns mostly gold-medal sports
+      // stories, so require a market term and exclude the sporting sense.
+      METAL_CODES.has(c.base)
+        ? (() => {
+            const n = (ASSET_NAMES[c.base] ?? c.base).toLowerCase();
+            return (
+              `("${n} price" OR "spot ${n}" OR "${n} futures" OR "${n} bullion")` +
+              ` NOT medal NOT Olympics NOT championship`
+            );
+          })()
+        : c.assetClass === 'forex'
         ? `"${c.base}/${c.quote}" OR "${c.base} ${c.quote}" forex exchange rate`
         : c.assetClass === 'crypto'
           ? `"${ASSET_NAMES[c.base] ?? c.base}" price OR market`
