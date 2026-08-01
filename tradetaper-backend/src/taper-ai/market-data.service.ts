@@ -52,6 +52,70 @@ export interface NewsItem {
   sentimentReasoning?: string;
 }
 
+export interface SwingPoint {
+  date: string;
+  price: number;
+  type: 'high' | 'low';
+}
+
+export interface FairValueGap {
+  /** Date of the third (displacement) candle that created the gap. */
+  date: string;
+  type: 'bullish' | 'bearish';
+  top: number;
+  bottom: number;
+  /** True if price has since closed back through the gap (no longer a valid PD array). */
+  mitigated: boolean;
+}
+
+export interface EqualLevel {
+  price: number;
+  count: number;
+}
+
+export interface KillZoneStatus {
+  nowNy: string;
+  activeZone: string | null;
+  activeZoneIsNoTrade: boolean;
+  nextZone: string;
+  minutesToNextZone: number;
+}
+
+/**
+ * ICT (Inner Circle Trader) structural context — computed deterministically
+ * in code from raw OHLC so the LLM never has to eyeball swing points or gaps
+ * off a text dump. The LLM's job is to interpret this scaffolding (which PD
+ * array matters, what the draw on liquidity implies), not to detect it.
+ */
+export interface ICTContext {
+  /** Previous COMPLETE daily bar's high/low — the default DOL target. */
+  pdh: number | null;
+  pdl: number | null;
+  /** Previous complete week's high/low — escalate here only if PDH/PDL is too close. */
+  pwh: number | null;
+  pwl: number | null;
+  /** IPDA 20-trading-day equilibrium: only buy below it, only sell above it. */
+  ipda20Eq: number | null;
+  ipda20High: number | null;
+  ipda20Low: number | null;
+  premiumDiscount: 'premium' | 'discount' | 'equilibrium' | null;
+  /** Average daily range over the last 14 sessions, in price units. */
+  adr14: number | null;
+  /** HH/HL (bullish) or LH/LL (bearish) read from the last few daily swing points. */
+  dailyStructure: 'bullish' | 'bearish' | 'choppy' | null;
+  dailySwings: SwingPoint[];
+  intradaySwings: SwingPoint[];
+  dailyFvgs: FairValueGap[];
+  intradayFvgs: FairValueGap[];
+  /** Equal highs/lows = engineered retail liquidity (resting stops). */
+  equalHighs: EqualLevel[];
+  equalLows: EqualLevel[];
+  killZone: KillZoneStatus;
+  /** Compact recent candles kept specifically for ICT judgment calls (order blocks, CISD, Judas). */
+  dailyCandles: Candle[];
+  intradayCandles: Candle[];
+}
+
 export interface MarketSnapshot {
   symbol: string;
   resolvedSymbol: string;
@@ -70,6 +134,7 @@ export interface MarketSnapshot {
     volume?: number | null;
   };
   timeframes: Partial<Record<Timeframe, TimeframeStats>>;
+  ict: ICTContext | null;
   news: NewsItem[];
   newsWindowDays: number;
   errors: string[];
@@ -335,6 +400,170 @@ export class TaperAiMarketDataService {
       }));
   }
 
+  // ---- ICT structural analysis -------------------------------------------
+  // Every function below is deterministic — same rule as the rest of this
+  // file: the code detects structure, the LLM interprets it. Definitions are
+  // ICT's own (fractal swings, 3-candle FVGs, tolerance-clustered equal
+  // highs/lows), synthesized from the desk's ICT reference material.
+
+  /** Fractal swing points: a bar whose high/low is the extreme within a ±lookback window. */
+  private detectSwings(bars: Candle[], lookback = 2): SwingPoint[] {
+    const swings: SwingPoint[] = [];
+    for (let i = lookback; i < bars.length - lookback; i++) {
+      const window = bars.slice(i - lookback, i + lookback + 1);
+      const b = bars[i];
+      if (b.high === Math.max(...window.map((w) => w.high))) {
+        swings.push({ date: b.date, price: b.high, type: 'high' });
+      } else if (b.low === Math.min(...window.map((w) => w.low))) {
+        swings.push({ date: b.date, price: b.low, type: 'low' });
+      }
+    }
+    return swings;
+  }
+
+  /** Reads HH/HL vs LH/LL off the last few swing points. */
+  private structureFromSwings(swings: SwingPoint[]): 'bullish' | 'bearish' | 'choppy' | null {
+    const highs = swings.filter((s) => s.type === 'high').slice(-2);
+    const lows = swings.filter((s) => s.type === 'low').slice(-2);
+    if (highs.length < 2 || lows.length < 2) return null;
+    const higherHigh = highs[1].price > highs[0].price;
+    const higherLow = lows[1].price > lows[0].price;
+    if (higherHigh && higherLow) return 'bullish';
+    if (!higherHigh && !higherLow) return 'bearish';
+    return 'choppy';
+  }
+
+  /**
+   * 3-candle Fair Value Gaps: bullish when candle[i].low > candle[i-2].high,
+   * bearish when candle[i].high < candle[i-2].low. Mitigated once a later
+   * candle CLOSES back through the far boundary (ICT's invalidation rule).
+   */
+  private detectFVGs(bars: Candle[], maxResults = 6): FairValueGap[] {
+    const gaps: FairValueGap[] = [];
+    for (let i = 2; i < bars.length; i++) {
+      const a = bars[i - 2];
+      const c = bars[i];
+      if (c.low > a.high) {
+        gaps.push({ date: c.date, type: 'bullish', top: c.low, bottom: a.high, mitigated: false });
+      } else if (c.high < a.low) {
+        gaps.push({ date: c.date, type: 'bearish', top: a.low, bottom: c.high, mitigated: false });
+      }
+    }
+    for (const gap of gaps) {
+      const createdIdx = bars.findIndex((b) => b.date === gap.date);
+      for (let j = createdIdx + 1; j < bars.length; j++) {
+        const closed = bars[j].close;
+        if (gap.type === 'bullish' && closed < gap.bottom) { gap.mitigated = true; break; }
+        if (gap.type === 'bearish' && closed > gap.top) { gap.mitigated = true; break; }
+      }
+    }
+    return gaps.filter((g) => !g.mitigated).slice(-maxResults);
+  }
+
+  /** Clusters swing highs/lows within tolerancePct of each other — ICT's "equal highs/lows" (resting liquidity). */
+  private detectEqualLevels(
+    swings: SwingPoint[],
+    type: 'high' | 'low',
+    tolerancePct = 0.08,
+  ): EqualLevel[] {
+    const prices = swings.filter((s) => s.type === type).map((s) => s.price);
+    const clusters: EqualLevel[] = [];
+    for (const p of prices) {
+      const cluster = clusters.find((c) => Math.abs(c.price - p) / p <= tolerancePct / 100);
+      if (cluster) { cluster.count++; cluster.price = (cluster.price + p) / 2; }
+      else clusters.push({ price: p, count: 1 });
+    }
+    return clusters.filter((c) => c.count >= 2).sort((a, b) => b.count - a.count).slice(0, 4);
+  }
+
+  /**
+   * ICT kill zones in NY time (handles DST via Intl, not manual UTC offsets).
+   * NY Lunch is flagged explicitly — ICT's absolute no-trade window.
+   */
+  private killZoneStatus(now: Date): KillZoneStatus {
+    const parts = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'America/New_York',
+      hour: 'numeric',
+      minute: 'numeric',
+      hour12: false,
+    }).formatToParts(now);
+    const h = Number(parts.find((p) => p.type === 'hour')?.value ?? 0);
+    const m = Number(parts.find((p) => p.type === 'minute')?.value ?? 0);
+    const mins = h * 60 + m;
+
+    const zones: { name: string; start: number; end: number; noTrade?: boolean }[] = [
+      { name: 'Asian', start: 20 * 60, end: 24 * 60 },
+      { name: 'London', start: 2 * 60, end: 5 * 60 },
+      { name: 'NY AM', start: 8 * 60 + 30, end: 11 * 60 },
+      { name: 'NY Lunch (no-trade)', start: 12 * 60, end: 13 * 60, noTrade: true },
+      { name: 'NY PM', start: 13 * 60 + 30, end: 16 * 60 },
+    ];
+    const active = zones.find((z) => mins >= z.start && mins < z.end) ?? null;
+    const upcoming = zones
+      .map((z) => ({ z, delta: z.start > mins ? z.start - mins : z.start + 1440 - mins }))
+      .sort((a, b) => a.delta - b.delta)[0];
+
+    return {
+      nowNy: `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`,
+      activeZone: active?.name ?? null,
+      activeZoneIsNoTrade: active?.noTrade ?? false,
+      nextZone: upcoming.z.name,
+      minutesToNextZone: upcoming.delta,
+    };
+  }
+
+  private buildICTContext(
+    daily: Candle[] | null,
+    intraday: Candle[] | null,
+    weekly: Candle[] | null,
+  ): ICTContext | null {
+    if (!daily || daily.length < 5) return null;
+
+    // Previous COMPLETE bar only — the live/forming bar is excluded so PDH/PDL
+    // never silently updates mid-session (ICT: PDH/PDL is fixed at the open).
+    const priorDaily = daily.slice(0, -1);
+    const pdh = priorDaily.length ? priorDaily[priorDaily.length - 1].high : null;
+    const pdl = priorDaily.length ? priorDaily[priorDaily.length - 1].low : null;
+
+    const priorWeekly = weekly && weekly.length > 1 ? weekly[weekly.length - 2] : null;
+    const pwh = priorWeekly?.high ?? null;
+    const pwl = priorWeekly?.low ?? null;
+
+    const last20 = daily.slice(-20);
+    const ipda20High = last20.length ? Math.max(...last20.map((b) => b.high)) : null;
+    const ipda20Low = last20.length ? Math.min(...last20.map((b) => b.low)) : null;
+    const ipda20Eq = ipda20High != null && ipda20Low != null ? (ipda20High + ipda20Low) / 2 : null;
+    const lastPrice = daily[daily.length - 1].close;
+    const premiumDiscount: ICTContext['premiumDiscount'] =
+      ipda20Eq == null ? null
+      : Math.abs(lastPrice - ipda20Eq) / ipda20Eq < 0.001 ? 'equilibrium'
+      : lastPrice > ipda20Eq ? 'premium' : 'discount';
+
+    const last14 = daily.slice(-14);
+    const adr14 = last14.length
+      ? last14.reduce((sum, b) => sum + (b.high - b.low), 0) / last14.length
+      : null;
+
+    const dailySwings = this.detectSwings(daily.slice(-60), 2);
+    const intradaySwings = intraday ? this.detectSwings(intraday.slice(-80), 2) : [];
+
+    return {
+      pdh, pdl, pwh, pwl,
+      ipda20Eq, ipda20High, ipda20Low, premiumDiscount,
+      adr14,
+      dailyStructure: this.structureFromSwings(dailySwings),
+      dailySwings: dailySwings.slice(-8),
+      intradaySwings: intradaySwings.slice(-8),
+      dailyFvgs: this.detectFVGs(daily.slice(-60)),
+      intradayFvgs: intraday ? this.detectFVGs(intraday.slice(-80)) : [],
+      equalHighs: this.detectEqualLevels(dailySwings, 'high'),
+      equalLows: this.detectEqualLevels(dailySwings, 'low'),
+      killZone: this.killZoneStatus(new Date()),
+      dailyCandles: daily.slice(-15),
+      intradayCandles: intraday ? intraday.slice(-30) : [],
+    };
+  }
+
   private stats(label: string, bars: Candle[], recentCount: number): TimeframeStats {
     const closes = bars.map((b) => b.close);
     return {
@@ -362,7 +591,10 @@ export class TaperAiMarketDataService {
     const errors: string[] = [];
 
     const [intradayBars, dailyBars, quote, pNews, nNews] = await Promise.all([
-      this.twelveData(symbol, '1h', 60),
+      // 150 bars ≈ 6 trading days of 1h candles — the minimum for the ICT
+      // analyst to read Asian/London/NY session structure across more than
+      // one session. Same single API call as before; no extra rate-limit cost.
+      this.twelveData(symbol, '1h', 150),
       this.twelveData(symbol, '1day', 260),
       this.twelveDataQuote(symbol),
       this.polygonNews(symbol),
@@ -390,6 +622,9 @@ export class TaperAiMarketDataService {
     else errors.push('Weekly data unavailable — long-term read is limited.');
 
     if (!intradayBars) errors.push('Intraday (1h) data unavailable — intraday read is limited.');
+
+    const ict = this.buildICTContext(daily, intradayBars, weeklyBars);
+    if (!ict) errors.push('Insufficient daily history for ICT structural analysis (need 5+ bars).');
 
     // De-duplicate news by title, newest first.
     const seen = new Set<string>();
@@ -424,6 +659,7 @@ export class TaperAiMarketDataService {
         volume: quote?.volume ? Number(quote.volume) : null,
       },
       timeframes,
+      ict,
       news,
       newsWindowDays: 7,
       errors,
@@ -474,6 +710,67 @@ export class TaperAiMarketDataService {
     ].join('\n');
   }
 
+  private renderCandles(candles: Candle[], digits: number): string {
+    return candles
+      .map(
+        (b) =>
+          `    ${b.date}  O${this.f(b.open, digits)} H${this.f(b.high, digits)} L${this.f(b.low, digits)} C${this.f(b.close, digits)}`,
+      )
+      .join('\n');
+  }
+
+  /** Deterministically-computed ICT structural context, formatted for the ICT analyst. */
+  private renderICT(s: MarketSnapshot): string {
+    const ict = s.ict;
+    if (!ict) {
+      return 'ICT STRUCTURE: unavailable — insufficient daily price history for this instrument.';
+    }
+    const d = s.assetClass === 'forex' ? 5 : 2;
+    const kz = ict.killZone;
+    const swingLine = (sw: SwingPoint) => `${sw.date} ${sw.type.toUpperCase()} ${this.f(sw.price, d)}`;
+    const fvgLine = (g: FairValueGap) =>
+      `${g.date} ${g.type.toUpperCase()} FVG  ${this.f(g.bottom, d)}–${this.f(g.top, d)} (unmitigated)`;
+
+    return [
+      `ICT STRUCTURE (all values computed deterministically — interpret, do not recompute):`,
+      ``,
+      `BIAS INPUTS:`,
+      `  Daily structure (from swing points): ${ict.dailyStructure ?? 'insufficient swings to call'}`,
+      `  Premium/Discount: price is in ${ict.premiumDiscount?.toUpperCase() ?? 'n/a'} relative to the IPDA 20-day equilibrium`,
+      `    IPDA 20D range: ${this.f(ict.ipda20Low, d)} – ${this.f(ict.ipda20High, d)}, equilibrium ${this.f(ict.ipda20Eq, d)}`,
+      `  ADR(14): ${this.f(ict.adr14, d)}`,
+      ``,
+      `DRAW ON LIQUIDITY (DOL) CANDIDATES, in ICT priority order:`,
+      `  Priority 0 — Prior week H/L: ${this.f(ict.pwh, d)} / ${this.f(ict.pwl, d)}`,
+      `  Priority 1 — Prior day H/L (PDH/PDL): ${this.f(ict.pdh, d)} / ${this.f(ict.pdl, d)}`,
+      `  Equal highs (engineered BSL — resting buy stops): ${ict.equalHighs.length ? ict.equalHighs.map((e) => `${this.f(e.price, d)} (×${e.count})`).join(', ') : 'none detected'}`,
+      `  Equal lows (engineered SSL — resting sell stops): ${ict.equalLows.length ? ict.equalLows.map((e) => `${this.f(e.price, d)} (×${e.count})`).join(', ') : 'none detected'}`,
+      ``,
+      `UNMITIGATED FAIR VALUE GAPS (highest-priority PD arrays; ranked by ICT as the primary entry zone):`,
+      `  Daily: ${ict.dailyFvgs.length ? '' : 'none currently open'}`,
+      ...ict.dailyFvgs.map((g) => `    ${fvgLine(g)}`),
+      `  Intraday (1h): ${ict.intradayFvgs.length ? '' : 'none currently open'}`,
+      ...ict.intradayFvgs.map((g) => `    ${fvgLine(g)}`),
+      ``,
+      `RECENT SWING POINTS (for identifying order blocks — the last opposing candle before the impulse into each swing):`,
+      `  Daily: ${ict.dailySwings.length ? ict.dailySwings.map(swingLine).join(' | ') : 'none detected'}`,
+      `  Intraday: ${ict.intradaySwings.length ? ict.intradaySwings.map(swingLine).join(' | ') : 'none detected'}`,
+      ``,
+      `KILL ZONE (NY time now: ${kz.nowNy}):`,
+      kz.activeZoneIsNoTrade
+        ? `  ⛔ Currently inside ${kz.activeZone} — ICT's absolute no-trade window. Any setup here should be flagged, not acted on.`
+        : kz.activeZone
+          ? `  ✅ Currently inside the ${kz.activeZone} kill zone.`
+          : `  Currently OUTSIDE any kill zone. Next: ${kz.nextZone} in ${kz.minutesToNextZone} min.`,
+      ``,
+      `RECENT DAILY CANDLES (O/H/L/C, oldest first):`,
+      this.renderCandles(ict.dailyCandles, d),
+      ``,
+      `RECENT INTRADAY CANDLES — 1h (O/H/L/C, oldest first):`,
+      this.renderCandles(ict.intradayCandles, d),
+    ].join('\n');
+  }
+
   private renderHeader(s: MarketSnapshot): string {
     const d = s.assetClass === 'forex' ? 5 : 2;
     const q = s.quote;
@@ -508,6 +805,8 @@ export class TaperAiMarketDataService {
         .join('\n\n');
 
     switch (role) {
+      case 'ict':
+        return `${header}\n\n${this.renderICT(s)}`;
       case 'technical':
         return `${header}\n\nMULTI-TIMEFRAME PRICE STRUCTURE:\n\n${tfs(['intraday', 'daily', 'weekly'])}`;
       case 'news':
@@ -524,7 +823,7 @@ export class TaperAiMarketDataService {
           `dataGaps.\n\n${this.renderNews(s)}\n\nLONGER-TERM PRICE CONTEXT:\n\n${tfs(['daily', 'weekly'])}`
         );
       default:
-        return `${header}\n\nMULTI-TIMEFRAME PRICE STRUCTURE:\n\n${tfs(['intraday', 'daily', 'weekly'])}\n\n${this.renderNews(s)}`;
+        return `${header}\n\nMULTI-TIMEFRAME PRICE STRUCTURE:\n\n${tfs(['intraday', 'daily', 'weekly'])}\n\n${this.renderICT(s)}\n\n${this.renderNews(s)}`;
     }
   }
 
