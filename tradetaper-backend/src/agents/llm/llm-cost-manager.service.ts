@@ -1,7 +1,8 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
 import { ConfigService } from '@nestjs/config';
+import { DataSource } from 'typeorm';
 
 /**
  * LLM Cost Manager Service
@@ -117,6 +118,7 @@ export class LLMCostManagerService {
   constructor(
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
     private configService: ConfigService,
+    @Optional() private readonly dataSource?: DataSource,
   ) {}
 
   calculateCost(
@@ -167,14 +169,27 @@ export class LLMCostManagerService {
 
   async getUserBudget(userId: string): Promise<UserBudget> {
     const subscriptionTier = await this.getUserSubscriptionTier(userId);
-    const monthlyBudgets = {
-      free: 1.0,
-      basic: 5.0,
-      pro: 25.0,
+    // Keys must match the subscriptions.tier enum (free/essential/premium).
+    // The old map used basic/pro/enterprise, which no tier ever equals, so
+    // every lookup fell through to the free budget. Sized against a Desk run
+    // costing ~$0.60: free ≈ 5 runs, essential ≈ 25, premium ≈ 80 per month.
+    const monthlyBudgets: Record<string, number> = {
+      free: 3.0,
+      essential: 15.0,
+      premium: 50.0,
+      // Retained so any legacy tier values still resolve sensibly.
+      basic: 15.0,
+      pro: 50.0,
       enterprise: 1000.0,
     };
+    const rawOverride = this.configService
+      .get<string>(`AI_BUDGET_${subscriptionTier.toUpperCase()}`)
+      ?.trim();
+    const envOverride = rawOverride ? Number(rawOverride) : NaN;
     const monthlyBudget =
-      monthlyBudgets[subscriptionTier] || monthlyBudgets.free;
+      Number.isFinite(envOverride) && envOverride > 0
+        ? envOverride
+        : (monthlyBudgets[subscriptionTier] ?? monthlyBudgets.free);
     const currentUsage = await this.getUserMonthlyUsage(userId);
     const now = new Date();
     const resetDate = new Date(now.getFullYear(), now.getMonth() + 1, 1);
@@ -254,10 +269,39 @@ export class LLMCostManagerService {
     await this.cacheManager.set(key, stats, 86400000);
   }
 
+  /**
+   * Resolve the user's tier from their subscription.
+   *
+   * This previously read a cache key that nothing ever wrote, so every user —
+   * including paying ones — resolved to 'free'. With a Desk run costing ~$0.60
+   * against a $1 free budget, that allowed exactly one run per user per month.
+   * Falls back to 'free' only when the subscription genuinely can't be read.
+   */
   private async getUserSubscriptionTier(userId: string): Promise<string> {
     const key = `user-tier:${userId}`;
-    const tier = await this.cacheManager.get<string>(key);
-    return tier || 'free';
+    const cached = await this.cacheManager.get<string>(key);
+    if (cached) return cached;
+
+    if (!this.dataSource?.isInitialized) return 'free';
+
+    try {
+      const rows = await this.dataSource.query(
+        `SELECT tier FROM subscriptions
+          WHERE "userId" = $1 AND status IN ('active', 'trialing')
+          ORDER BY "createdAt" DESC
+          LIMIT 1`,
+        [userId],
+      );
+      const tier = rows?.[0]?.tier ?? 'free';
+      // Short TTL so an upgrade takes effect without a redeploy.
+      await this.cacheManager.set(key, tier, 300_000);
+      return tier;
+    } catch (err: any) {
+      this.logger.warn(
+        `Could not resolve subscription tier for ${userId}: ${err.message}`,
+      );
+      return 'free';
+    }
   }
 
   private getCurrentYearMonth(): string {
