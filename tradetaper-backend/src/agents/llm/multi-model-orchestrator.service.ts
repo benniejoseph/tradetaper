@@ -381,7 +381,17 @@ export class MultiModelOrchestratorService {
 
     const generationConfig: any = {
       temperature: request.temperature ?? 0.7,
-      maxOutputTokens: request.maxTokens ?? 2048,
+      // Gemini's 2.5+/3.x models spend part of maxOutputTokens on hidden
+      // "thinking" tokens before any visible output — confirmed directly
+      // against the API: a trivial prompt used ~350-400 thinking tokens
+      // before a one-sentence JSON reply. Against the desk's real ICT/
+      // multi-timeframe prompts (much larger than that test), a tight
+      // ceiling like the caller's raw maxTokens (1400 for analysts) got
+      // consumed entirely by thinking, leaving response.text() empty and
+      // every analyst silently parseError'd. gemini-2.5-pro also can't
+      // disable thinking at all (rejects thinkingBudget: 0), so the fix has
+      // to be a generous shared ceiling, not a per-model thinkingConfig.
+      maxOutputTokens: Math.max((request.maxTokens ?? 2048) + 4096, 4096),
     };
 
     // Force JSON output if requested
