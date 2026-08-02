@@ -9,6 +9,7 @@ import ThesisCard from '@/components/desk/ThesisCard';
 import DeskAnalytics from '@/components/desk/DeskAnalytics';
 import HorizonPanel from '@/components/desk/HorizonPanel';
 import ICTPanel from '@/components/desk/ICTPanel';
+import ConfluencePanel from '@/components/desk/ConfluencePanel';
 import NewsPanel from '@/components/desk/NewsPanel';
 import DebateTranscript from '@/components/desk/DebateTranscript';
 
@@ -181,6 +182,7 @@ export default function DeskPage() {
                 <ThesisCard run={selected} />
                 <HorizonPanel run={selected} />
                 <ICTPanel run={selected} />
+                <ConfluencePanel run={selected} />
                 <DeskAnalytics run={selected} />
                 <NewsPanel run={selected} />
                 {selected.stages && <DebateTranscript stages={selected.stages} />}

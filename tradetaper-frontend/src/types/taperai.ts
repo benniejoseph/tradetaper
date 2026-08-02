@@ -103,9 +103,33 @@ export interface MarketSnapshot {
   };
   timeframes: Partial<Record<'intraday' | 'daily' | 'weekly', TimeframeStats>>;
   ict?: ICTContext | null;
+  backtests?: BacktestSummary | null;
   news: NewsItem[];
   newsWindowDays: number;
   errors: string[];
+}
+
+export interface BacktestCheck {
+  name: string;
+  description: string;
+  forwardDays: number;
+  sampleSize: number;
+  winRatePct: number | null;
+  avgForwardReturnPct: number | null;
+  lowConfidence: boolean;
+}
+
+export interface BacktestSummary {
+  historyDays: number;
+  checks: BacktestCheck[];
+}
+
+export interface ConfluenceScorecard {
+  netScore: number;
+  label: string;
+  votes: { role: string; stance: string; confidence: number }[];
+  groups: { bullish: string[]; bearish: string[]; neutral: string[] };
+  ictVsTechnical: 'agree' | 'conflict' | 'incomplete';
 }
 
 export interface DeskVerdict {
@@ -171,11 +195,14 @@ export interface DeskStages {
   context?: string;
   snapshot?: MarketSnapshot;
   analysts?: Record<string, AnalystReport>;
+  confluence?: ConfluenceScorecard;
   debate?: DebateEntry[];
   personaOpinions?: Record<string, PersonaOpinion>;
   trader?: Record<string, unknown> & {
     horizons?: Partial<Record<HorizonKey, HorizonRead>>;
     timeframeConflict?: string;
+    confluenceAlignment?: string;
+    historicalEdgeNote?: string;
   };
   risk?: {
     adjustedConviction?: number;
