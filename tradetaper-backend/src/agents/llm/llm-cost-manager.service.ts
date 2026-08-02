@@ -58,10 +58,15 @@ export class LLMCostManagerService {
 
   // Model pricing (as of 2024/2025 - update regularly)
   private readonly modelPricing: Map<string, ModelPricing> = new Map([
+    // gemini-3-pro-preview and the gemini-1.5-* series were retired by
+    // Google (404 on generateContent) and replaced in the model config
+    // (multi-model-orchestrator.service.ts) with verified-working IDs;
+    // pricing keys renamed to match so cost tracking stays accurate rather
+    // than silently falling back to a default rate.
     [
-      'gemini-3-pro-preview',
+      'gemini-2.5-pro',
       {
-        model: 'gemini-3-pro-preview',
+        model: 'gemini-2.5-pro',
         provider: 'google',
         promptCostPer1K: 0.00125,
         completionCostPer1K: 0.005,
@@ -70,25 +75,14 @@ export class LLMCostManagerService {
       },
     ],
     [
-      'gemini-1.5-flash',
+      'gemini-3.5-flash',
       {
-        model: 'gemini-1.5-flash',
+        model: 'gemini-3.5-flash',
         provider: 'google',
         promptCostPer1K: 0.0001875,
         completionCostPer1K: 0.000375,
         contextWindow: 1000000,
         recommended: true,
-      },
-    ],
-    [
-      'gemini-1.5-pro',
-      {
-        model: 'gemini-1.5-pro',
-        provider: 'google',
-        promptCostPer1K: 0.00125,
-        completionCostPer1K: 0.005,
-        contextWindow: 2000000,
-        recommended: false,
       },
     ],
     [
@@ -226,13 +220,13 @@ export class LLMCostManagerService {
     let recommendedModels: string[];
     switch (taskComplexity) {
       case 'simple':
-        recommendedModels = ['gemini-1.5-flash'];
+        recommendedModels = ['gemini-3.5-flash'];
         break;
       case 'medium':
-        recommendedModels = ['gemini-1.5-flash'];
+        recommendedModels = ['gemini-3.5-flash'];
         break;
       case 'complex':
-        recommendedModels = ['gemini-3-pro-preview', 'gemini-1.5-pro'];
+        recommendedModels = ['gemini-2.5-pro'];
         break;
     }
     if (maxCost) {
@@ -241,7 +235,7 @@ export class LLMCostManagerService {
         return pricing && pricing.promptCostPer1K <= maxCost;
       });
     }
-    return recommendedModels[0] || 'gemini-1.5-flash';
+    return recommendedModels[0] || 'gemini-3.5-flash';
   }
 
   async getSystemStats(): Promise<any> {

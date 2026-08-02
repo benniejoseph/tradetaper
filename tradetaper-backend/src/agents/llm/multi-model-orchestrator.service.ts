@@ -75,24 +75,23 @@ export class MultiModelOrchestratorService {
       enabled: false, // Enabled at init when ANTHROPIC_API_KEY is present
       maxRetries: 2,
     },
+    // 'gemini-3-pro-preview' and the 'gemini-1.5-*' series were retired by
+    // Google (404 on generateContent — 1.5 fully sunset, 3-pro-preview
+    // sunset despite still listing in ListModels) and left this fallback
+    // chain non-functional: when Anthropic billing lapsed, every model in
+    // the chain 404'd and the Desk had a silent 100% outage instead of a
+    // degraded one. Replaced with verified-working current model IDs.
     {
-      name: 'gemini-3-pro-preview',
+      name: 'gemini-2.5-pro',
       provider: 'google',
       priority: 1, // Advanced reasoning fallback
       enabled: true,
       maxRetries: 3,
     },
     {
-      name: 'gemini-1.5-pro',
+      name: 'gemini-3.5-flash',
       provider: 'google',
       priority: 2,
-      enabled: true,
-      maxRetries: 2,
-    },
-    {
-      name: 'gemini-1.5-flash',
-      provider: 'google',
-      priority: 3,
       enabled: true,
       maxRetries: 2,
     },
@@ -291,14 +290,14 @@ export class MultiModelOrchestratorService {
     if (optimizeFor === 'cost') {
       // Use flash for simple/medium to save cost
       return complexity === 'complex'
-        ? 'gemini-3-pro-preview'
-        : 'gemini-1.5-flash';
+        ? 'gemini-2.5-pro'
+        : 'gemini-3.5-flash';
     } else if (optimizeFor === 'quality') {
       // Best available model: Claude Opus when configured, else Gemini
-      return claudeEnabled ? 'claude-opus-4-8' : 'gemini-3-pro-preview';
+      return claudeEnabled ? 'claude-opus-4-8' : 'gemini-2.5-pro';
     } else {
       // Speed
-      return 'gemini-1.5-flash';
+      return 'gemini-3.5-flash';
     }
   }
 
