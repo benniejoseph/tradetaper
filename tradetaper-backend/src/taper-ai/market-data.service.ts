@@ -116,6 +116,30 @@ export interface ICTContext {
   intradayCandles: Candle[];
 }
 
+/**
+ * Result of one deterministic backtest check, run over this instrument's own
+ * fetched daily history. This is not a generic claim ("ICT teaching says
+ * X") — it's a measured statistic on the actual symbol being analyzed, which
+ * is exactly the kind of bespoke, on-demand quantitative check that generic
+ * research tools don't do inline. Small samples are flagged, never hidden.
+ */
+export interface BacktestCheck {
+  name: string;
+  description: string;
+  forwardDays: number;
+  sampleSize: number;
+  winRatePct: number | null;
+  avgForwardReturnPct: number | null;
+  /** True when sampleSize is too small to be more than a curiosity. */
+  lowConfidence: boolean;
+}
+
+export interface BacktestSummary {
+  /** Trading days of daily history actually available for the backtest. */
+  historyDays: number;
+  checks: BacktestCheck[];
+}
+
 export interface MarketSnapshot {
   symbol: string;
   resolvedSymbol: string;
@@ -135,6 +159,7 @@ export interface MarketSnapshot {
   };
   timeframes: Partial<Record<Timeframe, TimeframeStats>>;
   ict: ICTContext | null;
+  backtests: BacktestSummary | null;
   news: NewsItem[];
   newsWindowDays: number;
   errors: string[];
@@ -617,6 +642,97 @@ export class TaperAiMarketDataService {
     };
   }
 
+  // ---- backtests ----------------------------------------------------------
+  // Deterministic, run on THIS instrument's own fetched history — not a
+  // generic claim from teaching material. Each check reports its own sample
+  // size and forward return; small samples are flagged via lowConfidence
+  // rather than hidden, so the LLM (and the reader) can weight them honestly.
+
+  private forwardReturnPct(bars: Candle[], fromIdx: number, days: number): number | null {
+    const toIdx = fromIdx + days;
+    if (toIdx >= bars.length) return null;
+    const entry = bars[fromIdx].close;
+    if (!entry) return null;
+    return ((bars[toIdx].close - entry) / entry) * 100;
+  }
+
+  /**
+   * Tests the ICT premium/discount rule empirically: at each historical bar,
+   * classify price vs its trailing 20-day equilibrium, then measure the
+   * actual forward return. Discount days SHOULD (per methodology) tend
+   * toward positive forward returns; premium days toward negative. This
+   * either supports or undercuts the rule for THIS specific instrument.
+   */
+  private backtestPremiumDiscount(daily: Candle[], forwardDays = 5): BacktestCheck[] {
+    if (daily.length < 40) return [];
+    const discountReturns: number[] = [];
+    const premiumReturns: number[] = [];
+
+    for (let i = 20; i < daily.length - forwardDays; i++) {
+      const window = daily.slice(i - 20, i);
+      const eq = (Math.max(...window.map((b) => b.high)) + Math.min(...window.map((b) => b.low))) / 2;
+      const price = daily[i].close;
+      if (!eq || !price) continue;
+      const fwd = this.forwardReturnPct(daily, i, forwardDays);
+      if (fwd == null) continue;
+      if (price < eq) discountReturns.push(fwd);
+      else if (price > eq) premiumReturns.push(fwd);
+    }
+
+    const summarize = (label: string, samples: number[], directionNote: string): BacktestCheck => ({
+      name: `${label} → forward ${forwardDays}d return`,
+      description: `Historical ${forwardDays}-trading-day return after price closed in ${label.toLowerCase()} of its trailing 20-day range. ${directionNote}`,
+      forwardDays,
+      sampleSize: samples.length,
+      winRatePct: samples.length ? Math.round((samples.filter((r) => r > 0).length / samples.length) * 1000) / 10 : null,
+      avgForwardReturnPct: samples.length ? Math.round((samples.reduce((a, b) => a + b, 0) / samples.length) * 100) / 100 : null,
+      lowConfidence: samples.length < 20,
+    });
+
+    return [
+      summarize('Discount', discountReturns, 'Methodology predicts this should skew positive (long bias).'),
+      summarize('Premium', premiumReturns, 'Methodology predicts this should skew negative (short bias).'),
+    ];
+  }
+
+  /**
+   * Tests the liquidity-sweep-reversal ("Turtle Soup") idea: bars where the
+   * low undercut the prior 10-day low by a small margin and then closed
+   * back above that prior low within the same bar (a swept-and-reclaimed
+   * day), measured against forward return.
+   */
+  private backtestSweepReversal(daily: Candle[], forwardDays = 5): BacktestCheck | null {
+    if (daily.length < 40) return null;
+    const returns: number[] = [];
+    for (let i = 10; i < daily.length - forwardDays; i++) {
+      const priorLow = Math.min(...daily.slice(i - 10, i).map((b) => b.low));
+      const bar = daily[i];
+      const sweptAndReclaimed = bar.low < priorLow && bar.close > priorLow;
+      if (!sweptAndReclaimed) continue;
+      const fwd = this.forwardReturnPct(daily, i, forwardDays);
+      if (fwd != null) returns.push(fwd);
+    }
+    if (!returns.length) return null;
+    return {
+      name: `Swept 10D low + reclaimed → forward ${forwardDays}d return`,
+      description: `Days where price broke the prior 10-day low intraday but closed back above it (a liquidity sweep + reclaim). Methodology predicts this should skew positive.`,
+      forwardDays,
+      sampleSize: returns.length,
+      winRatePct: Math.round((returns.filter((r) => r > 0).length / returns.length) * 1000) / 10,
+      avgForwardReturnPct: Math.round((returns.reduce((a, b) => a + b, 0) / returns.length) * 100) / 100,
+      lowConfidence: returns.length < 15,
+    };
+  }
+
+  private runBacktests(daily: Candle[] | null): BacktestSummary | null {
+    if (!daily || daily.length < 40) return null;
+    const checks: BacktestCheck[] = [
+      ...this.backtestPremiumDiscount(daily),
+      ...([this.backtestSweepReversal(daily)].filter((c): c is BacktestCheck => c != null)),
+    ];
+    return { historyDays: daily.length, checks };
+  }
+
   private stats(label: string, bars: Candle[], recentCount: number): TimeframeStats {
     const closes = bars.map((b) => b.close);
     return {
@@ -679,6 +795,9 @@ export class TaperAiMarketDataService {
     const ict = this.buildICTContext(daily, intradayBars, weeklyBars);
     if (!ict) errors.push('Insufficient daily history for ICT structural analysis (need 5+ bars).');
 
+    const backtests = this.runBacktests(daily);
+    if (!backtests) errors.push('Insufficient daily history (need 40+ bars) to run historical edge checks.');
+
     // De-duplicate news by title, newest first.
     const seen = new Set<string>();
     const news = [...pNews, ...nNews]
@@ -713,6 +832,7 @@ export class TaperAiMarketDataService {
       },
       timeframes,
       ict,
+      backtests,
       news,
       newsWindowDays: 7,
       errors,
@@ -773,6 +893,23 @@ export class TaperAiMarketDataService {
   }
 
   /** Deterministically-computed ICT structural context, formatted for the ICT analyst. */
+  /** Deterministic backtest results — a measured statistic on THIS instrument, not a generic teaching claim. */
+  private renderBacktests(s: MarketSnapshot): string {
+    const bt = s.backtests;
+    if (!bt || !bt.checks.length) {
+      return 'HISTORICAL EDGE CHECK: unavailable — insufficient daily history (need 40+ bars).';
+    }
+    return [
+      `HISTORICAL EDGE CHECK (measured on this instrument's own ${bt.historyDays}-bar daily history — use to confirm or challenge the methodology's claims, not as a standalone signal):`,
+      ...bt.checks.map((c) => {
+        const flag = c.lowConfidence ? '  [SMALL SAMPLE — treat as directional only]' : '';
+        return c.sampleSize
+          ? `  ${c.name}: n=${c.sampleSize}, win rate ${this.f(c.winRatePct, 1)}%, avg return ${this.f(c.avgForwardReturnPct, 2)}%${flag}`
+          : `  ${c.name}: no qualifying instances in the available history`;
+      }),
+    ].join('\n');
+  }
+
   private renderICT(s: MarketSnapshot): string {
     const ict = s.ict;
     if (!ict) {
@@ -821,6 +958,8 @@ export class TaperAiMarketDataService {
       ``,
       `RECENT INTRADAY CANDLES — 1h (O/H/L/C, oldest first):`,
       this.renderCandles(ict.intradayCandles, d),
+      ``,
+      this.renderBacktests(s),
     ].join('\n');
   }
 
