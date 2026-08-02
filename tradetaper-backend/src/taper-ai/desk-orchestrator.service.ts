@@ -94,9 +94,12 @@ export class DeskOrchestratorService {
         }),
       );
       const analysts = Object.fromEntries(analystEntries);
+      const confluence = this.buildConfluenceScorecard(analysts);
 
       // ---- Stage 2: bull/bear debate ------------------------------------
-      const reportsBlock = `${contextBlock}\n\nANALYST REPORTS:\n${JSON.stringify(analysts, null, 2)}`;
+      const reportsBlock =
+        `${contextBlock}\n\nANALYST REPORTS:\n${JSON.stringify(analysts, null, 2)}` +
+        `\n\n${this.renderConfluenceScorecard(confluence)}`;
 
       const bull = this.parseJson(
         track(
@@ -222,6 +225,7 @@ export class DeskOrchestratorService {
         context,
         snapshot,
         analysts,
+        confluence,
         debate,
         personaOpinions,
         trader,
@@ -290,5 +294,84 @@ export class DeskOrchestratorService {
     const n = Number(value);
     if (!Number.isFinite(n)) return 0;
     return Math.max(0, Math.min(100, Math.round(n)));
+  }
+
+  // ---- confluence scorecard -----------------------------------------------
+  // Deterministic cross-analyst aggregation, computed in code rather than
+  // asked of the trader freehand. Previously the trader had to eyeball five
+  // raw JSON blobs and synthesize agreement/conflict itself — error-prone and
+  // inconsistent run to run. This gives every downstream stage (debate,
+  // trader, risk, PM) the same computed starting point.
+
+  private buildConfluenceScorecard(analysts: Record<string, any>): {
+    netScore: number;
+    label: string;
+    votes: { role: string; stance: string; confidence: number }[];
+    groups: { bullish: string[]; bearish: string[]; neutral: string[] };
+    ictVsTechnical: 'agree' | 'conflict' | 'incomplete';
+  } {
+    const votes: { role: string; stance: string; confidence: number }[] = [];
+    for (const [role, report] of Object.entries(analysts)) {
+      const stance = report?.stance;
+      if (stance !== 'bullish' && stance !== 'bearish' && stance !== 'neutral') continue;
+      const confidence = Number(report?.confidence);
+      votes.push({ role, stance, confidence: Number.isFinite(confidence) ? confidence : 50 });
+    }
+
+    const bullishWeight = votes.filter((v) => v.stance === 'bullish').reduce((s, v) => s + v.confidence, 0);
+    const bearishWeight = votes.filter((v) => v.stance === 'bearish').reduce((s, v) => s + v.confidence, 0);
+    const totalWeight = votes.reduce((s, v) => s + v.confidence, 0);
+    const netScore = totalWeight > 0 ? Math.round(((bullishWeight - bearishWeight) / totalWeight) * 100) : 0;
+
+    const bullishCount = votes.filter((v) => v.stance === 'bullish').length;
+    const bearishCount = votes.filter((v) => v.stance === 'bearish').length;
+    let label: string;
+    if (Math.abs(netScore) >= 40 && Math.max(bullishCount, bearishCount) >= 3) {
+      label = netScore > 0 ? 'strong bullish confluence' : 'strong bearish confluence';
+    } else if (Math.abs(netScore) >= 15) {
+      label = netScore > 0 ? 'lean bullish' : 'lean bearish';
+    } else {
+      label = 'mixed / conflicted';
+    }
+
+    const groups = {
+      bullish: votes.filter((v) => v.stance === 'bullish').map((v) => v.role),
+      bearish: votes.filter((v) => v.stance === 'bearish').map((v) => v.role),
+      neutral: votes.filter((v) => v.stance === 'neutral').map((v) => v.role),
+    };
+
+    // ICT and classical technical are the desk's two structural/price-action
+    // lenses; the trader prompt already treats their agreement as a stronger
+    // signal, so surface that comparison explicitly rather than making the
+    // trader re-derive it from the raw reports.
+    const ictStance = analysts?.ict?.stance;
+    const techStance = analysts?.technical?.stance;
+    let ictVsTechnical: 'agree' | 'conflict' | 'incomplete' = 'incomplete';
+    if (
+      (ictStance === 'bullish' || ictStance === 'bearish') &&
+      (techStance === 'bullish' || techStance === 'bearish')
+    ) {
+      ictVsTechnical = ictStance === techStance ? 'agree' : 'conflict';
+    }
+
+    return { netScore, label, votes, groups, ictVsTechnical };
+  }
+
+  private renderConfluenceScorecard(scorecard: ReturnType<DeskOrchestratorService['buildConfluenceScorecard']>): string {
+    const { netScore, label, votes, groups, ictVsTechnical } = scorecard;
+    const voteLine = votes.map((v) => `${v.role}=${v.stance}(${v.confidence})`).join(', ');
+    const ictNote =
+      ictVsTechnical === 'agree'
+        ? 'ICT and Technical AGREE — treat this as materially stronger signal.'
+        : ictVsTechnical === 'conflict'
+          ? 'ICT and Technical CONFLICT — state which is driving the near-term vs longer-term view.'
+          : 'ICT vs Technical comparison incomplete (one or both missing/neutral).';
+    return [
+      `DESK CONFLUENCE SCORECARD (computed deterministically from analyst stances/confidence — weigh alongside, not instead of, the individual reports):`,
+      `  Net directional score: ${netScore > 0 ? '+' : ''}${netScore} (-100 fully bearish, +100 fully bullish) — ${label}`,
+      `  Votes: ${voteLine || 'none parsed'}`,
+      `  Bullish: ${groups.bullish.join(', ') || 'none'} | Bearish: ${groups.bearish.join(', ') || 'none'} | Neutral: ${groups.neutral.join(', ') || 'none'}`,
+      `  ${ictNote}`,
+    ].join('\n');
   }
 }
