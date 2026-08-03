@@ -143,10 +143,18 @@ export class MultiModelOrchestratorService {
     }
 
     try {
-      const anthropicKey = this.secretsService.getSecret('ANTHROPIC_API_KEY', {
-        cache: true,
-        ttl: 3600,
-      });
+      // Anthropic is intentionally disabled by default — the desk runs on
+      // Gemini only. Set ANTHROPIC_ENABLED=true to opt back in (e.g. once
+      // account credits are restored); the integration is otherwise left
+      // fully intact below so re-enabling needs no code change.
+      const anthropicEnabled =
+        this.configService.get<string>('ANTHROPIC_ENABLED') === 'true';
+      const anthropicKey = anthropicEnabled
+        ? this.secretsService.getSecret('ANTHROPIC_API_KEY', {
+            cache: true,
+            ttl: 3600,
+          })
+        : null;
       if (anthropicKey) {
         this.anthropicClient = new Anthropic({ apiKey: anthropicKey });
         this.models.forEach((m) => {
@@ -154,8 +162,8 @@ export class MultiModelOrchestratorService {
         });
         this.logger.log('✓ Anthropic client initialized');
       } else {
-        this.logger.warn(
-          'Anthropic API key not found - Claude models disabled',
+        this.logger.log(
+          'Anthropic disabled — desk runs on Gemini only (set ANTHROPIC_ENABLED=true to opt back in)',
         );
       }
     } catch (error) {
