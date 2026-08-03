@@ -52,6 +52,15 @@ export interface LLMResponse {
   };
 }
 
+/**
+ * Gemini models that reject the thinkingConfig.thinkingLevel parameter
+ * outright (400 "Thinking level is not supported for this model") because
+ * they require thinking mode on with no way to disable it — verified
+ * directly against the API. Extend this set if a future model added to
+ * `models` below turns out to have the same restriction.
+ */
+const NO_THINKING_LEVEL_SUPPORT = new Set(['gemini-2.5-pro']);
+
 interface ModelConfig {
   name: string;
   provider: 'google' | 'openai' | 'anthropic';
@@ -384,15 +393,26 @@ export class MultiModelOrchestratorService {
       // Gemini's 2.5+/3.x models spend part of maxOutputTokens on hidden
       // "thinking" tokens before any visible output — confirmed directly
       // against the API: a trivial prompt used ~350-400 thinking tokens
-      // before a one-sentence JSON reply. Against the desk's real ICT/
-      // multi-timeframe prompts (much larger than that test), a tight
-      // ceiling like the caller's raw maxTokens (1400 for analysts) got
-      // consumed entirely by thinking, leaving response.text() empty and
-      // every analyst silently parseError'd. gemini-2.5-pro also can't
-      // disable thinking at all (rejects thinkingBudget: 0), so the fix has
-      // to be a generous shared ceiling, not a per-model thinkingConfig.
+      // before a one-sentence JSON reply. Kept as a safety-net floor for
+      // every model (including gemini-2.5-pro below, which can't disable
+      // thinking at all) even though thinkingLevel now removes the
+      // overhead for models that support it — cheap insurance against a
+      // future model needing more thinking room than expected.
       maxOutputTokens: Math.max((request.maxTokens ?? 2048) + 4096, 4096),
     };
+
+    // The desk's calls are all deterministic structured-JSON completions
+    // (interpret pre-computed scaffolding, don't reason from scratch) — they
+    // don't need extended thinking, and the analyst schemas are small enough
+    // that thinking overhead was the actual cause of the empty-response bug
+    // above. thinkingLevel: 'minimal' verified directly against the API to
+    // drop thoughtsTokenCount to 0 on gemini-3.5-flash. gemini-2.5-pro
+    // rejects the parameter outright ("Thinking level is not supported for
+    // this model" — it requires thinking mode on with no way to disable),
+    // so it's excluded here and relies on the padded ceiling above instead.
+    if (!NO_THINKING_LEVEL_SUPPORT.has(modelConfig.name)) {
+      generationConfig.thinkingConfig = { thinkingLevel: 'minimal' };
+    }
 
     // Force JSON output if requested
     if (request.requireJson) {
