@@ -3,8 +3,11 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { DeskRun } from './entities/desk-run.entity';
 import { DeskOrchestratorService } from './desk-orchestrator.service';
+import { DeskTaskQueueService } from './desk-task-queue.service';
 import { TaperAiMarketDataService } from './market-data.service';
 import { TaperAiController } from './taper-ai.controller';
+import { DeskInternalController } from './desk-internal.controller';
+import { InternalTaskGuard } from './guards/internal-task.guard';
 import { AgentsModule } from '../agents/agents.module';
 
 /**
@@ -22,8 +25,13 @@ import { AgentsModule } from '../agents/agents.module';
     TypeOrmModule.forFeature([DeskRun]),
     AgentsModule, // MultiModelOrchestratorService (LLM routing, cost, cache)
   ],
-  controllers: [TaperAiController],
-  providers: [DeskOrchestratorService, TaperAiMarketDataService],
+  controllers: [TaperAiController, DeskInternalController],
+  providers: [
+    DeskOrchestratorService,
+    DeskTaskQueueService,
+    TaperAiMarketDataService,
+    InternalTaskGuard,
+  ],
   exports: [DeskOrchestratorService],
 })
 export class TaperAiModule {}

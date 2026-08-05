@@ -29,8 +29,17 @@ import {
  *           → persona opinions (parallel) → trader → risk → PM verdict
  *
  * Every stage is persisted on the DeskRun so the frontend can render the
- * full debate transcript. Runs execute async in-process for v1; move to a
- * BullMQ queue when volume justifies it (see PRODUCT_PLAN.md Phase 2).
+ * full debate transcript.
+ *
+ * Execution is triggered via Cloud Tasks (DeskTaskQueueService +
+ * DeskInternalController), not a fire-and-forget promise inside the request
+ * that creates the run — that older pattern kept running after the HTTP
+ * response returned, which only worked reliably with an always-on Cloud Run
+ * instance (min-instances=1, CPU throttling disabled) costing ~$60-70/mo.
+ * runToCompletion() below is awaited synchronously by DeskInternalController
+ * inside a Cloud-Tasks-delivered request, so the whole pipeline runs inside
+ * one tracked HTTP request/response cycle and the service can scale to zero
+ * between runs.
  */
 @Injectable()
 export class DeskOrchestratorService {
@@ -43,12 +52,9 @@ export class DeskOrchestratorService {
     private readonly marketData: TaperAiMarketDataService,
   ) {}
 
-  /** Kick off a run without blocking the request. */
-  async startRun(run: DeskRun): Promise<void> {
-    // Deliberately not awaited by the controller; errors are captured on the run.
-    this.execute(run.id).catch((err) => {
-      this.logger.error(`Desk run ${run.id} crashed: ${err.message}`);
-    });
+  /** Synchronous entry point called by DeskInternalController — awaited fully. */
+  async runToCompletion(runId: string): Promise<void> {
+    return this.execute(runId);
   }
 
   private async execute(runId: string): Promise<void> {

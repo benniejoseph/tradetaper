@@ -16,7 +16,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { DeskRun } from './entities/desk-run.entity';
-import { DeskOrchestratorService } from './desk-orchestrator.service';
+import { DeskTaskQueueService } from './desk-task-queue.service';
 import { CreateDeskRunDto } from './dto/create-desk-run.dto';
 
 @Controller('taper-ai/desk')
@@ -25,12 +25,14 @@ export class TaperAiController {
   constructor(
     @InjectRepository(DeskRun)
     private readonly deskRunRepo: Repository<DeskRun>,
-    private readonly desk: DeskOrchestratorService,
+    private readonly taskQueue: DeskTaskQueueService,
   ) {}
 
   /**
    * Start a Desk run for a symbol. Returns immediately with the pending
    * run; the client polls GET /:id (or listens on websocket later).
+   * Execution itself happens via Cloud Tasks (DeskInternalController), not
+   * in-process — see DeskTaskQueueService for why.
    * Strict throttle: each run fires ~12 LLM calls.
    */
   @Post('runs')
@@ -47,7 +49,16 @@ export class TaperAiController {
         status: 'pending',
       }),
     );
-    await this.desk.startRun(run);
+    try {
+      await this.taskQueue.enqueueRun(run.id);
+    } catch (err: any) {
+      // Without this, a Cloud Tasks misconfiguration would leave the run
+      // silently stuck in 'pending' forever with no execution ever
+      // triggered — fail it visibly instead.
+      run.status = 'failed';
+      run.error = `Failed to enqueue: ${err.message}`;
+      await this.deskRunRepo.save(run);
+    }
     return run;
   }
 
