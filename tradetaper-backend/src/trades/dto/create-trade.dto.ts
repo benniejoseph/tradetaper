@@ -152,6 +152,10 @@ export class CreateTradeDto {
   externalDealId?: string;
 
   @IsOptional()
+  @IsString()
+  externalCloseDealId?: string;
+
+  @IsOptional()
   @IsNumber()
   mt5Magic?: number;
 

@@ -193,8 +193,10 @@ export class TradeProcessorService {
         swap: trade.swap,
         notes: `Auto-synced via Position ID: ${trade.positionId}`,
         accountId,
-        stopLoss: trade.stopLoss,
-        takeProfit: trade.takeProfit,
+        // 0 means "not set" in MT5, not a real level — normalize so it's
+        // never confused for an actual SL/TP downstream.
+        stopLoss: trade.stopLoss ? trade.stopLoss : undefined,
+        takeProfit: trade.takeProfit ? trade.takeProfit : undefined,
         externalId: positionIdString,
         externalDealId: trade.ticket,
         mt5Magic: trade.magic,
@@ -221,6 +223,7 @@ export class TradeProcessorService {
   ): Promise<ProcessDealResult> {
     const normalizedOpenTime = this.normalizeTerminalTime(trade.openTime);
     const positionIdString = trade.positionId!.toString();
+    const dealTicket = trade.ticket?.toString();
 
     // [BUG3 FIX] If positionId lookup missed (e.g. gold/commodities broker quirk),
     // try a fuzzy lookup: find any OPEN trade for same symbol opened near this time.
@@ -259,12 +262,33 @@ export class TradeProcessorService {
         };
       }
 
+      // True idempotency check. The EA deliberately re-sends deals from up
+      // to 1 day before its last sync on EVERY cycle ("safety overlap" — see
+      // SyncDealHistoryIncremental in TradeTaperSync.mq5), so this exact
+      // exit deal can be delivered more than once. The old guard
+      // (`status===CLOSED && contractSize`) was a proxy that failed open —
+      // any trade where contractSize wasn't captured would silently
+      // reprocess on every redelivery, adding commission/swap again each
+      // time. Comparing the specific deal ticket that closed this trade is
+      // the only way to guarantee a duplicate is a true no-op.
       if (
         resolvedTrade.status === TradeStatus.CLOSED &&
-        resolvedTrade.contractSize
+        resolvedTrade.externalCloseDealId &&
+        resolvedTrade.externalCloseDealId === dealTicket
       ) {
-        return { action: 'skipped' };
+        return { action: 'skipped', reason: 'Exit deal already applied' };
       }
+
+      // MT5 docs: exit deals carry "the Stop Loss/Take Profit of a position
+      // as at the time of position closing" — the definitive final value,
+      // and the ONLY source for it if the position closed faster than the
+      // live-position poll (SyncPositions, every 15s) could catch a late
+      // SL/TP modification. Previously this was fetched but never written
+      // to the update, so it was silently discarded on every close. 0 means
+      // "not set" in MT5, not a real level — never let it downgrade a good
+      // value already on record.
+      const exitStopLoss = trade.stopLoss ? trade.stopLoss : undefined;
+      const exitTakeProfit = trade.takeProfit ? trade.takeProfit : undefined;
 
       const updatedTrade = await this.tradesService.update(
         resolvedTrade.id,
@@ -278,6 +302,11 @@ export class TradeProcessorService {
             (trade.commission || 0),
           swap: parseFloat(String(resolvedTrade.swap || 0)) + (trade.swap || 0),
           contractSize: trade.contractSize,
+          ...(exitStopLoss !== undefined ? { stopLoss: exitStopLoss } : {}),
+          ...(exitTakeProfit !== undefined
+            ? { takeProfit: exitTakeProfit }
+            : {}),
+          externalCloseDealId: dealTicket,
         },
         { id: userId } as any,
         { changeSource: 'mt5' },
@@ -400,12 +429,13 @@ export class TradeProcessorService {
         profitOrLoss: trade.profit,
         commission: trade.commission,
         swap: trade.swap,
-        stopLoss: trade.stopLoss,
-        takeProfit: trade.takeProfit,
+        stopLoss: trade.stopLoss ? trade.stopLoss : undefined,
+        takeProfit: trade.takeProfit ? trade.takeProfit : undefined,
         notes: `⚠️ Orphan Exit (entry missing). Position ID: ${trade.positionId}`,
         accountId,
         externalId: positionIdString,
         externalDealId: trade.ticket,
+        externalCloseDealId: trade.ticket,
         mt5Magic: trade.magic,
         syncSource,
       },

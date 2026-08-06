@@ -198,7 +198,17 @@ export class Trade {
   externalId?: string; // MT5 Position ID
 
   @Column({ type: 'varchar', length: 255, nullable: true })
-  externalDealId?: string; // MT5 Deal ID
+  externalDealId?: string; // MT5 Deal ID (entry)
+
+  // The MT5 ticket of the deal that CLOSED this trade. Used as a true
+  // idempotency key in processExitDeal: the EA deliberately re-sends deals
+  // from up to 1 day before its last sync on every cycle ("safety overlap"),
+  // so a closed trade's exit deal can arrive multiple times. Without this,
+  // the only duplicate guard was `status===CLOSED && contractSize` — a proxy
+  // that fails open (reprocesses and double-counts commission/swap) whenever
+  // contractSize wasn't captured.
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  externalCloseDealId?: string; // MT5 Deal ID (exit)
 
   @Column({ type: 'bigint', nullable: true })
   mt5Magic?: number;
